@@ -20,4 +20,4 @@ Execute webppl program:
 Updated compiled version of webppl for browser:
 
     npm install -g browserify
-    browserify -u node_modules/amdefine/amdefine.js src/main.js > compiled/webppl.js
+    browserify -t brfs src/main.js > compiled/webppl.js

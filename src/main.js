@@ -24,8 +24,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderFile = path.resolve(__dirname, "header.wppl");
-  var wpplHeaderAst = esprima.parse(fs.readFileSync(wpplHeaderFile));
+  var wpplHeaderAst = esprima.parse(fs.readFileSync(__dirname + "/header.wppl"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
@@ -57,3 +56,12 @@ module.exports = {
   run: run,
   compile: compile
 };
+
+// For use in browser using browserify
+if (!(typeof window === 'undefined')){
+  window.webppl = {
+    run: run,
+    compile: compile
+  };
+  console.log("webppl loaded.");
+}

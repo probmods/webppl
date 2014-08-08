@@ -1,7 +1,7 @@
 "use strict";
 
 var _ = require('underscore');
-var PriorityQueue = require('js-priority-queue');
+var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
 // Elementary Random Primitives (ERPs) are the representation of
@@ -201,10 +201,11 @@ function fw(cc, wpplFn) {
 function Enumerate(k, wpplFn, max_steps) {
 
   this.score = 0; //used to track the score of the path currently being explored
-  this.queue = new PriorityQueue(queueproperties) //queue of states that we have yet to explore
+  this.queue = new PriorityQueue(
+    function(a, b){return b.score-a.score;}); //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
-  this.steps = 0 //keep track of number of choices expanded
-    this.max_steps = max_steps || 1000
+  this.steps = 0; //keep track of number of choices expanded
+    this.max_steps = max_steps || 1000;
 
   //move old coroutine out of the way and install this as the current handler
   this.k = k;
@@ -219,13 +220,12 @@ function Enumerate(k, wpplFn, max_steps) {
 // The queue is a bunch of computation states. each state is a
 // continuation, a value to apply it to, and a score.
 //
-// This function runs the highest priority state in the queue. Currently priority is score, but could be adjusted to give depth-first or breadth-first or some other search strategy (set via queueproperties).
-var queueproperties = {comparator: function(a, b){return b.score-a.score}}
+// This function runs the highest priority state in the queue. Currently priority is score, but could be adjusted to give depth-first or breadth-first or some other search strategy
 
 Enumerate.prototype.nextInQueue = function() {
-  var next_state = this.queue.dequeue()
+  var next_state = this.queue.deq();
   this.score = next_state.score;
-  this.steps++
+  this.steps++;
   next_state.continuation(next_state.value);
 }
 
@@ -247,7 +247,7 @@ Enumerate.prototype.sample = function(cc, dist, params) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s])
     };
-      this.queue.queue(state)
+      this.queue.enq(state);
   }
 
   // Call the next state on the queue
@@ -269,7 +269,7 @@ Enumerate.prototype.exit = function(retval) {
   this.marginal[retval] += Math.exp(this.score);
 
   //if anything is left in queue do it:
-  if (this.queue.length > 0 && this.steps<this.max_steps) {
+  if (this.queue.size() > 0 && this.steps<this.max_steps) {
     this.nextInQueue();
   } else {
     var marginal = this.marginal;
