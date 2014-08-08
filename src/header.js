@@ -198,13 +198,13 @@ function fw(cc, wpplFn) {
 //
 // Depth-first enumeration of all the paths through the computation.
 
-function Enumerate(k, wpplFn, max_steps) {
+function Enumerate(k, wpplFn, max_ex) {
 
   this.score = 0; //used to track the score of the path currently being explored
   this.queue = new PriorityQueue(queueproperties) //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
-  this.steps = 0 //keep track of number of choices expanded
-    this.max_steps = max_steps || 1000
+  this.exs = 0 //keep track of number of full executions expanded
+  this.max_ex = max_ex || 1000
 
   //move old coroutine out of the way and install this as the current handler
   this.k = k;
@@ -225,7 +225,6 @@ var queueproperties = {comparator: function(a, b){return b.score-a.score}}
 Enumerate.prototype.nextInQueue = function() {
   var next_state = this.queue.dequeue()
   this.score = next_state.score;
-  this.steps++
   next_state.continuation(next_state.value);
 }
 
@@ -267,9 +266,12 @@ Enumerate.prototype.exit = function(retval) {
     this.marginal[retval] = 0;
   }
   this.marginal[retval] += Math.exp(this.score);
+    
+  //increment the completed execution counter
+  this.exs++
 
   //if anything is left in queue do it:
-  if (this.queue.length > 0 && this.steps<this.max_steps) {
+  if (this.queue.length > 0 && this.exs<this.max_ex) {
     this.nextInQueue();
   } else {
     var marginal = this.marginal;
@@ -283,8 +285,8 @@ Enumerate.prototype.exit = function(retval) {
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enu(cc, wpplFn, max_steps) {
-  return new Enumerate(cc, wpplFn, max_steps);
+function enu(cc, wpplFn, max_ex) {
+  return new Enumerate(cc, wpplFn, max_ex);
 }
 
 
