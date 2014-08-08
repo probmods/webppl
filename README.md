@@ -17,7 +17,7 @@ Execute webppl program:
 
     ./webppl examples/geometric.wppl
 
-Updated compiled version of webppl for browser:
+Compile webppl for use in browser:
 
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
