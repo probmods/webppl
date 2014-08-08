@@ -70,15 +70,14 @@ exports.testForwardSampling = {
   testGeometric: function(test) {
     var code = "var geom = function() { return flip() ? 0 : geom() }; geom()";
     var expectedHist= {
-      0: .5,
-      1: .25,
-      2: .125,
-      3: .0625,
-      4: .03125,
-      5: .015625
+      0: 0.8,
+      1: 0.16,
+      2: 0.032,
+      3: 0.0064,
+      4: 0.00128
     };
     var tolerance = .05;
-    var numSamples = 1000;
+    var numSamples = 500;
     return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
   }
 };

@@ -15,4 +15,4 @@ Run tests:
 
 Execute webppl program:
 
-    ./webppl src/example.wppl
+    ./webppl examples/geometric.wppl
