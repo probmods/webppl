@@ -8,11 +8,18 @@ var runWebPPLProgram = runWebPPL.runWebPPLProgram;
 var topK = runWebPPL.topK;
 
 var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
+  var allOk = true;
   _.each(expectedHist,
          function(expectedValue, key){
-           var value = hist[key];
-           test.ok(Math.abs(value - expectedValue) <= tolerance);
+           var value = hist[key] || 0;
+           var testPassed = Math.abs(value - expectedValue) <= tolerance;
+           test.ok(testPassed);
+           allOk = allOk && testPassed;
          });
+  if (!allOk){
+    console.log("Expected:", expectedHist);
+    console.log("Actual:", hist);
+  }
 };
 
 var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
@@ -68,7 +75,7 @@ exports.testForwardSampling = {
   },
 
   testGeometric: function(test) {
-    var code = "var geom = function() { return flip() ? 0 : geom() }; geom()";
+    var code = "var geom = function() { return flip(.8) ? 0 : 1 + geom() }; geom()";
     var expectedHist= {
       0: 0.8,
       1: 0.16,
@@ -77,7 +84,7 @@ exports.testForwardSampling = {
       4: 0.00128
     };
     var tolerance = .05;
-    var numSamples = 500;
+    var numSamples = 1000;
     return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
   }
 };
