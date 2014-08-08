@@ -1,0 +1,4 @@
+var flip = function(theta) {
+    return sample(bernoulli, [theta])
+}
+

@@ -1,0 +1,1 @@
+require("retape")(require("./index"))

@@ -1,0 +1,14 @@
+{
+  "name": "js-priority-queue",
+  "version": "0.0.4",
+  "main": "priority-queue.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "coffee",
+    "spec",
+    "spec-coffee",
+    "Gruntfile.js",
+    "package.json"
+  ]
+}

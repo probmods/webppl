@@ -1,0 +1,88 @@
+// var foo = function(a, b){
+//   if (a > b) {
+//     return a + b;
+//   } else {
+//     return a - b;
+//   }
+// };
+
+// var bar = function(c, d){
+//   return c * bar(d, 3);
+// };
+
+// var x = 1;
+// var y = 2;
+// var z = bar(foo(x, y), 3);
+
+// console.log(z);
+
+
+//foo(
+//  function(h){
+//    return function (a){return h(g(a));};
+//  }(function(x){return x;})
+//);
+
+// and(flip(), flip());
+
+//withContinuation(Forward)(function(){return coroutine.factor(1)})
+
+
+//var e = withContinuation(fw)(function(){return 12})
+
+//coroutine.sample(withContinuation(Forward)(function(){return coroutine.sample(getbern(), [0.5])}), [0])
+
+//coroutine.sample(getbern(), [0.5])
+
+//sample(fw(function(){return flip(0.5)}))
+
+// var e = cache(function (x){
+//     return Enumerate(function() {
+//                      var a = and(flip(0.5),flip(0.5));
+//                      factor(a? 2 : callPrimitive(Math.log, 0.3));
+//                      return and(a,x);
+//                      });});
+
+// Enumerate(function(){
+//           var e1 = sample(e(true));
+//           var e2 = sample(e(true));
+//             return and(e1,e2);
+//           });
+
+
+//var e = function(x){return and(x,flip(0.5))}
+//var ec = cache(e)
+//Enumerate(function(){
+//          var e1 = ec(true)
+//          var e2 = ec(true)
+//          return and(e1,e2)})
+
+
+// ParticleFilter(
+//   function(){
+//     var x = flip(0.5);
+//     var y = flip(0.5);
+//     factor(or(x, y) ? 5 : 1);
+//     var z = flip(0.5);
+//     factor(or(y, z) ? 5 : 1);
+//     return and(and(x, y), z);
+//   },
+//   100 // particles
+// );
+
+
+//Enumerate(
+//  function(){
+//    var x = flip(0.2);
+//               //factor(x?1:0)
+//    var y = flip(0.7);
+//    factor(or(x, y) ? 0 : minusInfinity);
+//    return x;
+//          }//,  100 // particles
+//);
+
+
+var geom = function() {
+    return flip(0.1) ? 0 : 1+geom()
+}
+Enumerate(geom,100);
