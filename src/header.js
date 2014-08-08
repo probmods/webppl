@@ -271,7 +271,7 @@ Enumerate.prototype.exit = function(retval) {
   this.exs++
 
   //if anything is left in queue do it:
-  if (this.queue.length > 0 && this.exs<this.max_ex) {
+  if (this.queue.size() > 0 && this.exs<this.max_ex) {
     this.nextInQueue();
   } else {
     var marginal = this.marginal;
