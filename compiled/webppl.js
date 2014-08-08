@@ -1282,309 +1282,6 @@ module.exports=require(3)
 },{}],9:[function(require,module,exports){
 module.exports=require(4)
 },{"./support/isBuffer":8,"_process":7,"inherits":5}],10:[function(require,module,exports){
-(function (process,__filename){
-/** vim: et:ts=4:sw=4:sts=4
- * @license amdefine 0.1.0 Copyright (c) 2011, The Dojo Foundation All Rights Reserved.
- * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/amdefine for details
- */
-
-/*jslint node: true */
-/*global module, process */
-'use strict';
-
-/**
- * Creates a define for node.
- * @param {Object} module the "module" object that is defined by Node for the
- * current module.
- * @param {Function} [requireFn]. Node's require function for the current module.
- * It only needs to be passed in Node versions before 0.5, when module.require
- * did not exist.
- * @returns {Function} a define function that is usable for the current node
- * module.
- */
-function amdefine(module, requireFn) {
-    'use strict';
-    var defineCache = {},
-        loaderCache = {},
-        alreadyCalled = false,
-        path = require('path'),
-        makeRequire, stringRequire;
-
-    /**
-     * Trims the . and .. from an array of path segments.
-     * It will keep a leading path segment if a .. will become
-     * the first path segment, to help with module name lookups,
-     * which act like paths, but can be remapped. But the end result,
-     * all paths that use this function should look normalized.
-     * NOTE: this method MODIFIES the input array.
-     * @param {Array} ary the array of path segments.
-     */
-    function trimDots(ary) {
-        var i, part;
-        for (i = 0; ary[i]; i+= 1) {
-            part = ary[i];
-            if (part === '.') {
-                ary.splice(i, 1);
-                i -= 1;
-            } else if (part === '..') {
-                if (i === 1 && (ary[2] === '..' || ary[0] === '..')) {
-                    //End of the line. Keep at least one non-dot
-                    //path segment at the front so it can be mapped
-                    //correctly to disk. Otherwise, there is likely
-                    //no path mapping for a path starting with '..'.
-                    //This can still fail, but catches the most reasonable
-                    //uses of ..
-                    break;
-                } else if (i > 0) {
-                    ary.splice(i - 1, 2);
-                    i -= 2;
-                }
-            }
-        }
-    }
-
-    function normalize(name, baseName) {
-        var baseParts;
-
-        //Adjust any relative paths.
-        if (name && name.charAt(0) === '.') {
-            //If have a base name, try to normalize against it,
-            //otherwise, assume it is a top-level require that will
-            //be relative to baseUrl in the end.
-            if (baseName) {
-                baseParts = baseName.split('/');
-                baseParts = baseParts.slice(0, baseParts.length - 1);
-                baseParts = baseParts.concat(name.split('/'));
-                trimDots(baseParts);
-                name = baseParts.join('/');
-            }
-        }
-
-        return name;
-    }
-
-    /**
-     * Create the normalize() function passed to a loader plugin's
-     * normalize method.
-     */
-    function makeNormalize(relName) {
-        return function (name) {
-            return normalize(name, relName);
-        };
-    }
-
-    function makeLoad(id) {
-        function load(value) {
-            loaderCache[id] = value;
-        }
-
-        load.fromText = function (id, text) {
-            //This one is difficult because the text can/probably uses
-            //define, and any relative paths and requires should be relative
-            //to that id was it would be found on disk. But this would require
-            //bootstrapping a module/require fairly deeply from node core.
-            //Not sure how best to go about that yet.
-            throw new Error('amdefine does not implement load.fromText');
-        };
-
-        return load;
-    }
-
-    makeRequire = function (systemRequire, exports, module, relId) {
-        function amdRequire(deps, callback) {
-            if (typeof deps === 'string') {
-                //Synchronous, single module require('')
-                return stringRequire(systemRequire, exports, module, deps, relId);
-            } else {
-                //Array of dependencies with a callback.
-
-                //Convert the dependencies to modules.
-                deps = deps.map(function (depName) {
-                    return stringRequire(systemRequire, exports, module, depName, relId);
-                });
-
-                //Wait for next tick to call back the require call.
-                process.nextTick(function () {
-                    callback.apply(null, deps);
-                });
-            }
-        }
-
-        amdRequire.toUrl = function (filePath) {
-            if (filePath.indexOf('.') === 0) {
-                return normalize(filePath, path.dirname(module.filename));
-            } else {
-                return filePath;
-            }
-        };
-
-        return amdRequire;
-    };
-
-    //Favor explicit value, passed in if the module wants to support Node 0.4.
-    requireFn = requireFn || function req() {
-        return module.require.apply(module, arguments);
-    };
-
-    function runFactory(id, deps, factory) {
-        var r, e, m, result;
-
-        if (id) {
-            e = loaderCache[id] = {};
-            m = {
-                id: id,
-                uri: __filename,
-                exports: e
-            };
-            r = makeRequire(requireFn, e, m, id);
-        } else {
-            //Only support one define call per file
-            if (alreadyCalled) {
-                throw new Error('amdefine with no module ID cannot be called more than once per file.');
-            }
-            alreadyCalled = true;
-
-            //Use the real variables from node
-            //Use module.exports for exports, since
-            //the exports in here is amdefine exports.
-            e = module.exports;
-            m = module;
-            r = makeRequire(requireFn, e, m, module.id);
-        }
-
-        //If there are dependencies, they are strings, so need
-        //to convert them to dependency values.
-        if (deps) {
-            deps = deps.map(function (depName) {
-                return r(depName);
-            });
-        }
-
-        //Call the factory with the right dependencies.
-        if (typeof factory === 'function') {
-            result = factory.apply(m.exports, deps);
-        } else {
-            result = factory;
-        }
-
-        if (result !== undefined) {
-            m.exports = result;
-            if (id) {
-                loaderCache[id] = m.exports;
-            }
-        }
-    }
-
-    stringRequire = function (systemRequire, exports, module, id, relId) {
-        //Split the ID by a ! so that
-        var index = id.indexOf('!'),
-            originalId = id,
-            prefix, plugin;
-
-        if (index === -1) {
-            id = normalize(id, relId);
-
-            //Straight module lookup. If it is one of the special dependencies,
-            //deal with it, otherwise, delegate to node.
-            if (id === 'require') {
-                return makeRequire(systemRequire, exports, module, relId);
-            } else if (id === 'exports') {
-                return exports;
-            } else if (id === 'module') {
-                return module;
-            } else if (loaderCache.hasOwnProperty(id)) {
-                return loaderCache[id];
-            } else if (defineCache[id]) {
-                runFactory.apply(null, defineCache[id]);
-                return loaderCache[id];
-            } else {
-                if(systemRequire) {
-                    return systemRequire(originalId);
-                } else {
-                    throw new Error('No module with ID: ' + id);
-                }
-            }
-        } else {
-            //There is a plugin in play.
-            prefix = id.substring(0, index);
-            id = id.substring(index + 1, id.length);
-
-            plugin = stringRequire(systemRequire, exports, module, prefix, relId);
-
-            if (plugin.normalize) {
-                id = plugin.normalize(id, makeNormalize(relId));
-            } else {
-                //Normalize the ID normally.
-                id = normalize(id, relId);
-            }
-
-            if (loaderCache[id]) {
-                return loaderCache[id];
-            } else {
-                plugin.load(id, makeRequire(systemRequire, exports, module, relId), makeLoad(id), {});
-
-                return loaderCache[id];
-            }
-        }
-    };
-
-    //Create a define function specific to the module asking for amdefine.
-    function define(id, deps, factory) {
-        if (Array.isArray(id)) {
-            factory = deps;
-            deps = id;
-            id = undefined;
-        } else if (typeof id !== 'string') {
-            factory = id;
-            id = deps = undefined;
-        }
-
-        if (deps && !Array.isArray(deps)) {
-            factory = deps;
-            deps = undefined;
-        }
-
-        if (!deps) {
-            deps = ['require', 'exports', 'module'];
-        }
-
-        //Set up properties for this module. If an ID, then use
-        //internal cache. If no ID, then use the external variables
-        //for this node module.
-        if (id) {
-            //Put the module in deep freeze until there is a
-            //require call for it.
-            defineCache[id] = [id, deps, factory];
-        } else {
-            runFactory(id, deps, factory);
-        }
-    }
-
-    //define.require, which has access to all the values in the
-    //cache. Useful for AMD modules that all have IDs in the file,
-    //but need to finally export a value to node based on one of those
-    //IDs.
-    define.require = function (id) {
-        if (loaderCache[id]) {
-            return loaderCache[id];
-        }
-
-        if (defineCache[id]) {
-            runFactory.apply(null, defineCache[id]);
-            return loaderCache[id];
-        }
-    };
-
-    define.amd = {};
-
-    return define;
-}
-
-module.exports = amdefine;
-
-}).call(this,require('_process'),"/node_modules/amdefine/amdefine.js")
-},{"_process":7,"path":6}],11:[function(require,module,exports){
 var types = require("../lib/types");
 var Type = types.Type;
 var def = Type.def;
@@ -1932,7 +1629,7 @@ def("Literal")
         isRegExp
     ));
 
-},{"../lib/shared":22,"../lib/types":24}],12:[function(require,module,exports){
+},{"../lib/shared":21,"../lib/types":23}],11:[function(require,module,exports){
 require("./core");
 var types = require("../lib/types");
 var def = types.Type.def;
@@ -2021,7 +1718,7 @@ def("XMLProcessingInstruction")
     .field("target", isString)
     .field("contents", or(isString, null));
 
-},{"../lib/types":24,"./core":11}],13:[function(require,module,exports){
+},{"../lib/types":23,"./core":10}],12:[function(require,module,exports){
 require("./core");
 var types = require("../lib/types");
 var def = types.Type.def;
@@ -2228,7 +1925,7 @@ def("TemplateElement")
     .field("value", {"cooked": isString, "raw": isString})
     .field("tail", isBoolean);
 
-},{"../lib/shared":22,"../lib/types":24,"./core":11}],14:[function(require,module,exports){
+},{"../lib/shared":21,"../lib/types":23,"./core":10}],13:[function(require,module,exports){
 require("./core");
 var types = require("../lib/types");
 var def = types.Type.def;
@@ -2265,7 +1962,7 @@ def("AwaitExpression")
     .field("argument", or(def("Expression"), null))
     .field("all", isBoolean, defaults["false"]);
 
-},{"../lib/shared":22,"../lib/types":24,"./core":11}],15:[function(require,module,exports){
+},{"../lib/shared":21,"../lib/types":23,"./core":10}],14:[function(require,module,exports){
 require("./core");
 var types = require("../lib/types");
 var def = types.Type.def;
@@ -2386,7 +2083,7 @@ def("TypeAnnotation")
     .field("unionType", or(def("TypeAnnotation"), null))
     .field("nullable", isBoolean);
 
-},{"../lib/shared":22,"../lib/types":24,"./core":11}],16:[function(require,module,exports){
+},{"../lib/shared":21,"../lib/types":23,"./core":10}],15:[function(require,module,exports){
 require("./core");
 var types = require("../lib/types");
 var def = types.Type.def;
@@ -2427,7 +2124,7 @@ def("GraphIndexExpression")
     .build("index")
     .field("index", geq(0));
 
-},{"../lib/shared":22,"../lib/types":24,"./core":11}],17:[function(require,module,exports){
+},{"../lib/shared":21,"../lib/types":23,"./core":10}],16:[function(require,module,exports){
 var assert = require("assert");
 var types = require("../main");
 var getFieldNames = types.getFieldNames;
@@ -2607,7 +2304,7 @@ function objectsAreEquivalent(a, b, problemPath) {
 
 module.exports = astNodesAreEquivalent;
 
-},{"../main":25,"assert":2}],18:[function(require,module,exports){
+},{"../main":24,"assert":2}],17:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var n = types.namedTypes;
@@ -2986,7 +2683,7 @@ function firstInStatement(path) {
 
 module.exports = NodePath;
 
-},{"./path":20,"./scope":21,"./types":24,"assert":2,"util":9}],19:[function(require,module,exports){
+},{"./path":19,"./scope":20,"./types":23,"assert":2,"util":9}],18:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var NodePath = require("./node-path");
@@ -3231,7 +2928,7 @@ function traverse(path, newVisitor) {
 
 module.exports = PathVisitor;
 
-},{"./node-path":18,"./types":24,"assert":2}],20:[function(require,module,exports){
+},{"./node-path":17,"./types":23,"assert":2}],19:[function(require,module,exports){
 var assert = require("assert");
 var Op = Object.prototype;
 var hasOwn = Op.hasOwnProperty;
@@ -3581,7 +3278,7 @@ Pp.replace = function replace(replacement) {
 
 module.exports = Path;
 
-},{"./types":24,"assert":2}],21:[function(require,module,exports){
+},{"./types":23,"assert":2}],20:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var Type = types.Type;
@@ -3827,7 +3524,7 @@ Sp.getGlobalScope = function() {
 
 module.exports = Scope;
 
-},{"./node-path":18,"./types":24,"assert":2}],22:[function(require,module,exports){
+},{"./node-path":17,"./types":23,"assert":2}],21:[function(require,module,exports){
 var types = require("../lib/types");
 var Type = types.Type;
 var builtin = types.builtInTypes;
@@ -3870,7 +3567,7 @@ exports.isPrimitive = new Type(function(value) {
              type === "function");
 }, naiveIsPrimitive.toString());
 
-},{"../lib/types":24}],23:[function(require,module,exports){
+},{"../lib/types":23}],22:[function(require,module,exports){
 var visit = require("./path-visitor").visit;
 var warnedAboutDeprecation = false;
 
@@ -3899,7 +3596,7 @@ function traverseWithFullPathInfo(node, callback) {
 traverseWithFullPathInfo.fast = traverseWithFullPathInfo;
 module.exports = traverseWithFullPathInfo;
 
-},{"./path-visitor":19}],24:[function(require,module,exports){
+},{"./path-visitor":18}],23:[function(require,module,exports){
 var assert = require("assert");
 var Ap = Array.prototype;
 var slice = Ap.slice;
@@ -4625,7 +4322,7 @@ exports.finalize = function() {
     });
 };
 
-},{"assert":2}],25:[function(require,module,exports){
+},{"assert":2}],24:[function(require,module,exports){
 var types = require("./lib/types");
 
 // This core module of AST types captures ES5 as it is parsed today by
@@ -4659,7 +4356,7 @@ exports.NodePath = require("./lib/node-path");
 exports.PathVisitor = require("./lib/path-visitor");
 exports.visit = exports.PathVisitor.visit;
 
-},{"./def/core":11,"./def/e4x":12,"./def/es6":13,"./def/es7":14,"./def/fb-harmony":15,"./def/mozilla":16,"./lib/equiv":17,"./lib/node-path":18,"./lib/path-visitor":19,"./lib/traverse":23,"./lib/types":24}],26:[function(require,module,exports){
+},{"./def/core":10,"./def/e4x":11,"./def/es6":12,"./def/es7":13,"./def/fb-harmony":14,"./def/mozilla":15,"./lib/equiv":16,"./lib/node-path":17,"./lib/path-visitor":18,"./lib/traverse":22,"./lib/types":23}],25:[function(require,module,exports){
 (function (global){
 /*
   Copyright (C) 2012-2013 Yusuke Suzuki <utatane.tea@gmail.com>
@@ -6946,7 +6643,7 @@ exports.visit = exports.PathVisitor.visit;
 /* vim: set sw=4 ts=4 et tw=80 : */
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./package.json":40,"estraverse":27,"esutils":30,"source-map":31}],27:[function(require,module,exports){
+},{"./package.json":39,"estraverse":26,"esutils":29,"source-map":30}],26:[function(require,module,exports){
 /*
   Copyright (C) 2012-2013 Yusuke Suzuki <utatane.tea@gmail.com>
   Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
@@ -7637,7 +7334,7 @@ exports.visit = exports.PathVisitor.visit;
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -7729,7 +7426,7 @@ exports.visit = exports.PathVisitor.visit;
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],29:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -7848,7 +7545,7 @@ exports.visit = exports.PathVisitor.visit;
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{"./code":28}],30:[function(require,module,exports){
+},{"./code":27}],29:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -7882,7 +7579,7 @@ exports.visit = exports.PathVisitor.visit;
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{"./code":28,"./keyword":29}],31:[function(require,module,exports){
+},{"./code":27,"./keyword":28}],30:[function(require,module,exports){
 /*
  * Copyright 2009-2011 Mozilla Foundation and contributors
  * Licensed under the New BSD license. See LICENSE.txt or:
@@ -7892,7 +7589,7 @@ exports.SourceMapGenerator = require('./source-map/source-map-generator').Source
 exports.SourceMapConsumer = require('./source-map/source-map-consumer').SourceMapConsumer;
 exports.SourceNode = require('./source-map/source-node').SourceNode;
 
-},{"./source-map/source-map-consumer":36,"./source-map/source-map-generator":37,"./source-map/source-node":38}],32:[function(require,module,exports){
+},{"./source-map/source-map-consumer":35,"./source-map/source-map-generator":36,"./source-map/source-node":37}],31:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -7991,7 +7688,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./util":39,"amdefine":10}],33:[function(require,module,exports){
+},{"./util":38,"amdefine":undefined}],32:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -8137,7 +7834,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./base64":34,"amdefine":10}],34:[function(require,module,exports){
+},{"./base64":33,"amdefine":undefined}],33:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -8181,7 +7878,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":10}],35:[function(require,module,exports){
+},{"amdefine":undefined}],34:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -8264,7 +7961,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":10}],36:[function(require,module,exports){
+},{"amdefine":undefined}],35:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -8744,7 +8441,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":32,"./base64-vlq":33,"./binary-search":35,"./util":39,"amdefine":10}],37:[function(require,module,exports){
+},{"./array-set":31,"./base64-vlq":32,"./binary-search":34,"./util":38,"amdefine":undefined}],36:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -9149,7 +8846,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":32,"./base64-vlq":33,"./util":39,"amdefine":10}],38:[function(require,module,exports){
+},{"./array-set":31,"./base64-vlq":32,"./util":38,"amdefine":undefined}],37:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -9559,7 +9256,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./source-map-generator":37,"./util":39,"amdefine":10}],39:[function(require,module,exports){
+},{"./source-map-generator":36,"./util":38,"amdefine":undefined}],38:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -9880,7 +9577,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":10}],40:[function(require,module,exports){
+},{"amdefine":undefined}],39:[function(require,module,exports){
 module.exports={
   "name": "escodegen",
   "description": "ECMAScript code generator",
@@ -9952,7 +9649,7 @@ module.exports={
   "_resolved": "https://registry.npmjs.org/escodegen/-/escodegen-1.3.3.tgz"
 }
 
-},{}],41:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /*
   Copyright (C) 2013 Ariya Hidayat <ariya.hidayat@gmail.com>
   Copyright (C) 2013 Thaddee Tyl <thaddee.tyl@gmail.com>
@@ -13710,7 +13407,7 @@ parseStatement: true, parseSourceElement: true */
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],42:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 /*
  * estemplate
  * https://github.com/RReverser/estemplate
@@ -13796,9 +13493,9 @@ tmpl.compile = function (str, options) {
 };
 
 module.exports = tmpl;
-},{"esprima":41,"estraverse":43}],43:[function(require,module,exports){
-module.exports=require(27)
-},{}],44:[function(require,module,exports){
+},{"esprima":40,"estraverse":42}],42:[function(require,module,exports){
+module.exports=require(26)
+},{}],43:[function(require,module,exports){
 "use strict";
 
 var slicer = Array.prototype.slice
@@ -13829,14 +13526,14 @@ module.exports = function difference(first, second) {
   return first.filter(excludes, remaining)
 }
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 "use strict";
 
 exports.union = require("./union")
 exports.difference = require("./difference")
 exports.intersection = require("./intersection")
 
-},{"./difference":44,"./intersection":46,"./union":47}],46:[function(require,module,exports){
+},{"./difference":43,"./intersection":45,"./union":46}],45:[function(require,module,exports){
 "use strict";
 
 var slicer = Array.prototype.slice
@@ -13874,7 +13571,7 @@ module.exports = function intersection(a, b, rest) {
   return slicer.call(arguments, 1).reduce(intersection2, a)
 }
 
-},{}],47:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 "use strict";
 var slicer = Array.prototype.slice
 
@@ -13910,10 +13607,10 @@ module.exports = function union(a, b) {
   return slicer.call(arguments).reduce(include, [])
 }
 
-},{}],48:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 module.exports = require('./js/PriorityQueue')
 
-},{"./js/PriorityQueue":49}],49:[function(require,module,exports){
+},{"./js/PriorityQueue":48}],48:[function(require,module,exports){
 (function() {
   var define,
     __hasProp = {}.hasOwnProperty,
@@ -13951,7 +13648,7 @@ module.exports = require('./js/PriorityQueue')
 /*
 //@ sourceMappingURL=PriorityQueue.js.map
 */
-},{"amdefine":10}],50:[function(require,module,exports){
+},{"amdefine":undefined}],49:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -15296,7 +14993,7 @@ module.exports = require('./js/PriorityQueue')
   }
 }).call(this);
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -15553,7 +15250,7 @@ module.exports = {
   cps: cps
 };
 
-},{"./util.js":54,"assert":2,"ast-types":25,"escodegen":26,"esprima":41,"estemplate":42,"estraverse":43,"interset":45,"underscore":50}],52:[function(require,module,exports){
+},{"./util.js":53,"assert":2,"ast-types":24,"escodegen":25,"esprima":40,"estemplate":41,"estraverse":42,"interset":44,"underscore":49}],51:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -16067,7 +15764,7 @@ module.exports = {
   or: or
 };
 
-},{"./util.js":54,"js-priority-queue":48,"underscore":50}],53:[function(require,module,exports){
+},{"./util.js":53,"js-priority-queue":47,"underscore":49}],52:[function(require,module,exports){
 (function (global,__dirname){
 "use strict";
 
@@ -16130,7 +15827,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},"/src")
-},{"./cps.js":51,"./header.js":52,"./util.js":54,"ast-types":25,"escodegen":26,"esprima":41,"fs":1,"path":6}],54:[function(require,module,exports){
+},{"./cps.js":50,"./header.js":51,"./util.js":53,"ast-types":24,"escodegen":25,"esprima":40,"fs":1,"path":6}],53:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -16176,4 +15873,4 @@ module.exports = {
   normalize: normalize
 }
 
-},{"underscore":50}]},{},[53]);
+},{"underscore":49}]},{},[52]);
