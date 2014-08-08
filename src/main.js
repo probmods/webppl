@@ -20,7 +20,7 @@ for (var prop in runtime){
   }
 }
 
-function compileWebPPLProgram(code, verbose){
+function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
@@ -47,30 +47,13 @@ function compileWebPPLProgram(code, verbose){
   return escodegen.generate(newProgramAst);
 }
 
-function runWebPPLProgram(code, contFun, verbose){
+function run(code, contFun, verbose){
   topK = contFun;  // Install top-level continuation
-  var compiledCode = compileWebPPLProgram(code, verbose);
+  var compiledCode = compile(code, verbose);
   return eval(compiledCode);
 }
 
-function main(){
-  var programFile = process.argv[2];
-  console.log('Processing', programFile);
-  var code = fs.readFileSync(programFile);
-  runWebPPLProgram(
-    code,
-    function(x){
-      console.log("\n* Program return value:\n");
-      console.log(x);
-    },
-    true);
-}
-
-if (runningAsScript){
-  main();
-}
-
 module.exports = {
-  runWebPPLProgram: runWebPPLProgram,
-  compileWebPPLProgram: compileWebPPLProgram
+  run: run,
+  compile: compile
 };

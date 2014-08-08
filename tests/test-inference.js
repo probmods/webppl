@@ -2,10 +2,8 @@
 
 var util = require("../src/util.js");
 var _ = require('underscore');
-var runWebPPL = require('../src/run-wppl.js');
-var compileWebPPLProgram = runWebPPL.compileWebPPLProgram;
-var runWebPPLProgram = runWebPPL.runWebPPLProgram;
-var topK = runWebPPL.topK;
+var webppl = require('../src/main.js');
+var topK = webppl.topK;
 
 var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
   var allOk = true;
@@ -28,7 +26,7 @@ var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
         hist[value] = hist[value] || 0;
         hist[value] += 1;
   };
-  var compiledProgram = compileWebPPLProgram(code);
+  var compiledProgram = webppl.compile(code);
   for (var i=0; i<numSamples; i++){
     eval(compiledProgram);
   }
@@ -46,7 +44,7 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
         hist[value] = Math.exp(erp.score([], value));
       });
   };
-  runWebPPLProgram(code, topK);
+  webppl.run(code, topK);
   var normHist = util.normalize(hist);
   testHistsApproxEqual(test, normHist, expectedHist, tolerance);
   test.done();

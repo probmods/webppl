@@ -2,7 +2,7 @@
   "name": "probprog-esslli2014",
   "version": "0.0.0",
   "description": "",
-  "main": "src/run-webppl.js",
+  "main": "src/main.js",
   "directories": {
     "test": "tests"
   },
