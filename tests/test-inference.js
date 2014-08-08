@@ -2,17 +2,22 @@
 
 var util = require("../src/util.js");
 var _ = require('underscore');
-var runWebPPL = require('../src/run-wppl.js');
-var compileWebPPLProgram = runWebPPL.compileWebPPLProgram;
-var runWebPPLProgram = runWebPPL.runWebPPLProgram;
-var topK = runWebPPL.topK;
+var webppl = require('../src/main.js');
+var topK = webppl.topK;
 
 var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
+  var allOk = true;
   _.each(expectedHist,
          function(expectedValue, key){
-           var value = hist[key];
-           test.ok(Math.abs(value - expectedValue) <= tolerance);
+           var value = hist[key] || 0;
+           var testPassed = Math.abs(value - expectedValue) <= tolerance;
+           test.ok(testPassed);
+           allOk = allOk && testPassed;
          });
+  if (!allOk){
+    console.log("Expected:", expectedHist);
+    console.log("Actual:", hist);
+  }
 };
 
 var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
@@ -21,7 +26,7 @@ var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
         hist[value] = hist[value] || 0;
         hist[value] += 1;
   };
-  var compiledProgram = compileWebPPLProgram(code);
+  var compiledProgram = webppl.compile(code);
   for (var i=0; i<numSamples; i++){
     eval(compiledProgram);
   }
@@ -39,7 +44,7 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
         hist[value] = Math.exp(erp.score([], value));
       });
   };
-  runWebPPLProgram(code, topK);
+  webppl.run(code, topK);
   var normHist = util.normalize(hist);
   testHistsApproxEqual(test, normHist, expectedHist, tolerance);
   test.done();
@@ -68,14 +73,13 @@ exports.testForwardSampling = {
   },
 
   testGeometric: function(test) {
-    var code = "var geom = function() { return flip() ? 0 : geom() }; geom()";
+    var code = "var geom = function() { return flip(.8) ? 0 : 1 + geom() }; geom()";
     var expectedHist= {
-      0: .5,
-      1: .25,
-      2: .125,
-      3: .0625,
-      4: .03125,
-      5: .015625
+      0: 0.8,
+      1: 0.16,
+      2: 0.032,
+      3: 0.0064,
+      4: 0.00128
     };
     var tolerance = .05;
     var numSamples = 1000;

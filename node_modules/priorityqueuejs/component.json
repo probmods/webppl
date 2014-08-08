@@ -1,0 +1,19 @@
+{
+  "name": "priorityqueuejs",
+  "repo": "janogonzalez/priorityqueuejs",
+  "description": "a simple priority queue data structure",
+  "version": "0.2.0",
+  "keywords": [
+    "heap",
+    "priority",
+    "queue",
+    "priority queue",
+    "data structure"
+  ],
+  "dependencies": {},
+  "development": {},
+  "license": "MIT",
+  "scripts": [
+    "index.js"
+  ]
+}

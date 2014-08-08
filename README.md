@@ -15,4 +15,9 @@ Run tests:
 
 Execute webppl program:
 
-    ./webppl src/example.wppl
+    ./webppl examples/geometric.wppl
+
+Compile webppl for use in browser:
+
+    npm install -g browserify
+    browserify -t brfs src/main.js > compiled/webppl.js

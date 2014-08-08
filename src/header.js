@@ -1,7 +1,7 @@
 "use strict";
 
 var _ = require('underscore');
-var PriorityQueue = require('js-priority-queue');
+var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
 // Elementary Random Primitives (ERPs) are the representation of
@@ -201,7 +201,8 @@ function fw(cc, wpplFn) {
 function Enumerate(k, wpplFn, max_ex) {
 
   this.score = 0; //used to track the score of the path currently being explored
-  this.queue = new PriorityQueue(queueproperties) //queue of states that we have yet to explore
+  this.queue = new PriorityQueue(
+    function(a, b){return b.score-a.score;}); //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
   this.exs = 0 //keep track of number of full executions expanded
   this.max_ex = max_ex || 1000
@@ -219,11 +220,10 @@ function Enumerate(k, wpplFn, max_ex) {
 // The queue is a bunch of computation states. each state is a
 // continuation, a value to apply it to, and a score.
 //
-// This function runs the highest priority state in the queue. Currently priority is score, but could be adjusted to give depth-first or breadth-first or some other search strategy (set via queueproperties).
-var queueproperties = {comparator: function(a, b){return b.score-a.score}}
+// This function runs the highest priority state in the queue. Currently priority is score, but could be adjusted to give depth-first or breadth-first or some other search strategy
 
 Enumerate.prototype.nextInQueue = function() {
-  var next_state = this.queue.dequeue()
+  var next_state = this.queue.deq();
   this.score = next_state.score;
   next_state.continuation(next_state.value);
 }
@@ -246,7 +246,7 @@ Enumerate.prototype.sample = function(cc, dist, params) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s])
     };
-      this.queue.queue(state)
+      this.queue.enq(state);
   }
 
   // Call the next state on the queue
