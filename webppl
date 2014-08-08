@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+var fs = require('fs');
+var webppl = require('./src/run-wppl');
+
+function main(){
+  var programFile = process.argv[2];
+  console.log('Processing', programFile);
+  var code = fs.readFileSync(programFile);
+  webppl.runWebPPLProgram(
+    code,
+    function(x){
+      console.log("\n* Program return value:\n");
+      console.log(x);
+    },
+    true);
+}
+
+main()
