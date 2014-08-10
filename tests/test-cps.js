@@ -269,7 +269,13 @@ exports.testMemberExpression = {
     var code = "fooObj.baz.blubb";
     var expected = 2;
     return runCpsTest(test, code, expected);
-  }
+  },
+    
+testMember3: function (test) {
+    var code = "var a = [1,2]; a[1]";
+    var expected = 2;
+    return runCpsTest(test, code, expected);
+}
 
 };
 
