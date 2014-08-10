@@ -171,13 +171,23 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
-  assert.ok(!computed);
-  var objName = makeGensymVariable("obj");
-  var memberExpr = build.memberExpression(objName, prop, false);
-  return cps(obj,
-    buildFunc([objName],
-    build.callExpression(cont, [memberExpr])));
+    //  assert.ok(!computed);
+    if(!computed) {
+        var objName = makeGensymVariable("obj");
+        var memberExpr = build.memberExpression(objName, prop, false);
+        return cps(obj,
+                   buildFunc([objName],
+                             build.callExpression(cont, [memberExpr])));
+    } else {
+        var objName = makeGensymVariable("obj");
+        var propName = makeGensymVariable("prop")
+        var memberExpr = build.memberExpression(objName, propName, computed);
+        return cps(obj,
+                   buildFunc([objName],
+                             cps(prop, buildFunc([propName], build.callExpression(cont, [memberExpr])))))
+    }
 }
+
 
 function cpsVariableDeclaration(declarationId, declarationInit, cont){
   if (types.namedTypes.FunctionExpression.check(declarationInit)){
