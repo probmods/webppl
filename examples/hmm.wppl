@@ -1,0 +1,73 @@
+/*
+Some different representations of the hidden markov model.
+ 
+ All of the below assume that transition is a stochastic transition functions from hidden states to hidden states, and observe is an observation function from hidden to observed states. init is an initial distribution.
+*/
+
+var transition = function(s) {return s?flip(0.7):flip(0.3)}
+
+var observe = function(s) {return s?flip(0.9):flip(0.1)}
+
+var init = function() {return flip(0.5)}
+
+var arrayEq = function(a, b){
+    return a.length == 0 ? true : a[0]==b[0] & arrayEq(a.slice(1), b.slice(1))
+}
+
+//this 'direct' version never explicitly represents the partial state sequences.
+var hmm1init = function(){var s = init(); return [[s],[observe(s)]]}
+var hmm1 = function(n) {
+    var prev = (n==1) ? hmm1init() : hmm1(n-1)
+    var newstate = transition(prev[0][0])
+    var newobs = observe(newstate)
+    var next = [ [newstate].concat(prev[0]),
+                 [newobs].concat(prev[1]) ]
+    return next
+}
+
+//this version recurses the other way, and passes along the partial state sequences more explicitly
+var hmm2_recur = function(n, states, observations){
+    var newstate = transition(states[0])
+    var newobs = observe(newstate)
+    var states = [newstate].concat(states)
+    var observations = [newobs].concat(observations)
+    return (n==1) ? [states, observations] : hmm2_recur(n-1,states,observations)
+}
+
+var hmm2 = function(n) {
+    var s = init()
+    return hmm2_recur(n,[s],[observe(s)])
+}
+
+
+//using any of the versions above, we can condition on some observed states:
+Enumerate(function(){
+          var r = hmm1(2)
+          factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
+          return r[0]
+          }, 100)
+
+//we could also do inference with a particle filter:
+ParticleFilter(function(){
+          var r = hmm1(2)
+          factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
+          return r[0]
+          }, 500)
+
+
+/*
+ We now explore different ways to optimize inference in the above models.
+ 
+ Decomposing marginalization: We can stick marginal/inference operators in anywhere we want, as long as we don't capture
+ Caching:
+ 
+ Decomposing factors:
+ Commuting factors:
+ 
+ */
+
+
+var arrayEqFactor = function(a, b){
+    return a.length == 0 ? true : a[0]==b[0] & arrayEq(a.slice(1), b.slice(1))
+}
+

@@ -160,6 +160,21 @@ function cpsConditional(test, consequent, alternate, cont){
   );
 }
 
+function cpsIf(test, consequent, alternate, cont){
+    var contName = makeGensymVariable("cont");
+    var testName = makeGensymVariable("test");
+    return build.callExpression(
+                                buildFunc([contName],
+                                          cps(test,
+                                              buildFunc([testName],
+                                                        build.blockStatement([build.ifStatement(testName,
+                                                                                                cps(consequent, contName),
+                                                                                                cps(alternate, contName))])))),
+                                [cont]
+                                );
+}
+
+
 function cpsArrayExpression(elements, cont){
   return cpsSequence(
     function (nodes){return (nodes.length == 0);},
@@ -239,6 +254,9 @@ function cps(node, cont){
 
   case Syntax.EmptyStatement:
     return build.callExpression(cont, [build.identifier("undefined")]);
+          
+  case Syntax.IfStatement:
+    return cpsIf(node.test, node.consequent, node.alternate, cont);
 
   case Syntax.ConditionalExpression:
     return cpsConditional(node.test, node.consequent, node.alternate, cont);
