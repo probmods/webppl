@@ -33,7 +33,7 @@ function buildAppliedClosure(stmt){
   return build.callExpression(buildFunc([], stmt), []);
 }
 
-// FIXME: We don't always want to add a return statement
+// FIXME: We don't always want to add a return statement?
 function buildFunc(args, body){
   if (types.namedTypes.BlockStatement.check(body)) {
     return build.functionExpression(null, args, body);
@@ -58,7 +58,6 @@ function buildReturn(node){
 }
 
 function cpsAtomic(node){
-  // console.log("ATOMIC", node.type);
   switch (node.type) {
   case Syntax.FunctionExpression:
     var newCont = makeGensymVariable("k");
@@ -80,7 +79,10 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
     var nextVar = makeGensymVariable("s");
     return cps(nodes[0],
                buildFunc([nextVar],
-                         cpsSequence(atFinalElement, getFinalElement, nodes.slice(1), vars.concat([nextVar]))));
+                         cpsSequence(atFinalElement,
+                                     getFinalElement,
+                                     nodes.slice(1),
+                                     vars.concat([nextVar]))));
   }
 }
 
@@ -187,22 +189,23 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
-    if (!computed) {
-        var objName = makeGensymVariable("obj");
-        var memberExpr = build.memberExpression(objName, prop, false);
-        return cps(obj,
-                   buildFunc([objName],
-                             build.callExpression(cont, [memberExpr])));
-    } else {
-        var objName = makeGensymVariable("obj");
-        var propName = makeGensymVariable("prop");
-        var memberExpr = build.memberExpression(objName, propName, computed);
-        return cps(obj,
-                   buildFunc([objName],
-                             cps(prop, buildFunc([propName], build.callExpression(cont, [memberExpr])))))
-    }
+  if (computed) {
+    var objName = makeGensymVariable("obj");
+    var propName = makeGensymVariable("prop");
+    var memberExpr = build.memberExpression(objName, propName, computed);
+    return cps(obj,
+               buildFunc([objName],
+                         cps(prop,
+                             buildFunc([propName],
+                                       build.callExpression(cont, [memberExpr])))));
+  } else {
+    var objName = makeGensymVariable("obj");
+    var memberExpr = build.memberExpression(objName, prop, false);
+    return cps(obj,
+               buildFunc([objName],
+                         build.callExpression(cont, [memberExpr])));
+  }
 }
-
 
 function cpsVariableDeclaration(declarationId, declarationInit, cont){
   if (types.namedTypes.FunctionExpression.check(declarationInit)){
@@ -224,7 +227,6 @@ function cps(node, cont){
 
   var recurse = function(nodes){return cps(nodes, cont);};
 
-  // console.log(node.type);
   switch (node.type) {
 
   case Syntax.BlockStatement:
