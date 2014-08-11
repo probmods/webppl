@@ -231,6 +231,28 @@ exports.testConditionalExpression = {
 
 };
 
+exports.testIfExpression = {
+
+  testIf1: function(test) {
+    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(3)";
+    var expected = 1;
+    return runCpsTest(test, code, expected);
+  },
+
+  testIf2: function(test) {
+    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(1)";
+    var expected = 2;
+    return runCpsTest(test, code, expected);
+  },
+
+  testIf3: function(test) {
+    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(foo(5))";
+    var expected = 2;
+    return runCpsTest(test, code, expected);
+  }
+
+};
+
 exports.testWithContinuation = {
 
   testWithContinuation1: function (test) {
@@ -270,7 +292,7 @@ exports.testMemberExpression = {
     var expected = 2;
     return runCpsTest(test, code, expected);
   },
-    
+
 testMember3: function (test) {
     var code = "var a = [1,2]; a[1]";
     var expected = 2;

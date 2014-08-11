@@ -147,6 +147,7 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
 }
 
 function cpsConditional(test, consequent, alternate, cont){
+  // bind continuation to avoid code blowup
   var contName = makeGensymVariable("cont");
   var testName = makeGensymVariable("test");
   return build.callExpression(
@@ -161,19 +162,19 @@ function cpsConditional(test, consequent, alternate, cont){
 }
 
 function cpsIf(test, consequent, alternate, cont){
-    var contName = makeGensymVariable("cont");
-    var testName = makeGensymVariable("test");
-    return build.callExpression(
-                                buildFunc([contName],
-                                          cps(test,
-                                              buildFunc([testName],
-                                                        build.blockStatement([build.ifStatement(testName,
-                                                                                                cps(consequent, contName),
-                                                                                                cps(alternate, contName))])))),
-                                [cont]
-                                );
+  // bind continuation to avoid code blowup
+  var contName = makeGensymVariable("cont");
+  var testName = makeGensymVariable("test");
+  return build.callExpression(
+    buildFunc([contName],
+      cps(test,
+          buildFunc([testName],
+          build.blockStatement([build.ifStatement(testName,
+                                                  cps(consequent, contName),
+                                                  cps(alternate, contName))])))),
+    [cont]
+  );
 }
-
 
 function cpsArrayExpression(elements, cont){
   return cpsSequence(
@@ -186,8 +187,7 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
-    //  assert.ok(!computed);
-    if(!computed) {
+    if (!computed) {
         var objName = makeGensymVariable("obj");
         var memberExpr = build.memberExpression(objName, prop, false);
         return cps(obj,
@@ -195,7 +195,7 @@ function cpsMemberExpression(obj, prop, computed, cont){
                              build.callExpression(cont, [memberExpr])));
     } else {
         var objName = makeGensymVariable("obj");
-        var propName = makeGensymVariable("prop")
+        var propName = makeGensymVariable("prop");
         var memberExpr = build.memberExpression(objName, propName, computed);
         return cps(obj,
                    buildFunc([objName],
@@ -254,7 +254,7 @@ function cps(node, cont){
 
   case Syntax.EmptyStatement:
     return build.callExpression(cont, [build.identifier("undefined")]);
-          
+
   case Syntax.IfStatement:
     return cpsIf(node.test, node.consequent, node.alternate, cont);
 
