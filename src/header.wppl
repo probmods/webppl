@@ -1,4 +1,8 @@
 var flip = function(theta) {
-    return sample(bernoulli, [theta])
+    return sample(bernoulliERP, [theta])
+}
+
+var randomInteger = function(n) {
+    return sample(randomIntegerERP, [n])
 }
 

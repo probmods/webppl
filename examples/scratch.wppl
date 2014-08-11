@@ -62,15 +62,17 @@
 //          }//,  100 // particles
 //);
 
-var foo = function() {
-    var a = 1
-    if(a == 2){
-        display("cons")
-        return 1
-    } else {
-        display("alt")
-        return 2
-    }}
-foo()
+// var foo = function() {
+//     var a = 1
+//     if(a == 2){
+//         display("cons")
+//         return 1
+//     } else {
+//         display("alt")
+//         return 2
+//     }}
+// foo()
 
 //a==1?"c":"a"
+
+randomInteger(5)

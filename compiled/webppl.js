@@ -16842,7 +16842,7 @@ function buildAppliedClosure(stmt){
   return build.callExpression(buildFunc([], stmt), []);
 }
 
-// FIXME: We don't always want to add a return statement
+// FIXME: We don't always want to add a return statement?
 function buildFunc(args, body){
   if (types.namedTypes.BlockStatement.check(body)) {
     return build.functionExpression(null, args, body);
@@ -16867,7 +16867,6 @@ function buildReturn(node){
 }
 
 function cpsAtomic(node){
-  // console.log("ATOMIC", node.type);
   switch (node.type) {
   case Syntax.FunctionExpression:
     var newCont = makeGensymVariable("k");
@@ -16889,7 +16888,10 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
     var nextVar = makeGensymVariable("s");
     return cps(nodes[0],
                buildFunc([nextVar],
-                         cpsSequence(atFinalElement, getFinalElement, nodes.slice(1), vars.concat([nextVar]))));
+                         cpsSequence(atFinalElement,
+                                     getFinalElement,
+                                     nodes.slice(1),
+                                     vars.concat([nextVar]))));
   }
 }
 
@@ -16956,6 +16958,7 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
 }
 
 function cpsConditional(test, consequent, alternate, cont){
+  // bind continuation to avoid code blowup
   var contName = makeGensymVariable("cont");
   var testName = makeGensymVariable("test");
   return build.callExpression(
@@ -16965,6 +16968,21 @@ function cpsConditional(test, consequent, alternate, cont){
                     build.conditionalExpression(testName,
                                                 cps(consequent, contName),
                                                 cps(alternate, contName))))),
+    [cont]
+  );
+}
+
+function cpsIf(test, consequent, alternate, cont){
+  // bind continuation to avoid code blowup
+  var contName = makeGensymVariable("cont");
+  var testName = makeGensymVariable("test");
+  var consequentNode = cps(consequent, contName);
+  var alternateNode = (alternate === null) ? null : cps(alternate, contName);
+  return build.callExpression(
+    buildFunc([contName],
+      cps(test,
+          buildFunc([testName],
+          build.blockStatement([build.ifStatement(testName, consequentNode, alternateNode)])))),
     [cont]
   );
 }
@@ -16980,12 +16998,22 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
-  assert.ok(!computed);
-  var objName = makeGensymVariable("obj");
-  var memberExpr = build.memberExpression(objName, prop, false);
-  return cps(obj,
-    buildFunc([objName],
-    build.callExpression(cont, [memberExpr])));
+  if (computed) {
+    var objName = makeGensymVariable("obj");
+    var propName = makeGensymVariable("prop");
+    var memberExpr = build.memberExpression(objName, propName, computed);
+    return cps(obj,
+               buildFunc([objName],
+                         cps(prop,
+                             buildFunc([propName],
+                                       build.callExpression(cont, [memberExpr])))));
+  } else {
+    var objName = makeGensymVariable("obj");
+    var memberExpr = build.memberExpression(objName, prop, false);
+    return cps(obj,
+               buildFunc([objName],
+                         build.callExpression(cont, [memberExpr])));
+  }
 }
 
 function cpsVariableDeclaration(declarationId, declarationInit, cont){
@@ -17008,7 +17036,6 @@ function cps(node, cont){
 
   var recurse = function(nodes){return cps(nodes, cont);};
 
-  // console.log(node.type);
   switch (node.type) {
 
   case Syntax.BlockStatement:
@@ -17038,6 +17065,9 @@ function cps(node, cont){
 
   case Syntax.EmptyStatement:
     return build.callExpression(cont, [build.identifier("undefined")]);
+
+  case Syntax.IfStatement:
+    return cpsIf(node.test, node.consequent, node.alternate, cont);
 
   case Syntax.ConditionalExpression:
     return cpsConditional(node.test, node.consequent, node.alternate, cont);
@@ -17089,7 +17119,7 @@ function ERP(sampler, scorer, supporter) {
   this.support = supporter;
 }
 
-var bernoulli = new ERP(
+var bernoulliERP = new ERP(
   function flipSample(params) {
     var weight = params[0];
     var val = Math.random() < weight;
@@ -17101,6 +17131,23 @@ var bernoulli = new ERP(
   },
   function flipSupport(params) {
     return [true, false];
+  }
+);
+
+var randomIntegerERP = new ERP(
+  function randomIntegerSample(params) {
+    var stop = params[0];
+    var val = Math.floor(Math.random() * (stop + 1));
+    return val;
+  },
+  function randomIntegerScore(params, val) {
+    var stop = params[0];
+    var inSupport = (val == Math.floor(val)) && (0 <= val < stop);
+    return inSupport ? -Math.log(stop + 1) : -Infinity;
+  },
+  function randomIntegerSupport(params) {
+    var stop = params[0];
+    return _.range(stop);
   }
 );
 
@@ -17144,12 +17191,9 @@ function makeMarginalERP(marginal) {
 }
 
 function multinomialSample(theta) {
-  var k = theta.length;
-  var thetaSum = 0;
-  for (var i = 0; i < k; i++) {
-    thetaSum += theta[i];
-  };
+  var thetaSum = util.sum(theta);
   var x = Math.random() * thetaSum;
+  var k = theta.length;
   var probAccum = 0;
   for (var i = 0; i < k; i++) {
     probAccum += theta[i];
@@ -17264,14 +17308,14 @@ function fw(cc, wpplFn) {
 //
 // Depth-first enumeration of all the paths through the computation.
 
-function Enumerate(k, wpplFn, max_steps) {
+function Enumerate(k, wpplFn, max_ex) {
 
   this.score = 0; //used to track the score of the path currently being explored
   this.queue = new PriorityQueue(
     function(a, b){return b.score-a.score;}); //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
-  this.steps = 0; //keep track of number of choices expanded
-    this.max_steps = max_steps || 1000;
+  this.exs = 0 //keep track of number of full executions expanded
+  this.max_ex = max_ex || 1000
 
   //move old coroutine out of the way and install this as the current handler
   this.k = k;
@@ -17291,7 +17335,6 @@ function Enumerate(k, wpplFn, max_steps) {
 Enumerate.prototype.nextInQueue = function() {
   var next_state = this.queue.deq();
   this.score = next_state.score;
-  this.steps++;
   next_state.continuation(next_state.value);
 }
 
@@ -17334,8 +17377,11 @@ Enumerate.prototype.exit = function(retval) {
   }
   this.marginal[retval] += Math.exp(this.score);
 
+  //increment the completed execution counter
+  this.exs++
+
   //if anything is left in queue do it:
-  if (this.queue.size() > 0 && this.steps<this.max_steps) {
+  if (this.queue.size() > 0 && this.exs<this.max_ex) {
     this.nextInQueue();
   } else {
     var marginal = this.marginal;
@@ -17349,8 +17395,8 @@ Enumerate.prototype.exit = function(retval) {
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enu(cc, wpplFn, max_steps) {
-  return new Enumerate(cc, wpplFn, max_steps);
+function enu(cc, wpplFn, max_ex) {
+  return new Enumerate(cc, wpplFn, max_ex);
 }
 
 
@@ -17560,7 +17606,8 @@ function or(k, x, y) {
 
 module.exports = {
   ERP: ERP,
-  bernoulli: bernoulli,
+  bernoulliERP: bernoulliERP,
+  randomIntegerERP: randomIntegerERP,
   Forward: fw,
   Enumerate: enu,
   ParticleFilter: pf,
@@ -17590,7 +17637,6 @@ var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
 var util = require("./util.js");
 
-var runningAsScript = require.main === module;
 var topK;
 
 // Make runtime stuff globally available:
@@ -17605,7 +17651,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogICAgcmV0dXJuIHNhbXBsZShiZXJub3VsbGksIFt0aGV0YV0pCn0KCg==","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogICAgcmV0dXJuIHNhbXBsZShiZXJub3VsbGlFUlAsIFt0aGV0YV0pCn0KCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogICAgcmV0dXJuIHNhbXBsZShyYW5kb21JbnRlZ2VyRVJQLCBbbl0pCn0KCg==","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
@@ -17633,11 +17679,6 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
-module.exports = {
-  run: run,
-  compile: compile
-};
-
 // For use in browser using browserify
 if (!(typeof window === 'undefined')){
   window.webppl = {
@@ -17646,6 +17687,13 @@ if (!(typeof window === 'undefined')){
   };
   console.log("webppl loaded.");
 }
+
+module.exports = {
+  run: run,
+  compile: compile,
+  topK: topK
+};
+
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
 },{"./cps.js":52,"./header.js":53,"./util.js":55,"ast-types":27,"buffer":4,"escodegen":28,"esprima":43,"path":8}],55:[function(require,module,exports){
 "use strict";

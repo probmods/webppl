@@ -23,7 +23,7 @@ function ERP(sampler, scorer, supporter) {
   this.support = supporter;
 }
 
-var bernoulli = new ERP(
+var bernoulliERP = new ERP(
   function flipSample(params) {
     var weight = params[0];
     var val = Math.random() < weight;
@@ -35,6 +35,23 @@ var bernoulli = new ERP(
   },
   function flipSupport(params) {
     return [true, false];
+  }
+);
+
+var randomIntegerERP = new ERP(
+  function randomIntegerSample(params) {
+    var stop = params[0];
+    var val = Math.floor(Math.random() * (stop + 1));
+    return val;
+  },
+  function randomIntegerScore(params, val) {
+    var stop = params[0];
+    var inSupport = (val == Math.floor(val)) && (0 <= val < stop);
+    return inSupport ? -Math.log(stop + 1) : -Infinity;
+  },
+  function randomIntegerSupport(params) {
+    var stop = params[0];
+    return _.range(stop);
   }
 );
 
@@ -78,12 +95,9 @@ function makeMarginalERP(marginal) {
 }
 
 function multinomialSample(theta) {
-  var k = theta.length;
-  var thetaSum = 0;
-  for (var i = 0; i < k; i++) {
-    thetaSum += theta[i];
-  };
+  var thetaSum = util.sum(theta);
   var x = Math.random() * thetaSum;
+  var k = theta.length;
   var probAccum = 0;
   for (var i = 0; i < k; i++) {
     probAccum += theta[i];
@@ -266,7 +280,7 @@ Enumerate.prototype.exit = function(retval) {
     this.marginal[retval] = 0;
   }
   this.marginal[retval] += Math.exp(this.score);
-    
+
   //increment the completed execution counter
   this.exs++
 
@@ -496,7 +510,8 @@ function or(k, x, y) {
 
 module.exports = {
   ERP: ERP,
-  bernoulli: bernoulli,
+  bernoulliERP: bernoulliERP,
+  randomIntegerERP: randomIntegerERP,
   Forward: fw,
   Enumerate: enu,
   ParticleFilter: pf,

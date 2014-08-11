@@ -62,5 +62,6 @@ if (!(typeof window === 'undefined')){
 
 module.exports = {
   run: run,
-  compile: compile
+  compile: compile,
+  topK: topK
 };

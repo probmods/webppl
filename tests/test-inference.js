@@ -84,6 +84,20 @@ exports.testForwardSampling = {
     var tolerance = .05;
     var numSamples = 1000;
     return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
+  },
+
+  testRandomInteger: function(test) {
+    var code = "randomInteger(5)";
+    var expectedHist= {
+      0: .2,
+      1: .2,
+      2: .2,
+      3: .2,
+      4: .2
+    };
+    var tolerance = .05;
+    var numSamples = 1000;
+    return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
   }
 };
 
