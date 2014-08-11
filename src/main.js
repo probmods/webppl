@@ -9,7 +9,6 @@ var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
 var util = require("./util.js");
 
-var runningAsScript = require.main === module;
 var topK;
 
 // Make runtime stuff globally available:
@@ -52,11 +51,6 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
-module.exports = {
-  run: run,
-  compile: compile
-};
-
 // For use in browser using browserify
 if (!(typeof window === 'undefined')){
   window.webppl = {
@@ -65,3 +59,8 @@ if (!(typeof window === 'undefined')){
   };
   console.log("webppl loaded.");
 }
+
+module.exports = {
+  run: run,
+  compile: compile
+};
