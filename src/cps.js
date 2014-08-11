@@ -167,13 +167,13 @@ function cpsIf(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
   var contName = makeGensymVariable("cont");
   var testName = makeGensymVariable("test");
+  var consequentNode = cps(consequent, contName);
+  var alternateNode = (alternate === null) ? null : cps(alternate, contName);
   return build.callExpression(
     buildFunc([contName],
       cps(test,
           buildFunc([testName],
-          build.blockStatement([build.ifStatement(testName,
-                                                  cps(consequent, contName),
-                                                  cps(alternate, contName))])))),
+          build.blockStatement([build.ifStatement(testName, consequentNode, alternateNode)])))),
     [cont]
   );
 }

@@ -249,7 +249,19 @@ exports.testIfExpression = {
     var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(foo(5))";
     var expected = 2;
     return runCpsTest(test, code, expected);
-  }
+  },
+
+  testIfWithoutElse1: function(test) {
+    var code = "var foo = function(x){if (x > 2) { return 1 }}; foo(5)";
+    var expected = 1;
+    return runCpsTest(test, code, expected);
+  },
+
+  testIfWithoutElse2: function(test) {
+    var code = "var foo = function(x){if (x > 2) { return 1 }}; foo(0)";
+    var expected = undefined;
+    return runCpsTest(test, code, expected);
+  },
 
 };
 
