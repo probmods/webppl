@@ -41,13 +41,13 @@ var bernoulliERP = new ERP(
 var randomIntegerERP = new ERP(
   function randomIntegerSample(params) {
     var stop = params[0];
-    var val = Math.floor(Math.random() * (stop + 1));
+    var val = Math.floor(Math.random() * stop);
     return val;
   },
   function randomIntegerScore(params, val) {
     var stop = params[0];
     var inSupport = (val == Math.floor(val)) && (0 <= val < stop);
-    return inSupport ? -Math.log(stop + 1) : -Infinity;
+    return inSupport ? -Math.log(stop) : -Infinity;
   },
   function randomIntegerSupport(params) {
     var stop = params[0];
