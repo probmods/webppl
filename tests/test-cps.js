@@ -263,6 +263,12 @@ exports.testIfExpression = {
     return runCpsTest(test, code, expected);
   },
 
+  testIfWithoutElse3: function(test) {
+    var code = "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();";
+    var expected = 3;
+    return runCpsTest(test, code, expected);
+  }
+
 };
 
 exports.testWithContinuation = {

@@ -173,7 +173,8 @@ function cpsIf(test, consequent, alternate, cont){
     buildFunc([contName],
       cps(test,
           buildFunc([testName],
-          build.blockStatement([build.ifStatement(testName, consequentNode, alternateNode)])))),
+                    build.blockStatement(
+                      [build.ifStatement(testName, consequentNode, alternateNode)])))),
     [cont]
   );
 }
