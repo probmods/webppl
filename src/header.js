@@ -238,7 +238,6 @@ function Enumerate(k, wpplFn, max_ex) {
 
 Enumerate.prototype.nextInQueue = function() {
   var next_state = this.queue.deq();
-    console.log(next_state.value +" "+Math.exp(next_state.score))
   this.score = next_state.score;
   next_state.continuation(next_state.value);
 }
