@@ -10,6 +10,8 @@ var observe = function(s) {return s?flip(0.9):flip(0.1)}
 
 var init = function() {return flip(0.5)}
 
+var trueobs = [true, true, true]
+
 var arrayEq = function(a, b){
     return a.length == 0 ? true : a[0]==b[0] & arrayEq(a.slice(1), b.slice(1))
 }
@@ -29,7 +31,7 @@ var hmm1 = function(n) {
 var hmm2_recur = function(n, states, observations){
     var newstate = transition(states[0])
     var newobs = observe(newstate)
-    var states = state.concat([newstate])
+    var states = states.concat([newstate])
     var observations = observations.concat([newobs])
     return (n==1) ? [states, observations] : hmm2_recur(n-1,states,observations)
 }
@@ -39,21 +41,21 @@ var hmm2 = function(n) {
     return hmm2_recur(n,[s],[observe(s)])
 }
 
-var hmm = hmm1
+var hmm = hmm2
 
 //using any of the versions above, we can condition on some observed states:
 Enumerate(function(){
           var r = hmm(2)
-          factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
+          factor( arrayEq(r[1], trueobs) ? 0 : -Infinity )
           return r[0]
           }, 100)
 
-//we could also do inference with a particle filter:
-ParticleFilter(function(){
-          var r = hmm(2)
-          factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
-          return r[0]
-          }, 500)
+////we could also do inference with a particle filter:
+//ParticleFilter(function(){
+//          var r = hmm(2)
+//          factor( arrayEq(r[1], trueobs) ? 0 : -Infinity )
+//          return r[0]
+//          }, 500)
 
 
 /*
@@ -65,78 +67,82 @@ ParticleFilter(function(){
  
  */
 
-//first notice that arrayEq will be true if all of a matches the prefix of b, even if it isn'tlong enough...
+//first notice that arrayEq will be true if all of a matches the prefix of b, even if it isn't long enough...
 //next note that adding factor(s)-factor(s) = factor(s-s) has no effect on the final distribution of the program.
 //so we can insert these "intermediate factors":
-var hmm3 = function(n) {
-    var s = init()
-    var observations = [observe(s)]
-    factor(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)
-    factor(-(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)) //push this one forward into hmm_recur
-    return hmm3_recur(n,[s],observations)
-}
 
-var hmm3_recur = function(n, states, observations){
+var hmm_recur = function(n, states, observations){
     var newstate = transition(states[0])
     var newobs = observe(newstate)
-    var states = state.concat([newstate])
+    var states = states.concat([newstate])
     var observations = observations.concat([newobs])
-    factor(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)
-    factor(-(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)) //push this one forward into the next recursion
-    return (n==1) ? [states, observations] : hmm3_recur(n-1,states,observations)
+    factor(arrayEq(observations, trueobs) ? 0 : -Infinity)
+    factor(-(arrayEq(observations, trueobs) ? 0 : -Infinity)) //push this one forward into the next recursion
+    return (n==1) ? [states, observations] : hmm_recur(n-1,states,observations)
 }
 
-ParticleFilter(function(){
-               var r = hmm3(2)
-               factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
-               return r[0]
-               }, 500)
+var hmm = function(n) {
+    var s = init()
+    var observations = [observe(s)]
+    factor(arrayEq(observations, trueobs) ? 0 : -Infinity)
+    factor(-(arrayEq(observations, trueobs) ? 0 : -Infinity)) //push this one forward into hmm_recur
+    return hmm_recur(n,[s],observations)
+}
+
+//ParticleFilter(function(){
+//               var r = hmm(2)
+//               factor( arrayEq(r[1], trueobs) ? 0 : -Infinity )
+//               return r[0]
+//               }, 100)
 
 //we push the second factor through the return, into the next recursion / function return. this means that the information from the factors accumulates more incrementally as make choices...
 //===>
-var hmm3 = function(n) {
-    var s = init()
-    var observations = [observe(s)]
-    factor(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)
-    return hmm3_recur(n,[s],observations)
-}
-
-var hmm3_recur = function(n, states, observations){
-    factor(-(arrayEq(observations, [true, true, true]) ? 0 : -Infinity))
+var hmm_recur = function(n, states, observations){
+    factor(-(arrayEq(observations, trueobs) ? 0 : -Infinity))
     var newstate = transition(states[0])
     var newobs = observe(newstate)
-    var states = state.concat([newstate])
+    var states = states.concat([newstate])
     var observations = observations.concat([newobs])
-    factor(arrayEq(observations, [true, true, true]) ? 0 : -Infinity)
-    return (n==1) ? [states, observations] : hmm3_recur(n-1,states,observations)
+    factor(arrayEq(observations, trueobs) ? 0 : -Infinity)
+    return (n==1) ? [states, observations] : hmm_recur(n-1,states,observations)
 }
 
-ParticleFilter(function(){
-               var r = hmm3(2)
-               //factor(-(arrayEq(r[1], [true, true, true]) ? 0 : -Infinity)) //these now cancel...
-               //factor( arrayEq(r[1], [true, true, true]) ? 0 : -Infinity )
-               return r[0]
-               }, 500)
+var hmm = function(n) {
+    var s = init()
+    var observations = [observe(s)]
+    factor(arrayEq(observations, trueobs) ? 0 : -Infinity)
+    return hmm_recur(n,[s],observations)
+}
+
+//ParticleFilter(function(){
+//               var r = hmm(2)
+//               //factor(-(arrayEq(r[1], trueobs) ? 0 : -Infinity)) //these now cancel...
+//               //factor( arrayEq(r[1], trueobs) ? 0 : -Infinity )
+//               return r[0]
+//               }, 100)
 
 //finally, if a' = a.slice(0,-1), then arrayEq(a,b) will be false if arrayEq(a',b) is. this allows us to simplify the two factors in this case.
 //===>
-var hmm3 = function(n) {
-    var s = init()
-    var observations = [observe(s)]
-    factor(observations[0] == [true, true, true][0] ? 0 : -Infinity) //simplify since we know that observations is length 1
-    return hmm3_recur(n,[s],observations)
-}
-
-var hmm3_recur = function(n, states, observations){
+var hmm_recur = function(n, states, observations){
     var newstate = transition(states[0])
     var newobs = observe(newstate)
-    var states = state.concat([newstate])
+    var states = states.concat([newstate])
     var observations = observations.concat([newobs])
-    factor( newobs == [true, true, true][observations.length] ? 0 : -Infinity) //simplify the two factors
-    return (n==1) ? [states, observations] : hmm3_recur(n-1,states,observations)
+    factor( newobs == trueobs[observations.length-1] ? 0 : -Infinity) //simplify the two factors
+    return (n==1) ? [states, observations] : hmm_recur(n-1,states,observations)
+}
+
+var hmm = function(n) {
+    var s = init()
+    var observations = [observe(s)]
+    factor(observations[0] == trueobs[0] ? 0 : -Infinity) //simplify since we know that observations is length 1
+    return hmm_recur(n,[s],observations)
 }
 
 ParticleFilter(function(){
-               var r = hmm3(2)
+               var r = hmm(2)
                return r[0]
-               }, 500)
+               }, 100)
+
+//fun excercise: use Enumeration with this most recent version that uses intermediate factors and also with the initial "hmm2" above. vary the number of excetutions explore, starting with just 1 and increasing... how do they differ?
+

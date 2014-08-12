@@ -75,4 +75,30 @@
 
 //a==1?"c":"a"
 
-randomInteger(5)
+//randomInteger(5)
+
+var transition = function(s) {return s?flip(0.7):flip(0.3)}
+
+var observe = function(s) {return s?flip(0.9):flip(0.1)}
+
+
+var hmm_recur = function(n, states, observations){
+    var newstate = transition(states[0])
+    var newobs = observe(newstate)
+    var states = states.concat([newstate])
+    var observations = observations.concat([newobs])
+    factor( newobs == [true, true, true][observations.length] ? 0 : -Infinity) //simplify the two factors
+    return (n==1) ? [states, observations] : hmm_recur(n-1,states,observations)
+}
+
+var hmm = function(n) {
+    var s = true
+    var observations = [observe(s)]
+    factor(observations[0] == [true, true, true][0] ? 0 : -Infinity) //simplify since we know that observations is length 1
+    return hmm_recur(n,[s],observations)
+}
+
+ParticleFilter(function(){
+               var r = hmm(2)
+               return r[0]
+               }, 100)
