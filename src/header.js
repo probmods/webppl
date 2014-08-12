@@ -216,7 +216,7 @@ function Enumerate(k, wpplFn, max_ex) {
 
   this.score = 0; //used to track the score of the path currently being explored
   this.queue = new PriorityQueue(
-    function(a, b){return b.score-a.score;}); //queue of states that we have yet to explore
+    function(a, b){return a.score-b.score;}); //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
   this.exs = 0 //keep track of number of full executions expanded
   this.max_ex = max_ex || 1000
@@ -238,6 +238,7 @@ function Enumerate(k, wpplFn, max_ex) {
 
 Enumerate.prototype.nextInQueue = function() {
   var next_state = this.queue.deq();
+    console.log(next_state.value +" "+Math.exp(next_state.score))
   this.score = next_state.score;
   next_state.continuation(next_state.value);
 }
