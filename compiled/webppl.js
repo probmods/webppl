@@ -16895,11 +16895,36 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   }
 }
 
+function isFunctionDeclaration(node){
+  return ((node.type === Syntax.VariableDeclaration) &&
+          types.namedTypes.FunctionExpression.check(node.declarations[0].init));
+}
+
 function cpsBlock(nodes, cont){
-  return cpsSequence(
-    function (nodes){return (nodes.length == 1);},
-    function(nodes, vars){return cps(nodes[0], cont);},
-    nodes);
+  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
+    // Function declarations that occur as the first nodes in a block
+    // will be assigned within the same scope that the block
+    // occurs. This allows us to define functions at the top-level scope.
+    var node = nodes[0];
+    assert.equal(node.declarations.length, 1);
+    var declaration = node.declarations[0];
+    var newFunctionDeclarationNode = build.variableDeclaration(
+      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
+    var newRemainderNode = cpsBlock(nodes.slice(1), cont);
+    if (types.namedTypes.BlockStatement.check(newRemainderNode)){
+      // Flatten nested block
+      return build.blockStatement([newFunctionDeclarationNode].concat(newRemainderNode.body));
+    } else {
+      return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
+    }
+  } else {
+    return cpsSequence(
+      function (nodes){return (nodes.length == 1);},
+      function(nodes, vars){
+        return cps(nodes[0], cont);
+      },
+      nodes);
+  }
 }
 
 function cpsPrimitiveApplication(opNode, argNodes, cont){
@@ -16982,7 +17007,8 @@ function cpsIf(test, consequent, alternate, cont){
     buildFunc([contName],
       cps(test,
           buildFunc([testName],
-          build.blockStatement([build.ifStatement(testName, consequentNode, alternateNode)])))),
+                    build.blockStatement(
+                      [build.ifStatement(testName, consequentNode, alternateNode)])))),
     [cont]
   );
 }
@@ -17137,13 +17163,13 @@ var bernoulliERP = new ERP(
 var randomIntegerERP = new ERP(
   function randomIntegerSample(params) {
     var stop = params[0];
-    var val = Math.floor(Math.random() * (stop + 1));
+    var val = Math.floor(Math.random() * stop);
     return val;
   },
   function randomIntegerScore(params, val) {
     var stop = params[0];
     var inSupport = (val == Math.floor(val)) && (0 <= val < stop);
-    return inSupport ? -Math.log(stop + 1) : -Infinity;
+    return inSupport ? -Math.log(stop) : -Infinity;
   },
   function randomIntegerSupport(params) {
     var stop = params[0];
@@ -17312,7 +17338,7 @@ function Enumerate(k, wpplFn, max_ex) {
 
   this.score = 0; //used to track the score of the path currently being explored
   this.queue = new PriorityQueue(
-    function(a, b){return b.score-a.score;}); //queue of states that we have yet to explore
+    function(a, b){return a.score-b.score;}); //queue of states that we have yet to explore
   this.marginal = {}; //we will accumulate the marginal distribution here
   this.exs = 0 //keep track of number of full executions expanded
   this.max_ex = max_ex || 1000
@@ -17690,8 +17716,7 @@ if (!(typeof window === 'undefined')){
 
 module.exports = {
   run: run,
-  compile: compile,
-  topK: topK
+  compile: compile
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
