@@ -86,11 +86,37 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   }
 }
 
+function isFunctionDeclaration(node){
+  return ((node.type === Syntax.VariableDeclaration) &&
+          types.namedTypes.FunctionExpression.check(node.declarations[0].init));
+}
+
 function cpsBlock(nodes, cont){
-  return cpsSequence(
-    function (nodes){return (nodes.length == 1);},
-    function(nodes, vars){return cps(nodes[0], cont);},
-    nodes);
+  assert.ok(nodes.length > 0);
+  var node = nodes[0];
+  if (isFunctionDeclaration(node)){
+    // Function declarations that occur as the first nodes in a block
+    // will be assigned within the same scope that the block
+    // occurs. This allows us to define functions at the top-level scope.
+    assert.equal(node.declarations.length, 1);
+    var declaration = node.declarations[0];
+    var newFunctionDeclarationNode = build.variableDeclaration(
+      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
+    var newRemainderNode = cpsBlock(nodes.slice(1), cont);
+    if (types.namedTypes.BlockStatement.check(newRemainderNode)){
+      // Flatten nested block
+      return build.blockStatement([newFunctionDeclarationNode].concat(newRemainderNode.body));
+    } else {
+      return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
+    }
+  } else {
+    return cpsSequence(
+      function (nodes){return (nodes.length == 1);},
+      function(nodes, vars){
+        return cps(nodes[0], cont);
+      },
+      nodes);
+  }
 }
 
 function cpsPrimitiveApplication(opNode, argNodes, cont){
