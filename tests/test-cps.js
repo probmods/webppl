@@ -66,6 +66,18 @@ exports.testFunctionExpression = {
     var code = "var f = function(x, n){return n==0 ? x : f(plusTwo(x), n-1);}; f(3, 4)";
     var expected = 11;
     return runCpsTest(test, code, expected);
+  },
+
+  testDefinitionOnly1: function(test){
+    var code = "var bar = function(){ var foo = function(){ return 3;} }; 5;";
+    var expected = 5;
+    return runCpsTest(test, code, expected);
+  },
+
+  testDefinitionOnly2: function(test){
+    var code = "var bar = function(){ var foo = function(){ return 3;}; var foo2 = function(){ return 4;} }; 5;";
+    var expected = 5;
+    return runCpsTest(test, code, expected);
   }
 
 };

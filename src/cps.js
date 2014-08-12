@@ -92,12 +92,11 @@ function isFunctionDeclaration(node){
 }
 
 function cpsBlock(nodes, cont){
-  assert.ok(nodes.length > 0);
-  var node = nodes[0];
-  if (isFunctionDeclaration(node)){
+  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
     // Function declarations that occur as the first nodes in a block
     // will be assigned within the same scope that the block
     // occurs. This allows us to define functions at the top-level scope.
+    var node = nodes[0];
     assert.equal(node.declarations.length, 1);
     var declaration = node.declarations[0];
     var newFunctionDeclarationNode = build.variableDeclaration(
