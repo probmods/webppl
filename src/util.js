@@ -45,10 +45,15 @@ var logsumexp = function(a) {
 	return m + Math.log(sum);
 };
 
+var withEmptyStack = function(thunk){
+  setTimeout(thunk, 0);
+};
+
 module.exports = {
   gensym: gensym,
   prettyJSON: prettyJSON,
   sum: sum,
   normalize: normalize,
-  logsumexp: logsumexp
+  logsumexp: logsumexp,
+  withEmptyStack: withEmptyStack
 }

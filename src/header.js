@@ -360,7 +360,8 @@ ParticleFilter.prototype.factor = function(cc, score) {
     // Advance to the next particle
     this.particleIndex += 1;
   }
-  this.activeParticle().continuation();
+
+  util.withEmptyStack(this.activeParticle().continuation);
 };
 
 ParticleFilter.prototype.activeParticle = function() {

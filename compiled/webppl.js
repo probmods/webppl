@@ -17482,7 +17482,8 @@ ParticleFilter.prototype.factor = function(cc, score) {
     // Advance to the next particle
     this.particleIndex += 1;
   }
-  this.activeParticle().continuation();
+
+  util.withEmptyStack(this.activeParticle().continuation);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -17764,11 +17765,16 @@ var logsumexp = function(a) {
 	return m + Math.log(sum);
 };
 
+var withEmptyStack = function(thunk){
+  setTimeout(thunk, 0);
+};
+
 module.exports = {
   gensym: gensym,
   prettyJSON: prettyJSON,
   sum: sum,
   normalize: normalize,
-  logsumexp: logsumexp
+  logsumexp: logsumexp,
+  withEmptyStack: withEmptyStack
 }
 },{"underscore":51}]},{},[54]);
