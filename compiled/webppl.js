@@ -17482,7 +17482,8 @@ ParticleFilter.prototype.factor = function(cc, score) {
     // Advance to the next particle
     this.particleIndex += 1;
   }
-  this.activeParticle().continuation();
+
+  util.withEmptyStack(this.activeParticle().continuation);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -17493,16 +17494,11 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
   return ((this.particleIndex + 1) == this.particles.length);
 };
 
-function expWeight(particle){
-  // TODO: convert resampling to log weights
-  return Math.exp(particle.weight);
-}
-
 ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
 
   var m = this.particles.length;
-  var W = util.sum(_.map(this.particles, expWeight));
+  var W = util.logsumexp(_.map(this.particles, function(p){return p.weight}));
 
   // Compute list of retained particles
   var retainedParticles = [];
@@ -17510,7 +17506,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   _.each(
     this.particles,
     function(particle){
-      var numRetained = Math.floor(m * (expWeight(particle) / W));
+      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
       for (var i=0; i<numRetained; i++){
         retainedParticles.push(copyParticle(particle));
       }
@@ -17519,16 +17515,17 @@ ParticleFilter.prototype.resampleParticles = function() {
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newWeights = [];
-  var w;
+  var newExpWeights = [];
+  var w, tmp;
   for (var i in this.particles){
-    w = m * (expWeight(this.particles[i]) / W) - retainedCounts[i];
-    newWeights.push(w);
+    tmp = Math.log(m) + (this.particles[i].weight - W);
+    w = Math.exp(tmp) - retainedCounts[i];
+    newExpWeights.push(w);
   }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
-    j = multinomialSample(newWeights);
+    j = multinomialSample(newExpWeights);
     newParticles.push(copyParticle(this.particles[j]));
   }
 
@@ -17539,7 +17536,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   _.each(
     this.particles,
     function(particle){
-      particle.weight = Math.log(W / m);
+      particle.weight = W - Math.log(m);
     });
 };
 
@@ -17759,11 +17756,25 @@ var normalize = function(hist){
   return normHist;
 };
 
+var logsumexp = function(a) {
+	var m = Math.max.apply(null, a);
+	var sum = 0;
+	for (var i=0; i<a.length; ++i) {
+    sum += Math.exp(a[i] - m);
+  }
+	return m + Math.log(sum);
+};
+
+var withEmptyStack = function(thunk){
+  setTimeout(thunk, 0);
+};
+
 module.exports = {
   gensym: gensym,
   prettyJSON: prettyJSON,
   sum: sum,
-  normalize: normalize
+  normalize: normalize,
+  logsumexp: logsumexp,
+  withEmptyStack: withEmptyStack
 }
-
 },{"underscore":51}]},{},[54]);

@@ -36,9 +36,24 @@ var normalize = function(hist){
   return normHist;
 };
 
+var logsumexp = function(a) {
+	var m = Math.max.apply(null, a);
+	var sum = 0;
+	for (var i=0; i<a.length; ++i) {
+    sum += Math.exp(a[i] - m);
+  }
+	return m + Math.log(sum);
+};
+
+var withEmptyStack = function(thunk){
+  setTimeout(thunk, 0);
+};
+
 module.exports = {
   gensym: gensym,
   prettyJSON: prettyJSON,
   sum: sum,
-  normalize: normalize
+  normalize: normalize,
+  logsumexp: logsumexp,
+  withEmptyStack: withEmptyStack
 }
