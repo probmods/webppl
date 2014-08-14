@@ -51,6 +51,9 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
+//this function exposes the compiler to wppl code (basically run, but continuation must be first):
+function webppl_eval(k,code,verbose) {run(code,k,verbose)}
+
 // For use in browser using browserify
 if (!(typeof window === 'undefined')){
   window.webppl = {

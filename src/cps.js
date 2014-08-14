@@ -214,6 +214,23 @@ function cpsArrayExpression(elements, cont){
     elements);
 }
 
+function cpsObjectExpression(properties, cont, props){
+    props = props || []
+    if(properties.length==0) {
+        var objectExpr = build.objectExpression(props);
+        return build.callExpression(cont, [objectExpr]);
+    } else {
+        var nextVal = makeGensymVariable("ob");
+        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal)
+        //FIXME: assert that value is not function, since can't call function methods...?
+        return cps(properties[0].value,
+                   buildFunc([nextVal],
+                             cpsObjectExpression(properties.slice(1),
+                                                 cont,
+                                                 props.concat([nextProp]))));
+    }
+}
+
 function cpsMemberExpression(obj, prop, computed, cont){
   if (computed) {
     var objName = makeGensymVariable("obj");
@@ -292,6 +309,9 @@ function cps(node, cont){
   case Syntax.ArrayExpression:
     return cpsArrayExpression(node.elements, cont);
 
+  case Syntax.ObjectExpression:
+    return cpsObjectExpression(node.properties, cont);
+          
   case Syntax.MemberExpression:
     return cpsMemberExpression(node.object, node.property, node.computed, cont);
 

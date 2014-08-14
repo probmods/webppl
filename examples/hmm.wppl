@@ -126,9 +126,9 @@ var hmm = function(n) {
 var hmm_recur = function(n, states, observations){
     var newstate = transition(states[0])
     var newobs = observe(newstate)
+    factor( newobs == trueobs[observations.length] ? 0 : -Infinity) //simplify the two factors
     var states = states.concat([newstate])
     var observations = observations.concat([newobs])
-    factor( newobs == trueobs[observations.length-1] ? 0 : -Infinity) //simplify the two factors
     return (n==1) ? [states, observations] : hmm_recur(n-1,states,observations)
 }
 
@@ -146,3 +146,4 @@ ParticleFilter(function(){
 
 //fun excercise: use Enumeration with this most recent version that uses intermediate factors and also with the initial "hmm2" above. vary the number of excetutions explore, starting with just 1 and increasing... how do they differ?
 
+//Note: there's one more optimization we'd like to do: we'd like to incorporate the factore when we actually sample newobs, so that we only try observations consistent with trueobs. To do so we need to marginalize out observe(..) (to get an immediate ERP sample) and then use sampleWith Factor(..) to simultaneously sample and incorporate the factor -- we haven't implemented sampleWithFactor yet though.

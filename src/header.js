@@ -485,25 +485,27 @@ function cache(k, f) {
   k(cf);
 }
 
-function plus(k, x, y) {
-  k(x + y);
-};
 
-function minus(k, x, y) {
-  k(x - y);
-};
-
-function times(k, x, y) {
-  k(x * y);
-};
-
-function and(k, x, y) {
-  k(x && y);
-};
-
-function or(k, x, y) {
-  k(x || y);
-};
+//Old.. use binary ops:
+//function plus(k, x, y) {
+//  k(x + y);
+//};
+//
+//function minus(k, x, y) {
+//  k(x - y);
+//};
+//
+//function times(k, x, y) {
+//  k(x * y);
+//};
+//
+//function and(k, x, y) {
+//  k(x && y);
+//};
+//
+//function or(k, x, y) {
+//  k(x || y);
+//};
 
 
 ////////////////////////////////////////////////////////////////////
@@ -520,10 +522,10 @@ module.exports = {
   factor: factor,
   display: display,
   callPrimitive: callPrimitive,
-  cache: cache,
-  plus: plus,
-  minus: minus,
-  times: times,
-  and: and,
-  or: or
+  cache: cache
+//  plus: plus,
+//  minus: minus,
+//  times: times,
+//  and: and,
+//  or: or
 };

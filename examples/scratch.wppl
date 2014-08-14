@@ -103,8 +103,49 @@
 //                return r[0]
 //                }, 100)
 
-var xyz = function(){
-  return 3;
-}
+//var xyz = function(){
+//  return 3;
+//}
+//xyz()
 
-xyz()
+//var a = function(){return 1}
+//webppl_eval('a()+1', true)
+
+
+//var makeObj = function() {
+//    return [flip(0.3), flip(0.3), flip(0.3)]
+//}
+//
+//var worldPrior = function(objs) {
+//    var objs = objs?objs:[]
+//    return flip(0.5) ? worldPrior(objs.concat([makeObj()])) : objs
+//}
+//
+//var literalListener = function(utterance) {
+//    Enumerate(function(){
+//              var world = worldPrior()
+//              factor(meaning(utterance, world) ?0:-Infinity)
+//              return world
+//              }, 100)
+//}
+//
+//literalListener("all objects p1")
+//
+//
+//var binomial = function(){
+//    var a = sample(bernoulli, [0.5])
+//    var b = sample(bernoulli, [0.5])
+//    var c = sample(bernoulli, [0.5])
+//    return a & b & c}
+//
+//var binomialERP = Enumerate(binomial)
+//
+//binomialERP
+
+
+//var a = {l: 1, m: 2, f: function(){return 3}}
+//a.f()
+
+randomInteger(3)
+
+
