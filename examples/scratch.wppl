@@ -108,9 +108,10 @@
 //}
 //xyz()
 
-//var a = function(){return 1}
+//var s = "var a = function(){return 1}; webppl_eval('a()+1', true)"
+//webppl_eval(s, true)
+//var a = function(){return 1};
 //webppl_eval('a()+1', true)
-
 
 //var makeObj = function() {
 //    return [flip(0.3), flip(0.3), flip(0.3)]
@@ -146,6 +147,12 @@
 //var a = {l: 1, m: 2, f: function(){return 3}}
 //a.f()
 
-randomInteger(3)
-
+ParticleFilter(
+  function(){
+    var x = flip(0.5);
+    var y = flip(0.5);
+    factor( (x|y) ? 0 : -Infinity);
+    return x;
+  },
+  300) // particles"
 

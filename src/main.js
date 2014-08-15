@@ -51,8 +51,15 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
-//this function exposes the compiler to wppl code (basically run, but continuation must be first):
-function webppl_eval(k,code,verbose) {run(code,k,verbose)}
+//compile and run some webppl code in global scope:
+function webppl_eval(k, code, verbose) {
+    var oldk = global.topK
+    global.topK = k;  // Install top-level continuation
+    var compiledCode = compile(code, verbose);
+    var ret = eval.call(global,compiledCode)
+    global.topK = oldk
+    return ret
+}
 
 // For use in browser using browserify
 if (!(typeof window === 'undefined')){
@@ -61,9 +68,13 @@ if (!(typeof window === 'undefined')){
     compile: compile
   };
   console.log("webppl loaded.");
+} else {
+    //put eval into global scope. browser version??
+    global.webppl_eval = webppl_eval
 }
 
 module.exports = {
+  webppl_eval: webppl_eval,
   run: run,
   compile: compile
 };

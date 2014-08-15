@@ -6,12 +6,12 @@ function main(){
   var programFile = process.argv[2];
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
-  webppl.run(
-    code,
+  webppl_eval(
     function(x){
       console.log("\n* Program return value:\n");
       console.log(x);
     },
+    code,
     true);
 }
 
