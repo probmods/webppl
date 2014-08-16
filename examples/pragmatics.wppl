@@ -1,0 +1,35 @@
+
+//definition of meaning, worldPrior, and literal listener from semantic parser.
+//FIXME: require doesn't actually work...
+require('semanticparsing.wppl')
+
+//////////////////////////
+
+//language is produced by speaker is simple:
+//"three apples are red", "all apples are sweet", etc
+
+var utterancePrior = function() {
+    var quantifiers = ["all","some","no","most", "one", "two", "three"]
+    var properties = ["apple","red","sweet"]
+    return uniformdraw(quantifiers)+" "+uniformdraw(properties)+" are "+uniformdraw(properties)
+}
+
+//informative speaker:
+var speaker = function(world) {
+    Enumerate(function(){
+              var utterance = utterancePrior()
+              factor(world == sample(literalListener(utterance)) ?0:-Infinity)
+              return utterance
+              },100)
+}
+
+//savy listener:
+var listener = function(utterance) {
+    Enumerate(function(){
+              var world = worldPrior()
+              factor(utterance == sample(speaker(world)) ?0:-Infinity)
+              return world
+              },100)
+}
+
+
