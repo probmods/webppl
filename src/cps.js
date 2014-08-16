@@ -28,32 +28,12 @@ function convertToStatement(node){
   }
 }
 
-// Generates function(){ stmt }()
-function buildAppliedClosure(stmt){
-  return build.callExpression(buildFunc([], stmt), []);
-}
-
-// FIXME: We don't always want to add a return statement?
 function buildFunc(args, body){
   if (types.namedTypes.BlockStatement.check(body)) {
     return build.functionExpression(null, args, body);
   } else {
-    return build.functionExpression(null, args, build.blockStatement([buildReturn(body)]));
-  }
-}
-
-function buildReturn(node){
-  if (types.namedTypes.ExpressionStatement.check(node)) {
-    return build.returnStatement(node.expression);
-  } else if (types.namedTypes.Expression.check(node)) {
-    return build.returnStatement(node);
-  } else if (types.namedTypes.ReturnStatement.check(node)) {
-    return node;
-  } else if (types.namedTypes.Statement) {
-    // Convert statement to expression
-    return build.returnStatement(buildAppliedClosure(node));
-  } else {
-    throw new Error("buildReturn: can't handle node type: " + node.type);
+    return build.functionExpression(null, args, build.blockStatement(
+      [convertToStatement(body)]));
   }
 }
 
@@ -221,13 +201,13 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsObjectExpression(properties, cont, props){
-    props = props || []
+    props = props || [];
     if(properties.length==0) {
         var objectExpr = build.objectExpression(props);
         return build.callExpression(cont, [objectExpr]);
     } else {
         var nextVal = makeGensymVariable("ob");
-        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal)
+        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
         //FIXME: assert that value is not function, since can't call function methods...?
         return cps(properties[0].value,
                    buildFunc([nextVal],
@@ -317,7 +297,7 @@ function cps(node, cont){
 
   case Syntax.ObjectExpression:
     return cpsObjectExpression(node.properties, cont);
-          
+
   case Syntax.MemberExpression:
     return cpsMemberExpression(node.object, node.property, node.computed, cont);
 

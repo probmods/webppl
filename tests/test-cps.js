@@ -21,15 +21,15 @@ var minus = function(k, x, y) {return k(x - y);};
 var times = function(k, x, y) {return k(x * y);};
 var and = function(k, x, y) {return k(x && y);};
 var plusTwo = function(k, x, y) {return k(x + 2);};
-var getTwoK = function(k) {return 2;};
 
 var runCpsTest = function(test, code, expected){
+  var actual = "unset";
   var ast = esprima.parse(code);
   var newAst = cps.cps(ast, build.identifier("topK"));
-  var topKAst = esprima.parse("var topK = function(x){return x};");
+  var topKAst = esprima.parse("var topK = function(x){ actual = x; };");
   newAst.body = topKAst.body.concat(newAst.body);
   var newCode = escodegen.generate(newAst);
-  var actual = eval(newCode);
+  eval(newCode);
   var testPassed = _.isEqual(actual, expected);
   test.ok(testPassed);
   if (!testPassed){
@@ -39,20 +39,6 @@ var runCpsTest = function(test, code, expected){
   }
   test.done();
 };
-
-// var makeTest = function(code){
-//     var expected = eval(code);
-//     return function (test) {
-//         var ast = esprima.parse(code);
-//         var newAst = cps.cps(ast, build.identifier("topK"));
-//         var topKAst = esprima.parse("var topK = function(x){return x};");
-//         newAst.body = topKAst.body.concat(newAst.body);
-//         var newCode = escodegen.generate(newAst);
-//         // console.log(newCode);
-//         test.equal(eval(newCode), expected);
-//         test.done();
-//     };
-// }
 
 exports.testFunctionExpression = {
 
@@ -273,22 +259,17 @@ exports.testIfExpression = {
     var code = "var foo = function(x){if (x > 2) { return 1 }}; foo(0)";
     var expected = undefined;
     return runCpsTest(test, code, expected);
-  }
+  },
 
-  // This test currently fails because cpsIf isn't working correctly:
-  // testIfWithoutElse3: function(test) {
-  //   var code = "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();";
-  //   var expected = 3;
-  //   return runCpsTest(test, code, expected);
-  // }
+  testIfWithoutElse3: function(test) {
+    var code = "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();";
+    var expected = 3;
+    return runCpsTest(test, code, expected);
+  },
 
-};
-
-exports.testWithContinuation = {
-
-  testWithContinuation1: function (test) {
-    var code = "getTwoK(); plus(3, 5)";
-    var expected = 2;
+  testNestedIf: function(test) {
+    var code = "if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}";
+    var expected = 6;
     return runCpsTest(test, code, expected);
   }
 
