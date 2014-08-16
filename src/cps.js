@@ -7,10 +7,8 @@ var escodegen = require("escodegen");
 var esprima = require("esprima");
 var estemplate = require("estemplate");
 var types = require("ast-types");
-var interset = require("interset");
 var util = require('./util.js');
 
-var difference = interset.difference;
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
@@ -202,13 +200,13 @@ function cpsArrayExpression(elements, cont){
 
 function cpsObjectExpression(properties, cont, props){
     props = props || [];
-    if(properties.length==0) {
+    if (properties.length == 0 ) {
         var objectExpr = build.objectExpression(props);
         return build.callExpression(cont, [objectExpr]);
     } else {
         var nextVal = makeGensymVariable("ob");
         var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
-        //FIXME: assert that value is not function, since can't call function methods...?
+        // FIXME: assert that value is not function, since can't call function methods...?
         return cps(properties[0].value,
                    buildFunc([nextVal],
                              cpsObjectExpression(properties.slice(1),

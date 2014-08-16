@@ -15,7 +15,6 @@
     "estemplate": "^0.1.1",
     "estraverse": "^1.5.1",
     "esutils": "^1.1.4",
-    "interset": "0.0.2",
     "nodeunit": "^0.9.0",
     "priorityqueuejs": "^0.2.0",
     "underscore": "^1.6.0"
