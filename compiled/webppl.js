@@ -16837,32 +16837,12 @@ function convertToStatement(node){
   }
 }
 
-// Generates function(){ stmt }()
-function buildAppliedClosure(stmt){
-  return build.callExpression(buildFunc([], stmt), []);
-}
-
-// FIXME: We don't always want to add a return statement?
 function buildFunc(args, body){
   if (types.namedTypes.BlockStatement.check(body)) {
     return build.functionExpression(null, args, body);
   } else {
-    return build.functionExpression(null, args, build.blockStatement([buildReturn(body)]));
-  }
-}
-
-function buildReturn(node){
-  if (types.namedTypes.ExpressionStatement.check(node)) {
-    return build.returnStatement(node.expression);
-  } else if (types.namedTypes.Expression.check(node)) {
-    return build.returnStatement(node);
-  } else if (types.namedTypes.ReturnStatement.check(node)) {
-    return node;
-  } else if (types.namedTypes.Statement) {
-    // Convert statement to expression
-    return build.returnStatement(buildAppliedClosure(node));
-  } else {
-    throw new Error("buildReturn: can't handle node type: " + node.type);
+    return build.functionExpression(null, args, build.blockStatement(
+      [convertToStatement(body)]));
   }
 }
 
@@ -17002,13 +16982,19 @@ function cpsIf(test, consequent, alternate, cont){
   var contName = makeGensymVariable("cont");
   var testName = makeGensymVariable("test");
   var consequentNode = cps(consequent, contName);
-  var alternateNode = (alternate === null) ? null : cps(alternate, contName);
+  if (alternate === null) {
+    var alternateNode = build.callExpression(cont, [build.identifier("undefined")]);
+  } else {
+    var alternateNode = cps(alternate, contName);
+  }
   return build.callExpression(
     buildFunc([contName],
       cps(test,
           buildFunc([testName],
-                    build.blockStatement(
-                      [build.ifStatement(testName, consequentNode, alternateNode)])))),
+                    build.ifStatement(
+                      testName,
+                      convertToStatement(consequentNode),
+                      convertToStatement(alternateNode))))),
     [cont]
   );
 }
@@ -17021,6 +17007,23 @@ function cpsArrayExpression(elements, cont){
       return build.callExpression(cont, [arrayExpr]);
     },
     elements);
+}
+
+function cpsObjectExpression(properties, cont, props){
+    props = props || [];
+    if(properties.length==0) {
+        var objectExpr = build.objectExpression(props);
+        return build.callExpression(cont, [objectExpr]);
+    } else {
+        var nextVal = makeGensymVariable("ob");
+        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
+        //FIXME: assert that value is not function, since can't call function methods...?
+        return cps(properties[0].value,
+                   buildFunc([nextVal],
+                             cpsObjectExpression(properties.slice(1),
+                                                 cont,
+                                                 props.concat([nextProp]))));
+    }
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
@@ -17101,6 +17104,9 @@ function cps(node, cont){
   case Syntax.ArrayExpression:
     return cpsArrayExpression(node.elements, cont);
 
+  case Syntax.ObjectExpression:
+    return cpsObjectExpression(node.properties, cont);
+
   case Syntax.MemberExpression:
     return cpsMemberExpression(node.object, node.property, node.computed, cont);
 
@@ -17177,6 +17183,34 @@ var randomIntegerERP = new ERP(
   }
 );
 
+function multinomialSample(theta) {
+    var thetaSum = util.sum(theta);
+    var x = Math.random() * thetaSum;
+    var k = theta.length;
+    var probAccum = 0;
+    for (var i = 0; i < k; i++) {
+        probAccum += theta[i];
+        if (probAccum >= x) {
+            return i;
+        } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+    }
+    return k;
+}
+
+//var multinomialERP = new ERP(
+//                             function(params) {
+//                                var vals = params[0]
+//                                var probs = params[1]
+//                                return vals[multinomialSample(probs)]
+//                             },
+//                             function(params, val) {
+//                                var vals = params[0]
+//                                var probs = params[1]
+//                                
+//                                            }
+//
+//)
+
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
   //normalize distribution:
@@ -17214,20 +17248,6 @@ function makeMarginalERP(marginal) {
       return supp;
     });
   return dist;
-}
-
-function multinomialSample(theta) {
-  var thetaSum = util.sum(theta);
-  var x = Math.random() * thetaSum;
-  var k = theta.length;
-  var probAccum = 0;
-  for (var i = 0; i < k; i++) {
-    probAccum += theta[i];
-    if (probAccum >= x) {
-      return i;
-    } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-  }
-  return k;
 }
 
 
@@ -17604,25 +17624,27 @@ function cache(k, f) {
   k(cf);
 }
 
-function plus(k, x, y) {
-  k(x + y);
-};
 
-function minus(k, x, y) {
-  k(x - y);
-};
-
-function times(k, x, y) {
-  k(x * y);
-};
-
-function and(k, x, y) {
-  k(x && y);
-};
-
-function or(k, x, y) {
-  k(x || y);
-};
+//Old.. use binary ops:
+//function plus(k, x, y) {
+//  k(x + y);
+//};
+//
+//function minus(k, x, y) {
+//  k(x - y);
+//};
+//
+//function times(k, x, y) {
+//  k(x * y);
+//};
+//
+//function and(k, x, y) {
+//  k(x && y);
+//};
+//
+//function or(k, x, y) {
+//  k(x || y);
+//};
 
 
 ////////////////////////////////////////////////////////////////////
@@ -17639,12 +17661,12 @@ module.exports = {
   factor: factor,
   display: display,
   callPrimitive: callPrimitive,
-  cache: cache,
-  plus: plus,
-  minus: minus,
-  times: times,
-  and: and,
-  or: or
+  cache: cache
+//  plus: plus,
+//  minus: minus,
+//  times: times,
+//  and: and,
+//  or: or
 };
 
 },{"./util.js":55,"priorityqueuejs":50,"underscore":51}],54:[function(require,module,exports){
@@ -17702,6 +17724,16 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
+//compile and run some webppl code in global scope:
+function webppl_eval(k, code, verbose) {
+    var oldk = global.topK
+    global.topK = k;  // Install top-level continuation
+    var compiledCode = compile(code, verbose);
+    var ret = eval.call(global,compiledCode)
+    global.topK = oldk
+    return ret
+}
+
 // For use in browser using browserify
 if (!(typeof window === 'undefined')){
   window.webppl = {
@@ -17709,9 +17741,13 @@ if (!(typeof window === 'undefined')){
     compile: compile
   };
   console.log("webppl loaded.");
+} else {
+    //put eval into global scope. browser version??
+    global.webppl_eval = webppl_eval
 }
 
 module.exports = {
+  webppl_eval: webppl_eval,
   run: run,
   compile: compile
 };
