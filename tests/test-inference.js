@@ -22,17 +22,21 @@ var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
 
 var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
+  var numFinishedSamples = 0;
   topK = function(value){
-        hist[value] = hist[value] || 0;
-        hist[value] += 1;
+    hist[value] = hist[value] || 0;
+    hist[value] += 1;
+    numFinishedSamples += 1;
+    if (numFinishedSamples == numSamples){
+      var normHist = util.normalize(hist);
+      testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+      test.done();
+    }
   };
   var compiledProgram = webppl.compile(code);
   for (var i=0; i<numSamples; i++){
     eval(compiledProgram);
   }
-  var normHist = util.normalize(hist);
-  testHistsApproxEqual(test, normHist, expectedHist, tolerance);
-  test.done();
 };
 
 var runDistributionTest = function(test, code, expectedHist, tolerance){
@@ -43,20 +47,22 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
       function (value){
         hist[value] = Math.exp(erp.score([], value));
       });
+    var normHist = util.normalize(hist);
+    testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+    test.done();
   };
-  webppl.run(code,topK);
-  var normHist = util.normalize(hist);
-  testHistsApproxEqual(test, normHist, expectedHist, tolerance);
-  test.done();
+  webppl.run(code, topK);
 };
 
 exports.testDeterministic = {
+
   testApplication: function (test) {
     var code = "3 + 4";
     var expectedHist = {7: 1};
     var tolerance = 0.0001; // in case of floating point errors
     return runSamplingTest(test, code, expectedHist, 1, tolerance);
   }
+
 };
 
 exports.testForwardSampling = {
@@ -102,7 +108,7 @@ exports.testForwardSampling = {
 };
 
 exports.testEnumeration = {
-test1: function(test){
+  test1: function(test){
     var code = ("Enumerate(" +
                 "  function(){" +
                 "    var x = flip(0.5);" +
@@ -112,13 +118,13 @@ test1: function(test){
                 "  }," +
                 "  300) // particles");
     var expectedHist = {
-        true: 2/3,
-        false: 1/3
+      "true": 2/3,
+      "false": 1/3
     };
     var tolerance = .1;
     runDistributionTest(test, code, expectedHist, tolerance);
-},
-    
+  },
+
   test2: function(test){
     var code = ("var e = cache(function (x){" +
                 "    return Enumerate(function() {" +
@@ -150,8 +156,8 @@ exports.testParticleFilter = {
                 "  }," +
                 "  300) // particles");
     var expectedHist = {
-      true: 2/3,
-      false: 1/3
+      "true": 2/3,
+      "false": 1/3
     };
     var tolerance = .1;
     runDistributionTest(test, code, expectedHist, tolerance);
