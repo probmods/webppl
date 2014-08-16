@@ -1,0 +1,73 @@
+
+////////////
+//the literal listener simply infers likely worlds assuming the meaning is true in the world:
+var literalListener = function(utterance) {
+    Enumerate(function(){
+                var world = worldPrior()
+                factor(meaning(utterance, world) ?0:-Infinity)
+                return world
+              }, 100)
+}
+
+//////////////////
+//The world is some number of objects with three random (binary) properties:
+var makeObj = function() {
+    return {apple: flip(0.3), red: flip(0.3), sweet: flip(0.3)}
+}
+
+var worldPrior = function(objs) {
+    var objs = objs?objs:[]
+    return flip(0.5) ? worldPrior(objs.concat([makeObj()])) : objs
+}
+
+var uniformdraw = function(a) {
+    return a[randomInteger(a.length)]
+}
+
+///////////////////////
+//Semantic parser, ala sempre.
+//Each step of the meaning function can combine one or more elements from the meaning fragments, resulting in a new meaning. Each step has a factor that can eg. throw out mis-typed meanings...
+//first we get a lexical meaning for each word.
+//then we recursively apply a random combiner, type [meaning]->[meaning], until only one meaning fragment is left.
+//Every meaninf has world as first arg, so the final meaning should be type world->bool, and is applied to the world.
+
+//lookup meaning. this can be stochastic...
+var lexical_meaning = function(word, world) {
+    switch (word) { //TODO: add switch/case to CPS or desugar..
+        case word=="red" : return function(obj){return obj.isred}
+        case word=="Bob" : return world.find(function(obj){return obj.name=="Bob"})
+        case word=="some": return function(P){return function(Q){return world.filter(P).filter(Q).length>0}}
+        case word=="all" : return function(P){return function(Q){return world.filter(P).filter(neg(Q)).length==0}}
+        case word=="is"  :
+        case word=="are" : return function(x){return x} //identity
+        case word=="a":
+        //TODO etc
+    }
+}
+
+var neg = function(Q){return function(x){return !Q(x)}}
+
+//recursively combine meanings until only one is left.
+var combine_meanings = function(meanings) {
+    return meanings.length == 1 ? meanings : uniformdraw(combiners)(meanings)
+}
+
+//the combiners: apply left, apply right, and fancy type shifters. (Cf. Barker 2002, following Jacobsen 1999.)
+var combiners = [
+                 function fwapply(meanings){
+                    var index = randomInteger(meanings.length)
+                    var newmeaning = function(world)
+                    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
+                 }
+]
+
+var meaning = function(utterance, world) {
+    return combine_meanings( utterance.split(" ").map(lexical_meaning) )(world)
+}
+
+//TODO:
+//-combiners that pass world/context (point-free style?)
+//-factors that catch mis-typing, or syntactic restrictions on combiners
+//-soft factors to shape parses? learning?
+//-lexical meanings: quantifiers, NPs, some polysemmy?, some indexicals?
+//-inference: try enumeration, pf. implement beam search?

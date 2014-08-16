@@ -55,6 +55,34 @@ var randomIntegerERP = new ERP(
   }
 );
 
+function multinomialSample(theta) {
+    var thetaSum = util.sum(theta);
+    var x = Math.random() * thetaSum;
+    var k = theta.length;
+    var probAccum = 0;
+    for (var i = 0; i < k; i++) {
+        probAccum += theta[i];
+        if (probAccum >= x) {
+            return i;
+        } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+    }
+    return k;
+}
+
+//var multinomialERP = new ERP(
+//                             function(params) {
+//                                var vals = params[0]
+//                                var probs = params[1]
+//                                return vals[multinomialSample(probs)]
+//                             },
+//                             function(params, val) {
+//                                var vals = params[0]
+//                                var probs = params[1]
+//                                
+//                                            }
+//
+//)
+
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
   //normalize distribution:
@@ -92,20 +120,6 @@ function makeMarginalERP(marginal) {
       return supp;
     });
   return dist;
-}
-
-function multinomialSample(theta) {
-  var thetaSum = util.sum(theta);
-  var x = Math.random() * thetaSum;
-  var k = theta.length;
-  var probAccum = 0;
-  for (var i = 0; i < k; i++) {
-    probAccum += theta[i];
-    if (probAccum >= x) {
-      return i;
-    } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-  }
-  return k;
 }
 
 
