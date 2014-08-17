@@ -289,6 +289,27 @@ exports.testIfExpression = {
     var code = "var foo = function(){ if (true) { return 3 } return 4 }; foo()";
     var expected = 3;
     return runCpsTest(test, code, expected);
+  },
+
+  testIfInNestedFunction: function(test){
+    var code = ("var foo = function(x){" +
+                "  var bar = function(y){" +
+                "    if (y == 10) {" +
+                "      return 3;" +
+                "    } else {" +
+                "      return 4;" +
+                "    }" +
+                "  };" +
+                "  var z = bar(x);" +
+                "  if (z === 3){" +
+                "    return 1;" +
+                "  } else {" +
+                "    return 2;" +
+                "  };" +
+                "};" +
+                "foo(10);");
+    var expected = 1;
+    return runCpsTest(test, code, expected);
   }
 
 };
