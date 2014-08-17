@@ -133,19 +133,31 @@
 //literalListener("all objects p1")
 //
 //
-var binomial = function(){
-    var a = sample(bernoulliERP, [0.5])
-    var b = sample(bernoulliERP, [0.5])
-    var c = sample(bernoulliERP, [0.5])
-    return a & b & c}
-
-var binomialERP = Enumerate(binomial)
-
-binomialERP
-
+//var binomial = function(){
+//    var a = sample(bernoulliERP, [0.5])
+//    var b = sample(bernoulliERP, [0.5])
+//    var c = sample(bernoulliERP, [0.5])
+//    return a & b & c}
+//
+//var binomialERP = Enumerate(binomial)
+//
+//binomialERP
+//
 
 //var a = {l: 1, m: 2, f: function(){return 3}}
 //a.f()
+
+
+
+
+var syntaxMatch = function(s,t) {
+    display(s+" "+t)
+    return !(Array.isArray(s)) ? s==t :
+    s.length==0? s==t : (syntaxMatch(s[0], t[0]) & syntaxMatch(s.slice(1),t.slice(1)))
+}
+
+
+syntaxMatch(['S'], ['S'])
 
 
 

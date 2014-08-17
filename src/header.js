@@ -115,7 +115,10 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     function(params, val) {
-      return Math.log( marginal.find(function(m){return m.val == val}).prob )
+                     for(var i in marginal){
+                     if(marginal[i].val == val){return Math.log(marginal[i].prob)}
+                     }
+      return -Infinity
     },
     function(params) {
       return supp;
@@ -259,7 +262,8 @@ function Enumerate(k, wpplFn, maxExecutions) {
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  nextState.continuation(nextState.value);
+    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+//    nextState.continuation(nextState.value)
 };
 
 

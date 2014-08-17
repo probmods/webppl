@@ -4,7 +4,7 @@
 //////////////////
 //The world is some number of objects with three random (binary) properties:
 var makeObj = function(name) {
-    return {name: name, red: flip(0.3)}//, apple: flip(0.3), sweet: flip(0.3)}
+    return {name: name, blond: flip(0.5), nice: flip(0.5)}//, sweet: flip(0.3)}
 }
 
 var worldPrior = function(objs) {
@@ -13,9 +13,9 @@ var worldPrior = function(objs) {
     return [makeObj("Bob"), makeObj("Bill"), makeObj("Alice")]
 }
 
-var uniformdraw = function(a) {
-    return a[randomInteger(a.length)]
-}
+//var uniformdraw = function(a) {
+//    return a[randomInteger(a.length)]
+//}
 
 ///////////////////////
 //Semantic parser, ala sempre.
@@ -29,44 +29,61 @@ var uniformdraw = function(a) {
 //syntax is
 //the meaning mapping can be stochastic...
 var lexical_meaning = function(word, world) {
-    return (word=="red")? function(obj){return obj.red} :
-            (word == "Bob")? find(world, function(obj){return obj.name=="Bob"}) :
-            (word=="some")? function(P){return function(Q){return filter(filter(world, P), Q).length>0}} :
-            (word=="all")? function(P){return function(Q){return filter(filter(world, P), neg(Q)).length==0}} :
-            function(x){return x} //any other words are assumed to be vacuous..
-            //TODO other words
+    return (word=="blond")? {sem: function(obj){return obj.blond},
+                           syn: ['L', 'NP', 'S']} :
+    (word=="nice")? {sem: function(obj){return obj.nice},
+        syn: ['L', 'NP', 'S']} :
+    (word == "Bob")? {sem:find(world, function(obj){return obj.name=="Bob"}),
+                      syn: 'NP'} :
+    (word=="some")? {sem: function(P){return function(Q){return filter(filter(world, P), Q).length>0}},
+                     syn: ['R', ['L', 'NP', 'S'], ['R', ['L', 'NP', 'S'], 'S']] } :
+    (word=="all")? {sem: function(P){return function(Q){return filter(filter(world, P), neg(Q)).length==0}},
+                    syn: ['R', ['L', 'NP', 'S'], ['R', ['L', 'NP', 'S'], 'S']] } :
+    {sem: undefined, syn: ''} //any other words are assumed to be vacuous, they'll get deleted.
+            //TODO other words...
 }
-
-//{sem: function(obj){return obj.red}, syn: ['left' 'N' 'T']}
-//{sem: function(x){return x}, syn: ['*' '*' '*']}
 
 var neg = function(Q){return function(x){return !Q(x)}}
 
-//recursively combine meanings until only one is left.
-var combine_meanings = function(meanings) {
-    var combiners = [bwapply]//, fwapply]
-    return meanings.length == 1 ? meanings : combine_meanings(uniformdraw(combiners)(meanings))
+var syntaxMatch = function(s,t) {
+    return !(Array.isArray(s)) ? s==t :
+    s.length==0? t.length==0 : (syntaxMatch(s[0], t[0]) & syntaxMatch(s.slice(1),t.slice(1)))
 }
 
-//the combiners: apply left, apply right, and fancy type shifters. (Cf. Barker 2002, following Jacobsen 1999.)
-var fwapply = function(meanings){
-    var index = randomInteger(meanings.length-1)
-    var f = meanings[index]
-    var a = meanings[index+1]
-    var newmeaning = f(a)
-    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
-}
-var bwapply = function(meanings){
-    var index = randomInteger(meanings.length-1)
-    var f = meanings[index+1]
-    var a = meanings[index]
-    var newmeaning = f(a)
-    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
+//randomly choose a word, try doing what it says, if it doesn't type return original.
+//FIXME: would be more efficient to pre-screen for typing.
+var combine_meaning = function(meanings) {
+    var i = randomInteger(meanings.length)
+    var s = meanings[i].syn
+    if(Array.isArray(s)){ //a functor
+       if(s[0] == 'L') {//try to apply left
+            if(syntaxMatch(s[1],meanings[i-1].syn)){
+                var f = meanings[i].sem
+                var a = meanings[i-1].sem
+                var newmeaning = {sem: f(a), syn: s[2]}
+                return meanings.slice(0,i-1).concat([newmeaning]).concat(meanings.slice(i+1))
+                }
+        } else if(s[0] == 'R') {
+            if(syntaxMatch(s[1],meanings[i+1].syn)){
+                var f = meanings[i].sem
+                var a = meanings[i+1].sem
+                var newmeaning = {sem: f(a), syn: s[2]}
+                return meanings.slice(0,i).concat([newmeaning]).concat(meanings.slice(i+2))
+            }
+        }
+    }
+    return meanings
 }
 
+var combine_meanings = function(meanings){
+    return meanings.length==1 ? meanings[0].sem : combine_meanings(combine_meaning(meanings))
+}
 
+//split the string into words, lookup lexical meanings, delete words with vacuous meaning, then call combine_meanings..
 var meaning = function(utterance, world) {
-    return combine_meanings( map(utterance.split(" "), function(w){return lexical_meaning(w, world)}) )
+    return combine_meanings( filter(map(utterance.split(" "),
+                                        function(w){return lexical_meaning(w, world)}),
+                                    function(m){return !(m.sem==undefined)}))
 }
 
 ////////////
@@ -74,25 +91,21 @@ var meaning = function(utterance, world) {
 var literalListener = function(utterance) {
     Enumerate(function(){
               var world = worldPrior()
-              var m = meaning(utterance, world)[0]
+              var m = meaning(utterance, world)
               factor(m?0:-Infinity)
               return world
               }, 100)
 }
 
-literalListener("Bob red")
+//literalListener("Bob is nice")
+//literalListener("some blond are nice")
+literalListener("some blond people are nice")
 
-//var w = worldPrior()
-//meaning("Bob is red", w)[0]
-
-//var w = worldPrior()
-//var b = lexical_meaning("Bob",w)
-//var r = lexical_meaning("is",w)
-//r(b)
 
 //TODO:
-//-combiners that pass world/context (point-free style?)
-//-factors that catch mis-typing, or syntactic restrictions on combiners
 //-soft factors to shape parses? learning?
 //-lexical meanings: quantifiers, NPs, some polysemmy?, some indexicals?
 //-inference: try enumeration, pf. implement beam search?
+
+
+
