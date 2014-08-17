@@ -15176,118 +15176,6 @@ module.exports = tmpl;
 },{"esprima":43,"estraverse":45}],45:[function(require,module,exports){
 module.exports=require(29)
 },{}],46:[function(require,module,exports){
-"use strict";
-
-var slicer = Array.prototype.slice
-var concater = Array.prototype.concat
-var excludes = function excludes(item) { return this.indexOf(item) < 0 }
-
-module.exports = function difference(first, second) {
-  /**
-  Return a set that is the `first` set without elements of the remaining sets
-
-      var difference = require("interset/difference")
-
-      difference()
-      // => TypeError: difference requires at least one arguments
-
-      difference([1, 2, 3])
-      // => [1, 2, 3]
-
-      difference([1, 2], [2, 3])
-      // => [1]
-
-      difference([1, 2, 3], [1], [1, 4], [3])
-      // => [2]
-  **/
-  if (!first) throw TypeError("difference requires at least one argument")
-  if (!second) return first
-  var remaining = concater.apply([], slicer.call(arguments, 1))
-  return first.filter(excludes, remaining)
-}
-
-},{}],47:[function(require,module,exports){
-"use strict";
-
-exports.union = require("./union")
-exports.difference = require("./difference")
-exports.intersection = require("./intersection")
-
-},{"./difference":46,"./intersection":48,"./union":49}],48:[function(require,module,exports){
-"use strict";
-
-var slicer = Array.prototype.slice
-var contains = function(item) { return this.indexOf(item) >= 0 }
-
-function intersection2(a, b) {
-  return a.length > b.length ? a.filter(contains, b) :
-         b.filter(contains, a)
-}
-
-module.exports = function intersection(a, b, rest) {
-  /**
-  Return a set that is the [intersection][] of the input sets.
-
-      var intersection = require("interset/intersection")
-
-      intersection()
-      // => TypeError: intersection requires at least one arguments
-
-      intersection([1])
-      // => [1]
-
-      intersection([1, 2], [2, 3])
-      // => [2]
-
-      intersection([1, 2], [2, 3], [3, 4])
-      // => []
-
-      intersection([1, "a"], ["a", 3], ["a"])
-      // => ["a"]
-  **/
-  if (!a) throw TypeError("intersection requires at least one argument")
-  if (!b) return a
-  if (!rest) return intersection2(a, b)
-  return slicer.call(arguments, 1).reduce(intersection2, a)
-}
-
-},{}],49:[function(require,module,exports){
-"use strict";
-var slicer = Array.prototype.slice
-
-function add(union, item) {
-  if (union.indexOf(item) < 0) union.push(item)
-  return union
-}
-
-function include(union, set) {
-  return set.reduce(add, union)
-}
-
-module.exports = function union(a, b) {
-  /**
-  Return a set that is the [union][] of the input sets.
-
-      var union = require("interset/union")
-
-      union()
-      // => []
-
-      union([1, 2])
-      // => [1, 2]
-
-      union([1, 2], [2, 3])
-      // => [1, 2, 3]
-
-      union([1, 2], [2, 3], [3, 4])
-      // => [1, 2, 3, 4]
-  **/
-  if (!a) return []
-  if (!b) return a
-  return slicer.call(arguments).reduce(include, [])
-}
-
-},{}],50:[function(require,module,exports){
 /**
  * Expose `PriorityQueue`.
  */
@@ -15461,7 +15349,7 @@ PriorityQueue.prototype._swap = function(a, b) {
   this._elements[b] = aux;
 };
 
-},{}],51:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 //     Underscore.js 1.6.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -16806,7 +16694,7 @@ PriorityQueue.prototype._swap = function(a, b) {
   }
 }).call(this);
 
-},{}],52:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -16816,12 +16704,12 @@ var escodegen = require("escodegen");
 var esprima = require("esprima");
 var estemplate = require("estemplate");
 var types = require("ast-types");
-var interset = require("interset");
 var util = require('./util.js');
 
-var difference = interset.difference;
 var build = types.builders;
 var Syntax = estraverse.Syntax;
+
+var returnContIdentifier = build.identifier("_return");
 
 function makeGensymVariable(name){
   return build.identifier("_".concat(util.gensym(name)));
@@ -16851,10 +16739,17 @@ function cpsAtomic(node){
   case Syntax.FunctionExpression:
     var newCont = makeGensymVariable("k");
     var newParams = [newCont].concat(node.params);
-    return buildFunc(newParams, cps(node.body, newCont));
+    return buildFunc(
+      newParams,
+      build.blockStatement([
+        build.variableDeclaration("var", [build.variableDeclarator(returnContIdentifier, newCont)]),
+        convertToStatement(cps(node.body, newCont))
+      ]));
   case Syntax.Identifier:
   case Syntax.Literal:
     return node;
+  case Syntax.EmptyStatement:
+      return build.identifier("undefined");
   default:
     throw new Error("cpsAtomic: unknown expression type: " + node.type);
   };
@@ -17011,13 +16906,13 @@ function cpsArrayExpression(elements, cont){
 
 function cpsObjectExpression(properties, cont, props){
     props = props || [];
-    if(properties.length==0) {
+    if (properties.length == 0 ) {
         var objectExpr = build.objectExpression(props);
         return build.callExpression(cont, [objectExpr]);
     } else {
         var nextVal = makeGensymVariable("ob");
         var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
-        //FIXME: assert that value is not function, since can't call function methods...?
+        // FIXME: assert that value is not function, since can't call function methods...?
         return cps(properties[0].value,
                    buildFunc([nextVal],
                              cpsObjectExpression(properties.slice(1),
@@ -17063,8 +16958,6 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
 
 function cps(node, cont){
 
-  var recurse = function(nodes){return cps(nodes, cont);};
-
   switch (node.type) {
 
   case Syntax.BlockStatement:
@@ -17074,11 +16967,12 @@ function cps(node, cont){
     return build.program([convertToStatement(cpsBlock(node.body, cont))]);
 
   case Syntax.ReturnStatement:
-    return build.returnStatement(recurse(node.argument));
+    return cps(node.argument, returnContIdentifier);
 
   case Syntax.ExpressionStatement:
-    return build.expressionStatement(recurse(node.expression));
+    return cps(node.expression, cont);
 
+  case Syntax.EmptyStatement:
   case Syntax.Identifier:
   case Syntax.Literal:
   case Syntax.FunctionExpression:
@@ -17091,9 +16985,6 @@ function cps(node, cont){
 
   case Syntax.CallExpression:
     return cpsApplication(node.callee, node.arguments, cont);
-
-  case Syntax.EmptyStatement:
-    return build.callExpression(cont, [build.identifier("undefined")]);
 
   case Syntax.IfStatement:
     return cpsIf(node.test, node.consequent, node.alternate, cont);
@@ -17125,7 +17016,7 @@ module.exports = {
   cps: cps
 };
 
-},{"./util.js":55,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"interset":47,"underscore":51}],53:[function(require,module,exports){
+},{"./util.js":51,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],49:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -17669,7 +17560,7 @@ module.exports = {
 //  or: or
 };
 
-},{"./util.js":55,"priorityqueuejs":50,"underscore":51}],54:[function(require,module,exports){
+},{"./util.js":51,"priorityqueuejs":46,"underscore":47}],50:[function(require,module,exports){
 (function (global,Buffer){
 "use strict";
 
@@ -17753,7 +17644,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./cps.js":52,"./header.js":53,"./util.js":55,"ast-types":27,"buffer":4,"escodegen":28,"esprima":43,"path":8}],55:[function(require,module,exports){
+},{"./cps.js":48,"./header.js":49,"./util.js":51,"ast-types":27,"buffer":4,"escodegen":28,"esprima":43,"path":8}],51:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -17813,4 +17704,4 @@ module.exports = {
   logsumexp: logsumexp,
   withEmptyStack: withEmptyStack
 }
-},{"underscore":51}]},{},[54]);
+},{"underscore":47}]},{},[50]);
