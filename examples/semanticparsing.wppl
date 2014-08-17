@@ -98,8 +98,10 @@ literalListener("all blond people are nice")
 
 //TODO:
 //-soft factors to shape parses? learning?
-//-lexical meanings: quantifiers, NPs, some polysemmy?, some indexicals?
-//-inference: try enumeration, pf. implement beam search?
+//-lexical meanings:
+//  -polysemmy, do a word-sense disambiguation example?
+//  -indexicals, have "he" be a random male object?
+//-inference: what works? optimizing and/or incrementalizing?
 
 
 

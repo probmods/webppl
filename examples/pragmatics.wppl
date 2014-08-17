@@ -1,18 +1,40 @@
 
 //definition of meaning, worldPrior, and literal listener from semantic parser.
 //FIXME: require doesn't actually work...
-require('semanticparsing.wppl')
+//require('semanticparsing.wppl')
 
 //////////////////////////
 
-//language is produced by speaker is simple:
-//"three apples are red", "all apples are sweet", etc
+
+var literalListener = function(utterance) {
+    Enumerate(function(){
+              var world = worldPrior()
+              var m = meaning(utterance, world)
+              factor(m?0:-Infinity)
+              return world
+              }, 100)
+}
+
+var worldPrior = function() {
+    var num_nice_people = randomInteger(4)//3 people.. 0-3 can be nice.
+    return num_nice_people
+}
 
 var utterancePrior = function() {
-    var quantifiers = ["all","some","no","most", "one", "two", "three"]
-    var properties = ["apple","red","sweet"]
-    return uniformdraw(quantifiers)+" "+uniformdraw(properties)+" are "+uniformdraw(properties)
+    var utterances = ["some of the people are nice",
+                      "all of the people are nice",
+                      "none of the people are nice"]
+    var i = randomInteger(utterances.length)
+    return utterances[i]
 }
+
+var meaning = function(utt,world) {
+    return  utt=="some of the people are nice"? world>0 :
+            utt=="all of the people are nice"? world==3 :
+            utt=="none of the people are nice"? world==0 :
+            true
+}
+
 
 //informative speaker:
 var speaker = function(world) {
@@ -32,4 +54,7 @@ var listener = function(utterance) {
               },100)
 }
 
+//literalListener("some of the people are nice")
+//speaker(2)
+listener("some of the people are nice")
 
