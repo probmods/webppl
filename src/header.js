@@ -78,7 +78,7 @@ function multinomialSample(theta) {
 //                             function(params, val) {
 //                                var vals = params[0]
 //                                var probs = params[1]
-//                                
+//
 //                                            }
 //
 //)
@@ -497,28 +497,6 @@ function cache(k, f) {
 }
 
 
-//Old.. use binary ops:
-//function plus(k, x, y) {
-//  k(x + y);
-//};
-//
-//function minus(k, x, y) {
-//  k(x - y);
-//};
-//
-//function times(k, x, y) {
-//  k(x * y);
-//};
-//
-//function and(k, x, y) {
-//  k(x && y);
-//};
-//
-//function or(k, x, y) {
-//  k(x || y);
-//};
-
-
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
@@ -534,9 +512,4 @@ module.exports = {
   display: display,
   callPrimitive: callPrimitive,
   cache: cache
-//  plus: plus,
-//  minus: minus,
-//  times: times,
-//  and: and,
-//  or: or
 };
