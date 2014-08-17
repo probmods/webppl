@@ -2,6 +2,10 @@
 
 var _ = require('underscore');
 
+function runningInBrowser(){
+    return !(typeof window === 'undefined');
+}
+
 function makeGensym() {
   var seq = 0;
   return function(prefix){
@@ -55,5 +59,6 @@ module.exports = {
   sum: sum,
   normalize: normalize,
   logsumexp: logsumexp,
-  withEmptyStack: withEmptyStack
-}
+  withEmptyStack: withEmptyStack,
+  runningInBrowser: runningInBrowser
+};

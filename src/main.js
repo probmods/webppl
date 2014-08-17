@@ -54,24 +54,24 @@ function run(code, contFun, verbose){
 // Compile and run some webppl code in global scope:
 // FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
-    var oldk = global.topK
-    global.topK = k;  // Install top-level continuation
-    var compiledCode = compile(code, verbose);
-    var ret = eval.call(global, compiledCode)
-    global.topK = oldk
-    return ret
+  var oldk = global.topK;
+  global.topK = k;  // Install top-level continuation
+  var compiledCode = compile(code, verbose);
+  var ret = eval.call(global, compiledCode);
+  global.topK = oldk;
+  return ret;
 }
 
 // For use in browser using browserify
-if (!(typeof window === 'undefined')){
+if (util.runningInBrowser()){
   window.webppl = {
     run: run,
     compile: compile
   };
   console.log("webppl loaded.");
 } else {
-    //put eval into global scope. browser version??
-    global.webppl_eval = webppl_eval
+  // Put eval into global scope. browser version??
+  global.webppl_eval = webppl_eval;
 }
 
 module.exports = {
