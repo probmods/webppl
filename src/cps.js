@@ -44,6 +44,8 @@ function cpsAtomic(node){
   case Syntax.Identifier:
   case Syntax.Literal:
     return node;
+  case Syntax.EmptyStatement:
+      return build.identifier("undefined");
   default:
     throw new Error("cpsAtomic: unknown expression type: " + node.type);
   };
@@ -268,6 +270,7 @@ function cps(node, cont){
   case Syntax.ExpressionStatement:
     return build.expressionStatement(recurse(node.expression));
 
+  case Syntax.EmptyStatement:
   case Syntax.Identifier:
   case Syntax.Literal:
   case Syntax.FunctionExpression:
@@ -280,9 +283,6 @@ function cps(node, cont){
 
   case Syntax.CallExpression:
     return cpsApplication(node.callee, node.arguments, cont);
-
-  case Syntax.EmptyStatement:
-    return build.callExpression(cont, [build.identifier("undefined")]);
 
   case Syntax.IfStatement:
     return cpsIf(node.test, node.consequent, node.alternate, cont);
