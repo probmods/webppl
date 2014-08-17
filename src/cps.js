@@ -14,8 +14,10 @@ var Syntax = estraverse.Syntax;
 
 var returnContIdentifier = build.identifier("_return");
 
+var gensym = util.makeGensym();
+
 function makeGensymVariable(name){
-  return build.identifier("_".concat(util.gensym(name)));
+  return build.identifier("_".concat(gensym(name)));
 }
 
 function convertToStatement(node){
@@ -315,6 +317,11 @@ function cps(node, cont){
   }
 }
 
+function cpsMain(node, cont){
+  gensym = util.makeGensym();
+  return cps(node, cont);
+}
+
 module.exports = {
-  cps: cps
+  cps: cpsMain
 };

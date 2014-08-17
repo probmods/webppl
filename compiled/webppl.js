@@ -16711,8 +16711,10 @@ var Syntax = estraverse.Syntax;
 
 var returnContIdentifier = build.identifier("_return");
 
+var gensym = util.makeGensym();
+
 function makeGensymVariable(name){
-  return build.identifier("_".concat(util.gensym(name)));
+  return build.identifier("_".concat(gensym(name)));
 }
 
 function convertToStatement(node){
@@ -17012,8 +17014,13 @@ function cps(node, cont){
   }
 }
 
+function cpsMain(node, cont){
+  gensym = util.makeGensym();
+  return cps(node, cont);
+}
+
 module.exports = {
-  cps: cps
+  cps: cpsMain
 };
 
 },{"./util.js":51,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],49:[function(require,module,exports){
@@ -17604,11 +17611,19 @@ function webppl_eval(k, code, verbose) {
   return ret;
 }
 
+// For use in browser
+function webpplCPS(code){
+  var programAst = esprima.parse(code);
+  var newProgramAst = cps(programAst, build.identifier("topK"));
+  return escodegen.generate(newProgramAst);
+}
+
 // For use in browser using browserify
 if (util.runningInBrowser()){
   window.webppl = {
     run: run,
-    compile: compile
+    compile: compile,
+    cps: webpplCPS
   };
   console.log("webppl loaded.");
 } else {
@@ -17681,6 +17696,7 @@ var withEmptyStack = function(thunk){
 
 module.exports = {
   gensym: gensym,
+  makeGensym: makeGensym,
   prettyJSON: prettyJSON,
   sum: sum,
   normalize: normalize,

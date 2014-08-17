@@ -55,6 +55,7 @@ var withEmptyStack = function(thunk){
 
 module.exports = {
   gensym: gensym,
+  makeGensym: makeGensym,
   prettyJSON: prettyJSON,
   sum: sum,
   normalize: normalize,

@@ -62,11 +62,19 @@ function webppl_eval(k, code, verbose) {
   return ret;
 }
 
+// For use in browser
+function webpplCPS(code){
+  var programAst = esprima.parse(code);
+  var newProgramAst = cps(programAst, build.identifier("topK"));
+  return escodegen.generate(newProgramAst);
+}
+
 // For use in browser using browserify
 if (util.runningInBrowser()){
   window.webppl = {
     run: run,
-    compile: compile
+    compile: compile,
+    cps: webpplCPS
   };
   console.log("webppl loaded.");
 } else {
