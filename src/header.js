@@ -70,20 +70,6 @@ function multinomialSample(theta) {
     return k;
 }
 
-//var multinomialERP = new ERP(
-//                             function(params) {
-//                                var vals = params[0]
-//                                var probs = params[1]
-//                                return vals[multinomialSample(probs)]
-//                             },
-//                             function(params, val) {
-//                                var vals = params[0]
-//                                var probs = params[1]
-//
-//                                            }
-//
-//)
-
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
   //normalize distribution:

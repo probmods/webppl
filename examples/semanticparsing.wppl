@@ -1,38 +1,39 @@
-
+////////////
+//the literal listener simply infers likely worlds assuming the meaning is true in the world:
+var literalListener = function(utterance) {
+    Enumerate(function(){
+              var world = worldPrior()
+              var m = meaning(utterance, world)
+              factor(m?0:-Infinity)
+              return world
+              }, 100)
+}
 
 
 //////////////////
-//The world is some number of objects with three random (binary) properties:
+//The world is some named objects with random (binary) properties:
 var makeObj = function(name) {
-    return {name: name, blond: flip(0.5), nice: flip(0.5)}//, sweet: flip(0.3)}
+    return {name: name, blond: flip(0.5), nice: flip(0.5)}
 }
 
 var worldPrior = function(objs) {
-//    var objs = objs?objs:[]
-//    return flip(0.5) ? worldPrior(objs.concat([makeObj()])) : objs
     return [makeObj("Bob"), makeObj("Bill"), makeObj("Alice")]
 }
 
-//var uniformdraw = function(a) {
-//    return a[randomInteger(a.length)]
-//}
-
 ///////////////////////
-//Semantic parser, ala sempre.
-//Each step of the meaning function can combine one or more elements from the meaning fragments, resulting in a new meaning. Each step has a factor that can eg. throw out mis-typed meanings...
-//first we get a lexical meaning for each word.
-//then we recursively apply a random combiner, type [meaning]->[meaning], until only one meaning fragment is left.
-//Every meaninf has world as first arg, so the final meaning should be type world->bool, and is applied to the world.
+//Semantic parser: the meanings function.
+//Each step of the meaning function tres to combine by left or right application, resulting in a new meaning.
+//first we get a lexical meaning for each word and filter out the undefined meanings,
+//then we recursively apply until only one meaning fragment is left.
+//to allow fancy movement and binding we would mix this with type-shifting operators.
 
-//lookup meaning.
-//meaning is an object with semantics and syntax,
-//syntax is
+//lookup meaning, which is an object with semantics and syntax,
 //the meaning mapping can be stochastic...
 var lexical_meaning = function(word, world) {
     return (word=="blond")? {sem: function(obj){return obj.blond},
-                           syn: ['L', 'NP', 'S']} :
+                             syn: ['L', 'NP', 'S']} :
     (word=="nice")? {sem: function(obj){return obj.nice},
-        syn: ['L', 'NP', 'S']} :
+                     syn: ['L', 'NP', 'S']} :
     (word == "Bob")? {sem:find(world, function(obj){return obj.name=="Bob"}),
                       syn: 'NP'} :
     (word=="some")? {sem: function(P){return function(Q){return filter(filter(world, P), Q).length>0}},
@@ -50,7 +51,7 @@ var syntaxMatch = function(s,t) {
     s.length==0? t.length==0 : (syntaxMatch(s[0], t[0]) & syntaxMatch(s.slice(1),t.slice(1)))
 }
 
-//randomly choose a word, try doing what it says, if it doesn't type return original.
+//randomly choose a word, try applying as it says, if it doesn't type return original meanings.
 //FIXME: would be more efficient to pre-screen for typing.
 var combine_meaning = function(meanings) {
     var i = randomInteger(meanings.length)
@@ -75,6 +76,7 @@ var combine_meaning = function(meanings) {
     return meanings
 }
 
+//recursively to the above until only one meaning is left, return it's semantics.
 var combine_meanings = function(meanings){
     return meanings.length==1 ? meanings[0].sem : combine_meanings(combine_meaning(meanings))
 }
@@ -86,20 +88,12 @@ var meaning = function(utterance, world) {
                                     function(m){return !(m.sem==undefined)}))
 }
 
-////////////
-//the literal listener simply infers likely worlds assuming the meaning is true in the world:
-var literalListener = function(utterance) {
-    Enumerate(function(){
-              var world = worldPrior()
-              var m = meaning(utterance, world)
-              factor(m?0:-Infinity)
-              return world
-              }, 100)
-}
+
 
 //literalListener("Bob is nice")
 //literalListener("some blond are nice")
-literalListener("some blond people are nice")
+//literalListener("some blond people are nice")
+literalListener("all blond people are nice")
 
 
 //TODO:
