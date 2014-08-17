@@ -64,6 +64,18 @@ exports.testFunctionExpression = {
     var code = "var bar = function(){ var foo = function(){ return 3;}; var foo2 = function(){ return 4;} }; 5;";
     var expected = 5;
     return runCpsTest(test, code, expected);
+  },
+
+  testReturn1: function(test){
+    var code = "var foo = function(){ return 1; return 2; }; foo()";
+    var expected = 1;
+    return runCpsTest(test, code, expected);
+  },
+
+  testReturn2: function(test){
+    var code = "var foo = function(){ (function(){ return 1})(); return 2; }; foo()";
+    var expected = 2;
+    return runCpsTest(test, code, expected);
   }
 
 };
