@@ -1,23 +1,16 @@
 
-////////////
-//the literal listener simply infers likely worlds assuming the meaning is true in the world:
-var literalListener = function(utterance) {
-    Enumerate(function(){
-                var world = worldPrior()
-                factor(meaning(utterance, world) ?0:-Infinity)
-                return world
-              }, 100)
-}
+
 
 //////////////////
 //The world is some number of objects with three random (binary) properties:
-var makeObj = function() {
-    return {apple: flip(0.3), red: flip(0.3), sweet: flip(0.3)}
+var makeObj = function(name) {
+    return {name: name, red: flip(0.3)}//, apple: flip(0.3), sweet: flip(0.3)}
 }
 
 var worldPrior = function(objs) {
-    var objs = objs?objs:[]
-    return flip(0.5) ? worldPrior(objs.concat([makeObj()])) : objs
+//    var objs = objs?objs:[]
+//    return flip(0.5) ? worldPrior(objs.concat([makeObj()])) : objs
+    return [makeObj("Bob"), makeObj("Bill"), makeObj("Alice")]
 }
 
 var uniformdraw = function(a) {
@@ -31,39 +24,71 @@ var uniformdraw = function(a) {
 //then we recursively apply a random combiner, type [meaning]->[meaning], until only one meaning fragment is left.
 //Every meaninf has world as first arg, so the final meaning should be type world->bool, and is applied to the world.
 
-//lookup meaning. this can be stochastic...
+//lookup meaning.
+//meaning is an object with semantics and syntax,
+//syntax is
+//the meaning mapping can be stochastic...
 var lexical_meaning = function(word, world) {
-    switch (word) { //TODO: add switch/case to CPS or desugar..
-        case word=="red" : return function(obj){return obj.isred}
-        case word=="Bob" : return world.find(function(obj){return obj.name=="Bob"})
-        case word=="some": return function(P){return function(Q){return world.filter(P).filter(Q).length>0}}
-        case word=="all" : return function(P){return function(Q){return world.filter(P).filter(neg(Q)).length==0}}
-        case word=="is"  :
-        case word=="are" : return function(x){return x} //identity
-        case word=="a":
-        //TODO etc
-    }
+    return (word=="red")? function(obj){return obj.red} :
+            (word == "Bob")? find(world, function(obj){return obj.name=="Bob"}) :
+            (word=="some")? function(P){return function(Q){return filter(filter(world, P), Q).length>0}} :
+            (word=="all")? function(P){return function(Q){return filter(filter(world, P), neg(Q)).length==0}} :
+            function(x){return x} //any other words are assumed to be vacuous..
+            //TODO other words
 }
+
+//{sem: function(obj){return obj.red}, syn: ['left' 'N' 'T']}
+//{sem: function(x){return x}, syn: ['*' '*' '*']}
 
 var neg = function(Q){return function(x){return !Q(x)}}
 
 //recursively combine meanings until only one is left.
 var combine_meanings = function(meanings) {
-    return meanings.length == 1 ? meanings : uniformdraw(combiners)(meanings)
+    var combiners = [bwapply]//, fwapply]
+    return meanings.length == 1 ? meanings : combine_meanings(uniformdraw(combiners)(meanings))
 }
 
 //the combiners: apply left, apply right, and fancy type shifters. (Cf. Barker 2002, following Jacobsen 1999.)
-var combiners = [
-                 function fwapply(meanings){
-                    var index = randomInteger(meanings.length)
-                    var newmeaning = function(world)
-                    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
-                 }
-]
+var fwapply = function(meanings){
+    var index = randomInteger(meanings.length-1)
+    var f = meanings[index]
+    var a = meanings[index+1]
+    var newmeaning = f(a)
+    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
+}
+var bwapply = function(meanings){
+    var index = randomInteger(meanings.length-1)
+    var f = meanings[index+1]
+    var a = meanings[index]
+    var newmeaning = f(a)
+    return meanings.slice(0,index).concat([newmeaning]).concat(meanings.slice(index+2))
+}
+
 
 var meaning = function(utterance, world) {
-    return combine_meanings( utterance.split(" ").map(lexical_meaning) )(world)
+    return combine_meanings( map(utterance.split(" "), function(w){return lexical_meaning(w, world)}) )
 }
+
+////////////
+//the literal listener simply infers likely worlds assuming the meaning is true in the world:
+var literalListener = function(utterance) {
+    Enumerate(function(){
+              var world = worldPrior()
+              var m = meaning(utterance, world)[0]
+              factor(m?0:-Infinity)
+              return world
+              }, 100)
+}
+
+literalListener("Bob red")
+
+//var w = worldPrior()
+//meaning("Bob is red", w)[0]
+
+//var w = worldPrior()
+//var b = lexical_meaning("Bob",w)
+//var r = lexical_meaning("is",w)
+//r(b)
 
 //TODO:
 //-combiners that pass world/context (point-free style?)

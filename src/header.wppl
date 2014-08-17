@@ -6,3 +6,16 @@ var randomInteger = function(n) {
     return sample(randomIntegerERP, [n])
 }
 
+var append = function(a,b) {a.concat(b)}
+
+var map = function(ar,fn) {
+    return ar.length==0 ? [] : append([fn(ar[0])], map(ar.slice(1), fn))
+}
+
+var filter = function(ar,fn) {
+    return ar.length==0 ? [] : append(fn(ar[0])?[ar[0]]:[], filter(ar.slice(1),fn))
+}
+
+var find = function(ar,fn) {
+    return ar.length==0 ? undefined : (fn(ar[0]) ? ar[0] : find(ar.slice(1),fn))
+}

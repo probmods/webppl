@@ -133,26 +133,19 @@
 //literalListener("all objects p1")
 //
 //
-//var binomial = function(){
-//    var a = sample(bernoulli, [0.5])
-//    var b = sample(bernoulli, [0.5])
-//    var c = sample(bernoulli, [0.5])
-//    return a & b & c}
-//
-//var binomialERP = Enumerate(binomial)
-//
-//binomialERP
+var binomial = function(){
+    var a = sample(bernoulliERP, [0.5])
+    var b = sample(bernoulliERP, [0.5])
+    var c = sample(bernoulliERP, [0.5])
+    return a & b & c}
+
+var binomialERP = Enumerate(binomial)
+
+binomialERP
 
 
 //var a = {l: 1, m: 2, f: function(){return 3}}
 //a.f()
 
-Enumerate(
-  function(){
-    var x = flip(0.5);
-    var y = flip(0.5);
-    factor( (x|y) ? 0 : -Infinity);
-    return x;
-  },
-  300) // particles"
+
 

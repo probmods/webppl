@@ -47,7 +47,7 @@ var randomIntegerERP = new ERP(
   },
   function randomIntegerScore(params, val) {
     var stop = params[0];
-    var inSupport = (val == Math.floor(val)) && (0 <= val < stop);
+    var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
     return inSupport ? -Math.log(stop) : -Infinity;
   },
   function randomIntegerSupport(params) {
@@ -90,11 +90,11 @@ function makeMarginalERP(marginal) {
   var norm = 0,
   supp = [];
   for (var v in marginal) {
-    norm += marginal[v];
-    supp.push(v);
+    norm += marginal[v].prob;
+    supp.push(marginal[v].val);
   }
   for (var v in marginal) {
-    marginal[v] = marginal[v] / norm;
+    marginal[v].prob = marginal[v].prob / norm;
   }
 
   console.log("Creating distribution: ");
@@ -107,15 +107,15 @@ function makeMarginalERP(marginal) {
       var x = Math.random();
       var probAccum = 0;
       for (var i in marginal) {
-        probAccum += marginal[i];
+        probAccum += marginal[i].prob;
         if (probAccum >= x) {
-          return i;
+          return marginal[i].val;
         } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
       }
-      return i;
+      return marginal[i].val;
     },
     function(params, val) {
-      return Math.log(marginal[val]);
+      return Math.log( marginal.find(function(m){return m.val == val}).prob )
     },
     function(params) {
       return supp;
@@ -279,9 +279,9 @@ Enumerate.prototype.sample = function(cc, dist, params) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s])
     };
-      this.queue.enq(state);
+      
+    this.queue.enq(state);
   }
-
   // Call the next state on the queue
   this.nextInQueue();
 };
@@ -295,10 +295,11 @@ Enumerate.prototype.factor = function(cc, score) {
 Enumerate.prototype.exit = function(retval) {
 
   // We have reached an exit of the computation. Accumulate probability into retval bin.
-  if (this.marginal[retval] === undefined) {
-    this.marginal[retval] = 0;
+  var r = JSON.stringify(retval)
+  if (this.marginal[r] == undefined) {
+      this.marginal[r] = {prob: 0, val: retval};
   }
-  this.marginal[retval] += Math.exp(this.score);
+  this.marginal[r].prob += Math.exp(this.score);
 
   // Increment the completed execution counter
   this.numCompletedExecutions++;
@@ -453,7 +454,9 @@ ParticleFilter.prototype.exit = function(retval) {
   _.each(
     this.particles,
     function(particle){
-      hist[particle.value] = (hist[particle.value] || 0) + 1;
+         var k = JSON.stringify(particle.value)
+         if(hist[k]==undefined){hist[k]={prob:0, val:particle.value}}
+         hist[k].prob += 1;
     });
   var dist = makeMarginalERP(hist);
 
