@@ -100,12 +100,6 @@ exports.testCallExpression = {
     return runCpsTest(test, code, expected);
   },
 
-  // testCompound3: function (test) {
-  //     var code = "(function(y){y})(plusTwo(123))"
-  //     var expected = undefined;
-  //     return runCpsTest(test, code, expected);
-  // },
-
   testBinaryFuncPlus: function (test) {
     var code = "plus(3, 5)";
     var expected = 8;
