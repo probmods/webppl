@@ -4,6 +4,7 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
+
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
 // functions. A single ERP need not hve all three, but some inference
@@ -145,8 +146,9 @@ function makeMarginalERP(marginal) {
 // setting throws an error on factor calls.
 var coroutine = {
   sample: function(cc, erp, params) {
+    // Sample and keep going
     cc(erp.sample(params));
-  }, //sample and keep going
+  },
   factor: function() {
     throw "factor allowed only inside inference.";
   },
@@ -182,7 +184,7 @@ function Forward(cc, wpplFn) {
 
   // Move old coroutine out of the way and install this as the
   // current handler.
-  this.old_coroutine = coroutine;
+  this.oldCoroutine = coroutine;
   coroutine = this;
 
   // Run the wppl computation, when the computation returns we want
@@ -210,9 +212,9 @@ Forward.prototype.exit = function(retval) {
     });
 
   // Put old coroutine back, and return dist
-  coroutine = this.old_coroutine;
+  coroutine = this.oldCoroutine;
   this.cc(dist);
-}
+};
 
 // Helper wraps with 'new' to make a new copy of Forward and set
 // 'this' correctly..
@@ -226,21 +228,23 @@ function fw(cc, wpplFn) {
 //
 // Depth-first enumeration of all the paths through the computation.
 
-function Enumerate(k, wpplFn, max_ex) {
+function Enumerate(k, wpplFn, maxExecutions) {
 
-  this.score = 0; //used to track the score of the path currently being explored
+  this.score = 0; // Used to track the score of the path currently being explored
   this.queue = new PriorityQueue(
-    function(a, b){return a.score-b.score;}); //queue of states that we have yet to explore
-  this.marginal = {}; //we will accumulate the marginal distribution here
-  this.exs = 0 //keep track of number of full executions expanded
-  this.max_ex = max_ex || 1000
+    function(a, b){return a.score-b.score;}); // Queue of states that we have yet to explore
+  this.marginal = {}; // We will accumulate the marginal distribution here
+  this.numCompletedExecutions = 0;
+  this.maxExecutions = maxExecutions || 1000;
 
-  //move old coroutine out of the way and install this as the current handler
+  // Move old coroutine out of the way and install this as the current handler
   this.k = k;
-  this.old_coroutine = coroutine;
+  this.oldCoroutine = coroutine;
   coroutine = this;
 
-  //run the wppl computation, when the computation returns we want it to call the exit method of this coroutine so we pass that as the continuation.
+  // Run the wppl computation, when the computation returns we want it
+  // to call the exit method of this coroutine so we pass that as the
+  // continuation.
   wpplFn(exit);
 }
 
@@ -248,14 +252,15 @@ function Enumerate(k, wpplFn, max_ex) {
 // The queue is a bunch of computation states. each state is a
 // continuation, a value to apply it to, and a score.
 //
-// This function runs the highest priority state in the queue. Currently priority is score, but could be adjusted to give depth-first or breadth-first or some other search strategy
+// This function runs the highest priority state in the
+// queue. Currently priority is score, but could be adjusted to give
+// depth-first or breadth-first or some other search strategy
 
 Enumerate.prototype.nextInQueue = function() {
-  var next_state = this.queue.deq();
-  this.score = next_state.score;
-  next_state.continuation(next_state.value);
-}
-
+  var nextState = this.queue.deq();
+  this.score = nextState.score;
+  nextState.continuation(nextState.value);
+};
 
 
 Enumerate.prototype.sample = function(cc, dist, params) {
@@ -282,39 +287,39 @@ Enumerate.prototype.sample = function(cc, dist, params) {
 };
 
 Enumerate.prototype.factor = function(cc, score) {
-  //update score and continue
+  // Update score and continue
   this.score += score;
   cc();
 };
 
 Enumerate.prototype.exit = function(retval) {
 
-  //have reached an exit of the computation. accumulate probability into retval bin.
-  if (this.marginal[retval] == undefined) {
+  // We have reached an exit of the computation. Accumulate probability into retval bin.
+  if (this.marginal[retval] === undefined) {
     this.marginal[retval] = 0;
   }
   this.marginal[retval] += Math.exp(this.score);
 
-  //increment the completed execution counter
-  this.exs++
+  // Increment the completed execution counter
+  this.numCompletedExecutions++;
 
-  //if anything is left in queue do it:
-  if (this.queue.size() > 0 && this.exs<this.max_ex) {
+  // If anything is left in queue do it:
+  if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {
     this.nextInQueue();
   } else {
     var marginal = this.marginal;
     var dist = makeMarginalERP(marginal);
-    //reinstate previous coroutine:
-    coroutine = this.old_coroutine;
-    //return from enumeration by calling original continuation:
+    // Reinstate previous coroutine:
+    coroutine = this.oldCoroutine;
+    // Return from enumeration by calling original continuation:
     this.k(dist);
   }
 };
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enu(cc, wpplFn, max_ex) {
-  return new Enumerate(cc, wpplFn, max_ex);
+function enu(cc, wpplFn, maxExecutions) {
+  return new Enumerate(cc, wpplFn, maxExecutions);
 }
 
 
@@ -350,7 +355,7 @@ function ParticleFilter(k, wpplFn, numParticles) {
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.k = k;
-  this.old_coroutine = coroutine;
+  this.oldCoroutine = coroutine;
   coroutine = this;
 
   // Run first particle
@@ -453,7 +458,7 @@ ParticleFilter.prototype.exit = function(retval) {
   var dist = makeMarginalERP(hist);
 
   // Reinstate previous coroutine:
-  coroutine = this.old_coroutine;
+  coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
   this.k(dist);

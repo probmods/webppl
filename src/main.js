@@ -51,12 +51,13 @@ function run(code, contFun, verbose){
   return eval(compiledCode);
 }
 
-//compile and run some webppl code in global scope:
+// Compile and run some webppl code in global scope:
+// FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
     var oldk = global.topK
     global.topK = k;  // Install top-level continuation
     var compiledCode = compile(code, verbose);
-    var ret = eval.call(global,compiledCode)
+    var ret = eval.call(global, compiledCode)
     global.topK = oldk
     return ret
 }
