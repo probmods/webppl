@@ -283,6 +283,12 @@ exports.testIfExpression = {
     var code = "if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}";
     var expected = 6;
     return runCpsTest(test, code, expected);
+  },
+
+  testIfWithReturn: function(test){
+    var code = "var foo = function(){ if (true) { return 3 } return 4 }; foo()";
+    var expected = 3;
+    return runCpsTest(test, code, expected);
   }
 
 };

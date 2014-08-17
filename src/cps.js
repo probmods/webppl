@@ -12,6 +12,8 @@ var util = require('./util.js');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
+var returnContIdentifier = build.identifier("_return");
+
 function makeGensymVariable(name){
   return build.identifier("_".concat(util.gensym(name)));
 }
@@ -40,7 +42,12 @@ function cpsAtomic(node){
   case Syntax.FunctionExpression:
     var newCont = makeGensymVariable("k");
     var newParams = [newCont].concat(node.params);
-    return buildFunc(newParams, cps(node.body, newCont));
+    return buildFunc(
+      newParams,
+      build.blockStatement([
+        build.variableDeclaration("var", [build.variableDeclarator(returnContIdentifier, newCont)]),
+        convertToStatement(cps(node.body, newCont))
+      ]));
   case Syntax.Identifier:
   case Syntax.Literal:
     return node;
@@ -254,8 +261,6 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
 
 function cps(node, cont){
 
-  var recurse = function(nodes){return cps(nodes, cont);};
-
   switch (node.type) {
 
   case Syntax.BlockStatement:
@@ -265,10 +270,10 @@ function cps(node, cont){
     return build.program([convertToStatement(cpsBlock(node.body, cont))]);
 
   case Syntax.ReturnStatement:
-    return build.returnStatement(recurse(node.argument));
+    return cps(node.argument, returnContIdentifier);
 
   case Syntax.ExpressionStatement:
-    return build.expressionStatement(recurse(node.expression));
+    return cps(node.expression, cont);
 
   case Syntax.EmptyStatement:
   case Syntax.Identifier:
