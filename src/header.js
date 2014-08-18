@@ -216,12 +216,12 @@ function fw(cc, wpplFn) {
 // Enumeration
 //
 // Depth-first enumeration of all the paths through the computation.
+// Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(k, wpplFn, maxExecutions) {
+function Enumerate(k, wpplFn, maxExecutions, Q) {
 
   this.score = 0; // Used to track the score of the path currently being explored
-  this.queue = new PriorityQueue(
-    function(a, b){return a.score-b.score;}); // Queue of states that we have yet to explore
+  this.queue = Q; // Queue of states that we have yet to explore
   this.marginal = {}; // We will accumulate the marginal distribution here
   this.numCompletedExecutions = 0;
   this.maxExecutions = maxExecutions || 1000;
@@ -248,8 +248,7 @@ function Enumerate(k, wpplFn, maxExecutions) {
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-//    nextState.continuation(nextState.value)
+  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
 };
 
 
@@ -309,8 +308,25 @@ Enumerate.prototype.exit = function(retval) {
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enu(cc, wpplFn, maxExecutions) {
-  return new Enumerate(cc, wpplFn, maxExecutions);
+function enuPriority(cc, wpplFn, maxExecutions) {
+  var q = new PriorityQueue(function(a, b){return a.score-b.score;});
+  return new Enumerate(cc, wpplFn, maxExecutions, q);
+}
+
+function enuFilo(cc, wpplFn, maxExecutions) {
+  var q = []
+  q.size = function(){return q.length}
+  q.enq = q.push
+  q.deq = q.pop
+  return new Enumerate(cc, wpplFn, maxExecutions, q);
+}
+
+function enuFifo(cc, wpplFn, maxExecutions) {
+  var q = []
+  q.size = function(){return q.length}
+  q.enq = q.push
+  q.deq = q.shift
+  return new Enumerate(cc, wpplFn, maxExecutions, q);
 }
 
 
@@ -502,7 +518,10 @@ module.exports = {
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
   Forward: fw,
-  Enumerate: enu,
+  Enumerate: enuPriority,
+  EnumerateLikelyFirst: enuPriority,
+  EnumerateDepthFirst: enuFilo,
+  EnumerateBreadthFirst: enuFifo,
   ParticleFilter: pf,
   //coroutine: coroutine,
   sample: sample,
