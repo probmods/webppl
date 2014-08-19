@@ -147,9 +147,5 @@
 //var a = {l: 1, m: 2, f: function(){return 3}}
 //a.f()
 
-
-
-var foo = function(x,y){return x+y}
-var a = 2
-foo(1,a)
+Enumerate(function(){return discrete([0.1, 0.4, 0.1, 0.4])})
 

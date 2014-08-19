@@ -56,6 +56,19 @@ var randomIntegerERP = new ERP(
   }
 );
 
+var discreteERP = new ERP(
+  function discreteSample(params){return multinomialSample(params[0])},
+  function discreteScore(params, val) {
+    var probs = params[0];
+    var stop = probs.length;
+    var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
+    return inSupport ? Math.log(probs[val]) : -Infinity;
+  },
+  function discreteSupport(params) {
+    return _.range(params[0].length);
+  }
+);
+
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
     var x = Math.random() * thetaSum;
@@ -518,6 +531,7 @@ module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
+  discreteERP: discreteERP,
   Forward: fw,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
