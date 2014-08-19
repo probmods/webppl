@@ -149,10 +149,7 @@
 
 
 
-var foo =  Enumerate(
-            function(){
-            return flip(0.5)
-            })
-1
-
+var foo = function(x,y){return x+y}
+var a = 2
+foo(1,a)
 

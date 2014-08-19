@@ -64,6 +64,12 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   vars = vars || [];
   if (atFinalElement(nodes)){
     return getFinalElement(nodes, vars);
+  } else if(isImmediate(nodes[0])) {
+//    var val = immediateVal(nodes[0])
+    return cpsSequence(atFinalElement,
+                getFinalElement,
+                nodes.slice(1),
+                vars.concat([nodes[0]]))
   } else {
     var nextVar = makeGensymVariable("s");
     return cps(nodes[0],
@@ -73,6 +79,10 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
                                      nodes.slice(1),
                                      vars.concat([nextVar]))));
   }
+}
+
+function isImmediate(node) {
+  return node.type == Syntax.Literal || node.type == Syntax.Identifier
 }
 
 function isFunctionDeclaration(node){
@@ -262,7 +272,7 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
 }
 
 function cps(node, cont){
-
+  
   switch (node.type) {
 
   case Syntax.BlockStatement:
