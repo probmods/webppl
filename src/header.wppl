@@ -6,6 +6,10 @@ var randomInteger = function(n) {
     return sample(randomIntegerERP, [n])
 }
 
+var discrete = function(n) {
+    return sample(discreteERP, [n])
+}
+
 var append = function(a,b) {a.concat(b)}
 
 var map = function(ar,fn) {
