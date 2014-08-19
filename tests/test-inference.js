@@ -122,7 +122,7 @@ exports.testForwardSampling = {
   },
 
   testGaussian: function(test){
-    var code = "sample(gaussianERP, [3, 2])";
+    var code = "gaussian(3, 2)";
     var numSamples = 10000;
     var check = function(samples){
       var empiricalMean = util.sum(samples) / samples.length;
