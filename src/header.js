@@ -564,11 +564,12 @@ function cache(k, f) {
   var c = {};
   var cf = function(k) {
     var args = Array.prototype.slice.call(arguments, 1);
-    if (args in c) {
-      k(c[args]);
+    var stringedArgs = JSON.stringify(args)
+    if (stringedArgs in c) {
+      k(c[stringedArgs]);
     } else {
       var newk = function(r) {
-        c[args] = r;
+        c[stringedArgs] = r;
         k(r);
       };
       f.apply(this, [newk].concat(args));
