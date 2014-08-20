@@ -147,5 +147,37 @@
 //var a = {l: 1, m: 2, f: function(){return 3}}
 //a.f()
 
-Enumerate(function(){return discrete([0.1, 0.4, 0.1, 0.4])})
+
+var transition = function(s) {
+  return s ? flip(0.7) : flip(0.3)
+}
+
+var observe = cache(function(s) {
+  Enumerate(function(){return s ? flip(0.9) : flip(0.1)})
+})
+
+var trueobs = [false, false, false]
+
+var hmmRecur = function(n, states, observations){
+  var newstate = transition(states[0])
+//  var newobs = sample(observe(newstate))
+//  factor(newobs==trueobs[observations.length] ? 0 : -Infinity)
+  var newobs = sampleWithFactor(observe(newstate),[],
+                                function(v){return v==trueobs[observations.length] ? 0 : -Infinity})
+  var states = states.concat([newstate])
+  var observations = observations.concat([newobs])
+  return (n==1) ? {states: states, observations: observations} :
+  hmmRecur(n-1,states,observations)
+}
+
+var hmm = function(n) {
+  return hmmRecur(n,[true],[])
+}
+
+Enumerate(function(){
+                var r = hmm(3)
+                return r.states
+                }, 500)
+
+
 
