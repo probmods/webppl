@@ -386,6 +386,12 @@ exports.testPrimitiveWrapping = {
     var code = "var f = function(x){return Math.log(x);}; Math.exp(f(17))";
     var expected = 17;
     return runCpsTest(test, code, expected);
+  },
+  
+  testMemberFromFn: function (test) {
+    var code = "var foo = function() {return [1]}; foo().concat([2])";
+    var expected = [1,2];
+    return runCpsTest(test, code, expected);
   }
 
 };
