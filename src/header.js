@@ -312,10 +312,10 @@ Enumerate.prototype.nextInQueue = function() {
 
 
 Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
-  
+
   //allows extra factors to be taken into account in making exploration decisions:
   var extraScoreFn = extraScoreFn || function(x){return 0}
-  
+
   // Find support of this erp:
   if (!dist.support) {
     throw "Enumerate can only be used with ERPs that have support function.";
@@ -598,5 +598,6 @@ module.exports = {
   sampleWithFactor: sampleWithFactor,
   display: display,
   callPrimitive: callPrimitive,
-  cache: cache
+  cache: cache,
+  multinomialSample: multinomialSample
 };
