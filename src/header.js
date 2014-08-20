@@ -150,9 +150,10 @@ function makeMarginalERP(marginal) {
     },
     function(params, val) {
                      for(var i in marginal){
-                     if(marginal[i].val == val){return Math.log(marginal[i].prob)}
+//                     if(marginal[i].val == val){return Math.log(marginal[i].prob)}
+                     if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
                      }
-      return -Infinity
+                     return -Infinity
     },
     function(params) {
       return supp;
