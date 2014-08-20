@@ -20,7 +20,22 @@ var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
   }
 };
 
-var runSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
+var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
+  var samples = [];
+  topK = function(value){
+    samples.push(value);
+    if (samples.length == numSamples){
+      test.ok(checkSamples(samples));
+      test.done();
+    }
+  };
+  var compiledProgram = webppl.compile(code);
+  for (var i=0; i<numSamples; i++){
+    eval(compiledProgram);
+  }
+};
+
+var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
   var numFinishedSamples = 0;
   topK = function(value){
@@ -60,7 +75,7 @@ exports.testDeterministic = {
     var code = "3 + 4";
     var expectedHist = {7: 1};
     var tolerance = 0.0001; // in case of floating point errors
-    return runSamplingTest(test, code, expectedHist, 1, tolerance);
+    return runDiscreteSamplingTest(test, code, expectedHist, 1, tolerance);
   }
 
 };
@@ -75,7 +90,7 @@ exports.testForwardSampling = {
     };
     var tolerance = .05;
     var numSamples = 1000;
-    return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
+    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
 
   testGeometric: function(test) {
@@ -89,7 +104,7 @@ exports.testForwardSampling = {
     };
     var tolerance = .05;
     var numSamples = 1000;
-    return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
+    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
 
   testRandomInteger: function(test) {
@@ -103,7 +118,22 @@ exports.testForwardSampling = {
     };
     var tolerance = .05;
     var numSamples = 1000;
-    return runSamplingTest(test, code, expectedHist, numSamples, tolerance);
+    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
+  },
+
+  testGaussian: function(test){
+    var code = "gaussian(3, 2)";
+    var numSamples = 10000;
+    var check = function(samples){
+      var empiricalMean = util.sum(samples) / samples.length;
+      var empiricalVariance = util.sum(
+        samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
+      var empiricalStd = Math.sqrt(empiricalVariance);
+      console.log(empiricalVariance);
+      return ((empiricalMean > 2.8) && (empiricalMean < 3.2) &&
+              (empiricalStd > 1.8) && (empiricalStd < 2.2));
+    };
+    return runContinuousSamplingTest(test, code, check, numSamples);
   }
 };
 

@@ -14432,6 +14432,27 @@ var randomIntegerERP = new ERP(
   }
 );
 
+var gaussianERP = new ERP(
+  function gaussianSample(params){
+    var mu = params[0];
+    var sigma = params[1];
+    var u, v, x, y, q;
+    do {
+      u = 1 - Math.random();
+      v = 1.7156 * (Math.random() - .5);
+      x = u - 0.449871;
+      y = Math.abs(v) + 0.386595;
+      q = x*x + y*(0.196*y - 0.25472*x);
+    } while(q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)))
+    return mu + sigma*v/u;
+  },
+  function gaussianScore(params, x){
+    var mu = params[0];
+    var sigma = params[1];
+	  return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
+  }
+);
+
 var discreteERP = new ERP(
   function discreteSample(params){return multinomialSample(params[0])},
   function discreteScore(params, val) {
@@ -14671,7 +14692,7 @@ Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
     };
-      
+
     this.queue.enq(state);
   }
   // Call the next state on the queue
@@ -14924,6 +14945,7 @@ module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
+  gaussianERP: gaussianERP,
   discreteERP: discreteERP,
   Forward: fw,
   Enumerate: enuPriority,
@@ -14967,7 +14989,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogICAgcmV0dXJuIHNhbXBsZShiZXJub3VsbGlFUlAsIFt0aGV0YV0pCn0KCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogICAgcmV0dXJuIHNhbXBsZShyYW5kb21JbnRlZ2VyRVJQLCBbbl0pCn0KCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICAgIHJldHVybiBzYW1wbGUoZGlzY3JldGVFUlAsIFtuXSkKfQoKdmFyIGFwcGVuZCA9IGZ1bmN0aW9uKGEsYikge2EuY29uY2F0KGIpfQoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoW2ZuKGFyWzBdKV0sIG1hcChhci5zbGljZSgxKSwgZm4pKQp9Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICAgIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IGFwcGVuZChmbihhclswXSk/W2FyWzBdXTpbXSwgZmlsdGVyKGFyLnNsaWNlKDEpLGZuKSkKfQoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogICAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IHVuZGVmaW5lZCA6IChmbihhclswXSkgPyBhclswXSA6IGZpbmQoYXIuc2xpY2UoMSksZm4pKQp9CgoK","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0K","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);

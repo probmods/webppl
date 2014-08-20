@@ -56,6 +56,27 @@ var randomIntegerERP = new ERP(
   }
 );
 
+var gaussianERP = new ERP(
+  function gaussianSample(params){
+    var mu = params[0];
+    var sigma = params[1];
+    var u, v, x, y, q;
+    do {
+      u = 1 - Math.random();
+      v = 1.7156 * (Math.random() - .5);
+      x = u - 0.449871;
+      y = Math.abs(v) + 0.386595;
+      q = x*x + y*(0.196*y - 0.25472*x);
+    } while(q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)))
+    return mu + sigma*v/u;
+  },
+  function gaussianScore(params, x){
+    var mu = params[0];
+    var sigma = params[1];
+	  return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
+  }
+);
+
 var discreteERP = new ERP(
   function discreteSample(params){return multinomialSample(params[0])},
   function discreteScore(params, val) {
@@ -295,7 +316,7 @@ Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
     };
-      
+
     this.queue.enq(state);
   }
   // Call the next state on the queue
@@ -548,6 +569,7 @@ module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
+  gaussianERP: gaussianERP,
   discreteERP: discreteERP,
   Forward: fw,
   Enumerate: enuPriority,
