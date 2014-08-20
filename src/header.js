@@ -205,6 +205,16 @@ function factor(k, score) {
   coroutine.factor(k, score);
 }
 
+function sampleWithFactor(k, dist, params, scoreFn) {
+  if(coroutine.hasOwnProperty('sampleWithFactor')){
+    coroutine.sampleWithFactor(k, dist, params, scoreFn)
+  } else {
+    sample(function(v){
+           scoreFn(function(s){factor(function(){k(v)},s)}, v)},
+           dist, params)
+  }
+}
+
 function exit(retval) {
   coroutine.exit(retval);
 }
@@ -301,8 +311,11 @@ Enumerate.prototype.nextInQueue = function() {
 };
 
 
-Enumerate.prototype.sample = function(cc, dist, params) {
-
+Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
+  
+  //allows extra factors to be taken into account in making exploration decisions:
+  var extraScoreFn = extraScoreFn || function(x){return 0}
+  
   // Find support of this erp:
   if (!dist.support) {
     throw "Enumerate can only be used with ERPs that have support function.";
@@ -315,7 +328,7 @@ Enumerate.prototype.sample = function(cc, dist, params) {
     var state = {
       continuation: cc,
       value: supp[s],
-      score: this.score + dist.score(params, supp[s])
+      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
     };
 
     this.queue.enq(state);
@@ -329,6 +342,10 @@ Enumerate.prototype.factor = function(cc, score) {
   this.score += score;
   cc();
 };
+
+Enumerate.prototype.sampleWithFactor = function(cc,dist,params,scoreFn) {
+  Enumerate.sample(cc,dist,params, function(v){return scoreFn(function(x){return x},v)})
+}
 
 Enumerate.prototype.exit = function(retval) {
 
@@ -578,6 +595,7 @@ module.exports = {
   //coroutine: coroutine,
   sample: sample,
   factor: factor,
+  sampleWithFactor: sampleWithFactor,
   display: display,
   callPrimitive: callPrimitive,
   cache: cache
