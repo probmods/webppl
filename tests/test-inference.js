@@ -134,6 +134,21 @@ exports.testForwardSampling = {
               (empiricalStd > 1.8) && (empiricalStd < 2.2));
     };
     return runContinuousSamplingTest(test, code, check, numSamples);
+  },
+
+  testUniform: function(test){
+    var code = "uniform(3, 5)";
+    var numSamples = 10000;
+    var check = function(samples){
+      var empiricalMean = util.sum(samples) / samples.length;
+      var empiricalVariance = util.sum(
+        samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
+      var expectedVariance = 1/12 * Math.pow(5-3, 2);
+      var expectedMean = 4;
+      return ((Math.abs(empiricalVariance - expectedVariance) < .2) &&
+              (Math.abs(empiricalMean - expectedMean) < .2));
+    };
+    return runContinuousSamplingTest(test, code, check, numSamples);
   }
 };
 

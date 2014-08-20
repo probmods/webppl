@@ -17060,6 +17060,19 @@ function ERP(sampler, scorer, supporter) {
   this.support = supporter;
 }
 
+var uniformERP = new ERP(
+  function uniformSample(params){
+    var u = Math.random();
+    return (1-u)*params[0] + u*params[1];
+  },
+  function uniformScore(params, val){
+    if (val < params[0] || val > params[1]) {
+	    return -Infinity;
+    }
+	  return -Math.log(params[1] - params[0]);
+  }
+);
+
 var bernoulliERP = new ERP(
   function flipSample(params) {
     var weight = params[0];
@@ -17093,23 +17106,23 @@ var randomIntegerERP = new ERP(
 );
 
 function gaussianSample(params){
-    var mu = params[0];
-    var sigma = params[1];
-    var u, v, x, y, q;
-    do {
-        u = 1 - Math.random();
-        v = 1.7156 * (Math.random() - .5);
-        x = u - 0.449871;
-        y = Math.abs(v) + 0.386595;
-        q = x*x + y*(0.196*y - 0.25472*x);
-    } while(q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)))
-    return mu + sigma*v/u;
+  var mu = params[0];
+  var sigma = params[1];
+  var u, v, x, y, q;
+  do {
+    u = 1 - Math.random();
+    v = 1.7156 * (Math.random() - .5);
+    x = u - 0.449871;
+    y = Math.abs(v) + 0.386595;
+    q = x*x + y*(0.196*y - 0.25472*x);
+  } while(q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)))
+  return mu + sigma*v/u;
 }
 
 function gaussianScore(params, x){
-    var mu = params[0];
-    var sigma = params[1];
-	  return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
+  var mu = params[0];
+  var sigma = params[1];
+	return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
@@ -17590,6 +17603,7 @@ module.exports = {
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
   gaussianERP: gaussianERP,
+  uniformERP: uniformERP,
   discreteERP: discreteERP,
   Forward: fw,
   Enumerate: enuPriority,
@@ -17632,7 +17646,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0K","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBhcHBlbmQgPSBmdW5jdGlvbihhLGIpIHsKICByZXR1cm4gYS5jb25jYXQoYik7Cn07Cgp2YXIgbWFwID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoW2ZuKGFyWzBdKV0sIG1hcChhci5zbGljZSgxKSwgZm4pKTsKfTsKCnZhciBmaWx0ZXIgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IGFwcGVuZChmbihhclswXSk/W2FyWzBdXTpbXSwgZmlsdGVyKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgZmluZCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IHVuZGVmaW5lZCA6IChmbihhclswXSkgPyBhclswXSA6IGZpbmQoYXIuc2xpY2UoMSksZm4pKTsKfTsKCnZhciByZXBlYXQgPSBmdW5jdGlvbihuLCBmbil7CiAgcmV0dXJuIG4gPT0gMCA/IFtdIDogYXBwZW5kKHJlcGVhdChuLTEsIGZuKSwgW2ZuKCldKTsKfQo=","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);

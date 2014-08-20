@@ -14,6 +14,10 @@ var gaussian = function(mu, sigma){
   return sample(gaussianERP, [mu, sigma]);
 };
 
+var uniform = function(a, b){
+  return sample(uniformERP, [a, b]);
+};
+
 var append = function(a,b) {
   return a.concat(b);
 };
