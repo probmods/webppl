@@ -533,9 +533,11 @@ ParticleFilter.prototype.exit = function(retval) {
   _.each(
     this.particles,
     function(particle){
-         var k = JSON.stringify(particle.value)
-         if(hist[k]==undefined){hist[k]={prob:0, val:particle.value}}
-         hist[k].prob += 1;
+      var k = JSON.stringify(particle.value);
+      if (hist[k] === undefined){
+        hist[k] = { prob:0, val:particle.value };
+      }
+      hist[k].prob += 1;
     });
   var dist = makeMarginalERP(hist);
 
@@ -658,6 +660,187 @@ function mh(cc, a, wpplFn, numParticles) {
 
 
 ////////////////////////////////////////////////////////////////////
+// PMCMC
+
+function last(xs){
+  return xs[xs.length - 1];
+}
+
+function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
+
+  // Move old coroutine out of the way and install this as the
+  // current handler.
+  this.oldCoroutine = coroutine;
+  coroutine = this;
+
+  // Store continuation (will be passed dist at the end)
+  this.k = cc;
+
+  // Setup inference variables
+  this.particleIndex = 0;  // marks the active particle
+  this.retainedParticle = undefined;
+  this.numSweeps = numSweeps;
+  this.sweep = 0;
+  this.wpplFn = wpplFn;
+  this.address = a;
+  this.numParticles = numParticles;
+  this.resetParticles();
+
+  // Run first particle
+  this.activeContinuation()();
+}
+
+PMCMC.prototype.resetParticles = function(){
+  var that = this;
+  this.particles = [];
+  // Create initial particles
+  for (var i=0; i<this.numParticles; i++) {
+    var particle = {
+      continuations: [function(){that.wpplFn(exit, that.address);}],
+      weights: [0],
+      value: undefined
+    };
+    this.particles.push(particle);
+  }
+};
+
+PMCMC.prototype.activeParticle = function() {
+  return this.particles[this.particleIndex];
+};
+
+PMCMC.prototype.activeContinuation = function(){
+  return last(this.activeParticle().continuations);
+}
+
+PMCMC.prototype.allParticlesAdvanced = function() {
+  return ((this.particleIndex + 1) == this.particles.length);
+};
+
+PMCMC.prototype.sample = function(cc, a, erp, params) {
+  cc(erp.sample(params));
+};
+
+PMCMC.prototype.particleAtStep = function(particle, step){
+  // Returns particle s.t. particle.continuations[step] is the last entry
+  return {
+    continuations: particle.continuations.slice(0, step + 1),
+    weights: particle.weights.slice(0, step + 1),
+    value: particle.value
+  };
+};
+
+PMCMC.prototype.updateActiveParticle = function(weight, continuation){
+  var particle = this.activeParticle();
+  particle.continuations = particle.continuations.concat([continuation]);
+  particle.weights = particle.weights.concat([weight]);
+};
+
+PMCMC.prototype.copyParticle = function(particle){
+  return {
+    continuations: particle.continuations.slice(0),
+    weights: particle.weights.slice(0),
+    value: particle.value
+  };
+};
+
+PMCMC.prototype.resampleParticles = function(particles){
+  var weights = particles.map(
+    function(particle){return Math.exp(last(particle.weights));});
+
+  var j;
+  var newParticles = [];
+  for (var i=0; i<particles.length; i++){
+    j = multinomialSample(weights);
+    newParticles.push(this.copyParticle(particles[j]));
+  }
+
+  return newParticles;
+};
+
+
+PMCMC.prototype.factor = function(cc, a, score) {
+
+  this.updateActiveParticle(score, cc);
+
+  if (this.allParticlesAdvanced()){
+    if (this.sweep > 0){
+      // This is not the first sweep, so we have a retained particle;
+      // take that into account when resampling
+      var particles = this.particles;
+      var step = this.particles[0].continuations.length - 1;
+      particles = particles.concat(this.particleAtStep(this.retainedParticle, step));
+      this.particles = this.resampleParticles(particles).slice(1);
+    } else {
+      // No retained particle - standard particle filtering
+      this.particles = this.resampleParticles(this.particles);
+    }
+    this.particleIndex = 0;
+  } else {
+    // Move next particle along
+    this.particleIndex += 1;
+  }
+
+  util.withEmptyStack(this.activeContinuation());
+};
+
+
+PMCMC.prototype.exit = function(retval) {
+
+  this.activeParticle().value = retval;
+
+  if (!this.allParticlesAdvanced()){
+
+    // Wait for all particles to reach exit
+    this.particleIndex += 1;
+    return this.activeContinuation()();
+
+  } else {
+
+    if (this.sweep < this.numSweeps) {
+
+      // Resample retained particle based on total path weight
+      var weights = this.particles.map(
+        function(particle){return Math.exp(util.sum(particle.weights));});
+      var j = multinomialSample(weights);
+      this.retainedParticle = this.particles[j];
+
+      // Reset non-retained particles, restart
+      this.sweep += 1;
+      this.particleIndex = 0;
+      this.resetParticles();
+      this.activeContinuation()();
+
+    } else {
+
+      // Compute marginal distribution from (unweighted) particles
+      var hist = {};
+      _.each(
+        this.particles,
+        function(particle){
+          var k = JSON.stringify(particle.value);
+          if (hist[k] === undefined){
+            hist[k] = { prob:0, val:particle.value };
+          }
+          hist[k].prob += 1;
+        });
+      var dist = makeMarginalERP(hist);
+
+      // Reinstate previous coroutine:
+      coroutine = this.oldCoroutine;
+
+      // Return from particle filter by calling original continuation:
+      this.k(dist);
+
+    }
+  }
+};
+
+function pmc(cc, a, wpplFn, numParticles, numSweeps) {
+  return new PMCMC(cc, a, wpplFn, numParticles, numSweeps);
+}
+
+
+////////////////////////////////////////////////////////////////////
 // Some primitive functions to make things simpler
 
 function display(k, a, x) {
@@ -716,5 +899,6 @@ address: address,
   display: display,
 //  callPrimitive: callPrimitive,
   cache: cache,
-  multinomialSample: multinomialSample
+  multinomialSample: multinomialSample,
+  PMCMC: pmc
 };
