@@ -1,8 +1,8 @@
 
 
 
-var foo = function() {
-  return [1]
+var foo = function(a) {
+  return a
 }
 
 foo().concat([2])
