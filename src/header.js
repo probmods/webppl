@@ -666,7 +666,7 @@ function last(xs){
   return xs[xs.length - 1];
 }
 
-function PMCMC(cc, wpplFn, numParticles, numSweeps){
+function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
 
   // Move old coroutine out of the way and install this as the
   // current handler.
@@ -682,11 +682,11 @@ function PMCMC(cc, wpplFn, numParticles, numSweeps){
   this.numSweeps = numSweeps;
   this.sweep = 0;
   this.wpplFn = wpplFn;
+  this.address = a;
   this.numParticles = numParticles;
   this.resetParticles();
 
   // Run first particle
-  console.log("first particle");
   this.activeContinuation()();
 }
 
@@ -696,7 +696,7 @@ PMCMC.prototype.resetParticles = function(){
   // Create initial particles
   for (var i=0; i<this.numParticles; i++) {
     var particle = {
-      continuations: [function(){that.wpplFn(exit);}],
+      continuations: [function(){that.wpplFn(exit, that.address);}],
       weights: [0],
       value: undefined
     };
@@ -716,7 +716,7 @@ PMCMC.prototype.allParticlesAdvanced = function() {
   return ((this.particleIndex + 1) == this.particles.length);
 };
 
-PMCMC.prototype.sample = function(cc, erp, params) {
+PMCMC.prototype.sample = function(cc, a, erp, params) {
   cc(erp.sample(params));
 };
 
@@ -758,7 +758,7 @@ PMCMC.prototype.resampleParticles = function(particles){
 };
 
 
-PMCMC.prototype.factor = function(cc, score) {
+PMCMC.prototype.factor = function(cc, a, score) {
 
   this.updateActiveParticle(score, cc);
 
@@ -835,8 +835,8 @@ PMCMC.prototype.exit = function(retval) {
   }
 };
 
-function pmc(cc, wpplFn, numParticles, numSweeps) {
-  return new PMCMC(cc, wpplFn, numParticles, numSweeps);
+function pmc(cc, a, wpplFn, numParticles, numSweeps) {
+  return new PMCMC(cc, a, wpplFn, numParticles, numSweeps);
 }
 
 
