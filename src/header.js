@@ -89,6 +89,10 @@ function gaussianScore(params, x){
 	return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
+function gaussianFactor(k, mu, std, val) {
+  coroutine.factor(k, gaussianScore([mu, std], val));
+}
+
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
 
 var discreteERP = new ERP(
@@ -584,6 +588,7 @@ module.exports = {
   bernoulliERP: bernoulliERP,
   randomIntegerERP: randomIntegerERP,
   gaussianERP: gaussianERP,
+  gaussianFactor: gaussianFactor,
   uniformERP: uniformERP,
   discreteERP: discreteERP,
   Forward: fw,
