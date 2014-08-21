@@ -7,6 +7,7 @@ var build = types.builders;
 var esprima = require("esprima");
 var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
+var naming = require("./naming.js").naming;
 var util = require("./util.js");
 
 var topK;
@@ -27,9 +28,12 @@ function compile(code, verbose){
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
+  
+  // Apply naming transform to WPPL code
+  var newProgramAst = naming(programAst)
 
   // Apply CPS transform to WPPL code
-  var newProgramAst = cps(programAst, build.identifier("topK"));
+  newProgramAst = cps(newProgramAst, build.identifier("topK"));
 
   // Print converted code
   if (verbose){

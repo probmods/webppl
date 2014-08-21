@@ -12,15 +12,10 @@ var util = require('./util.js');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var gensym = util.makeGensym();
-function makeGensym(name){
-  return build.identifier("_".concat(gensym(name)));
-}
-
 var counter = 0
 function nextCounter(){
   counter++
-  return build.arrayExpression([build.literal(counter)])
+  return build.literal("_"+counter)//build.arrayExpression([build.literal(counter)])
 }
 
 var addressIdNode = build.identifier("address")
@@ -45,8 +40,12 @@ function naming(node) {
       
       //add a gensym onto the address variable
     case Syntax.CallExpression:
-      return build.callExpression(node.callee,
-                                  [makeAddressExtension()].concat(node.arguments))
+      if(types.namedTypes.MemberExpression.check(node.callee)){
+        return node
+      } else {
+        return build.callExpression(node.callee,
+                                    [makeAddressExtension()].concat(node.arguments))
+      }
       
       
       
