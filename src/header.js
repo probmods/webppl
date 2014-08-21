@@ -597,7 +597,7 @@ function MH(k, a, wpplFn, numIterations) {
     choice.k(newval) //run continuation, will set retval at end.
     
     //compute acceptance prob and decide
-    this.fwbw += this.score - oldscore
+    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
     this.fwbw += -Math.log(traceKeys(this.trace).length)
     //TODO clear out unused choices...!!!
     var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
