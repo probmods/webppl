@@ -4,6 +4,8 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
+//top address for naming
+var address = ""
 
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
@@ -187,7 +189,7 @@ function makeMarginalERP(marginal) {
 // factor use it to interface with the inference algorithm. Default
 // setting throws an error on factor calls.
 var coroutine = {
-  sample: function(cc, erp, params) {
+  sample: function(cc, a, erp, params) {
     // Sample and keep going
     cc(erp.sample(params));
   },
@@ -202,15 +204,15 @@ var coroutine = {
 // Functions that call methods of whatever the coroutine is set to
 // when called, we do it like this so that 'this' will be set
 // correctly to the coroutine object.
-function sample(k, dist, params) {
-  coroutine.sample(k, dist, params);
+function sample(k, a, dist, params) {
+  coroutine.sample(k, a, dist, params);
 }
 
-function factor(k, score) {
-  coroutine.factor(k, score);
+function factor(k, a, score) {
+  coroutine.factor(k, a, score);
 }
 
-function sampleWithFactor(k, dist, params, scoreFn) {
+function sampleWithFactor(k, a, dist, params, scoreFn) {
   if(coroutine.hasOwnProperty('sampleWithFactor')){
     coroutine.sampleWithFactor(k, dist, params, scoreFn)
   } else {
@@ -225,54 +227,54 @@ function exit(retval) {
 }
 
 
-////////////////////////////////////////////////////////////////////
-// Forward sampling
+//////////////////////////////////////////////////////////////////////
+//// Forward sampling
+////
+//// Simply samples at each random choice. throws an error on factor,
+//// since we aren't doing any normalization / inference.
 //
-// Simply samples at each random choice. throws an error on factor,
-// since we aren't doing any normalization / inference.
-
-function Forward(cc, wpplFn) {
-  this.cc = cc;
-
-  // Move old coroutine out of the way and install this as the
-  // current handler.
-  this.oldCoroutine = coroutine;
-  coroutine = this;
-
-  // Run the wppl computation, when the computation returns we want
-  // it to call the exit method of this coroutine so we pass that as
-  // the continuation.
-  wpplFn(exit);
-}
-
-Forward.prototype.sample = function(cc, erp, params) {
-  cc(erp.sample(params)); //sample and keep going
-};
-
-Forward.prototype.factor = function(cc, score) {
-  throw "'factor' is not allowed inside Forward.";
-};
-
-Forward.prototype.exit = function(retval) {
-  // Return value of the wppl fn as a delta erp
-  var dist = new ERP(
-    function() {
-      return retval;
-    },
-    function(p, v) {
-      return (v == retval) ? 0 : -Infinity;
-    });
-
-  // Put old coroutine back, and return dist
-  coroutine = this.oldCoroutine;
-  this.cc(dist);
-};
-
-// Helper wraps with 'new' to make a new copy of Forward and set
-// 'this' correctly..
-function fw(cc, wpplFn) {
-  return new Forward(cc, wpplFn);
-}
+//function Forward(cc, wpplFn) {
+//  this.cc = cc;
+//
+//  // Move old coroutine out of the way and install this as the
+//  // current handler.
+//  this.oldCoroutine = coroutine;
+//  coroutine = this;
+//
+//  // Run the wppl computation, when the computation returns we want
+//  // it to call the exit method of this coroutine so we pass that as
+//  // the continuation.
+//  wpplFn(exit);
+//}
+//
+//Forward.prototype.sample = function(cc, erp, params) {
+//  cc(erp.sample(params)); //sample and keep going
+//};
+//
+//Forward.prototype.factor = function(cc, score) {
+//  throw "'factor' is not allowed inside Forward.";
+//};
+//
+//Forward.prototype.exit = function(retval) {
+//  // Return value of the wppl fn as a delta erp
+//  var dist = new ERP(
+//    function() {
+//      return retval;
+//    },
+//    function(p, v) {
+//      return (v == retval) ? 0 : -Infinity;
+//    });
+//
+//  // Put old coroutine back, and return dist
+//  coroutine = this.oldCoroutine;
+//  this.cc(dist);
+//};
+//
+//// Helper wraps with 'new' to make a new copy of Forward and set
+//// 'this' correctly..
+//function fw(cc, wpplFn) {
+//  return new Forward(cc, wpplFn);
+//}
 
 
 ////////////////////////////////////////////////////////////////////
@@ -281,7 +283,7 @@ function fw(cc, wpplFn) {
 // Depth-first enumeration of all the paths through the computation.
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(k, wpplFn, maxExecutions, Q) {
+function Enumerate(k, a, wpplFn, maxExecutions, Q) {
 
   this.score = 0; // Used to track the score of the path currently being explored
   this.queue = Q; // Queue of states that we have yet to explore
@@ -297,7 +299,7 @@ function Enumerate(k, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(exit);
+  wpplFn(exit,a);
 }
 
 
@@ -316,7 +318,7 @@ Enumerate.prototype.nextInQueue = function() {
 };
 
 
-Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
+Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
 
   //allows extra factors to be taken into account in making exploration decisions:
   var extraScoreFn = extraScoreFn || function(x){return 0}
@@ -342,13 +344,13 @@ Enumerate.prototype.sample = function(cc, dist, params, extraScoreFn) {
   this.nextInQueue();
 };
 
-Enumerate.prototype.factor = function(cc, score) {
+Enumerate.prototype.factor = function(cc,a, score) {
   // Update score and continue
   this.score += score;
   cc();
 };
 
-Enumerate.prototype.sampleWithFactor = function(cc,dist,params,scoreFn) {
+Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
   Enumerate.sample(cc,dist,params, function(v){return scoreFn(function(x){return x},v)})
 }
 
@@ -379,25 +381,25 @@ Enumerate.prototype.exit = function(retval) {
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enuPriority(cc, wpplFn, maxExecutions) {
+function enuPriority(cc, a, wpplFn, maxExecutions) {
   var q = new PriorityQueue(function(a, b){return a.score-b.score;});
-  return new Enumerate(cc, wpplFn, maxExecutions, q);
+  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFilo(cc, wpplFn, maxExecutions) {
+function enuFilo(cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.pop
-  return new Enumerate(cc, wpplFn, maxExecutions, q);
+  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFifo(cc, wpplFn, maxExecutions) {
+function enuFifo(cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.shift
-  return new Enumerate(cc, wpplFn, maxExecutions, q);
+  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
 }
 
 
@@ -415,7 +417,7 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(k, wpplFn, numParticles) {
+function ParticleFilter(k,a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -423,7 +425,7 @@ function ParticleFilter(k, wpplFn, numParticles) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(){wpplFn(exit);},
+      continuation: function(){wpplFn(exit,a);},
       weight: 0,
       value: undefined
     };
@@ -440,11 +442,11 @@ function ParticleFilter(k, wpplFn, numParticles) {
   this.activeParticle().continuation();
 }
 
-ParticleFilter.prototype.sample = function(cc, erp, params) {
+ParticleFilter.prototype.sample = function(cc,a, erp, params) {
   cc(erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc, score) {
+ParticleFilter.prototype.factor = function(cc,a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
@@ -546,8 +548,114 @@ ParticleFilter.prototype.exit = function(retval) {
   this.k(dist);
 };
 
-function pf(cc, wpplFn, numParticles) {
-  return new ParticleFilter(cc, wpplFn, numParticles);
+function pf(cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(cc,a, wpplFn, numParticles);
+}
+
+////////////////////////////////////////////////////////////////////
+// Lightweight MH
+
+function MH(k, a, wpplFn, numIterations) {
+
+  this.trace = {}
+  this.score = 0
+  var sample
+  var hist = {};
+  this.fwbw = 0
+  
+  // Move old coroutine out of the way and install this as the current
+  // handler.
+  this.oldCoroutine = coroutine;
+  coroutine = this;
+  
+  //kick off computation, with trivial continuation that will come back here.
+  //this initializes and store choices in trace. each choice has trivial final k, too.
+  var retval
+  wpplFn(function(x){retval = x},a)
+  sample = retval
+  
+  //now we've initialized, run the MH loop:
+  for(var i=0;i<numIterations;i++){
+    this.fwbw = 0
+    
+    //choose choice from trace..
+    var keys = traceKeys(this.trace)
+    var key = keys[Math.floor(Math.random() * keys.length)]
+    var choice = this.trace[key]
+    this.fwbw += Math.log(keys.length)
+    
+    //sample new value for the chosen choice
+    var newval = choice.erp.sample(choice.params)
+    //note proposal prob and score cancel, when drawn from prior.
+//    this.fwbw += choice.erp.score(choice.params,choice.val) -
+//                  choice.erp.score(choice.params,newval)
+    
+    //copy and move current trace out of the way, update by re-entering at the choice.
+    var oldTrace = this.trace
+    this.trace = copyTrace(oldTrace)
+    var oldscore = this.score
+    this.score = 0
+    this.trace[key].val = newval
+    choice.k(newval) //run continuation, will set retval at end.
+    
+    //compute acceptance prob and decide
+    this.fwbw += this.score - oldscore
+    this.fwbw += -Math.log(traceKeys(this.trace).length)
+    //TODO clear out unused choices...!!!
+    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
+    var accept = Math.random()<acceptanceProb
+    this.trace = accept?this.trace:oldTrace
+    sample= accept?retval:sample
+    this.score = accept?this.score:oldscore
+ 
+    //accumulate sample into hist:
+    var v = JSON.stringify(sample)
+    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
+    hist[v].prob += 1;
+  }
+  
+  // Reinstate previous coroutine:
+  coroutine = this.oldCoroutine;
+  
+  // Return by calling original continuation:
+  k(makeMarginalERP(hist));
+}
+
+MH.prototype.sample = function(cc, add, erp, params) {
+  //TODO accumulate fw/bw prob on creation!!!
+  //TODO check for param change
+  if(this.trace[add]==undefined){
+    var val = erp.sample(params)
+    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
+    cc(val);
+  } else {
+    cc(this.trace[add].val)
+  }
+};
+
+MH.prototype.factor = function(cc, add, score) {
+  this.score += score
+  cc()
+}
+
+function copyTrace(trace) {
+  var newTrace = {}
+  for(var v in trace){
+    newTrace[v] = trace[v]
+  }
+  return newTrace
+}
+
+function traceKeys(trace){
+  var keys = []
+  for(var k in trace){
+    if(trace.hasOwnProperty(k)){keys.push(k)}
+  }
+  return keys
+}
+
+function mh(cc, a, wpplFn, numParticles) {
+  return new MH(cc, a, wpplFn, numParticles);
 }
 
 
@@ -735,19 +843,19 @@ function pmc(cc, wpplFn, numParticles, numSweeps) {
 ////////////////////////////////////////////////////////////////////
 // Some primitive functions to make things simpler
 
-function display(k, x) {
+function display(k, a, x) {
   k(console.log(x));
 }
 
-function callPrimitive(k, f) {
-  var args = Array.prototype.slice.call(arguments, 2);
-  k(f.apply(f, args));
-}
+//function callPrimitive(k, a, f) {
+//  var args = Array.prototype.slice.call(arguments, 2);
+//  k(f.apply(f, args));
+//}
 
 // Caching for a wppl function f. caution: if f isn't deterministic
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
-function cache(k, f) {
+function cache(k, a, f) {
   var c = {};
   var cf = function(k) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -776,18 +884,20 @@ module.exports = {
   gaussianFactor: gaussianFactor,
   uniformERP: uniformERP,
   discreteERP: discreteERP,
-  Forward: fw,
+//  Forward: fw,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
   EnumerateBreadthFirst: enuFifo,
   ParticleFilter: pf,
+MH: mh,
   //coroutine: coroutine,
+address: address,
   sample: sample,
   factor: factor,
   sampleWithFactor: sampleWithFactor,
   display: display,
-  callPrimitive: callPrimitive,
+//  callPrimitive: callPrimitive,
   cache: cache,
   multinomialSample: multinomialSample,
   PMCMC: pmc

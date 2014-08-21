@@ -1,10 +1,8 @@
 
-
-
-var foo = function(a) {
-  return a
-}
-
-foo().concat([2])
-
-
+MH(function(){
+   var a = flip(0.3)
+   var b = flip(0.4)
+   var c = flip(0.5)
+   factor( (a|b)? 0:-10)
+   return a+b+c},
+   1000)
