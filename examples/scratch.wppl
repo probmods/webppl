@@ -1,8 +1,0 @@
-
-MH(function(){
-   var a = flip(0.3)
-   var b = a?1:flip(0.5)
-//   var c = flip(0.5)
-//   factor( (a|b)? 0:-10)
-   return a+b},
-   10000)

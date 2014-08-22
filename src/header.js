@@ -555,103 +555,217 @@ function pf(cc, a, wpplFn, numParticles) {
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-function MH(k, a, wpplFn, numIterations) {
+//function MH(k, a, wpplFn, numIterations) {
+//
+//  this.trace = {}
+//  this.score = 0
+//  var sample
+//  var hist = {};
+//  this.fwbw = 0
+//  
+//  // Move old coroutine out of the way and install this as the current
+//  // handler.
+//  this.oldCoroutine = coroutine;
+//  coroutine = this;
+//  
+//  //kick off computation, with trivial continuation that will come back here.
+//  //this initializes and store choices in trace. each choice has trivial final k, too.
+//  var retval
+//  wpplFn(function(x){retval = x},a)
+//  sample = retval
+//  
+//  //now we've initialized, run the MH loop:
+//  for(var i=0;i<numIterations;i++){
+//    this.fwbw = 0
+//    
+//    //choose choice from trace..
+//    var keys = traceKeys(this.trace)
+//    var key = keys[Math.floor(Math.random() * keys.length)]
+//    var choice = this.trace[key]
+//    this.fwbw += Math.log(keys.length)
+//    
+//    //sample new value for the chosen choice
+//    var newval = choice.erp.sample(choice.params)
+//    //note proposal prob and score cancel, when drawn from prior.
+////    this.fwbw += choice.erp.score(choice.params,choice.val) -
+////                  choice.erp.score(choice.params,newval)
+//    
+//    //copy and move current trace out of the way, update by re-entering at the choice.
+//    var oldTrace = this.trace
+//    this.trace = copyTrace(oldTrace)
+//    var oldscore = this.score
+//    this.score = 0
+//    this.trace[key].val = newval
+//    choice.k(newval) //run continuation, will set retval at end.
+//    
+//    //compute acceptance prob and decide
+//    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
+//    this.fwbw += -Math.log(traceKeys(this.trace).length)
+//    //TODO clear out unused choices...!!!
+//    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
+//    var accept = Math.random()<acceptanceProb
+//    this.trace = accept?this.trace:oldTrace
+//    sample= accept?retval:sample
+//    this.score = accept?this.score:oldscore
+// 
+//    //accumulate sample into hist:
+//    var v = JSON.stringify(sample)
+//    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
+//    hist[v].prob += 1;
+//  }
+//  
+//  // Reinstate previous coroutine:
+//  coroutine = this.oldCoroutine;
+//  
+//  // Return by calling original continuation:
+//  k(makeMarginalERP(hist));
+//}
+//
+//MH.prototype.sample = function(cc, add, erp, params) {
+//  //TODO accumulate fw/bw prob on creation!!!
+//  //TODO check for param change
+//  if(this.trace[add]==undefined){
+//    var val = erp.sample(params)
+//    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
+//    cc(val);
+//  } else {
+//    cc(this.trace[add].val)
+//  }
+//};
+//
+//MH.prototype.factor = function(cc, add, score) {
+//  this.score += score
+//  cc()
+//}
+//
+//function copyTrace(trace) {
+//  var newTrace = {}
+//  for(var v in trace){
+//    newTrace[v] = trace[v]
+//  }
+//  return newTrace
+//}
+//
+//function traceKeys(trace){
+//  var keys = []
+//  for(var k in trace){
+//    if(trace.hasOwnProperty(k)){keys.push(k)}
+//  }
+//  return keys
+//}
+//
+//function mh(cc, a, wpplFn, numParticles) {
+//  return new MH(cc, a, wpplFn, numParticles);
+//}
+//
 
-  this.trace = {}
-  this.score = 0
-  var sample
-  var hist = {};
-  this.fwbw = 0
+
+///
+
+
+function MH(k, a, wpplFn, numIterations) {
+  
+  this.trace = []
+  this.oldTrace = []
+  this.currScore = 0
+  this.oldScore = -Infinity
+  this.oldVal = undefined
+  this.regenFrom = 0
+  this.returnHist = {}
+  this.k = k
+  
+  this.iterations = numIterations
   
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.oldCoroutine = coroutine;
   coroutine = this;
   
-  //kick off computation, with trivial continuation that will come back here.
-  //this initializes and store choices in trace. each choice has trivial final k, too.
-  var retval
-  wpplFn(function(x){retval = x},a)
-  sample = retval
-  
-  //now we've initialized, run the MH loop:
-  for(var i=0;i<numIterations;i++){
-    this.fwbw = 0
-    
-    //choose choice from trace..
-    var keys = traceKeys(this.trace)
-    var key = keys[Math.floor(Math.random() * keys.length)]
-    var choice = this.trace[key]
-    this.fwbw += Math.log(keys.length)
-    
-    //sample new value for the chosen choice
-    var newval = choice.erp.sample(choice.params)
-    //note proposal prob and score cancel, when drawn from prior.
-//    this.fwbw += choice.erp.score(choice.params,choice.val) -
-//                  choice.erp.score(choice.params,newval)
-    
-    //copy and move current trace out of the way, update by re-entering at the choice.
-    var oldTrace = this.trace
-    this.trace = copyTrace(oldTrace)
-    var oldscore = this.score
-    this.score = 0
-    this.trace[key].val = newval
-    choice.k(newval) //run continuation, will set retval at end.
-    
-    //compute acceptance prob and decide
-    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
-    this.fwbw += -Math.log(traceKeys(this.trace).length)
-    //TODO clear out unused choices...!!!
-    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
-    var accept = Math.random()<acceptanceProb
-    this.trace = accept?this.trace:oldTrace
-    sample= accept?retval:sample
-    this.score = accept?this.score:oldscore
- 
-    //accumulate sample into hist:
-    var v = JSON.stringify(sample)
-    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
-    hist[v].prob += 1;
-  }
-  
-  // Reinstate previous coroutine:
-  coroutine = this.oldCoroutine;
-  
-  // Return by calling original continuation:
-  k(makeMarginalERP(hist));
+  wpplFn(exit,a)
 }
 
-MH.prototype.sample = function(cc, add, erp, params) {
-  //TODO accumulate fw/bw prob on creation!!!
-  //TODO check for param change
-  if(this.trace[add]==undefined){
-    var val = erp.sample(params)
-    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
-    cc(val);
+
+MH.prototype.factor = function(k,a,s) {
+  coroutine.currScore += s
+  k()
+}
+
+MH.prototype.sample = function(cont, name, erp, params, forceSample) {
+  var prev = findChoice(coroutine.oldTrace, name)
+  var reuse = ! (prev==undefined | forceSample)
+  var val = reuse ? prev.val : erp.sample(params)
+  var choiceScore = erp.score(params,val)
+  coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
+                       score: coroutine.currScore, choiceScore: choiceScore,
+                       val: val, reused: reuse})
+  coroutine.currScore += choiceScore
+  cont(val)
+}
+
+function findChoice(trace, name) {
+  for(var i = 0; i < trace.length; i++){
+    if(trace[i].name == name){return trace[i]}
+  }
+  return undefined
+}
+
+function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+  var fw = -Math.log(oldTrace.length)
+  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
+  var bw = -Math.log(trace.length)
+  oldTrace.slice(regenFrom).map(function(s){
+                                var nc = findChoice(trace, s.name)
+                                bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
+  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
+  return acceptance
+}
+
+MH.prototype.exit = function(val) {
+  if( coroutine.iterations > 0 ) {
+    coroutine.iterations -= 1
+    
+    //did we like this proposal?
+    var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
+                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
+    acceptance = coroutine.oldVal==undefined ?1:acceptance //just for init
+    if(!(Math.random()<acceptance)){
+      //if rejected, roll back trace, etc:
+      coroutine.trace = coroutine.oldTrace
+      coroutine.currScore = coroutine.oldScore
+      val = coroutine.oldVal
+    }
+    
+    //now add val to hist:
+    coroutine.returnHist[val] = (coroutine.returnHist[val] || 0) + 1
+    
+    //make a new proposal:
+    coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
+    var regen = coroutine.trace[coroutine.regenFrom]
+    coroutine.oldTrace = coroutine.trace
+    coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom)
+    coroutine.oldScore = coroutine.currScore
+    coroutine.currScore = regen.score
+    coroutine.oldVal = val
+    
+    coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
   } else {
-    cc(this.trace[add].val)
+    //normalize:
+    var norm = 0
+    for (var v in coroutine.returnHist) {
+      norm += coroutine.returnHist[v];
+    }
+    for (var v in coroutine.returnHist) {
+      coroutine.returnHist[v] = coroutine.returnHist[v] / norm;
+    }
+    var dist = makeMarginalERP(coroutine.returnHist)
+    
+    // Reinstate previous coroutine:
+    var k = coroutine.k
+    coroutine = this.oldCoroutine;
+    
+    // Return by calling original continuation:
+    k(dist);
   }
-};
-
-MH.prototype.factor = function(cc, add, score) {
-  this.score += score
-  cc()
-}
-
-function copyTrace(trace) {
-  var newTrace = {}
-  for(var v in trace){
-    newTrace[v] = trace[v]
-  }
-  return newTrace
-}
-
-function traceKeys(trace){
-  var keys = []
-  for(var k in trace){
-    if(trace.hasOwnProperty(k)){keys.push(k)}
-  }
-  return keys
 }
 
 function mh(cc, a, wpplFn, numParticles) {
