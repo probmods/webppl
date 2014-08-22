@@ -28,7 +28,7 @@ function compile(code, verbose){
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
-  
+
   // Apply naming transform to WPPL code
   var newProgramAst = naming(programAst)
 
@@ -72,13 +72,19 @@ function webpplCPS(code){
   var newProgramAst = cps(programAst, build.identifier("topK"));
   return escodegen.generate(newProgramAst);
 }
+function webpplNaming(code){
+  var programAst = esprima.parse(code);
+  var newProgramAst = naming(programAst);
+  return escodegen.generate(newProgramAst);
+}
 
 // For use in browser using browserify
 if (util.runningInBrowser()){
   window.webppl = {
     run: run,
     compile: compile,
-    cps: webpplCPS
+    cps: webpplCPS,
+    naming: webpplNaming
   };
   console.log("webppl loaded.");
 } else {
