@@ -736,7 +736,11 @@ MH.prototype.exit = function(val) {
     }
     
     //now add val to hist:
-    coroutine.returnHist[val] = (coroutine.returnHist[val] || 0) + 1
+    var stringifiedVal = JSON.stringify(val);
+    if (coroutine.returnHist[stringifiedVal] === undefined){
+        coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
+    }
+    coroutine.returnHist[stringifiedVal].prob += 1;
     
     //make a new proposal:
     coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
@@ -749,20 +753,12 @@ MH.prototype.exit = function(val) {
     
     coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
   } else {
-    //normalize:
-    var norm = 0
-    for (var v in coroutine.returnHist) {
-      norm += coroutine.returnHist[v];
-    }
-    for (var v in coroutine.returnHist) {
-      coroutine.returnHist[v] = coroutine.returnHist[v] / norm;
-    }
     var dist = makeMarginalERP(coroutine.returnHist)
     
     // Reinstate previous coroutine:
-    var k = coroutine.k
+    var k = coroutine.k;
     coroutine = this.oldCoroutine;
-    
+
     // Return by calling original continuation:
     k(dist);
   }
@@ -937,6 +933,7 @@ PMCMC.prototype.exit = function(retval) {
           }
           hist[k].prob += 1;
         });
+      
       var dist = makeMarginalERP(hist);
 
       // Reinstate previous coroutine:
