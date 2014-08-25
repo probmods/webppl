@@ -70,6 +70,15 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
                 getFinalElement,
                 nodes.slice(1),
                 vars.concat([nodes[0]]))
+  } else if (nodes[0].type == Syntax.VariableDeclaration) {
+    assert.equal(nodes[0].declarations.length, 1);
+    var declaration = nodes[0].declarations[0];
+    return cps(declaration.init,
+               buildFunc([declaration.id],
+                         cpsSequence(atFinalElement,
+                                     getFinalElement,
+                                     nodes.slice(1),
+                                     vars.concat([declaration.id]))));
   } else {
     var nextVar = makeGensymVariable("s");
     return cps(nodes[0],
@@ -108,6 +117,7 @@ function cpsBlock(nodes, cont){
       return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
     }
   } else {
+    //FIXME: the sequence vars are going to be ignored, so can do this with less garbage..
     return cpsSequence(
       function (nodes){return (nodes.length == 1);},
       function(nodes, vars){

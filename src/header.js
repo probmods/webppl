@@ -939,6 +939,7 @@ ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
   coroutine.activeParticle().continuation = cc;
   
   if (coroutine.allParticlesAdvanced()){
+//    console.log("PF at synch")
     // Resample in proportion to weights
     coroutine.resampleParticles()
     //rejuvenate each particle via MH
@@ -948,6 +949,7 @@ ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
                                    a, coroutine.wpplFn, coroutine.rejuvSteps)
                            })
     coroutine.particleIndex = 0;
+//    console.log("PF runing filter forward")
   } else {
     // Advance to the next particle
     coroutine.particleIndex += 1;
@@ -1078,6 +1080,8 @@ function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
   this.limitAddress = limitAddress
   this.originalParticle = particle
   
+//  console.log("MH "+numIterations+" steps")
+  
   if(numIterations==0) {
     k(particle)
   } else {
@@ -1118,6 +1122,7 @@ function findChoice(trace, name) {
 }
 
 MHP.prototype.propose = function() {
+//  console.log("MH proposal it: "+coroutine.iterations+"")
   //make a new proposal:
   coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
   var regen = coroutine.trace[coroutine.regenFrom]
