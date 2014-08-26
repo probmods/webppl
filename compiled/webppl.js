@@ -16767,7 +16767,8 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
                 getFinalElement,
                 nodes.slice(1),
                 vars.concat([nodes[0]]))
-  } else if (nodes[0].type == Syntax.VariableDeclaration) {
+  } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
+             !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
     var declaration = nodes[0].declarations[0];
     return cps(declaration.init,
