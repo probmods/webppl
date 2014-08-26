@@ -93,8 +93,8 @@ function gaussianScore(params, x){
 	return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
-function gaussianFactor(k, mu, std, val) {
-  coroutine.factor(k, gaussianScore([mu, std], val));
+function gaussianFactor(k, addr, mu, std, val) {
+  coroutine.factor(k, addr, gaussianScore([mu, std], val));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
@@ -419,7 +419,7 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(k,a, wpplFn, numParticles) {
+function ParticleFilter(k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -444,11 +444,11 @@ function ParticleFilter(k,a, wpplFn, numParticles) {
   this.activeParticle().continuation();
 }
 
-ParticleFilter.prototype.sample = function(cc,a, erp, params) {
+ParticleFilter.prototype.sample = function(cc, a, erp, params) {
   cc(erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc,a, score) {
+ParticleFilter.prototype.factor = function(cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
@@ -551,7 +551,7 @@ ParticleFilter.prototype.exit = function(retval) {
 };
 
 function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc,a, wpplFn, numParticles);
+  return new ParticleFilter(cc, a, wpplFn, numParticles);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -559,7 +559,7 @@ function pf(cc, a, wpplFn, numParticles) {
 
 
 function MH(k, a, wpplFn, numIterations) {
-  
+
   this.trace = []
   this.oldTrace = []
   this.currScore = 0
@@ -568,14 +568,14 @@ function MH(k, a, wpplFn, numIterations) {
   this.regenFrom = 0
   this.returnHist = {}
   this.k = k
-  
+
   this.iterations = numIterations
-  
+
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.oldCoroutine = coroutine;
   coroutine = this;
-  
+
   wpplFn(exit,a)
 }
 
@@ -618,7 +618,7 @@ function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
 MH.prototype.exit = function(val) {
   if( coroutine.iterations > 0 ) {
     coroutine.iterations -= 1
-    
+
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
                                   coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
@@ -629,14 +629,14 @@ MH.prototype.exit = function(val) {
       coroutine.currScore = coroutine.oldScore
       val = coroutine.oldVal
     }
-    
+
     //now add val to hist:
     var stringifiedVal = JSON.stringify(val);
     if (coroutine.returnHist[stringifiedVal] === undefined){
         coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
     }
     coroutine.returnHist[stringifiedVal].prob += 1;
-    
+
     //make a new proposal:
     coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
     var regen = coroutine.trace[coroutine.regenFrom]
@@ -645,11 +645,11 @@ MH.prototype.exit = function(val) {
     coroutine.oldScore = coroutine.currScore
     coroutine.currScore = regen.score
     coroutine.oldVal = val
-    
+
     coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
   } else {
     var dist = makeMarginalERP(coroutine.returnHist)
-    
+
     // Reinstate previous coroutine:
     var k = coroutine.k;
     coroutine = this.oldCoroutine;
@@ -828,7 +828,7 @@ PMCMC.prototype.exit = function(retval) {
           }
           hist[k].prob += 1;
         });
-      
+
       var dist = makeMarginalERP(hist);
 
       // Reinstate previous coroutine:
@@ -891,19 +891,19 @@ function cache(k, a, f) {
 
 
 function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
-  
+
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
   this.rejuvSteps = rejuvSteps
   this.baseAddress = a
   this.wpplFn = wpplFn
-  
+
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.k = k;
   this.oldCoroutine = coroutine;
   coroutine = this;
-  
+
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
@@ -915,7 +915,7 @@ function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
     };
     coroutine.particles.push(particle);
   }
-  
+
   // Run first particle
   coroutine.activeParticle().continuation();
 }
@@ -937,7 +937,7 @@ ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
   coroutine.activeParticle().weight += score;
   coroutine.activeParticle().score += score
   coroutine.activeParticle().continuation = cc;
-  
+
   if (coroutine.allParticlesAdvanced()){
 //    console.log("PF at synch")
     // Resample in proportion to weights
@@ -954,7 +954,7 @@ ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
     // Advance to the next particle
     coroutine.particleIndex += 1;
   }
-  
+
   util.withEmptyStack(coroutine.activeParticle().continuation);
 };
 
@@ -978,10 +978,10 @@ function copyPFRParticle(particle){
 
 ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-  
+
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight}));
-  
+
   // Compute list of retained particles
   var retainedParticles = [];
   var retainedCounts = [];
@@ -994,7 +994,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
          }
          retainedCounts.push(numRetained);
          });
-  
+
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
   var newExpWeights = [];
@@ -1010,10 +1010,10 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
     j = multinomialSample(newExpWeights);
     newParticles.push(copyPFRParticle(this.particles[j]));
   }
-  
+
   // Particles after update: Retained + new particles
   coroutine.particles = newParticles.concat(retainedParticles);
-  
+
   // Reset all weights
   _.each(
          coroutine.particles,
@@ -1023,23 +1023,23 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
 };
 
 ParticleFilterRejuv.prototype.exit = function(retval) {
-  
+
   coroutine.activeParticle().value = retval;
-  
+
   // Wait for all particles to reach exit before computing
   // marginal distribution from particles
   if (!coroutine.allParticlesAdvanced()){
     coroutine.particleIndex += 1;
     return coroutine.activeParticle().continuation();
   }
-  
+
   //Final rejuvenation:
   coroutine.particles.forEach(function(particle,i,particles){
                               new MHP(function(p){particles[i]=p},
                                       particle, coroutine.baseAddress,
                                       undefined, coroutine.wpplFn, coroutine.rejuvSteps)
                               })
-  
+
   // Compute marginal distribution from (unweighted) particles
   var hist = {};
   _.each(
@@ -1052,11 +1052,11 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
          hist[k].prob += 1;
          });
   var dist = makeMarginalERP(hist);
-  
+
   // Reinstate previous coroutine:
   var k = coroutine.k
   coroutine = coroutine.oldCoroutine;
-  
+
   // Return from particle filter by calling original continuation:
   k(dist);
 };
@@ -1068,7 +1068,7 @@ function pf(cc, a, wpplFn, numParticles) {
 ////// Lightweight MH on a particle
 
 function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
-  
+
   this.trace = particle.trace
   this.oldTrace = undefined
   this.currScore = particle.score
@@ -1079,9 +1079,9 @@ function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
   this.iterations = numIterations
   this.limitAddress = limitAddress
   this.originalParticle = particle
-  
+
 //  console.log("MH "+numIterations+" steps")
-  
+
   if(numIterations==0) {
     k(particle)
   } else {
@@ -1131,7 +1131,7 @@ MHP.prototype.propose = function() {
   coroutine.oldScore = coroutine.currScore
   coroutine.currScore = regen.score
   coroutine.oldVal = coroutine.val
-  
+
   coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
 }
 
@@ -1147,9 +1147,9 @@ function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
 }
 
 MHP.prototype.exit = function(val) {
-  
+
   coroutine.val = val
-  
+
   //did we like this proposal?
   var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
                                 coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
@@ -1159,9 +1159,9 @@ MHP.prototype.exit = function(val) {
     coroutine.currScore = coroutine.oldScore
     coroutine.val = coroutine.oldVal
   }
-  
+
   coroutine.iterations -= 1
-  
+
   if( coroutine.iterations > 0 ) {
     coroutine.propose()
   } else {
@@ -1170,7 +1170,7 @@ MHP.prototype.exit = function(val) {
                         value: coroutine.val,
                         trace: coroutine.trace
                       }
-    
+
     // Reinstate previous coroutine and return by calling original continuation:
     var k = coroutine.k;
     coroutine = coroutine.oldCoroutine;
