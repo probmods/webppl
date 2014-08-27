@@ -215,12 +215,12 @@ function factor(k, a, score) {
 }
 
 function sampleWithFactor(k, a, dist, params, scoreFn) {
-  if(coroutine.hasOwnProperty('sampleWithFactor')){
-    coroutine.sampleWithFactor(k, dist, params, scoreFn)
+  if(typeof coroutine.sampleWithFactor  == "function"){
+    coroutine.sampleWithFactor(k, a, dist, params, scoreFn)
   } else {
     sample(function(v){
-           scoreFn(function(s){factor(function(){k(v)},s)}, v)},
-           dist, params)
+           scoreFn(function(s){factor(function(){k(v)},a+"swf2",s)}, a+"swf1", v)},
+           a, dist, params)
   }
 }
 
@@ -339,7 +339,6 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
     };
-
     this.queue.enq(state);
   }
   // Call the next state on the queue
@@ -353,7 +352,11 @@ Enumerate.prototype.factor = function(cc,a, score) {
 };
 
 Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
-  Enumerate.sample(cc,dist,params, function(v){return scoreFn(function(x){return x},v)})
+  coroutine.sample(cc,a,dist,params,
+                   function(v){
+                    var ret
+                    scoreFn(function(x){ret = x},a+"swf",v)
+                    return ret})
 }
 
 Enumerate.prototype.exit = function(retval) {
