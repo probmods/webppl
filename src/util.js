@@ -50,7 +50,10 @@ var logsumexp = function(a) {
 };
 
 var withEmptyStack = function(thunk){
-  setTimeout(thunk, 0);
+  var id = setInterval(function() {
+    clearInterval(id);
+    thunk();
+  }, 0)
 };
 
 module.exports = {

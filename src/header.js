@@ -312,11 +312,20 @@ function Enumerate(k, a, wpplFn, maxExecutions, Q) {
 // queue. Currently priority is score, but could be adjusted to give
 // depth-first or breadth-first or some other search strategy
 
+var stackSize = 0;
+
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-//  nextState.continuation(nextState.value)
+//  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+
+  stackSize++;
+  if (stackSize == 40) {
+    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+  } else {
+    nextState.continuation(nextState.value)
+    stackSize = 0
+  }
 };
 
 
@@ -1186,6 +1195,7 @@ MHP.prototype.exit = function(val) {
 function pfr(cc, a, wpplFn, numParticles, rejuvSteps) {
   return new ParticleFilterRejuv(cc, a, wpplFn, numParticles, rejuvSteps);
 }
+
 
 
 
