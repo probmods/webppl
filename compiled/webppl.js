@@ -16767,6 +16767,16 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
                 getFinalElement,
                 nodes.slice(1),
                 vars.concat([nodes[0]]))
+  } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
+             !isFunctionDeclaration(nodes[0])){
+    assert.equal(nodes[0].declarations.length, 1);
+    var declaration = nodes[0].declarations[0];
+    return cps(declaration.init,
+               buildFunc([declaration.id],
+                         cpsSequence(atFinalElement,
+                                     getFinalElement,
+                                     nodes.slice(1),
+                                     vars.concat([declaration.id]))));
   } else {
     var nextVar = makeGensymVariable("s");
     return cps(nodes[0],
@@ -16805,6 +16815,7 @@ function cpsBlock(nodes, cont){
       return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
     }
   } else {
+    //FIXME: the sequence vars are going to be ignored, so can do this with less garbage..
     return cpsSequence(
       function (nodes){return (nodes.length == 1);},
       function(nodes, vars){
@@ -17044,6 +17055,8 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
+//var ParticleFilterRejuv = require('./pfr.js').ParticleFilterRejuv
+
 //top address for naming
 var address = "";
 
@@ -17131,8 +17144,8 @@ function gaussianScore(params, x){
 	return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
-function gaussianFactor(k, mu, std, val) {
-  coroutine.factor(k, gaussianScore([mu, std], val));
+function gaussianFactor(k, addr, mu, std, val) {
+  coroutine.factor(k, addr, gaussianScore([mu, std], val));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
@@ -17260,12 +17273,12 @@ function factor(k, a, score) {
 }
 
 function sampleWithFactor(k, a, dist, params, scoreFn) {
-  if(coroutine.hasOwnProperty('sampleWithFactor')){
-    coroutine.sampleWithFactor(k, dist, params, scoreFn)
+  if(typeof coroutine.sampleWithFactor  == "function"){
+    coroutine.sampleWithFactor(k, a, dist, params, scoreFn)
   } else {
     sample(function(v){
-           scoreFn(function(s){factor(function(){k(v)},s)}, v)},
-           dist, params)
+           scoreFn(function(s){factor(function(){k(v)},a+"swf2",s)}, a+"swf1", v)},
+           a, dist, params)
   }
 }
 
@@ -17357,11 +17370,20 @@ function Enumerate(k, a, wpplFn, maxExecutions, Q) {
 // queue. Currently priority is score, but could be adjusted to give
 // depth-first or breadth-first or some other search strategy
 
+var stackSize = 0;
+
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-//  nextState.continuation(nextState.value)
+//  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+
+  stackSize++;
+  if (stackSize == 40) {
+    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+  } else {
+    nextState.continuation(nextState.value)
+    stackSize = 0
+  }
 };
 
 
@@ -17384,7 +17406,6 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
       value: supp[s],
       score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
     };
-
     this.queue.enq(state);
   }
   // Call the next state on the queue
@@ -17398,7 +17419,11 @@ Enumerate.prototype.factor = function(cc,a, score) {
 };
 
 Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
-  Enumerate.sample(cc,dist,params, function(v){return scoreFn(function(x){return x},v)})
+  coroutine.sample(cc,a,dist,params,
+                   function(v){
+                    var ret
+                    scoreFn(function(x){ret = x},a+"swf",v)
+                    return ret})
 }
 
 Enumerate.prototype.exit = function(retval) {
@@ -17464,7 +17489,7 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(k,a, wpplFn, numParticles) {
+function ParticleFilter(k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -17489,11 +17514,11 @@ function ParticleFilter(k,a, wpplFn, numParticles) {
   this.activeParticle().continuation();
 }
 
-ParticleFilter.prototype.sample = function(cc,a, erp, params) {
+ParticleFilter.prototype.sample = function(cc, a, erp, params) {
   cc(erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc,a, score) {
+ParticleFilter.prototype.factor = function(cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
@@ -17596,7 +17621,7 @@ ParticleFilter.prototype.exit = function(retval) {
 };
 
 function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc,a, wpplFn, numParticles);
+  return new ParticleFilter(cc, a, wpplFn, numParticles);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -17708,7 +17733,6 @@ function pf(cc, a, wpplFn, numParticles) {
 
 
 ///
-
 
 function MH(k, a, wpplFn, numIterations) {
 
@@ -18031,6 +18055,313 @@ function cache(k, a, f) {
   k(cf);
 }
 
+////////////////////////////////////////////////////////////////////
+// Particle filter with lightweight MH rejuvenation.
+//
+// Sequential importance re-sampling, which treats 'factor' calls as
+// the synchronization / intermediate distribution points.
+// After each factor particles are rejuvenated via lightweight MH.
+//
+// If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
+// if rejuvSteps==0 this is a plain PF without any MH.
+
+
+function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
+
+  this.particles = [];
+  this.particleIndex = 0;  // marks the active particle
+  this.rejuvSteps = rejuvSteps
+  this.baseAddress = a
+  this.wpplFn = wpplFn
+
+  // Move old coroutine out of the way and install this as the current
+  // handler.
+  this.k = k;
+  this.oldCoroutine = coroutine;
+  coroutine = this;
+
+  // Create initial particles
+  for (var i=0; i<numParticles; i++) {
+    var particle = {
+    continuation: function(){wpplFn(exit,a);},
+    weight: 0,
+    score: 0,
+    value: undefined,
+    trace: []
+    };
+    coroutine.particles.push(particle);
+  }
+
+  // Run first particle
+  coroutine.activeParticle().continuation();
+}
+
+ParticleFilterRejuv.prototype.sample = function(cc,a, erp, params) {
+  var val = erp.sample(params)
+  var choiceScore = erp.score(params,val)
+  coroutine.activeParticle().trace.push(
+                                   {k: cc, name: a, erp: erp, params: params,
+                                   score: undefined, //FIXME: need to track particle total score?
+                                   choiceScore: choiceScore,
+                                   val: val, reused: false})
+  coroutine.activeParticle().score += choiceScore
+  cc(val);
+};
+
+ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
+  // Update particle weight and score
+  coroutine.activeParticle().weight += score;
+  coroutine.activeParticle().score += score
+  coroutine.activeParticle().continuation = cc;
+
+  if (coroutine.allParticlesAdvanced()){
+//    console.log("PF at synch")
+    // Resample in proportion to weights
+    coroutine.resampleParticles()
+    //rejuvenate each particle via MH
+    coroutine.particles.forEach(function(particle,i,particles){
+                           new MHP(function(p){particles[i]=p},
+                                   particle, coroutine.baseAddress,
+                                   a, coroutine.wpplFn, coroutine.rejuvSteps)
+                           })
+    coroutine.particleIndex = 0;
+//    console.log("PF runing filter forward")
+  } else {
+    // Advance to the next particle
+    coroutine.particleIndex += 1;
+  }
+
+  util.withEmptyStack(coroutine.activeParticle().continuation);
+};
+
+ParticleFilterRejuv.prototype.activeParticle = function() {
+  return coroutine.particles[coroutine.particleIndex];
+};
+
+ParticleFilterRejuv.prototype.allParticlesAdvanced = function() {
+  return ((coroutine.particleIndex + 1) == coroutine.particles.length);
+};
+
+function copyPFRParticle(particle){
+  return {
+  continuation: particle.continuation,
+  weight: particle.weight,
+  value: particle.value,
+  score: particle.score,
+  trace: particle.trace //FIXME: need to deep copy trace??
+  };
+}
+
+ParticleFilterRejuv.prototype.resampleParticles = function() {
+  // Residual resampling following Liu 2008; p. 72, section 3.4.4
+
+  var m = coroutine.particles.length;
+  var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight}));
+
+  // Compute list of retained particles
+  var retainedParticles = [];
+  var retainedCounts = [];
+  _.each(
+         coroutine.particles,
+         function(particle){
+         var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
+         for (var i=0; i<numRetained; i++){
+          retainedParticles.push(copyPFRParticle(particle));
+         }
+         retainedCounts.push(numRetained);
+         });
+
+  // Compute new particles
+  var numNewParticles = m - retainedParticles.length;
+  var newExpWeights = [];
+  var w, tmp;
+  for (var i in this.particles){
+    tmp = Math.log(m) + (coroutine.particles[i].weight - W);
+    w = Math.exp(tmp) - retainedCounts[i];
+    newExpWeights.push(w);
+  }
+  var newParticles = [];
+  var j;
+  for (var i=0; i<numNewParticles; i++){
+    j = multinomialSample(newExpWeights);
+    newParticles.push(copyPFRParticle(this.particles[j]));
+  }
+
+  // Particles after update: Retained + new particles
+  coroutine.particles = newParticles.concat(retainedParticles);
+
+  // Reset all weights
+  _.each(
+         coroutine.particles,
+         function(particle){
+         particle.weight = W - Math.log(m);
+         });
+};
+
+ParticleFilterRejuv.prototype.exit = function(retval) {
+
+  coroutine.activeParticle().value = retval;
+
+  // Wait for all particles to reach exit before computing
+  // marginal distribution from particles
+  if (!coroutine.allParticlesAdvanced()){
+    coroutine.particleIndex += 1;
+    return coroutine.activeParticle().continuation();
+  }
+
+  //Final rejuvenation:
+  coroutine.particles.forEach(function(particle,i,particles){
+                              new MHP(function(p){particles[i]=p},
+                                      particle, coroutine.baseAddress,
+                                      undefined, coroutine.wpplFn, coroutine.rejuvSteps)
+                              })
+
+  // Compute marginal distribution from (unweighted) particles
+  var hist = {};
+  _.each(
+         coroutine.particles,
+         function(particle){
+         var k = JSON.stringify(particle.value);
+         if (hist[k] === undefined){
+         hist[k] = { prob:0, val:particle.value };
+         }
+         hist[k].prob += 1;
+         });
+  var dist = makeMarginalERP(hist);
+
+  // Reinstate previous coroutine:
+  var k = coroutine.k
+  coroutine = coroutine.oldCoroutine;
+
+  // Return from particle filter by calling original continuation:
+  k(dist);
+};
+
+function pf(cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(cc,a, wpplFn, numParticles);
+}
+
+////// Lightweight MH on a particle
+
+function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
+
+  this.trace = particle.trace
+  this.oldTrace = undefined
+  this.currScore = particle.score
+  this.oldScore = undefined
+  this.val = particle.value
+  this.regenFrom = undefined
+  this.k = k
+  this.iterations = numIterations
+  this.limitAddress = limitAddress
+  this.originalParticle = particle
+
+//  console.log("MH "+numIterations+" steps")
+
+  if(numIterations==0) {
+    k(particle)
+  } else {
+    // Move PF coroutine out of the way and install this as the current
+    // handler.
+    this.oldCoroutine = coroutine;
+    coroutine = this;
+    coroutine.propose() //FIXME: on final exit, will this end up calling the MH exit correctly?
+  }
+}
+
+MHP.prototype.factor = function(k,a,s) {
+  coroutine.currScore += s
+  if(a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
+    exit()
+  } else {
+    k()
+  }
+}
+
+MHP.prototype.sample = function(cont, name, erp, params, forceSample) {
+  var prev = findChoice(coroutine.oldTrace, name)
+  var reuse = ! (prev==undefined | forceSample)
+  var val = reuse ? prev.val : erp.sample(params)
+  var choiceScore = erp.score(params,val)
+  coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
+                       score: coroutine.currScore, choiceScore: choiceScore,
+                       val: val, reused: reuse})
+  coroutine.currScore += choiceScore
+  cont(val)
+}
+
+function findChoice(trace, name) {
+  for(var i = 0; i < trace.length; i++){
+    if(trace[i].name == name){return trace[i]}
+  }
+  return undefined
+}
+
+MHP.prototype.propose = function() {
+//  console.log("MH proposal it: "+coroutine.iterations+"")
+  //make a new proposal:
+  coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
+  var regen = coroutine.trace[coroutine.regenFrom]
+  coroutine.oldTrace = coroutine.trace
+  coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom)
+  coroutine.oldScore = coroutine.currScore
+  coroutine.currScore = regen.score
+  coroutine.oldVal = coroutine.val
+
+  coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
+}
+
+function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+  var fw = -Math.log(oldTrace.length)
+  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
+  var bw = -Math.log(trace.length)
+  oldTrace.slice(regenFrom).map(function(s){
+                                var nc = findChoice(trace, s.name)
+                                bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
+  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
+  return acceptance
+}
+
+MHP.prototype.exit = function(val) {
+
+  coroutine.val = val
+
+  //did we like this proposal?
+  var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
+                                coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
+  if(!(Math.random()<acceptance)){
+    //if rejected, roll back trace, etc:
+    coroutine.trace = coroutine.oldTrace
+    coroutine.currScore = coroutine.oldScore
+    coroutine.val = coroutine.oldVal
+  }
+
+  coroutine.iterations -= 1
+
+  if( coroutine.iterations > 0 ) {
+    coroutine.propose()
+  } else {
+    var newParticle = {continuation: coroutine.originalParticle.continuation,
+                        weight: coroutine.originalParticle.weight,
+                        value: coroutine.val,
+                        trace: coroutine.trace
+                      }
+
+    // Reinstate previous coroutine and return by calling original continuation:
+    var k = coroutine.k;
+    coroutine = coroutine.oldCoroutine;
+    k(newParticle);
+  }
+}
+
+
+
+function pfr(cc, a, wpplFn, numParticles, rejuvSteps) {
+  return new ParticleFilterRejuv(cc, a, wpplFn, numParticles, rejuvSteps);
+}
+
+
+
 
 ////////////////////////////////////////////////////////////////////
 
@@ -18042,23 +18373,22 @@ module.exports = {
   gaussianFactor: gaussianFactor,
   uniformERP: uniformERP,
   discreteERP: discreteERP,
-//  Forward: fw,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
   EnumerateBreadthFirst: enuFifo,
   ParticleFilter: pf,
 MH: mh,
-  //coroutine: coroutine,
+  coroutine: coroutine,
 address: address,
   sample: sample,
   factor: factor,
   sampleWithFactor: sampleWithFactor,
   display: display,
-//  callPrimitive: callPrimitive,
   cache: cache,
   multinomialSample: multinomialSample,
-  PMCMC: pmc
+  PMCMC: pmc,
+ParticleFilterRejuv: pfr
 };
 
 },{"./util.js":52,"priorityqueuejs":46,"underscore":47}],50:[function(require,module,exports){
@@ -18318,7 +18648,10 @@ var logsumexp = function(a) {
 };
 
 var withEmptyStack = function(thunk){
-  setTimeout(thunk, 0);
+  var id = setInterval(function() {
+    clearInterval(id);
+    thunk();
+  }, 0)
 };
 
 module.exports = {

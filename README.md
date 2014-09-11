@@ -3,6 +3,11 @@ webppl
 
 Probabilistic programming for the web
 
+Requirements:
+
+- [git](http://git-scm.com/)
+- [nodejs](http://nodejs.org)
+
 Installation:
 
     git clone https://github.com/probmods/webppl.git
