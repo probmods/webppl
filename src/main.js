@@ -30,7 +30,7 @@ function compile(code, verbose){
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
 
   // Apply naming transform to WPPL code
-  var newProgramAst = naming(programAst)
+  var newProgramAst = naming(programAst);
 
   // Apply CPS transform to WPPL code
   newProgramAst = cps(newProgramAst, build.identifier("topK"));
@@ -59,11 +59,12 @@ function run(code, contFun, verbose){
 // FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
-  global.topK = k;  // Install top-level continuation
+  global.topK = function(x){  // Install top-level continuation
+    k(x);
+    global.topK = oldk;
+  };
   var compiledCode = compile(code, verbose);
-  var ret = eval.call(global, compiledCode);
-  global.topK = oldk;
-  return ret;
+  eval.call(global, compiledCode);
 }
 
 // For use in browser
