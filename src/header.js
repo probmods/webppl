@@ -299,6 +299,38 @@ var poissonERP = new ERP(
   }
 );
 
+var dirichletERP = new ERP(
+  function dirichletSample(params){
+    var alpha = params;
+	  var ssum = 0;
+	  var theta = [];
+	  var t;
+	  for (var i = 0; i < alpha.length; i++) {
+		  t = gammaSample([alpha[i], 1]);
+		  theta[i] = t;
+		  ssum = ssum + t;
+	  }
+	  for (var i = 0; i < theta.length; i++) {
+		  theta[i] /= ssum;
+    }
+	  return theta;
+  },
+  function dirichletScore(params, val){
+    var alpha = params;
+    var theta = val;
+	  var asum = 0;
+	  for (var i = 0; i < alpha.length; i++) {
+      asum += alpha[i];
+    }
+	  var logp = logGamma(asum);
+	  for (var i = 0; i < alpha.length; i++){
+		  logp += (alpha[i]-1)*Math.log(theta[i]);
+		  logp -= logGamma(alpha[i]);
+	  }
+	  return logp;
+  }
+);
+
 
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
@@ -1508,6 +1540,7 @@ module.exports = {
   binomialERP: binomialERP,
   poissonERP: poissonERP,
   exponentialERP: exponentialERP,
+  dirichletERP: dirichletERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
