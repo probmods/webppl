@@ -9,6 +9,7 @@ var util = require('./util.js');
 //top address for naming
 var address = "";
 
+
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
 // functions. A single ERP need not hve all three, but some inference
@@ -155,6 +156,19 @@ var gammaERP = new ERP(
     return (a - 1)*Math.log(x) - x/b - log_gamma(a) - a*Math.log(b);
   }
 );
+
+var exponentialERP = new ERP(
+  function exponentialSample(params){
+    var a = params[0];
+	  var u = Math.random();
+    return Math.log(u) / (-1 * a);
+  },
+  function exponentialScore(params, val){
+    var a = params[0];
+    return Math.log(a) - a * val;
+  }
+);
+
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
     var x = Math.random() * thetaSum;
@@ -1359,6 +1373,7 @@ module.exports = {
   uniformERP: uniformERP,
   discreteERP: discreteERP,
   gammaERP: gammaERP,
+  exponentialERP: exponentialERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
