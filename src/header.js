@@ -135,7 +135,7 @@ function gammaSample(params){
   var a = params[0];
   var b = params[1];
   if (a < 1) {
-    return gamma_sample(1+a,b) * Math.pow(Math.random(), 1/a);
+    return gammaSample(1+a,b) * Math.pow(Math.random(), 1/a);
   }
   var x, v, u;
   var d = a-1/3;
@@ -203,31 +203,33 @@ function binomialG(x){
 	return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
 
+function binomialSample(params){
+  var p = params[0];
+  var n = params[1];
+  var k = 0;
+  var N = 10;
+  var a, b;
+  while (n > N){
+    a = 1 + n/2;
+    b = 1 + n-a;
+    var x = betaSample([a, b]);
+    if (x >= p){
+      n = a-1; p /= x;
+    }
+    else{ k += a; n = b - 1; p = (p-x) / (1-x); }
+  }
+  var u;
+  for (var i=0; i<n; i++){
+    u = Math.random();
+    if (u < p) {
+      k++;
+    }
+  }
+  return k | 0;
+}
+
 var binomialERP = new ERP(
-  function binomialSample(params){
-    var p = params[0];
-    var n = params[1];
-    var k = 0;
-    var N = 10;
-    var a, b;
-    while (n > N){
-      a = 1 + n/2;
-      b = 1 + n-a;
-      var x = betaSample([a, b]);
-      if (x >= p){
-        n = a-1; p /= x;
-      }
-      else{ k += a; n = b - 1; p = (p-x) / (1-x); }
-    }
-    var u;
-    for (var i=0; i<n; i++){
-      u = Math.random();
-      if (u < p) {
-        k++;
-      }
-    }
-    return k | 0;
-  },
+  binomialSample,
   function binomialScore(params, val){
     var p = params[0];
     var n = params[1];
@@ -250,6 +252,53 @@ var binomialERP = new ERP(
 	  return gaussianScore([0, 1], z) + Math.log(invsd);
   }
 );
+
+function fact(x){
+  var t=1;
+  while(x>1) t*=x--;
+  return t;
+}
+
+function lnfact(x) {
+  if (x < 1) x = 1;
+  if (x < 12) return Math.log(fact(Math.round(x)));
+  var invx = 1 / x;
+  var invx2 = invx * invx;
+  var invx3 = invx2 * invx;
+  var invx5 = invx3 * invx2;
+  var invx7 = invx5 * invx2;
+  var sum = ((x + 0.5) * Math.log(x)) - x;
+  sum += Math.log(2*Math.PI) / 2;
+  sum += (invx / 12) - (invx3 / 360);
+  sum += (invx5 / 1260) - (invx7 / 1680);
+  return sum;
+}
+
+var poissonERP = new ERP(
+  function poissonSample(params){
+    var mu = params[0];
+    var k = 0;
+    while(mu > 10) {
+      var m = 7/8*mu;
+      var x = gammaSample([m, 1]);
+      if (x > mu) {
+        return (k + binomialSample([mu/x, m-1])) | 0;
+      } else {
+        mu -= x;
+        k += m;
+      }
+    }
+    var emu = Math.exp(-mu);
+    var p = 1;
+    do{ p *= Math.random(); k++; } while(p > emu);
+    return (k-1) | 0;
+  },
+  function poissonScore(params, val){
+    var mu = params[0];
+    return k * Math.log(mu) - mu - lnfact(k);
+  }
+);
+
 
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
@@ -1457,6 +1506,7 @@ module.exports = {
   gammaERP: gammaERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
+  poissonERP: poissonERP,
   exponentialERP: exponentialERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
