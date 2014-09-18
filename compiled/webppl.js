@@ -17060,6 +17060,7 @@ var util = require('./util.js');
 //top address for naming
 var address = "";
 
+
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
 // functions. A single ERP need not hve all three, but some inference
@@ -17169,6 +17170,218 @@ var discreteERP = new ERP(
     return _.range(params[0].length);
   }
 );
+
+var gammaCof = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+                -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+
+function logGamma(xx) {
+  var x = xx - 1.0;
+  var tmp = x + 5.5; tmp -= (x + 0.5)*Math.log(tmp);
+  var ser=1.000000000190015;
+  for (j=0;j<=5;j++){ x++; ser += gammaCof[j]/x; }
+  return -tmp+Math.log(2.5066282746310005*ser);
+}
+
+function gammaSample(params){
+  var a = params[0];
+  var b = params[1];
+  if (a < 1) {
+    return gammaSample(1+a,b) * Math.pow(Math.random(), 1/a);
+  }
+  var x, v, u;
+  var d = a-1/3;
+  var c = 1/Math.sqrt(9*d);
+  while (true) {
+    do{x = gaussianSample([0,1]);  v = 1+c*x;} while(v <= 0);
+    v=v*v*v;
+    u=Math.random();
+    if((u < 1 - .331*x*x*x*x) || (Math.log(u) < .5*x*x + d*(1 - v + Math.log(v)))) return b*d*v;
+  }
+}
+
+// params are shape and scale
+var gammaERP = new ERP(
+  gammaSample,
+  function gammaScore(params, val){
+    var a = params[0];
+    var b = params[1];
+    var x = val;
+    return (a - 1)*Math.log(x) - x/b - logGamma(a) - a*Math.log(b);
+  }
+);
+
+var exponentialERP = new ERP(
+  function exponentialSample(params){
+    var a = params[0];
+	  var u = Math.random();
+    return Math.log(u) / (-1 * a);
+  },
+  function exponentialScore(params, val){
+    var a = params[0];
+    return Math.log(a) - a * val;
+  }
+);
+
+function logBeta(a, b){
+	return logGamma(a) + logGamma(b) - logGamma(a+b);
+}
+
+function betaSample(params){
+  var a = params[0];
+  var b = params[1];
+  var x = gammaSample([a, 1]);
+  return x / (x + gammaSample([b, 1]));
+}
+
+var betaERP = new ERP(
+  betaSample,
+  function betaScore(params, val){
+    var a = params[0];
+    var b = params[1];
+    var x = val;
+	  if (x > 0 && x < 1) {
+	    return (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b);
+    } else {
+      return -Infinity;
+    }
+  }
+);
+
+function binomialG(x){
+	if (x == 0) return 1;
+	if (x == 1) return 0;
+	var d = 1 - x;
+	return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
+}
+
+function binomialSample(params){
+  var p = params[0];
+  var n = params[1];
+  var k = 0;
+  var N = 10;
+  var a, b;
+  while (n > N){
+    a = 1 + n/2;
+    b = 1 + n-a;
+    var x = betaSample([a, b]);
+    if (x >= p){
+      n = a-1; p /= x;
+    }
+    else{ k += a; n = b - 1; p = (p-x) / (1-x); }
+  }
+  var u;
+  for (var i=0; i<n; i++){
+    u = Math.random();
+    if (u < p) {
+      k++;
+    }
+  }
+  return k | 0;
+}
+
+var binomialERP = new ERP(
+  binomialSample,
+  function binomialScore(params, val){
+    var p = params[0];
+    var n = params[1];
+    var s = val;
+	  var inv2 = 1/2;
+	  var inv3 = 1/3;
+	  var inv6 = 1/6;
+	  if (s >= n) return -Infinity;
+	  var q = 1-p;
+	  var S = s + inv2;
+	  var T = n - s - inv2;
+	  var d1 = s + inv6 - (n + inv3) * p;
+	  var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
+	  d2 = d1 + 0.02*d2;
+	  var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
+	  var den = (n + inv6) * p * q;
+	  var z = num / den;
+	  var invsd = Math.sqrt(z);
+	  z = d2 * invsd;
+	  return gaussianScore([0, 1], z) + Math.log(invsd);
+  }
+);
+
+function fact(x){
+  var t=1;
+  while(x>1) t*=x--;
+  return t;
+}
+
+function lnfact(x) {
+  if (x < 1) x = 1;
+  if (x < 12) return Math.log(fact(Math.round(x)));
+  var invx = 1 / x;
+  var invx2 = invx * invx;
+  var invx3 = invx2 * invx;
+  var invx5 = invx3 * invx2;
+  var invx7 = invx5 * invx2;
+  var sum = ((x + 0.5) * Math.log(x)) - x;
+  sum += Math.log(2*Math.PI) / 2;
+  sum += (invx / 12) - (invx3 / 360);
+  sum += (invx5 / 1260) - (invx7 / 1680);
+  return sum;
+}
+
+var poissonERP = new ERP(
+  function poissonSample(params){
+    var mu = params[0];
+    var k = 0;
+    while(mu > 10) {
+      var m = 7/8*mu;
+      var x = gammaSample([m, 1]);
+      if (x > mu) {
+        return (k + binomialSample([mu/x, m-1])) | 0;
+      } else {
+        mu -= x;
+        k += m;
+      }
+    }
+    var emu = Math.exp(-mu);
+    var p = 1;
+    do{ p *= Math.random(); k++; } while(p > emu);
+    return (k-1) | 0;
+  },
+  function poissonScore(params, val){
+    var mu = params[0];
+    return k * Math.log(mu) - mu - lnfact(k);
+  }
+);
+
+var dirichletERP = new ERP(
+  function dirichletSample(params){
+    var alpha = params;
+	  var ssum = 0;
+	  var theta = [];
+	  var t;
+	  for (var i = 0; i < alpha.length; i++) {
+		  t = gammaSample([alpha[i], 1]);
+		  theta[i] = t;
+		  ssum = ssum + t;
+	  }
+	  for (var i = 0; i < theta.length; i++) {
+		  theta[i] /= ssum;
+    }
+	  return theta;
+  },
+  function dirichletScore(params, val){
+    var alpha = params;
+    var theta = val;
+	  var asum = 0;
+	  for (var i = 0; i < alpha.length; i++) {
+      asum += alpha[i];
+    }
+	  var logp = logGamma(asum);
+	  for (var i = 0; i < alpha.length; i++){
+		  logp += (alpha[i]-1)*Math.log(theta[i]);
+		  logp -= logGamma(alpha[i]);
+	  }
+	  return logp;
+  }
+);
+
 
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
@@ -18373,6 +18586,12 @@ module.exports = {
   gaussianFactor: gaussianFactor,
   uniformERP: uniformERP,
   discreteERP: discreteERP,
+  gammaERP: gammaERP,
+  betaERP: betaERP,
+  binomialERP: binomialERP,
+  poissonERP: poissonERP,
+  exponentialERP: exponentialERP,
+  dirichletERP: dirichletERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
@@ -18419,7 +18638,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBhcHBlbmQgPSBmdW5jdGlvbihhLGIpIHsKICByZXR1cm4gYS5jb25jYXQoYik7Cn07Cgp2YXIgbWFwID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoW2ZuKGFyWzBdKV0sIG1hcChhci5zbGljZSgxKSwgZm4pKTsKfTsKCnZhciBmaWx0ZXIgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IGFwcGVuZChmbihhclswXSk/W2FyWzBdXTpbXSwgZmlsdGVyKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgZmluZCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IHVuZGVmaW5lZCA6IChmbihhclswXSkgPyBhclswXSA6IGZpbmQoYXIuc2xpY2UoMSksZm4pKTsKfTsKCnZhciByZXBlYXQgPSBmdW5jdGlvbihuLCBmbil7CiAgcmV0dXJuIG4gPT0gMCA/IFtdIDogYXBwZW5kKHJlcGVhdChuLTEsIGZuKSwgW2ZuKCldKTsKfQoKdmFyIHB1c2ggPSBmdW5jdGlvbih4cywgeCl7CiAgcmV0dXJuIHhzLmNvbmNhdChbeF0pOwp9Cgp2YXIgbGFzdCA9IGZ1bmN0aW9uKHhzKXsKICByZXR1cm4geHNbeHMubGVuZ3RoIC0gMV07Cn0K","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0KCnZhciBwdXNoID0gZnVuY3Rpb24oeHMsIHgpewogIHJldHVybiB4cy5jb25jYXQoW3hdKTsKfQoKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7CiAgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOwp9Cg==","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
