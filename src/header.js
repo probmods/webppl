@@ -175,13 +175,15 @@ function logBeta(a, b){
 	return logGamma(a) + logGamma(b) - logGamma(a+b);
 }
 
+function betaSample(params){
+  var a = params[0];
+  var b = params[1];
+  var x = gammaSample([a, 1]);
+  return x / (x + gammaSample([b, 1]));
+}
+
 var betaERP = new ERP(
-  function betaSample(params){
-    var a = params[0];
-    var b = params[1];
-    var x = gammaSample([a, 1]);
-    return x / (x + gammaSample([b, 1]));
-  },
+  betaSample,
   function betaScore(params, val){
     var a = params[0];
     var b = params[1];
@@ -191,6 +193,61 @@ var betaERP = new ERP(
     } else {
       return -Infinity;
     }
+  }
+);
+
+function binomialG(x){
+	if (x == 0) return 1;
+	if (x == 1) return 0;
+	var d = 1 - x;
+	return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
+}
+
+var binomialERP = new ERP(
+  function binomialSample(params){
+    var p = params[0];
+    var n = params[1];
+    var k = 0;
+    var N = 10;
+    var a, b;
+    while (n > N){
+      a = 1 + n/2;
+      b = 1 + n-a;
+      var x = betaSample([a, b]);
+      if (x >= p){
+        n = a-1; p /= x;
+      }
+      else{ k += a; n = b - 1; p = (p-x) / (1-x); }
+    }
+    var u;
+    for (var i=0; i<n; i++){
+      u = Math.random();
+      if (u < p) {
+        k++;
+      }
+    }
+    return k | 0;
+  },
+  function binomialScore(params, val){
+    var p = params[0];
+    var n = params[1];
+    var s = val;
+	  var inv2 = 1/2;
+	  var inv3 = 1/3;
+	  var inv6 = 1/6;
+	  if (s >= n) return -Infinity;
+	  var q = 1-p;
+	  var S = s + inv2;
+	  var T = n - s - inv2;
+	  var d1 = s + inv6 - (n + inv3) * p;
+	  var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
+	  d2 = d1 + 0.02*d2;
+	  var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
+	  var den = (n + inv6) * p * q;
+	  var z = num / den;
+	  var invsd = Math.sqrt(z);
+	  z = d2 * invsd;
+	  return gaussianScore([0, 1], z) + Math.log(invsd);
   }
 );
 
@@ -1399,6 +1456,7 @@ module.exports = {
   discreteERP: discreteERP,
   gammaERP: gammaERP,
   betaERP: betaERP,
+  binomialERP: binomialERP,
   exponentialERP: exponentialERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
