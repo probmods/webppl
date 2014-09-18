@@ -119,6 +119,42 @@ var discreteERP = new ERP(
   }
 );
 
+var gammaCof = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+                -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+
+function log_gamma(xx) {
+  var x = xx - 1.0;
+  var tmp = x + 5.5; tmp -= (x + 0.5)*Math.log(tmp);
+  var ser=1.000000000190015;
+  for (j=0;j<=5;j++){ x++; ser += gammaCof[j]/x; }
+  return -tmp+Math.log(2.5066282746310005*ser);
+}
+
+// params are shape and scale
+var gammaERP = new ERP(
+  function gammaSample(params){
+    var a = params[0];
+    var b = params[1];
+    if (a < 1) {
+      return gamma_sample(1+a,b) * Math.pow(Math.random(), 1/a);
+    }
+    var x, v, u;
+    var d = a-1/3;
+    var c = 1/Math.sqrt(9*d);
+    while (true) {
+        do{x = gaussianSample([0,1]);  v = 1+c*x;} while(v <= 0);
+        v=v*v*v;
+        u=Math.random();
+        if((u < 1 - .331*x*x*x*x) || (Math.log(u) < .5*x*x + d*(1 - v + Math.log(v)))) return b*d*v;
+    }
+  },
+  function gammaScore(params, val){
+    var a = params[0];
+    var b = params[1];
+    var x = val;
+    return (a - 1)*Math.log(x) - x/b - log_gamma(a) - a*Math.log(b);
+  }
+);
 function multinomialSample(theta) {
     var thetaSum = util.sum(theta);
     var x = Math.random() * thetaSum;
@@ -1322,6 +1358,7 @@ module.exports = {
   gaussianFactor: gaussianFactor,
   uniformERP: uniformERP,
   discreteERP: discreteERP,
+  gammaERP: gammaERP,
   Enumerate: enuPriority,
   EnumerateLikelyFirst: enuPriority,
   EnumerateDepthFirst: enuFilo,
