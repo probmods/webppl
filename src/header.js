@@ -923,9 +923,9 @@ function MH(k, a, wpplFn, numIterations) {
 
 
 MH.prototype.factor = function(k,a,s) {
-  coroutine.currScore += s
-  k()
-}
+  coroutine.currScore += s;
+  util.withEmptyStack(k);
+};
 
 MH.prototype.sample = function(cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name)
