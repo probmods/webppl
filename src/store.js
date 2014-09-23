@@ -58,7 +58,7 @@ TODO:
 -finish adding store args in header.js: PF, MH, PFR
 -handle assignment for globalStore in CPS
 -write mult-dir in header.wppl (sample from predictive given counts)
- 
+-should globalStore actually be the js global object? or in it? 
 */
 
 

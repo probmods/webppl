@@ -7,7 +7,7 @@ function main(){
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
   webppl_eval(
-    function(x){
+    function(s,x){
       console.log("\n* Program return value:\n");
       console.log(x);
     },
