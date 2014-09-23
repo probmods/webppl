@@ -42,6 +42,31 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
+var makeBetaBernoulli = function(pseudocounts) {
+  globalStore.BBindex = 1+ (globalStore.BBindex==undefined?0:globalStore.BBindex)
+  var bbname = "BB"+globalStore.BBindex
+  globalStore[bbname] = pseudocounts
+  return function(){
+    var pc = globalStore[bbname]//get current sufficient stats
+    var val = sample(bernoulliERP, [pc[0]/(pc[0]+pc[1])])//sample from predictive.
+    globalStore[bbname] = [pc[0]+val, pc[1]+!val]//update sufficient stats
+    return val
+  }
+}
+
+var makeDirichletDiscrete = function(pseudocounts) {
+  globalStore.DDindex = 1+ (globalStore.DDindex==undefined?0:globalStore.DDindex)
+  var ddname = "DD"+globalStore.MDindex
+  globalStore[ddname] = pseudocounts
+  return function(){
+    var pc = globalStore[ddname]//get current sufficient stats
+    var val = sample(discreteERP, [pc])//sample from predictive. (doesn't need to be normalized.)
+    globalStore[ddname] = ps+inicator(val) //update sufficient stats FIXME
+    return val
+  }
+}
+
+
 var append = function(a,b) {
   return a.concat(b);
 };

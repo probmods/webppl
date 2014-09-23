@@ -618,7 +618,7 @@ Enumerate.prototype.exit = function(s,retval) {
     // Reinstate previous coroutine:
     coroutine = this.oldCoroutine;
     // Return from enumeration by calling original continuation:
-    this.k(s,dist);
+    this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last execution's store...
   }
 };
 
@@ -656,11 +656,12 @@ function copyParticle(particle){
   return {
     continuation: particle.continuation,
     weight: particle.weight,
-    value: particle.value
+    value: particle.value,
+    store: util.copyObj(particle.store)
   };
 }
 
-function ParticleFilter(k, a, wpplFn, numParticles) {
+function ParticleFilter(s,k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -668,9 +669,10 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(){wpplFn(exit,a);},
+      continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
-      value: undefined
+      value: undefined,
+      store: s
     };
     this.particles.push(particle);
   }
@@ -682,17 +684,18 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   coroutine = this;
 
   // Run first particle
-  this.activeParticle().continuation();
+  this.activeParticle().continuation(this.activeParticle().store);
 }
 
-ParticleFilter.prototype.sample = function(cc, a, erp, params) {
-  cc(erp.sample(params));
+ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
+  cc(s,erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc, a, score) {
+ParticleFilter.prototype.factor = function(s,cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
+  this.activeParticle().store = s
 
   if (this.allParticlesAdvanced()){
     // Resample in proportion to weights
@@ -703,7 +706,7 @@ ParticleFilter.prototype.factor = function(cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeParticle().continuation);
+  util.withEmptyStack(function(){this.activeParticle().continuation(this.activeParticle().store)});
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -760,7 +763,7 @@ ParticleFilter.prototype.resampleParticles = function() {
     });
 };
 
-ParticleFilter.prototype.exit = function(retval) {
+ParticleFilter.prototype.exit = function(s,retval) {
 
   this.activeParticle().value = retval;
 
@@ -768,7 +771,7 @@ ParticleFilter.prototype.exit = function(retval) {
   // marginal distribution from particles
   if (!this.allParticlesAdvanced()){
     this.particleIndex += 1;
-    return this.activeParticle().continuation();
+    return this.activeParticle().continuation(this.activeParticle().store);
   }
 
   // Compute marginal distribution from (unweighted) particles
@@ -788,15 +791,17 @@ ParticleFilter.prototype.exit = function(retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(dist);
+  this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last particle's store...
 };
 
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc, a, wpplFn, numParticles);
+function pf(s,cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(s,cc, a, wpplFn, numParticles);
 }
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
+
+//FIXME: update for store passing
 
 function MH(k, a, wpplFn, numIterations) {
 
@@ -906,6 +911,9 @@ function mh(cc, a, wpplFn, numParticles) {
 
 ////////////////////////////////////////////////////////////////////
 // PMCMC
+
+//FIXME: update for store passing
+
 
 function last(xs){
   return xs[xs.length - 1];
@@ -1130,6 +1138,7 @@ function cache(s,k, a, f) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
+//FIXME: update for store passing
 
 function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
 
@@ -1302,9 +1311,9 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
   k(dist);
 };
 
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc,a, wpplFn, numParticles);
-}
+//function pf(cc, a, wpplFn, numParticles) {
+//  return new ParticleFilter(cc,a, wpplFn, numParticles);
+//}
 
 ////// Lightweight MH on a particle
 

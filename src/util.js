@@ -58,7 +58,7 @@ var withEmptyStack = function(thunk){
 
 var copyObj = function(obj){
   var newobj = {}
-  for(k in obj){
+  for(var k in obj){
     if(obj.hasOwnProperty(k)){newobj[k] = obj[k]}
   }
   return newobj
