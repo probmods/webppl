@@ -56,6 +56,14 @@ var withEmptyStack = function(thunk){
   }, 0)
 };
 
+var copyObj = function(obj){
+  var newobj = {}
+  for(k in obj){
+    if(obj.hasOwnProperty(k)){newobj[k] = obj[k]}
+  }
+  return newobj
+}
+
 module.exports = {
   gensym: gensym,
   makeGensym: makeGensym,
@@ -64,5 +72,6 @@ module.exports = {
   normalize: normalize,
   logsumexp: logsumexp,
   withEmptyStack: withEmptyStack,
-  runningInBrowser: runningInBrowser
+  runningInBrowser: runningInBrowser,
+  copyObj: copyObj
 };

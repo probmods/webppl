@@ -9,6 +9,9 @@ var util = require('./util.js');
 //top address for naming
 var address = "";
 
+//top global store for mutation (eg conjugate models)
+var globalStore = {}
+
 
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
@@ -415,14 +418,14 @@ function makeMarginalERP(marginal) {
 // factor use it to interface with the inference algorithm. Default
 // setting throws an error on factor calls.
 var coroutine = {
-  sample: function(cc, a, erp, params) {
+  sample: function(s, cc, a, erp, params) {
     // Sample and keep going
-    cc(erp.sample(params));
+    cc(s, erp.sample(params));
   },
   factor: function() {
     throw "factor allowed only inside inference.";
   },
-  exit: function(r) {
+  exit: function(s,r) {
     return r;
   }
 };
@@ -430,26 +433,27 @@ var coroutine = {
 // Functions that call methods of whatever the coroutine is set to
 // when called, we do it like this so that 'this' will be set
 // correctly to the coroutine object.
-function sample(k, a, dist, params) {
-  coroutine.sample(k, a, dist, params);
+function sample(s, k, a, dist, params) {
+  coroutine.sample(s, k, a, dist, params);
 }
 
-function factor(k, a, score) {
-  coroutine.factor(k, a, score);
+function factor(s, k, a, score) {
+  coroutine.factor(s, k, a, score);
 }
 
-function sampleWithFactor(k, a, dist, params, scoreFn) {
+function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   if(typeof coroutine.sampleWithFactor  == "function"){
-    coroutine.sampleWithFactor(k, a, dist, params, scoreFn)
+    coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn)
   } else {
-    sample(function(v){
-           scoreFn(function(s){factor(function(){k(v)},a+"swf2",s)}, a+"swf1", v)},
+    sample(s,
+           function(v){
+            scoreFn(s, function(sc){factor(s,function(){k(v)},a+"swf2",sc)}, a+"swf1", v)},
            a, dist, params)
   }
 }
 
-function exit(retval) {
-  coroutine.exit(retval);
+function exit(s,retval) {
+  coroutine.exit(s,retval);
 }
 
 
@@ -509,7 +513,7 @@ function exit(retval) {
 // Depth-first enumeration of all the paths through the computation.
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(k, a, wpplFn, maxExecutions, Q) {
+function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
 
   this.score = 0; // Used to track the score of the path currently being explored
   this.queue = Q; // Queue of states that we have yet to explore
@@ -525,7 +529,7 @@ function Enumerate(k, a, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(exit,a);
+  wpplFn(s, exit,a);
 }
 
 
@@ -545,15 +549,15 @@ Enumerate.prototype.nextInQueue = function() {
 
   stackSize++;
   if (stackSize == 40) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value)});
   } else {
-    nextState.continuation(nextState.value)
+    nextState.continuation(nextState.store, nextState.value)
     stackSize = 0
   }
 };
 
 
-Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
+Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
 
   //allows extra factors to be taken into account in making exploration decisions:
   var extraScoreFn = extraScoreFn || function(x){return 0}
@@ -570,7 +574,8 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
     var state = {
       continuation: cc,
       value: supp[s],
-      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
+      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
+      store: util.copyObj(store)
     };
     this.queue.enq(state);
   }
@@ -578,22 +583,22 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
   this.nextInQueue();
 };
 
-Enumerate.prototype.factor = function(cc,a, score) {
+Enumerate.prototype.factor = function(s,cc,a, score) {
   // Update score and continue
   this.score += score;
-  cc();
+  cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
-  coroutine.sample(cc,a,dist,params,
+Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+  coroutine.sample(s,cc,a,dist,params,
                    function(v){
                     var ret
-                    scoreFn(function(x){ret = x},a+"swf",v)
+                    scoreFn(s,function(x){ret = x},a+"swf",v)
                     return ret})
 }
 
-Enumerate.prototype.exit = function(retval) {
-
+Enumerate.prototype.exit = function(s,retval) {
+  
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval)
   if (this.marginal[r] == undefined) {
@@ -613,31 +618,31 @@ Enumerate.prototype.exit = function(retval) {
     // Reinstate previous coroutine:
     coroutine = this.oldCoroutine;
     // Return from enumeration by calling original continuation:
-    this.k(dist);
+    this.k(s,dist);
   }
 };
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enuPriority(cc, a, wpplFn, maxExecutions) {
+function enuPriority(s,cc, a, wpplFn, maxExecutions) {
   var q = new PriorityQueue(function(a, b){return a.score-b.score;});
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFilo(cc,a, wpplFn, maxExecutions) {
+function enuFilo(s,cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.pop
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFifo(cc,a, wpplFn, maxExecutions) {
+function enuFifo(s,cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.shift
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
 
@@ -792,113 +797,6 @@ function pf(cc, a, wpplFn, numParticles) {
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
-
-//function MH(k, a, wpplFn, numIterations) {
-//
-//  this.trace = {}
-//  this.score = 0
-//  var sample
-//  var hist = {};
-//  this.fwbw = 0
-//
-//  // Move old coroutine out of the way and install this as the current
-//  // handler.
-//  this.oldCoroutine = coroutine;
-//  coroutine = this;
-//
-//  //kick off computation, with trivial continuation that will come back here.
-//  //this initializes and store choices in trace. each choice has trivial final k, too.
-//  var retval
-//  wpplFn(function(x){retval = x},a)
-//  sample = retval
-//
-//  //now we've initialized, run the MH loop:
-//  for(var i=0;i<numIterations;i++){
-//    this.fwbw = 0
-//
-//    //choose choice from trace..
-//    var keys = traceKeys(this.trace)
-//    var key = keys[Math.floor(Math.random() * keys.length)]
-//    var choice = this.trace[key]
-//    this.fwbw += Math.log(keys.length)
-//
-//    //sample new value for the chosen choice
-//    var newval = choice.erp.sample(choice.params)
-//    //note proposal prob and score cancel, when drawn from prior.
-////    this.fwbw += choice.erp.score(choice.params,choice.val) -
-////                  choice.erp.score(choice.params,newval)
-//
-//    //copy and move current trace out of the way, update by re-entering at the choice.
-//    var oldTrace = this.trace
-//    this.trace = copyTrace(oldTrace)
-//    var oldscore = this.score
-//    this.score = 0
-//    this.trace[key].val = newval
-//    choice.k(newval) //run continuation, will set retval at end.
-//
-//    //compute acceptance prob and decide
-//    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
-//    this.fwbw += -Math.log(traceKeys(this.trace).length)
-//    //TODO clear out unused choices...!!!
-//    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
-//    var accept = Math.random()<acceptanceProb
-//    this.trace = accept?this.trace:oldTrace
-//    sample= accept?retval:sample
-//    this.score = accept?this.score:oldscore
-//
-//    //accumulate sample into hist:
-//    var v = JSON.stringify(sample)
-//    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
-//    hist[v].prob += 1;
-//  }
-//
-//  // Reinstate previous coroutine:
-//  coroutine = this.oldCoroutine;
-//
-//  // Return by calling original continuation:
-//  k(makeMarginalERP(hist));
-//}
-//
-//MH.prototype.sample = function(cc, add, erp, params) {
-//  //TODO accumulate fw/bw prob on creation!!!
-//  //TODO check for param change
-//  if(this.trace[add]==undefined){
-//    var val = erp.sample(params)
-//    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
-//    cc(val);
-//  } else {
-//    cc(this.trace[add].val)
-//  }
-//};
-//
-//MH.prototype.factor = function(cc, add, score) {
-//  this.score += score
-//  cc()
-//}
-//
-//function copyTrace(trace) {
-//  var newTrace = {}
-//  for(var v in trace){
-//    newTrace[v] = trace[v]
-//  }
-//  return newTrace
-//}
-//
-//function traceKeys(trace){
-//  var keys = []
-//  for(var k in trace){
-//    if(trace.hasOwnProperty(k)){keys.push(k)}
-//  }
-//  return keys
-//}
-//
-//function mh(cc, a, wpplFn, numParticles) {
-//  return new MH(cc, a, wpplFn, numParticles);
-//}
-//
-
-
-///
 
 function MH(k, a, wpplFn, numIterations) {
 
@@ -1191,8 +1089,8 @@ function pmc(cc, a, wpplFn, numParticles, numSweeps) {
 ////////////////////////////////////////////////////////////////////
 // Some primitive functions to make things simpler
 
-function display(k, a, x) {
-  k(console.log(x));
+function display(s,k, a, x) {
+  k(s,console.log(x));
 }
 
 //function callPrimitive(k, a, f) {
@@ -1203,22 +1101,23 @@ function display(k, a, x) {
 // Caching for a wppl function f. caution: if f isn't deterministic
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
-function cache(k, a, f) {
+//FIXME: use global store for caching?
+function cache(s,k, a, f) {
   var c = {};
-  var cf = function(k) {
-    var args = Array.prototype.slice.call(arguments, 1);
+  var cf = function(s,k) {
+    var args = Array.prototype.slice.call(arguments, 2);
     var stringedArgs = JSON.stringify(args)
     if (stringedArgs in c) {
-      k(c[stringedArgs]);
+      k(s,c[stringedArgs]);
     } else {
-      var newk = function(r) {
+      var newk = function(s,r) {
         c[stringedArgs] = r;
-        k(r);
+        k(s,r);
       };
-      f.apply(this, [newk].concat(args));
+      f.apply(this, [s,newk].concat(args));
     }
   };
-  k(cf);
+  k(s,cf);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -1551,9 +1450,10 @@ module.exports = {
   EnumerateDepthFirst: enuFilo,
   EnumerateBreadthFirst: enuFifo,
   ParticleFilter: pf,
-MH: mh,
+  MH: mh,
   coroutine: coroutine,
-address: address,
+  address: address,
+  globalStore: globalStore,
   sample: sample,
   factor: factor,
   sampleWithFactor: sampleWithFactor,

@@ -8,6 +8,7 @@ var esprima = require("esprima");
 var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
 var naming = require("./naming.js").naming;
+var store = require("./store").store;
 var util = require("./util.js");
 
 var topK;
@@ -34,6 +35,9 @@ function compile(code, verbose){
 
   // Apply CPS transform to WPPL code
   newProgramAst = cps(newProgramAst, build.identifier("topK"));
+  
+  // Apply store passing transform to generated code
+  newProgramAst = store(newProgramAst)
 
   // Print converted code
   if (verbose){

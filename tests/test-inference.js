@@ -22,7 +22,7 @@ var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
 
 var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
   var samples = [];
-  topK = function(value){
+  topK = function(s,value){
     samples.push(value);
     if (samples.length == numSamples){
       test.ok(checkSamples(samples));
@@ -38,7 +38,7 @@ var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
 var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
   var numFinishedSamples = 0;
-  topK = function(value){
+  topK = function(s,value){
     hist[value] = hist[value] || 0;
     hist[value] += 1;
     numFinishedSamples += 1;
@@ -56,7 +56,7 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
 
 var runDistributionTest = function(test, code, expectedHist, tolerance){
   var hist = {};
-  topK = function(erp){
+  topK = function(s,erp){
     _.each(
       erp.support(),
       function (value){
