@@ -66,6 +66,7 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
     testHistsApproxEqual(test, normHist, expectedHist, tolerance);
     test.done();
   };
+//  webppl.webppl_eval(topK, code)
   webppl.run(code, topK);
 };
 

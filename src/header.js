@@ -706,7 +706,7 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(function(){this.activeParticle().continuation(this.activeParticle().store)});
+  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store)});
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -1140,7 +1140,7 @@ function cache(s,k, a, f) {
 
 //FIXME: update for store passing
 
-function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
+function ParticleFilterRejuv(s,k,a, wpplFn, numParticles,rejuvSteps) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -1157,20 +1157,21 @@ function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-    continuation: function(){wpplFn(exit,a);},
+    continuation: function(s){wpplFn(s,exit,a);},
     weight: 0,
     score: 0,
     value: undefined,
-    trace: []
+    trace: [],
+    store: s
     };
     coroutine.particles.push(particle);
   }
 
   // Run first particle
-  coroutine.activeParticle().continuation();
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 }
 
-ParticleFilterRejuv.prototype.sample = function(cc,a, erp, params) {
+ParticleFilterRejuv.prototype.sample = function(s,cc,a, erp, params) {
   var val = erp.sample(params)
   var choiceScore = erp.score(params,val)
   coroutine.activeParticle().trace.push(

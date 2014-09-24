@@ -74,9 +74,6 @@ var makeDirichletDiscrete = function(pseudocounts) {
   }
 }
 
-
-
-
 var append = function(a,b) {
   return a.concat(b);
 };

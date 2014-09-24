@@ -63,8 +63,8 @@ function run(code, contFun, verbose){
 // FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
-  global.topK = function(x){  // Install top-level continuation
-    k(x);
+  global.topK = function(s,x){  // Install top-level continuation
+    k(s,x);
     global.topK = oldk;
   };
   var compiledCode = compile(code, verbose);
