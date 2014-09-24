@@ -16983,6 +16983,17 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
   }
 }
 
+function cpsAssignmentExpression(operator, left, right, cont) {
+  //cps the right side (and left??), make assignment, call cont with assignment result.
+  assert.equal(left.type,Syntax.MemberExpression, "Assignment is allowed only to fields of globalStore.")
+  assert.equal(left.object.name,"globalStore", "Assignment is allowed only to fields of globalStore.")
+  var rhsName = makeGensymVariable("rhs")
+  var assignmentExpr = build.assignmentExpression(operator, left, rhsName)
+  return cps(right, buildFunc([rhsName],
+                             build.callExpression(cont, [assignmentExpr])
+                             ))
+}
+
 function cps(node, cont){
   
   switch (node.type) {
@@ -17033,6 +17044,9 @@ function cps(node, cont){
 
   case Syntax.BinaryExpression:
     return cpsBinaryExpression(node.operator, node.left, node.right, cont);
+      
+  case Syntax.AssignmentExpression:
+      return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
 
   default:
     throw new Error("cps: unknown node type: " + node.type);
@@ -17048,7 +17062,7 @@ module.exports = {
   cps: cpsMain
 };
 
-},{"./util.js":52,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],49:[function(require,module,exports){
+},{"./util.js":53,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],49:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -17059,6 +17073,9 @@ var util = require('./util.js');
 
 //top address for naming
 var address = "";
+
+//top global store for mutation (eg conjugate models)
+var globalStore = {}
 
 
 // Elementary Random Primitives (ERPs) are the representation of
@@ -17466,14 +17483,14 @@ function makeMarginalERP(marginal) {
 // factor use it to interface with the inference algorithm. Default
 // setting throws an error on factor calls.
 var coroutine = {
-  sample: function(cc, a, erp, params) {
+  sample: function(s, cc, a, erp, params) {
     // Sample and keep going
-    cc(erp.sample(params));
+    cc(s, erp.sample(params));
   },
   factor: function() {
     throw "factor allowed only inside inference.";
   },
-  exit: function(r) {
+  exit: function(s,r) {
     return r;
   }
 };
@@ -17481,26 +17498,27 @@ var coroutine = {
 // Functions that call methods of whatever the coroutine is set to
 // when called, we do it like this so that 'this' will be set
 // correctly to the coroutine object.
-function sample(k, a, dist, params) {
-  coroutine.sample(k, a, dist, params);
+function sample(s, k, a, dist, params) {
+  coroutine.sample(s, k, a, dist, params);
 }
 
-function factor(k, a, score) {
-  coroutine.factor(k, a, score);
+function factor(s, k, a, score) {
+  coroutine.factor(s, k, a, score);
 }
 
-function sampleWithFactor(k, a, dist, params, scoreFn) {
+function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   if(typeof coroutine.sampleWithFactor  == "function"){
-    coroutine.sampleWithFactor(k, a, dist, params, scoreFn)
+    coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn)
   } else {
-    sample(function(v){
-           scoreFn(function(s){factor(function(){k(v)},a+"swf2",s)}, a+"swf1", v)},
+    sample(s,
+           function(v){
+            scoreFn(s, function(sc){factor(s,function(){k(v)},a+"swf2",sc)}, a+"swf1", v)},
            a, dist, params)
   }
 }
 
-function exit(retval) {
-  coroutine.exit(retval);
+function exit(s,retval) {
+  coroutine.exit(s,retval);
 }
 
 
@@ -17560,7 +17578,7 @@ function exit(retval) {
 // Depth-first enumeration of all the paths through the computation.
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(k, a, wpplFn, maxExecutions, Q) {
+function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
 
   this.score = 0; // Used to track the score of the path currently being explored
   this.queue = Q; // Queue of states that we have yet to explore
@@ -17576,7 +17594,7 @@ function Enumerate(k, a, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(exit,a);
+  wpplFn(s, exit,a);
 }
 
 
@@ -17596,15 +17614,15 @@ Enumerate.prototype.nextInQueue = function() {
 
   stackSize++;
   if (stackSize == 40) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
+    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value)});
   } else {
-    nextState.continuation(nextState.value)
+    nextState.continuation(nextState.store, nextState.value)
     stackSize = 0
   }
 };
 
 
-Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
+Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
 
   //allows extra factors to be taken into account in making exploration decisions:
   var extraScoreFn = extraScoreFn || function(x){return 0}
@@ -17621,7 +17639,8 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
     var state = {
       continuation: cc,
       value: supp[s],
-      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
+      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
+      store: util.copyObj(store)
     };
     this.queue.enq(state);
   }
@@ -17629,22 +17648,22 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
   this.nextInQueue();
 };
 
-Enumerate.prototype.factor = function(cc,a, score) {
+Enumerate.prototype.factor = function(s,cc,a, score) {
   // Update score and continue
   this.score += score;
-  cc();
+  cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
-  coroutine.sample(cc,a,dist,params,
+Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+  coroutine.sample(s,cc,a,dist,params,
                    function(v){
                     var ret
-                    scoreFn(function(x){ret = x},a+"swf",v)
+                    scoreFn(s,function(x){ret = x},a+"swf",v)
                     return ret})
 }
 
-Enumerate.prototype.exit = function(retval) {
-
+Enumerate.prototype.exit = function(s,retval) {
+  
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval)
   if (this.marginal[r] == undefined) {
@@ -17664,31 +17683,31 @@ Enumerate.prototype.exit = function(retval) {
     // Reinstate previous coroutine:
     coroutine = this.oldCoroutine;
     // Return from enumeration by calling original continuation:
-    this.k(dist);
+    this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last execution's store...
   }
 };
 
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enuPriority(cc, a, wpplFn, maxExecutions) {
+function enuPriority(s,cc, a, wpplFn, maxExecutions) {
   var q = new PriorityQueue(function(a, b){return a.score-b.score;});
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFilo(cc,a, wpplFn, maxExecutions) {
+function enuFilo(s,cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.pop
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFifo(cc,a, wpplFn, maxExecutions) {
+function enuFifo(s,cc,a, wpplFn, maxExecutions) {
   var q = []
   q.size = function(){return q.length}
   q.enq = q.push
   q.deq = q.shift
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
 
@@ -17702,11 +17721,12 @@ function copyParticle(particle){
   return {
     continuation: particle.continuation,
     weight: particle.weight,
-    value: particle.value
+    value: particle.value,
+    store: util.copyObj(particle.store)
   };
 }
 
-function ParticleFilter(k, a, wpplFn, numParticles) {
+function ParticleFilter(s,k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -17714,9 +17734,10 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(){wpplFn(exit,a);},
+      continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
-      value: undefined
+      value: undefined,
+      store: s
     };
     this.particles.push(particle);
   }
@@ -17728,17 +17749,18 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   coroutine = this;
 
   // Run first particle
-  this.activeParticle().continuation();
+  this.activeParticle().continuation(this.activeParticle().store);
 }
 
-ParticleFilter.prototype.sample = function(cc, a, erp, params) {
-  cc(erp.sample(params));
+ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
+  cc(s,erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc, a, score) {
+ParticleFilter.prototype.factor = function(s,cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
+  this.activeParticle().store = s
 
   if (this.allParticlesAdvanced()){
     // Resample in proportion to weights
@@ -17749,7 +17771,7 @@ ParticleFilter.prototype.factor = function(cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeParticle().continuation);
+  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store)});
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -17806,7 +17828,7 @@ ParticleFilter.prototype.resampleParticles = function() {
     });
 };
 
-ParticleFilter.prototype.exit = function(retval) {
+ParticleFilter.prototype.exit = function(s,retval) {
 
   this.activeParticle().value = retval;
 
@@ -17814,7 +17836,7 @@ ParticleFilter.prototype.exit = function(retval) {
   // marginal distribution from particles
   if (!this.allParticlesAdvanced()){
     this.particleIndex += 1;
-    return this.activeParticle().continuation();
+    return this.activeParticle().continuation(this.activeParticle().store);
   }
 
   // Compute marginal distribution from (unweighted) particles
@@ -17834,122 +17856,17 @@ ParticleFilter.prototype.exit = function(retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(dist);
+  this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last particle's store...
 };
 
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc, a, wpplFn, numParticles);
+function pf(s,cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(s,cc, a, wpplFn, numParticles);
 }
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-//function MH(k, a, wpplFn, numIterations) {
-//
-//  this.trace = {}
-//  this.score = 0
-//  var sample
-//  var hist = {};
-//  this.fwbw = 0
-//
-//  // Move old coroutine out of the way and install this as the current
-//  // handler.
-//  this.oldCoroutine = coroutine;
-//  coroutine = this;
-//
-//  //kick off computation, with trivial continuation that will come back here.
-//  //this initializes and store choices in trace. each choice has trivial final k, too.
-//  var retval
-//  wpplFn(function(x){retval = x},a)
-//  sample = retval
-//
-//  //now we've initialized, run the MH loop:
-//  for(var i=0;i<numIterations;i++){
-//    this.fwbw = 0
-//
-//    //choose choice from trace..
-//    var keys = traceKeys(this.trace)
-//    var key = keys[Math.floor(Math.random() * keys.length)]
-//    var choice = this.trace[key]
-//    this.fwbw += Math.log(keys.length)
-//
-//    //sample new value for the chosen choice
-//    var newval = choice.erp.sample(choice.params)
-//    //note proposal prob and score cancel, when drawn from prior.
-////    this.fwbw += choice.erp.score(choice.params,choice.val) -
-////                  choice.erp.score(choice.params,newval)
-//
-//    //copy and move current trace out of the way, update by re-entering at the choice.
-//    var oldTrace = this.trace
-//    this.trace = copyTrace(oldTrace)
-//    var oldscore = this.score
-//    this.score = 0
-//    this.trace[key].val = newval
-//    choice.k(newval) //run continuation, will set retval at end.
-//
-//    //compute acceptance prob and decide
-//    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
-//    this.fwbw += -Math.log(traceKeys(this.trace).length)
-//    //TODO clear out unused choices...!!!
-//    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
-//    var accept = Math.random()<acceptanceProb
-//    this.trace = accept?this.trace:oldTrace
-//    sample= accept?retval:sample
-//    this.score = accept?this.score:oldscore
-//
-//    //accumulate sample into hist:
-//    var v = JSON.stringify(sample)
-//    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
-//    hist[v].prob += 1;
-//  }
-//
-//  // Reinstate previous coroutine:
-//  coroutine = this.oldCoroutine;
-//
-//  // Return by calling original continuation:
-//  k(makeMarginalERP(hist));
-//}
-//
-//MH.prototype.sample = function(cc, add, erp, params) {
-//  //TODO accumulate fw/bw prob on creation!!!
-//  //TODO check for param change
-//  if(this.trace[add]==undefined){
-//    var val = erp.sample(params)
-//    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
-//    cc(val);
-//  } else {
-//    cc(this.trace[add].val)
-//  }
-//};
-//
-//MH.prototype.factor = function(cc, add, score) {
-//  this.score += score
-//  cc()
-//}
-//
-//function copyTrace(trace) {
-//  var newTrace = {}
-//  for(var v in trace){
-//    newTrace[v] = trace[v]
-//  }
-//  return newTrace
-//}
-//
-//function traceKeys(trace){
-//  var keys = []
-//  for(var k in trace){
-//    if(trace.hasOwnProperty(k)){keys.push(k)}
-//  }
-//  return keys
-//}
-//
-//function mh(cc, a, wpplFn, numParticles) {
-//  return new MH(cc, a, wpplFn, numParticles);
-//}
-//
-
-
-///
+//FIXME: update for store passing
 
 function MH(k, a, wpplFn, numIterations) {
 
@@ -18059,6 +17976,9 @@ function mh(cc, a, wpplFn, numParticles) {
 
 ////////////////////////////////////////////////////////////////////
 // PMCMC
+
+//FIXME: update for store passing
+
 
 function last(xs){
   return xs[xs.length - 1];
@@ -18242,8 +18162,8 @@ function pmc(cc, a, wpplFn, numParticles, numSweeps) {
 ////////////////////////////////////////////////////////////////////
 // Some primitive functions to make things simpler
 
-function display(k, a, x) {
-  k(console.log(x));
+function display(s,k, a, x) {
+  k(s,console.log(x));
 }
 
 //function callPrimitive(k, a, f) {
@@ -18254,22 +18174,23 @@ function display(k, a, x) {
 // Caching for a wppl function f. caution: if f isn't deterministic
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
-function cache(k, a, f) {
+//FIXME: use global store for caching?
+function cache(s,k, a, f) {
   var c = {};
-  var cf = function(k) {
-    var args = Array.prototype.slice.call(arguments, 1);
+  var cf = function(s,k) {
+    var args = Array.prototype.slice.call(arguments, 2);
     var stringedArgs = JSON.stringify(args)
     if (stringedArgs in c) {
-      k(c[stringedArgs]);
+      k(s,c[stringedArgs]);
     } else {
-      var newk = function(r) {
+      var newk = function(s,r) {
         c[stringedArgs] = r;
-        k(r);
+        k(s,r);
       };
-      f.apply(this, [newk].concat(args));
+      f.apply(this, [s,newk].concat(args));
     }
   };
-  k(cf);
+  k(s,cf);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -18282,8 +18203,9 @@ function cache(k, a, f) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
+//FIXME: update for store passing
 
-function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
+function ParticleFilterRejuv(s,k,a, wpplFn, numParticles,rejuvSteps) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -18300,39 +18222,41 @@ function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-    continuation: function(){wpplFn(exit,a);},
+    continuation: function(s){wpplFn(s,exit,a);},
     weight: 0,
     score: 0,
     value: undefined,
-    trace: []
+    trace: [],
+    store: s
     };
     coroutine.particles.push(particle);
   }
 
   // Run first particle
-  coroutine.activeParticle().continuation();
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 }
 
-ParticleFilterRejuv.prototype.sample = function(cc,a, erp, params) {
+ParticleFilterRejuv.prototype.sample = function(s,cc,a, erp, params) {
   var val = erp.sample(params)
   var choiceScore = erp.score(params,val)
   coroutine.activeParticle().trace.push(
                                    {k: cc, name: a, erp: erp, params: params,
                                    score: undefined, //FIXME: need to track particle total score?
                                    choiceScore: choiceScore,
-                                   val: val, reused: false})
+                                   val: val, reused: false,
+                                   store: s})
   coroutine.activeParticle().score += choiceScore
-  cc(val);
+  cc(s,val);
 };
 
-ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
+ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
   // Update particle weight and score
   coroutine.activeParticle().weight += score;
   coroutine.activeParticle().score += score
   coroutine.activeParticle().continuation = cc;
+  coroutine.activeParticle().store = s
 
   if (coroutine.allParticlesAdvanced()){
-//    console.log("PF at synch")
     // Resample in proportion to weights
     coroutine.resampleParticles()
     //rejuvenate each particle via MH
@@ -18342,13 +18266,12 @@ ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
                                    a, coroutine.wpplFn, coroutine.rejuvSteps)
                            })
     coroutine.particleIndex = 0;
-//    console.log("PF runing filter forward")
   } else {
     // Advance to the next particle
     coroutine.particleIndex += 1;
   }
 
-  util.withEmptyStack(coroutine.activeParticle().continuation);
+  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store)});
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -18365,6 +18288,7 @@ function copyPFRParticle(particle){
   weight: particle.weight,
   value: particle.value,
   score: particle.score,
+  store: particle.store,
   trace: particle.trace //FIXME: need to deep copy trace??
   };
 }
@@ -18415,7 +18339,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
          });
 };
 
-ParticleFilterRejuv.prototype.exit = function(retval) {
+ParticleFilterRejuv.prototype.exit = function(s,retval) {
 
   coroutine.activeParticle().value = retval;
 
@@ -18423,7 +18347,7 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
   // marginal distribution from particles
   if (!coroutine.allParticlesAdvanced()){
     coroutine.particleIndex += 1;
-    return coroutine.activeParticle().continuation();
+    return coroutine.activeParticle().continuation(coroutine.activeParticle().store);
   }
 
   //Final rejuvenation:
@@ -18451,16 +18375,16 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
   coroutine = coroutine.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  k(dist);
+  k(s,dist); //FIXME: which store should we continue with? original store? currently uses last particle's store...
 };
 
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc,a, wpplFn, numParticles);
-}
+//function pf(cc, a, wpplFn, numParticles) {
+//  return new ParticleFilter(cc,a, wpplFn, numParticles);
+//}
 
 ////// Lightweight MH on a particle
 
-function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
+function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIterations) {
 
   this.trace = particle.trace
   this.oldTrace = undefined
@@ -18468,7 +18392,7 @@ function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
   this.oldScore = undefined
   this.val = particle.value
   this.regenFrom = undefined
-  this.k = k
+  this.backToPF = backToPF
   this.iterations = numIterations
   this.limitAddress = limitAddress
   this.originalParticle = particle
@@ -18476,7 +18400,7 @@ function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
 //  console.log("MH "+numIterations+" steps")
 
   if(numIterations==0) {
-    k(particle)
+    backToPF(particle)
   } else {
     // Move PF coroutine out of the way and install this as the current
     // handler.
@@ -18486,25 +18410,25 @@ function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
   }
 }
 
-MHP.prototype.factor = function(k,a,s) {
-  coroutine.currScore += s
+MHP.prototype.factor = function(s,k,a,sc) {
+  coroutine.currScore += sc
   if(a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
-    exit()
+    exit(s)
   } else {
-    k()
+    k(s)
   }
 }
 
-MHP.prototype.sample = function(cont, name, erp, params, forceSample) {
+MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name)
   var reuse = ! (prev==undefined | forceSample)
   var val = reuse ? prev.val : erp.sample(params)
   var choiceScore = erp.score(params,val)
-  coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
+  coroutine.trace.push({k: k, name: name, erp: erp, params: params,
                        score: coroutine.currScore, choiceScore: choiceScore,
-                       val: val, reused: reuse})
+                       val: val, reused: reuse, store:s})
   coroutine.currScore += choiceScore
-  cont(val)
+  k(s,val)
 }
 
 function findChoice(trace, name) {
@@ -18525,7 +18449,7 @@ MHP.prototype.propose = function() {
   coroutine.currScore = regen.score
   coroutine.oldVal = coroutine.val
 
-  coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
+  coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true)
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
@@ -18539,7 +18463,7 @@ function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
   return acceptance
 }
 
-MHP.prototype.exit = function(val) {
+MHP.prototype.exit = function(s,val) {
 
   coroutine.val = val
 
@@ -18561,20 +18485,21 @@ MHP.prototype.exit = function(val) {
     var newParticle = {continuation: coroutine.originalParticle.continuation,
                         weight: coroutine.originalParticle.weight,
                         value: coroutine.val,
-                        trace: coroutine.trace
+                        trace: coroutine.trace,
+                        store: s
                       }
 
     // Reinstate previous coroutine and return by calling original continuation:
-    var k = coroutine.k;
+    var backToPF = coroutine.backToPF;
     coroutine = coroutine.oldCoroutine;
-    k(newParticle);
+    backToPF(newParticle);
   }
 }
 
 
 
-function pfr(cc, a, wpplFn, numParticles, rejuvSteps) {
-  return new ParticleFilterRejuv(cc, a, wpplFn, numParticles, rejuvSteps);
+function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
+  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
 
@@ -18602,9 +18527,10 @@ module.exports = {
   EnumerateDepthFirst: enuFilo,
   EnumerateBreadthFirst: enuFifo,
   ParticleFilter: pf,
-MH: mh,
+  MH: mh,
   coroutine: coroutine,
-address: address,
+  address: address,
+  globalStore: globalStore,
   sample: sample,
   factor: factor,
   sampleWithFactor: sampleWithFactor,
@@ -18615,7 +18541,7 @@ address: address,
   ParticleFilterRejuv: pfr
 };
 
-},{"./util.js":52,"priorityqueuejs":46,"underscore":47}],50:[function(require,module,exports){
+},{"./util.js":53,"priorityqueuejs":46,"underscore":47}],50:[function(require,module,exports){
 (function (global,Buffer){
 "use strict";
 
@@ -18627,6 +18553,7 @@ var esprima = require("esprima");
 var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
 var naming = require("./naming.js").naming;
+var store = require("./store").store;
 var util = require("./util.js");
 
 var topK;
@@ -18643,7 +18570,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0KCnZhciBwdXNoID0gZnVuY3Rpb24oeHMsIHgpewogIHJldHVybiB4cy5jb25jYXQoW3hdKTsKfQoKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7CiAgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOwp9Cg==","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07Cgp2YXIgbWFrZUJldGFCZXJub3VsbGkgPSBmdW5jdGlvbihwc2V1ZG9jb3VudHMpIHsKICBnbG9iYWxTdG9yZS5CQmluZGV4ID0gMSsgKGdsb2JhbFN0b3JlLkJCaW5kZXg9PXVuZGVmaW5lZD8wOmdsb2JhbFN0b3JlLkJCaW5kZXgpCiAgdmFyIGJibmFtZSA9ICJCQiIrZ2xvYmFsU3RvcmUuQkJpbmRleAogIGdsb2JhbFN0b3JlW2JibmFtZV0gPSBwc2V1ZG9jb3VudHMKICByZXR1cm4gZnVuY3Rpb24oKXsKICAgIHZhciBwYyA9IGdsb2JhbFN0b3JlW2JibmFtZV0vL2dldCBjdXJyZW50IHN1ZmZpY2llbnQgc3RhdHMKICAgIHZhciB2YWwgPSBzYW1wbGUoYmVybm91bGxpRVJQLCBbcGNbMF0vKHBjWzBdK3BjWzFdKV0pLy9zYW1wbGUgZnJvbSBwcmVkaWN0aXZlLgogICAgZ2xvYmFsU3RvcmVbYmJuYW1lXSA9IFtwY1swXSt2YWwsIHBjWzFdKyF2YWxdLy91cGRhdGUgc3VmZmljaWVudCBzdGF0cwogICAgcmV0dXJuIHZhbAogIH0KfQoKdmFyIG1ha2VEaXJpY2hsZXREaXNjcmV0ZSA9IGZ1bmN0aW9uKHBzZXVkb2NvdW50cykgewogIHZhciBhZGRDb3VudCA9IGZ1bmN0aW9uKGEsaSxqKSB7CiAgICB2YXIgaiA9IGo9PXVuZGVmaW5lZD8wOmoKICAgIGlmKGEubGVuZ3RoPT0wKXsKICAgICAgcmV0dXJuIFtdCiAgICB9IGVsc2UgewogICAgICByZXR1cm4gW2FbMF0gKyAoaT09aildLmNvbmNhdChhZGRDb3VudChhLnNsaWNlKDEpLGksaisxKSkKICAgIH0KICB9CiAgZ2xvYmFsU3RvcmUuRERpbmRleCA9IDErIChnbG9iYWxTdG9yZS5ERGluZGV4PT11bmRlZmluZWQ/MDpnbG9iYWxTdG9yZS5ERGluZGV4KQogIHZhciBkZG5hbWUgPSAiREQiK2dsb2JhbFN0b3JlLkREaW5kZXgKICBnbG9iYWxTdG9yZVtkZG5hbWVdID0gcHNldWRvY291bnRzCiAgcmV0dXJuIGZ1bmN0aW9uKCl7CiAgICB2YXIgcGMgPSBnbG9iYWxTdG9yZVtkZG5hbWVdLy9nZXQgY3VycmVudCBzdWZmaWNpZW50IHN0YXRzCiAgICB2YXIgdmFsID0gc2FtcGxlKGRpc2NyZXRlRVJQLCBbcGNdKS8vc2FtcGxlIGZyb20gcHJlZGljdGl2ZS4gKGRvZXNuJ3QgbmVlZCB0byBiZSBub3JtYWxpemVkLikKICAgIGdsb2JhbFN0b3JlW2RkbmFtZV0gPSBhZGRDb3VudChwYywgdmFsKSAvL3VwZGF0ZSBzdWZmaWNpZW50IHN0YXRzCiAgICByZXR1cm4gdmFsCiAgfQp9Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0KCnZhciBwdXNoID0gZnVuY3Rpb24oeHMsIHgpewogIHJldHVybiB4cy5jb25jYXQoW3hdKTsKfQoKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7CiAgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOwp9Cg==","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
@@ -18653,6 +18580,9 @@ function compile(code, verbose){
 
   // Apply CPS transform to WPPL code
   newProgramAst = cps(newProgramAst, build.identifier("topK"));
+  
+  // Apply store passing transform to generated code
+  newProgramAst = store(newProgramAst)
 
   // Print converted code
   if (verbose){
@@ -18678,8 +18608,8 @@ function run(code, contFun, verbose){
 // FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
-  global.topK = function(x){  // Install top-level continuation
-    k(x);
+  global.topK = function(s,x){  // Install top-level continuation
+    k(s,x);
     global.topK = oldk;
   };
   var compiledCode = compile(code, verbose);
@@ -18719,7 +18649,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./cps.js":48,"./header.js":49,"./naming.js":51,"./util.js":52,"ast-types":27,"buffer":4,"escodegen":28,"esprima":43,"path":8}],51:[function(require,module,exports){
+},{"./cps.js":48,"./header.js":49,"./naming.js":51,"./store":52,"./util.js":53,"ast-types":27,"buffer":4,"escodegen":28,"esprima":43,"path":8}],51:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -18819,7 +18749,65 @@ function namingMain(node) {
 module.exports = {
 naming: namingMain
 };
-},{"./util.js":52,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],52:[function(require,module,exports){
+},{"./util.js":53,"assert":1,"ast-types":27,"escodegen":28,"esprima":43,"estemplate":44,"estraverse":45,"underscore":47}],52:[function(require,module,exports){
+"use strict";
+
+var estraverse = require("estraverse");
+var types = require("ast-types");
+
+var build = types.builders;
+var Syntax = estraverse.Syntax;
+
+var storeIdNode = build.identifier("globalStore")
+
+function store(node) {
+  switch (node.type) {
+
+
+      //have to add the store argument to each function
+    case Syntax.FunctionExpression:
+      return build.functionExpression(node.id,
+                                      [storeIdNode].concat(node.params),
+                                      node.body)
+
+      //pass the store variable at each call (that isn't primitive)
+    case Syntax.CallExpression:
+      if(types.namedTypes.MemberExpression.check(node.callee)){
+        return node
+      } else {
+        return build.callExpression(node.callee,
+                                    [storeIdNode].concat(node.arguments))
+      }
+
+    default:
+      return node
+
+  }
+}
+
+
+function storeMain(node) {
+  return estraverse.replace(node,
+                             {//enter: function(node){return node},
+                             leave: function(node){return store(node)}})
+}
+
+
+module.exports = {
+store: storeMain
+};
+
+
+/*
+
+TODO:
+-finish adding store args in header.js: MH, PFR
+-should globalStore actually be the js global object? or in it?
+*/
+
+
+
+},{"ast-types":27,"estraverse":45}],53:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -18878,6 +18866,14 @@ var withEmptyStack = function(thunk){
   }, 0)
 };
 
+var copyObj = function(obj){
+  var newobj = {}
+  for(var k in obj){
+    if(obj.hasOwnProperty(k)){newobj[k] = obj[k]}
+  }
+  return newobj
+}
+
 module.exports = {
   gensym: gensym,
   makeGensym: makeGensym,
@@ -18886,6 +18882,7 @@ module.exports = {
   normalize: normalize,
   logsumexp: logsumexp,
   withEmptyStack: withEmptyStack,
-  runningInBrowser: runningInBrowser
+  runningInBrowser: runningInBrowser,
+  copyObj: copyObj
 };
 },{"underscore":47}]},{},[50]);
