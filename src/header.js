@@ -97,12 +97,12 @@ function gaussianScore(params, x){
 	return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
-function gaussianFactor(k, addr, mu, std, val){
-  coroutine.factor(k, addr, gaussianScore([mu, std], val));
+function gaussianFactor(store, k, addr, mu, std, val){
+  coroutine.factor(store, k, addr, gaussianScore([mu, std], val));
 }
 
-function erpFactor(k, addr, erp, params, val){
-  coroutine.factor(k, addr, erp.score(params, val));
+function erpFactor(store, k, addr, erp, params, val){
+  coroutine.factor(store, k, addr, erp.score(params, val));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
@@ -598,7 +598,7 @@ Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
 }
 
 Enumerate.prototype.exit = function(s,retval) {
-  
+
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval)
   if (this.marginal[r] == undefined) {
