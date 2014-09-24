@@ -1,13 +1,7 @@
 "use strict";
 
-//var assert = require('assert');
-//var _ = require('underscore');
 var estraverse = require("estraverse");
-//var escodegen = require("escodegen");
-//var esprima = require("esprima");
-//var estemplate = require("estemplate");
 var types = require("ast-types");
-//var util = require('./util.js');
 
 var build = types.builders;
 var Syntax = estraverse.Syntax;
