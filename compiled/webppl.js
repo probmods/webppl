@@ -18572,12 +18572,16 @@ MHP.prototype.exit = function(val) {
 }
 
 
-
 function pfr(cc, a, wpplFn, numParticles, rejuvSteps) {
   return new ParticleFilterRejuv(cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
 
+function withEmptyWebPPLStack(k, a, thunk){
+  util.withEmptyStack(function(){
+    return thunk(k, a);
+  });
+}
 
 
 ////////////////////////////////////////////////////////////////////
@@ -18612,7 +18616,8 @@ address: address,
   cache: cache,
   multinomialSample: multinomialSample,
   PMCMC: pmc,
-  ParticleFilterRejuv: pfr
+  ParticleFilterRejuv: pfr,
+  withEmptyStack: withEmptyWebPPLStack
 };
 
 },{"./util.js":52,"priorityqueuejs":46,"underscore":47}],50:[function(require,module,exports){
