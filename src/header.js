@@ -110,17 +110,12 @@ function erpFactor(store, k, addr, erp, params, val){
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
 
-var normalizeArray = function(xs){
-  var Z = util.sum(xs);
-  return xs.map(function(x){return x/Z;});
-};
-
 var discreteERP = new ERP(
   function discreteSample(params){
     return multinomialSample(params[0]);
   },
   function discreteScore(params, val) {
-    var probs = normalizeArray(params[0]);
+    var probs = util.normalizeArray(params[0]);
     var stop = probs.length;
     var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
     return inSupport ? Math.log(probs[val]) : -Infinity;
@@ -1437,5 +1432,6 @@ module.exports = {
   cache: cache,
   multinomialSample: multinomialSample,
   PMCMC: pmc,
-  ParticleFilterRejuv: pfr
+  ParticleFilterRejuv: pfr,
+  util: util
 };

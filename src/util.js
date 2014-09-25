@@ -33,11 +33,16 @@ var sum = function(xs){
   }
 };
 
-var normalize = function(hist){
+var normalizeHist = function(hist){
   var normHist = {};
   var Z = sum(_.values(hist));
   _.each(hist, function(val, key){normHist[key] = hist[key]/Z;});
   return normHist;
+};
+
+var normalizeArray = function(xs){
+  var Z = util.sum(xs);
+  return xs.map(function(x){return x/Z;});
 };
 
 var logsumexp = function(a) {
@@ -53,15 +58,15 @@ var withEmptyStack = function(thunk){
   var id = setInterval(function() {
     clearInterval(id);
     thunk();
-  }, 0)
+  }, 0);
 };
 
 var copyObj = function(obj){
-  var newobj = {}
+  var newobj = {};
   for(var k in obj){
-    if(obj.hasOwnProperty(k)){newobj[k] = obj[k]}
+    if(obj.hasOwnProperty(k)){newobj[k] = obj[k];}
   }
-  return newobj
+  return newobj;
 }
 
 module.exports = {
@@ -69,7 +74,8 @@ module.exports = {
   makeGensym: makeGensym,
   prettyJSON: prettyJSON,
   sum: sum,
-  normalize: normalize,
+  normalizeHist: normalizeHist,
+  normalizeArray: normalizeArray,
   logsumexp: logsumexp,
   withEmptyStack: withEmptyStack,
   runningInBrowser: runningInBrowser,

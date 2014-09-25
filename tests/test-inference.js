@@ -43,7 +43,7 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
     hist[value] += 1;
     numFinishedSamples += 1;
     if (numFinishedSamples == numSamples){
-      var normHist = util.normalize(hist);
+      var normHist = util.normalizeHist(hist);
       testHistsApproxEqual(test, normHist, expectedHist, tolerance);
       test.done();
     }
@@ -62,7 +62,7 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
       function (value){
         hist[value] = Math.exp(erp.score([], value));
       });
-    var normHist = util.normalize(hist);
+    var normHist = util.normalizeHist(hist);
     testHistsApproxEqual(test, normHist, expectedHist, tolerance);
     test.done();
   };
