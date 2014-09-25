@@ -502,7 +502,7 @@ Enumerate.prototype.nextInQueue = function() {
 //  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
 
   stackSize++;
-  if (stackSize == 40) {
+  if (stackSize == 5) {
     util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value);});
   } else {
     nextState.continuation(nextState.store, nextState.value);

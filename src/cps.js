@@ -288,17 +288,17 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
 
 function cpsAssignmentExpression(operator, left, right, cont) {
   //cps the right side (and left??), make assignment, call cont with assignment result.
-  assert.equal(left.type,Syntax.MemberExpression, "Assignment is allowed only to fields of globalStore.")
-  assert.equal(left.object.name,"globalStore", "Assignment is allowed only to fields of globalStore.")
-  var rhsName = makeGensymVariable("rhs")
-  var assignmentExpr = build.assignmentExpression(operator, left, rhsName)
+  assert.equal(left.type,Syntax.MemberExpression, "Assignment is allowed only to fields of globalStore.");
+  assert.equal(left.object.name,"globalStore", "Assignment is allowed only to fields of globalStore.");
+  var rhsName = makeGensymVariable("rhs");
+  var assignmentExpr = build.assignmentExpression(operator, left, rhsName);
   return cps(right, buildFunc([rhsName],
                              build.callExpression(cont, [assignmentExpr])
-                             ))
+                             ));
 }
 
 function cps(node, cont){
-  
+
   switch (node.type) {
 
   case Syntax.BlockStatement:
@@ -347,7 +347,7 @@ function cps(node, cont){
 
   case Syntax.BinaryExpression:
     return cpsBinaryExpression(node.operator, node.left, node.right, cont);
-      
+
   case Syntax.AssignmentExpression:
       return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
 
