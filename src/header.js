@@ -4,12 +4,11 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
-//var ParticleFilterRejuv = require('./pfr.js').ParticleFilterRejuv
 
-//top address for naming
+// Top address for naming
 var address = "";
 
-//top global store for mutation (eg conjugate models)
+// Top global store for mutation (eg conjugate models)
 var globalStore = {};
 
 
@@ -499,10 +498,10 @@ Enumerate.prototype.nextInQueue = function() {
 
   stackSize++;
   if (stackSize == 40) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value)});
+    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value);});
   } else {
-    nextState.continuation(nextState.store, nextState.value)
-    stackSize = 0
+    nextState.continuation(nextState.store, nextState.value);
+    stackSize = 0;
   }
 };
 
@@ -510,7 +509,7 @@ Enumerate.prototype.nextInQueue = function() {
 Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
 
   //allows extra factors to be taken into account in making exploration decisions:
-  var extraScoreFn = extraScoreFn || function(x){return 0}
+  var extraScoreFn = extraScoreFn || function(x){return 0};
 
   // Find support of this erp:
   if (!dist.support) {
@@ -542,15 +541,15 @@ Enumerate.prototype.factor = function(s,cc,a, score) {
 Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
   coroutine.sample(s,cc,a,dist,params,
                    function(v){
-                    var ret
-                    scoreFn(s,function(x){ret = x},a+"swf",v)
-                    return ret})
+                    var ret;
+                    scoreFn(s,function(x){ret = x},a+"swf",v);
+                    return ret;})
 }
 
 Enumerate.prototype.exit = function(s,retval) {
 
   // We have reached an exit of the computation. Accumulate probability into retval bin.
-  var r = JSON.stringify(retval)
+  var r = JSON.stringify(retval);
   if (this.marginal[r] == undefined) {
       this.marginal[r] = {prob: 0, val: retval};
   }
@@ -580,18 +579,18 @@ function enuPriority(s,cc, a, wpplFn, maxExecutions) {
 }
 
 function enuFilo(s,cc,a, wpplFn, maxExecutions) {
-  var q = []
-  q.size = function(){return q.length}
-  q.enq = q.push
-  q.deq = q.pop
+  var q = [];
+  q.size = function(){return q.length;};
+  q.enq = q.push;
+  q.deq = q.pop;
   return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
 function enuFifo(s,cc,a, wpplFn, maxExecutions) {
-  var q = []
-  q.size = function(){return q.length}
-  q.enq = q.push
-  q.deq = q.shift
+  var q = [];
+  q.size = function(){return q.length;};
+  q.enq = q.push;
+  q.deq = q.shift;
   return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
@@ -747,6 +746,7 @@ ParticleFilter.prototype.exit = function(s,retval) {
 function pf(s,cc, a, wpplFn, numParticles) {
   return new ParticleFilter(s,cc, a, wpplFn, numParticles);
 }
+
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
@@ -960,7 +960,6 @@ PMCMC.prototype.resampleParticles = function(particles){
   return newParticles;
 };
 
-
 PMCMC.prototype.factor = function(cc, a, score) {
 
   this.updateActiveParticle(score, cc);
@@ -985,7 +984,6 @@ PMCMC.prototype.factor = function(cc, a, score) {
 
   util.withEmptyStack(this.activeContinuation());
 };
-
 
 PMCMC.prototype.exit = function(retval) {
 
@@ -1051,11 +1049,6 @@ function display(s,k, a, x) {
   k(s,console.log(x));
 }
 
-//function callPrimitive(k, a, f) {
-//  var args = Array.prototype.slice.call(arguments, 2);
-//  k(f.apply(f, args));
-//}
-
 // Caching for a wppl function f. caution: if f isn't deterministic
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
@@ -1077,6 +1070,7 @@ function cache(s,k, a, f) {
   };
   k(s,cf);
 }
+
 
 ////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
