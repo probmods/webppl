@@ -43,36 +43,36 @@ var gamma = function(shape, scale){
 };
 
 var makeBetaBernoulli = function(pseudocounts) {
-  globalStore.BBindex = 1+ (globalStore.BBindex==undefined?0:globalStore.BBindex)
-  var bbname = "BB"+globalStore.BBindex
-  globalStore[bbname] = pseudocounts
+  globalStore.BBindex = 1 + (globalStore.BBindex==undefined ? 0 : globalStore.BBindex);
+  var bbname = "BB"+globalStore.BBindex;
+  globalStore[bbname] = pseudocounts;
   return function(){
-    var pc = globalStore[bbname]//get current sufficient stats
-    var val = sample(bernoulliERP, [pc[0]/(pc[0]+pc[1])])//sample from predictive.
-    globalStore[bbname] = [pc[0]+val, pc[1]+!val]//update sufficient stats
-    return val
-  }
-}
+    var pc = globalStore[bbname];  // get current sufficient stats
+    var val = sample(bernoulliERP, [pc[0]/(pc[0]+pc[1])]);  // sample from predictive.
+    globalStore[bbname] = [pc[0]+val, pc[1]+!val];  // update sufficient stats
+    return val;
+  };
+};
 
 var makeDirichletDiscrete = function(pseudocounts) {
   var addCount = function(a,i,j) {
-    var j = j==undefined?0:j
+    var j = j==undefined?0:j;
     if(a.length==0){
-      return []
+      return [];
     } else {
-      return [a[0] + (i==j)].concat(addCount(a.slice(1),i,j+1))
+      return [a[0] + (i==j)].concat(addCount(a.slice(1),i,j+1));
     }
-  }
-  globalStore.DDindex = 1+ (globalStore.DDindex==undefined?0:globalStore.DDindex)
-  var ddname = "DD"+globalStore.DDindex
-  globalStore[ddname] = pseudocounts
+  };
+  globalStore.DDindex = 1+ (globalStore.DDindex==undefined?0:globalStore.DDindex);
+  var ddname = "DD"+globalStore.DDindex;
+  globalStore[ddname] = pseudocounts;
   return function(){
-    var pc = globalStore[ddname]//get current sufficient stats
-    var val = sample(discreteERP, [pc])//sample from predictive. (doesn't need to be normalized.)
-    globalStore[ddname] = addCount(pc, val) //update sufficient stats
-    return val
-  }
-}
+    var pc = globalStore[ddname];  // get current sufficient stats
+    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    globalStore[ddname] = addCount(pc, val); // update sufficient stats
+    return val;
+  };
+};
 
 var append = function(a,b) {
   return a.concat(b);
