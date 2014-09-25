@@ -478,6 +478,8 @@ function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
   this.numCompletedExecutions = 0;
   this.maxExecutions = maxExecutions || 1000;
 
+  this.oldStore = s; // will be reinstated at the end
+
   // Move old coroutine out of the way and install this as the current handler
   this.k = k;
   this.oldCoroutine = coroutine;
@@ -574,8 +576,8 @@ Enumerate.prototype.exit = function(s,retval) {
     var dist = makeMarginalERP(marginal);
     // Reinstate previous coroutine:
     coroutine = this.oldCoroutine;
-    // Return from enumeration by calling original continuation:
-    this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last execution's store...
+    // Return from enumeration by calling original continuation with original store:
+    this.k(this.oldStore, dist);
   }
 };
 
@@ -640,6 +642,8 @@ function ParticleFilter(s,k, a, wpplFn, numParticles) {
   this.k = k;
   this.oldCoroutine = coroutine;
   coroutine = this;
+
+  this.oldStore = s; // will be reinstated at the end
 
   // Run first particle
   this.activeParticle().continuation(this.activeParticle().store);
@@ -749,7 +753,7 @@ ParticleFilter.prototype.exit = function(s,retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(s,dist); //FIXME: which store should we continue with? original store? currently uses last particle's store...
+  this.k(this.oldStore, dist);
 };
 
 function pf(s,cc, a, wpplFn, numParticles) {
@@ -1080,6 +1084,8 @@ function ParticleFilterRejuv(s,k,a, wpplFn, numParticles,rejuvSteps) {
   this.oldCoroutine = coroutine;
   coroutine = this;
 
+  this.oldStore = s; // will be reinstated at the end
+
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
@@ -1237,7 +1243,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
   coroutine = coroutine.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  k(s,dist); //FIXME: which store should we continue with? original store? currently uses last particle's store...
+  k(this.oldStore,dist);
 };
 
 //function pf(cc, a, wpplFn, numParticles) {
@@ -1258,6 +1264,8 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
   this.iterations = numIterations;
   this.limitAddress = limitAddress;
   this.originalParticle = particle;
+
+  // FIXME: do we need to save the store here?
 
 //  console.log("MH "+numIterations+" steps")
 
@@ -1357,7 +1365,6 @@ MHP.prototype.exit = function(s,val) {
     backToPF(newParticle);
   }
 }
-
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
