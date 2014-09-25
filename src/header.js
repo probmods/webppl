@@ -10,7 +10,7 @@ var util = require('./util.js');
 var address = "";
 
 //top global store for mutation (eg conjugate models)
-var globalStore = {}
+var globalStore = {};
 
 
 // Elementary Random Primitives (ERPs) are the representation of
@@ -455,56 +455,6 @@ function sampleWithFactor(s, k, a, dist, params, scoreFn) {
 function exit(s,retval) {
   coroutine.exit(s,retval);
 }
-
-
-//////////////////////////////////////////////////////////////////////
-//// Forward sampling
-////
-//// Simply samples at each random choice. throws an error on factor,
-//// since we aren't doing any normalization / inference.
-//
-//function Forward(cc, wpplFn) {
-//  this.cc = cc;
-//
-//  // Move old coroutine out of the way and install this as the
-//  // current handler.
-//  this.oldCoroutine = coroutine;
-//  coroutine = this;
-//
-//  // Run the wppl computation, when the computation returns we want
-//  // it to call the exit method of this coroutine so we pass that as
-//  // the continuation.
-//  wpplFn(exit);
-//}
-//
-//Forward.prototype.sample = function(cc, erp, params) {
-//  cc(erp.sample(params)); //sample and keep going
-//};
-//
-//Forward.prototype.factor = function(cc, score) {
-//  throw "'factor' is not allowed inside Forward.";
-//};
-//
-//Forward.prototype.exit = function(retval) {
-//  // Return value of the wppl fn as a delta erp
-//  var dist = new ERP(
-//    function() {
-//      return retval;
-//    },
-//    function(p, v) {
-//      return (v == retval) ? 0 : -Infinity;
-//    });
-//
-//  // Put old coroutine back, and return dist
-//  coroutine = this.oldCoroutine;
-//  this.cc(dist);
-//};
-//
-//// Helper wraps with 'new' to make a new copy of Forward and set
-//// 'this' correctly..
-//function fw(cc, wpplFn) {
-//  return new Forward(cc, wpplFn);
-//}
 
 
 ////////////////////////////////////////////////////////////////////
