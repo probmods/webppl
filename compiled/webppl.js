@@ -17954,7 +17954,7 @@ function pf(cc, a, wpplFn, numParticles) {
 function MH(k, a, wpplFn, numIterations) {
 
   this.trace = []
-  this.oldTrace = []
+  this.oldTrace = undefined
   this.currScore = 0
   this.oldScore = -Infinity
   this.oldVal = undefined
@@ -17991,6 +17991,7 @@ MH.prototype.sample = function(cont, name, erp, params, forceSample) {
 }
 
 function findChoice(trace, name) {
+  if(trace == undefined){return undefined}
   for(var i = 0; i < trace.length; i++){
     if(trace[i].name == name){return trace[i]}
   }
@@ -17998,6 +17999,7 @@ function findChoice(trace, name) {
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+  if(oldTrace == undefined){return 1} //just for init
   var fw = -Math.log(oldTrace.length)
   trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
   var bw = -Math.log(trace.length)
@@ -18015,7 +18017,6 @@ MH.prototype.exit = function(val) {
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
                                   coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
-    acceptance = coroutine.oldVal==undefined ?1:acceptance //just for init
     if(!(Math.random()<acceptance)){
       //if rejected, roll back trace, etc:
       coroutine.trace = coroutine.oldTrace
@@ -18507,12 +18508,6 @@ MHP.prototype.sample = function(cont, name, erp, params, forceSample) {
   cont(val)
 }
 
-function findChoice(trace, name) {
-  for(var i = 0; i < trace.length; i++){
-    if(trace[i].name == name){return trace[i]}
-  }
-  return undefined
-}
 
 MHP.prototype.propose = function() {
 //  console.log("MH proposal it: "+coroutine.iterations+"")
@@ -18528,16 +18523,7 @@ MHP.prototype.propose = function() {
   coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
 }
 
-function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  var fw = -Math.log(oldTrace.length)
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
-  var bw = -Math.log(trace.length)
-  oldTrace.slice(regenFrom).map(function(s){
-                                var nc = findChoice(trace, s.name)
-                                bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
-  return acceptance
-}
+
 
 MHP.prototype.exit = function(val) {
 
