@@ -1033,6 +1033,7 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
   this.address = a;
   this.numParticles = numParticles;
   this.resetParticles();
+  this.returnHist = {};
 
   // Run first particle
   this.activeContinuation()();
@@ -1144,13 +1145,24 @@ PMCMC.prototype.exit = function(retval) {
 
   } else {
 
-    if (this.sweep < this.numSweeps) {
+    // Use all (unweighted) particles from the conditional SMC
+    // iteration to estimate marginal distribution.
+    if (this.sweep > 0) {
+      _.each(
+        this.particles.concat(this.retainedParticle),
+        function(particle){
+          var k = JSON.stringify(particle.value);
+          if (coroutine.returnHist[k] === undefined){
+            coroutine.returnHist[k] = { prob:0, val:particle.value };
+          }
+          coroutine.returnHist[k].prob += 1;
+        });
+    };
 
-      // Resample retained particle based on total path weight
-      var weights = this.particles.map(
-        function(particle){return Math.exp(util.sum(particle.weights));});
-      var j = multinomialSample(weights);
-      this.retainedParticle = this.particles[j];
+    // Retain the first particle sampled after the final factor statement.
+    this.retainedParticle = this.particles[0];
+
+    if (this.sweep < this.numSweeps) {
 
       // Reset non-retained particles, restart
       this.sweep += 1;
@@ -1159,20 +1171,7 @@ PMCMC.prototype.exit = function(retval) {
       this.activeContinuation()();
 
     } else {
-
-      // Compute marginal distribution from (unweighted) particles
-      var hist = {};
-      _.each(
-        this.particles,
-        function(particle){
-          var k = JSON.stringify(particle.value);
-          if (hist[k] === undefined){
-            hist[k] = { prob:0, val:particle.value };
-          }
-          hist[k].prob += 1;
-        });
-
-      var dist = makeMarginalERP(hist);
+      var dist = makeMarginalERP(this.returnHist);
 
       // Reinstate previous coroutine:
       coroutine = this.oldCoroutine;
