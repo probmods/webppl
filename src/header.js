@@ -764,14 +764,15 @@ function pf(s,cc, a, wpplFn, numParticles) {
 
 function MH(k, a, wpplFn, numIterations) {
 
-  this.trace = [];
-  this.oldTrace = [];
-  this.currScore = 0;
-  this.oldScore = -Infinity;
-  this.oldVal = undefined;
-  this.regenFrom = 0;
-  this.returnHist = {};
-  this.k = k;
+
+  this.trace = []
+  this.oldTrace = undefined
+  this.currScore = 0
+  this.oldScore = -Infinity
+  this.oldVal = undefined
+  this.regenFrom = 0
+  this.returnHist = {}
+  this.k = k
 
   this.iterations = numIterations;
 
@@ -802,6 +803,7 @@ MH.prototype.sample = function(cont, name, erp, params, forceSample) {
 }
 
 function findChoice(trace, name) {
+  if(trace == undefined){return undefined}
   for(var i = 0; i < trace.length; i++){
     if(trace[i].name == name){return trace[i];}
   }
@@ -809,9 +811,10 @@ function findChoice(trace, name) {
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  var fw = -Math.log(oldTrace.length);
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
-  var bw = -Math.log(trace.length);
+  if(oldTrace == undefined){return 1} //just for init
+  var fw = -Math.log(oldTrace.length)
+  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
+  var bw = -Math.log(trace.length)
   oldTrace.slice(regenFrom).map(function(s){
                                 var nc = findChoice(trace, s.name);
                                 bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
@@ -825,9 +828,8 @@ MH.prototype.exit = function(val) {
 
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
-                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
-    acceptance = coroutine.oldVal==undefined ? 1 : acceptance; //just for init
-    if (!(Math.random()<acceptance)){
+                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
+    if(!(Math.random()<acceptance)){
       //if rejected, roll back trace, etc:
       coroutine.trace = coroutine.oldTrace;
       coroutine.currScore = coroutine.oldScore;
@@ -898,6 +900,7 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
   this.address = a;
   this.numParticles = numParticles;
   this.resetParticles();
+  this.returnHist = {};
 
   // Run first particle
   this.activeContinuation()();
@@ -1007,13 +1010,24 @@ PMCMC.prototype.exit = function(retval) {
 
   } else {
 
-    if (this.sweep < this.numSweeps) {
+    // Use all (unweighted) particles from the conditional SMC
+    // iteration to estimate marginal distribution.
+    if (this.sweep > 0) {
+      _.each(
+        this.particles.concat(this.retainedParticle),
+        function(particle){
+          var k = JSON.stringify(particle.value);
+          if (coroutine.returnHist[k] === undefined){
+            coroutine.returnHist[k] = { prob:0, val:particle.value };
+          }
+          coroutine.returnHist[k].prob += 1;
+        });
+    };
 
-      // Resample retained particle based on total path weight
-      var weights = this.particles.map(
-        function(particle){return Math.exp(util.sum(particle.weights));});
-      var j = multinomialSample(weights);
-      this.retainedParticle = this.particles[j];
+    // Retain the first particle sampled after the final factor statement.
+    this.retainedParticle = this.particles[0];
+
+    if (this.sweep < this.numSweeps) {
 
       // Reset non-retained particles, restart
       this.sweep += 1;
@@ -1022,20 +1036,7 @@ PMCMC.prototype.exit = function(retval) {
       this.activeContinuation()();
 
     } else {
-
-      // Compute marginal distribution from (unweighted) particles
-      var hist = {};
-      _.each(
-        this.particles,
-        function(particle){
-          var k = JSON.stringify(particle.value);
-          if (hist[k] === undefined){
-            hist[k] = { prob:0, val:particle.value };
-          }
-          hist[k].prob += 1;
-        });
-
-      var dist = makeMarginalERP(hist);
+      var dist = makeMarginalERP(this.returnHist);
 
       // Reinstate previous coroutine:
       coroutine = this.oldCoroutine;
@@ -1296,13 +1297,6 @@ MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   k(s,val);
 };
 
-function findChoice(trace, name) {
-  for(var i = 0; i < trace.length; i++){
-    if(trace[i].name == name){return trace[i];}
-  }
-  return undefined;
-}
-
 MHP.prototype.propose = function() {
 //  console.log("MH proposal it: "+coroutine.iterations+"")
   //make a new proposal:
@@ -1317,16 +1311,16 @@ MHP.prototype.propose = function() {
   coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
 };
 
-function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  var fw = -Math.log(oldTrace.length);
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
-  var bw = -Math.log(trace.length);
-  oldTrace.slice(regenFrom).map(function(s){
-                                var nc = findChoice(trace, s.name);
-                                bw += (!nc || !nc.reused) ? s.choiceScore : 0; });
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
-  return acceptance;
-}
+//function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+//  var fw = -Math.log(oldTrace.length);
+//  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
+//  var bw = -Math.log(trace.length);
+//  oldTrace.slice(regenFrom).map(function(s){
+//                                var nc = findChoice(trace, s.name);
+//                                bw += (!nc || !nc.reused) ? s.choiceScore : 0; });
+//  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
+//  return acceptance;
+//}
 
 MHP.prototype.exit = function(s,val) {
 
@@ -1397,6 +1391,11 @@ function cache(s,k, a, f) {
   k(s,cf);
 }
 
+function withEmptyWebPPLStack(k, a, thunk){
+  util.withEmptyStack(function(){
+    return thunk(k, a);
+  });
+}
 
 
 ////////////////////////////////////////////////////////////////////
@@ -1433,5 +1432,6 @@ module.exports = {
   multinomialSample: multinomialSample,
   PMCMC: pmc,
   ParticleFilterRejuv: pfr,
-  util: util
+  util: util,
+  withEmptyStack: withEmptyWebPPLStack
 };
