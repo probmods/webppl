@@ -50,6 +50,10 @@ var map = function(ar,fn) {
   return ar.length==0 ? [] : append([fn(ar[0])], map(ar.slice(1), fn));
 };
 
+var reduce = function(ar,fn,init){
+  return ar.length==0 ? init : fn(reduce(ar.slice(1),fn,init), ar[0]);
+};
+
 var filter = function(ar,fn) {
   return ar.length==0 ? [] : append(fn(ar[0])?[ar[0]]:[], filter(ar.slice(1),fn));
 };

@@ -17954,7 +17954,7 @@ function pf(cc, a, wpplFn, numParticles) {
 function MH(k, a, wpplFn, numIterations) {
 
   this.trace = []
-  this.oldTrace = []
+  this.oldTrace = undefined
   this.currScore = 0
   this.oldScore = -Infinity
   this.oldVal = undefined
@@ -17991,6 +17991,7 @@ MH.prototype.sample = function(cont, name, erp, params, forceSample) {
 }
 
 function findChoice(trace, name) {
+  if(trace == undefined){return undefined}
   for(var i = 0; i < trace.length; i++){
     if(trace[i].name == name){return trace[i]}
   }
@@ -17998,6 +17999,7 @@ function findChoice(trace, name) {
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+  if(oldTrace == undefined){return 1} //just for init
   var fw = -Math.log(oldTrace.length)
   trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
   var bw = -Math.log(trace.length)
@@ -18015,7 +18017,6 @@ MH.prototype.exit = function(val) {
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
                                   coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
-    acceptance = coroutine.oldVal==undefined ?1:acceptance //just for init
     if(!(Math.random()<acceptance)){
       //if rejected, roll back trace, etc:
       coroutine.trace = coroutine.oldTrace
@@ -18083,6 +18084,7 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
   this.address = a;
   this.numParticles = numParticles;
   this.resetParticles();
+  this.returnHist = {};
 
   // Run first particle
   this.activeContinuation()();
@@ -18194,13 +18196,24 @@ PMCMC.prototype.exit = function(retval) {
 
   } else {
 
-    if (this.sweep < this.numSweeps) {
+    // Use all (unweighted) particles from the conditional SMC
+    // iteration to estimate marginal distribution.
+    if (this.sweep > 0) {
+      _.each(
+        this.particles.concat(this.retainedParticle),
+        function(particle){
+          var k = JSON.stringify(particle.value);
+          if (coroutine.returnHist[k] === undefined){
+            coroutine.returnHist[k] = { prob:0, val:particle.value };
+          }
+          coroutine.returnHist[k].prob += 1;
+        });
+    };
 
-      // Resample retained particle based on total path weight
-      var weights = this.particles.map(
-        function(particle){return Math.exp(util.sum(particle.weights));});
-      var j = multinomialSample(weights);
-      this.retainedParticle = this.particles[j];
+    // Retain the first particle sampled after the final factor statement.
+    this.retainedParticle = this.particles[0];
+
+    if (this.sweep < this.numSweeps) {
 
       // Reset non-retained particles, restart
       this.sweep += 1;
@@ -18209,20 +18222,7 @@ PMCMC.prototype.exit = function(retval) {
       this.activeContinuation()();
 
     } else {
-
-      // Compute marginal distribution from (unweighted) particles
-      var hist = {};
-      _.each(
-        this.particles,
-        function(particle){
-          var k = JSON.stringify(particle.value);
-          if (hist[k] === undefined){
-            hist[k] = { prob:0, val:particle.value };
-          }
-          hist[k].prob += 1;
-        });
-
-      var dist = makeMarginalERP(hist);
+      var dist = makeMarginalERP(this.returnHist);
 
       // Reinstate previous coroutine:
       coroutine = this.oldCoroutine;
@@ -18507,12 +18507,6 @@ MHP.prototype.sample = function(cont, name, erp, params, forceSample) {
   cont(val)
 }
 
-function findChoice(trace, name) {
-  for(var i = 0; i < trace.length; i++){
-    if(trace[i].name == name){return trace[i]}
-  }
-  return undefined
-}
 
 MHP.prototype.propose = function() {
 //  console.log("MH proposal it: "+coroutine.iterations+"")
@@ -18528,16 +18522,7 @@ MHP.prototype.propose = function() {
   coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
 }
 
-function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  var fw = -Math.log(oldTrace.length)
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
-  var bw = -Math.log(trace.length)
-  oldTrace.slice(regenFrom).map(function(s){
-                                var nc = findChoice(trace, s.name)
-                                bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
-  return acceptance
-}
+
 
 MHP.prototype.exit = function(val) {
 
@@ -18648,7 +18633,7 @@ function compile(code, verbose){
   var programAst = esprima.parse(code);
 
   // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oYXIsZm4pIHsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gW10gOiBhcHBlbmQoZm4oYXJbMF0pP1thclswXV06W10sIGZpbHRlcihhci5zbGljZSgxKSxmbikpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyB1bmRlZmluZWQgOiAoZm4oYXJbMF0pID8gYXJbMF0gOiBmaW5kKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn0KCnZhciBwdXNoID0gZnVuY3Rpb24oeHMsIHgpewogIHJldHVybiB4cy5jb25jYXQoW3hdKTsKfQoKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7CiAgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOwp9Cg==","base64"));
+  var wpplHeaderAst = esprima.parse(Buffer("dmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07Cgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogYXBwZW5kKFtmbihhclswXSldLCBtYXAoYXIuc2xpY2UoMSksIGZuKSk7Cn07Cgp2YXIgcmVkdWNlID0gZnVuY3Rpb24oYXIsZm4saW5pdCl7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IGluaXQgOiBmbihyZWR1Y2UoYXIuc2xpY2UoMSksZm4saW5pdCksIGFyWzBdKTsKfTsKCnZhciBmaWx0ZXIgPSBmdW5jdGlvbihhcixmbikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IGFwcGVuZChmbihhclswXSk/W2FyWzBdXTpbXSwgZmlsdGVyKGFyLnNsaWNlKDEpLGZuKSk7Cn07Cgp2YXIgZmluZCA9IGZ1bmN0aW9uKGFyLGZuKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IHVuZGVmaW5lZCA6IChmbihhclswXSkgPyBhclswXSA6IGZpbmQoYXIuc2xpY2UoMSksZm4pKTsKfTsKCnZhciByZXBlYXQgPSBmdW5jdGlvbihuLCBmbil7CiAgcmV0dXJuIG4gPT0gMCA/IFtdIDogYXBwZW5kKHJlcGVhdChuLTEsIGZuKSwgW2ZuKCldKTsKfQoKdmFyIHB1c2ggPSBmdW5jdGlvbih4cywgeCl7CiAgcmV0dXJuIHhzLmNvbmNhdChbeF0pOwp9Cgp2YXIgbGFzdCA9IGZ1bmN0aW9uKHhzKXsKICByZXR1cm4geHNbeHMubGVuZ3RoIC0gMV07Cn0K","base64"));
 
   // Concat WPPL header and program code
   programAst.body = wpplHeaderAst.body.concat(programAst.body);
