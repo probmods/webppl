@@ -40,6 +40,11 @@ var normalize = function(hist){
   return normHist;
 };
 
+var normalizeArray = function(xs){
+  var Z = util.sum(xs);
+  return xs.map(function(x){return x/Z;});
+};
+
 var logsumexp = function(a) {
 	var m = Math.max.apply(null, a);
 	var sum = 0;
@@ -62,6 +67,7 @@ module.exports = {
   prettyJSON: prettyJSON,
   sum: sum,
   normalize: normalize,
+  normalizeArray: normalizeArray,
   logsumexp: logsumexp,
   withEmptyStack: withEmptyStack,
   runningInBrowser: runningInBrowser
