@@ -1397,6 +1397,14 @@ function withEmptyWebPPLStack(k, a, thunk){
   });
 }
 
+function getAddress(k, a){
+  var addressArray = a.split("_").slice(1);
+  for (var i=0; i<addressArray.length; i++){
+    addressArray[i] = parseInt(addressArray[i]);
+  }
+  k(addressArray);
+}
+
 
 ////////////////////////////////////////////////////////////////////
 
@@ -1433,5 +1441,6 @@ module.exports = {
   PMCMC: pmc,
   ParticleFilterRejuv: pfr,
   util: util,
-  withEmptyStack: withEmptyWebPPLStack
+  withEmptyStack: withEmptyWebPPLStack,
+  getAddress: getAddress
 };
