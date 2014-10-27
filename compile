@@ -1,0 +1,29 @@
+#!/usr/bin/env node --stack-size=65500
+var fs = require('fs');
+var webppl = require('./src/main');
+
+function main(){
+  var programFile = process.argv[2];
+  console.log('Processing', programFile);
+  var code = fs.readFileSync(programFile);
+
+  var compiledCode = (
+    "var webppl = require('./src/main');\n" +
+    "var topK = function(x){ console.log('\\n* Program return value:\\n'); console.log(x); };\n" +
+    webppl.compile(code, true));
+
+  // Write compiled code to file
+  fs.writeFile(
+    "tmp.js",
+    compiledCode,
+    function(err) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("Wrote webppl code to tmp.js");
+      }
+    });
+
+}
+
+main();
