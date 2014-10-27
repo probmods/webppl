@@ -7,6 +7,7 @@ var build = types.builders;
 var esprima = require("esprima");
 var escodegen = require("escodegen");
 var cps = require("./cps.js").cps;
+var optimize = require("./optimize.js").optimize;
 var naming = require("./naming.js").naming;
 var store = require("./store").store;
 var util = require("./util.js");
@@ -38,6 +39,9 @@ function compile(code, verbose){
   
   // Apply store passing transform to generated code
   newProgramAst = store(newProgramAst)
+
+  // Optimize code
+  newProgramAst = optimize(newProgramAst);
 
   // Print converted code
   if (verbose){
