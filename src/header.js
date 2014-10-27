@@ -1391,18 +1391,18 @@ function cache(s,k, a, f) {
   k(s,cf);
 }
 
-function withEmptyWebPPLStack(k, a, thunk){
+function withEmptyWebPPLStack(store, k, a, thunk){
   util.withEmptyStack(function(){
-    return thunk(k, a);
+    return thunk(store, k, a);
   });
 }
 
-function getAddress(k, a){
+function getAddress(store, k, a){
   var addressArray = a.split("_").slice(1);
   for (var i=0; i<addressArray.length; i++){
     addressArray[i] = parseInt(addressArray[i]);
   }
-  k(addressArray);
+  k(store, addressArray);
 }
 
 
