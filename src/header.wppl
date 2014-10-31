@@ -42,34 +42,120 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
-var append = function(a,b) {
-  return a.concat(b);
+var expectation = function(erp){
+  // only works for erps with support
+  return mapReduce(plus,
+                   0,
+                   function(s){return Math.exp(erp.score([],s))*s},
+                   erp.support([]))
 };
 
-var map = function(ar,fn) {
-  return ar.length==0 ? [] : append([fn(ar[0])], map(ar.slice(1), fn));
+var append = function(a,b) { return a.concat(b) };
+var cons = function(a,b) { return [a].concat(b) };
+var snoc = function(a,b) { return a.concat([b]) };
+
+var plus = function(a, b) { return a+b };
+var minus = function(a, b) { return a-b };
+var mult = function(a, b) { return a*b };
+var div = function(a, b) { return a/b };
+
+var isEven = function(v) {return v%2 == 0}
+var isOdd = function(v) {return v%2 != 0}
+
+var map = function(fn,ar) {
+  return ar.length==0 ? [] : append([fn(ar[0])], map(fn, ar.slice(1)))
 };
 
-var reduce = function(ar,fn,init){
-  return ar.length==0 ? init : fn(reduce(ar.slice(1),fn,init), ar[0]);
+var map2 = function(f,l1,l2) {
+  return l1.length == 0
+    ? []
+    : append([f(l1[0],l2[0])], map2(f, l1.slice(1), l2.slice(1)))
 };
 
-var filter = function(ar,fn) {
-  return ar.length==0 ? [] : append(fn(ar[0])?[ar[0]]:[], filter(ar.slice(1),fn));
+var reduce = function(fn,init,ar){
+  return ar.length==0 ? init : fn(ar[0], reduce(fn,init,ar.slice(1)));
 };
 
-var find = function(ar,fn) {
-  return ar.length==0 ? undefined : (fn(ar[0]) ? ar[0] : find(ar.slice(1),fn));
+var mapReduce = function(f,init,g,ar){
+  // specialized to above reduce
+  return reduce(function(a,b) { return f(g(a),b) }, g(init), ar)
 };
 
-var repeat = function(n, fn){
+var sum = function(l) { return reduce(plus, 0, l) };
+var product = function(l) { return reduce(mult, 1, l) };
+
+var zip = function(xs, ys){
+  return xs.length == 0
+    ? []
+    : [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)))
+}
+
+var filter = function(fn,ar) {
+  return ar.length == 0
+    ? []
+    : append(fn(ar[0]) ? [ar[0]] : [], filter(ar.slice(1),fn))
+};
+
+var find = function(f,ar) {
+  return ar.length == 0 ? undefined : (f(ar[0]) ? ar[0] : find(ar.slice(1),f))
+};
+
+var drop = function(n,ar) { return n > ar.length ? [] : ar.slice(n) };
+var take = function(n,ar) { return n >= ar.length ? ar : ar.slice(0,n) };
+var dropWhile = function(p, ar) {
+  return p(ar[0]) ? dropWhile(p,ar.slice(1)) : ar
+}
+var takeWhile = function(p, ar) {
+  return p(ar[0]) ? cons(ar[0],takeWhile(p,ar.slice(1))) : []
+}
+
+var span = function(p, ar) {
+  var fn = function(ar,_ts,_fs) {
+    return ar.length == 0
+      ? [_ts, _fs]
+      : p(ar[0])
+        ? fn(ar.slice(1), snoc(_ts,ar[0]), _fs)
+        : fn(ar.slice(1), _ts, snoc(_fs,ar[0]))
+  }
+  return fn(ar,[],[])
+};
+
+var groupBy = function(cmp, ar) {
+  if (ar.length == 0) {
+    return []
+  } else {
+    var x = ar[0]
+    var sp = span(function(b) { return cmp(x,b) }, ar.slice(1))
+    return [cons(x,sp[0])].concat(groupBy(cmp,sp[1]))
+  }
+};
+
+var indexOf= function(x, xs) {
+  var fn = function(xs, i) {
+    return xs == [] ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1)
+  }
+  return fn(xs,0)
+};
+
+// var compose = function () {
+//   var fns = arguments;
+//   return function (x) {
+//     var fn = function(i, acc) {
+//       return i < 0 ? acc : fn(i-1, fns[i].call(this, acc))
+//     }
+//     return fn(fns.length-1,x)
+//   }
+// };
+
+var repeat = function(n,fn) {
   return n == 0 ? [] : append(repeat(n-1, fn), [fn()]);
-}
+};
 
-var push = function(xs, x){
-  return xs.concat([x]);
-}
+var push = function(xs,x){ return xs.concat([x]); };
 
-var last = function(xs){
-  return xs[xs.length - 1];
-}
+var first = function(xs) { return xs[0] };
+var second = function(xs) { return xs[1] };
+var third = function(xs) { return xs[2] };
+var fourth = function(xs) { return xs[3] };
+var butLast = function(xs){ return xs[xs.length - 2] };
+var last = function(xs){ return xs[xs.length - 1] };
