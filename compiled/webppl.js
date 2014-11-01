@@ -26304,13 +26304,13 @@ naming: namingMain
 },{"./util.js":100,"assert":1,"ast-types":27,"escodegen":28,"esprima":89,"estemplate":90,"estraverse":91,"underscore":93}],98:[function(require,module,exports){
 "use strict";
 
-var assert = require('assert');
 var _ = require('underscore');
-var estraverse = require("estraverse");
+var assert = require('assert');
 var escodegen = require("escodegen");
-var esprima = require("esprima");
 var esmangle = require("esmangle");
+var esprima = require("esprima");
 var estemplate = require("estemplate");
+var estraverse = require("estraverse");
 var types = require("ast-types");
 var util = require('./util.js');
 
