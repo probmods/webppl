@@ -41,7 +41,7 @@ var normalize = function(hist){
 };
 
 var normalizeArray = function(xs){
-  var Z = util.sum(xs);
+  var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
 };
 
