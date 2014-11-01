@@ -43,7 +43,6 @@ var gamma = function(shape, scale){
 };
 
 var expectation = function(erp){
-  // only works for erps with support
   return mapReduce(plus,
                    0,
                    function(s){return Math.exp(erp.score([],s))*s},
@@ -63,13 +62,13 @@ var isEven = function(v) {return v%2 == 0}
 var isOdd = function(v) {return v%2 != 0}
 
 var map = function(fn,ar) {
-  return ar.length==0 ? [] : append([fn(ar[0])], map(fn, ar.slice(1)))
+  return ar.length==0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)))
 };
 
 var map2 = function(f,l1,l2) {
   return l1.length == 0
     ? []
-    : append([f(l1[0],l2[0])], map2(f, l1.slice(1), l2.slice(1)))
+    : [f(l1[0],l2[0])].concat(map2(f, l1.slice(1), l2.slice(1)))
 };
 
 var reduce = function(fn,init,ar){
@@ -93,12 +92,16 @@ var zip = function(xs, ys){
 var filter = function(fn,ar) {
   return ar.length == 0
     ? []
-    : append(fn(ar[0]) ? [ar[0]] : [], filter(ar.slice(1),fn))
+    : append(fn(ar[0]) ? [ar[0]] : [], filter(fn,ar.slice(1)))
 };
 
 var find = function(f,ar) {
-  return ar.length == 0 ? undefined : (f(ar[0]) ? ar[0] : find(ar.slice(1),f))
+  return ar.length == 0 ? undefined : (f(ar[0]) ? ar[0] : find(f,ar.slice(1)))
 };
+
+var remove = function(a,ar) {
+  return filter(function(e) { return a != e}, ar)
+}
 
 var drop = function(n,ar) { return n > ar.length ? [] : ar.slice(n) };
 var take = function(n,ar) { return n >= ar.length ? ar : ar.slice(0,n) };
@@ -108,6 +111,15 @@ var dropWhile = function(p, ar) {
 var takeWhile = function(p, ar) {
   return p(ar[0]) ? cons(ar[0],takeWhile(p,ar.slice(1))) : []
 }
+
+// // doesn't work yet because of .sort...
+// // Uncaught Error: cps: unknown node type: SequenceExpression
+// var minWith = function(f,ar) {
+//   return zip(ar,map(f,ar)).sort(function(a,b) {return a[1]-b[1]})[0]
+// }
+// var maxWith = function(f,ar) {
+//   return zip(ar,map(f,ar)).sort(function(a,b) {return b[1]-a[1]})[0]
+// }
 
 var span = function(p, ar) {
   var fn = function(ar,_ts,_fs) {
@@ -130,13 +142,14 @@ var groupBy = function(cmp, ar) {
   }
 };
 
-var indexOf= function(x, xs) {
+var indexOf = function(x, xs) {
   var fn = function(xs, i) {
     return xs == [] ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1)
   }
   return fn(xs,0)
 };
 
+// // doesn't yet work because of 'this' usage
 // var compose = function () {
 //   var fns = arguments;
 //   return function (x) {
