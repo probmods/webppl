@@ -43,7 +43,6 @@ var gamma = function(shape, scale){
 };
 
 var expectation = function(erp,f){
-  f = f == undefined ? idF : f
   return mapReduce(plus,
                    0,
                    function(s){return Math.exp(erp.score([],s))*f(s)},
