@@ -42,12 +42,23 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
-var expectation = function(erp){
+var expectation = function(erp,f){
+  f = f == undefined ? idF : f
   return mapReduce(plus,
                    0,
-                   function(s){return Math.exp(erp.score([],s))*s},
+                   function(s){return Math.exp(erp.score([],s))*f(s)},
                    erp.support([]))
 };
+
+var entropy = function(erp){
+  return -mapReduce(plus,
+                    0,
+                    function(s){var lp = erp.score([],s)
+                                return Math.exp(lp)*lp },
+                    erp.support([]))
+};
+
+var idF = function(x) { return x }
 
 var append = function(a,b) { return a.concat(b) };
 var cons = function(a,b) { return [a].concat(b) };
@@ -170,5 +181,5 @@ var first = function(xs) { return xs[0] };
 var second = function(xs) { return xs[1] };
 var third = function(xs) { return xs[2] };
 var fourth = function(xs) { return xs[3] };
-var butLast = function(xs){ return xs[xs.length - 2] };
+var secondLast = function(xs){ return xs[xs.length - 2] };
 var last = function(xs){ return xs[xs.length - 1] };
