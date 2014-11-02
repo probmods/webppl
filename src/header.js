@@ -35,9 +35,9 @@ var uniformERP = new ERP(
   },
   function uniformScore(params, val){
     if (val < params[0] || val > params[1]) {
-	    return -Infinity;
+      return -Infinity;
     }
-	  return -Math.log(params[1] - params[0]);
+    return -Math.log(params[1] - params[0]);
   }
 );
 
@@ -326,17 +326,17 @@ var dirichletERP = new ERP(
 );
 
 function multinomialSample(theta) {
-    var thetaSum = util.sum(theta);
-    var x = Math.random() * thetaSum;
-    var k = theta.length;
-    var probAccum = 0;
-    for (var i = 0; i < k; i++) {
-        probAccum += theta[i];
-        if (probAccum >= x) {
-            return i;
-        } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-    }
-    return k;
+  var thetaSum = util.sum(theta);
+  var x = Math.random() * thetaSum;
+  var k = theta.length;
+  var probAccum = 0;
+  for (var i = 0; i < k; i++) {
+    probAccum += theta[i];
+    if (probAccum >= x) {
+      return i;
+    } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+  }
+  return k;
 }
 
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
