@@ -241,7 +241,7 @@ var binomialERP = new ERP(
     var invsd = Math.sqrt(z);
     z = d2 * invsd;
     return gaussianScore([0, 1], z) + Math.log(invsd);
-  }
+  },
   function binomialSupport(params) {
     return _.range(params[0]);
   }
