@@ -144,6 +144,27 @@ var indexOf = function(x, xs) {
   return fn(xs, 0);
 };
 
+var span = function(p, ar) {
+  var fn = function(ar,_ts,_fs) {
+    return ar.length == 0
+      ? [_ts, _fs]
+      : p(ar[0])
+        ? fn(ar.slice(1), snoc(_ts,ar[0]), _fs)
+        : fn(ar.slice(1), _ts, snoc(_fs,ar[0]));
+  };
+  return fn(ar,[],[]);
+};
+
+var groupBy = function(cmp, ar) {
+  if (ar.length == 0) {
+    return [];
+  } else {
+    var x = ar[0];
+    var sp = span(function(b) { return cmp(x,b); }, ar.slice(1));
+    return [cons(x,sp[0])].concat(groupBy(cmp,sp[1]));
+  }
+};
+
 var repeat = function(n, fn){
   return n == 0 ? [] : append(repeat(n-1, fn), [fn()]);
 };
