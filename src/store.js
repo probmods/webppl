@@ -13,12 +13,12 @@ function store(node) {
 
   // have to add the store argument to each function
   case Syntax.FunctionExpression:
-    if (node.params && (node.params[0].name === storeIdNode.name)){
-      // this is a hack to prevent multiple additions of store arg
-      // FIXME: understand why this is necessary and solve the
-      // cause of the problem
-      return node;
-    }
+    // if (node.params && (node.params[0].name === storeIdNode.name)){
+    //   // this is a hack to prevent multiple additions of store arg
+    //   // FIXME: understand why this is necessary and solve the
+    //   // cause of the problem
+    //   return node;
+    // }
     return build.functionExpression(node.id,
                                     [storeIdNode].concat(node.params),
                                     node.body)
@@ -28,12 +28,12 @@ function store(node) {
     if(types.namedTypes.MemberExpression.check(node.callee)){
       return node
     } else {
-      if (node.arguments.length && 
-          types.namedTypes.Identifier.check(node.arguments[0]) &&
-          node.arguments[0].name === storeIdNode.name) {
-        // this is a hack to prevent multiple additions of store arg (see above)
-        return node;
-      }
+      // if (node.arguments.length && 
+      //     types.namedTypes.Identifier.check(node.arguments[0]) &&
+      //     node.arguments[0].name === storeIdNode.name) {
+      //   // this is a hack to prevent multiple additions of store arg (see above)
+      //   return node;
+      // }
       return build.callExpression(node.callee,
                                   [storeIdNode].concat(node.arguments))
     }
