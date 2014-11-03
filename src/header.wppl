@@ -190,3 +190,9 @@ var repeat = function(n, fn){
 var push = function(xs, x){
   return xs.concat([x]);
 };
+
+var compose = function(f, g){
+  return function(x){
+    return f(g(x));
+  };
+};
