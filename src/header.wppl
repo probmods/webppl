@@ -74,30 +74,84 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
+var expectation = function(erp,f){
+  return mapReduce(plus,
+                   0,
+                   function(s){return Math.exp(erp.score([],s))*f(s);},
+                   erp.support([]));
+};
+
 var append = function(a,b) {
   return a.concat(b);
 };
 
-var map = function(ar,fn) {
-  return ar.length==0 ? [] : append([fn(ar[0])], map(ar.slice(1), fn));
+
+
+var map = function(fn,ar) {
+  return ar.length==0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
 };
 
-var filter = function(ar,fn) {
-  return ar.length==0 ? [] : append(fn(ar[0])?[ar[0]]:[], filter(ar.slice(1),fn));
+var map2 = function(f,l1,l2) {
+  return l1.length == 0
+    ? []
+    : [f(l1[0],l2[0])].concat(map2(f, l1.slice(1), l2.slice(1)));
 };
 
-var find = function(ar,fn) {
-  return ar.length==0 ? undefined : (fn(ar[0]) ? ar[0] : find(ar.slice(1),fn));
+var reduce = function(fn,init,ar){
+  return ar.length==0 ? init : fn(ar[0], reduce(fn,init,ar.slice(1)));
+};
+
+var sum = function(l) { return reduce(plus, 0, l); };
+
+var product = function(l) { return reduce(mult, 1, l); };
+
+var zip = function(xs, ys){
+  return xs.length == 0
+    ? []
+    : [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
+};
+
+var filter = function(fn,ar) {
+  return ar.length == 0
+    ? []
+    : append(fn(ar[0]) ? [ar[0]] : [], filter(fn,ar.slice(1)));
+};
+
+var find = function(f,ar) {
+  return ar.length == 0 ? undefined : (f(ar[0]) ? ar[0] : find(f,ar.slice(1)));
+};
+
+var remove = function(a,ar) {
+  return filter(function(e) { return a != e;}, ar);
+};
+
+var drop = function(n,ar) { return n > ar.length ? [] : ar.slice(n); };
+
+var take = function(n,ar) { return n >= ar.length ? ar : ar.slice(0,n); };
+
+var dropWhile = function(p, ar) {
+  return p(ar[0]) ? dropWhile(p,ar.slice(1)) : ar;
+};
+
+var takeWhile = function(p, ar) {
+  return p(ar[0]) ? cons(ar[0],takeWhile(p,ar.slice(1))) : [];
+};
+
+var indexOf = function(x, xs) {
+  var fn = function(xs, i) {
+    return xs == [] ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1);
+  };
+  return fn(xs, 0);
 };
 
 var repeat = function(n, fn){
   return n == 0 ? [] : append(repeat(n-1, fn), [fn()]);
-}
+};
 
 var push = function(xs, x){
   return xs.concat([x]);
-}
+};
 
 var last = function(xs){
   return xs[xs.length - 1];
-}
+};
