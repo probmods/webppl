@@ -190,7 +190,3 @@ var repeat = function(n, fn){
 var push = function(xs, x){
   return xs.concat([x]);
 };
-
-var last = function(xs){
-  return xs[xs.length - 1];
-};
