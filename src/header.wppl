@@ -157,7 +157,7 @@ var takeWhile = function(p, ar) {
 
 var indexOf = function(x, xs) {
   var fn = function(xs, i) {
-    return xs == [] ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1);
+    return (xs.length == 0) ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1);
   };
   return fn(xs, 0);
 };
