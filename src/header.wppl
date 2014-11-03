@@ -104,6 +104,11 @@ var reduce = function(fn,init,ar){
   return ar.length==0 ? init : fn(ar[0], reduce(fn,init,ar.slice(1)));
 };
 
+var plus = function(a, b) { return a+b; };
+var minus = function(a, b) { return a-b; };
+var mult = function(a, b) { return a*b; };
+var div = function(a, b) { return a/b; };
+
 var sum = function(l) { return reduce(plus, 0, l); };
 
 var product = function(l) { return reduce(mult, 1, l); };
