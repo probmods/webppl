@@ -89,6 +89,12 @@ var cons = function(a,b) { return [a].concat(b); };
 
 var snoc = function(a,b) { return a.concat([b]); };
 
+var first = function(xs) { return xs[0]; };
+var second = function(xs) { return xs[1]; };
+var third = function(xs) { return xs[2]; };
+var fourth = function(xs) { return xs[3]; };
+var secondLast = function(xs){ return xs[xs.length - 2]; };
+var last = function(xs){ return xs[xs.length - 1]; };
 
 var map = function(fn,ar) {
   return ar.length==0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
@@ -102,6 +108,10 @@ var map2 = function(f,l1,l2) {
 
 var reduce = function(fn,init,ar){
   return ar.length==0 ? init : fn(ar[0], reduce(fn,init,ar.slice(1)));
+};
+
+var mapReduce = function(f,init,g,ar){
+  return reduce(function(a,b) { return f(g(a),b); }, g(init), ar);
 };
 
 var plus = function(a, b) { return a+b; };
