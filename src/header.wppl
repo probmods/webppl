@@ -85,6 +85,9 @@ var append = function(a,b) {
   return a.concat(b);
 };
 
+var cons = function(a,b) { return [a].concat(b); };
+
+var snoc = function(a,b) { return a.concat([b]); };
 
 
 var map = function(fn,ar) {
