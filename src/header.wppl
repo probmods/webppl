@@ -75,10 +75,20 @@ var makeDirichletDiscrete = function(pseudocounts) {
 };
 
 var expectation = function(erp,f){
-  return mapReduce(plus,
-                   0,
-                   function(s){return Math.exp(erp.score([],s))*f(s);},
-                   erp.support([]));
+  var supp = erp.support([])
+    return mapReduce(plus,
+                     supp[supp.length-1],
+                     function(s){return Math.exp(erp.score([],s))*f(s)},
+                     supp.slice(0, -1))
+};
+
+var entropy = function(erp){
+  var supp = erp.support([])
+    return -mapReduce(plus,
+                      supp[supp.length-1],
+                      function(s){var lp = erp.score([],s)
+                      return Math.exp(lp)*lp },
+                      supp.slice(0, -1))
 };
 
 var append = function(a,b) {
