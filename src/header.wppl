@@ -43,18 +43,20 @@ var gamma = function(shape, scale){
 };
 
 var expectation = function(erp,f){
+  var supp = erp.support([])
   return mapReduce(plus,
-                   0,
+                   supp[supp.length-1],
                    function(s){return Math.exp(erp.score([],s))*f(s)},
-                   erp.support([]))
+                   supp.slice(0, -1))
 };
 
 var entropy = function(erp){
+  var supp = erp.support([])
   return -mapReduce(plus,
-                    0,
+                    supp[supp.length-1],
                     function(s){var lp = erp.score([],s)
                                 return Math.exp(lp)*lp },
-                    erp.support([]))
+                    supp.slice(0, -1))
 };
 
 var idF = function(x) { return x }
