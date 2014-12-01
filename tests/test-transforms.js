@@ -299,6 +299,10 @@ var tests = {
       code: "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();",
       expected: 3 },
 
+    { name: 'testIfWithoutElse4',
+      code: "var f = function(){ if (1 < 0) { var x = 1; var y = 2; return x + y; }; return 5; }; f();",
+      expected: 5 },
+
     { name: 'testNestedIf',
       code: "if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}",
       expected: 6 },
