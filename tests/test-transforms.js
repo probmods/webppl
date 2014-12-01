@@ -8,6 +8,7 @@ var cps = require("../src/cps.js");
 var util = require("../src/util.js");
 var store = require("../src/store").store;
 var naming = require("../src/naming.js").naming;
+var optimize = require("../src/optimize.js").optimize;
 
 var build = types.builders;
 
@@ -59,6 +60,11 @@ var transformAstNaming = function(ast){
   return transformAstStorepassing(namedAst);
 };
 
+var transformAstOptimize = function(ast){
+  var newAst = transformAstNaming(ast);
+  return optimize(newAst);
+};
+
 var runCpsTest = function(test, code, expected){
   // Set global definitions
   plus = function(k, x, y) {return k(x + y);};
@@ -88,6 +94,17 @@ var runNamingTest = function(test, code, expected){
   plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
   return runTest(test, code, expected, transformAstNaming);
 };
+
+var runOptimizationTest = function(test, code, expected){
+  // Set global definitions
+  plus = function(s, k, a, x, y) {return k(s, x + y);};
+  minus = function(s, k, a, x, y) {return k(s, x - y);};
+  times = function(s, k, a, x, y) {return k(s, x * y);};
+  and = function(s, k, a, x, y) {return k(s, x && y);};
+  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
+  return runTest(test, code, expected, transformAstOptimize);
+};
+
 
 var generateTestFunctions = function(allTests, testRunner){
   var exports = {};
@@ -375,3 +392,4 @@ var tests = {
 exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
 exports.testNaming = generateTestFunctions(tests, runNamingTest);
+exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
