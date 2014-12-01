@@ -36,9 +36,9 @@ function compile(code, verbose){
 
   // Apply CPS transform to WPPL code
   newProgramAst = cps(newProgramAst, build.identifier("topK"));
-  
+
   // Apply store passing transform to generated code
-  newProgramAst = store(newProgramAst)
+  newProgramAst = store(newProgramAst);
 
   // Optimize code
   newProgramAst = optimize(newProgramAst);
