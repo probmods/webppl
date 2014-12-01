@@ -40,358 +40,292 @@ var runCpsTest = function(test, code, expected){
   test.done();
 };
 
-exports.testFunctionExpression = {
 
-  testFunc1: function (test) {
-    var code = "var f = function(x){return plus(x, 10)}; f(3)";
-    var expected = 13;
-    return runCpsTest(test, code, expected);
-  },
+var generateTestFunctions = function(allTests){
 
-  testRecursion: function(test) {
-    var code = "var f = function(x, n){return n==0 ? x : f(plusTwo(x), n-1);}; f(3, 4)";
-    var expected = 11;
-    return runCpsTest(test, code, expected);
-  },
+  var exports = {};
 
-  testDefinitionOnly1: function(test){
-    var code = "var bar = function(){ var foo = function(){ return 3;} }; 5;";
-    var expected = 5;
-    return runCpsTest(test, code, expected);
-  },
+  for (var testClassName in allTests){
+    var tests = allTests[testClassName];
+    exports[testClassName] = {};
+    tests.forEach(
+      function(obj){
+        exports[testClassName][obj.name] = function(test){
+          return runCpsTest(test, obj.code, obj.expected);
+        };
+      });
+  };
 
-  testDefinitionOnly2: function(test){
-    var code = "var bar = function(){ var foo = function(){ return 3;}; var foo2 = function(){ return 4;} }; 5;";
-    var expected = 5;
-    return runCpsTest(test, code, expected);
-  },
-
-  testReturn1: function(test){
-    var code = "var foo = function(){ return 1; return 2; }; foo()";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
-
-  testReturn2: function(test){
-    var code = "var foo = function(){ (function(){ return 1})(); return 2; }; foo()";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-  }
+  return exports;
 
 };
 
-exports.testCallExpression = {
 
-  testPrimitive: function (test) {
-    var code = "plusTwo(3)";
-    var expected = 5;
-    return runCpsTest(test, code, expected);
-  },
+var tests = {
 
-  testCompound1: function (test) {
-    var code = "(function(y){return plusTwo(y)})(123)";
-    var expected = 125;
-    return runCpsTest(test, code, expected);
-  },
+  testFunctionExpression:  [
 
-  testCompound2: function (test) {
-    var code = "(function(y){return y})(plusTwo(123))";
-    var expected = 125;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testFunc1',
+      code: 'var f = function(x){return plus(x, 10)}; f(3)',
+      expected: 13 },
 
-  testBinaryFuncPlus: function (test) {
-    var code = "plus(3, 5)";
-    var expected = 8;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testRecursion',
+      code: 'var f = function(x, n){return n==0 ? x : f(plusTwo(x), n-1);}; f(3, 4)',
+      expected: 11 },
 
-  testBinaryFuncMinus: function (test) {
-    var code = "minus(3, 5)";
-    var expected = -2;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testDefinitionOnly1',
+      code: 'var bar = function(){ var foo = function(){ return 3;} }; 5;',
+      expected: 5 },
 
-  testBinaryFuncAnd: function (test) {
-    var code = "and(true, false)";
-    var expected = false;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testDefinitionOnly2',
+      code: 'var bar = function(){ var foo = function(){ return 3;}; var foo2 = function(){ return 4;} }; 5;',
+      expected: 5 },
 
-};
+    { name: 'testReturn1',
+      code: 'var foo = function(){ return 1; return 2; }; foo()',
+      expected: 1 },
 
-exports.testLiteral = {
+    { name: 'testReturn2',
+      code: 'var foo = function(){ (function(){ return 1})(); return 2; }; foo()',
+      expected: 2 }
 
-  testNumber: function (test) {
-    var code = "456";
-    var expected = 456;
-    return runCpsTest(test, code, expected);
-  },
+  ],
 
-  testString: function (test) {
-    var code = "'foobar'";
-    var expected = 'foobar';
-    return runCpsTest(test, code, expected);
-  },
+  testCallExpressionTests : [
 
-  testBool1: function (test) {
-    var code = "true";
-    var expected = true;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testPrimitive',
+      code: 'plusTwo(3)',
+      expected: 5 },
 
-  testBool2: function (test) {
-    var code = "false";
-    var expected = false;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testCompound1',
+      code: '(function(y){return plusTwo(y)})(123)',
+      expected: 125 },
 
-};
+    { name: 'testCompound2',
+      code: '(function(y){return y})(plusTwo(123))',
+      expected: 125 },
 
-exports.testEmptyStatement = {
+    { name: 'testBinaryFuncPlus',
+      code: 'plus(3, 5)',
+      expected: 8 },
 
-  testEmptyAlone: function (test) {
-    var code = ";";
-    var expected = undefined;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testBinaryFuncMinus',
+      code: 'minus(3, 5)',
+      expected: -2 },
 
-  testEmptyInBlock: function (test) {
-    var code = "plusTwo(3); ; plusTwo(5);";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testBinaryFuncAnd',
+      code: 'and(true, false)',
+      expected: false }
 
-};
+  ],
 
-exports.testblockStatement = {
+  testLiterals: [
 
-  testProgram: function (test) {
-    var code = "plusTwo(3); plusTwo(4); plusTwo(5);";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testNumber',
+      code: '456',
+      expected: 456
+    },
 
-  testBlock1: function (test) {
-    var code = "{ plusTwo(3) }; plusTwo(5);";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testString',
+      code: "'foobar'",
+      expected: 'foobar'
+    },
 
-  testBlock2: function (test) {
-    var code = "plusTwo(1); { plusTwo(3) }; plusTwo(5);";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testBool1',
+      code: 'true',
+      expected: true
+    },
 
-  testBlock3: function (test) {
-    var code = "plusTwo(1); { plusTwo(3); plusTwo(4); }; plusTwo(5);";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testBool2',
+      code: 'false',
+      expected: false
+    }
 
-  testBlock4: function (test) {
-    var code = "plusTwo(1); { plusTwo(3); plusTwo(4); }";
-    var expected = 6;
-    return runCpsTest(test, code, expected);
-  }
+  ],
 
-};
+  testEmptyStatement: [
 
-exports.testVariableDeclaration = {
+    { name: 'testEmptyAlone',
+      code: ";",
+      expected: undefined },
 
-  testVar1: function (test) {
-    var code = "var x = 1; x";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testEmptyInBlock',
+      code: "plusTwo(3); ; plusTwo(5);",
+      expected: 7 }
 
-  testVar2: function (test) {
-    var code = "var x = plus(1, 2); var y = times(x, 4); y";
-    var expected = 12;
-    return runCpsTest(test, code, expected);
-  }
-};
+  ],
 
-exports.testConditionalExpression = {
+  testBlockStatement: [
 
-  testConditional1: function (test) {
-    var code = "false ? 1 : 2";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testProgram',
+      code: "plusTwo(3); plusTwo(4); plusTwo(5);",
+      expected: 7 },
 
-  testConditional2: function (test) {
-    var code = "true ? 1 : 2";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testBlock1',
+      code: "{ plusTwo(3) }; plusTwo(5);",
+      expected: 7 },
 
-  testConditional3: function (test) {
-    var code = "and(true, false) ? 2 : 3";
-    var expected = 3;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testBlock2',
+      code: "plusTwo(1); { plusTwo(3) }; plusTwo(5);",
+      expected: 7 },
 
-};
+    { name: 'testBlock3',
+      code: "plusTwo(1); { plusTwo(3); plusTwo(4); }; plusTwo(5);",
+      expected: 7 },
 
-exports.testIfExpression = {
+    { name: 'testBlock4',
+      code: "plusTwo(1); { plusTwo(3); plusTwo(4); }",
+      expected: 6 }
 
-  testIf1: function(test) {
-    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(3)";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
+  ],
 
-  testIf2: function(test) {
-    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(1)";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-  },
+  testVariableDeclaration: [
 
-  testIf3: function(test) {
-    var code = "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(foo(5))";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testVar1',
+      code: "var x = 1; x",
+      expected: 1 },
 
-  testIfWithoutElse1: function(test) {
-    var code = "var foo = function(x){if (x > 2) { return 1 }}; foo(5)";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testVar2',
+      code: "var x = plus(1, 2); var y = times(x, 4); y",
+      expected: 12 }
 
-  testIfWithoutElse2: function(test) {
-    var code = "var foo = function(x){if (x > 2) { return 1 }}; foo(0)";
-    var expected = undefined;
-    return runCpsTest(test, code, expected);
-  },
+  ],
 
-  testIfWithoutElse3: function(test) {
-    var code = "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();";
-    var expected = 3;
-    return runCpsTest(test, code, expected);
-  },
+  testConditionalExpression: [
 
-  testNestedIf: function(test) {
-    var code = "if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}";
-    var expected = 6;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testConditional1',
+      code: "false ? 1 : 2",
+      expected: 2 },
 
-  testIfWithReturn: function(test){
-    var code = "var foo = function(){ if (true) { return 3 } return 4 }; foo()";
-    var expected = 3;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testConditional2',
+      code: "true ? 1 : 2",
+      expected: 1 },
 
-  testIfInNestedFunction: function(test){
-    var code = ("var foo = function(x){" +
-                "  var bar = function(y){" +
-                "    if (y == 10) {" +
-                "      return 3;" +
-                "    } else {" +
-                "      return 4;" +
-                "    }" +
-                "  };" +
-                "  var z = bar(x);" +
-                "  if (z === 3){" +
-                "    return 1;" +
-                "  } else {" +
-                "    return 2;" +
-                "  };" +
-                "};" +
-                "foo(10);");
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testConditional3',
+      code: "and(true, false) ? 2 : 3",
+      expected: 3 }
 
-};
+  ],
 
-exports.testArrayExpression = {
+  testIfExpression: [
 
-  testArray1: function (test) {
-    var code = "[1, 2, 3]";
-    var expected = [1, 2, 3];
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testIf1',
+      code: "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(3)",
+      expected: 1 },
 
-  testArray2: function (test) {
-    var code = "[plusTwo(1), plus(2, 5), 3]";
-    var expected = [3, 7, 3];
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testIf2',
+      code: "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(1)",
+      expected: 2 },
 
-};
+    { name: 'testIf3',
+      code: "var foo = function(x){if (x > 2) { return 1 } else { return 2 }}; foo(foo(5))",
+      expected: 2 },
 
-exports.testMemberExpression = {
+    { name: 'testIfWithoutElse1',
+      code: "var foo = function(x){if (x > 2) { return 1 }}; foo(5)",
+      expected: 1 },
 
-  testMember1: function (test) {
-    var code = "fooObj.bar";
-    var expected = 1;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testIfWithoutElse2',
+      code: "var foo = function(x){if (x > 2) { return 1 }}; foo(0)",
+      expected: undefined },
 
-  testMember2: function (test) {
-    var code = "fooObj.baz.blubb";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testIfWithoutElse3',
+      code: "var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;	}}; f();",
+      expected: 3 },
 
-testMember3: function (test) {
-    var code = "var a = [1,2]; a[1]";
-    var expected = 2;
-    return runCpsTest(test, code, expected);
-}
+    { name: 'testNestedIf',
+      code: "if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}",
+      expected: 6 },
 
-};
+    { name: 'testIfWithReturn',
+      code: "var foo = function(){ if (true) { return 3 } return 4 }; foo()",
+      expected: 3 },
 
-exports.testNAryExpression = {
+    { name: 'testIfInNestedFunction',
+      code:  ("var foo = function(x){" +
+              "  var bar = function(y){" +
+              "    if (y == 10) {" +
+              "      return 3;" +
+              "    } else {" +
+              "      return 4;" +
+              "    }" +
+              "  };" +
+              "  var z = bar(x);" +
+              "  if (z === 3){" +
+              "    return 1;" +
+              "  } else {" +
+              "    return 2;" +
+              "  };" +
+              "};" +
+              "foo(10);"),
+      expected: 1 }
 
-  testPlus: function (test) {
-    var code = "3 + 4";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+  ],
 
-  testUnary: function(test) {
-    var code = "-5";
-    var expected = -5;
-    return runCpsTest(test, code, expected);
-  },
+  testArrayExpressionTests: [
 
-  testCompound1: function (test) {
-    var code = "(-3 + (4 * 5)) - 10";
-    var expected = 7;
-    return runCpsTest(test, code, expected);
-  },
+    { name: 'testArray1',
+      code: "[1, 2, 3]",
+      expected: [1, 2, 3] },
 
-  testCompound2: function (test) {
-    var code = "var f = function(x){return 2*x + 4;}; (-3 + f(4 * 5)) - f(10)";
-    var expected = 17;
-    return runCpsTest(test, code, expected);
-  }
+    { name: 'testArray2',
+      code: "[plusTwo(1), plus(2, 5), 3]",
+      expected: [3, 7, 3] }
+
+  ],
+
+  testMemberExpression: [
+
+    { name: 'testMember1',
+      code: "fooObj.bar",
+      expected: 1 },
+
+    { name: 'testMember2',
+      code: "fooObj.baz.blubb",
+      expected: 2 },
+
+    { name: 'testMember3',
+      code: "var a = [1,2]; a[1]",
+      expected: 2 }
+
+  ],
+
+  testNAryExpressionTests: [
+
+    { name: 'testPlus',
+      code: "3 + 4",
+      expected: 7 },
+
+    { name: 'testUnary',
+      code: "-5",
+      expected: -5 },
+
+    { name: 'testCompound1',
+      code: "(-3 + (4 * 5)) - 10",
+      expected: 7 },
+
+    { name: 'testCompound2',
+      code: "var f = function(x){return 2*x + 4;}; (-3 + f(4 * 5)) - f(10)",
+      expected: 17 }
+
+  ],
+
+  testPrimitiveWrapping: [
+
+    { name: 'testMath',
+      code: "Math.log(Math.exp(5))",
+      expected: 5 },
+
+    { name: 'testCompound',
+      code: "var f = function(x){return Math.log(x);}; Math.exp(f(17))",
+      expected: 17 },
+
+    { name: 'testMemberFromFn',
+      code: "var foo = function() {return [1]}; foo().concat([2])",
+      expected: [1,2] }
+
+  ]
 
 };
 
-exports.testPrimitiveWrapping = {
-
-  testMath: function(test){
-    var code = "Math.log(Math.exp(5))";
-    var expected = 5;
-    return runCpsTest(test, code, expected);
-  },
-
-  testCompound: function (test) {
-    var code = "var f = function(x){return Math.log(x);}; Math.exp(f(17))";
-    var expected = 17;
-    return runCpsTest(test, code, expected);
-  },
-  
-  testMemberFromFn: function (test) {
-    var code = "var foo = function() {return [1]}; foo().concat([2])";
-    var expected = [1,2];
-    return runCpsTest(test, code, expected);
-  }
-
-};
+exports.testCPS = generateTestFunctions(tests);

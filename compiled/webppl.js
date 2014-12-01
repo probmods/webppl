@@ -25008,8 +25008,8 @@ function makeMarginalERP(marginal) {
     marginal[v].prob = marginal[v].prob / norm;
   }
 
-  console.log("Creating distribution: ");
-  console.log(marginal);
+  // console.log("Creating distribution: ");
+  // console.log(marginal);
 
   //make an ERP from marginal:
   var dist = new ERP(
@@ -26129,9 +26129,9 @@ function compile(code, verbose){
 
   // Apply CPS transform to WPPL code
   newProgramAst = cps(newProgramAst, build.identifier("topK"));
-  
+
   // Apply store passing transform to generated code
-  newProgramAst = store(newProgramAst)
+  newProgramAst = store(newProgramAst);
 
   // Optimize code
   newProgramAst = optimize(newProgramAst);
