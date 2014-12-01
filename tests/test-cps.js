@@ -6,6 +6,7 @@ var escodegen = require("escodegen");
 var types = require("ast-types");
 var cps = require("../src/cps.js");
 var util = require("../src/util.js");
+var store = require("../src/store").store;
 
 var build = types.builders;
 
@@ -16,18 +17,13 @@ var fooObj = {
     bla: 3
   }
 };
-var plus = function(k, x, y) {return k(x + y);};
-var minus = function(k, x, y) {return k(x - y);};
-var times = function(k, x, y) {return k(x * y);};
-var and = function(k, x, y) {return k(x && y);};
-var plusTwo = function(k, x, y) {return k(x + 2);};
 
-var runCpsTest = function(test, code, expected){
+var plus, minus, times, and, plusTwo;
+
+var runTest = function(test, code, expected, transformAst){
   var actual = "unset";
   var ast = esprima.parse(code);
-  var newAst = cps.cps(ast, build.identifier("topK"));
-  var topKAst = esprima.parse("var topK = function(x){ actual = x; };");
-  newAst.body = topKAst.body.concat(newAst.body);
+  var newAst = transformAst(ast);
   var newCode = escodegen.generate(newAst);
   eval(newCode);
   var testPassed = _.isEqual(actual, expected);
@@ -40,24 +36,59 @@ var runCpsTest = function(test, code, expected){
   test.done();
 };
 
+var runCpsTest = function(test, code, expected){
 
-var generateTestFunctions = function(allTests){
+  var transformAstCps = function(ast){
+    var newAst = cps.cps(ast, build.identifier("topK"));
+    var topKAst = esprima.parse("var topK = function(x){ actual = x; };");
+    newAst.body = topKAst.body.concat(newAst.body);
+    return newAst;
+  };
 
+  // Set global definitions
+  plus = function(k, x, y) {return k(x + y);};
+  minus = function(k, x, y) {return k(x - y);};
+  times = function(k, x, y) {return k(x * y);};
+  and = function(k, x, y) {return k(x && y);};
+  plusTwo = function(k, x, y) {return k(x + 2);};
+
+  return runTest(test, code, expected, transformAstCps);
+};
+
+var runCpsStorepassingTest = function(test, code, expected){
+  var transformAstCpsStorepassing = function(ast){
+    var cpsAst = cps.cps(ast, build.identifier("topK"));
+    var storeAst = store(cpsAst);
+    var globalStoreAst = esprima.parse("var globalStore = {};");
+    var topKAst = esprima.parse("var topK = function(globalStore, x){ actual = x; };");
+    storeAst.body = globalStoreAst.body.concat(storeAst.body);
+    storeAst.body = topKAst.body.concat(storeAst.body);
+    return storeAst;
+  };
+
+  // Set global definitions
+  plus = function(s, k, x, y) {return k(s, x + y);};
+  minus = function(s, k, x, y) {return k(s, x - y);};
+  times = function(s, k, x, y) {return k(s, x * y);};
+  and = function(s, k, x, y) {return k(s, x && y);};
+  plusTwo = function(s, k, x, y) {return k(s, x + 2);};
+
+  return runTest(test, code, expected, transformAstCpsStorepassing);
+};
+
+var generateTestFunctions = function(allTests, testRunner){
   var exports = {};
-
   for (var testClassName in allTests){
     var tests = allTests[testClassName];
     exports[testClassName] = {};
     tests.forEach(
       function(obj){
         exports[testClassName][obj.name] = function(test){
-          return runCpsTest(test, obj.code, obj.expected);
+          return testRunner(test, obj.code, obj.expected);
         };
       });
   };
-
   return exports;
-
 };
 
 
@@ -328,4 +359,5 @@ var tests = {
 
 };
 
-exports.testCPS = generateTestFunctions(tests);
+exports.testCps = generateTestFunctions(tests, runCpsTest);
+exports.testCpsStorepassing = generateTestFunctions(tests, runCpsStorepassingTest);
