@@ -27,7 +27,12 @@ var runTest = function(test, code, expected, transformAst){
   var ast = esprima.parse(code);
   var newAst = transformAst(ast);
   var newCode = escodegen.generate(newAst);
-  eval(newCode);
+  try {
+    eval(newCode);
+  } catch (e) {
+    console.log('Exception:', e);
+    console.log(newCode);
+  }
   var testPassed = _.isEqual(actual, expected);
   test.ok(testPassed);
   if (!testPassed){
