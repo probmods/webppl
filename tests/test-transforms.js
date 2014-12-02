@@ -300,7 +300,7 @@ var tests = {
       expected: 3 },
 
     { name: 'testIfWithoutElse4',
-      code: "var f = function(){ if (1 < 0) { var x = 1; var y = 2; return x + y; }; return 5; }; f();",
+      code: "var f = function(){ if (1 < 0) { return 1; }; return 5; }; f();",
       expected: 5 },
 
     { name: 'testNestedIf',

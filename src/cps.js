@@ -69,7 +69,7 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
     return cpsSequence(atFinalElement,
                 getFinalElement,
                 nodes.slice(1),
-                vars.concat([nodes[0]]))
+                vars.concat([nodes[0]]));
   } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
              !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
@@ -208,7 +208,7 @@ function cpsIf(test, consequent, alternate, cont){
   var testName = makeGensymVariable("test");
   var consequentNode = cps(consequent, contName);
   if (alternate === null) {
-    var alternateNode = build.callExpression(cont, [build.identifier("undefined")]);
+    var alternateNode = build.callExpression(contName, [build.identifier("undefined")]);
   } else {
     var alternateNode = cps(alternate, contName);
   }
