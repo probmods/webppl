@@ -43,20 +43,22 @@ var runTest = function(test, code, expected, transformAst){
   test.done();
 };
 
+var addHeader = function(ast, headerCode){
+  ast.body = esprima.parse(headerCode).body.concat(ast.body);
+};
+
 var transformAstCps = function(ast){
-  var newAst = cps.cps(ast, build.identifier("topK"));
-  var topKAst = esprima.parse("var topK = function(x){ actual = x; };");
-  newAst.body = topKAst.body.concat(newAst.body);
-  return newAst;
+  var cpsAst = cps.cps(ast, build.identifier("topK"));
+  addHeader(cpsAst, "var topK = function(x){ actual = x; };");
+  addHeader(cpsAst, "var identityContinuation = function(x){return x}");
+  return cpsAst;
 };
 
 var transformAstStorepassing = function(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   var storeAst = store(cpsAst);
-  var globalStoreAst = esprima.parse("var globalStore = {};");
-  var topKAst = esprima.parse("var topK = function(globalStore, x){ actual = x; };");
-  storeAst.body = globalStoreAst.body.concat(storeAst.body);
-  storeAst.body = topKAst.body.concat(storeAst.body);
+  addHeader(storeAst, "var globalStore = {};");
+  addHeader(storeAst, "var topK = function(globalStore, x){ actual = x; };");
   return storeAst;
 };
 
@@ -70,43 +72,50 @@ var transformAstOptimize = function(ast){
   return optimize(newAst);
 };
 
-var runCpsTest = function(test, code, expected){
+var selectCpsPrimitives = function(){
   // Set global definitions
   plus = function(k, x, y) {return k(x + y);};
   minus = function(k, x, y) {return k(x - y);};
   times = function(k, x, y) {return k(x * y);};
   and = function(k, x, y) {return k(x && y);};
   plusTwo = function(k, x, y) {return k(x + 2);};
-  return runTest(test, code, expected, transformAstCps);
 };
 
-var runStorepassingTest = function(test, code, expected){
+var selectStorePrimitives = function(){
   // Set global definitions
   plus = function(s, k, x, y) {return k(s, x + y);};
   minus = function(s, k, x, y) {return k(s, x - y);};
   times = function(s, k, x, y) {return k(s, x * y);};
   and = function(s, k, x, y) {return k(s, x && y);};
   plusTwo = function(s, k, x, y) {return k(s, x + 2);};
+};
+
+var selectNamingPrimitives = function(){
+  // Set global definitions
+  plus = function(s, k, a, x, y) {return k(s, x + y);};
+  minus = function(s, k, a, x, y) {return k(s, x - y);};
+  times = function(s, k, a, x, y) {return k(s, x * y);};
+  and = function(s, k, a, x, y) {return k(s, x && y);};
+  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
+};
+
+var runCpsTest = function(test, code, expected){
+  selectCpsPrimitives();
+  return runTest(test, code, expected, transformAstCps);
+};
+
+var runStorepassingTest = function(test, code, expected){
+  selectStorePrimitives();
   return runTest(test, code, expected, transformAstStorepassing);
 };
 
 var runNamingTest = function(test, code, expected){
-  // Set global definitions
-  plus = function(s, k, a, x, y) {return k(s, x + y);};
-  minus = function(s, k, a, x, y) {return k(s, x - y);};
-  times = function(s, k, a, x, y) {return k(s, x * y);};
-  and = function(s, k, a, x, y) {return k(s, x && y);};
-  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
+  selectNamingPrimitives();
   return runTest(test, code, expected, transformAstNaming);
 };
 
 var runOptimizationTest = function(test, code, expected){
-  // Set global definitions
-  plus = function(s, k, a, x, y) {return k(s, x + y);};
-  minus = function(s, k, a, x, y) {return k(s, x - y);};
-  times = function(s, k, a, x, y) {return k(s, x * y);};
-  and = function(s, k, a, x, y) {return k(s, x && y);};
-  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
+  selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
 };
 
@@ -241,7 +250,15 @@ var tests = {
 
     { name: 'testBlock4',
       code: "plusTwo(1); { plusTwo(3); plusTwo(4); }",
-      expected: 6 }
+      expected: 6 },
+
+    { name: 'testReset1',
+      code: "{ var x = reset(1 + 1); x }",
+      expected: 2 },
+
+    { name: 'testReset2',
+      code: "{ var foo = function(n){return n > 1 ? bar(n-1) : x; }; var x = reset(1 + 2); var bar = function(n){return n > 1 ? foo(n-1) : x}; foo(10); }",
+      expected: 3 }
 
   ],
 

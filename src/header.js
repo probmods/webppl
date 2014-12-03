@@ -1365,6 +1365,10 @@ function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
 ////////////////////////////////////////////////////////////////////
 // Some primitive functions to make things simpler
 
+function identityContinuation(s, x){
+  return x;
+}
+
 function display(s,k, a, x) {
   k(s,console.log(x));
 }
@@ -1442,5 +1446,6 @@ module.exports = {
   ParticleFilterRejuv: pfr,
   util: util,
   withEmptyStack: withEmptyWebPPLStack,
-  getAddress: getAddress
+  getAddress: getAddress,
+  identityContinuation: identityContinuation
 };

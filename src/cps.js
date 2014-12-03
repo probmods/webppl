@@ -67,9 +67,9 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   } else if(isImmediate(nodes[0])) {
 //    var val = immediateVal(nodes[0])
     return cpsSequence(atFinalElement,
-                getFinalElement,
-                nodes.slice(1),
-                vars.concat([nodes[0]]));
+                       getFinalElement,
+                       nodes.slice(1),
+                       vars.concat([nodes[0]]));
   } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
              !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
@@ -92,33 +92,68 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
 }
 
 function isImmediate(node) {
-  return node.type == Syntax.Literal || node.type == Syntax.Identifier
+  return node.type == Syntax.Literal || node.type == Syntax.Identifier;
 }
 
 function isFunctionDeclaration(node){
-  return ((node.type === Syntax.VariableDeclaration) &&
+  return (types.namedTypes.VariableDeclaration.check(node) &&
           types.namedTypes.FunctionExpression.check(node.declarations[0].init));
 }
 
+function isReset(node){   
+  return (types.namedTypes.CallExpression.check(node) && 
+          types.namedTypes.Identifier.check(node.callee) &&
+          node.callee.name === 'reset');
+}
+
+function isValueDeclarationWithReset(node){
+  return (types.namedTypes.VariableDeclaration.check(node) &&
+          isReset(node.declarations[0].init));
+}
+
+function isDeterministicBlockElement(node){
+  return isFunctionDeclaration(node) || isValueDeclarationWithReset(node);
+}
+
 function cpsBlock(nodes, cont){
-  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
-    // Function declarations that occur as the first nodes in a block
-    // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.
+
+  if ((nodes.length > 1) && isDeterministicBlockElement(nodes[0])){
+
     var node = nodes[0];
+    var newBlockElementNode;
+
     assert.equal(node.declarations.length, 1);
     var declaration = node.declarations[0];
-    var newFunctionDeclarationNode = build.variableDeclaration(
-      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
+
+    if (isFunctionDeclaration(node)){
+      // Function declarations that occur as the first nodes in a block
+      // will be assigned within the same scope that the block
+      // occurs. This allows us to define functions at the top-level scope.      
+      newBlockElementNode = build.variableDeclaration(
+        "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
+      
+    } else if (isValueDeclarationWithReset(node)){
+      // Expressions marked with reset(value) will receive the same
+      // treatment as function declarations. This allows us to define
+      // some values on the top level.
+      newBlockElementNode = build.variableDeclaration(
+        "var", [build.variableDeclarator(declaration.id, cps(declaration.init.arguments[0], build.identifier('identityContinuation')))]);
+
+    } else {
+      throw Exception('unknown deterministic block element type', node);
+    }
+
     var newRemainderNode = cpsBlock(nodes.slice(1), cont);
     if (types.namedTypes.BlockStatement.check(newRemainderNode)){
       // Flatten nested block
-      return build.blockStatement([newFunctionDeclarationNode].concat(newRemainderNode.body));
+      return build.blockStatement([newBlockElementNode].concat(newRemainderNode.body));
     } else {
-      return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
+      return build.blockStatement([newBlockElementNode, convertToStatement(newRemainderNode)]);
     }
+
   } else {
-    //FIXME: the sequence vars are going to be ignored, so can do this with less garbage..
+    // FIXME: the sequence vars are going to be ignored (but will also
+    // be removed by optimizer)
     return cpsSequence(
       function (nodes){return (nodes.length == 1);},
       function(nodes, vars){

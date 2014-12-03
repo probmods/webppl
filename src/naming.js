@@ -12,19 +12,25 @@ var util = require('./util.js');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var counter = 0
+var counter = 0;
 function nextCounter(){
-  counter++
-  return build.literal("_"+counter)//build.arrayExpression([build.literal(counter)])
+  counter++;
+  return build.literal("_"+counter);//build.arrayExpression([build.literal(counter)])
 }
 
-var addressIdNode = build.identifier("address")
+var addressIdNode = build.identifier("address");
 
 function makeAddressExtension(){
   return build.callExpression(build.memberExpression(addressIdNode,
                                                      build.identifier("concat"),
                                                      false),
-                              [nextCounter()])
+                              [nextCounter()]);
+}
+
+function isReset(node){
+  return (types.namedTypes.CallExpression.check(node) &&
+          types.namedTypes.Identifier.check(node.callee) &&
+          node.callee.name === 'reset');
 }
 
 function naming(node) {
@@ -36,15 +42,17 @@ function naming(node) {
     case Syntax.FunctionExpression:
       return build.functionExpression(node.id,
                                       [addressIdNode].concat(node.params),
-                                      node.body)
+                                      node.body);
 
       //add a gensym onto the address variable
     case Syntax.CallExpression:
       if(types.namedTypes.MemberExpression.check(node.callee)){
-        return node
+        return node;
+      } else if (isReset(node)) {
+        return node;
       } else {
         return build.callExpression(node.callee,
-                                    [makeAddressExtension()].concat(node.arguments))
+                                    [makeAddressExtension()].concat(node.arguments));
       }
 
 
@@ -78,7 +86,7 @@ function naming(node) {
 
 
     default:
-      return node
+      return node;
 
   }
 }
