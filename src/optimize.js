@@ -17,7 +17,7 @@ var Syntax = estraverse.Syntax;
 function createPipeline() {
 
   var pipeline = [
-    'pass/hoist-variable-to-arguments',
+    // 'pass/hoist-variable-to-arguments',
     'pass/transform-dynamic-to-static-property-access',
     'pass/transform-dynamic-to-static-property-definition',
     'pass/transform-immediate-function-call',
@@ -69,7 +69,7 @@ function optimize(node, parent){
 
   switch (node.type) {
 
-  case Syntax.BlockStatement:    
+  case Syntax.BlockStatement:
     for (var i=0; i<node.body.length; i++){
       var ithNode = node.body[i];
       // remove 'var x = x' variable declarations
