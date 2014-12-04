@@ -257,7 +257,7 @@ test1: function(test){
               "    factor( (x|y) ? 0 : -Infinity);" +
               "    return x;" +
               "  }," +
-              "  100, 5) // particles");
+              "  300, 5) // particles");
   var expectedHist = {
     "true": 2/3,
     "false": 1/3
