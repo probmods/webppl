@@ -26010,9 +26010,9 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   } else if(isImmediate(nodes[0])) {
 //    var val = immediateVal(nodes[0])
     return cpsSequence(atFinalElement,
-                getFinalElement,
-                nodes.slice(1),
-                vars.concat([nodes[0]]));
+                       getFinalElement,
+                       nodes.slice(1),
+                       vars.concat([nodes[0]]));
   } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
              !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
@@ -26035,33 +26035,37 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
 }
 
 function isImmediate(node) {
-  return node.type == Syntax.Literal || node.type == Syntax.Identifier
+  return node.type == Syntax.Literal || node.type == Syntax.Identifier;
 }
 
 function isFunctionDeclaration(node){
-  return ((node.type === Syntax.VariableDeclaration) &&
+  return (types.namedTypes.VariableDeclaration.check(node) &&
           types.namedTypes.FunctionExpression.check(node.declarations[0].init));
 }
 
 function cpsBlock(nodes, cont){
+
   if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
     // Function declarations that occur as the first nodes in a block
     // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.
+    // occurs. This allows us to define functions at the top-level scope.      
     var node = nodes[0];
+    var newBlockElementNode;
     assert.equal(node.declarations.length, 1);
     var declaration = node.declarations[0];
-    var newFunctionDeclarationNode = build.variableDeclaration(
+    newBlockElementNode = build.variableDeclaration(
       "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
     var newRemainderNode = cpsBlock(nodes.slice(1), cont);
     if (types.namedTypes.BlockStatement.check(newRemainderNode)){
       // Flatten nested block
-      return build.blockStatement([newFunctionDeclarationNode].concat(newRemainderNode.body));
+      return build.blockStatement([newBlockElementNode].concat(newRemainderNode.body));
     } else {
-      return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
+      return build.blockStatement([newBlockElementNode, convertToStatement(newRemainderNode)]);
     }
+
   } else {
-    //FIXME: the sequence vars are going to be ignored, so can do this with less garbage..
+    // FIXME: the sequence vars are going to be ignored (but will also
+    // be removed by optimizer)
     return cpsSequence(
       function (nodes){return (nodes.length == 1);},
       function(nodes, vars){
@@ -26071,19 +26075,20 @@ function cpsBlock(nodes, cont){
   }
 }
 
-//we assume that a function called as a method is primitive (a hack, for simplicity). have to wrap up the object in case it's compound.
+// we assume that a function called as a method is primitive (a hack,
+// for simplicity). have to wrap up the object in case it's compound.
 function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
   var objNode = opNode.object
   var nodes = [objNode].concat(argNodes);
   return cpsSequence(
-                     function (nodes){return (nodes.length == 0);},
-                     function(nodes, vars){
-                       var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
-                       return build.callExpression(
-                                                   cont,
-                                                   [build.callExpression(memberNode, vars.slice(1))]);
-                     },
-                     nodes);
+    function (nodes){return (nodes.length == 0);},
+    function(nodes, vars){
+      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
+      return build.callExpression(
+        cont,
+        [build.callExpression(memberNode, vars.slice(1))]);
+    },
+    nodes);
 }
 
 function cpsCompoundApplication(opNode, argNodes, cont){
@@ -26675,8 +26680,8 @@ function makeMarginalERP(marginal) {
     marginal[v].prob = marginal[v].prob / norm;
   }
 
-  console.log("Creating distribution: ");
-  console.log(marginal);
+  // console.log("Creating distribution: ");
+  // console.log(marginal);
 
   //make an ERP from marginal:
   var dist = new ERP(
@@ -27805,8 +27810,8 @@ function compile(code, verbose){
 
   // Print converted code
   if (verbose){
-    var newCode = escodegen.generate(newProgramAst);
     var originalCode = escodegen.generate(programAst);
+    var newCode = escodegen.generate(newProgramAst);
     console.log("\n* Original code:\n");
     console.log(originalCode);
     console.log("\n* CPS code:\n");
@@ -27824,12 +27829,13 @@ function run(code, contFun, verbose){
 }
 
 // Compile and run some webppl code in global scope:
-// FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
   global.topK = function(s,x){  // Install top-level continuation
     k(s,x);
     global.topK = oldk;
+    // FIXME: This may not work correctly if the evaluated code
+    // uses setTimeout/setInterval
   };
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode);
@@ -27883,19 +27889,19 @@ var util = require('./util.js');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var counter = 0
+var counter = 0;
 function nextCounter(){
-  counter++
-  return build.literal("_"+counter)//build.arrayExpression([build.literal(counter)])
+  counter++;
+  return build.literal("_"+counter);//build.arrayExpression([build.literal(counter)])
 }
 
-var addressIdNode = build.identifier("address")
+var addressIdNode = build.identifier("address");
 
 function makeAddressExtension(){
   return build.callExpression(build.memberExpression(addressIdNode,
                                                      build.identifier("concat"),
                                                      false),
-                              [nextCounter()])
+                              [nextCounter()]);
 }
 
 function naming(node) {
@@ -27907,15 +27913,15 @@ function naming(node) {
     case Syntax.FunctionExpression:
       return build.functionExpression(node.id,
                                       [addressIdNode].concat(node.params),
-                                      node.body)
+                                      node.body);
 
       //add a gensym onto the address variable
     case Syntax.CallExpression:
       if(types.namedTypes.MemberExpression.check(node.callee)){
-        return node
+        return node;
       } else {
         return build.callExpression(node.callee,
-                                    [makeAddressExtension()].concat(node.arguments))
+                                    [makeAddressExtension()].concat(node.arguments));
       }
 
 
@@ -27949,7 +27955,7 @@ function naming(node) {
 
 
     default:
-      return node
+      return node;
 
   }
 }
@@ -27988,7 +27994,7 @@ var Syntax = estraverse.Syntax;
 function createPipeline() {
 
   var pipeline = [
-    'pass/hoist-variable-to-arguments',
+    // 'pass/hoist-variable-to-arguments',
     'pass/transform-dynamic-to-static-property-access',
     'pass/transform-dynamic-to-static-property-definition',
     'pass/transform-immediate-function-call',
@@ -28040,7 +28046,7 @@ function optimize(node, parent){
 
   switch (node.type) {
 
-  case Syntax.BlockStatement:    
+  case Syntax.BlockStatement:
     for (var i=0; i<node.body.length; i++){
       var ithNode = node.body[i];
       // remove 'var x = x' variable declarations
