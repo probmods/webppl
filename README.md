@@ -3,6 +3,8 @@ webppl
 
 Probabilistic programming for the web
 
+[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=storepassing)](https://travis-ci.org/probmods/webppl)
+
 Requirements:
 
 - [git](http://git-scm.com/)
