@@ -364,8 +364,8 @@ function makeMarginalERP(marginal) {
     marginal[v].prob = marginal[v].prob / norm;
   }
 
-  console.log("Creating distribution: ");
-  console.log(marginal);
+  // console.log("Creating distribution: ");
+  // console.log(marginal);
 
   //make an ERP from marginal:
   var dist = new ERP(
