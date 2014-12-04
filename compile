@@ -1,19 +1,24 @@
 #!/usr/bin/env node --stack-size=65500
+
 var fs = require('fs');
 var webppl = require('./src/main');
+var parseArgs = require('minimist');
 
 function main(){
-  var programFile = process.argv[2];
+
+  var argv = parseArgs(process.argv.slice(2));
+
+  var programFile = argv._[0];
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
   var compiledCode = (
     "var webppl = require('./src/main');\n" +
     "var topK = function(x){ console.log('\\n* Program return value:\\n'); console.log(x); };\n" +
-    webppl.compile(code, true));
+    webppl.compile(code, argv.verbose));
 
   // Write compiled code to file
-  var outputFile = process.argv[3] ? process.argv[3] : "tmp.js";
+  var outputFile = argv.out ? argv.out : "tmp.js";
   fs.writeFile(
     outputFile,
     compiledCode,
