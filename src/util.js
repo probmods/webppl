@@ -41,7 +41,7 @@ var normalizeHist = function(hist){
 };
 
 var normalizeArray = function(xs){
-  var Z = util.sum(xs);
+  var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
 };
 
@@ -74,10 +74,10 @@ module.exports = {
   makeGensym: makeGensym,
   prettyJSON: prettyJSON,
   sum: sum,
-  normalizeHist: normalizeHist,
-  normalizeArray: normalizeArray,
+  copyObj: copyObj,
   logsumexp: logsumexp,
-  withEmptyStack: withEmptyStack,
+  normalizeArray: normalizeArray,
+  normalizeHist: normalizeHist,
   runningInBrowser: runningInBrowser,
-  copyObj: copyObj
+  withEmptyStack: withEmptyStack
 };

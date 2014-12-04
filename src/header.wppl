@@ -1,3 +1,5 @@
+// ERPs
+
 var flip = function(theta) {
   return sample(bernoulliERP, [theta]);
 };
@@ -42,6 +44,9 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
+
+// XRPs
+
 var makeBetaBernoulli = function(pseudocounts) {
   globalStore.BBindex = 1 + (globalStore.BBindex==undefined ? 0 : globalStore.BBindex);
   var bbname = "BB"+globalStore.BBindex;
@@ -74,22 +79,33 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
+
+// Probability computations & calculations
+
+var plus = function(a, b) { return a+b; };
+var minus = function(a, b) { return a-b; };
+var mult = function(a, b) { return a*b; };
+var div = function(a, b) { return a/b; };
+
 var expectation = function(erp,f){
-  var supp = erp.support([])
-    return mapReduce(plus,
-                     supp[supp.length-1],
-                     function(s){return Math.exp(erp.score([],s))*f(s)},
-                     supp.slice(0, -1))
+  var supp = erp.support([]);
+  return mapReduce(plus,
+                   supp[supp.length-1],
+                   function(s){return Math.exp(erp.score([],s))*f(s)},
+                   supp.slice(0, -1));
 };
 
 var entropy = function(erp){
-  var supp = erp.support([])
-    return -mapReduce(plus,
-                      supp[supp.length-1],
-                      function(s){var lp = erp.score([],s)
-                      return Math.exp(lp)*lp },
-                      supp.slice(0, -1))
+  var supp = erp.support([]);
+  return -mapReduce(plus,
+                    supp[supp.length-1],
+                    function(s){var lp = erp.score([],s)
+                                return Math.exp(lp)*lp },
+                    supp.slice(0, -1));
 };
+
+
+// Data structures & higher-order functions
 
 var append = function(a,b) {
   return a.concat(b);
@@ -123,11 +139,6 @@ var reduce = function(fn,init,ar){
 var mapReduce = function(f,init,g,ar){
   return reduce(function(a,b) { return f(g(a),b); }, g(init), ar);
 };
-
-var plus = function(a, b) { return a+b; };
-var minus = function(a, b) { return a-b; };
-var mult = function(a, b) { return a*b; };
-var div = function(a, b) { return a/b; };
 
 var sum = function(l) { return reduce(plus, 0, l); };
 
