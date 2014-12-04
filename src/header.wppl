@@ -87,7 +87,10 @@ var minus = function(a, b) { return a-b; };
 var mult = function(a, b) { return a*b; };
 var div = function(a, b) { return a/b; };
 
-var expectation = function(erp,f){
+var idF = function(x){ return x; }
+
+var expectation = function(erp, func){
+  var f = func == undefined ? idF : func;
   var supp = erp.support([]);
   return mapReduce(plus,
                    supp[supp.length-1],
