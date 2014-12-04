@@ -1442,5 +1442,5 @@ module.exports = {
   ParticleFilterRejuv: pfr,
   util: util,
   withEmptyStack: withEmptyWebPPLStack,
-  getAddress: getAddress,
+  getAddress: getAddress
 };

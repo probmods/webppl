@@ -132,19 +132,20 @@ function cpsBlock(nodes, cont){
   }
 }
 
-//we assume that a function called as a method is primitive (a hack, for simplicity). have to wrap up the object in case it's compound.
+// we assume that a function called as a method is primitive (a hack,
+// for simplicity). have to wrap up the object in case it's compound.
 function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
   var objNode = opNode.object
   var nodes = [objNode].concat(argNodes);
   return cpsSequence(
-                     function (nodes){return (nodes.length == 0);},
-                     function(nodes, vars){
-                       var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
-                       return build.callExpression(
-                                                   cont,
-                                                   [build.callExpression(memberNode, vars.slice(1))]);
-                     },
-                     nodes);
+    function (nodes){return (nodes.length == 0);},
+    function(nodes, vars){
+      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
+      return build.callExpression(
+        cont,
+        [build.callExpression(memberNode, vars.slice(1))]);
+    },
+    nodes);
 }
 
 function cpsCompoundApplication(opNode, argNodes, cont){

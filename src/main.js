@@ -45,8 +45,8 @@ function compile(code, verbose){
 
   // Print converted code
   if (verbose){
-    var newCode = escodegen.generate(newProgramAst);
     var originalCode = escodegen.generate(programAst);
+    var newCode = escodegen.generate(newProgramAst);
     console.log("\n* Original code:\n");
     console.log(originalCode);
     console.log("\n* CPS code:\n");
@@ -64,12 +64,13 @@ function run(code, contFun, verbose){
 }
 
 // Compile and run some webppl code in global scope:
-// FIXME: merge this with run
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
   global.topK = function(s,x){  // Install top-level continuation
     k(s,x);
     global.topK = oldk;
+    // FIXME: This may not work correctly if the evaluated code
+    // uses setTimeout/setInterval
   };
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode);
