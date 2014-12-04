@@ -13,14 +13,15 @@ function main(){
     webppl.compile(code, true));
 
   // Write compiled code to file
+  var outputFile = process.argv[3] ? process.argv[3] : "tmp.js";
   fs.writeFile(
-    "tmp.js",
+    outputFile,
     compiledCode,
     function(err) {
       if (err) {
         console.log(err);
       } else {
-        console.log("Wrote webppl code to tmp.js");
+        console.log("Wrote webppl code to", outputFile);
       }
     });
 
