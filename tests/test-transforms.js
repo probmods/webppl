@@ -128,7 +128,11 @@ var generateTestFunctions = function(allTests, testRunner){
     tests.forEach(
       function(obj){
         exports[testClassName][obj.name] = function(test){
-          return testRunner(test, obj.code, obj.expected);
+          if (!obj.runners || _.contains(obj.runners, testRunner)){
+            return testRunner(test, obj.code, obj.expected);
+          } else {
+            test.done();
+          }
         };
       });
   };
@@ -252,13 +256,14 @@ var tests = {
       code: "plusTwo(1); { plusTwo(3); plusTwo(4); }",
       expected: 6 },
 
-    { name: 'testReset1',
-      code: "{ var x = reset(1 + 1); x }",
-      expected: 2 },
-
-    { name: 'testReset2',
-      code: "{ var foo = function(n){return n > 1 ? bar(n-1) : x; }; var x = reset(1 + 2); var bar = function(n){return n > 1 ? foo(n-1) : x}; foo(10); }",
-      expected: 3 }
+    { name: 'testBlock5',
+      code: ("var identity = function(x){return x};" +
+             "var obj1 = identity({ 'X': 10, 'Y': 20 });" +
+             "var foo = function(){ return baz(); };" +  // forward-recursive
+             "var baz = function(){ return obj1['X']; };" +
+             "foo();"),
+      expected: 10,
+      runners: [runOptimizationTest] }
 
   ],
 
