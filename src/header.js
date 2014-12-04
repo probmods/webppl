@@ -696,6 +696,8 @@ ParticleFilter.prototype.resampleParticles = function() {
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight}));
 
+  if (_.every(this.particles, function(x){return x.weight == -Infinity}))
+    throw "all particles have weight -infinity"
   // Compute list of retained particles
   var retainedParticles = [];
   var retainedCounts = [];
