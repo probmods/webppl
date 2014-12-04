@@ -74,7 +74,9 @@ function main(){
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
-  var requires = (argv.require instanceof Array) ? argv.require : [argv.require];
+  var requires = (argv.require ? ((argv.require instanceof Array) ? argv.require : 
+                                  [argv.require]) : []);
+
   for (var i=0; i<requires.length; i++){
     var req = requires[i];
     requires[i] = {
