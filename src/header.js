@@ -348,33 +348,28 @@ function makeMarginalERP(marginal) {
     norm += marginal[v].prob;
     supp.push(marginal[v].val);
   }
+  var accum = 0;
+  var probAccum = [];
   for (var v in marginal) {
     marginal[v].prob = marginal[v].prob / norm;
+    accum += marginal[v].prob;
+    probAccum[v] = accum;
   }
-
-  console.log("Creating distribution: ");
-  console.log(marginal);
-
+  // console.log("Creating distribution: ");
+  // console.log(marginal);
   //make an ERP from marginal:
   var dist = new ERP(
     function(params) {
-      var k = marginal.length;
       var x = Math.random();
-      var probAccum = 0;
-      for (var i in marginal) {
-        probAccum += marginal[i].prob;
-        if (probAccum >= x) {
-          return marginal[i].val;
-        } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+      for (var i in probAccum) {
+        //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+        if (probAccum[i] >=x) return marginal[i].val
       }
       return marginal[i].val;
     },
     function(params, val) {
-      for(var i in marginal){
-        // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
-        if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
-      }
-      return -Infinity
+      var s = marginal[JSON.stringify(val)];
+      return s ? Math.log(s.prob) : -Infinity
     },
     function(params) {
       return supp;
