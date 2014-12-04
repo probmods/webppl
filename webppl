@@ -3,19 +3,89 @@
 var fs = require('fs');
 var webppl = require('./src/main');
 var parseArgs = require('minimist');
+var path = require('path');
 
-function main(){
-  var argv = parseArgs(process.argv.slice(2));
-  var programFile = argv._[0];
-  console.log('Processing', programFile);
-  var code = fs.readFileSync(programFile);
+var getModuleName = function(req){
+  if (req.indexOf("/") != -1) {
+    xs = req.split("/");
+    return xs[xs.length-1];
+  } else {
+    return req;
+  }
+}
+
+var getModulePath = function(req){
+  if (req.indexOf("/") != -1){
+    try {
+      return require.resolve(path.join(process.cwd(), req));
+    } catch (e) {
+      return require.resolve(req);      
+    }
+  } else {
+    return req;
+  }
+}
+
+function run(code, requires, verbose){
+  requires.forEach(function(req){
+    global[req.name] = require(req.path);
+  })
   webppl_eval(
-    function(s,x){
+    function(s, x){
       console.log("\n* Program return value:\n");
       console.log(x);
     },
     code,
-    argv.verbose);
+    verbose)
 }
 
-main()
+function compile(code, requires, verbose, outputFile){
+  requires.push({
+    name: 'webppl',
+    path: require.resolve('./src/main')
+  });
+  // Build Javascript code
+  var compiledCode = '';
+  requires.forEach(function(req){
+    compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
+  });
+  compiledCode += ("var topK = function(x){ console.log('\\n* Program return value:\\n');" +
+                   " console.log(x); };\n");
+  compiledCode += webppl.compile(code, verbose);
+  // Write Javascript code to file  
+  fs.writeFile(
+    outputFile,
+    compiledCode,
+    function(err) {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("Wrote webppl code to", outputFile);
+      }
+    });  
+}
+
+function main(){
+
+  var argv = parseArgs(process.argv.slice(2));
+
+  // Load webppl code
+  var programFile = argv._[0];
+  console.log('Processing', programFile);
+  var code = fs.readFileSync(programFile);
+
+  var requires = (argv.require instanceof Array) ? argv.require : [argv.require];
+  for (var i=0; i<requires.length; i++){
+    var req = requires[i];
+    requires[i] = {
+      name: getModuleName(req),
+      path: getModulePath(req)
+    }
+  }
+  var processCode = argv.compile ? compile : run;
+  var outputFile = argv.out ? argv.out : "tmp.js";
+
+  processCode(code, requires, argv.verbose, outputFile);
+}
+
+main();
