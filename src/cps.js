@@ -100,49 +100,18 @@ function isFunctionDeclaration(node){
           types.namedTypes.FunctionExpression.check(node.declarations[0].init));
 }
 
-function isReset(node){   
-  return (types.namedTypes.CallExpression.check(node) && 
-          types.namedTypes.Identifier.check(node.callee) &&
-          node.callee.name === 'reset');
-}
-
-function isValueDeclarationWithReset(node){
-  return (types.namedTypes.VariableDeclaration.check(node) &&
-          isReset(node.declarations[0].init));
-}
-
-function isDeterministicBlockElement(node){
-  return isFunctionDeclaration(node) || isValueDeclarationWithReset(node);
-}
-
 function cpsBlock(nodes, cont){
 
-  if ((nodes.length > 1) && isDeterministicBlockElement(nodes[0])){
-
+  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
+    // Function declarations that occur as the first nodes in a block
+    // will be assigned within the same scope that the block
+    // occurs. This allows us to define functions at the top-level scope.      
     var node = nodes[0];
     var newBlockElementNode;
-
     assert.equal(node.declarations.length, 1);
     var declaration = node.declarations[0];
-
-    if (isFunctionDeclaration(node)){
-      // Function declarations that occur as the first nodes in a block
-      // will be assigned within the same scope that the block
-      // occurs. This allows us to define functions at the top-level scope.      
-      newBlockElementNode = build.variableDeclaration(
-        "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
-      
-    } else if (isValueDeclarationWithReset(node)){
-      // Expressions marked with reset(value) will receive the same
-      // treatment as function declarations. This allows us to define
-      // some values on the top level.
-      newBlockElementNode = build.variableDeclaration(
-        "var", [build.variableDeclarator(declaration.id, cps(declaration.init.arguments[0], build.identifier('identityContinuation')))]);
-
-    } else {
-      throw Exception('unknown deterministic block element type', node);
-    }
-
+    newBlockElementNode = build.variableDeclaration(
+      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
     var newRemainderNode = cpsBlock(nodes.slice(1), cont);
     if (types.namedTypes.BlockStatement.check(newRemainderNode)){
       // Flatten nested block

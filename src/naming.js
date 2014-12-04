@@ -27,12 +27,6 @@ function makeAddressExtension(){
                               [nextCounter()]);
 }
 
-function isReset(node){
-  return (types.namedTypes.CallExpression.check(node) &&
-          types.namedTypes.Identifier.check(node.callee) &&
-          node.callee.name === 'reset');
-}
-
 function naming(node) {
 //  console.log(node)
   switch (node.type) {
@@ -47,8 +41,6 @@ function naming(node) {
       //add a gensym onto the address variable
     case Syntax.CallExpression:
       if(types.namedTypes.MemberExpression.check(node.callee)){
-        return node;
-      } else if (isReset(node)) {
         return node;
       } else {
         return build.callExpression(node.callee,
