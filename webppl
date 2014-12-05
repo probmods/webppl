@@ -49,7 +49,8 @@ function compile(code, requires, verbose, outputFile){
   requires.forEach(function(req){
     compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
   });
-  compiledCode += ("var topK = function(x){ console.log('\\n* Program return value:\\n');" +
+  compiledCode += ("var topK = function(x){ " + 
+                   " console.log('\\n* Program return value:\\n');" +
                    " console.log(x); };\n");
   compiledCode += webppl.compile(code, verbose);
   // Write Javascript code to file  

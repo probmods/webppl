@@ -210,43 +210,43 @@ exports.testParticleFilter = {
   }
 };
 
-// exports.testMH = {
-//   test1: function(test){
-//     var code = ("MH(" +
-//                 "  function(){" +
-//                 "    var x = flip(0.5);" +
-//                 "    var y = flip(0.5);" +
-//                 "    factor( (x|y) ? 0 : -Infinity);" +
-//                 "    return x;" +
-//                 "  }," +
-//                 "  1000) // samples");
-//     var expectedHist = {
-//       "true": 2/3,
-//       "false": 1/3
-//     };
-//     var tolerance = .1;
-//     runDistributionTest(test, code, expectedHist, tolerance);
-//   }
-// };
+exports.testMH = {
+  test1: function(test){
+    var code = ("MH(" +
+                "  function(){" +
+                "    var x = flip(0.5);" +
+                "    var y = flip(0.5);" +
+                "    factor( (x|y) ? 0 : -Infinity);" +
+                "    return x;" +
+                "  }," +
+                "  1000) // samples");
+    var expectedHist = {
+      "true": 2/3,
+      "false": 1/3
+    };
+    var tolerance = .1;
+    runDistributionTest(test, code, expectedHist, tolerance);
+  }
+};
 
-// exports.testPMCMC = {
-//   test1: function(test){
-//     var code = ("PMCMC(" +
-//                 "  function(){" +
-//                 "    var x = flip(0.5);" +
-//                 "    var y = flip(0.5);" +
-//                 "    factor( (x|y) ? 0 : -Infinity);" +
-//                 "    return x;" +
-//                 "  }," +
-//                 "  300, 5) // particles");
-//     var expectedHist = {
-//       "true": 2/3,
-//       "false": 1/3
-//     };
-//     var tolerance = .1;
-//     runDistributionTest(test, code, expectedHist, tolerance);
-//   }
-// };
+exports.testPMCMC = {
+  test1: function(test){
+    var code = ("PMCMC(" +
+                "  function(){" +
+                "    var x = flip(0.5);" +
+                "    var y = flip(0.5);" +
+                "    factor( (x|y) ? 0 : -Infinity);" +
+                "    return x;" +
+                "  }," +
+                "  300, 5) // particles");
+    var expectedHist = {
+      "true": 2/3,
+      "false": 1/3
+    };
+    var tolerance = .1;
+    runDistributionTest(test, code, expectedHist, tolerance);
+  }
+};
 
 exports.testPFRj = {
 test1: function(test){
