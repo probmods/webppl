@@ -30,7 +30,7 @@ function addHeaderAst(targetAst, headerAst){
 }
 
 function compile(programCode, verbose){
-  if (console.time){console.time('compile');}
+  if (verbose && console.time){console.time('compile');}
 
   var programAst, headerAst;
 
@@ -56,12 +56,14 @@ function compile(programCode, verbose){
 
   // Compile program code
   programAst = _compile(programCode, 'topK');
-  console.log(escodegen.generate(programAst));
+  if (verbose){
+    console.log(escodegen.generate(programAst));
+  }
 
   // Concatenate header and program
   var out = escodegen.generate(addHeaderAst(programAst, headerAst));
 
-  if (console.timeEnd){console.timeEnd('compile');}
+  if (verbose && console.timeEnd){console.timeEnd('compile');}
   return out;
 }
 
