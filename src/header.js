@@ -43,9 +43,7 @@ var uniformERP = new ERP(
 
 var bernoulliERP = new ERP(
   function flipSample(params) {
-    var weight = params[0];
-    var val = Math.random() < weight;
-    return val;
+    return Math.random() < params[0];;
   },
   function flipScore(params, val) {
     var weight = params[0];
@@ -62,8 +60,9 @@ var randomIntegerERP = new ERP(
   },
   function randomIntegerScore(params, val) {
     var stop = params[0];
-    var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
-    return inSupport ? -Math.log(stop) : -Infinity;
+    return (val == Math.floor(val)) && (0 <= val) && (val < stop)
+      ? -Math.log(stop)
+      : -Infinity;
   },
   function randomIntegerSupport(params) {
     return _.range(params[0]);
@@ -107,8 +106,9 @@ var discreteERP = new ERP(
   function discreteScore(params, val) {
     var probs = util.normalizeArray(params[0]);
     var stop = probs.length;
-    var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
-    return inSupport ? Math.log(probs[val]) : -Infinity;
+    return (val == Math.floor(val)) && (0 <= val) && (val < stop)
+      ? Math.log(probs[val])
+      : -Infinity;
   },
   function discreteSupport(params) {
     return _.range(params[0].length);
@@ -156,9 +156,7 @@ var gammaERP = new ERP(
 
 var exponentialERP = new ERP(
   function exponentialSample(params){
-    var a = params[0];
-    var u = Math.random();
-    return Math.log(u) / (-1 * a);
+    return Math.log(Math.random()) / (-1 * params[0]);
   },
   function exponentialScore(params, val){
     var a = params[0];
@@ -182,9 +180,8 @@ var betaERP = new ERP(
   function betaScore(params, val){
     var a = params[0];
     var b = params[1];
-    var x = val;
-    return (x > 0 && x < 1)
-      ? (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b)
+    return (val > 0 && val < 1)
+      ? (a-1)*Math.log(val) + (b-1)*Math.log(1-val) - logBeta(a,b)
       : -Infinity
   }
 );
@@ -200,21 +197,19 @@ function binomialSample(params){
   var p = params[0];
   var n = params[1];
   var k = 0;
-  var N = 10;
   var a, b;
-  while (n > N){
+  while (n > 10){               // N=10
     a = 1 + n/2;
     b = 1 + n-a;
     var x = betaSample([a, b]);
     if (x >= p){
       n = a-1; p /= x;
+    } else {
+      k += a; n = b - 1; p = (p-x) / (1-x);
     }
-    else{ k += a; n = b - 1; p = (p-x) / (1-x); }
   }
-  var u;
   for (var i=0; i<n; i++){
-    u = Math.random();
-    if (u < p) k++;
+    if (Math.random() < p) k++;
   }
   return k | 0;
 }
@@ -237,10 +232,8 @@ var binomialERP = new ERP(
     d2 = d1 + 0.02*d2;
     var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
     var den = (n + inv6) * p * q;
-    var z = num / den;
-    var invsd = Math.sqrt(z);
-    z = d2 * invsd;
-    return gaussianScore([0, 1], z) + Math.log(invsd);
+    var invsd = Math.sqrt(num / den);
+    return gaussianScore([0, 1], d2*invsd) + Math.log(invsd);
   },
   function binomialSupport(params) {
     return _.range(params[1]);
@@ -254,7 +247,7 @@ function fact(x){
 }
 
 function lnfact(x) {
-  if (x < 1) x = 1;
+  if (x < 1) return 0; // x = 1
   if (x < 12) return Math.log(fact(Math.round(x)));
   var invx = 1 / x;
   var invx2 = invx * invx;
@@ -289,7 +282,7 @@ var poissonERP = new ERP(
   },
   function poissonScore(params, val){
     var mu = params[0];
-    return k * Math.log(mu) - mu - lnfact(k);
+    return val * Math.log(mu) - mu - lnfact(val);
   }
 );
 
@@ -380,7 +373,7 @@ function makeMarginalERP(marginal) {
 // Inference interface: an inference function takes the current
 // continuation and a WebPPL thunk (which itself has been transformed
 // to take a continuation). It does some kind of inference and returns
-// an ERP representing the nromalized marginal distribution on return
+// an ERP representing the normalized marginal distribution on return
 // values.
 //
 // The inference function should install a coroutine object that
@@ -458,9 +451,7 @@ function exit(retval) {
 //  cc(erp.sample(params)); //sample and keep going
 //};
 //
-//Forward.prototype.factor = function(cc, score) {
-//  throw "'factor' is not allowed inside Forward.";
-//};
+//Forward.prototype.factor = function(cc, score) {throw "'factor' is not allowed inside Forward.";};
 //
 //Forward.prototype.exit = function(retval) {
 //  // Return value of the wppl fn as a delta erp
@@ -521,7 +512,6 @@ Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
   //  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-
   stackSize++;
   if (stackSize == 40) {
     util.withEmptyStack(function(){nextState.continuation(nextState.value)});
@@ -687,34 +677,26 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
 
 ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
-  var m = this.particles.length;
-  var W = util.logsumexp(_.map(this.particles, function(p){return p.weight}));
-
   if (_.every(this.particles, function(x){return x.weight == -Infinity}))
     throw "all particles have weight -infinity"
-  // Compute list of retained particles
+  var m = this.particles.length;
+  var W = util.logsumexp(_.map(this.particles, function(p){return p.weight}));
+  var resetW = W - Math.log(m);
+
+  // Compute list of retained particles and resampling weights
   var retainedParticles = [];
-  var retainedCounts = [];
-  _.each(
-    this.particles,
-    function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
-        retainedParticles.push(copyParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+  var newExpWeights = [];
+  _.each(this.particles,
+         function(particle){
+           var w = Math.exp(particle.weight - resetW);
+           var nRetained = Math.floor(w);
+           newExpWeights.push(w - nRetained);
+           for (var i=0; i<nRetained; i++) {
+             retainedParticles.push(copyParticle(particle));
+           }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (this.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -726,11 +708,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   this.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    this.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(this.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilter.prototype.exit = function(retval) {
@@ -750,18 +728,15 @@ ParticleFilter.prototype.exit = function(retval) {
     this.particles,
     function(particle){
       var k = JSON.stringify(particle.value);
-      if (hist[k] === undefined){
-        hist[k] = { prob:0, val:particle.value };
-      }
+      if (hist[k] === undefined) hist[k] = { prob:0, val:particle.value };
       hist[k].prob += 1;
     });
-  var dist = makeMarginalERP(hist);
 
   // Reinstate previous coroutine:
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(dist);
+  this.k(makeMarginalERP(hist));
 };
 
 function pf(cc, a, wpplFn, numParticles) {
