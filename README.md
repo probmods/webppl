@@ -18,7 +18,7 @@ Installation:
 
 Run tests:
 
-    ./run-tests
+    npm test
 
 Execute webppl program:
 

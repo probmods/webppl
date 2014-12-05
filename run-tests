@@ -1,3 +1,0 @@
-#!/usr/bin/env node --stack-size=65500
-var reporter = require('nodeunit').reporters.default;
-reporter.run(['tests']);
