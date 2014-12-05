@@ -26793,7 +26793,7 @@ function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(s, exit,a);
+  wpplFn(s, exit, a);
 }
 
 // The queue is a bunch of computation states. each state is a
@@ -26924,7 +26924,7 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(s,k, a, wpplFn, numParticles) {
+function ParticleFilter(s, k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -26946,7 +26946,7 @@ function ParticleFilter(s,k, a, wpplFn, numParticles) {
   this.oldCoroutine = coroutine;
   coroutine = this;
 
-  this.oldStore = s; // will be reinstated at the end
+  this.oldStore = util.copyObj(s); // will be reinstated at the end
 
   // Run first particle
   this.activeParticle().continuation(this.activeParticle().store);
@@ -27057,10 +27057,10 @@ ParticleFilter.prototype.exit = function(s,retval) {
 
   // Return from particle filter by calling original continuation:
   this.k(this.oldStore, dist);
-};
+}
 
-function pf(s,cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(s,cc, a, wpplFn, numParticles);
+function pf(s, cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles);
 }
 
 
@@ -27068,19 +27068,17 @@ function pf(s,cc, a, wpplFn, numParticles) {
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-//FIXME: update for store passing
+function MH(s, k, a, wpplFn, numIterations) {
 
-function MH(k, a, wpplFn, numIterations) {
-
-  this.trace = []
-  this.oldTrace = undefined
-  this.currScore = 0
-  this.oldScore = -Infinity
-  this.oldVal = undefined
-  this.regenFrom = 0
-  this.returnHist = {}
-  this.k = k
-
+  this.trace = [];
+  this.oldTrace = undefined;
+  this.currScore = 0;
+  this.oldScore = -Infinity;
+  this.oldVal = undefined;
+  this.regenFrom = 0;
+  this.returnHist = {};
+  this.k = k;
+  this.oldStore = util.copyObj(s);
   this.iterations = numIterations;
 
   // Move old coroutine out of the way and install this as the current
@@ -27088,77 +27086,81 @@ function MH(k, a, wpplFn, numIterations) {
   this.oldCoroutine = coroutine;
   coroutine = this;
 
-  wpplFn(exit,a);
+  wpplFn(s, exit, a);
 }
 
-MH.prototype.factor = function(k,a,s) {
-  coroutine.currScore += s;
-  util.withEmptyStack(k);
+MH.prototype.factor = function(s, k, a, score) {
+  coroutine.currScore += score;
+  util.withEmptyStack(function(){k(s);});
 };
 
-MH.prototype.sample = function(cont, name, erp, params, forceSample) {
+MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
   var reuse = ! (prev==undefined | forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
                        score: coroutine.currScore, choiceScore: choiceScore,
-                       val: val, reused: reuse});
+                       val: val, reused: reuse, store: util.copyObj(s)});
   coroutine.currScore += choiceScore;
-  cont(val);
-}
+  cont(s, val);
+};
 
 function findChoice(trace, name) {
-  if(trace == undefined){return undefined}
-  for(var i = 0; i < trace.length; i++){
-    if(trace[i].name == name){return trace[i];}
+  if (trace == undefined){
+    return undefined;
+  }
+  for (var i = 0; i < trace.length; i++){
+    if (trace[i].name == name){
+      return trace[i];
+    }
   }
   return undefined;
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  if(oldTrace == undefined){return 1} //just for init
-  var fw = -Math.log(oldTrace.length)
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
-  var bw = -Math.log(trace.length)
+  if(oldTrace == undefined){return 1;} //just for init
+  var fw = -Math.log(oldTrace.length);
+  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
+  var bw = -Math.log(trace.length);
   oldTrace.slice(regenFrom).map(function(s){
-    var nc = findChoice(trace, s.name)
-    bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
-  return acceptance
+    var nc = findChoice(trace, s.name);
+    bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
+  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
+  return acceptance;
 }
 
-MH.prototype.exit = function(val) {
-  if( coroutine.iterations > 0 ) {
+MH.prototype.exit = function(s, val) {
+  if (coroutine.iterations > 0) {
     coroutine.iterations -= 1;
 
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
-                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
-    if(!(Math.random()<acceptance)){
-      //if rejected, roll back trace, etc:
+                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
+    if (!(Math.random()<acceptance)){
+      // if rejected, roll back trace, etc:
       coroutine.trace = coroutine.oldTrace;
       coroutine.currScore = coroutine.oldScore;
       val = coroutine.oldVal;
     }
 
-    //now add val to hist:
+    // now add val to hist:
     var stringifiedVal = JSON.stringify(val);
     if (coroutine.returnHist[stringifiedVal] === undefined){
       coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
     }
     coroutine.returnHist[stringifiedVal].prob += 1;
 
-    //make a new proposal:
+    // make a new proposal:
     coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
     var regen = coroutine.trace[coroutine.regenFrom];
     coroutine.oldTrace = coroutine.trace;
-    coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom);
+    coroutine.trace = coroutine.trace.slice(0, coroutine.regenFrom);
     coroutine.oldScore = coroutine.currScore;
     coroutine.currScore = regen.score;
     coroutine.oldVal = val;
 
-    coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true);
+    coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
   } else {
     var dist = makeMarginalERP(coroutine.returnHist);
 
@@ -27167,26 +27169,23 @@ MH.prototype.exit = function(val) {
     coroutine = this.oldCoroutine;
 
     // Return by calling original continuation:
-    k(dist);
+    k(this.oldStore, dist);
   }
 };
 
-function mh(cc, a, wpplFn, numParticles) {
-  return new MH(cc, a, wpplFn, numParticles);
+function mh(s, cc, a, wpplFn, numParticles) {
+  return new MH(s, cc, a, wpplFn, numParticles);
 }
 
 
 ////////////////////////////////////////////////////////////////////
 // PMCMC
 
-//FIXME: update for store passing
-
-
 function last(xs){
   return xs[xs.length - 1];
 }
 
-function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
+function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps){
 
   // Move old coroutine out of the way and install this as the
   // current handler.
@@ -27195,6 +27194,8 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
 
   // Store continuation (will be passed dist at the end)
   this.k = cc;
+
+  this.oldStore = util.copyObj(s);
 
   // Setup inference variables
   this.particleIndex = 0;  // marks the active particle
@@ -27208,7 +27209,7 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
   this.returnHist = {};
 
   // Run first particle
-  this.activeContinuation()();
+  this.activeContinuationWithStore()();
 }
 
 PMCMC.prototype.resetParticles = function(){
@@ -27217,11 +27218,12 @@ PMCMC.prototype.resetParticles = function(){
   // Create initial particles
   for (var i=0; i<this.numParticles; i++) {
     var particle = {
-      continuations: [function(){that.wpplFn(exit, that.address);}],
+      continuations: [function(s){that.wpplFn(s, exit, that.address);}],
+      stores: [that.oldStore],
       weights: [0],
       value: undefined
     };
-    this.particles.push(particle);
+    this.particles.push(util.copyObj(particle));
   }
 };
 
@@ -27231,28 +27233,36 @@ PMCMC.prototype.activeParticle = function() {
 
 PMCMC.prototype.activeContinuation = function(){
   return last(this.activeParticle().continuations);
-}
+};
+
+PMCMC.prototype.activeContinuationWithStore = function(){
+  var k = last(this.activeParticle().continuations);
+  var s = last(this.activeParticle().stores);
+  return function(){k(s);};
+};
 
 PMCMC.prototype.allParticlesAdvanced = function() {
   return ((this.particleIndex + 1) == this.particles.length);
 };
 
-PMCMC.prototype.sample = function(cc, a, erp, params) {
-  cc(erp.sample(params));
+PMCMC.prototype.sample = function(s, cc, a, erp, params) {
+  cc(s, erp.sample(params));
 };
 
 PMCMC.prototype.particleAtStep = function(particle, step){
   // Returns particle s.t. particle.continuations[step] is the last entry
   return {
     continuations: particle.continuations.slice(0, step + 1),
+    stores: particle.stores.slice(0, step + 1),
     weights: particle.weights.slice(0, step + 1),
     value: particle.value
   };
 };
 
-PMCMC.prototype.updateActiveParticle = function(weight, continuation){
+PMCMC.prototype.updateActiveParticle = function(weight, continuation, store){
   var particle = this.activeParticle();
   particle.continuations = particle.continuations.concat([continuation]);
+  particle.stores = particle.stores.concat([util.copyObj(store)]);
   particle.weights = particle.weights.concat([weight]);
 };
 
@@ -27260,7 +27270,8 @@ PMCMC.prototype.copyParticle = function(particle){
   return {
     continuations: particle.continuations.slice(0),
     weights: particle.weights.slice(0),
-    value: particle.value
+    value: particle.value,
+    stores: particle.stores.map(util.copyObj)
   };
 };
 
@@ -27278,9 +27289,9 @@ PMCMC.prototype.resampleParticles = function(particles){
   return newParticles;
 };
 
-PMCMC.prototype.factor = function(cc, a, score) {
+PMCMC.prototype.factor = function(s, cc, a, score) {
 
-  this.updateActiveParticle(score, cc);
+  this.updateActiveParticle(score, cc, s);
 
   if (this.allParticlesAdvanced()){
     if (this.sweep > 0){
@@ -27300,10 +27311,10 @@ PMCMC.prototype.factor = function(cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeContinuation());
+  util.withEmptyStack(this.activeContinuationWithStore());
 };
 
-PMCMC.prototype.exit = function(retval) {
+PMCMC.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
 
@@ -27311,7 +27322,7 @@ PMCMC.prototype.exit = function(retval) {
 
     // Wait for all particles to reach exit
     this.particleIndex += 1;
-    return this.activeContinuation()();
+    return this.activeContinuationWithStore()();
 
   } else {
 
@@ -27338,7 +27349,7 @@ PMCMC.prototype.exit = function(retval) {
       this.sweep += 1;
       this.particleIndex = 0;
       this.resetParticles();
-      this.activeContinuation()();
+      this.activeContinuationWithStore()();
 
     } else {
       var dist = makeMarginalERP(this.returnHist);
@@ -27347,14 +27358,14 @@ PMCMC.prototype.exit = function(retval) {
       coroutine = this.oldCoroutine;
 
       // Return from particle filter by calling original continuation:
-      this.k(dist);
+      this.k(this.oldStore, dist);
 
     }
   }
 };
 
-function pmc(cc, a, wpplFn, numParticles, numSweeps) {
-  return new PMCMC(cc, a, wpplFn, numParticles, numSweeps);
+function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
+  return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps);
 }
 
 
@@ -27579,12 +27590,9 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
   coroutine = coroutine.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  k(this.oldStore,dist);
+  k(this.oldStore, dist);
 };
 
-//function pf(cc, a, wpplFn, numParticles) {
-//  return new ParticleFilter(cc,a, wpplFn, numParticles);
-//}
 
 ////// Lightweight MH on a particle
 
@@ -27651,17 +27659,6 @@ MHP.prototype.propose = function() {
 
   coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
 };
-
-//function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-//  var fw = -Math.log(oldTrace.length);
-//  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
-//  var bw = -Math.log(trace.length);
-//  oldTrace.slice(regenFrom).map(function(s){
-//                                var nc = findChoice(trace, s.name);
-//                                bw += (!nc || !nc.reused) ? s.choiceScore : 0; });
-//  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
-//  return acceptance;
-//}
 
 MHP.prototype.exit = function(s,val) {
 
@@ -27812,39 +27809,46 @@ for (var prop in runtime){
   }
 }
 
-function compile(code, verbose){
-  var programAst = esprima.parse(code);
+global['CACHED_WEBPPL_HEADER'] = undefined;
 
-  // Load WPPL header
-  var wpplHeaderAst = esprima.parse(Buffer("Ly8gRVJQcwoKdmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07CgoKLy8gWFJQcwoKdmFyIG1ha2VCZXRhQmVybm91bGxpID0gZnVuY3Rpb24ocHNldWRvY291bnRzKSB7CiAgZ2xvYmFsU3RvcmUuQkJpbmRleCA9IDEgKyAoZ2xvYmFsU3RvcmUuQkJpbmRleD09dW5kZWZpbmVkID8gMCA6IGdsb2JhbFN0b3JlLkJCaW5kZXgpOwogIHZhciBiYm5hbWUgPSAiQkIiK2dsb2JhbFN0b3JlLkJCaW5kZXg7CiAgZ2xvYmFsU3RvcmVbYmJuYW1lXSA9IHBzZXVkb2NvdW50czsKICByZXR1cm4gZnVuY3Rpb24oKXsKICAgIHZhciBwYyA9IGdsb2JhbFN0b3JlW2JibmFtZV07ICAvLyBnZXQgY3VycmVudCBzdWZmaWNpZW50IHN0YXRzCiAgICB2YXIgdmFsID0gc2FtcGxlKGJlcm5vdWxsaUVSUCwgW3BjWzBdLyhwY1swXStwY1sxXSldKTsgIC8vIHNhbXBsZSBmcm9tIHByZWRpY3RpdmUuCiAgICBnbG9iYWxTdG9yZVtiYm5hbWVdID0gW3BjWzBdK3ZhbCwgcGNbMV0rIXZhbF07ICAvLyB1cGRhdGUgc3VmZmljaWVudCBzdGF0cwogICAgcmV0dXJuIHZhbDsKICB9Owp9OwoKdmFyIG1ha2VEaXJpY2hsZXREaXNjcmV0ZSA9IGZ1bmN0aW9uKHBzZXVkb2NvdW50cykgewogIHZhciBhZGRDb3VudCA9IGZ1bmN0aW9uKGEsaSxqKSB7CiAgICB2YXIgaiA9IGo9PXVuZGVmaW5lZD8wOmo7CiAgICBpZihhLmxlbmd0aD09MCl7CiAgICAgIHJldHVybiBbXTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBbYVswXSArIChpPT1qKV0uY29uY2F0KGFkZENvdW50KGEuc2xpY2UoMSksaSxqKzEpKTsKICAgIH0KICB9OwogIGdsb2JhbFN0b3JlLkREaW5kZXggPSAxKyAoZ2xvYmFsU3RvcmUuRERpbmRleD09dW5kZWZpbmVkPzA6Z2xvYmFsU3RvcmUuRERpbmRleCk7CiAgdmFyIGRkbmFtZSA9ICJERCIrZ2xvYmFsU3RvcmUuRERpbmRleDsKICBnbG9iYWxTdG9yZVtkZG5hbWVdID0gcHNldWRvY291bnRzOwogIHJldHVybiBmdW5jdGlvbigpewogICAgdmFyIHBjID0gZ2xvYmFsU3RvcmVbZGRuYW1lXTsgIC8vIGdldCBjdXJyZW50IHN1ZmZpY2llbnQgc3RhdHMKICAgIHZhciB2YWwgPSBzYW1wbGUoZGlzY3JldGVFUlAsIFtwY10pOyAgLy8gc2FtcGxlIGZyb20gcHJlZGljdGl2ZS4gKGRvZXNuJ3QgbmVlZCB0byBiZSBub3JtYWxpemVkLikKICAgIGdsb2JhbFN0b3JlW2RkbmFtZV0gPSBhZGRDb3VudChwYywgdmFsKTsgLy8gdXBkYXRlIHN1ZmZpY2llbnQgc3RhdHMKICAgIHJldHVybiB2YWw7CiAgfTsKfTsKCgovLyBQcm9iYWJpbGl0eSBjb21wdXRhdGlvbnMgJiBjYWxjdWxhdGlvbnMKCnZhciBwbHVzID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYStiOyB9Owp2YXIgbWludXMgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhLWI7IH07CnZhciBtdWx0ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYSpiOyB9Owp2YXIgZGl2ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYS9iOyB9OwoKdmFyIGlkRiA9IGZ1bmN0aW9uKHgpeyByZXR1cm4geDsgfQoKdmFyIGV4cGVjdGF0aW9uID0gZnVuY3Rpb24oZXJwLCBmdW5jKXsKICB2YXIgZiA9IGZ1bmMgPT0gdW5kZWZpbmVkID8gaWRGIDogZnVuYzsKICB2YXIgc3VwcCA9IGVycC5zdXBwb3J0KFtdKTsKICByZXR1cm4gbWFwUmVkdWNlKHBsdXMsCiAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgZnVuY3Rpb24ocyl7cmV0dXJuIE1hdGguZXhwKGVycC5zY29yZShbXSxzKSkqZihzKX0sCiAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07Cgp2YXIgZW50cm9weSA9IGZ1bmN0aW9uKGVycCl7CiAgdmFyIHN1cHAgPSBlcnAuc3VwcG9ydChbXSk7CiAgcmV0dXJuIC1tYXBSZWR1Y2UocGx1cywKICAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgIGZ1bmN0aW9uKHMpe3ZhciBscCA9IGVycC5zY29yZShbXSxzKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBNYXRoLmV4cChscCkqbHAgfSwKICAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07CgoKLy8gRGF0YSBzdHJ1Y3R1cmVzICYgaGlnaGVyLW9yZGVyIGZ1bmN0aW9ucwoKdmFyIGFwcGVuZCA9IGZ1bmN0aW9uKGEsYikgewogIHJldHVybiBhLmNvbmNhdChiKTsKfTsKCnZhciBjb25zID0gZnVuY3Rpb24oYSxiKSB7IHJldHVybiBbYV0uY29uY2F0KGIpOyB9OwoKdmFyIHNub2MgPSBmdW5jdGlvbihhLGIpIHsgcmV0dXJuIGEuY29uY2F0KFtiXSk7IH07Cgp2YXIgZmlyc3QgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMF07IH07CnZhciBzZWNvbmQgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMV07IH07CnZhciB0aGlyZCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1syXTsgfTsKdmFyIGZvdXJ0aCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1szXTsgfTsKdmFyIHNlY29uZExhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAyXTsgfTsKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAxXTsgfTsKCnZhciBtYXAgPSBmdW5jdGlvbihmbixhcikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IFtmbihhclswXSldLmNvbmNhdChtYXAoZm4sIGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgbWFwMiA9IGZ1bmN0aW9uKGYsbDEsbDIpIHsKICByZXR1cm4gbDEubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW2YobDFbMF0sbDJbMF0pXS5jb25jYXQobWFwMihmLCBsMS5zbGljZSgxKSwgbDIuc2xpY2UoMSkpKTsKfTsKCnZhciByZWR1Y2UgPSBmdW5jdGlvbihmbixpbml0LGFyKXsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gaW5pdCA6IGZuKGFyWzBdLCByZWR1Y2UoZm4saW5pdCxhci5zbGljZSgxKSkpOwp9OwoKdmFyIG1hcFJlZHVjZSA9IGZ1bmN0aW9uKGYsaW5pdCxnLGFyKXsKICByZXR1cm4gcmVkdWNlKGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gZihnKGEpLGIpOyB9LCBnKGluaXQpLCBhcik7Cn07Cgp2YXIgc3VtID0gZnVuY3Rpb24obCkgeyByZXR1cm4gcmVkdWNlKHBsdXMsIDAsIGwpOyB9OwoKdmFyIHByb2R1Y3QgPSBmdW5jdGlvbihsKSB7IHJldHVybiByZWR1Y2UobXVsdCwgMSwgbCk7IH07Cgp2YXIgemlwID0gZnVuY3Rpb24oeHMsIHlzKXsKICByZXR1cm4geHMubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW1t4c1swXSwgeXNbMF1dXS5jb25jYXQoemlwKHhzLnNsaWNlKDEpLCB5cy5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbHRlciA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwCiAgICA/IFtdCiAgICA6IGFwcGVuZChmbihhclswXSkgPyBbYXJbMF1dIDogW10sIGZpbHRlcihmbixhci5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihmLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwID8gdW5kZWZpbmVkIDogKGYoYXJbMF0pID8gYXJbMF0gOiBmaW5kKGYsYXIuc2xpY2UoMSkpKTsKfTsKCnZhciByZW1vdmUgPSBmdW5jdGlvbihhLGFyKSB7CiAgcmV0dXJuIGZpbHRlcihmdW5jdGlvbihlKSB7IHJldHVybiBhICE9IGU7fSwgYXIpOwp9OwoKdmFyIGRyb3AgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID4gYXIubGVuZ3RoID8gW10gOiBhci5zbGljZShuKTsgfTsKCnZhciB0YWtlID0gZnVuY3Rpb24obixhcikgeyByZXR1cm4gbiA+PSBhci5sZW5ndGggPyBhciA6IGFyLnNsaWNlKDAsbik7IH07Cgp2YXIgZHJvcFdoaWxlID0gZnVuY3Rpb24ocCwgYXIpIHsKICByZXR1cm4gcChhclswXSkgPyBkcm9wV2hpbGUocCxhci5zbGljZSgxKSkgOiBhcjsKfTsKCnZhciB0YWtlV2hpbGUgPSBmdW5jdGlvbihwLCBhcikgewogIHJldHVybiBwKGFyWzBdKSA/IGNvbnMoYXJbMF0sdGFrZVdoaWxlKHAsYXIuc2xpY2UoMSkpKSA6IFtdOwp9OwoKdmFyIGluZGV4T2YgPSBmdW5jdGlvbih4LCB4cykgewogIHZhciBmbiA9IGZ1bmN0aW9uKHhzLCBpKSB7CiAgICByZXR1cm4gKHhzLmxlbmd0aCA9PSAwKSA/IHVuZGVmaW5lZCA6IHggPT0geHNbMF0gPyBpIDogZm4oeHMuc2xpY2UoMSksIGkrMSk7CiAgfTsKICByZXR1cm4gZm4oeHMsIDApOwp9OwoKdmFyIHNwYW4gPSBmdW5jdGlvbihwLCBhcikgewogIHZhciBmbiA9IGZ1bmN0aW9uKGFyLF90cyxfZnMpIHsKICAgIHJldHVybiBhci5sZW5ndGggPT0gMAogICAgICA/IFtfdHMsIF9mc10KICAgICAgOiBwKGFyWzBdKQogICAgICAgID8gZm4oYXIuc2xpY2UoMSksIHNub2MoX3RzLGFyWzBdKSwgX2ZzKQogICAgICAgIDogZm4oYXIuc2xpY2UoMSksIF90cywgc25vYyhfZnMsYXJbMF0pKTsKICB9OwogIHJldHVybiBmbihhcixbXSxbXSk7Cn07Cgp2YXIgZ3JvdXBCeSA9IGZ1bmN0aW9uKGNtcCwgYXIpIHsKICBpZiAoYXIubGVuZ3RoID09IDApIHsKICAgIHJldHVybiBbXTsKICB9IGVsc2UgewogICAgdmFyIHggPSBhclswXTsKICAgIHZhciBzcCA9IHNwYW4oZnVuY3Rpb24oYikgeyByZXR1cm4gY21wKHgsYik7IH0sIGFyLnNsaWNlKDEpKTsKICAgIHJldHVybiBbY29ucyh4LHNwWzBdKV0uY29uY2F0KGdyb3VwQnkoY21wLHNwWzFdKSk7CiAgfQp9OwoKdmFyIHJlcGVhdCA9IGZ1bmN0aW9uKG4sIGZuKXsKICByZXR1cm4gbiA9PSAwID8gW10gOiBhcHBlbmQocmVwZWF0KG4tMSwgZm4pLCBbZm4oKV0pOwp9OwoKdmFyIHB1c2ggPSBmdW5jdGlvbih4cywgeCl7CiAgcmV0dXJuIHhzLmNvbmNhdChbeF0pOwp9OwoKdmFyIGNvbXBvc2UgPSBmdW5jdGlvbihmLCBnKXsKICByZXR1cm4gZnVuY3Rpb24oeCl7CiAgICByZXR1cm4gZihnKHgpKTsKICB9Owp9Owo=","base64"));
+function addHeaderAst(targetAst, headerAst){
+  targetAst.body = headerAst.body.concat(targetAst.body);
+  return targetAst;
+}
 
-  // Concat WPPL header and program code
-  programAst.body = wpplHeaderAst.body.concat(programAst.body);
+function compile(programCode, verbose){
+  if (console.time){console.time('compile');}
 
-  // Apply naming transform to WPPL code
-  var newProgramAst = naming(programAst);
+  var programAst, headerAst;
 
-  // Apply CPS transform to WPPL code
-  newProgramAst = cps(newProgramAst, build.identifier("topK"));
+  var _compile = function(code, contName){
+    var ast = esprima.parse(code);
+    ast = naming(ast);
+    ast = cps(ast, build.identifier(contName));
+    ast = store(ast);
+    ast = optimize(ast);
+    return ast;
+  };
 
-  // Apply store passing transform to generated code
-  newProgramAst = store(newProgramAst);
-
-  // Optimize code
-  newProgramAst = optimize(newProgramAst);
-
-  // Print converted code
-  if (verbose){
-    var originalCode = escodegen.generate(programAst);
-    var newCode = escodegen.generate(newProgramAst);
-    console.log("\n* Original code:\n");
-    console.log(originalCode);
-    console.log("\n* CPS code:\n");
-    console.log(newCode);
+  // Compile & cache WPPL header
+  if (global.CACHED_WEBPPL_HEADER){
+    headerAst = global.CACHED_WEBPPL_HEADER;
+  } else {
+    var headerCode = Buffer("Ly8gRVJQcwoKdmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07CgoKLy8gWFJQcwoKdmFyIG1ha2VCZXRhQmVybm91bGxpID0gZnVuY3Rpb24ocHNldWRvY291bnRzKSB7CiAgZ2xvYmFsU3RvcmUuQkJpbmRleCA9IDEgKyAoZ2xvYmFsU3RvcmUuQkJpbmRleD09dW5kZWZpbmVkID8gMCA6IGdsb2JhbFN0b3JlLkJCaW5kZXgpOwogIHZhciBiYm5hbWUgPSAiQkIiK2dsb2JhbFN0b3JlLkJCaW5kZXg7CiAgZ2xvYmFsU3RvcmVbYmJuYW1lXSA9IHBzZXVkb2NvdW50czsKICByZXR1cm4gZnVuY3Rpb24oKXsKICAgIHZhciBwYyA9IGdsb2JhbFN0b3JlW2JibmFtZV07ICAvLyBnZXQgY3VycmVudCBzdWZmaWNpZW50IHN0YXRzCiAgICB2YXIgdmFsID0gc2FtcGxlKGJlcm5vdWxsaUVSUCwgW3BjWzBdLyhwY1swXStwY1sxXSldKTsgIC8vIHNhbXBsZSBmcm9tIHByZWRpY3RpdmUuCiAgICBnbG9iYWxTdG9yZVtiYm5hbWVdID0gW3BjWzBdK3ZhbCwgcGNbMV0rIXZhbF07ICAvLyB1cGRhdGUgc3VmZmljaWVudCBzdGF0cwogICAgcmV0dXJuIHZhbDsKICB9Owp9OwoKdmFyIG1ha2VEaXJpY2hsZXREaXNjcmV0ZSA9IGZ1bmN0aW9uKHBzZXVkb2NvdW50cykgewogIHZhciBhZGRDb3VudCA9IGZ1bmN0aW9uKGEsaSxqKSB7CiAgICB2YXIgaiA9IGo9PXVuZGVmaW5lZD8wOmo7CiAgICBpZihhLmxlbmd0aD09MCl7CiAgICAgIHJldHVybiBbXTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBbYVswXSArIChpPT1qKV0uY29uY2F0KGFkZENvdW50KGEuc2xpY2UoMSksaSxqKzEpKTsKICAgIH0KICB9OwogIGdsb2JhbFN0b3JlLkREaW5kZXggPSAxKyAoZ2xvYmFsU3RvcmUuRERpbmRleD09dW5kZWZpbmVkPzA6Z2xvYmFsU3RvcmUuRERpbmRleCk7CiAgdmFyIGRkbmFtZSA9ICJERCIrZ2xvYmFsU3RvcmUuRERpbmRleDsKICBnbG9iYWxTdG9yZVtkZG5hbWVdID0gcHNldWRvY291bnRzOwogIHJldHVybiBmdW5jdGlvbigpewogICAgdmFyIHBjID0gZ2xvYmFsU3RvcmVbZGRuYW1lXTsgIC8vIGdldCBjdXJyZW50IHN1ZmZpY2llbnQgc3RhdHMKICAgIHZhciB2YWwgPSBzYW1wbGUoZGlzY3JldGVFUlAsIFtwY10pOyAgLy8gc2FtcGxlIGZyb20gcHJlZGljdGl2ZS4gKGRvZXNuJ3QgbmVlZCB0byBiZSBub3JtYWxpemVkLikKICAgIGdsb2JhbFN0b3JlW2RkbmFtZV0gPSBhZGRDb3VudChwYywgdmFsKTsgLy8gdXBkYXRlIHN1ZmZpY2llbnQgc3RhdHMKICAgIHJldHVybiB2YWw7CiAgfTsKfTsKCgovLyBQcm9iYWJpbGl0eSBjb21wdXRhdGlvbnMgJiBjYWxjdWxhdGlvbnMKCnZhciBwbHVzID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYStiOyB9Owp2YXIgbWludXMgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhLWI7IH07CnZhciBtdWx0ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYSpiOyB9Owp2YXIgZGl2ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYS9iOyB9OwoKdmFyIGlkRiA9IGZ1bmN0aW9uKHgpeyByZXR1cm4geDsgfQoKdmFyIGV4cGVjdGF0aW9uID0gZnVuY3Rpb24oZXJwLCBmdW5jKXsKICB2YXIgZiA9IGZ1bmMgPT0gdW5kZWZpbmVkID8gaWRGIDogZnVuYzsKICB2YXIgc3VwcCA9IGVycC5zdXBwb3J0KFtdKTsKICByZXR1cm4gbWFwUmVkdWNlKHBsdXMsCiAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgZnVuY3Rpb24ocyl7cmV0dXJuIE1hdGguZXhwKGVycC5zY29yZShbXSxzKSkqZihzKX0sCiAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07Cgp2YXIgZW50cm9weSA9IGZ1bmN0aW9uKGVycCl7CiAgdmFyIHN1cHAgPSBlcnAuc3VwcG9ydChbXSk7CiAgcmV0dXJuIC1tYXBSZWR1Y2UocGx1cywKICAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgIGZ1bmN0aW9uKHMpe3ZhciBscCA9IGVycC5zY29yZShbXSxzKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBNYXRoLmV4cChscCkqbHAgfSwKICAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07CgoKLy8gRGF0YSBzdHJ1Y3R1cmVzICYgaGlnaGVyLW9yZGVyIGZ1bmN0aW9ucwoKdmFyIGFwcGVuZCA9IGZ1bmN0aW9uKGEsYikgewogIHJldHVybiBhLmNvbmNhdChiKTsKfTsKCnZhciBjb25zID0gZnVuY3Rpb24oYSxiKSB7IHJldHVybiBbYV0uY29uY2F0KGIpOyB9OwoKdmFyIHNub2MgPSBmdW5jdGlvbihhLGIpIHsgcmV0dXJuIGEuY29uY2F0KFtiXSk7IH07Cgp2YXIgZmlyc3QgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMF07IH07CnZhciBzZWNvbmQgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMV07IH07CnZhciB0aGlyZCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1syXTsgfTsKdmFyIGZvdXJ0aCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1szXTsgfTsKdmFyIHNlY29uZExhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAyXTsgfTsKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAxXTsgfTsKCnZhciBtYXAgPSBmdW5jdGlvbihmbixhcikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IFtmbihhclswXSldLmNvbmNhdChtYXAoZm4sIGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgbWFwMiA9IGZ1bmN0aW9uKGYsbDEsbDIpIHsKICByZXR1cm4gbDEubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW2YobDFbMF0sbDJbMF0pXS5jb25jYXQobWFwMihmLCBsMS5zbGljZSgxKSwgbDIuc2xpY2UoMSkpKTsKfTsKCnZhciByZWR1Y2UgPSBmdW5jdGlvbihmbixpbml0LGFyKXsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gaW5pdCA6IGZuKGFyWzBdLCByZWR1Y2UoZm4saW5pdCxhci5zbGljZSgxKSkpOwp9OwoKdmFyIG1hcFJlZHVjZSA9IGZ1bmN0aW9uKGYsaW5pdCxnLGFyKXsKICByZXR1cm4gcmVkdWNlKGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gZihnKGEpLGIpOyB9LCBnKGluaXQpLCBhcik7Cn07Cgp2YXIgc3VtID0gZnVuY3Rpb24obCkgeyByZXR1cm4gcmVkdWNlKHBsdXMsIDAsIGwpOyB9OwoKdmFyIHByb2R1Y3QgPSBmdW5jdGlvbihsKSB7IHJldHVybiByZWR1Y2UobXVsdCwgMSwgbCk7IH07Cgp2YXIgemlwID0gZnVuY3Rpb24oeHMsIHlzKXsKICByZXR1cm4geHMubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW1t4c1swXSwgeXNbMF1dXS5jb25jYXQoemlwKHhzLnNsaWNlKDEpLCB5cy5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbHRlciA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwCiAgICA/IFtdCiAgICA6IGFwcGVuZChmbihhclswXSkgPyBbYXJbMF1dIDogW10sIGZpbHRlcihmbixhci5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihmLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwID8gdW5kZWZpbmVkIDogKGYoYXJbMF0pID8gYXJbMF0gOiBmaW5kKGYsYXIuc2xpY2UoMSkpKTsKfTsKCnZhciByZW1vdmUgPSBmdW5jdGlvbihhLGFyKSB7CiAgcmV0dXJuIGZpbHRlcihmdW5jdGlvbihlKSB7IHJldHVybiBhICE9IGU7fSwgYXIpOwp9OwoKdmFyIGRyb3AgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID4gYXIubGVuZ3RoID8gW10gOiBhci5zbGljZShuKTsgfTsKCnZhciB0YWtlID0gZnVuY3Rpb24obixhcikgeyByZXR1cm4gbiA+PSBhci5sZW5ndGggPyBhciA6IGFyLnNsaWNlKDAsbik7IH07Cgp2YXIgZHJvcFdoaWxlID0gZnVuY3Rpb24ocCwgYXIpIHsKICByZXR1cm4gcChhclswXSkgPyBkcm9wV2hpbGUocCxhci5zbGljZSgxKSkgOiBhcjsKfTsKCnZhciB0YWtlV2hpbGUgPSBmdW5jdGlvbihwLCBhcikgewogIHJldHVybiBwKGFyWzBdKSA/IGNvbnMoYXJbMF0sdGFrZVdoaWxlKHAsYXIuc2xpY2UoMSkpKSA6IFtdOwp9OwoKdmFyIGluZGV4T2YgPSBmdW5jdGlvbih4LCB4cykgewogIHZhciBmbiA9IGZ1bmN0aW9uKHhzLCBpKSB7CiAgICByZXR1cm4gKHhzLmxlbmd0aCA9PSAwKSA/IHVuZGVmaW5lZCA6IHggPT0geHNbMF0gPyBpIDogZm4oeHMuc2xpY2UoMSksIGkrMSk7CiAgfTsKICByZXR1cm4gZm4oeHMsIDApOwp9OwoKdmFyIHNwYW4gPSBmdW5jdGlvbihwLCBhcikgewogIHZhciBmbiA9IGZ1bmN0aW9uKGFyLF90cyxfZnMpIHsKICAgIHJldHVybiBhci5sZW5ndGggPT0gMAogICAgICA/IFtfdHMsIF9mc10KICAgICAgOiBwKGFyWzBdKQogICAgICAgID8gZm4oYXIuc2xpY2UoMSksIHNub2MoX3RzLGFyWzBdKSwgX2ZzKQogICAgICAgIDogZm4oYXIuc2xpY2UoMSksIF90cywgc25vYyhfZnMsYXJbMF0pKTsKICB9OwogIHJldHVybiBmbihhcixbXSxbXSk7Cn07Cgp2YXIgZ3JvdXBCeSA9IGZ1bmN0aW9uKGNtcCwgYXIpIHsKICBpZiAoYXIubGVuZ3RoID09IDApIHsKICAgIHJldHVybiBbXTsKICB9IGVsc2UgewogICAgdmFyIHggPSBhclswXTsKICAgIHZhciBzcCA9IHNwYW4oZnVuY3Rpb24oYikgeyByZXR1cm4gY21wKHgsYik7IH0sIGFyLnNsaWNlKDEpKTsKICAgIHJldHVybiBbY29ucyh4LHNwWzBdKV0uY29uY2F0KGdyb3VwQnkoY21wLHNwWzFdKSk7CiAgfQp9OwoKdmFyIHJlcGVhdCA9IGZ1bmN0aW9uKG4sIGZuKXsKICByZXR1cm4gbiA9PSAwID8gW10gOiBhcHBlbmQocmVwZWF0KG4tMSwgZm4pLCBbZm4oKV0pOwp9OwoKdmFyIHB1c2ggPSBmdW5jdGlvbih4cywgeCl7CiAgcmV0dXJuIHhzLmNvbmNhdChbeF0pOwp9OwoKdmFyIGNvbXBvc2UgPSBmdW5jdGlvbihmLCBnKXsKICByZXR1cm4gZnVuY3Rpb24oeCl7CiAgICByZXR1cm4gZihnKHgpKTsKICB9Owp9Owo=","base64");
+    headerAst = _compile(headerCode, 'dummyCont');
+    // remove final continuation call, since header contains only defs
+    headerAst.body = headerAst.body.slice(0, headerAst.body.length-1);
+    global['CACHED_WEBPPL_HEADER'] = headerAst;
   }
 
-  // Generate program code
-  return escodegen.generate(newProgramAst);
+  // Compile program code
+  programAst = _compile(programCode, 'topK');
+  console.log(escodegen.generate(programAst));
+
+  var out = escodegen.generate(addHeaderAst(programAst, headerAst));
+
+  if (console.timeEnd){console.timeEnd('compile');}
+  return out;
 }
 
 function run(code, contFun, verbose){

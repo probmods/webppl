@@ -22,39 +22,47 @@ for (var prop in runtime){
   }
 }
 
-function compile(code, verbose){
-  var programAst = esprima.parse(code);
+global['CACHED_WEBPPL_HEADER'] = undefined;
 
-  // Load WPPL header
-  var wpplHeaderAst = esprima.parse(fs.readFileSync(__dirname + "/header.wppl"));
+function addHeaderAst(targetAst, headerAst){
+  targetAst.body = headerAst.body.concat(targetAst.body);
+  return targetAst;
+}
 
-  // Concat WPPL header and program code
-  programAst.body = wpplHeaderAst.body.concat(programAst.body);
+function compile(programCode, verbose){
+  if (console.time){console.time('compile');}
 
-  // Apply naming transform to WPPL code
-  var newProgramAst = naming(programAst);
+  var programAst, headerAst;
 
-  // Apply CPS transform to WPPL code
-  newProgramAst = cps(newProgramAst, build.identifier("topK"));
+  var _compile = function(code, contName){
+    var ast = esprima.parse(code);
+    ast = naming(ast);
+    ast = cps(ast, build.identifier(contName));
+    ast = store(ast);
+    ast = optimize(ast);
+    return ast;
+  };
 
-  // Apply store passing transform to generated code
-  newProgramAst = store(newProgramAst);
-
-  // Optimize code
-  newProgramAst = optimize(newProgramAst);
-
-  // Print converted code
-  if (verbose){
-    var originalCode = escodegen.generate(programAst);
-    var newCode = escodegen.generate(newProgramAst);
-    console.log("\n* Original code:\n");
-    console.log(originalCode);
-    console.log("\n* CPS code:\n");
-    console.log(newCode);
+  // Compile & cache WPPL header
+  if (global.CACHED_WEBPPL_HEADER){
+    headerAst = global.CACHED_WEBPPL_HEADER;
+  } else {
+    var headerCode = fs.readFileSync(__dirname + "/header.wppl");
+    headerAst = _compile(headerCode, 'dummyCont');
+    // remove final continuation call, since header contains only defs
+    headerAst.body = headerAst.body.slice(0, headerAst.body.length-1);
+    global['CACHED_WEBPPL_HEADER'] = headerAst;
   }
 
-  // Generate program code
-  return escodegen.generate(newProgramAst);
+  // Compile program code
+  programAst = _compile(programCode, 'topK');
+  console.log(escodegen.generate(programAst));
+
+  // Concatenate header and program
+  var out = escodegen.generate(addHeaderAst(programAst, headerAst));
+
+  if (console.timeEnd){console.timeEnd('compile');}
+  return out;
 }
 
 function run(code, contFun, verbose){
