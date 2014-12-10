@@ -27748,6 +27748,7 @@ function getAddress(store, k, a){
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
+  _: _,
   ERP: ERP,
   Enumerate: enuPriority,
   EnumerateBreadthFirst: enuFifo,
