@@ -105,7 +105,7 @@ function cpsBlock(nodes, cont){
   if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
     // Function declarations that occur as the first nodes in a block
     // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.      
+    // occurs. This allows us to define functions at the top-level scope.
     var node = nodes[0];
     var newBlockElementNode;
     assert.equal(node.declarations.length, 1);
@@ -135,12 +135,12 @@ function cpsBlock(nodes, cont){
 // we assume that a function called as a method is primitive (a hack,
 // for simplicity). have to wrap up the object in case it's compound.
 function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
-  var objNode = opNode.object
+  var objNode = opNode.object;
   var nodes = [objNode].concat(argNodes);
   return cpsSequence(
     function (nodes){return (nodes.length == 0);},
     function(nodes, vars){
-      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
+      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed);
       return build.callExpression(
         cont,
         [build.callExpression(memberNode, vars.slice(1))]);
