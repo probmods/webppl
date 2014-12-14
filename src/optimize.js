@@ -27,7 +27,7 @@ function createPipeline() {
     'pass/remove-empty-statement',
     'pass/remove-wasted-blocks',
     'pass/transform-to-compound-assignment',
-    'pass/transform-to-sequence-expression',
+ //    'pass/transform-to-sequence-expression',
     'pass/transform-branch-to-expression',
     'pass/transform-typeof-undefined',
     'pass/reduce-sequence-expression',
