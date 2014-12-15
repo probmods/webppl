@@ -467,7 +467,7 @@ function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
   this.queue = Q; // Queue of states that we have yet to explore
   this.marginal = {}; // We will accumulate the marginal distribution here
   this.numCompletedExecutions = 0;
-  this.maxExecutions = maxExecutions || 1000;
+  this.maxExecutions = maxExecutions || Infinity;
 
   this.oldStore = s; // will be reinstated at the end
 
