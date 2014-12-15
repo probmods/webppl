@@ -5,6 +5,27 @@ var webppl = require('./src/main');
 var parseArgs = require('minimist');
 var path = require('path');
 
+function isErp(x){
+  return (x && (x.score != undefined) && (x.sample != undefined));
+}
+
+function isErpWithSupport(x){
+  return (isErp(x) && (x.support != undefined));
+}
+
+function printWebPPLValue(x){
+  if (isErpWithSupport(x)){
+    console.log('ERP:');
+    var erpValues = x.support([]);
+    erpValues.forEach(
+      function(value){
+        console.log('    ' + value + ': ' + Math.exp(x.score([], value)));
+      });
+  } else {
+    console.log(x);
+  }
+}
+
 var getModuleName = function(req){
   if (req.indexOf("/") != -1) {
     xs = req.split("/");
@@ -33,7 +54,7 @@ function run(code, requires, verbose){
   webppl_eval(
     function(s, x){
       console.log("\n* Program return value:\n");
-      console.log(x);
+      printWebPPLValue(x);
     },
     code,
     verbose)
@@ -51,7 +72,7 @@ function compile(code, requires, verbose, outputFile){
   });
   compiledCode += ("var topK = function(x){ " + 
                    " console.log('\\n* Program return value:\\n');" +
-                   " console.log(x); };\n");
+                   " printWebPPLValue(x); };\n");
   compiledCode += webppl.compile(code, verbose);
   // Write Javascript code to file  
   fs.writeFile(
