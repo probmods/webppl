@@ -54,13 +54,6 @@ var logsumexp = function(a) {
 	return m + Math.log(sum);
 };
 
-var withEmptyStack = function(thunk){
-  var id = setInterval(function() {
-    clearInterval(id);
-    thunk();
-  }, 0);
-};
-
 var copyObj = function(obj){
   var newobj = {};
   for(var k in obj){
@@ -78,6 +71,5 @@ module.exports = {
   logsumexp: logsumexp,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
-  runningInBrowser: runningInBrowser,
-  withEmptyStack: withEmptyStack
+  runningInBrowser: runningInBrowser
 };

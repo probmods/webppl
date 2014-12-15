@@ -1,5 +1,6 @@
 "use strict";
 
+var assert = require('assert');
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
@@ -493,15 +494,7 @@ var stackSize = 0;
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  //  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-
-  stackSize++;
-  if (stackSize == 5) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value);});
-  } else {
-    nextState.continuation(nextState.store, nextState.value);
-    stackSize = 0;
-  }
+  nextState.continuation(nextState.store, nextState.value);
 };
 
 
@@ -656,7 +649,7 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store);});
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -776,7 +769,7 @@ function MH(s, k, a, wpplFn, numIterations) {
 
 MH.prototype.factor = function(s, k, a, score) {
   coroutine.currScore += score;
-  util.withEmptyStack(function(){k(s);});
+  k(s);
 };
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
@@ -996,7 +989,7 @@ PMCMC.prototype.factor = function(s, cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeContinuationWithStore());
+  this.activeContinuationWithStore()();
 };
 
 PMCMC.prototype.exit = function(s, retval) {
@@ -1056,41 +1049,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 
 
 ////////////////////////////////////////////////////////////////////
-// Some primitive functions to make things simpler
-
-function display(k, a, x) {
-  k(console.log(x));
-}
-
-//function callPrimitive(k, a, f) {
-//  var args = Array.prototype.slice.call(arguments, 2);
-//  k(f.apply(f, args));
-//}
-
-// Caching for a wppl function f. caution: if f isn't deterministic
-// weird stuff can happen, since caching is across all uses of f, even
-// in different execuation paths.
-function cache(k, a, f) {
-  var c = {};
-  var cf = function(k) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    var stringedArgs = JSON.stringify(args)
-    if (stringedArgs in c) {
-      k(c[stringedArgs]);
-    } else {
-      var newk = function(r) {
-        c[stringedArgs] = r;
-        k(r);
-      };
-      f.apply(this, [newk].concat(args));
-    }
-  };
-  k(cf);
-}
-
-
-
-////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
 //
 // Sequential importance re-sampling, which treats 'factor' calls as
@@ -1101,13 +1059,14 @@ function cache(k, a, f) {
 // if rejuvSteps==0 this is a plain PF without any MH.
 
 
-function ParticleFilterRejuv(s,k,a, wpplFn, numParticles,rejuvSteps) {
+function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
   this.rejuvSteps = rejuvSteps;
   this.baseAddress = a;
   this.wpplFn = wpplFn;
+  this.isParticleFilterRejuvCoroutine = true;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
@@ -1160,6 +1119,9 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     //rejuvenate each particle via MH
     coroutine.particles.forEach(
       function(particle,i,particles){
+        // make sure mhp coroutine doesn't escape:
+        assert(coroutine.isParticleFilterRejuvCoroutine);
+        // FIXME: run trampolining loop around MHP call
         new MHP(function(p){particles[i]=p;},
                 particle, coroutine.baseAddress,
                 a, coroutine.wpplFn, coroutine.rejuvSteps);
@@ -1170,7 +1132,7 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     coroutine.particleIndex += 1;
   }
 
-  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store);});
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1252,6 +1214,9 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
   //Final rejuvenation:
   coroutine.particles.forEach(
     function(particle,i,particles){
+      // make sure mhp coroutine doesn't escape:
+      assert(coroutine.isParticleFilterRejuvCoroutine);
+      // FIXME: run trampolining loop around MHP call
       new MHP(function(p){particles[i]=p;},
               particle, coroutine.baseAddress,
               undefined, coroutine.wpplFn, coroutine.rejuvSteps);
@@ -1296,9 +1261,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
 
   // FIXME: do we need to save the store here?
 
-  //  console.log("MH "+numIterations+" steps")
-
-  if(numIterations==0) {
+  if (numIterations==0) {
     backToPF(particle);
   } else {
     // Move PF coroutine out of the way and install this as the current
@@ -1311,7 +1274,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
 
 MHP.prototype.factor = function(s,k,a,sc) {
   coroutine.currScore += sc;
-  if(a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
+  if (a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
     exit(s);
   } else {
     k(s);
@@ -1327,12 +1290,11 @@ MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
                        score: coroutine.currScore, choiceScore: choiceScore,
                        val: val, reused: reuse, store:s});
   coroutine.currScore += choiceScore;
-  k(s,val);
+  k(s, val);
 };
 
 
 MHP.prototype.propose = function() {
-  //  console.log("MH proposal it: "+coroutine.iterations+"")
   //make a new proposal:
   coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
   var regen = coroutine.trace[coroutine.regenFrom];
@@ -1380,6 +1342,7 @@ MHP.prototype.exit = function(s,val) {
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
+  console.log('WARNING: Particle Filter with Rejuvenation not supported when using trampolining!');
   return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
@@ -1389,7 +1352,7 @@ function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
 // Some primitive functions to make things simpler
 
 function display(s,k, a, x) {
-  k(s,console.log(x));
+  k(s, console.log(x));
 }
 
 // Caching for a wppl function f. caution: if f isn't deterministic
@@ -1414,12 +1377,6 @@ function cache(s,k, a, f) {
   k(s,cf);
 }
 
-function withEmptyWebPPLStack(store, k, a, thunk){
-  util.withEmptyStack(function(){
-    return thunk(store, k, a);
-  });
-}
-
 function getAddress(store, k, a){
   var addressArray = a.split("_").slice(1);
   for (var i=0; i<addressArray.length; i++){
@@ -1427,6 +1384,7 @@ function getAddress(store, k, a){
   }
   k(store, addressArray);
 }
+
 
 
 ////////////////////////////////////////////////////////////////////
@@ -1465,6 +1423,5 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
-  util: util,
-  withEmptyStack: withEmptyWebPPLStack
+  util: util
 };

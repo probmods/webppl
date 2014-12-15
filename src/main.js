@@ -1,18 +1,21 @@
 "use strict";
 
+var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var types = require("ast-types");
 var build = types.builders;
 var esprima = require("esprima");
 var escodegen = require("escodegen");
-var cps = require("./cps.js").cps;
-var optimize = require("./optimize.js").optimize;
-var naming = require("./naming.js").naming;
+var cps = require("./cps").cps;
+var optimize = require("./optimize").optimize;
+var naming = require("./naming").naming;
 var store = require("./store").store;
-var util = require("./util.js");
+var trampoline = require("./trampoline").trampoline;
+var util = require("./util");
 
 var topK;
+var _trampoline;
 
 // Make runtime stuff globally available:
 var runtime = require("./header.js");
@@ -34,12 +37,25 @@ function compile(programCode, verbose){
 
   var programAst, headerAst;
 
-  var _compile = function(code, contName){
+  var _compile = function(code, contName, isHeader){
     var ast = esprima.parse(code);
+    var cont = build.identifier(contName);
     ast = naming(ast);
-    ast = cps(ast, build.identifier(contName));
+    ast = cps(ast, cont);
+    if (isHeader){
+      // header contains only function definitions, so remove
+      // unnecessary final dummy continuation call
+      var x = ast.body[0];
+      var lastNode = x.body[x.body.length-1];
+      assert(types.namedTypes.ExpressionStatement.check(lastNode));
+      assert(types.namedTypes.CallExpression.check(lastNode.expression));
+      assert(types.namedTypes.Identifier.check(lastNode.expression.callee));
+      assert.equal(lastNode.expression.callee.name, 'dummyCont');
+      x.body = x.body.slice(0, x.body.length-1);
+    }
     ast = store(ast);
     ast = optimize(ast);
+    ast = trampoline(ast, cont, isHeader);
     return ast;
   };
 
@@ -48,14 +64,12 @@ function compile(programCode, verbose){
     headerAst = global.CACHED_WEBPPL_HEADER;
   } else {
     var headerCode = fs.readFileSync(__dirname + "/header.wppl");
-    headerAst = _compile(headerCode, 'dummyCont');
-    // remove final continuation call, since header contains only defs
-    headerAst.body = headerAst.body.slice(0, headerAst.body.length-1);
+    headerAst = _compile(headerCode, 'dummyCont', true);
     global['CACHED_WEBPPL_HEADER'] = headerAst;
   }
 
   // Compile program code
-  programAst = _compile(programCode, 'topK');
+  programAst = _compile(programCode, 'topK', false);
   if (verbose){
     console.log(escodegen.generate(programAst));
   }
@@ -68,7 +82,10 @@ function compile(programCode, verbose){
 }
 
 function run(code, contFun, verbose){
-  topK = contFun;  // Install top-level continuation
+  topK = function(s, x){
+    _trampoline = null;
+    contFun(s, x);
+  }
   var compiledCode = compile(code, verbose);
   return eval(compiledCode);
 }
@@ -76,11 +93,11 @@ function run(code, contFun, verbose){
 // Compile and run some webppl code in global scope:
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
+  global._trampoline = undefined;
   global.topK = function(s,x){  // Install top-level continuation
+    global._trampoline = null;
     k(s,x);
     global.topK = oldk;
-    // FIXME: This may not work correctly if the evaluated code
-    // uses setTimeout/setInterval
   };
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode);
@@ -89,7 +106,7 @@ function webppl_eval(k, code, verbose) {
 // For use in browser
 function webpplCPS(code){
   var programAst = esprima.parse(code);
-  var newProgramAst = cps(programAst, build.identifier("topK"));
+  var newProgramAst = cps.cps(programAst, build.identifier("topK"));
   return escodegen.generate(newProgramAst);
 }
 function webpplNaming(code){
