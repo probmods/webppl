@@ -138,7 +138,7 @@ function gammaSample(params){
   var a = params[0];
   var b = params[1];
   if (a < 1) {
-    return gammaSample(1+a,b) * Math.pow(Math.random(), 1/a);
+    return gammaSample([1+a,b]) * Math.pow(Math.random(), 1/a);
   }
   var x, v, u;
   var d = a-1/3;
