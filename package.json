@@ -15,6 +15,7 @@
     "estemplate": "^0.4.0",
     "estraverse": "^1.8.0",
     "esutils": "^1.1.6",
+    "git-rev": "^0.2.1",
     "minimist": "^1.1.0",
     "nodeunit": "^0.9.0",
     "priorityqueuejs": "^0.2.0",
