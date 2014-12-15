@@ -55,7 +55,7 @@ function compile(programCode, verbose){
     }
     ast = store(ast);
     ast = optimize(ast);
-    ast = trampoline(ast, cont, isHeader);
+    ast = trampoline(ast, isHeader);
     return ast;
   };
 

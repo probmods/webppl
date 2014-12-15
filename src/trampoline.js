@@ -37,9 +37,7 @@ function trampoline(node) {
 }
 
 
-function trampolineMain(node, cont, noWrapping) {
-
-  assert(types.namedTypes.Identifier.check(cont));
+function trampolineMain(node, noWrapping) {
 
   node = estraverse.replace(node, {leave: function(n){return trampoline(n);}});
 

@@ -78,7 +78,7 @@ var transformAstOptimize = function(ast){
 
 var transformAstTrampoline = function(ast){
   var newAst = transformAstOptimize(ast);
-  return trampoline(newAst, build.identifier('topK'), false);
+  return trampoline(newAst, false);
 };
 
 
