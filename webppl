@@ -4,7 +4,7 @@ var fs = require('fs');
 var webppl = require('./src/main');
 var parseArgs = require('minimist');
 var path = require('path');
-var git = require('git-rev');
+var git = require('git-rev-2');
 
 function isErp(x){
   return (x && (x.score != undefined) && (x.sample != undefined));
@@ -100,9 +100,11 @@ function main(){
   // Print version if requested
   if (argv.version){
     git.branch(
-      function(branch){
+      __dirname,
+      function(err, branch){
+        __dirname,
         git.short(
-          function(short){
+          function(err, short){
             console.log(branch, short);
           });
         }

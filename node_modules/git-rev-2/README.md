@@ -1,28 +1,32 @@
 # git-rev
 
-access git revision state in node
+Access git revision state in node. Forked from https://github.com/tblobaum/git-rev. Modified to accept a custom directory and pass back errors.
+
+```
+npm install git-rev-2
+```
 
 # Example
 
 ``` js
 var git = require('git-rev')
 
-git.short(function (str) {
+git.short(function (err, str) {
   console.log('short', str)
   // => aefdd94
 })
 
-git.long(function (str) {
+git.long(__dirname + "../another-git-dir", function (err, str) {
   console.log('long', str)
   // => aefdd946ea65c88f8aa003e46474d57ed5b291d1
 })
 
-git.branch(function (str) {
+git.branch(function (err, str) {
   console.log('branch', str)
   // => master
 })
 
-git.tag(function (str) {
+git.tag(__dirname + "node_modules/some-git-repo", function (err, str) {
   console.log('tag', str)
   // => 0.1.0
 })
@@ -31,15 +35,15 @@ git.tag(function (str) {
 
 # Methods
 
-``` js 
+``` js
 var git = require('git-rev')
 ```
 
-## .log(function (array) { ... })
+### .log([dir,] function (err, array) { ... })
 return the git log of `process.cwd()` as an array
 
 ``` js
-git.log(function (array) {
+git.log(function (err, array) {
   console.log('log', array)
   // [ [ 'aefdd946ea65c88f8aa003e46474d57ed5b291d1',
   //     'add description',
@@ -56,21 +60,17 @@ git.log(function (array) {
 })
 ```
 
-## .short(function (commit) { ... })
+### .short([dir,] function (err, commit) { ... })
 return the result of `git rev-parse --short HEAD`
 
-## .long(function (commit) { ... })
+### .long([dir,] function (err, commit) { ... })
 return the result of `git rev-parse HEAD`
 
-## .tag(function (tag) { ... })
+### .tag([dir,] function (err, tag) { ... })
 return the current tag
 
-## .branch(function (branch) { ... })
+### .branch([dir,] function (err, branch) { ... })
 return the current branch
-
-# Install
-
-`npm install git-rev`
 
 # License
 
