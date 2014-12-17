@@ -10,26 +10,28 @@ Requirements:
 - [git](http://git-scm.com/)
 - [nodejs](http://nodejs.org)
 
-Installation:
+**Installation**
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
     npm install
 
-Run tests:
+To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
+
+**Running test**
 
     npm test
 
-Execute webppl program:
+**Executing webppl programs**
 
     ./webppl examples/geometric.wppl
 
-Compile webppl for use in browser:
+**Compiling webppl for use in browser**
 
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
 
-How to debug webppl programs:
+**Debugging webppl programs**
 
     // 1. Install node-inspector (only need to do this once)
     npm install -g node-inspector
@@ -44,3 +46,43 @@ How to debug webppl programs:
     
     // 5. (In separate terminal:) Load node inspector, resume program execution in node-inspector
     node-inspector
+
+**Using Javascript functions and external libraries**
+
+Using the example of reading and writing CSV files:
+
+1. Install any node modules you want to use:
+
+        npm install -g babyparse
+
+2. Write a Javascript file that exports the functions you want to use:
+    
+        // simpleCSV.js
+        
+        var fs = require('fs');
+        var babyparse = require('babyparse');
+        
+        function readCSV(filename){
+          return babyparse.parse(fs.readFileSync(filename, 'utf8'));
+        };
+        
+        function writeCSV(jsonCSV, filename){
+          fs.writeFileSync(filename, babyparse.unparse(jsonCSV) + "\n");
+        }
+        
+        module.exports = {
+          readCSV: readCSV,
+          writeCSV: writeCSV
+        };
+
+2. Write a WebPPL file that uses your new functions:
+
+        // csvTest.wppl
+        
+        var myCSVdata = simpleCSV.readCSV('myinput.csv');
+        var myNewData = myCSVdata.data.concat([["foo", 3], ["bar", 10]]);
+        simpleCSV.writeCSV(myNewData, 'myoutput.csv');
+
+3. Run your WebPPL file with `require` command line flag:
+
+        webppl csvTest.wppl --require ./simpleCSV
