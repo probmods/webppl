@@ -442,7 +442,7 @@ function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   } else {
     sample(s,
            function(v){
-            scoreFn(s, function(sc){factor(s,function(){k(v);},a+"swf2",sc);}, a+"swf1", v);},
+            scoreFn(s, function(sc){factor(s, function(s){k(s, v);},a+"swf2",sc);}, a+"swf1", v);},
            a, dist, params);
   }
 }
