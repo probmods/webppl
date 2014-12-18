@@ -348,6 +348,7 @@ function multinomialSample(theta) {
 
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
+
   //normalize distribution:
   var norm = 0;
   var supp = [];
@@ -381,7 +382,7 @@ function makeMarginalERP(marginal) {
         // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
         if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
       }
-      return -Infinity
+      return -Infinity;
     },
     function(params) {
       return supp;
@@ -1431,6 +1432,7 @@ function getAddress(store, k, a){
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
+  _: _,
   ERP: ERP,
   Enumerate: enuPriority,
   EnumerateBreadthFirst: enuFifo,

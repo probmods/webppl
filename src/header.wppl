@@ -197,6 +197,32 @@ var span = function(p, ar) {
   return fn(ar,[],[]);
 };
 
+var minWith = function(f,ar) {
+  var fn = function(_ar, _best) {
+    if (_ar.length == 0) {
+      return _best;
+    } else if (_ar[0][1] < _best[1]) {
+      return fn(_ar.slice(1), _ar[0]);
+    } else {
+      return fn(_ar.slice(1), _best);
+    }
+  };
+  return fn(zip(ar,map(f,ar)), [Infinity,Infinity]);
+};
+
+var maxWith = function(f,ar) {
+  var fn = function(_ar, _best) {
+    if (_ar.length == 0) {
+      return _best;
+    } else if (_ar[0][1] > _best[1]) {
+      return fn(_ar.slice(1), _ar[0]);
+    } else {
+      return fn(_ar.slice(1), _best);
+    }
+  };
+  return fn(zip(ar,map(f,ar)), [-Infinity,-Infinity]);
+};
+
 var groupBy = function(cmp, ar) {
   if (ar.length == 0) {
     return [];
