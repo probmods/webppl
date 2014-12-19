@@ -3,7 +3,7 @@ webppl
 
 Probabilistic programming for the web
 
-[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=trampoline)](https://travis-ci.org/probmods/webppl)
+[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=storepassing)](https://travis-ci.org/probmods/webppl)
 
 Requirements:
 
