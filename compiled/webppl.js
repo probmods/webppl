@@ -28244,7 +28244,7 @@ module.exports = {
 var _ = require('underscore');
 
 function runningInBrowser(){
-    return !(typeof window === 'undefined');
+  return !(typeof window === 'undefined');
 }
 
 function makeGensym() {
@@ -28287,12 +28287,12 @@ var normalizeArray = function(xs){
 };
 
 var logsumexp = function(a) {
-	var m = Math.max.apply(null, a);
-	var sum = 0;
-	for (var i=0; i<a.length; ++i) {
+  var m = Math.max.apply(null, a);
+  var sum = 0;
+  for (var i=0; i<a.length; ++i) {
     sum += Math.exp(a[i] - m);
   }
-	return m + Math.log(sum);
+  return m + Math.log(sum);
 };
 
 var copyObj = function(obj){
