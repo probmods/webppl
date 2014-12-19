@@ -27855,7 +27855,7 @@ function webppl_eval(k, code, verbose) {
 // For use in browser
 function webpplCPS(code){
   var programAst = esprima.parse(code);
-  var newProgramAst = cps.cps(programAst, build.identifier("topK"));
+  var newProgramAst = optimize(cps(programAst, build.identifier("topK")));
   return escodegen.generate(newProgramAst);
 }
 function webpplNaming(code){
