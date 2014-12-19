@@ -205,7 +205,7 @@ exports.testParticleFilter = {
                 "    factor( (x|y) ? 0 : -Infinity);" +
                 "    return x;" +
                 "  }," +
-                "  300) // particles");
+                "  1000) // particles");
     var expectedHist = {
       "true": 2/3,
       "false": 1/3
@@ -224,7 +224,7 @@ exports.testMH = {
                 "    factor( (x|y) ? 0 : -Infinity);" +
                 "    return x;" +
                 "  }," +
-                "  1000) // samples");
+                "  5000) // samples");
     var expectedHist = {
       "true": 2/3,
       "false": 1/3
@@ -243,7 +243,7 @@ exports.testPMCMC = {
                 "    factor( (x|y) ? 0 : -Infinity);" +
                 "    return x;" +
                 "  }," +
-                "  300, 5) // particles");
+                "  1000, 5) // particles");
     var expectedHist = {
       "true": 2/3,
       "false": 1/3
