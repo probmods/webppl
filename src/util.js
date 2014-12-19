@@ -62,14 +62,28 @@ var copyObj = function(obj){
   return newobj;
 }
 
+// func(x, i, xs, nextK)
+// nextK()
+function cpsForEach(func, nextK, xs, i){
+  i = (i === undefined) ? 0 : i;
+  if (i === xs.length-1){
+    nextK();
+  } else {
+    func(xs[i], i, xs, function(){
+      cpsForEach(func, nextK, xs, i+1);
+    });
+  }
+}
+
 module.exports = {
-  gensym: gensym,
-  makeGensym: makeGensym,
-  prettyJSON: prettyJSON,
-  sum: sum,
   copyObj: copyObj,
+  cpsForEach: cpsForEach,
+  gensym: gensym,
   logsumexp: logsumexp,
+  makeGensym: makeGensym,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
-  runningInBrowser: runningInBrowser
+  prettyJSON: prettyJSON,
+  runningInBrowser: runningInBrowser,
+  sum: sum
 };

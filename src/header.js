@@ -1066,7 +1066,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
-
 function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 
   this.particles = [];
@@ -1125,22 +1124,29 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     // Resample in proportion to weights
     coroutine.resampleParticles();
     //rejuvenate each particle via MH
-    coroutine.particles.forEach(
-      function(particle,i,particles){
+    util.cpsForEach(
+      function(particle, i, particles, nextK){
         // make sure mhp coroutine doesn't escape:
         assert(coroutine.isParticleFilterRejuvCoroutine);
-        // FIXME: run trampolining loop around MHP call
-        new MHP(function(p){particles[i]=p;},
-                particle, coroutine.baseAddress,
-                a, coroutine.wpplFn, coroutine.rejuvSteps);
-      });
-    coroutine.particleIndex = 0;
+        new MHP(
+          function(p){
+            particles[i]=p;
+            nextK();
+          },
+          particle, coroutine.baseAddress,
+          a, coroutine.wpplFn, coroutine.rejuvSteps);        
+      },
+      function(){
+        coroutine.particleIndex = 0;
+        coroutine.activeParticle().continuation(coroutine.activeParticle().store);        
+      },
+      coroutine.particles
+    );
   } else {
     // Advance to the next particle
     coroutine.particleIndex += 1;
-  }
-
-  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
+    coroutine.activeParticle().continuation(coroutine.activeParticle().store);
+  }  
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1220,35 +1226,43 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
   }
 
   //Final rejuvenation:
-  coroutine.particles.forEach(
-    function(particle,i,particles){
+  var oldStore = this.oldStore;
+  util.cpsForEach(
+    function(particle, i, particles, nextK){
       // make sure mhp coroutine doesn't escape:
       assert(coroutine.isParticleFilterRejuvCoroutine);
-      // FIXME: run trampolining loop around MHP call
-      new MHP(function(p){particles[i]=p;},
-              particle, coroutine.baseAddress,
-              undefined, coroutine.wpplFn, coroutine.rejuvSteps);
-    });
+      new MHP(
+        function(p){
+          particles[i]=p;
+          nextK();
+        },
+        particle, coroutine.baseAddress,
+        undefined, coroutine.wpplFn, coroutine.rejuvSteps);        
+    },
+    function(){
+      // Compute marginal distribution from (unweighted) particles
+      var hist = {};
+      _.each(
+        coroutine.particles,
+        function(particle){
+          var k = JSON.stringify(particle.value);
+          if (hist[k] === undefined){
+            hist[k] = { prob:0, val:particle.value };
+          }
+          hist[k].prob += 1;
+        });
+      var dist = makeMarginalERP(hist);
 
-  // Compute marginal distribution from (unweighted) particles
-  var hist = {};
-  _.each(
-    coroutine.particles,
-    function(particle){
-      var k = JSON.stringify(particle.value);
-      if (hist[k] === undefined){
-        hist[k] = { prob:0, val:particle.value };
-      }
-      hist[k].prob += 1;
-    });
-  var dist = makeMarginalERP(hist);
+      // Reinstate previous coroutine:
+      var k = coroutine.k;
+      coroutine = coroutine.oldCoroutine;
 
-  // Reinstate previous coroutine:
-  var k = coroutine.k;
-  coroutine = coroutine.oldCoroutine;
+      // Return from particle filter by calling original continuation:
+      k(oldStore, dist);
+    },
+    coroutine.particles
+  );
 
-  // Return from particle filter by calling original continuation:
-  k(this.oldStore, dist);
 };
 
 
@@ -1350,7 +1364,6 @@ MHP.prototype.exit = function(s,val) {
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
-  console.log('WARNING: Particle Filter with Rejuvenation not supported when using trampolining!');
   return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
