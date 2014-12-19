@@ -10,10 +10,10 @@ var Syntax = estraverse.Syntax;
 var storeIdNode = build.identifier("globalStore");
 
 function store(node) {
-  if (node.seen){
+  if (node.seenByStorepassing){
     return node;
   }
-  node.seen = true;
+  node.seenByStorepassing = true;
 
   switch (node.type) {
 

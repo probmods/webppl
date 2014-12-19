@@ -25982,6 +25982,10 @@ function buildFunc(args, body){
   }
 }
 
+function buildContinuationCall(cont, value){
+  return build.callExpression(cont, [value]);
+}
+
 function cpsAtomic(node){
   switch (node.type) {
   case Syntax.FunctionExpression:
@@ -26048,7 +26052,7 @@ function cpsBlock(nodes, cont){
   if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
     // Function declarations that occur as the first nodes in a block
     // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.      
+    // occurs. This allows us to define functions at the top-level scope.
     var node = nodes[0];
     var newBlockElementNode;
     assert.equal(node.declarations.length, 1);
@@ -26078,15 +26082,15 @@ function cpsBlock(nodes, cont){
 // we assume that a function called as a method is primitive (a hack,
 // for simplicity). have to wrap up the object in case it's compound.
 function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
-  var objNode = opNode.object
+  var objNode = opNode.object;
   var nodes = [objNode].concat(argNodes);
   return cpsSequence(
     function (nodes){return (nodes.length == 0);},
     function(nodes, vars){
-      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
-      return build.callExpression(
+      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed);
+      return buildContinuationCall(
         cont,
-        [build.callExpression(memberNode, vars.slice(1))]);
+        build.callExpression(memberNode, vars.slice(1)));
     },
     nodes);
 }
@@ -26115,9 +26119,9 @@ function cpsUnaryExpression(opNode, argNode, isPrefix, cont){
   return cpsSequence(
     function(nodes){return (nodes.length == 0);},
     function(nodes, vars){
-      return build.callExpression(
+      return buildContinuationCall(
         cont,
-        [build.unaryExpression(opNode, vars[0], isPrefix)]);
+        build.unaryExpression(opNode, vars[0], isPrefix));
     },
     nodes);
 }
@@ -26128,16 +26132,16 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
     function(nodes){return (nodes.length == 0);},
     function(nodes, vars){
       assert.ok(vars.length == 2);
-      return build.callExpression(
+      return buildContinuationCall(
         cont,
-        [build.binaryExpression(opNode, vars[0], vars[1])]);
+        build.binaryExpression(opNode, vars[0], vars[1]));
     },
     nodes);
 }
 
 function cpsConditional(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("cont");
+  var contName = makeGensymVariable("k");
   var testName = makeGensymVariable("test");
   return build.callExpression(
     buildFunc([contName],
@@ -26152,11 +26156,11 @@ function cpsConditional(test, consequent, alternate, cont){
 
 function cpsIf(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("cont");
+  var contName = makeGensymVariable("k");
   var testName = makeGensymVariable("test");
   var consequentNode = cps(consequent, contName);
   if (alternate === null) {
-    var alternateNode = build.callExpression(contName, [build.identifier("undefined")]);
+    var alternateNode = buildContinuationCall(contName, build.identifier("undefined"));
   } else {
     var alternateNode = cps(alternate, contName);
   }
@@ -26177,7 +26181,7 @@ function cpsArrayExpression(elements, cont){
     function (nodes){return (nodes.length == 0);},
     function(nodes, vars){
       var arrayExpr = build.arrayExpression(vars);
-      return build.callExpression(cont, [arrayExpr]);
+      return buildContinuationCall(cont, arrayExpr);
     },
     elements);
 }
@@ -26186,7 +26190,7 @@ function cpsObjectExpression(properties, cont, props){
     props = props || [];
     if (properties.length == 0 ) {
         var objectExpr = build.objectExpression(props);
-        return build.callExpression(cont, [objectExpr]);
+        return buildContinuationCall(cont, objectExpr);
     } else {
         var nextVal = makeGensymVariable("ob");
         var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
@@ -26208,13 +26212,13 @@ function cpsMemberExpression(obj, prop, computed, cont){
                buildFunc([objName],
                          cps(prop,
                              buildFunc([propName],
-                                       build.callExpression(cont, [memberExpr])))));
+                                       buildContinuationCall(cont, memberExpr)))));
   } else {
     var objName = makeGensymVariable("obj");
     var memberExpr = build.memberExpression(objName, prop, false);
     return cps(obj,
                buildFunc([objName],
-                         build.callExpression(cont, [memberExpr])));
+                         buildContinuationCall(cont, memberExpr)));
   }
 }
 
@@ -26225,12 +26229,12 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
         build.variableDeclaration(
           "var",
           [build.variableDeclarator(declarationId, cpsAtomic(declarationInit))]),
-        convertToStatement(build.callExpression(cont, [build.identifier("undefined")]))
+        convertToStatement(buildContinuationCall(cont, build.identifier("undefined")))
       ]);
   } else {
     return cps(declarationInit,
                buildFunc([declarationId],
-                         build.callExpression(cont, [build.identifier("undefined")])));
+                         buildContinuationCall(cont, build.identifier("undefined"))));
   }
 }
 
@@ -26241,8 +26245,7 @@ function cpsAssignmentExpression(operator, left, right, cont) {
   var rhsName = makeGensymVariable("rhs");
   var assignmentExpr = build.assignmentExpression(operator, left, rhsName);
   return cps(right, buildFunc([rhsName],
-                             build.callExpression(cont, [assignmentExpr])
-                             ));
+                              buildContinuationCall(cont, assignmentExpr)));
 }
 
 function cps(node, cont){
@@ -26265,7 +26268,7 @@ function cps(node, cont){
   case Syntax.Identifier:
   case Syntax.Literal:
   case Syntax.FunctionExpression:
-    return build.callExpression(cont, [cpsAtomic(node)]);
+    return buildContinuationCall(cont, cpsAtomic(node));
 
   case Syntax.VariableDeclaration:
     assert.equal(node.declarations.length, 1);
@@ -26313,9 +26316,10 @@ module.exports = {
   cps: cpsMain
 };
 
-},{"./util.js":101,"assert":1,"ast-types":27,"escodegen":28,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],96:[function(require,module,exports){
+},{"./util.js":102,"assert":1,"ast-types":27,"escodegen":28,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],96:[function(require,module,exports){
 "use strict";
 
+var assert = require('assert');
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
@@ -26453,7 +26457,7 @@ function gammaSample(params){
   var a = params[0];
   var b = params[1];
   if (a < 1) {
-    return gammaSample(1+a,b) * Math.pow(Math.random(), 1/a);
+    return gammaSample([1+a,b]) * Math.pow(Math.random(), 1/a);
   }
   var x, v, u;
   var d = a-1/3;
@@ -26782,7 +26786,7 @@ function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
   this.queue = Q; // Queue of states that we have yet to explore
   this.marginal = {}; // We will accumulate the marginal distribution here
   this.numCompletedExecutions = 0;
-  this.maxExecutions = maxExecutions || 1000;
+  this.maxExecutions = maxExecutions || Infinity;
 
   this.oldStore = s; // will be reinstated at the end
 
@@ -26809,15 +26813,7 @@ var stackSize = 0;
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  //  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-
-  stackSize++;
-  if (stackSize == 5) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.store, nextState.value);});
-  } else {
-    nextState.continuation(nextState.store, nextState.value);
-    stackSize = 0;
-  }
+  nextState.continuation(nextState.store, nextState.value);
 };
 
 
@@ -26972,7 +26968,7 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store);});
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -27092,7 +27088,7 @@ function MH(s, k, a, wpplFn, numIterations) {
 
 MH.prototype.factor = function(s, k, a, score) {
   coroutine.currScore += score;
-  util.withEmptyStack(function(){k(s);});
+  k(s);
 };
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
@@ -27312,7 +27308,7 @@ PMCMC.prototype.factor = function(s, cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeContinuationWithStore());
+  this.activeContinuationWithStore()();
 };
 
 PMCMC.prototype.exit = function(s, retval) {
@@ -27372,41 +27368,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 
 
 ////////////////////////////////////////////////////////////////////
-// Some primitive functions to make things simpler
-
-function display(k, a, x) {
-  k(console.log(x));
-}
-
-//function callPrimitive(k, a, f) {
-//  var args = Array.prototype.slice.call(arguments, 2);
-//  k(f.apply(f, args));
-//}
-
-// Caching for a wppl function f. caution: if f isn't deterministic
-// weird stuff can happen, since caching is across all uses of f, even
-// in different execuation paths.
-function cache(k, a, f) {
-  var c = {};
-  var cf = function(k) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    var stringedArgs = JSON.stringify(args)
-    if (stringedArgs in c) {
-      k(c[stringedArgs]);
-    } else {
-      var newk = function(r) {
-        c[stringedArgs] = r;
-        k(r);
-      };
-      f.apply(this, [newk].concat(args));
-    }
-  };
-  k(cf);
-}
-
-
-
-////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
 //
 // Sequential importance re-sampling, which treats 'factor' calls as
@@ -27417,13 +27378,14 @@ function cache(k, a, f) {
 // if rejuvSteps==0 this is a plain PF without any MH.
 
 
-function ParticleFilterRejuv(s,k,a, wpplFn, numParticles,rejuvSteps) {
+function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
   this.rejuvSteps = rejuvSteps;
   this.baseAddress = a;
   this.wpplFn = wpplFn;
+  this.isParticleFilterRejuvCoroutine = true;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
@@ -27476,6 +27438,9 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     //rejuvenate each particle via MH
     coroutine.particles.forEach(
       function(particle,i,particles){
+        // make sure mhp coroutine doesn't escape:
+        assert(coroutine.isParticleFilterRejuvCoroutine);
+        // FIXME: run trampolining loop around MHP call
         new MHP(function(p){particles[i]=p;},
                 particle, coroutine.baseAddress,
                 a, coroutine.wpplFn, coroutine.rejuvSteps);
@@ -27486,7 +27451,7 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     coroutine.particleIndex += 1;
   }
 
-  util.withEmptyStack(function(){coroutine.activeParticle().continuation(coroutine.activeParticle().store);});
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -27568,6 +27533,9 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
   //Final rejuvenation:
   coroutine.particles.forEach(
     function(particle,i,particles){
+      // make sure mhp coroutine doesn't escape:
+      assert(coroutine.isParticleFilterRejuvCoroutine);
+      // FIXME: run trampolining loop around MHP call
       new MHP(function(p){particles[i]=p;},
               particle, coroutine.baseAddress,
               undefined, coroutine.wpplFn, coroutine.rejuvSteps);
@@ -27612,9 +27580,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
 
   // FIXME: do we need to save the store here?
 
-  //  console.log("MH "+numIterations+" steps")
-
-  if(numIterations==0) {
+  if (numIterations==0) {
     backToPF(particle);
   } else {
     // Move PF coroutine out of the way and install this as the current
@@ -27627,7 +27593,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
 
 MHP.prototype.factor = function(s,k,a,sc) {
   coroutine.currScore += sc;
-  if(a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
+  if (a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
     exit(s);
   } else {
     k(s);
@@ -27643,12 +27609,11 @@ MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
                        score: coroutine.currScore, choiceScore: choiceScore,
                        val: val, reused: reuse, store:s});
   coroutine.currScore += choiceScore;
-  k(s,val);
+  k(s, val);
 };
 
 
 MHP.prototype.propose = function() {
-  //  console.log("MH proposal it: "+coroutine.iterations+"")
   //make a new proposal:
   coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
   var regen = coroutine.trace[coroutine.regenFrom];
@@ -27696,6 +27661,7 @@ MHP.prototype.exit = function(s,val) {
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
+  console.log('WARNING: Particle Filter with Rejuvenation not supported when using trampolining!');
   return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
@@ -27705,7 +27671,7 @@ function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
 // Some primitive functions to make things simpler
 
 function display(s,k, a, x) {
-  k(s,console.log(x));
+  k(s, console.log(x));
 }
 
 // Caching for a wppl function f. caution: if f isn't deterministic
@@ -27730,12 +27696,6 @@ function cache(s,k, a, f) {
   k(s,cf);
 }
 
-function withEmptyWebPPLStack(store, k, a, thunk){
-  util.withEmptyStack(function(){
-    return thunk(store, k, a);
-  });
-}
-
 function getAddress(store, k, a){
   var addressArray = a.split("_").slice(1);
   for (var i=0; i<addressArray.length; i++){
@@ -27743,6 +27703,7 @@ function getAddress(store, k, a){
   }
   k(store, addressArray);
 }
+
 
 
 ////////////////////////////////////////////////////////////////////
@@ -27781,27 +27742,29 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
-  util: util,
-  withEmptyStack: withEmptyWebPPLStack
+  util: util
 };
 
-},{"./util.js":101,"priorityqueuejs":93,"underscore":94}],97:[function(require,module,exports){
+},{"./util.js":102,"assert":1,"priorityqueuejs":93,"underscore":94}],97:[function(require,module,exports){
 (function (global,Buffer){
 "use strict";
 
+var assert = require('assert');
 
 var path = require('path');
 var types = require("ast-types");
 var build = types.builders;
 var esprima = require("esprima");
 var escodegen = require("escodegen");
-var cps = require("./cps.js").cps;
-var optimize = require("./optimize.js").optimize;
-var naming = require("./naming.js").naming;
+var cps = require("./cps").cps;
+var optimize = require("./optimize").optimize;
+var naming = require("./naming").naming;
 var store = require("./store").store;
-var util = require("./util.js");
+var trampoline = require("./trampoline").trampoline;
+var util = require("./util");
 
 var topK;
+var _trampoline;
 
 // Make runtime stuff globally available:
 var runtime = require("./header.js");
@@ -27823,12 +27786,25 @@ function compile(programCode, verbose){
 
   var programAst, headerAst;
 
-  var _compile = function(code, contName){
+  var _compile = function(code, contName, isHeader){
     var ast = esprima.parse(code);
+    var cont = build.identifier(contName);
     ast = naming(ast);
-    ast = cps(ast, build.identifier(contName));
+    ast = cps(ast, cont);
+    if (isHeader){
+      // header contains only function definitions, so remove
+      // unnecessary final dummy continuation call
+      var x = ast.body[0];
+      var lastNode = x.body[x.body.length-1];
+      assert(types.namedTypes.ExpressionStatement.check(lastNode));
+      assert(types.namedTypes.CallExpression.check(lastNode.expression));
+      assert(types.namedTypes.Identifier.check(lastNode.expression.callee));
+      assert.equal(lastNode.expression.callee.name, 'dummyCont');
+      x.body = x.body.slice(0, x.body.length-1);
+    }
     ast = store(ast);
     ast = optimize(ast);
+    ast = trampoline(ast, isHeader);
     return ast;
   };
 
@@ -27837,14 +27813,12 @@ function compile(programCode, verbose){
     headerAst = global.CACHED_WEBPPL_HEADER;
   } else {
     var headerCode = Buffer("Ly8gRVJQcwoKdmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciBkaXJpY2hsZXQgPSBmdW5jdGlvbihhbHBoYSl7CiAgcmV0dXJuIHNhbXBsZShkaXJpY2hsZXRFUlAsIGFscGhhKTsKfTsKCnZhciBwb2lzc29uID0gZnVuY3Rpb24obXUsIGspewogIHJldHVybiBzYW1wbGUocG9pc3NvbkVSUCwgW211LCBrXSk7Cn07Cgp2YXIgYmlub21pYWwgPSBmdW5jdGlvbihwLCBuKXsKICByZXR1cm4gc2FtcGxlKGJpbm9taWFsRVJQLCBbcCwgbl0pOwp9OwoKdmFyIGJldGEgPSBmdW5jdGlvbihhLCBiKXsKICByZXR1cm4gc2FtcGxlKGJldGFFUlAsIFthLCBiXSk7Cn07Cgp2YXIgZXhwb25lbnRpYWwgPSBmdW5jdGlvbihhKXsKICByZXR1cm4gc2FtcGxlKGV4cG9uZW50aWFsRVJQLCBbYV0pOwp9OwoKdmFyIGdhbW1hID0gZnVuY3Rpb24oc2hhcGUsIHNjYWxlKXsKICByZXR1cm4gc2FtcGxlKGdhbW1hRVJQLCBbc2hhcGUsIHNjYWxlXSk7Cn07CgoKLy8gWFJQcwoKdmFyIG1ha2VCZXRhQmVybm91bGxpID0gZnVuY3Rpb24ocHNldWRvY291bnRzKSB7CiAgZ2xvYmFsU3RvcmUuQkJpbmRleCA9IDEgKyAoZ2xvYmFsU3RvcmUuQkJpbmRleD09dW5kZWZpbmVkID8gMCA6IGdsb2JhbFN0b3JlLkJCaW5kZXgpOwogIHZhciBiYm5hbWUgPSAiQkIiK2dsb2JhbFN0b3JlLkJCaW5kZXg7CiAgZ2xvYmFsU3RvcmVbYmJuYW1lXSA9IHBzZXVkb2NvdW50czsKICByZXR1cm4gZnVuY3Rpb24oKXsKICAgIHZhciBwYyA9IGdsb2JhbFN0b3JlW2JibmFtZV07ICAvLyBnZXQgY3VycmVudCBzdWZmaWNpZW50IHN0YXRzCiAgICB2YXIgdmFsID0gc2FtcGxlKGJlcm5vdWxsaUVSUCwgW3BjWzBdLyhwY1swXStwY1sxXSldKTsgIC8vIHNhbXBsZSBmcm9tIHByZWRpY3RpdmUuCiAgICBnbG9iYWxTdG9yZVtiYm5hbWVdID0gW3BjWzBdK3ZhbCwgcGNbMV0rIXZhbF07ICAvLyB1cGRhdGUgc3VmZmljaWVudCBzdGF0cwogICAgcmV0dXJuIHZhbDsKICB9Owp9OwoKdmFyIG1ha2VEaXJpY2hsZXREaXNjcmV0ZSA9IGZ1bmN0aW9uKHBzZXVkb2NvdW50cykgewogIHZhciBhZGRDb3VudCA9IGZ1bmN0aW9uKGEsaSxqKSB7CiAgICB2YXIgaiA9IGo9PXVuZGVmaW5lZD8wOmo7CiAgICBpZihhLmxlbmd0aD09MCl7CiAgICAgIHJldHVybiBbXTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBbYVswXSArIChpPT1qKV0uY29uY2F0KGFkZENvdW50KGEuc2xpY2UoMSksaSxqKzEpKTsKICAgIH0KICB9OwogIGdsb2JhbFN0b3JlLkREaW5kZXggPSAxKyAoZ2xvYmFsU3RvcmUuRERpbmRleD09dW5kZWZpbmVkPzA6Z2xvYmFsU3RvcmUuRERpbmRleCk7CiAgdmFyIGRkbmFtZSA9ICJERCIrZ2xvYmFsU3RvcmUuRERpbmRleDsKICBnbG9iYWxTdG9yZVtkZG5hbWVdID0gcHNldWRvY291bnRzOwogIHJldHVybiBmdW5jdGlvbigpewogICAgdmFyIHBjID0gZ2xvYmFsU3RvcmVbZGRuYW1lXTsgIC8vIGdldCBjdXJyZW50IHN1ZmZpY2llbnQgc3RhdHMKICAgIHZhciB2YWwgPSBzYW1wbGUoZGlzY3JldGVFUlAsIFtwY10pOyAgLy8gc2FtcGxlIGZyb20gcHJlZGljdGl2ZS4gKGRvZXNuJ3QgbmVlZCB0byBiZSBub3JtYWxpemVkLikKICAgIGdsb2JhbFN0b3JlW2RkbmFtZV0gPSBhZGRDb3VudChwYywgdmFsKTsgLy8gdXBkYXRlIHN1ZmZpY2llbnQgc3RhdHMKICAgIHJldHVybiB2YWw7CiAgfTsKfTsKCgovLyBQcm9iYWJpbGl0eSBjb21wdXRhdGlvbnMgJiBjYWxjdWxhdGlvbnMKCnZhciBwbHVzID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYStiOyB9Owp2YXIgbWludXMgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhLWI7IH07CnZhciBtdWx0ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYSpiOyB9Owp2YXIgZGl2ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYS9iOyB9OwoKdmFyIGlkRiA9IGZ1bmN0aW9uKHgpeyByZXR1cm4geDsgfQoKdmFyIGV4cGVjdGF0aW9uID0gZnVuY3Rpb24oZXJwLCBmdW5jKXsKICB2YXIgZiA9IGZ1bmMgPT0gdW5kZWZpbmVkID8gaWRGIDogZnVuYzsKICB2YXIgc3VwcCA9IGVycC5zdXBwb3J0KFtdKTsKICByZXR1cm4gbWFwUmVkdWNlKHBsdXMsCiAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgZnVuY3Rpb24ocyl7cmV0dXJuIE1hdGguZXhwKGVycC5zY29yZShbXSxzKSkqZihzKX0sCiAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07Cgp2YXIgZW50cm9weSA9IGZ1bmN0aW9uKGVycCl7CiAgdmFyIHN1cHAgPSBlcnAuc3VwcG9ydChbXSk7CiAgcmV0dXJuIC1tYXBSZWR1Y2UocGx1cywKICAgICAgICAgICAgICAgICAgICBzdXBwW3N1cHAubGVuZ3RoLTFdLAogICAgICAgICAgICAgICAgICAgIGZ1bmN0aW9uKHMpe3ZhciBscCA9IGVycC5zY29yZShbXSxzKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBNYXRoLmV4cChscCkqbHAgfSwKICAgICAgICAgICAgICAgICAgICBzdXBwLnNsaWNlKDAsIC0xKSk7Cn07CgoKLy8gRGF0YSBzdHJ1Y3R1cmVzICYgaGlnaGVyLW9yZGVyIGZ1bmN0aW9ucwoKdmFyIGFwcGVuZCA9IGZ1bmN0aW9uKGEsYikgewogIHJldHVybiBhLmNvbmNhdChiKTsKfTsKCnZhciBjb25zID0gZnVuY3Rpb24oYSxiKSB7IHJldHVybiBbYV0uY29uY2F0KGIpOyB9OwoKdmFyIHNub2MgPSBmdW5jdGlvbihhLGIpIHsgcmV0dXJuIGEuY29uY2F0KFtiXSk7IH07Cgp2YXIgZmlyc3QgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMF07IH07CnZhciBzZWNvbmQgPSBmdW5jdGlvbih4cykgeyByZXR1cm4geHNbMV07IH07CnZhciB0aGlyZCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1syXTsgfTsKdmFyIGZvdXJ0aCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1szXTsgfTsKdmFyIHNlY29uZExhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAyXTsgfTsKdmFyIGxhc3QgPSBmdW5jdGlvbih4cyl7IHJldHVybiB4c1t4cy5sZW5ndGggLSAxXTsgfTsKCnZhciBtYXAgPSBmdW5jdGlvbihmbixhcikgewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBbXSA6IFtmbihhclswXSldLmNvbmNhdChtYXAoZm4sIGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgbWFwMiA9IGZ1bmN0aW9uKGYsbDEsbDIpIHsKICByZXR1cm4gbDEubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW2YobDFbMF0sbDJbMF0pXS5jb25jYXQobWFwMihmLCBsMS5zbGljZSgxKSwgbDIuc2xpY2UoMSkpKTsKfTsKCnZhciByZWR1Y2UgPSBmdW5jdGlvbihmbixpbml0LGFyKXsKICByZXR1cm4gYXIubGVuZ3RoPT0wID8gaW5pdCA6IGZuKGFyWzBdLCByZWR1Y2UoZm4saW5pdCxhci5zbGljZSgxKSkpOwp9OwoKdmFyIG1hcFJlZHVjZSA9IGZ1bmN0aW9uKGYsaW5pdCxnLGFyKXsKICByZXR1cm4gcmVkdWNlKGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gZihnKGEpLGIpOyB9LCBnKGluaXQpLCBhcik7Cn07Cgp2YXIgc3VtID0gZnVuY3Rpb24obCkgeyByZXR1cm4gcmVkdWNlKHBsdXMsIDAsIGwpOyB9OwoKdmFyIHByb2R1Y3QgPSBmdW5jdGlvbihsKSB7IHJldHVybiByZWR1Y2UobXVsdCwgMSwgbCk7IH07Cgp2YXIgemlwID0gZnVuY3Rpb24oeHMsIHlzKXsKICByZXR1cm4geHMubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW1t4c1swXSwgeXNbMF1dXS5jb25jYXQoemlwKHhzLnNsaWNlKDEpLCB5cy5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbHRlciA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwCiAgICA/IFtdCiAgICA6IGFwcGVuZChmbihhclswXSkgPyBbYXJbMF1dIDogW10sIGZpbHRlcihmbixhci5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihmLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwID8gdW5kZWZpbmVkIDogKGYoYXJbMF0pID8gYXJbMF0gOiBmaW5kKGYsYXIuc2xpY2UoMSkpKTsKfTsKCnZhciByZW1vdmUgPSBmdW5jdGlvbihhLGFyKSB7CiAgcmV0dXJuIGZpbHRlcihmdW5jdGlvbihlKSB7IHJldHVybiBhICE9IGU7fSwgYXIpOwp9OwoKdmFyIGRyb3AgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID4gYXIubGVuZ3RoID8gW10gOiBhci5zbGljZShuKTsgfTsKCnZhciB0YWtlID0gZnVuY3Rpb24obixhcikgeyByZXR1cm4gbiA+PSBhci5sZW5ndGggPyBhciA6IGFyLnNsaWNlKDAsbik7IH07Cgp2YXIgZHJvcFdoaWxlID0gZnVuY3Rpb24ocCwgYXIpIHsKICByZXR1cm4gcChhclswXSkgPyBkcm9wV2hpbGUocCxhci5zbGljZSgxKSkgOiBhcjsKfTsKCnZhciB0YWtlV2hpbGUgPSBmdW5jdGlvbihwLCBhcikgewogIHJldHVybiBwKGFyWzBdKSA/IGNvbnMoYXJbMF0sdGFrZVdoaWxlKHAsYXIuc2xpY2UoMSkpKSA6IFtdOwp9OwoKdmFyIGluZGV4T2YgPSBmdW5jdGlvbih4LCB4cykgewogIHZhciBmbiA9IGZ1bmN0aW9uKHhzLCBpKSB7CiAgICByZXR1cm4gKHhzLmxlbmd0aCA9PSAwKSA/IHVuZGVmaW5lZCA6IHggPT0geHNbMF0gPyBpIDogZm4oeHMuc2xpY2UoMSksIGkrMSk7CiAgfTsKICByZXR1cm4gZm4oeHMsIDApOwp9OwoKdmFyIHNwYW4gPSBmdW5jdGlvbihwLCBhcikgewogIHZhciBmbiA9IGZ1bmN0aW9uKGFyLF90cyxfZnMpIHsKICAgIHJldHVybiBhci5sZW5ndGggPT0gMAogICAgICA/IFtfdHMsIF9mc10KICAgICAgOiBwKGFyWzBdKQogICAgICAgID8gZm4oYXIuc2xpY2UoMSksIHNub2MoX3RzLGFyWzBdKSwgX2ZzKQogICAgICAgIDogZm4oYXIuc2xpY2UoMSksIF90cywgc25vYyhfZnMsYXJbMF0pKTsKICB9OwogIHJldHVybiBmbihhcixbXSxbXSk7Cn07Cgp2YXIgbWluV2l0aCA9IGZ1bmN0aW9uKGYsYXIpIHsKICB2YXIgZm4gPSBmdW5jdGlvbihfYXIsIF9iZXN0KSB7CiAgICBpZiAoX2FyLmxlbmd0aCA9PSAwKSB7CiAgICAgIHJldHVybiBfYmVzdDsKICAgIH0gZWxzZSBpZiAoX2FyWzBdWzFdIDwgX2Jlc3RbMV0pIHsKICAgICAgcmV0dXJuIGZuKF9hci5zbGljZSgxKSwgX2FyWzBdKTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9iZXN0KTsKICAgIH0KICB9OwogIHJldHVybiBmbih6aXAoYXIsbWFwKGYsYXIpKSwgW0luZmluaXR5LEluZmluaXR5XSk7Cn07Cgp2YXIgbWF4V2l0aCA9IGZ1bmN0aW9uKGYsYXIpIHsKICB2YXIgZm4gPSBmdW5jdGlvbihfYXIsIF9iZXN0KSB7CiAgICBpZiAoX2FyLmxlbmd0aCA9PSAwKSB7CiAgICAgIHJldHVybiBfYmVzdDsKICAgIH0gZWxzZSBpZiAoX2FyWzBdWzFdID4gX2Jlc3RbMV0pIHsKICAgICAgcmV0dXJuIGZuKF9hci5zbGljZSgxKSwgX2FyWzBdKTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9iZXN0KTsKICAgIH0KICB9OwogIHJldHVybiBmbih6aXAoYXIsbWFwKGYsYXIpKSwgWy1JbmZpbml0eSwtSW5maW5pdHldKTsKfTsKCnZhciBncm91cEJ5ID0gZnVuY3Rpb24oY21wLCBhcikgewogIGlmIChhci5sZW5ndGggPT0gMCkgewogICAgcmV0dXJuIFtdOwogIH0gZWxzZSB7CiAgICB2YXIgeCA9IGFyWzBdOwogICAgdmFyIHNwID0gc3BhbihmdW5jdGlvbihiKSB7IHJldHVybiBjbXAoeCxiKTsgfSwgYXIuc2xpY2UoMSkpOwogICAgcmV0dXJuIFtjb25zKHgsc3BbMF0pXS5jb25jYXQoZ3JvdXBCeShjbXAsc3BbMV0pKTsKICB9Cn07Cgp2YXIgcmVwZWF0ID0gZnVuY3Rpb24obiwgZm4pewogIHJldHVybiBuID09IDAgPyBbXSA6IGFwcGVuZChyZXBlYXQobi0xLCBmbiksIFtmbigpXSk7Cn07Cgp2YXIgcHVzaCA9IGZ1bmN0aW9uKHhzLCB4KXsKICByZXR1cm4geHMuY29uY2F0KFt4XSk7Cn07Cgp2YXIgY29tcG9zZSA9IGZ1bmN0aW9uKGYsIGcpewogIHJldHVybiBmdW5jdGlvbih4KXsKICAgIHJldHVybiBmKGcoeCkpOwogIH07Cn07Cg==","base64");
-    headerAst = _compile(headerCode, 'dummyCont');
-    // remove final continuation call, since header contains only defs
-    headerAst.body = headerAst.body.slice(0, headerAst.body.length-1);
+    headerAst = _compile(headerCode, 'dummyCont', true);
     global['CACHED_WEBPPL_HEADER'] = headerAst;
   }
 
   // Compile program code
-  programAst = _compile(programCode, 'topK');
+  programAst = _compile(programCode, 'topK', false);
   if (verbose){
     console.log(escodegen.generate(programAst));
   }
@@ -27857,7 +27831,10 @@ function compile(programCode, verbose){
 }
 
 function run(code, contFun, verbose){
-  topK = contFun;  // Install top-level continuation
+  topK = function(s, x){
+    _trampoline = null;
+    contFun(s, x);
+  }
   var compiledCode = compile(code, verbose);
   return eval(compiledCode);
 }
@@ -27865,11 +27842,11 @@ function run(code, contFun, verbose){
 // Compile and run some webppl code in global scope:
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
+  global._trampoline = undefined;
   global.topK = function(s,x){  // Install top-level continuation
+    global._trampoline = null;
     k(s,x);
     global.topK = oldk;
-    // FIXME: This may not work correctly if the evaluated code
-    // uses setTimeout/setInterval
   };
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode);
@@ -27878,7 +27855,7 @@ function webppl_eval(k, code, verbose) {
 // For use in browser
 function webpplCPS(code){
   var programAst = esprima.parse(code);
-  var newProgramAst = cps(programAst, build.identifier("topK"));
+  var newProgramAst = optimize(cps(programAst, build.identifier("topK")));
   return escodegen.generate(newProgramAst);
 }
 function webpplNaming(code){
@@ -27908,7 +27885,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./cps.js":95,"./header.js":96,"./naming.js":98,"./optimize.js":99,"./store":100,"./util.js":101,"ast-types":27,"buffer":4,"escodegen":28,"esprima":86,"path":8}],98:[function(require,module,exports){
+},{"./cps":95,"./header.js":96,"./naming":98,"./optimize":99,"./store":100,"./trampoline":101,"./util":102,"assert":1,"ast-types":27,"buffer":4,"escodegen":28,"esprima":86,"path":8}],98:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -28008,7 +27985,7 @@ function namingMain(node) {
 module.exports = {
 naming: namingMain
 };
-},{"./util.js":101,"assert":1,"ast-types":27,"escodegen":28,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],99:[function(require,module,exports){
+},{"./util.js":102,"assert":1,"ast-types":27,"escodegen":28,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],99:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -28038,7 +28015,7 @@ function createPipeline() {
     'pass/remove-empty-statement',
     'pass/remove-wasted-blocks',
     'pass/transform-to-compound-assignment',
-    'pass/transform-to-sequence-expression',
+ //    'pass/transform-to-sequence-expression',
     'pass/transform-branch-to-expression',
     'pass/transform-typeof-undefined',
     'pass/reduce-sequence-expression',
@@ -28133,7 +28110,7 @@ module.exports = {
   optimize: optimizeMain
 };
 
-},{"./util.js":101,"assert":1,"ast-types":27,"escodegen":28,"esmangle":41,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],100:[function(require,module,exports){
+},{"./util.js":102,"assert":1,"ast-types":27,"escodegen":28,"esmangle":41,"esprima":86,"estemplate":87,"estraverse":88,"underscore":94}],100:[function(require,module,exports){
 "use strict";
 
 var estraverse = require("estraverse");
@@ -28146,10 +28123,10 @@ var Syntax = estraverse.Syntax;
 var storeIdNode = build.identifier("globalStore");
 
 function store(node) {
-  if (node.seen){
+  if (node.seenByStorepassing){
     return node;
   }
-  node.seen = true;
+  node.seenByStorepassing = true;
 
   switch (node.type) {
 
@@ -28195,6 +28172,73 @@ module.exports = {
 */
 
 },{"ast-types":27,"escodegen":28,"estraverse":88}],101:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+var estraverse = require('estraverse');
+var types = require('ast-types');
+var escodegen = require('escodegen');
+var esprima = require('esprima');
+
+var build = types.builders;
+var Syntax = estraverse.Syntax;
+
+
+function trampoline(node) {
+
+  if (node.seenByTrampolining){
+    return node;
+  }
+  node.seenByTrampolining = true;
+
+  switch (node.type) {
+
+  // re-direct all non-primitive calls through trampoline
+  // this is only okay in cps where no implicit stack is used!
+  case Syntax.CallExpression:
+    if (types.namedTypes.MemberExpression.check(node.callee)){
+      return node;
+    } else {
+      var newNode = esprima.parse('_trampoline = function(){};').body[0].expression;
+      newNode.right.body.body = [build.expressionStatement(node)];
+      return newNode;
+    }
+
+  default:
+    return node;
+
+  }
+}
+
+
+function trampolineMain(node, noWrapping) {
+
+  node = estraverse.replace(node, {leave: function(n){return trampoline(n);}});
+
+  if (noWrapping){
+    // used for trampolining header which only contains
+    // function definitions, and to avoid duplication
+    // of header/footer
+    return node;
+  }
+
+  var program = esprima.parse(
+    'var _main = function(){' +
+    'while (_trampoline !== null){ _trampoline(); }' +
+    '};' +
+    '_main();');
+
+  program.body = node.body.concat(program.body);
+
+  return program;
+}
+
+
+module.exports = {
+  trampoline: trampolineMain
+};
+
+},{"assert":1,"ast-types":27,"escodegen":28,"esprima":86,"estraverse":88}],102:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -28251,13 +28295,6 @@ var logsumexp = function(a) {
 	return m + Math.log(sum);
 };
 
-var withEmptyStack = function(thunk){
-  var id = setInterval(function() {
-    clearInterval(id);
-    thunk();
-  }, 0);
-};
-
 var copyObj = function(obj){
   var newobj = {};
   for(var k in obj){
@@ -28275,8 +28312,7 @@ module.exports = {
   logsumexp: logsumexp,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
-  runningInBrowser: runningInBrowser,
-  withEmptyStack: withEmptyStack
+  runningInBrowser: runningInBrowser
 };
 
 },{"underscore":94}]},{},[97]);

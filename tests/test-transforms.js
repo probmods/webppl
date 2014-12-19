@@ -9,8 +9,11 @@ var util = require("../src/util.js");
 var store = require("../src/store").store;
 var naming = require("../src/naming.js").naming;
 var optimize = require("../src/optimize.js").optimize;
+var trampoline = require("../src/trampoline").trampoline;
 
 var build = types.builders;
+
+var _trampoline;
 
 var fooObj = {
   bar: 1,
@@ -27,6 +30,7 @@ var runTest = function(test, code, expected, transformAst){
   var ast = esprima.parse(code);
   var newAst = transformAst(ast);
   var newCode = escodegen.generate(newAst);
+  // console.log(newCode);
   try {
     eval(newCode);
   } catch (e) {
@@ -58,7 +62,7 @@ var transformAstStorepassing = function(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   var storeAst = store(cpsAst);
   addHeader(storeAst, "var globalStore = {};");
-  addHeader(storeAst, "var topK = function(globalStore, x){ actual = x; };");
+  addHeader(storeAst, "var topK = function(globalStore, x){ _trampoline=null; actual = x; };");
   return storeAst;
 };
 
@@ -71,6 +75,12 @@ var transformAstOptimize = function(ast){
   var newAst = transformAstNaming(ast);
   return optimize(newAst);
 };
+
+var transformAstTrampoline = function(ast){
+  var newAst = transformAstOptimize(ast);
+  return trampoline(newAst, false);
+};
+
 
 var selectCpsPrimitives = function(){
   // Set global definitions
@@ -118,6 +128,12 @@ var runOptimizationTest = function(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
 };
+
+var runTrampolineTest = function(test, code, expected){
+  selectNamingPrimitives();
+  return runTest(test, code, expected, transformAstTrampoline);
+};
+
 
 
 var generateTestFunctions = function(allTests, testRunner){
@@ -263,7 +279,7 @@ var tests = {
              "var baz = function(){ return obj1['X']; };" +
              "foo();"),
       expected: 10,
-      runners: [runOptimizationTest] }
+      runners: [runOptimizationTest, runTrampolineTest] }
 
   ],
 
@@ -424,3 +440,4 @@ exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
 exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
