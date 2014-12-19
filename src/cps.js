@@ -39,6 +39,10 @@ function buildFunc(args, body){
   }
 }
 
+function buildContinuationCall(cont, value){
+  return build.callExpression(cont, [value]);
+}
+
 function cpsAtomic(node){
   switch (node.type) {
   case Syntax.FunctionExpression:
@@ -67,9 +71,9 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   } else if(isImmediate(nodes[0])) {
 //    var val = immediateVal(nodes[0])
     return cpsSequence(atFinalElement,
-                getFinalElement,
-                nodes.slice(1),
-                vars.concat([nodes[0]]))
+                       getFinalElement,
+                       nodes.slice(1),
+                       vars.concat([nodes[0]]));
   } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
              !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
@@ -92,33 +96,37 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
 }
 
 function isImmediate(node) {
-  return node.type == Syntax.Literal || node.type == Syntax.Identifier
+  return node.type == Syntax.Literal || node.type == Syntax.Identifier;
 }
 
 function isFunctionDeclaration(node){
-  return ((node.type === Syntax.VariableDeclaration) &&
+  return (types.namedTypes.VariableDeclaration.check(node) &&
           types.namedTypes.FunctionExpression.check(node.declarations[0].init));
 }
 
 function cpsBlock(nodes, cont){
+
   if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
     // Function declarations that occur as the first nodes in a block
     // will be assigned within the same scope that the block
     // occurs. This allows us to define functions at the top-level scope.
     var node = nodes[0];
+    var newBlockElementNode;
     assert.equal(node.declarations.length, 1);
     var declaration = node.declarations[0];
-    var newFunctionDeclarationNode = build.variableDeclaration(
+    newBlockElementNode = build.variableDeclaration(
       "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
     var newRemainderNode = cpsBlock(nodes.slice(1), cont);
     if (types.namedTypes.BlockStatement.check(newRemainderNode)){
       // Flatten nested block
-      return build.blockStatement([newFunctionDeclarationNode].concat(newRemainderNode.body));
+      return build.blockStatement([newBlockElementNode].concat(newRemainderNode.body));
     } else {
-      return build.blockStatement([newFunctionDeclarationNode, convertToStatement(newRemainderNode)]);
+      return build.blockStatement([newBlockElementNode, convertToStatement(newRemainderNode)]);
     }
+
   } else {
-    //FIXME: the sequence vars are going to be ignored, so can do this with less garbage..
+    // FIXME: the sequence vars are going to be ignored (but will also
+    // be removed by optimizer)
     return cpsSequence(
       function (nodes){return (nodes.length == 1);},
       function(nodes, vars){
@@ -128,19 +136,20 @@ function cpsBlock(nodes, cont){
   }
 }
 
-//we assume that a function called as a method is primitive (a hack, for simplicity). have to wrap up the object in case it's compound.
+// we assume that a function called as a method is primitive (a hack,
+// for simplicity). have to wrap up the object in case it's compound.
 function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
-  var objNode = opNode.object
+  var objNode = opNode.object;
   var nodes = [objNode].concat(argNodes);
   return cpsSequence(
-                     function (nodes){return (nodes.length == 0);},
-                     function(nodes, vars){
-                       var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed)
-                       return build.callExpression(
-                                                   cont,
-                                                   [build.callExpression(memberNode, vars.slice(1))]);
-                     },
-                     nodes);
+    function (nodes){return (nodes.length == 0);},
+    function(nodes, vars){
+      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed);
+      return buildContinuationCall(
+        cont,
+        build.callExpression(memberNode, vars.slice(1)));
+    },
+    nodes);
 }
 
 function cpsCompoundApplication(opNode, argNodes, cont){
@@ -167,9 +176,9 @@ function cpsUnaryExpression(opNode, argNode, isPrefix, cont){
   return cpsSequence(
     function(nodes){return (nodes.length == 0);},
     function(nodes, vars){
-      return build.callExpression(
+      return buildContinuationCall(
         cont,
-        [build.unaryExpression(opNode, vars[0], isPrefix)]);
+        build.unaryExpression(opNode, vars[0], isPrefix));
     },
     nodes);
 }
@@ -180,16 +189,16 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
     function(nodes){return (nodes.length == 0);},
     function(nodes, vars){
       assert.ok(vars.length == 2);
-      return build.callExpression(
+      return buildContinuationCall(
         cont,
-        [build.binaryExpression(opNode, vars[0], vars[1])]);
+        build.binaryExpression(opNode, vars[0], vars[1]));
     },
     nodes);
 }
 
 function cpsConditional(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("cont");
+  var contName = makeGensymVariable("k");
   var testName = makeGensymVariable("test");
   return build.callExpression(
     buildFunc([contName],
@@ -204,11 +213,11 @@ function cpsConditional(test, consequent, alternate, cont){
 
 function cpsIf(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("cont");
+  var contName = makeGensymVariable("k");
   var testName = makeGensymVariable("test");
   var consequentNode = cps(consequent, contName);
   if (alternate === null) {
-    var alternateNode = build.callExpression(cont, [build.identifier("undefined")]);
+    var alternateNode = buildContinuationCall(contName, build.identifier("undefined"));
   } else {
     var alternateNode = cps(alternate, contName);
   }
@@ -229,7 +238,7 @@ function cpsArrayExpression(elements, cont){
     function (nodes){return (nodes.length == 0);},
     function(nodes, vars){
       var arrayExpr = build.arrayExpression(vars);
-      return build.callExpression(cont, [arrayExpr]);
+      return buildContinuationCall(cont, arrayExpr);
     },
     elements);
 }
@@ -238,7 +247,7 @@ function cpsObjectExpression(properties, cont, props){
     props = props || [];
     if (properties.length == 0 ) {
         var objectExpr = build.objectExpression(props);
-        return build.callExpression(cont, [objectExpr]);
+        return buildContinuationCall(cont, objectExpr);
     } else {
         var nextVal = makeGensymVariable("ob");
         var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
@@ -260,13 +269,13 @@ function cpsMemberExpression(obj, prop, computed, cont){
                buildFunc([objName],
                          cps(prop,
                              buildFunc([propName],
-                                       build.callExpression(cont, [memberExpr])))));
+                                       buildContinuationCall(cont, memberExpr)))));
   } else {
     var objName = makeGensymVariable("obj");
     var memberExpr = build.memberExpression(objName, prop, false);
     return cps(obj,
                buildFunc([objName],
-                         build.callExpression(cont, [memberExpr])));
+                         buildContinuationCall(cont, memberExpr)));
   }
 }
 
@@ -277,17 +286,27 @@ function cpsVariableDeclaration(declarationId, declarationInit, cont){
         build.variableDeclaration(
           "var",
           [build.variableDeclarator(declarationId, cpsAtomic(declarationInit))]),
-        convertToStatement(build.callExpression(cont, [build.identifier("undefined")]))
+        convertToStatement(buildContinuationCall(cont, build.identifier("undefined")))
       ]);
   } else {
     return cps(declarationInit,
                buildFunc([declarationId],
-                         build.callExpression(cont, [build.identifier("undefined")])));
+                         buildContinuationCall(cont, build.identifier("undefined"))));
   }
 }
 
+function cpsAssignmentExpression(operator, left, right, cont) {
+  //cps the right side (and left??), make assignment, call cont with assignment result.
+  assert.equal(left.type,Syntax.MemberExpression, "Assignment is allowed only to fields of globalStore.");
+  assert.equal(left.object.name,"globalStore", "Assignment is allowed only to fields of globalStore.");
+  var rhsName = makeGensymVariable("rhs");
+  var assignmentExpr = build.assignmentExpression(operator, left, rhsName);
+  return cps(right, buildFunc([rhsName],
+                              buildContinuationCall(cont, assignmentExpr)));
+}
+
 function cps(node, cont){
-  
+
   switch (node.type) {
 
   case Syntax.BlockStatement:
@@ -306,7 +325,7 @@ function cps(node, cont){
   case Syntax.Identifier:
   case Syntax.Literal:
   case Syntax.FunctionExpression:
-    return build.callExpression(cont, [cpsAtomic(node)]);
+    return buildContinuationCall(cont, cpsAtomic(node));
 
   case Syntax.VariableDeclaration:
     assert.equal(node.declarations.length, 1);
@@ -336,6 +355,9 @@ function cps(node, cont){
 
   case Syntax.BinaryExpression:
     return cpsBinaryExpression(node.operator, node.left, node.right, cont);
+
+  case Syntax.AssignmentExpression:
+      return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
 
   default:
     throw new Error("cps: unknown node type: " + node.type);

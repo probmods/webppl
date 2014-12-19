@@ -1,14 +1,22 @@
 "use strict";
 
+var assert = require('assert');
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
-//var ParticleFilterRejuv = require('./pfr.js').ParticleFilterRejuv
 
-//top address for naming
+// Top address for naming
 var address = "";
 
+// Top global store for mutation (eg conjugate models)
+var globalStore = {};
+
+
+
+////////////////////////////////////////////////////////////////////
+// ERPs
+//
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
 // functions. A single ERP need not hve all three, but some inference
@@ -90,12 +98,12 @@ function gaussianScore(params, x){
   return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
-function gaussianFactor(k, addr, mu, std, val){
-  coroutine.factor(k, addr, gaussianScore([mu, std], val));
+function gaussianFactor(store, k, addr, mu, std, val){
+  coroutine.factor(store, k, addr, gaussianScore([mu, std], val));
 }
 
-function erpFactor(k, addr, erp, params, val){
-  coroutine.factor(k, addr, erp.score(params, val));
+function erpFactor(store, k, addr, erp, params, val){
+  coroutine.factor(store, k, addr, erp.score(params, val));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
@@ -130,7 +138,7 @@ function gammaSample(params){
   var a = params[0];
   var b = params[1];
   if (a < 1) {
-    return gammaSample(1+a,b) * Math.pow(Math.random(), 1/a);
+    return gammaSample([1+a,b]) * Math.pow(Math.random(), 1/a);
   }
   var x, v, u;
   var d = a-1/3;
@@ -183,9 +191,9 @@ var betaERP = new ERP(
     var a = params[0];
     var b = params[1];
     var x = val;
-    return (x > 0 && x < 1)
-      ? (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b)
-      : -Infinity
+    return ((x > 0 && x < 1)
+            ? (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b)
+            : -Infinity);
   }
 );
 
@@ -341,6 +349,7 @@ function multinomialSample(theta) {
 
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
+
   //normalize distribution:
   var norm = 0;
   var supp = [];
@@ -352,8 +361,8 @@ function makeMarginalERP(marginal) {
     marginal[v].prob = marginal[v].prob / norm;
   }
 
-  console.log("Creating distribution: ");
-  console.log(marginal);
+  // console.log("Creating distribution: ");
+  // console.log(marginal);
 
   //make an ERP from marginal:
   var dist = new ERP(
@@ -374,7 +383,7 @@ function makeMarginalERP(marginal) {
         // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
         if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
       }
-      return -Infinity
+      return -Infinity;
     },
     function(params) {
       return supp;
@@ -382,11 +391,15 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-// Inference interface: an inference function takes the current
-// continuation and a WebPPL thunk (which itself has been transformed
-// to take a continuation). It does some kind of inference and returns
-// an ERP representing the nromalized marginal distribution on return
-// values.
+
+
+////////////////////////////////////////////////////////////////////
+// Inference interface
+//
+// An inference function takes the current continuation and a WebPPL
+// thunk (which itself has been transformed to take a
+// continuation). It does some kind of inference and returns an ERP
+// representing the nromalized marginal distribution on return values.
 //
 // The inference function should install a coroutine object that
 // provides sample, factor, and exit.
@@ -402,14 +415,14 @@ function makeMarginalERP(marginal) {
 // factor use it to interface with the inference algorithm. Default
 // setting throws an error on factor calls.
 var coroutine = {
-  sample: function(cc, a, erp, params) {
+  sample: function(s, cc, a, erp, params) {
     // Sample and keep going
-    cc(erp.sample(params));
+    cc(s, erp.sample(params));
   },
   factor: function() {
     throw "factor allowed only inside inference.";
   },
-  exit: function(r) {
+  exit: function(s,r) {
     return r;
   }
 };
@@ -417,76 +430,30 @@ var coroutine = {
 // Functions that call methods of whatever the coroutine is set to
 // when called, we do it like this so that 'this' will be set
 // correctly to the coroutine object.
-function sample(k, a, dist, params) {
-  coroutine.sample(k, a, dist, params);
+function sample(s, k, a, dist, params) {
+  coroutine.sample(s, k, a, dist, params);
 }
 
-function factor(k, a, score) {
-  coroutine.factor(k, a, score);
+function factor(s, k, a, score) {
+  coroutine.factor(s, k, a, score);
 }
 
-function sampleWithFactor(k, a, dist, params, scoreFn) {
+function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   if(typeof coroutine.sampleWithFactor  == "function"){
-    coroutine.sampleWithFactor(k, a, dist, params, scoreFn)
+    coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    sample(function(v){
-      scoreFn(function(s){factor(function(){k(v)},a+"swf2",s)}, a+"swf1", v)},
-           a, dist, params)
+    sample(s,
+           function(v){
+            scoreFn(s, function(sc){factor(s, function(s){k(s, v);},a+"swf2",sc);}, a+"swf1", v);},
+           a, dist, params);
   }
 }
 
-function exit(retval) {
-  coroutine.exit(retval);
+function exit(s,retval) {
+  coroutine.exit(s,retval);
 }
 
-//////////////////////////////////////////////////////////////////////
-//// Forward sampling
-////
-//// Simply samples at each random choice. throws an error on factor,
-//// since we aren't doing any normalization / inference.
-//
-//function Forward(cc, wpplFn) {
-//  this.cc = cc;
-//
-//  // Move old coroutine out of the way and install this as the
-//  // current handler.
-//  this.oldCoroutine = coroutine;
-//  coroutine = this;
-//
-//  // Run the wppl computation, when the computation returns we want
-//  // it to call the exit method of this coroutine so we pass that as
-//  // the continuation.
-//  wpplFn(exit);
-//}
-//
-//Forward.prototype.sample = function(cc, erp, params) {
-//  cc(erp.sample(params)); //sample and keep going
-//};
-//
-//Forward.prototype.factor = function(cc, score) {
-//  throw "'factor' is not allowed inside Forward.";
-//};
-//
-//Forward.prototype.exit = function(retval) {
-//  // Return value of the wppl fn as a delta erp
-//  var dist = new ERP(
-//    function() {
-//      return retval;
-//    },
-//    function(p, v) {
-//      return (v == retval) ? 0 : -Infinity;
-//    });
-//
-//  // Put old coroutine back, and return dist
-//  coroutine = this.oldCoroutine;
-//  this.cc(dist);
-//};
-//
-//// Helper wraps with 'new' to make a new copy of Forward and set
-//// 'this' correctly..
-//function fw(cc, wpplFn) {
-//  return new Forward(cc, wpplFn);
-//}
+
 
 ////////////////////////////////////////////////////////////////////
 // Enumeration
@@ -494,13 +461,15 @@ function exit(retval) {
 // Depth-first enumeration of all the paths through the computation.
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(k, a, wpplFn, maxExecutions, Q) {
+function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
 
   this.score = 0; // Used to track the score of the path currently being explored
   this.queue = Q; // Queue of states that we have yet to explore
   this.marginal = {}; // We will accumulate the marginal distribution here
   this.numCompletedExecutions = 0;
-  this.maxExecutions = maxExecutions || 1000;
+  this.maxExecutions = maxExecutions || Infinity;
+
+  this.oldStore = s; // will be reinstated at the end
 
   // Move old coroutine out of the way and install this as the current handler
   this.k = k;
@@ -510,7 +479,7 @@ function Enumerate(k, a, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(exit,a);
+  wpplFn(s, exit, a);
 }
 
 // The queue is a bunch of computation states. each state is a
@@ -525,21 +494,14 @@ var stackSize = 0;
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  //  util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-
-  stackSize++;
-  if (stackSize == 40) {
-    util.withEmptyStack(function(){nextState.continuation(nextState.value)});
-  } else {
-    nextState.continuation(nextState.value)
-    stackSize = 0
-  }
+  nextState.continuation(nextState.store, nextState.value);
 };
 
-Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
+
+Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
 
   //allows extra factors to be taken into account in making exploration decisions:
-  var extraScoreFn = extraScoreFn || function(x){return 0}
+  extraScoreFn = extraScoreFn || function(x){return 0;};
 
   // Find support of this erp:
   if (!dist.support) {
@@ -553,7 +515,8 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
     var state = {
       continuation: cc,
       value: supp[s],
-      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s])
+      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
+      store: util.copyObj(store)
     };
     this.queue.enq(state);
   }
@@ -561,24 +524,25 @@ Enumerate.prototype.sample = function(cc, a, dist, params, extraScoreFn) {
   this.nextInQueue();
 };
 
-Enumerate.prototype.factor = function(cc,a, score) {
+Enumerate.prototype.factor = function(s,cc,a, score) {
   // Update score and continue
   this.score += score;
-  cc();
+  cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(cc,a,dist,params,scoreFn) {
-  coroutine.sample(cc,a,dist,params,
+Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+  coroutine.sample(s,cc,a,dist,params,
                    function(v){
-                     var ret
-                     scoreFn(function(x){ret = x},a+"swf",v)
-                     return ret})
-}
+                    var ret;
+                    scoreFn(s,function(x){ret = x;},a+"swf",v);
+                    return ret;});
+};
 
-Enumerate.prototype.exit = function(retval) {
+
+Enumerate.prototype.exit = function(s,retval) {
 
   // We have reached an exit of the computation. Accumulate probability into retval bin.
-  var r = JSON.stringify(retval)
+  var r = JSON.stringify(retval);
   if (this.marginal[r] == undefined) {
     this.marginal[r] = {prob: 0, val: retval};
   }
@@ -595,32 +559,33 @@ Enumerate.prototype.exit = function(retval) {
     var dist = makeMarginalERP(marginal);
     // Reinstate previous coroutine:
     coroutine = this.oldCoroutine;
-    // Return from enumeration by calling original continuation:
-    this.k(dist);
+    // Return from enumeration by calling original continuation with original store:
+    this.k(this.oldStore, dist);
   }
 };
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-function enuPriority(cc, a, wpplFn, maxExecutions) {
+function enuPriority(s,cc, a, wpplFn, maxExecutions) {
   var q = new PriorityQueue(function(a, b){return a.score-b.score;});
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFilo(cc,a, wpplFn, maxExecutions) {
-  var q = []
-  q.size = function(){return q.length}
-  q.enq = q.push
-  q.deq = q.pop
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+function enuFilo(s,cc,a, wpplFn, maxExecutions) {
+  var q = [];
+  q.size = function(){return q.length;};
+  q.enq = q.push;
+  q.deq = q.pop;
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
 
-function enuFifo(cc,a, wpplFn, maxExecutions) {
-  var q = []
-  q.size = function(){return q.length}
-  q.enq = q.push
-  q.deq = q.shift
-  return new Enumerate(cc,a, wpplFn, maxExecutions, q);
+function enuFifo(s,cc,a, wpplFn, maxExecutions) {
+  var q = [];
+  q.size = function(){return q.length;};
+  q.enq = q.push;
+  q.deq = q.shift;
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
 }
+
 
 ////////////////////////////////////////////////////////////////////
 // Particle filtering
@@ -632,11 +597,12 @@ function copyParticle(particle){
   return {
     continuation: particle.continuation,
     weight: particle.weight,
-    value: particle.value
+    value: particle.value,
+    store: util.copyObj(particle.store)
   };
 }
 
-function ParticleFilter(k, a, wpplFn, numParticles) {
+function ParticleFilter(s, k, a, wpplFn, numParticles) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -644,9 +610,10 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(){wpplFn(exit,a);},
+      continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
-      value: undefined
+      value: undefined,
+      store: s
     };
     this.particles.push(particle);
   }
@@ -657,18 +624,21 @@ function ParticleFilter(k, a, wpplFn, numParticles) {
   this.oldCoroutine = coroutine;
   coroutine = this;
 
+  this.oldStore = util.copyObj(s); // will be reinstated at the end
+
   // Run first particle
-  this.activeParticle().continuation();
+  this.activeParticle().continuation(this.activeParticle().store);
 }
 
-ParticleFilter.prototype.sample = function(cc, a, erp, params) {
-  cc(erp.sample(params));
+ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
+  cc(s,erp.sample(params));
 };
 
-ParticleFilter.prototype.factor = function(cc, a, score) {
+ParticleFilter.prototype.factor = function(s,cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
+  this.activeParticle().store = s;
 
   if (this.allParticlesAdvanced()){
     // Resample in proportion to weights
@@ -679,7 +649,7 @@ ParticleFilter.prototype.factor = function(cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeParticle().continuation);
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -694,7 +664,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
 
   var m = this.particles.length;
-  var W = util.logsumexp(_.map(this.particles, function(p){return p.weight}));
+  var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
 
   // Compute list of retained particles
   var retainedParticles = [];
@@ -736,7 +706,7 @@ ParticleFilter.prototype.resampleParticles = function() {
     });
 };
 
-ParticleFilter.prototype.exit = function(retval) {
+ParticleFilter.prototype.exit = function(s,retval) {
 
   this.activeParticle().value = retval;
 
@@ -744,7 +714,7 @@ ParticleFilter.prototype.exit = function(retval) {
   // marginal distribution from particles
   if (!this.allParticlesAdvanced()){
     this.particleIndex += 1;
-    return this.activeParticle().continuation();
+    return this.activeParticle().continuation(this.activeParticle().store);
   }
 
   // Compute marginal distribution from (unweighted) particles
@@ -764,226 +734,127 @@ ParticleFilter.prototype.exit = function(retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(dist);
-};
-
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc, a, wpplFn, numParticles);
+  this.k(this.oldStore, dist);
 }
+
+function pf(s, cc, a, wpplFn, numParticles) {
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles);
+}
+
+
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-//function MH(k, a, wpplFn, numIterations) {
-//
-//  this.trace = {}
-//  this.score = 0
-//  var sample
-//  var hist = {};
-//  this.fwbw = 0
-//
-//  // Move old coroutine out of the way and install this as the current
-//  // handler.
-//  this.oldCoroutine = coroutine;
-//  coroutine = this;
-//
-//  //kick off computation, with trivial continuation that will come back here.
-//  //this initializes and store choices in trace. each choice has trivial final k, too.
-//  var retval
-//  wpplFn(function(x){retval = x},a)
-//  sample = retval
-//
-//  //now we've initialized, run the MH loop:
-//  for(var i=0;i<numIterations;i++){
-//    this.fwbw = 0
-//
-//    //choose choice from trace..
-//    var keys = traceKeys(this.trace)
-//    var key = keys[Math.floor(Math.random() * keys.length)]
-//    var choice = this.trace[key]
-//    this.fwbw += Math.log(keys.length)
-//
-//    //sample new value for the chosen choice
-//    var newval = choice.erp.sample(choice.params)
-//    //note proposal prob and score cancel, when drawn from prior.
-////    this.fwbw += choice.erp.score(choice.params,choice.val) -
-////                  choice.erp.score(choice.params,newval)
-//
-//    //copy and move current trace out of the way, update by re-entering at the choice.
-//    var oldTrace = this.trace
-//    this.trace = copyTrace(oldTrace)
-//    var oldscore = this.score
-//    this.score = 0
-//    this.trace[key].val = newval
-//    choice.k(newval) //run continuation, will set retval at end.
-//
-//    //compute acceptance prob and decide
-//    this.fwbw += this.score - oldscore //FIXME: this isn't quite right if a factor is above the k we're running this time... need to store score so far in trace?
-//    this.fwbw += -Math.log(traceKeys(this.trace).length)
-//    //TODO clear out unused choices...!!!
-//    var acceptanceProb = Math.min(1,Math.exp(this.fwbw))
-//    var accept = Math.random()<acceptanceProb
-//    this.trace = accept?this.trace:oldTrace
-//    sample= accept?retval:sample
-//    this.score = accept?this.score:oldscore
-//
-//    //accumulate sample into hist:
-//    var v = JSON.stringify(sample)
-//    if(hist[v]==undefined){hist[v]={prob:0, val:sample}}
-//    hist[v].prob += 1;
-//  }
-//
-//  // Reinstate previous coroutine:
-//  coroutine = this.oldCoroutine;
-//
-//  // Return by calling original continuation:
-//  k(makeMarginalERP(hist));
-//}
-//
-//MH.prototype.sample = function(cc, add, erp, params) {
-//  //TODO accumulate fw/bw prob on creation!!!
-//  //TODO check for param change
-//  if(this.trace[add]==undefined){
-//    var val = erp.sample(params)
-//    this.trace[add] = {val: val, erp: erp, params: params, k: cc, add:add}
-//    cc(val);
-//  } else {
-//    cc(this.trace[add].val)
-//  }
-//};
-//
-//MH.prototype.factor = function(cc, add, score) {
-//  this.score += score
-//  cc()
-//}
-//
-//function copyTrace(trace) {
-//  var newTrace = {}
-//  for(var v in trace){
-//    newTrace[v] = trace[v]
-//  }
-//  return newTrace
-//}
-//
-//function traceKeys(trace){
-//  var keys = []
-//  for(var k in trace){
-//    if(trace.hasOwnProperty(k)){keys.push(k)}
-//  }
-//  return keys
-//}
-//
-//function mh(cc, a, wpplFn, numParticles) {
-//  return new MH(cc, a, wpplFn, numParticles);
-//}
-//
+function MH(s, k, a, wpplFn, numIterations) {
 
-///
-
-function MH(k, a, wpplFn, numIterations) {
-
-  this.trace = []
-  this.oldTrace = undefined
-  this.currScore = 0
-  this.oldScore = -Infinity
-  this.oldVal = undefined
-  this.regenFrom = 0
-  this.returnHist = {}
-  this.k = k
-
-  this.iterations = numIterations
+  this.trace = [];
+  this.oldTrace = undefined;
+  this.currScore = 0;
+  this.oldScore = -Infinity;
+  this.oldVal = undefined;
+  this.regenFrom = 0;
+  this.returnHist = {};
+  this.k = k;
+  this.oldStore = util.copyObj(s);
+  this.iterations = numIterations;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.oldCoroutine = coroutine;
   coroutine = this;
 
-  wpplFn(exit,a)
+  wpplFn(s, exit, a);
 }
 
-MH.prototype.factor = function(k,a,s) {
-  coroutine.currScore += s;
-  util.withEmptyStack(k);
+MH.prototype.factor = function(s, k, a, score) {
+  coroutine.currScore += score;
+  k(s);
 };
 
-MH.prototype.sample = function(cont, name, erp, params, forceSample) {
-  var prev = findChoice(coroutine.oldTrace, name)
-  var reuse = ! (prev==undefined | forceSample)
-  var val = reuse ? prev.val : erp.sample(params)
-  var choiceScore = erp.score(params,val)
+MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
+  var prev = findChoice(coroutine.oldTrace, name);
+  var reuse = ! (prev==undefined | forceSample);
+  var val = reuse ? prev.val : erp.sample(params);
+  var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
-                        score: coroutine.currScore, choiceScore: choiceScore,
-                        val: val, reused: reuse})
-  coroutine.currScore += choiceScore
-  cont(val)
-}
+                       score: coroutine.currScore, choiceScore: choiceScore,
+                       val: val, reused: reuse, store: util.copyObj(s)});
+  coroutine.currScore += choiceScore;
+  cont(s, val);
+};
 
 function findChoice(trace, name) {
-  if(trace == undefined){return undefined}
-  for(var i = 0; i < trace.length; i++){
-    if(trace[i].name == name){return trace[i]}
+  if (trace == undefined){
+    return undefined;
   }
-  return undefined
+  for (var i = 0; i < trace.length; i++){
+    if (trace[i].name == name){
+      return trace[i];
+    }
+  }
+  return undefined;
 }
 
 function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  if(oldTrace == undefined){return 1} //just for init
-  var fw = -Math.log(oldTrace.length)
-  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore})
-  var bw = -Math.log(trace.length)
+  if(oldTrace == undefined){return 1;} //just for init
+  var fw = -Math.log(oldTrace.length);
+  trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
+  var bw = -Math.log(trace.length);
   oldTrace.slice(regenFrom).map(function(s){
-    var nc = findChoice(trace, s.name)
-    bw += (!nc || !nc.reused) ? s.choiceScore : 0  })
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw))
-  return acceptance
+    var nc = findChoice(trace, s.name);
+    bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
+  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
+  return acceptance;
 }
 
-MH.prototype.exit = function(val) {
-  if( coroutine.iterations > 0 ) {
-    coroutine.iterations -= 1
+MH.prototype.exit = function(s, val) {
+  if (coroutine.iterations > 0) {
+    coroutine.iterations -= 1;
 
     //did we like this proposal?
     var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
-                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
-    if(!(Math.random()<acceptance)){
-      //if rejected, roll back trace, etc:
-      coroutine.trace = coroutine.oldTrace
-      coroutine.currScore = coroutine.oldScore
-      val = coroutine.oldVal
+                                  coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
+    if (!(Math.random()<acceptance)){
+      // if rejected, roll back trace, etc:
+      coroutine.trace = coroutine.oldTrace;
+      coroutine.currScore = coroutine.oldScore;
+      val = coroutine.oldVal;
     }
 
-    //now add val to hist:
+    // now add val to hist:
     var stringifiedVal = JSON.stringify(val);
     if (coroutine.returnHist[stringifiedVal] === undefined){
       coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
     }
     coroutine.returnHist[stringifiedVal].prob += 1;
 
-    //make a new proposal:
-    coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
-    var regen = coroutine.trace[coroutine.regenFrom]
-    coroutine.oldTrace = coroutine.trace
-    coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom)
-    coroutine.oldScore = coroutine.currScore
-    coroutine.currScore = regen.score
-    coroutine.oldVal = val
+    // make a new proposal:
+    coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
+    var regen = coroutine.trace[coroutine.regenFrom];
+    coroutine.oldTrace = coroutine.trace;
+    coroutine.trace = coroutine.trace.slice(0, coroutine.regenFrom);
+    coroutine.oldScore = coroutine.currScore;
+    coroutine.currScore = regen.score;
+    coroutine.oldVal = val;
 
-    coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
+    coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
   } else {
-    var dist = makeMarginalERP(coroutine.returnHist)
+    var dist = makeMarginalERP(coroutine.returnHist);
 
     // Reinstate previous coroutine:
     var k = coroutine.k;
     coroutine = this.oldCoroutine;
 
     // Return by calling original continuation:
-    k(dist);
+    k(this.oldStore, dist);
   }
+};
+
+function mh(s, cc, a, wpplFn, numParticles) {
+  return new MH(s, cc, a, wpplFn, numParticles);
 }
 
-function mh(cc, a, wpplFn, numParticles) {
-  return new MH(cc, a, wpplFn, numParticles);
-}
 
 ////////////////////////////////////////////////////////////////////
 // PMCMC
@@ -992,7 +863,7 @@ function last(xs){
   return xs[xs.length - 1];
 }
 
-function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
+function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps){
 
   // Move old coroutine out of the way and install this as the
   // current handler.
@@ -1001,6 +872,8 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
 
   // Store continuation (will be passed dist at the end)
   this.k = cc;
+
+  this.oldStore = util.copyObj(s);
 
   // Setup inference variables
   this.particleIndex = 0;  // marks the active particle
@@ -1014,7 +887,7 @@ function PMCMC(cc, a, wpplFn, numParticles, numSweeps){
   this.returnHist = {};
 
   // Run first particle
-  this.activeContinuation()();
+  this.activeContinuationWithStore()();
 }
 
 PMCMC.prototype.resetParticles = function(){
@@ -1023,11 +896,12 @@ PMCMC.prototype.resetParticles = function(){
   // Create initial particles
   for (var i=0; i<this.numParticles; i++) {
     var particle = {
-      continuations: [function(){that.wpplFn(exit, that.address);}],
+      continuations: [function(s){that.wpplFn(s, exit, that.address);}],
+      stores: [that.oldStore],
       weights: [0],
       value: undefined
     };
-    this.particles.push(particle);
+    this.particles.push(util.copyObj(particle));
   }
 };
 
@@ -1037,28 +911,36 @@ PMCMC.prototype.activeParticle = function() {
 
 PMCMC.prototype.activeContinuation = function(){
   return last(this.activeParticle().continuations);
-}
+};
+
+PMCMC.prototype.activeContinuationWithStore = function(){
+  var k = last(this.activeParticle().continuations);
+  var s = last(this.activeParticle().stores);
+  return function(){k(s);};
+};
 
 PMCMC.prototype.allParticlesAdvanced = function() {
   return ((this.particleIndex + 1) == this.particles.length);
 };
 
-PMCMC.prototype.sample = function(cc, a, erp, params) {
-  cc(erp.sample(params));
+PMCMC.prototype.sample = function(s, cc, a, erp, params) {
+  cc(s, erp.sample(params));
 };
 
 PMCMC.prototype.particleAtStep = function(particle, step){
   // Returns particle s.t. particle.continuations[step] is the last entry
   return {
     continuations: particle.continuations.slice(0, step + 1),
+    stores: particle.stores.slice(0, step + 1),
     weights: particle.weights.slice(0, step + 1),
     value: particle.value
   };
 };
 
-PMCMC.prototype.updateActiveParticle = function(weight, continuation){
+PMCMC.prototype.updateActiveParticle = function(weight, continuation, store){
   var particle = this.activeParticle();
   particle.continuations = particle.continuations.concat([continuation]);
+  particle.stores = particle.stores.concat([util.copyObj(store)]);
   particle.weights = particle.weights.concat([weight]);
 };
 
@@ -1066,7 +948,8 @@ PMCMC.prototype.copyParticle = function(particle){
   return {
     continuations: particle.continuations.slice(0),
     weights: particle.weights.slice(0),
-    value: particle.value
+    value: particle.value,
+    stores: particle.stores.map(util.copyObj)
   };
 };
 
@@ -1084,9 +967,9 @@ PMCMC.prototype.resampleParticles = function(particles){
   return newParticles;
 };
 
-PMCMC.prototype.factor = function(cc, a, score) {
+PMCMC.prototype.factor = function(s, cc, a, score) {
 
-  this.updateActiveParticle(score, cc);
+  this.updateActiveParticle(score, cc, s);
 
   if (this.allParticlesAdvanced()){
     if (this.sweep > 0){
@@ -1106,10 +989,10 @@ PMCMC.prototype.factor = function(cc, a, score) {
     this.particleIndex += 1;
   }
 
-  util.withEmptyStack(this.activeContinuation());
+  this.activeContinuationWithStore()();
 };
 
-PMCMC.prototype.exit = function(retval) {
+PMCMC.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
 
@@ -1117,7 +1000,7 @@ PMCMC.prototype.exit = function(retval) {
 
     // Wait for all particles to reach exit
     this.particleIndex += 1;
-    return this.activeContinuation()();
+    return this.activeContinuationWithStore()();
 
   } else {
 
@@ -1144,7 +1027,7 @@ PMCMC.prototype.exit = function(retval) {
       this.sweep += 1;
       this.particleIndex = 0;
       this.resetParticles();
-      this.activeContinuation()();
+      this.activeContinuationWithStore()();
 
     } else {
       var dist = makeMarginalERP(this.returnHist);
@@ -1153,48 +1036,17 @@ PMCMC.prototype.exit = function(retval) {
       coroutine = this.oldCoroutine;
 
       // Return from particle filter by calling original continuation:
-      this.k(dist);
+      this.k(this.oldStore, dist);
 
     }
   }
 };
 
-function pmc(cc, a, wpplFn, numParticles, numSweeps) {
-  return new PMCMC(cc, a, wpplFn, numParticles, numSweeps);
+function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
+  return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps);
 }
 
-////////////////////////////////////////////////////////////////////
-// Some primitive functions to make things simpler
 
-function display(k, a, x) {
-  k(console.log(x));
-}
-
-//function callPrimitive(k, a, f) {
-//  var args = Array.prototype.slice.call(arguments, 2);
-//  k(f.apply(f, args));
-//}
-
-// Caching for a wppl function f. caution: if f isn't deterministic
-// weird stuff can happen, since caching is across all uses of f, even
-// in different execuation paths.
-function cache(k, a, f) {
-  var c = {};
-  var cf = function(k) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    var stringedArgs = JSON.stringify(args)
-    if (stringedArgs in c) {
-      k(c[stringedArgs]);
-    } else {
-      var newk = function(r) {
-        c[stringedArgs] = r;
-        k(r);
-      };
-      f.apply(this, [newk].concat(args));
-    }
-  };
-  k(cf);
-}
 
 ////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
@@ -1206,13 +1058,15 @@ function cache(k, a, f) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
-function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
+
+function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
-  this.rejuvSteps = rejuvSteps
-  this.baseAddress = a
-  this.wpplFn = wpplFn
+  this.rejuvSteps = rejuvSteps;
+  this.baseAddress = a;
+  this.wpplFn = wpplFn;
+  this.isParticleFilterRejuvCoroutine = true;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
@@ -1220,58 +1074,65 @@ function ParticleFilterRejuv(k,a, wpplFn, numParticles,rejuvSteps) {
   this.oldCoroutine = coroutine;
   coroutine = this;
 
+  this.oldStore = s; // will be reinstated at the end
+
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(){wpplFn(exit,a);},
-      weight: 0,
-      score: 0,
-      value: undefined,
-      trace: []
+    continuation: function(s){wpplFn(s,exit,a);},
+    weight: 0,
+    score: 0,
+    value: undefined,
+    trace: [],
+    store: s
     };
     coroutine.particles.push(particle);
   }
 
   // Run first particle
-  coroutine.activeParticle().continuation();
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 }
 
-ParticleFilterRejuv.prototype.sample = function(cc,a, erp, params) {
-  var val = erp.sample(params)
-  var choiceScore = erp.score(params,val)
+ParticleFilterRejuv.prototype.sample = function(s,cc,a, erp, params) {
+  var val = erp.sample(params);
+  var choiceScore = erp.score(params,val);
   coroutine.activeParticle().trace.push(
-    {k: cc, name: a, erp: erp, params: params,
-     score: undefined, //FIXME: need to track particle total score?
-     choiceScore: choiceScore,
-     val: val, reused: false})
-  coroutine.activeParticle().score += choiceScore
-  cc(val);
+                                   {k: cc, name: a, erp: erp, params: params,
+                                   score: undefined, //FIXME: need to track particle total score?
+                                   choiceScore: choiceScore,
+                                   val: val, reused: false,
+                                   store: s});
+  coroutine.activeParticle().score += choiceScore;
+  cc(s,val);
 };
 
-ParticleFilterRejuv.prototype.factor = function(cc,a, score) {
+ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
   // Update particle weight and score
   coroutine.activeParticle().weight += score;
-  coroutine.activeParticle().score += score
+  coroutine.activeParticle().score += score;
   coroutine.activeParticle().continuation = cc;
+  coroutine.activeParticle().store = s;
 
   if (coroutine.allParticlesAdvanced()){
-    //    console.log("PF at synch")
     // Resample in proportion to weights
-    coroutine.resampleParticles()
+    coroutine.resampleParticles();
     //rejuvenate each particle via MH
-    coroutine.particles.forEach(function(particle,i,particles){
-      new MHP(function(p){particles[i]=p},
-              particle, coroutine.baseAddress,
-              a, coroutine.wpplFn, coroutine.rejuvSteps)
-    })
+    coroutine.particles.forEach(
+      function(particle,i,particles){
+        // make sure mhp coroutine doesn't escape:
+        assert(coroutine.isParticleFilterRejuvCoroutine);
+        // FIXME: run trampolining loop around MHP call
+        new MHP(function(p){particles[i]=p;},
+                particle, coroutine.baseAddress,
+                a, coroutine.wpplFn, coroutine.rejuvSteps);
+      });
     coroutine.particleIndex = 0;
-    //    console.log("PF runing filter forward")
   } else {
     // Advance to the next particle
     coroutine.particleIndex += 1;
   }
 
-  util.withEmptyStack(coroutine.activeParticle().continuation);
+  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1284,11 +1145,12 @@ ParticleFilterRejuv.prototype.allParticlesAdvanced = function() {
 
 function copyPFRParticle(particle){
   return {
-    continuation: particle.continuation,
-    weight: particle.weight,
-    value: particle.value,
-    score: particle.score,
-    trace: particle.trace //FIXME: need to deep copy trace??
+  continuation: particle.continuation,
+  weight: particle.weight,
+  value: particle.value,
+  score: particle.score,
+  store: particle.store,
+  trace: particle.trace //FIXME: need to deep copy trace??
   };
 }
 
@@ -1296,7 +1158,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
 
   var m = coroutine.particles.length;
-  var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight}));
+  var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
 
   // Compute list of retained particles
   var retainedParticles = [];
@@ -1338,7 +1200,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
     });
 };
 
-ParticleFilterRejuv.prototype.exit = function(retval) {
+ParticleFilterRejuv.prototype.exit = function(s,retval) {
 
   coroutine.activeParticle().value = retval;
 
@@ -1346,15 +1208,19 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
   // marginal distribution from particles
   if (!coroutine.allParticlesAdvanced()){
     coroutine.particleIndex += 1;
-    return coroutine.activeParticle().continuation();
+    return coroutine.activeParticle().continuation(coroutine.activeParticle().store);
   }
 
   //Final rejuvenation:
-  coroutine.particles.forEach(function(particle,i,particles){
-    new MHP(function(p){particles[i]=p},
-            particle, coroutine.baseAddress,
-            undefined, coroutine.wpplFn, coroutine.rejuvSteps)
-  })
+  coroutine.particles.forEach(
+    function(particle,i,particles){
+      // make sure mhp coroutine doesn't escape:
+      assert(coroutine.isParticleFilterRejuvCoroutine);
+      // FIXME: run trampolining loop around MHP call
+      new MHP(function(p){particles[i]=p;},
+              particle, coroutine.baseAddress,
+              undefined, coroutine.wpplFn, coroutine.rejuvSteps);
+    });
 
   // Compute marginal distribution from (unweighted) particles
   var hist = {};
@@ -1370,155 +1236,192 @@ ParticleFilterRejuv.prototype.exit = function(retval) {
   var dist = makeMarginalERP(hist);
 
   // Reinstate previous coroutine:
-  var k = coroutine.k
+  var k = coroutine.k;
   coroutine = coroutine.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  k(dist);
+  k(this.oldStore, dist);
 };
 
-function pf(cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(cc,a, wpplFn, numParticles);
-}
 
 ////// Lightweight MH on a particle
 
-function MHP(k, particle, baseAddress, limitAddress , wpplFn, numIterations) {
+function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIterations) {
 
-  this.trace = particle.trace
-  this.oldTrace = undefined
-  this.currScore = particle.score
-  this.oldScore = undefined
-  this.val = particle.value
-  this.regenFrom = undefined
-  this.k = k
-  this.iterations = numIterations
-  this.limitAddress = limitAddress
-  this.originalParticle = particle
+  this.trace = particle.trace;
+  this.oldTrace = undefined;
+  this.currScore = particle.score;
+  this.oldScore = undefined;
+  this.val = particle.value;
+  this.regenFrom = undefined;
+  this.backToPF = backToPF;
+  this.iterations = numIterations;
+  this.limitAddress = limitAddress;
+  this.originalParticle = particle;
 
-  //  console.log("MH "+numIterations+" steps")
+  // FIXME: do we need to save the store here?
 
-  if(numIterations==0) {
-    k(particle)
+  if (numIterations==0) {
+    backToPF(particle);
   } else {
     // Move PF coroutine out of the way and install this as the current
     // handler.
     this.oldCoroutine = coroutine;
     coroutine = this;
-    coroutine.propose() //FIXME: on final exit, will this end up calling the MH exit correctly?
+    coroutine.propose(); //FIXME: on final exit, will this end up calling the MH exit correctly?
   }
 }
 
-MHP.prototype.factor = function(k,a,s) {
-  coroutine.currScore += s
-  if(a == coroutine.limitAddress) {
-    //we need to exit if we've reached the fathest point of this particle...
-    exit()
+MHP.prototype.factor = function(s,k,a,sc) {
+  coroutine.currScore += sc;
+  if (a == coroutine.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
+    exit(s);
   } else {
-    k()
+    k(s);
   }
-}
+};
 
-MHP.prototype.sample = function(cont, name, erp, params, forceSample) {
-  var prev = findChoice(coroutine.oldTrace, name)
-  var reuse = ! (prev==undefined | forceSample)
-  var val = reuse ? prev.val : erp.sample(params)
-  var choiceScore = erp.score(params,val)
-  coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
-                        score: coroutine.currScore, choiceScore: choiceScore,
-                        val: val, reused: reuse})
-  coroutine.currScore += choiceScore
-  cont(val)
-}
+MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
+  var prev = findChoice(coroutine.oldTrace, name);
+  var reuse = ! (prev==undefined | forceSample);
+  var val = reuse ? prev.val : erp.sample(params);
+  var choiceScore = erp.score(params,val);
+  coroutine.trace.push({k: k, name: name, erp: erp, params: params,
+                       score: coroutine.currScore, choiceScore: choiceScore,
+                       val: val, reused: reuse, store:s});
+  coroutine.currScore += choiceScore;
+  k(s, val);
+};
+
 
 MHP.prototype.propose = function() {
-  //  console.log("MH proposal it: "+coroutine.iterations+"")
   //make a new proposal:
-  coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length)
-  var regen = coroutine.trace[coroutine.regenFrom]
-  coroutine.oldTrace = coroutine.trace
-  coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom)
-  coroutine.oldScore = coroutine.currScore
-  coroutine.currScore = regen.score
-  coroutine.oldVal = coroutine.val
+  coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
+  var regen = coroutine.trace[coroutine.regenFrom];
+  coroutine.oldTrace = coroutine.trace;
+  coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom);
+  coroutine.oldScore = coroutine.currScore;
+  coroutine.currScore = regen.score;
+  coroutine.oldVal = coroutine.val;
 
-  coroutine.sample(regen.k, regen.name, regen.erp, regen.params, true)
-}
+  coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
+};
 
-MHP.prototype.exit = function(val) {
+MHP.prototype.exit = function(s,val) {
 
-  coroutine.val = val
+  coroutine.val = val;
 
   //did we like this proposal?
   var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
-                                coroutine.regenFrom, coroutine.currScore, coroutine.oldScore)
-  if(!(Math.random()<acceptance)){
+                                coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
+  if (!(Math.random()<acceptance)){
     //if rejected, roll back trace, etc:
-    coroutine.trace = coroutine.oldTrace
-    coroutine.currScore = coroutine.oldScore
-    coroutine.val = coroutine.oldVal
+    coroutine.trace = coroutine.oldTrace;
+    coroutine.currScore = coroutine.oldScore;
+    coroutine.val = coroutine.oldVal;
   }
 
-  coroutine.iterations -= 1
+  coroutine.iterations -= 1;
 
   if( coroutine.iterations > 0 ) {
-    coroutine.propose()
+    coroutine.propose();
   } else {
     var newParticle = {continuation: coroutine.originalParticle.continuation,
-                       weight: coroutine.originalParticle.weight,
-                       value: coroutine.val,
-                       trace: coroutine.trace
-                      }
+                        weight: coroutine.originalParticle.weight,
+                        value: coroutine.val,
+                        trace: coroutine.trace,
+                        store: s
+                      };
 
     // Reinstate previous coroutine and return by calling original continuation:
-    var k = coroutine.k;
+    var backToPF = coroutine.backToPF;
     coroutine = coroutine.oldCoroutine;
-    k(newParticle);
+    backToPF(newParticle);
   }
 }
 
-function pfr(cc, a, wpplFn, numParticles, rejuvSteps) {
-  return new ParticleFilterRejuv(cc, a, wpplFn, numParticles, rejuvSteps);
+
+function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
+  console.log('WARNING: Particle Filter with Rejuvenation not supported when using trampolining!');
+  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
-function withEmptyWebPPLStack(k, a, thunk){
-  util.withEmptyStack(function(){
-    return thunk(k, a);
-  });
+
+
+////////////////////////////////////////////////////////////////////
+// Some primitive functions to make things simpler
+
+function display(s,k, a, x) {
+  k(s, console.log(x));
 }
+
+// Caching for a wppl function f. caution: if f isn't deterministic
+// weird stuff can happen, since caching is across all uses of f, even
+// in different execuation paths.
+//FIXME: use global store for caching?
+function cache(s,k, a, f) {
+  var c = {};
+  var cf = function(s,k) {
+    var args = Array.prototype.slice.call(arguments, 2);
+    var stringedArgs = JSON.stringify(args);
+    if (stringedArgs in c) {
+      k(s,c[stringedArgs]);
+    } else {
+      var newk = function(s,r) {
+        c[stringedArgs] = r;
+        k(s,r);
+      };
+      f.apply(this, [s,newk].concat(args));
+    }
+  };
+  k(s,cf);
+}
+
+function getAddress(store, k, a){
+  var addressArray = a.split("_").slice(1);
+  for (var i=0; i<addressArray.length; i++){
+    addressArray[i] = parseInt(addressArray[i]);
+  }
+  k(store, addressArray);
+}
+
+
 
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
+  _: _,
   ERP: ERP,
+  Enumerate: enuPriority,
+  EnumerateBreadthFirst: enuFifo,
+  EnumerateDepthFirst: enuFilo,
+  EnumerateLikelyFirst: enuPriority,
+  MH: mh,
+  PMCMC: pmc,
+  ParticleFilter: pf,
+  ParticleFilterRejuv: pfr,
+  address: address,
   bernoulliERP: bernoulliERP,
-  randomIntegerERP: randomIntegerERP,
-  gaussianERP: gaussianERP,
-  gaussianFactor: gaussianFactor,
-  erpFactor: erpFactor,
-  uniformERP: uniformERP,
-  discreteERP: discreteERP,
-  gammaERP: gammaERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
-  poissonERP: poissonERP,
-  exponentialERP: exponentialERP,
-  dirichletERP: dirichletERP,
-  Enumerate: enuPriority,
-  EnumerateLikelyFirst: enuPriority,
-  EnumerateDepthFirst: enuFilo,
-  EnumerateBreadthFirst: enuFifo,
-  ParticleFilter: pf,
-  MH: mh,
-  coroutine: coroutine,
-  address: address,
-  sample: sample,
-  factor: factor,
-  sampleWithFactor: sampleWithFactor,
-  display: display,
   cache: cache,
+  coroutine: coroutine,
+  dirichletERP: dirichletERP,
+  discreteERP: discreteERP,
+  display: display,
+  erpFactor: erpFactor,
+  exponentialERP: exponentialERP,
+  factor: factor,
+  gammaERP: gammaERP,
+  gaussianERP: gaussianERP,
+  gaussianFactor: gaussianFactor,
+  getAddress: getAddress,
+  globalStore: globalStore,
   multinomialSample: multinomialSample,
-  PMCMC: pmc,
-  ParticleFilterRejuv: pfr,
-  withEmptyStack: withEmptyWebPPLStack
+  poissonERP: poissonERP,
+  randomIntegerERP: randomIntegerERP,
+  sample: sample,
+  sampleWithFactor: sampleWithFactor,
+  uniformERP: uniformERP,
+  util: util
 };

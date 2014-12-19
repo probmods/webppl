@@ -9,19 +9,21 @@
   "dependencies": {
     "amdefine": "^0.1.0",
     "ast-types": "^0.4.9",
-    "brfs": "^1.2.0",
-    "escodegen": "^1.3.3",
+    "escodegen": "^1.4.1",
+    "esmangle": "^1.0.1",
     "esprima": "^1.2.2",
-    "estemplate": "^0.1.1",
-    "estraverse": "^1.5.1",
-    "esutils": "^1.1.4",
+    "estemplate": "^0.4.0",
+    "estraverse": "^1.8.0",
+    "esutils": "^1.1.6",
+    "git-rev-2": "^0.1.0",
+    "minimist": "^1.1.0",
     "nodeunit": "^0.9.0",
     "priorityqueuejs": "^0.2.0",
     "underscore": "^1.6.0"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "nodeunit tests"
   },
   "repository": {
     "type": "git",

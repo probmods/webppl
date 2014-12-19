@@ -1,3 +1,5 @@
+// ERPs
+
 var flip = function(theta) {
   return sample(bernoulliERP, [theta]);
 };
@@ -16,6 +18,10 @@ var gaussian = function(mu, sigma){
 
 var uniform = function(a, b){
   return sample(uniformERP, [a, b]);
+};
+
+var uniformDraw = function(l) {
+  return l[sample(randomIntegerERP, [l.length])];
 };
 
 var dirichlet = function(alpha){
@@ -42,39 +48,86 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP, [l.length])];
+
+// XRPs
+
+var makeBetaBernoulli = function(pseudocounts) {
+  globalStore.BBindex = 1 + (globalStore.BBindex==undefined ? 0 : globalStore.BBindex);
+  var bbname = "BB"+globalStore.BBindex;
+  globalStore[bbname] = pseudocounts;
+  return function(){
+    var pc = globalStore[bbname];  // get current sufficient stats
+    var val = sample(bernoulliERP, [pc[0]/(pc[0]+pc[1])]);  // sample from predictive.
+    globalStore[bbname] = [pc[0]+val, pc[1]+!val];  // update sufficient stats
+    return val;
+  };
 };
 
-var expectation = function(erp,f){
-  return mapReduce1(plus,
-                    function(s){return Math.exp(erp.score([],s))*f(s);},
-                    erp.support([]));
+var makeDirichletDiscrete = function(pseudocounts) {
+  var addCount = function(a,i,j) {
+    var j = j==undefined?0:j;
+    if(a.length==0){
+      return [];
+    } else {
+      return [a[0] + (i==j)].concat(addCount(a.slice(1),i,j+1));
+    }
+  };
+  globalStore.DDindex = 1+ (globalStore.DDindex==undefined?0:globalStore.DDindex);
+  var ddname = "DD"+globalStore.DDindex;
+  globalStore[ddname] = pseudocounts;
+  return function(){
+    var pc = globalStore[ddname];  // get current sufficient stats
+    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    globalStore[ddname] = addCount(pc, val); // update sufficient stats
+    return val;
+  };
 };
 
-var entropy = function(erp){
-  return -mapReduce1(plus,
-                     function(s){var lp = erp.score([],s);
-                                 return Math.exp(lp)*lp; },
-                     erp.support([]));
-};
 
-var idF = function(x) { return x; };
-var constF = function(n) { return function() { return n; }; };
-var falseF = function() { return false; };
-var trueF = function() { return true; };
-
-var append = function(a,b) { return a.concat(b); };
-var cons = function(a,b) { return [a].concat(b); };
-var snoc = function(a,b) { return a.concat([b]); };
+// Probability computations & calculations
 
 var plus = function(a, b) { return a+b; };
 var minus = function(a, b) { return a-b; };
 var mult = function(a, b) { return a*b; };
 var div = function(a, b) { return a/b; };
 
-var isEven = function(v) {return v%2 == 0;};
-var isOdd = function(v) {return v%2 != 0;};
+var idF = function(x){ return x; }
+
+var expectation = function(erp, func){
+  var f = func == undefined ? idF : func;
+  var supp = erp.support([]);
+  return mapReduce(plus,
+                   supp[supp.length-1],
+                   function(s){return Math.exp(erp.score([],s))*f(s)},
+                   supp.slice(0, -1));
+};
+
+var entropy = function(erp){
+  var supp = erp.support([]);
+  return -mapReduce(plus,
+                    supp[supp.length-1],
+                    function(s){var lp = erp.score([],s)
+                                return Math.exp(lp)*lp },
+                    supp.slice(0, -1));
+};
+
+
+// Data structures & higher-order functions
+
+var append = function(a,b) {
+  return a.concat(b);
+};
+
+var cons = function(a,b) { return [a].concat(b); };
+
+var snoc = function(a,b) { return a.concat([b]); };
+
+var first = function(xs) { return xs[0]; };
+var second = function(xs) { return xs[1]; };
+var third = function(xs) { return xs[2]; };
+var fourth = function(xs) { return xs[3]; };
+var secondLast = function(xs){ return xs[xs.length - 2]; };
+var last = function(xs){ return xs[xs.length - 1]; };
 
 var map = function(fn,ar) {
   return ar.length==0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
@@ -91,20 +144,12 @@ var reduce = function(fn,init,ar){
 };
 
 var mapReduce = function(f,init,g,ar){
-  // specialized to above reduce
   return reduce(function(a,b) { return f(g(a),b); }, g(init), ar);
 };
 
-var mapReduce1 = function(f,g,ar){
-  // specialized to above reduce and without identity
-  return reduce(function(a,b) { return f(g(a),b); }, g(ar[ar.length-1]), ar.slice(0,-1));
-};
-
 var sum = function(l) { return reduce(plus, 0, l); };
-var product = function(l) { return reduce(mult, 1, l); };
 
-var all = function(p,l) { return mapReduce1(function(a,b){ return a & b; }, p, l); };
-var any = function(p,l) { return mapReduce1(function(a,b){ return a | b; }, p, l); };
+var product = function(l) { return reduce(mult, 1, l); };
 
 var zip = function(xs, ys){
   return xs.length == 0
@@ -123,26 +168,27 @@ var find = function(f,ar) {
 };
 
 var remove = function(a,ar) {
-  return filter(function(e) { return a != e; }, ar);
+  return filter(function(e) { return a != e;}, ar);
 };
 
 var drop = function(n,ar) { return n > ar.length ? [] : ar.slice(n); };
+
 var take = function(n,ar) { return n >= ar.length ? ar : ar.slice(0,n); };
+
 var dropWhile = function(p, ar) {
   return p(ar[0]) ? dropWhile(p,ar.slice(1)) : ar;
 };
+
 var takeWhile = function(p, ar) {
   return p(ar[0]) ? cons(ar[0],takeWhile(p,ar.slice(1))) : [];
 };
 
-// // doesn't work yet because of .sort...
-// // Uncaught Error: cps: unknown node type: SequenceExpression
-// var minWith = function(f,ar) {
-//   return zip(ar,map(f,ar)).sort(function(a,b) {return a[1]-b[1]})[0]
-// }
-// var maxWith = function(f,ar) {
-//   return zip(ar,map(f,ar)).sort(function(a,b) {return b[1]-a[1]})[0]
-// }
+var indexOf = function(x, xs) {
+  var fn = function(xs, i) {
+    return (xs.length == 0) ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1);
+  };
+  return fn(xs, 0);
+};
 
 var minWith = function(f,ar) {
   var fn = function(_ar, _best) {
@@ -191,33 +237,16 @@ var groupBy = function(cmp, ar) {
   }
 };
 
-var indexOf = function(x, xs) {
-  var fn = function(xs, i) {
-    return xs == [] ? undefined : x == xs[0] ? i : fn(xs.slice(1), i+1);
-  };
-  return fn(xs,0);
-};
-
-// // doesn't yet work because of 'this' usage
-// var compose = function () {
-//   var fns = arguments;
-//   return function (x) {
-//     var fn = function(i, acc) {
-//       return i < 0 ? acc : fn(i-1, fns[i].call(this, acc))
-//     }
-//     return fn(fns.length-1,x)
-//   }
-// };
-
-var repeat = function(n,fn) {
+var repeat = function(n, fn){
   return n == 0 ? [] : append(repeat(n-1, fn), [fn()]);
 };
 
-var push = function(xs,x){ return xs.concat([x]); };
+var push = function(xs, x){
+  return xs.concat([x]);
+};
 
-var first = function(xs) { return xs[0]; };
-var second = function(xs) { return xs[1]; };
-var third = function(xs) { return xs[2]; };
-var fourth = function(xs) { return xs[3]; };
-var secondLast = function(xs){ return xs[xs.length - 2]; };
-var last = function(xs){ return xs[xs.length - 1]; };
+var compose = function(f, g){
+  return function(x){
+    return f(g(x));
+  };
+};
