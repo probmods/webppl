@@ -7,56 +7,62 @@ var esprima = require('esprima');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
+function thunkify( node ) {
+    return build.functionExpression(
+	null, [],
+	build.blockStatement([
+	    build.returnStatement(node)
+	]), false, false );
+}
 
 function trampoline(node) {
-
-  if (node.seenByTrampolining){
-    return node;
-  }
-  node.seenByTrampolining = true;
-
-  switch (node.type) {
+  switch( node.type ) {
 
   // re-direct all non-primitive calls through trampoline
   // this is only okay in cps where no implicit stack is used!
-  case Syntax.CallExpression:
-    if (types.namedTypes.MemberExpression.check(node.callee)){
-      return node;
-    } else {
-      var newNode = esprima.parse('_trampoline = function(){};').body[0].expression;
-      newNode.right.body.body = [build.expressionStatement(node)];
-      return newNode;
-    }
-
+  case Syntax.ExpressionStatement:
+      switch( node.expression.type ) {
+      case Syntax.CallExpression:
+	  if( types.namedTypes.MemberExpression.check( node.expression.callee ) ) {
+	      return node;
+	  }
+	  else {
+	      return build.returnStatement( thunkify( node.expression ) );
+	  }
+      default:
+	  return node;
+      }
   default:
     return node;
-
   }
 }
 
 
-function trampolineMain(node, noWrapping) {
-    
-  node = estraverse.replace(node, {leave: trampoline});
+function trampolineMain( node ) {
+    var driver = esprima.parse("\n\
+(function( p ) {\n\
+  return function( s, k, a ) {\n\
+    var trampoline = p( s, k, a );\n\
+\n\
+    while( trampoline ) {\n\
+      trampoline = trampoline();\n\
+    }\n\
+  }\n\
+})").body[0].expression;
 
-  if (noWrapping){
-    // used for trampolining header which only contains
-    // function definitions, and to avoid duplication
-    // of header/footer
-    return node;
-  }
+    node = estraverse.replace( node, {
+	enter: function(n) {
+	    if( types.namedTypes.ReturnStatement.check( n ) ) {
+		this.skip();
+	    }
+	},
+	leave: trampoline
+    });
 
-  var program = esprima.parse(
-    'var _main = function(){' +
-    'while (_trampoline !== null){ _trampoline(); }' +
-    '};' +
-    '_main();');
-
-  program.body = node.body.concat(program.body);
-
-  return program;
+    return build.program([
+	build.expressionStatement(
+	    build.callExpression( driver, [node] ) ) ]);
 }
-
 
 module.exports = {
   trampoline: trampolineMain

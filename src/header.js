@@ -6,6 +6,7 @@ var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
 
+<<<<<<< HEAD
 // Top address for naming
 var address = "";
 
@@ -13,6 +14,8 @@ var address = "";
 var globalStore = {};
 
 
+=======
+>>>>>>> Cleaned up, but not working.
 ////////////////////////////////////////////////////////////////////
 // ERPs
 //
@@ -1558,7 +1561,6 @@ module.exports = {
   ParticleFilter: pf,
   ParticleFilterRejuv: pfr,
   Variational: vari,
-  address: address,
   bernoulliERP: bernoulliERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
@@ -1573,7 +1575,11 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
+<<<<<<< HEAD
   globalStore: globalStore,
+=======
+  getAddress: getAddress,
+>>>>>>> Cleaned up, but not working.
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,

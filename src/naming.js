@@ -6,11 +6,15 @@ var types = require("ast-types");
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var counter = 0;
-function nextCounter(){
-  counter++;
-  return build.literal("_"+counter);//build.arrayExpression([build.literal(counter)])
+function makeNextCounter() {
+    var gensym = util.makeGensym();
+
+    return function() {
+	return build.literal(gensym("_"));
+    }
 }
+
+var nextCounter = null;
 
 var addressIdNode = build.identifier("address");
 
@@ -48,10 +52,8 @@ function naming(node) {
 
 
 function namingMain(node) {
-  counter = 0;
-  return estraverse.replace(node,
-                            {//enter: function(node){return node},
-                              leave: function(node){return naming(node);}});
+  nextCounter = makeNextCounter();
+  return estraverse.replace(node, { leave: naming });
 }
 
 

@@ -14,9 +14,6 @@ var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
 var util = require("./util");
 
-var topK;
-var _trampoline;
-
 // Make runtime stuff globally available:
 var runtime = require("./header.js");
 for (var prop in runtime){
@@ -25,11 +22,8 @@ for (var prop in runtime){
   }
 }
 
-global.CACHED_WEBPPL_HEADER = undefined;
-
-function addHeaderAst(targetAst, headerAst){
-  targetAst.body = headerAst.body.concat(targetAst.body);
-  return targetAst;
+function concatPrograms( p0, p1 ) {
+    return build.program( p0.body.concat( p1.body ) );
 }
 
 function removeFinalContinuationCall(ast, contName){
@@ -64,54 +58,39 @@ function compileProgram(programCode, verbose){
 
   var programAst, headerAst;
 
-  // Compile & cache WPPL header
-  if (global.CACHED_WEBPPL_HEADER){
-    headerAst = global.CACHED_WEBPPL_HEADER;
-  } else {
-    var headerCode = fs.readFileSync(__dirname + "/header.wppl");
-    headerAst = compile(headerCode, 'dummyCont', true);
-    global.CACHED_WEBPPL_HEADER = headerAst;
-  }
+  var _compile = function( ast ){
+    ast = naming(ast);
+      ast = cps(ast);
+      console.log(ast.body[0].expression); throw 44;
+    ast = store(ast);
+    ast = optimize(ast);
+    ast = trampoline(ast);
+    return ast;
+  };
 
-  // Compile program code
-  programAst = compile(programCode, 'topK', false);
-  if (verbose){
-    console.log(escodegen.generate(programAst));
-  }
-
-  // Concatenate header and program
-  var out = escodegen.generate(addHeaderAst(programAst, headerAst));
+  // parse header and program, combine, compile, and generate program
+  var out = escodegen.generate( _compile( concatPrograms( esprima.parse( fs.readFileSync(__dirname + "/header.wppl") ),
+							  esprima.parse( programCode ) ) ) );
 
   if (verbose && console.timeEnd){console.timeEnd('compile');}
   return out;
 }
 
 function run(code, contFun, verbose){
-  topK = function(s, x){
-    _trampoline = null;
-    contFun(s, x);
-  };
-  var compiledCode = compileProgram(code, verbose);
-  return eval(compiledCode);
+  var compiledCode = compile(code, verbose);
+  return eval(compiledCode)( {}, contFun, "" );
 }
 
 // Compile and run some webppl code in global scope:
 function webppl_eval(k, code, verbose) {
-  var oldk = global.topK;
-  global._trampoline = undefined;
-  global.topK = function(s, x){  // Install top-level continuation
-    global._trampoline = null;
-    k(s, x);
-    global.topK = oldk;
-  };
-  var compiledCode = compileProgram(code, verbose);
-  eval.call(global, compiledCode);
+  var compiledCode = compile(code, verbose);
+    eval.call(global, compiledCode)( {}, k, "" );
 }
 
 // For use in browser
 function webpplCPS(code){
   var programAst = esprima.parse(code);
-  var newProgramAst = optimize(cps(programAst, build.identifier("topK")));
+  var newProgramAst = optimize(cps(programAst));
   return escodegen.generate(newProgramAst);
 }
 

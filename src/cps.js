@@ -323,9 +323,6 @@ function cps(node, cont){
   case Syntax.BlockStatement:
     return cpsBlock(node.body, cont);
 
-  case Syntax.Program:
-    return build.program([convertToStatement(cpsBlock(node.body, cont))]);
-
   case Syntax.ReturnStatement:
     return cps(node.argument, returnContIdentifier);
 
@@ -378,9 +375,15 @@ function cps(node, cont){
   }
 }
 
-function cpsMain(node, cont){
+function cpsMain(node){
   gensym = util.makeGensym();
-  return cps(node, cont);
+
+    if( types.namedTypes.Program.check( node ) ) {
+	var k = build.identifier( gensym("k") );
+
+	return build.program([convertToStatement(buildFunc([k],cpsBlock(node.body,k)))])
+    }
+    else throw new Error("cps: expected node of type program; got " + node.type );
 }
 
 module.exports = {
