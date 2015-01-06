@@ -83,43 +83,52 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
-
-// Probability computations & calculations
+// arithmetic and other functionals
+// needswork: curry manually where possible to make easier to use
+// var plus = function(a,b) {return arguments.length == 1 ? function(b) {return a+b} : a+b;}
 
 var plus = function(a, b) { return a+b; };
 var minus = function(a, b) { return a-b; };
 var mult = function(a, b) { return a*b; };
 var div = function(a, b) { return a/b; };
 
-var idF = function(x){ return x; }
+var eq = function(a, b) { return a == b; };
+var neq = function(a, b) { return a != b; };
+var lt = function(a, b) { return a<b; };
+var gt = function(a, b) { return a>b; };
+var leq = function(a, b) { return a<=b; };
+var geq = function(a, b) { return a>=b; };
+
+var isEven = function(v) {return v%2 == 0;};
+var isOdd = function(v) {return v%2 != 0;};
+
+var idF = function(x) { return x; }
+var constF = function(f) { return function() {return f} };
+var falseF = function() { return false; };
+var trueF = function() { return true; };
+
+// Probability computations & calculations
 
 var expectation = function(erp, func){
   var f = func == undefined ? idF : func;
   var supp = erp.support([]);
-  return mapReduce(plus,
-                   supp[supp.length-1],
-                   function(s){return Math.exp(erp.score([],s))*f(s)},
-                   supp.slice(0, -1));
+  return mapReduce1(plus,
+                    function(s){return Math.exp(erp.score([],s))*f(s);},
+                    supp);
 };
 
 var entropy = function(erp){
   var supp = erp.support([]);
-  return -mapReduce(plus,
-                    supp[supp.length-1],
-                    function(s){var lp = erp.score([],s)
-                                return Math.exp(lp)*lp },
-                    supp.slice(0, -1));
+  return -mapReduce1(plus,
+                     function(s){var lp = erp.score([],s);
+                                 return Math.exp(lp)*lp; },
+                     supp);
 };
-
 
 // Data structures & higher-order functions
 
-var append = function(a,b) {
-  return a.concat(b);
-};
-
+var append = function(a,b) {return a.concat(b);};
 var cons = function(a,b) { return [a].concat(b); };
-
 var snoc = function(a,b) { return a.concat([b]); };
 
 var first = function(xs) { return xs[0]; };
@@ -144,12 +153,20 @@ var reduce = function(fn,init,ar){
 };
 
 var mapReduce = function(f,init,g,ar){
+  // specialized to above reduce
   return reduce(function(a,b) { return f(g(a),b); }, g(init), ar);
 };
 
-var sum = function(l) { return reduce(plus, 0, l); };
+var mapReduce1 = function(f,g,ar){
+  // specialized to above reduce
+  return reduce(function(a,b) { return f(g(a),b); }, g(ar[ar.length-1]), ar.slice(0,-1));
+};
 
+var sum = function(l) { return reduce(plus, 0, l); };
 var product = function(l) { return reduce(mult, 1, l); };
+
+var all = function(p,l) { return mapReduce1(function(a,b){ return a & b; }, p, l); };
+var any = function(p,l) { return mapReduce1(function(a,b){ return a | b; }, p, l); };
 
 var zip = function(xs, ys){
   return xs.length == 0
@@ -172,13 +189,10 @@ var remove = function(a,ar) {
 };
 
 var drop = function(n,ar) { return n > ar.length ? [] : ar.slice(n); };
-
 var take = function(n,ar) { return n >= ar.length ? ar : ar.slice(0,n); };
-
 var dropWhile = function(p, ar) {
   return p(ar[0]) ? dropWhile(p,ar.slice(1)) : ar;
 };
-
 var takeWhile = function(p, ar) {
   return p(ar[0]) ? cons(ar[0],takeWhile(p,ar.slice(1))) : [];
 };
@@ -250,3 +264,31 @@ var compose = function(f, g){
     return f(g(x));
   };
 };
+
+var everyOther = function(l) {
+  return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
+}
+var _merge = function(l1, l2, p, k) {
+  return l1.length == 0
+    ? l2
+    : l2.length == 0
+      ? l1
+      : p(k(l1[0]), k(l2[0]))
+        ? [l1[0]].concat(_merge(l1.slice(1), l2, p, k))
+        : [l2[0]].concat(_merge(l1, l2.slice(1), p, k));
+}
+var _sort = function(l, p, k) {
+  return (l.length <= 1)
+    ? l
+    : _merge(_sort(everyOther(l), p, k),
+             _sort(everyOther(l.slice(1)), p, k),
+             p,
+             k);
+}
+var sort = function(l, p, k) {
+  return arguments.length == 1
+    ? _sort(l, lt, idF)
+    : arguments.length == 2
+      ? _sort(l, p, idF)
+      : _sort(l, p, k)
+}
