@@ -143,10 +143,35 @@ var map = function(fn,ar) {
 };
 
 var map2 = function(f,l1,l2) {
-  return l1.length == 0
+  return l1.length == 0 || l2.length == 0
     ? []
     : [f(l1[0],l2[0])].concat(map2(f, l1.slice(1), l2.slice(1)));
 };
+
+var _ringAround = function(l,n) {return l.slice(n).concat(l.slice(0,n));};
+var ringForward = function(l, n) {return _ringAround(l, n == undefined ? -1 : -n);}
+var ringBackward = function(l, n) {return _ringAround(l, n == undefined ? 1 : n);}
+
+var mapPairs2 = function(f, l1, l2) {
+  var res = map(function(a){return map(function(b){return f(a,b);}, l2)}, l1)
+  return [].concat.apply([],res) // flatten
+}
+
+var mapPairsC = function(f, l) {
+  var fn = function(l1, l2, acc) {
+    return l2.length == 0
+      ? acc
+      : fn(l1.slice(1),
+           l2.slice(1),
+           acc.concat(map(function(b){return f(l1[0],b);},l2)));
+  }
+  return fn(l,l.slice(1),[]);
+}
+
+var mapPairsNC = function(f, l) {
+  var res = mapPairs2(function(a,b){ return a === b ? undefined : f(a,b); }, l, l);
+  return remove(undefined, [].concat.apply([],res)) // flatten
+}
 
 var reduce = function(fn,init,ar){
   return ar.length==0 ? init : fn(ar[0], reduce(fn,init,ar.slice(1)));
@@ -234,9 +259,9 @@ var span = function(p, ar) {
   var fn = function(ar,_ts,_fs) {
     return ar.length == 0
       ? [_ts, _fs]
-      : p(ar[0])
-        ? fn(ar.slice(1), snoc(_ts,ar[0]), _fs)
-        : fn(ar.slice(1), _ts, snoc(_fs,ar[0]));
+      : (p(ar[0])
+         ? fn(ar.slice(1), snoc(_ts,ar[0]), _fs)
+         : fn(ar.slice(1), _ts, snoc(_fs,ar[0])));
   };
   return fn(ar,[],[]);
 };
@@ -268,27 +293,28 @@ var compose = function(f, g){
 var everyOther = function(l) {
   return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
 }
-var _merge = function(l1, l2, p, k) {
+var _merge = function(l1, l2, pred, key) {
   return l1.length == 0
     ? l2
-    : l2.length == 0
-      ? l1
-      : p(k(l1[0]), k(l2[0]))
-        ? [l1[0]].concat(_merge(l1.slice(1), l2, p, k))
-        : [l2[0]].concat(_merge(l1, l2.slice(1), p, k));
+    : (l2.length == 0
+       ? l1
+       : (pred(key(l1[0]), key(l2[0]))
+          ? [l1[0]].concat(_merge(l1.slice(1), l2, pred, key))
+          : [l2[0]].concat(_merge(l1, l2.slice(1), pred, key))));
 }
-var _sort = function(l, p, k) {
+var _sort = function(l, pred, key) {
   return (l.length <= 1)
     ? l
-    : _merge(_sort(everyOther(l), p, k),
-             _sort(everyOther(l.slice(1)), p, k),
-             p,
-             k);
+    : _merge(_sort(everyOther(l), pred, key),
+             _sort(everyOther(l.slice(1)), pred, key),
+             pred,
+             key);
 }
-var sort = function(l, p, k) {
-  return arguments.length == 1
-    ? _sort(l, lt, idF)
-    : arguments.length == 2
-      ? _sort(l, p, idF)
-      : _sort(l, p, k)
+var sort = function(l, pred, key) {
+  return _sort(l,
+               (pred == undefined ? lt : pred),
+               (key == undefined ? idF : key));
+}
+var sortOn = function(l, key, pred) {
+  return _sort(l, (pred == undefined ? lt : pred), key)
 }
