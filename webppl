@@ -112,6 +112,13 @@ function main(){
     return;
   };
 
+  // Return if no file argument given
+  if (argv._[0] === undefined){
+    console.log('No file argument given! Run webppl as follows:');
+    console.log('webppl file.wppl [--compile] [--out file.js] [--require file2.js]');
+    return;
+  }
+
   // Load webppl code
   var programFile = argv._[0];
   console.log('Processing', programFile);
