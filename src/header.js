@@ -670,32 +670,25 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
 
 ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     this.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (this.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -707,11 +700,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   this.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    this.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(this.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilter.prototype.exit = function(s,retval) {
@@ -748,8 +737,6 @@ ParticleFilter.prototype.exit = function(s,retval) {
 function pf(s, cc, a, wpplFn, numParticles) {
   return new ParticleFilter(s, cc, a, wpplFn, numParticles);
 }
-
-
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
@@ -1055,7 +1042,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 }
 
 
-
 ////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
 //
@@ -1134,11 +1120,11 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
             nextK();
           },
           particle, coroutine.baseAddress,
-          a, coroutine.wpplFn, coroutine.rejuvSteps);        
+          a, coroutine.wpplFn, coroutine.rejuvSteps);
       },
       function(){
         coroutine.particleIndex = 0;
-        coroutine.activeParticle().continuation(coroutine.activeParticle().store);        
+        coroutine.activeParticle().continuation(coroutine.activeParticle().store);
       },
       coroutine.particles
     );
@@ -1146,7 +1132,7 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     // Advance to the next particle
     coroutine.particleIndex += 1;
     coroutine.activeParticle().continuation(coroutine.activeParticle().store);
-  }  
+  }
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1170,32 +1156,25 @@ function copyPFRParticle(particle){
 
 ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     coroutine.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyPFRParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (coroutine.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -1207,11 +1186,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   coroutine.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    coroutine.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(coroutine.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilterRejuv.prototype.exit = function(s,retval) {
@@ -1237,7 +1212,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
           nextK();
         },
         particle, coroutine.baseAddress,
-        undefined, coroutine.wpplFn, coroutine.rejuvSteps);        
+        undefined, coroutine.wpplFn, coroutine.rejuvSteps);
     },
     function(){
       // Compute marginal distribution from (unweighted) particles
@@ -1556,7 +1531,6 @@ function getAddress(store, k, a){
   }
   k(store, addressArray);
 }
-
 
 
 ////////////////////////////////////////////////////////////////////
