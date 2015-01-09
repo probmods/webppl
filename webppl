@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict';
+
 var fs = require('fs');
 var webppl = require('./src/main');
 var parseArgs = require('minimist');
@@ -27,21 +29,21 @@ function printWebPPLValue(x){
   }
 }
 
-var getModuleName = function(req){
+function getModuleName(req){
   if (req.indexOf("/") != -1) {
-    xs = req.split("/");
+    var xs = req.split("/");
     return xs[xs.length-1];
   } else {
     return req;
   }
 }
 
-var getModulePath = function(req){
+function getModulePath(req){
   if (req.indexOf("/") != -1){
     try {
       return require.resolve(path.join(process.cwd(), req));
     } catch (e) {
-      return require.resolve(req);      
+      return require.resolve(req);
     }
   } else {
     return req;
@@ -51,14 +53,14 @@ var getModulePath = function(req){
 function run(code, requires, verbose){
   requires.forEach(function(req){
     global[req.name] = require(req.path);
-  })
-  webppl_eval(
+  });
+  webppl.webppl_eval(
     function(s, x){
       console.log("\n* Program return value:\n");
       printWebPPLValue(x);
     },
     code,
-    verbose)
+    verbose);
 }
 
 function compile(code, requires, verbose, outputFile){
@@ -75,12 +77,12 @@ function compile(code, requires, verbose, outputFile){
                    isErp.toString() + '\n' +
                    isErpWithSupport.toString() + '\n' +
                    printWebPPLValue.toString() + '\n' +
-                   "var topK = function(s, x){ " + 
+                   "var topK = function(s, x){ " +
                    " _trampoline = null; " +
                    " console.log('\\n* Program return value:\\n');" +
                    " printWebPPLValue(x); };\n");
   compiledCode += webppl.compile(code, verbose);
-  // Write Javascript code to file  
+  // Write Javascript code to file
   fs.writeFile(
     outputFile,
     compiledCode,
@@ -90,7 +92,7 @@ function compile(code, requires, verbose, outputFile){
       } else {
         console.log("Wrote webppl code to", outputFile);
       }
-    });  
+    });
 }
 
 function main(){
@@ -104,8 +106,8 @@ function main(){
       function(err, branch){
         __dirname,
         git.short(
-          function(err, short){
-            console.log(branch, short, __dirname);
+          function(err, shortName){
+            console.log(branch, shortName, __dirname);
           });
         }
     );
@@ -124,7 +126,7 @@ function main(){
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
-  var requires = (argv.require ? ((argv.require instanceof Array) ? argv.require : 
+  var requires = (argv.require ? ((argv.require instanceof Array) ? argv.require :
                                   [argv.require]) : []);
 
   for (var i=0; i<requires.length; i++){
@@ -132,7 +134,7 @@ function main(){
     requires[i] = {
       name: getModuleName(req),
       path: getModulePath(req)
-    }
+    };
   }
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : "tmp.js";
