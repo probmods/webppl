@@ -305,6 +305,7 @@ var poissonERP = new ERP(
   },
   function poissonScore(params, val){
     var mu = params[0];
+    var k = val;
     return k * Math.log(mu) - mu - lnfact(k);
   }
 );
