@@ -110,7 +110,7 @@ Sometimes, it is useful to define external functions that are able to access the
 
         var foo = function(){
           var bar = function(){
-            console.log(getAddress());
+            console.log(myGetAddress());
           }
           bar()
         }
