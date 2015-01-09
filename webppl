@@ -20,6 +20,18 @@ function requireAsGlobal(modulePath){
   }
 }
 
+function addModulePaths(names){
+  var namesWithPaths = [];
+  for (var i=0; i<names.length; i++){
+    var name = names[i];
+    namesWithPaths.push({
+      name: getModuleName(name),
+      path: getModulePath(name)
+    });
+  }
+  return namesWithPaths;
+}
+
 function isErp(x){
   return (x && (x.score != undefined) && (x.sample != undefined));
 }
@@ -62,19 +74,14 @@ function getRequirePath(req){
   }
 }
 
-function run(code, requires, verbose){
+function run(code, requires, headers, verbose){
+  headers.forEach(
+    function(header){
+      requireAsGlobal(header.path);
+    });
   requires.forEach(
     function(req){
-      if (req.type === 'require-js'){
-        global[req.name] = require(req.path);
-      } else if (req.type === 'require-header') {
-        requireAsGlobal(req.path);
-      } else if (req.type === 'require-wppl') {
-        var reqCode = fs.readFileSync(req.path, 'utf8');
-        code = reqCode + ';' + code;
-      } else {
-        throw 'unknown require type: ' + req.type;
-      }
+      global[req.name] = require(req.path);
     });
   webppl.webppl_eval(
     function(s, x){
@@ -85,9 +92,7 @@ function run(code, requires, verbose){
     verbose);
 }
 
-function compile(code, requires, verbose, outputFile){
-  var compiledCode = '';
-  compiledCode += requireAsGlobal.toString() + ';\n';
+function compile(code, requires, headers, verbose, outputFile){
   requires.push({
     name: 'webppl',
     path: require.resolve('./src/main'),
@@ -173,9 +178,13 @@ function main(){
             });});
     });
 
+  var requires = addModulePaths(asArray(argv.require));
+  var headers = addModulePaths(asArray(argv.header));
+
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : "tmp.js";
-  processCode(code, requires, argv.verbose, outputFile);
+
+  processCode(code, requires, headers, argv.verbose, outputFile);
 }
 
 main();
