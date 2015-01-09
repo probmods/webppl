@@ -68,7 +68,7 @@ var bernoulliERP = new ERP(
   function flipGrad(params, val) {
     //FIXME: check domain
     var weight = params[0];
-    return val ? [1/weight] : [-1/weight]
+    return val ? [1/weight] : [-1/weight];
   }
 );
 
@@ -782,7 +782,7 @@ MH.prototype.factor = function(s, k, a, score) {
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined | forceSample);
+  var reuse = ! (prev==undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
@@ -1134,11 +1134,11 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
             nextK();
           },
           particle, coroutine.baseAddress,
-          a, coroutine.wpplFn, coroutine.rejuvSteps);        
+          a, coroutine.wpplFn, coroutine.rejuvSteps);
       },
       function(){
         coroutine.particleIndex = 0;
-        coroutine.activeParticle().continuation(coroutine.activeParticle().store);        
+        coroutine.activeParticle().continuation(coroutine.activeParticle().store);
       },
       coroutine.particles
     );
@@ -1146,7 +1146,7 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     // Advance to the next particle
     coroutine.particleIndex += 1;
     coroutine.activeParticle().continuation(coroutine.activeParticle().store);
-  }  
+  }
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1237,7 +1237,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
           nextK();
         },
         particle, coroutine.baseAddress,
-        undefined, coroutine.wpplFn, coroutine.rejuvSteps);        
+        undefined, coroutine.wpplFn, coroutine.rejuvSteps);
     },
     function(){
       // Compute marginal distribution from (unweighted) particles
@@ -1305,7 +1305,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
 
 MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined | forceSample);
+  var reuse = ! (prev==undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: k, name: name, erp: erp, params: params,
