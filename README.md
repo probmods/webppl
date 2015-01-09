@@ -88,7 +88,7 @@ Using the example of reading and writing CSV files:
 
         webppl csvTest.wppl --require ./simpleCSV
 
-**Using additional header functions**
+**Using additional header files**
 
 Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program (but usually not exposed to the user). Let's use the example of a function that makes the current address available in WebPPL:
 
