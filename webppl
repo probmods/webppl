@@ -8,6 +8,10 @@ var parseArgs = require('minimist');
 var path = require('path');
 var git = require('git-rev-2');
 
+function asArray(xs){
+  return (xs ? ((xs instanceof Array) ? xs : [xs]) : []);
+}
+
 function isErp(x){
   return (x && (x.score != undefined) && (x.sample != undefined));
 }
@@ -126,8 +130,7 @@ function main(){
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
-  var requires = (argv.require ? ((argv.require instanceof Array) ? argv.require :
-                                  [argv.require]) : []);
+  var requires = asArray(argv.require);
 
   for (var i=0; i<requires.length; i++){
     var req = requires[i];
