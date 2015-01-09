@@ -6,16 +6,6 @@ var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
 
-<<<<<<< HEAD
-// Top address for naming
-var address = "";
-
-// Top global store for mutation (eg conjugate models)
-var globalStore = {};
-
-
-=======
->>>>>>> Cleaned up, but not working.
 ////////////////////////////////////////////////////////////////////
 // ERPs
 //
@@ -787,6 +777,7 @@ MH.prototype.factor = function(s, k, a, score) {
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
+
   var reuse = ! (prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
@@ -1297,6 +1288,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
 
 MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
+
   var reuse = !(prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
@@ -1575,11 +1567,7 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
-<<<<<<< HEAD
-  globalStore: globalStore,
-=======
   getAddress: getAddress,
->>>>>>> Cleaned up, but not working.
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
