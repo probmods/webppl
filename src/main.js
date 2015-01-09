@@ -85,7 +85,7 @@ function run(code, contFun, verbose){
   topK = function(s, x){
     _trampoline = null;
     contFun(s, x);
-  }
+  };
   var compiledCode = compile(code, verbose);
   return eval(compiledCode);
 }

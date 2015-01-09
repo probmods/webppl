@@ -12,6 +12,27 @@ function asArray(xs){
   return (xs ? ((xs instanceof Array) ? xs : [xs]) : []);
 }
 
+function requireAsGlobal(modulePath){
+  var runtime = require(modulePath);
+  for (var prop in runtime){
+    if (runtime.hasOwnProperty(prop)){
+      global[prop] = runtime[prop];
+    }
+  }
+}
+
+function addModulePaths(names){
+  var namesWithPaths = [];
+  for (var i=0; i<names.length; i++){
+    var name = names[i];
+    namesWithPaths.push({
+      name: getModuleName(name),
+      path: getModulePath(name)
+    });
+  }
+  return namesWithPaths;
+}
+
 function isErp(x){
   return (x && (x.score != undefined) && (x.sample != undefined));
 }
@@ -54,10 +75,15 @@ function getModulePath(req){
   }
 }
 
-function run(code, requires, verbose){
-  requires.forEach(function(req){
-    global[req.name] = require(req.path);
-  });
+function run(code, requires, headers, verbose){
+  headers.forEach(
+    function(header){
+      requireAsGlobal(header.path);
+    });
+  requires.forEach(
+    function(req){
+      global[req.name] = require(req.path);
+    });
   webppl.webppl_eval(
     function(s, x){
       console.log("\n* Program return value:\n");
@@ -67,16 +93,22 @@ function run(code, requires, verbose){
     verbose);
 }
 
-function compile(code, requires, verbose, outputFile){
+function compile(code, requires, headers, verbose, outputFile){
   requires.push({
     name: 'webppl',
     path: require.resolve('./src/main')
   });
   // Build Javascript code
   var compiledCode = '';
-  requires.forEach(function(req){
-    compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
-  });
+  compiledCode += requireAsGlobal.toString() + ';\n';
+  requires.forEach(
+    function(req){
+      compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
+    });
+  headers.forEach(
+    function(header){
+      compiledCode += "requireAsGlobal('" + header.path + "');\n";
+    });
   compiledCode += ("var _trampoline;\n" +
                    isErp.toString() + '\n' +
                    isErpWithSupport.toString() + '\n' +
@@ -121,7 +153,7 @@ function main(){
   // Return if no file argument given
   if (argv._[0] === undefined){
     console.log('No file argument given! Run webppl as follows:');
-    console.log('webppl file.wppl [--compile] [--out file.js] [--require file2.js]');
+    console.log('webppl file.wppl [--compile] [--out file.js] [--require file2.js] [--header file3.js]');
     return;
   }
 
@@ -130,19 +162,13 @@ function main(){
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
-  var requires = asArray(argv.require);
+  var requires = addModulePaths(asArray(argv.require));
+  var headers = addModulePaths(asArray(argv.header));
 
-  for (var i=0; i<requires.length; i++){
-    var req = requires[i];
-    requires[i] = {
-      name: getModuleName(req),
-      path: getModulePath(req)
-    };
-  }
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : "tmp.js";
 
-  processCode(code, requires, argv.verbose, outputFile);
+  processCode(code, requires, headers, argv.verbose, outputFile);
 }
 
 main();
