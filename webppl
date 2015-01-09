@@ -1,4 +1,4 @@
-#!/usr/bin/env node --stack-size=65500
+#!/usr/bin/env node
 
 var fs = require('fs');
 var webppl = require('./src/main');
