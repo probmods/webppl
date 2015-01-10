@@ -34,7 +34,7 @@ To use the `webppl` command line tool from any directory, add the webppl directo
 
 **Debugging webppl programs**
 
-In many situations, the Chrome debugger with [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) and [breakpoints](https://developer.chrome.com/devtools/docs/javascript-debugging#breakpoints) is all you need. Alternatively, you can use node-inspector to debug compiled webppl programs as follows:
+To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 
     // 1. Install node-inspector (only need to do this once)
     npm install -g node-inspector
