@@ -622,7 +622,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
       continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
       value: undefined,
-      store: s
+      store: util.copyObj(s)
     };
     this.particles.push(particle);
   }
