@@ -1538,7 +1538,6 @@ function apply(s, k, a, wpplFn, args){
   return wpplFn.apply(global, [s, k, a].concat(args));
 }
 
-
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
@@ -1568,6 +1567,7 @@ module.exports = {
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
   getAddress: getAddress,
+  globalStore: globalStore,
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
