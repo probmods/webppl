@@ -49,7 +49,7 @@ var logsumexp = function(a) {
   var m = Math.max.apply(null, a);
   var sum = 0;
   for (var i=0; i<a.length; ++i) {
-    sum += Math.exp(a[i] - m);
+    sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
 };
