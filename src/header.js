@@ -1532,22 +1532,22 @@ function display(s,k, a, x) {
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
 //FIXME: use global store for caching?
-function cache(s,k, a, f) {
+function cache(s, k, a, f) {
   var c = {};
-  var cf = function(s,k) {
-    var args = Array.prototype.slice.call(arguments, 2);
+  var cf = function(s, k, a) {
+    var args = Array.prototype.slice.call(arguments, 3);
     var stringedArgs = JSON.stringify(args);
     if (stringedArgs in c) {
-      k(s,c[stringedArgs]);
+      k(s, c[stringedArgs]);
     } else {
-      var newk = function(s,r) {
+      var newk = function(s, r) {
         c[stringedArgs] = r;
-        k(s,r);
+        k(s, r);
       };
-      f.apply(this, [s,newk].concat(args));
+      f.apply(this, [s, newk, a].concat(args));
     }
   };
-  k(s,cf);
+  k(s, cf);
 }
 
 
