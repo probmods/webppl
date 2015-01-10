@@ -1550,15 +1550,6 @@ function cache(s,k, a, f) {
   k(s,cf);
 }
 
-function getAddress(store, k, a){
-  var addressArray = a.split("_").slice(1);
-  for (var i=0; i<addressArray.length; i++){
-    addressArray[i] = parseInt(addressArray[i]);
-  }
-  k(store, addressArray);
-}
-
-
 
 ////////////////////////////////////////////////////////////////////
 
@@ -1589,7 +1580,6 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
-  getAddress: getAddress,
   globalStore: globalStore,
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
