@@ -30,54 +30,12 @@ var globalStore = {};
 // erp.score(params, val) returns the log-probability of val under the distribution.
 // erp.support(params) gives an array of support elements.
 // erp.grad(params, val) gives the gradient of score at val wrt params.
-// erp.sort() sorts the values by probability, highest to lowest
-// erp.head(n = 6) gives the first n samples
-// erp.tail(n = 6) gives the last n samples
 
 function ERP(sampler, scorer, supporter, grad) {
   this.sample = sampler;
   this.score = scorer;
   this.support = supporter;
   this.grad = grad;
-
-  this.sort = function() {
-    var oldSupport = supporter();
-    var newSupport = oldSupport.slice().sort(function(a,b) { return scorer(null, b) - scorer(null, a)});
-    return new ERP(
-      sampler,
-      scorer,
-      function() { return newSupport },
-      grad);
-  }
-  
-  this.head = function(n) {
-    if (typeof n == "undefined") {
-      n = 6;
-    }
-    
-    var oldSupport = supporter();
-    var newSupport = oldSupport.slice(0, n);
-    return new ERP(
-      sampler,
-      scorer,
-      function() { return newSupport },
-      grad);
-  }
-  
-  this.tail = function(n) {
-    if (typeof n == "undefined") {
-      n = 6;
-    }
-    
-    var oldSupport = supporter();
-    var newSupport = oldSupport.slice(Math.max(oldSupport.length - n, 1));
-    
-    return new ERP(
-      sampler,
-      scorer,
-      function() { return newSupport },
-      grad);
-  }
 }
 
 var uniformERP = new ERP(
