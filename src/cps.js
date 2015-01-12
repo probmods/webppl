@@ -196,6 +196,19 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
     nodes);
 }
 
+function cpsLogicalExpression(opNode, leftNode, rightNode, cont){
+    var nodes = [leftNode, rightNode];
+    return cpsSequence(
+        function(nodes){return (nodes.length == 0);},
+        function(nodes, vars){
+            assert.ok(vars.length == 2);
+            return buildContinuationCall(
+                cont,
+                build.logicalExpression(opNode, vars[0], vars[1]));
+        },
+        nodes);
+}
+
 function cpsConditional(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
   var contName = makeGensymVariable("k");
@@ -355,6 +368,9 @@ function cps(node, cont){
 
   case Syntax.BinaryExpression:
     return cpsBinaryExpression(node.operator, node.left, node.right, cont);
+
+  case Syntax.LogicalExpression:
+      return cpsLogicalExpression(node.operator, node.left, node.right, cont);
 
   case Syntax.AssignmentExpression:
       return cpsAssignmentExpression(node.operator, node.left, node.right, cont);

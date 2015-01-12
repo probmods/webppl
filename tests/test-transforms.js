@@ -418,6 +418,24 @@ var tests = {
 
   ],
 
+  testLogicalExpressionTest: [
+    { name: 'testLogicalOr',
+      code: "true || false",
+      expected: true },
+    { name: 'testLogicalNot',
+      code: "!(true || true)",
+      expected: false },
+    { name: 'testLogicalAnd',
+      code: "true && false",
+      expected: false },
+    { name: 'testLogicalCompound1',
+      code: "true && (false || false || true)",
+      expected: true },
+    { name: 'testLogicalCompound2',
+      code: "!(true && (false || false || true))",
+      expected: false }
+  ],
+
   testPrimitiveWrapping: [
 
     { name: 'testMath',
