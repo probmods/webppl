@@ -118,11 +118,42 @@ function selectStorePrimitives(){
   plusTwo = function(s, k, x, y) {return k(s, x + 2);};
 }
 
-var selectOptimizationPrimitives = selectStorePrimitives;
+var selectOptimizePrimitives = selectStorePrimitives;
 var selectVarargsPrimitives = selectOptimizationPrimitives;
 var selectTrampolinePrimitives = selectVarargsPrimitives;
 
-var generateTestFunctions = function(allTests, testRunner){
+function runNamingTest(test, code, expected){
+  selectNamingPrimitives();
+  return runTest(test, code, expected, transformAstNaming, runNaming);
+};
+
+function runCpsTest(test, code, expected){
+  selectCpsPrimitives();
+  return runTest(test, code, expected, transformAstCps, runCps );
+};
+
+function runStorepassingTest(test, code, expected){
+  selectStorePrimitives();
+  return runTest(test, code, expected, transformAstStorepassing, runStorepassing);
+};
+
+function runOptimizeTest(test, code, expected){
+    selectOptimizationPrimitives();
+  return runTest(test, code, expected, transformAstOptimize, runOptimize);
+};
+
+function runVarargsTest(test, code, expected){
+    selectOptimizationPrimitives();
+  return runTest(test, code, expected, transformAstVarargs, runVarargs);
+};
+
+
+function runTrampolineTest(test, code, expected){
+  selectTrampolinePrimitives();
+  return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
+};
+
+function generateTestFunctions(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
     var tests = allTests[testClassName];
