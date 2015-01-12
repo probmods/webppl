@@ -388,10 +388,12 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     function(params, val) {
-      for(var i in marginal){
-        // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
-        if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
+      var valString = JSON.stringify(val);
+
+      if (valString in marginal) {
+        return Math.log( marginal[valString].prob )
       }
+
       return -Infinity;
     },
     function(params) {
