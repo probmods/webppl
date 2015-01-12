@@ -120,7 +120,6 @@ exports.testForwardSampling = {
       var empiricalVariance = util.sum(
         samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
       var empiricalStd = Math.sqrt(empiricalVariance);
-      console.log(empiricalVariance);
       return ((empiricalMean > 2.8) && (empiricalMean < 3.2) &&
               (empiricalStd > 1.8) && (empiricalStd < 2.2));
     };
