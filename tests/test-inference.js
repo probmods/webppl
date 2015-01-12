@@ -1,7 +1,6 @@
 "use strict";
 
 var util = require("../src/util.js");
-var _ = require('underscore');
 var webppl = require('../src/main.js');
 
 var topK;
@@ -47,8 +46,7 @@ function runDistributionTest(test, code, expectedHist, tolerance){
   var hist = {};
   topK = function(s,erp){
     _trampoline = null;
-    _.each(
-      erp.support(),
+    erp.support().forEach(
       function (value){
         hist[value] = Math.exp(erp.score([], value));
       });
