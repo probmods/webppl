@@ -7,7 +7,7 @@ var webppl = require('../src/main.js');
 var topK;
 var _trampoline;
 
-var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
+function runContinuousSamplingTest(test, code, checkSamples, numSamples){
   var samples = [];
   topK = function(s, value){
     _trampoline = null;
@@ -23,7 +23,7 @@ var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
   }
 };
 
-var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
+function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
   var numFinishedSamples = 0;
   topK = function(s, value){
@@ -43,7 +43,7 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
   }
 };
 
-var runDistributionTest = function(test, code, expectedHist, tolerance){
+function runDistributionTest(test, code, expectedHist, tolerance){
   var hist = {};
   topK = function(s,erp){
     _trampoline = null;

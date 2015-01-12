@@ -25,7 +25,7 @@ var fooObj = {
 
 var plus, minus, times, and, plusTwo;
 
-var runTest = function(test, code, expected, transformAst){
+function runTest(test, code, expected, transformAst){
   var actual = "unset";
   var ast = esprima.parse(code);
   var newAst = transformAst(ast);
@@ -47,18 +47,18 @@ var runTest = function(test, code, expected, transformAst){
   test.done();
 };
 
-var addHeader = function(ast, headerCode){
+function addHeader(ast, headerCode){
   ast.body = esprima.parse(headerCode).body.concat(ast.body);
 };
 
-var transformAstCps = function(ast){
+function transformAstCps(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   addHeader(cpsAst, "var topK = function(x){ actual = x; };");
   addHeader(cpsAst, "var identityContinuation = function(x){return x}");
   return cpsAst;
 };
 
-var transformAstStorepassing = function(ast){
+function transformAstStorepassing(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   var storeAst = store(cpsAst);
   addHeader(storeAst, "var globalStore = {};");
@@ -66,23 +66,23 @@ var transformAstStorepassing = function(ast){
   return storeAst;
 };
 
-var transformAstNaming = function(ast){
+function transformAstNaming(ast){
   var namedAst = naming(ast);
   return transformAstStorepassing(namedAst);
 };
 
-var transformAstOptimize = function(ast){
+function transformAstOptimize(ast){
   var newAst = transformAstNaming(ast);
   return optimize(newAst);
 };
 
-var transformAstTrampoline = function(ast){
+function transformAstTrampoline(ast){
   var newAst = transformAstOptimize(ast);
   return trampoline(newAst, false);
 };
 
 
-var selectCpsPrimitives = function(){
+function selectCpsPrimitives(){
   // Set global definitions
   plus = function(k, x, y) {return k(x + y);};
   minus = function(k, x, y) {return k(x - y);};
@@ -91,7 +91,7 @@ var selectCpsPrimitives = function(){
   plusTwo = function(k, x, y) {return k(x + 2);};
 };
 
-var selectStorePrimitives = function(){
+function selectStorePrimitives(){
   // Set global definitions
   plus = function(s, k, x, y) {return k(s, x + y);};
   minus = function(s, k, x, y) {return k(s, x - y);};
@@ -100,7 +100,7 @@ var selectStorePrimitives = function(){
   plusTwo = function(s, k, x, y) {return k(s, x + 2);};
 };
 
-var selectNamingPrimitives = function(){
+function selectNamingPrimitives(){
   // Set global definitions
   plus = function(s, k, a, x, y) {return k(s, x + y);};
   minus = function(s, k, a, x, y) {return k(s, x - y);};
@@ -109,34 +109,34 @@ var selectNamingPrimitives = function(){
   plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
 };
 
-var runCpsTest = function(test, code, expected){
+function runCpsTest(test, code, expected){
   selectCpsPrimitives();
   return runTest(test, code, expected, transformAstCps);
 };
 
-var runStorepassingTest = function(test, code, expected){
+function runStorepassingTest(test, code, expected){
   selectStorePrimitives();
   return runTest(test, code, expected, transformAstStorepassing);
 };
 
-var runNamingTest = function(test, code, expected){
+function runNamingTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstNaming);
 };
 
-var runOptimizationTest = function(test, code, expected){
+function runOptimizationTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
 };
 
-var runTrampolineTest = function(test, code, expected){
+function runTrampolineTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstTrampoline);
 };
 
 
 
-var generateTestFunctions = function(allTests, testRunner){
+function generateTestFunctions(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
     var tests = allTests[testClassName];
