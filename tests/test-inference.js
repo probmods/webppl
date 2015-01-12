@@ -7,21 +7,6 @@ var webppl = require('../src/main.js');
 var topK;
 var _trampoline;
 
-var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
-  var allOk = true;
-  _.each(expectedHist,
-         function(expectedValue, key){
-           var value = hist[key] || 0;
-           var testPassed = Math.abs(value - expectedValue) <= tolerance;
-           test.ok(testPassed);
-           allOk = allOk && testPassed;
-         });
-  if (!allOk){
-    console.log("Expected:", expectedHist);
-    console.log("Actual:", hist);
-  }
-};
-
 var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
   var samples = [];
   topK = function(s, value){
@@ -48,7 +33,7 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
     numFinishedSamples += 1;
     if (numFinishedSamples == numSamples){
       var normHist = util.normalizeHist(hist);
-      testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+      test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
       test.done();
     }
   };
@@ -68,7 +53,7 @@ var runDistributionTest = function(test, code, expectedHist, tolerance){
         hist[value] = Math.exp(erp.score([], value));
       });
     var normHist = util.normalizeHist(hist);
-    testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+    test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
   };
 //  webppl.webppl_eval(topK, code)

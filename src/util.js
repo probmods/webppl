@@ -75,6 +75,22 @@ function cpsForEach(func, nextK, xs, i){
   }
 }
 
+function histsApproximatelyEqual(hist, expectedHist, tolerance){
+  var allOk = true;
+  _.each(
+    expectedHist,
+    function(expectedValue, key){
+      var value = hist[key] || 0;
+      var testPassed = Math.abs(value - expectedValue) <= tolerance;
+      allOk = allOk && testPassed;
+    });
+  if (!allOk){
+    console.log("Expected:", expectedHist);
+    console.log("Actual:", hist);
+  }
+  return allOk;
+};
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -85,5 +101,6 @@ module.exports = {
   normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  sum: sum
+  sum: sum,
+  histsApproximatelyEqual: histsApproximatelyEqual
 };
