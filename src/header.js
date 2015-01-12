@@ -68,7 +68,7 @@ var bernoulliERP = new ERP(
   function flipGrad(params, val) {
     //FIXME: check domain
     var weight = params[0];
-    return val ? [1/weight] : [-1/weight]
+    return val ? [1/weight] : [-1/weight];
   }
 );
 
@@ -305,6 +305,7 @@ var poissonERP = new ERP(
   },
   function poissonScore(params, val){
     var mu = params[0];
+    var k = val;
     return k * Math.log(mu) - mu - lnfact(k);
   }
 );
@@ -387,10 +388,12 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     function(params, val) {
-      for(var i in marginal){
-        // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
-        if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
+      var valString = JSON.stringify(val);
+
+      if (valString in marginal) {
+        return Math.log( marginal[valString].prob )
       }
+
       return -Infinity;
     },
     function(params) {
@@ -621,7 +624,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
       continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
       value: undefined,
-      store: s
+      store: util.copyObj(s)
     };
     this.particles.push(particle);
   }
@@ -782,7 +785,7 @@ MH.prototype.factor = function(s, k, a, score) {
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined | forceSample);
+  var reuse = ! (prev==undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
@@ -1134,11 +1137,11 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
             nextK();
           },
           particle, coroutine.baseAddress,
-          a, coroutine.wpplFn, coroutine.rejuvSteps);        
+          a, coroutine.wpplFn, coroutine.rejuvSteps);
       },
       function(){
         coroutine.particleIndex = 0;
-        coroutine.activeParticle().continuation(coroutine.activeParticle().store);        
+        coroutine.activeParticle().continuation(coroutine.activeParticle().store);
       },
       coroutine.particles
     );
@@ -1146,7 +1149,7 @@ ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
     // Advance to the next particle
     coroutine.particleIndex += 1;
     coroutine.activeParticle().continuation(coroutine.activeParticle().store);
-  }  
+  }
 };
 
 ParticleFilterRejuv.prototype.activeParticle = function() {
@@ -1237,7 +1240,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
           nextK();
         },
         particle, coroutine.baseAddress,
-        undefined, coroutine.wpplFn, coroutine.rejuvSteps);        
+        undefined, coroutine.wpplFn, coroutine.rejuvSteps);
     },
     function(){
       // Compute marginal distribution from (unweighted) particles
@@ -1305,7 +1308,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
 
 MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined | forceSample);
+  var reuse = ! (prev==undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: k, name: name, erp: erp, params: params,
@@ -1531,32 +1534,23 @@ function display(s,k, a, x) {
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
 //FIXME: use global store for caching?
-function cache(s,k, a, f) {
+function cache(s, k, a, f) {
   var c = {};
-  var cf = function(s,k) {
-    var args = Array.prototype.slice.call(arguments, 2);
+  var cf = function(s, k, a) {
+    var args = Array.prototype.slice.call(arguments, 3);
     var stringedArgs = JSON.stringify(args);
     if (stringedArgs in c) {
-      k(s,c[stringedArgs]);
+      k(s, c[stringedArgs]);
     } else {
-      var newk = function(s,r) {
+      var newk = function(s, r) {
         c[stringedArgs] = r;
-        k(s,r);
+        k(s, r);
       };
-      f.apply(this, [s,newk].concat(args));
+      f.apply(this, [s, newk, a].concat(args));
     }
   };
-  k(s,cf);
+  k(s, cf);
 }
-
-function getAddress(store, k, a){
-  var addressArray = a.split("_").slice(1);
-  for (var i=0; i<addressArray.length; i++){
-    addressArray[i] = parseInt(addressArray[i]);
-  }
-  k(store, addressArray);
-}
-
 
 
 ////////////////////////////////////////////////////////////////////
@@ -1588,7 +1582,6 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
-  getAddress: getAddress,
   globalStore: globalStore,
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,

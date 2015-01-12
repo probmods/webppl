@@ -15,6 +15,7 @@ Requirements:
     git clone https://github.com/probmods/webppl.git
     cd webppl
     npm install
+    npm install -g nodeunit
 
 To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
 
@@ -32,6 +33,8 @@ To use the `webppl` command line tool from any directory, add the webppl directo
     browserify -t brfs src/main.js > compiled/webppl.js
 
 **Debugging webppl programs**
+
+To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 
     // 1. Install node-inspector (only need to do this once)
     npm install -g node-inspector
@@ -75,7 +78,7 @@ Using the example of reading and writing CSV files:
           writeCSV: writeCSV
         };
 
-2. Write a WebPPL file that uses your new functions:
+2. Write a WebPPL file that uses your new functions (with module qualifier):
 
         // csvTest.wppl
         
@@ -86,3 +89,36 @@ Using the example of reading and writing CSV files:
 3. Run your WebPPL file with `require` command line flag:
 
         webppl csvTest.wppl --require ./simpleCSV
+
+**Using additional header files**
+
+Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
+
+1. Write a Javascript file that exports the functions you want to use:
+
+        // addressHeader.js
+        
+        function myGetAddress(store, k, address){
+          k(store, address);
+        };
+        
+        module.exports = {
+          myGetAddress: myGetAddress
+        };
+
+2. Write a WebPPL file that uses your new functions (without module qualifier):
+
+        // addressTest.wppl
+
+        var foo = function(){
+          var bar = function(){
+            console.log(myGetAddress());
+          }
+          bar()
+        }
+        
+        foo()
+
+3. Run your WebPPL file with `header` command line flag:
+
+        webppl addressTest.wppl --header ./addressHeader
