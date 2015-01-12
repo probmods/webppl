@@ -56,7 +56,6 @@ function runDistributionTest(test, code, expectedHist, tolerance){
     test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
   };
-//  webppl.webppl_eval(topK, code)
   webppl.run(code, topK);
 };
 
@@ -238,20 +237,20 @@ exports.testPMCMC = {
 };
 
 exports.testPFRj = {
-test1: function(test){
-  var code = ("ParticleFilterRejuv(" +
-              "  function(){" +
-              "    var x = flip(0.5);" +
-              "    var y = flip(0.5);" +
-              "    factor( (x|y) ? 0 : -Infinity);" +
-              "    return x;" +
-              "  }," +
-              "  1000, 10) // particles, rejuvenation steps");
-  var expectedHist = {
-    "true": 2/3,
-    "false": 1/3
-  };
-  var tolerance = .1;
-  runDistributionTest(test, code, expectedHist, tolerance);
-}
+  test1: function(test){
+    var code = ("ParticleFilterRejuv(" +
+                "  function(){" +
+                "    var x = flip(0.5);" +
+                "    var y = flip(0.5);" +
+                "    factor( (x|y) ? 0 : -Infinity);" +
+                "    return x;" +
+                "  }," +
+                "  1000, 10) // particles, rejuvenation steps");
+    var expectedHist = {
+      "true": 2/3,
+      "false": 1/3
+    };
+    var tolerance = .1;
+    runDistributionTest(test, code, expectedHist, tolerance);
+  }
 };
