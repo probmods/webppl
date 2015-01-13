@@ -11,6 +11,7 @@ var cps = require("./cps").cps;
 var optimize = require("./optimize").optimize;
 var naming = require("./naming").naming;
 var store = require("./store").store;
+var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
 var util = require("./util");
 
@@ -55,6 +56,7 @@ function compile(programCode, verbose){
     }
     ast = store(ast);
     ast = optimize(ast);
+    ast = varargs(ast);
     ast = trampoline(ast, isHeader);
     return ast;
   };

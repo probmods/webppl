@@ -9,6 +9,7 @@ var util = require("../src/util.js");
 var store = require("../src/store").store;
 var naming = require("../src/naming.js").naming;
 var optimize = require("../src/optimize.js").optimize;
+var varargs = require("../src/varargs").varargs;
 var trampoline = require("../src/trampoline").trampoline;
 
 var build = types.builders;
@@ -76,8 +77,13 @@ function transformAstOptimize(ast){
   return optimize(newAst);
 };
 
-function transformAstTrampoline(ast){
+function transformAstVarargs(ast){
   var newAst = transformAstOptimize(ast);
+  return varargs(newAst);
+};
+
+function transformAstTrampoline(ast){
+  var newAst = transformAstVarargs(ast);
   return trampoline(newAst, false);
 };
 
@@ -128,6 +134,11 @@ function runOptimizationTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
 };
+
+function runVarargsTest(test, code, expected){
+  selectNamingPrimitives();
+  return runTest(test, code, expected, transformAstVarargs);
+}
 
 function runTrampolineTest(test, code, expected){
   selectNamingPrimitives();
@@ -450,6 +461,28 @@ var tests = {
       code: "var foo = function() {return [1]}; foo().concat([2])",
       expected: [1,2] }
 
+  ],
+
+  testVarargs: [
+
+    { name: 'testVarargs1',
+      code: ("var foo = function(){return arguments[0] + arguments[1]};" +
+             "foo(3, 4);"),
+      expected: 7,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testVarargs2',
+      code: ("var bar = function(){return arguments[0]*2};" +
+             "var foo = function(){return bar(arguments[0] + arguments[1]);};" +
+             "foo(3, 4);"),
+      expected: 14,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testVarargs3',
+      code: ("var foo = function(x, y){var f = function(){ return arguments[0]}; return f(y)};" +
+             "foo(3, 4);"),
+      expected: 4,
+      runners: [runVarargsTest, runTrampolineTest] }
   ]
 
 };
@@ -458,4 +491,5 @@ exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
 exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
