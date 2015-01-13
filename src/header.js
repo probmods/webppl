@@ -1552,6 +1552,11 @@ function cache(s, k, a, f) {
   k(s, cf);
 }
 
+// FIXME: handle fn.apply in cps transform?
+function apply(s, k, a, wpplFn, args){
+  return wpplFn.apply(this, [s, k, a].concat(args));
+}
+
 
 ////////////////////////////////////////////////////////////////////
 
@@ -1589,5 +1594,6 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
-  util: util
+  util: util,
+  apply: apply
 };

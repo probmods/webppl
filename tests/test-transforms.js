@@ -482,7 +482,15 @@ var tests = {
       code: ("var foo = function(x, y){var f = function(){ return arguments[0]}; return f(y)};" +
              "foo(3, 4);"),
       expected: 4,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testApply',
+      code: ("var foo = function(x, y){return x + y};" +
+             "var bar = function(){ return apply(foo, arguments); };" +
+             "bar(3, 4);"),
+      expected: 7,
       runners: [runVarargsTest, runTrampolineTest] }
+
   ]
 
 };
