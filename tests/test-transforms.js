@@ -148,6 +148,11 @@ function runVarargsTest(test, code, expected){
 };
 
 
+function runVarargsTest(test, code, expected){
+  selectNamingPrimitives();
+  return runTest(test, code, expected, transformAstVarargs);
+}
+
 function runTrampolineTest(test, code, expected){
   selectTrampolinePrimitives();
   return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
@@ -507,7 +512,6 @@ var tests = {
              "bar(3, 4);"),
       expected: 7,
       runners: [runVarargsTest, runTrampolineTest] }
-
   ]
 
 };
@@ -516,5 +520,6 @@ exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
 exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
