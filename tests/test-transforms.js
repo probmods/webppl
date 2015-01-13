@@ -143,15 +143,9 @@ function runOptimizeTest(test, code, expected){
 };
 
 function runVarargsTest(test, code, expected){
-    selectOptimizationPrimitives();
+  selectVarargsPrimitives();
   return runTest(test, code, expected, transformAstVarargs, runVarargs);
 };
-
-
-function runVarargsTest(test, code, expected){
-  selectNamingPrimitives();
-  return runTest(test, code, expected, transformAstVarargs);
-}
 
 function runTrampolineTest(test, code, expected){
   selectTrampolinePrimitives();
@@ -495,6 +489,7 @@ var tests = {
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
 
+<<<<<<< HEAD
     // FIXME: This test currently fails because varargs happens after
     //        cps which introduces additional closures. To fix this,
     //        move the varargs transform up earlier in the order of
@@ -506,12 +501,15 @@ var tests = {
     //   expected: [3, 4],
     //   runners: [runVarargsTest, runTrampolineTest] },
 
+=======
+>>>>>>> Add 'apply'
     { name: 'testApply',
       code: ("var foo = function(x, y){return x + y};" +
              "var bar = function(){ return apply(foo, arguments); };" +
              "bar(3, 4);"),
       expected: 7,
       runners: [runVarargsTest, runTrampolineTest] }
+
   ]
 
 };

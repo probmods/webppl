@@ -1538,6 +1538,12 @@ function apply(s, k, a, wpplFn, args){
   return wpplFn.apply(global, [s, k, a].concat(args));
 }
 
+// FIXME: handle fn.apply in cps transform?
+function apply(s, k, a, wpplFn, args){
+  return wpplFn.apply(this, [s, k, a].concat(args));
+}
+
+
 ////////////////////////////////////////////////////////////////////
 
 module.exports = {
