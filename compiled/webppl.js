@@ -301,7 +301,7 @@ function amdefine(module, requireFn) {
 module.exports = amdefine;
 
 }).call(this,require('_process'),"/node_modules/amdefine/amdefine.js")
-},{"_process":99,"path":98}],2:[function(require,module,exports){
+},{"_process":100,"path":99}],2:[function(require,module,exports){
 var types = require("../lib/types");
 var Type = types.Type;
 var def = Type.def;
@@ -1324,7 +1324,7 @@ function objectsAreEquivalent(a, b, problemPath) {
 
 module.exports = astNodesAreEquivalent;
 
-},{"../main":16,"assert":92}],9:[function(require,module,exports){
+},{"../main":16,"assert":93}],9:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var n = types.namedTypes;
@@ -1703,7 +1703,7 @@ function firstInStatement(path) {
 
 module.exports = NodePath;
 
-},{"./path":11,"./scope":12,"./types":15,"assert":92,"util":101}],10:[function(require,module,exports){
+},{"./path":11,"./scope":12,"./types":15,"assert":93,"util":102}],10:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var NodePath = require("./node-path");
@@ -1948,7 +1948,7 @@ function traverse(path, newVisitor) {
 
 module.exports = PathVisitor;
 
-},{"./node-path":9,"./types":15,"assert":92}],11:[function(require,module,exports){
+},{"./node-path":9,"./types":15,"assert":93}],11:[function(require,module,exports){
 var assert = require("assert");
 var Op = Object.prototype;
 var hasOwn = Op.hasOwnProperty;
@@ -2298,7 +2298,7 @@ Pp.replace = function replace(replacement) {
 
 module.exports = Path;
 
-},{"./types":15,"assert":92}],12:[function(require,module,exports){
+},{"./types":15,"assert":93}],12:[function(require,module,exports){
 var assert = require("assert");
 var types = require("./types");
 var Type = types.Type;
@@ -2544,7 +2544,7 @@ Sp.getGlobalScope = function() {
 
 module.exports = Scope;
 
-},{"./node-path":9,"./types":15,"assert":92}],13:[function(require,module,exports){
+},{"./node-path":9,"./types":15,"assert":93}],13:[function(require,module,exports){
 var types = require("../lib/types");
 var Type = types.Type;
 var builtin = types.builtInTypes;
@@ -3342,7 +3342,7 @@ exports.finalize = function() {
     });
 };
 
-},{"assert":92}],16:[function(require,module,exports){
+},{"assert":93}],16:[function(require,module,exports){
 var types = require("./lib/types");
 
 // This core module of AST types captures ES5 as it is parsed today by
@@ -15421,8 +15421,8 @@ module.exports={
 /* vim: set sw=4 ts=4 et tw=80 : */
 
 },{"../package.json":69,"./map":67,"./utility":68,"escope":65,"estraverse":70,"esutils":73}],67:[function(require,module,exports){
-arguments[4][32][0].apply(exports,arguments)
-},{"dup":32}],68:[function(require,module,exports){
+module.exports=require(32)
+},{"/home/jeeju/vision-language/assets/webppl/node_modules/esmangle/lib/map.js":32}],68:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -23341,7 +23341,7 @@ function cpsAtomic(node){
   case Syntax.Literal:
     return node;
   case Syntax.EmptyStatement:
-      return build.identifier("undefined");
+    return build.identifier("undefined");
   default:
     throw new Error("cpsAtomic: unknown expression type: " + node.type);
   };
@@ -23352,7 +23352,7 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   if (atFinalElement(nodes)){
     return getFinalElement(nodes, vars);
   } else if(isImmediate(nodes[0])) {
-//    var val = immediateVal(nodes[0])
+    //    var val = immediateVal(nodes[0])
     return cpsSequence(atFinalElement,
                        getFinalElement,
                        nodes.slice(1),
@@ -23479,17 +23479,30 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
     nodes);
 }
 
+function cpsLogicalExpression(lopNode, leftNode, rightNode, cont){
+  var nodes = [leftNode, rightNode];
+  return cpsSequence(
+    function(nodes){return (nodes.length == 0);},
+    function(nodes, vars){
+      assert.ok(vars.length == 2);
+      return buildContinuationCall(
+        cont,
+        build.logicalExpression(lopNode, vars[0], vars[1]));
+    },
+    nodes);
+}
+
 function cpsConditional(test, consequent, alternate, cont){
   // bind continuation to avoid code blowup
   var contName = makeGensymVariable("k");
   var testName = makeGensymVariable("test");
   return build.callExpression(
     buildFunc([contName],
-      cps(test,
-          buildFunc([testName],
-                    build.conditionalExpression(testName,
-                                                cps(consequent, contName),
-                                                cps(alternate, contName))))),
+              cps(test,
+                  buildFunc([testName],
+                            build.conditionalExpression(testName,
+                                                        cps(consequent, contName),
+                                                        cps(alternate, contName))))),
     [cont]
   );
 }
@@ -23506,12 +23519,12 @@ function cpsIf(test, consequent, alternate, cont){
   }
   return build.callExpression(
     buildFunc([contName],
-      cps(test,
-          buildFunc([testName],
-                    build.ifStatement(
-                      testName,
-                      convertToStatement(consequentNode),
-                      convertToStatement(alternateNode))))),
+              cps(test,
+                  buildFunc([testName],
+                            build.ifStatement(
+                              testName,
+                              convertToStatement(consequentNode),
+                              convertToStatement(alternateNode))))),
     [cont]
   );
 }
@@ -23527,20 +23540,20 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsObjectExpression(properties, cont, props){
-    props = props || [];
-    if (properties.length == 0 ) {
-        var objectExpr = build.objectExpression(props);
-        return buildContinuationCall(cont, objectExpr);
-    } else {
-        var nextVal = makeGensymVariable("ob");
-        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
-        // FIXME: assert that value is not function, since can't call function methods...?
-        return cps(properties[0].value,
-                   buildFunc([nextVal],
-                             cpsObjectExpression(properties.slice(1),
-                                                 cont,
-                                                 props.concat([nextProp]))));
-    }
+  props = props || [];
+  if (properties.length == 0 ) {
+    var objectExpr = build.objectExpression(props);
+    return buildContinuationCall(cont, objectExpr);
+  } else {
+    var nextVal = makeGensymVariable("ob");
+    var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
+    // FIXME: assert that value is not function, since can't call function methods...?
+    return cps(properties[0].value,
+               buildFunc([nextVal],
+                         cpsObjectExpression(properties.slice(1),
+                                             cont,
+                                             props.concat([nextProp]))));
+  }
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
@@ -23639,8 +23652,11 @@ function cps(node, cont){
   case Syntax.BinaryExpression:
     return cpsBinaryExpression(node.operator, node.left, node.right, cont);
 
+  case Syntax.LogicalExpression:
+    return cpsLogicalExpression(node.operator, node.left, node.right, cont);
+
   case Syntax.AssignmentExpression:
-      return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
+    return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
 
   default:
     throw new Error("cps: unknown node type: " + node.type);
@@ -23656,7 +23672,7 @@ module.exports = {
   cps: cpsMain
 };
 
-},{"./util.js":91,"assert":92,"ast-types":16,"escodegen":17,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],85:[function(require,module,exports){
+},{"./util.js":91,"assert":93,"ast-types":16,"escodegen":17,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],85:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -24047,10 +24063,12 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     function(params, val) {
-      for(var i in marginal){
-        // if(marginal[i].val == val){return Math.log(marginal[i].prob)}
-        if(i == JSON.stringify(val)){return Math.log(marginal[i].prob)}
+      var valString = JSON.stringify(val);
+
+      if (valString in marginal) {
+        return Math.log( marginal[valString].prob )
       }
+
       return -Infinity;
     },
     function(params) {
@@ -24281,7 +24299,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
       continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
       value: undefined,
-      store: s
+      store: util.copyObj(s)
     };
     this.particles.push(particle);
   }
@@ -24330,32 +24348,25 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
 
 ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     this.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (this.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -24367,11 +24378,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   this.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    this.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(this.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilter.prototype.exit = function(s,retval) {
@@ -24408,8 +24415,6 @@ ParticleFilter.prototype.exit = function(s,retval) {
 function pf(s, cc, a, wpplFn, numParticles) {
   return new ParticleFilter(s, cc, a, wpplFn, numParticles);
 }
-
-
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
@@ -24715,7 +24720,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 }
 
 
-
 ////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
 //
@@ -24830,32 +24834,25 @@ function copyPFRParticle(particle){
 
 ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     coroutine.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyPFRParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (coroutine.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -24867,11 +24864,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   coroutine.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    coroutine.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(coroutine.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilterRejuv.prototype.exit = function(s,retval) {
@@ -25191,32 +25184,28 @@ function display(s,k, a, x) {
 // weird stuff can happen, since caching is across all uses of f, even
 // in different execuation paths.
 //FIXME: use global store for caching?
-function cache(s,k, a, f) {
+function cache(s, k, a, f) {
   var c = {};
-  var cf = function(s,k) {
-    var args = Array.prototype.slice.call(arguments, 2);
+  var cf = function(s, k, a) {
+    var args = Array.prototype.slice.call(arguments, 3);
     var stringedArgs = JSON.stringify(args);
     if (stringedArgs in c) {
-      k(s,c[stringedArgs]);
+      k(s, c[stringedArgs]);
     } else {
-      var newk = function(s,r) {
+      var newk = function(s, r) {
         c[stringedArgs] = r;
-        k(s,r);
+        k(s, r);
       };
-      f.apply(this, [s,newk].concat(args));
+      f.apply(this, [s, newk, a].concat(args));
     }
   };
-  k(s,cf);
+  k(s, cf);
 }
 
-function getAddress(store, k, a){
-  var addressArray = a.split("_").slice(1);
-  for (var i=0; i<addressArray.length; i++){
-    addressArray[i] = parseInt(addressArray[i]);
-  }
-  k(store, addressArray);
+// FIXME: handle fn.apply in cps transform?
+function apply(s, k, a, wpplFn, args){
+  return wpplFn.apply(this, [s, k, a].concat(args));
 }
-
 
 
 ////////////////////////////////////////////////////////////////////
@@ -25248,7 +25237,6 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
-  getAddress: getAddress,
   globalStore: globalStore,
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
@@ -25256,10 +25244,11 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
-  util: util
+  util: util,
+  apply: apply
 };
 
-},{"./util.js":91,"assert":92,"priorityqueuejs":82,"underscore":83}],86:[function(require,module,exports){
+},{"./util.js":91,"assert":93,"priorityqueuejs":82,"underscore":83}],86:[function(require,module,exports){
 (function (global,Buffer){
 "use strict";
 
@@ -25274,6 +25263,7 @@ var cps = require("./cps").cps;
 var optimize = require("./optimize").optimize;
 var naming = require("./naming").naming;
 var store = require("./store").store;
+var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
 var util = require("./util");
 
@@ -25318,6 +25308,7 @@ function compile(programCode, verbose){
     }
     ast = store(ast);
     ast = optimize(ast);
+    ast = varargs(ast);
     ast = trampoline(ast, isHeader);
     return ast;
   };
@@ -25326,7 +25317,7 @@ function compile(programCode, verbose){
   if (global.CACHED_WEBPPL_HEADER){
     headerAst = global.CACHED_WEBPPL_HEADER;
   } else {
-    var headerCode = Buffer("Ly8gRVJQcwoKdmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciB1bmlmb3JtRHJhdyA9IGZ1bmN0aW9uKGwpIHsKICByZXR1cm4gbFtzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW2wubGVuZ3RoXSldOwp9OwoKdmFyIGRpcmljaGxldCA9IGZ1bmN0aW9uKGFscGhhKXsKICByZXR1cm4gc2FtcGxlKGRpcmljaGxldEVSUCwgYWxwaGEpOwp9OwoKdmFyIHBvaXNzb24gPSBmdW5jdGlvbihtdSwgayl7CiAgcmV0dXJuIHNhbXBsZShwb2lzc29uRVJQLCBbbXUsIGtdKTsKfTsKCnZhciBiaW5vbWlhbCA9IGZ1bmN0aW9uKHAsIG4pewogIHJldHVybiBzYW1wbGUoYmlub21pYWxFUlAsIFtwLCBuXSk7Cn07Cgp2YXIgYmV0YSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUoYmV0YUVSUCwgW2EsIGJdKTsKfTsKCnZhciBleHBvbmVudGlhbCA9IGZ1bmN0aW9uKGEpewogIHJldHVybiBzYW1wbGUoZXhwb25lbnRpYWxFUlAsIFthXSk7Cn07Cgp2YXIgZ2FtbWEgPSBmdW5jdGlvbihzaGFwZSwgc2NhbGUpewogIHJldHVybiBzYW1wbGUoZ2FtbWFFUlAsIFtzaGFwZSwgc2NhbGVdKTsKfTsKCgovLyBYUlBzCgp2YXIgbWFrZUJldGFCZXJub3VsbGkgPSBmdW5jdGlvbihwc2V1ZG9jb3VudHMpIHsKICBnbG9iYWxTdG9yZS5CQmluZGV4ID0gMSArIChnbG9iYWxTdG9yZS5CQmluZGV4PT11bmRlZmluZWQgPyAwIDogZ2xvYmFsU3RvcmUuQkJpbmRleCk7CiAgdmFyIGJibmFtZSA9ICJCQiIrZ2xvYmFsU3RvcmUuQkJpbmRleDsKICBnbG9iYWxTdG9yZVtiYm5hbWVdID0gcHNldWRvY291bnRzOwogIHJldHVybiBmdW5jdGlvbigpewogICAgdmFyIHBjID0gZ2xvYmFsU3RvcmVbYmJuYW1lXTsgIC8vIGdldCBjdXJyZW50IHN1ZmZpY2llbnQgc3RhdHMKICAgIHZhciB2YWwgPSBzYW1wbGUoYmVybm91bGxpRVJQLCBbcGNbMF0vKHBjWzBdK3BjWzFdKV0pOyAgLy8gc2FtcGxlIGZyb20gcHJlZGljdGl2ZS4KICAgIGdsb2JhbFN0b3JlW2JibmFtZV0gPSBbcGNbMF0rdmFsLCBwY1sxXSshdmFsXTsgIC8vIHVwZGF0ZSBzdWZmaWNpZW50IHN0YXRzCiAgICByZXR1cm4gdmFsOwogIH07Cn07Cgp2YXIgbWFrZURpcmljaGxldERpc2NyZXRlID0gZnVuY3Rpb24ocHNldWRvY291bnRzKSB7CiAgdmFyIGFkZENvdW50ID0gZnVuY3Rpb24oYSxpLGopIHsKICAgIHZhciBqID0gaj09dW5kZWZpbmVkPzA6ajsKICAgIGlmKGEubGVuZ3RoPT0wKXsKICAgICAgcmV0dXJuIFtdOwogICAgfSBlbHNlIHsKICAgICAgcmV0dXJuIFthWzBdICsgKGk9PWopXS5jb25jYXQoYWRkQ291bnQoYS5zbGljZSgxKSxpLGorMSkpOwogICAgfQogIH07CiAgZ2xvYmFsU3RvcmUuRERpbmRleCA9IDErIChnbG9iYWxTdG9yZS5ERGluZGV4PT11bmRlZmluZWQ/MDpnbG9iYWxTdG9yZS5ERGluZGV4KTsKICB2YXIgZGRuYW1lID0gIkREIitnbG9iYWxTdG9yZS5ERGluZGV4OwogIGdsb2JhbFN0b3JlW2RkbmFtZV0gPSBwc2V1ZG9jb3VudHM7CiAgcmV0dXJuIGZ1bmN0aW9uKCl7CiAgICB2YXIgcGMgPSBnbG9iYWxTdG9yZVtkZG5hbWVdOyAgLy8gZ2V0IGN1cnJlbnQgc3VmZmljaWVudCBzdGF0cwogICAgdmFyIHZhbCA9IHNhbXBsZShkaXNjcmV0ZUVSUCwgW3BjXSk7ICAvLyBzYW1wbGUgZnJvbSBwcmVkaWN0aXZlLiAoZG9lc24ndCBuZWVkIHRvIGJlIG5vcm1hbGl6ZWQuKQogICAgZ2xvYmFsU3RvcmVbZGRuYW1lXSA9IGFkZENvdW50KHBjLCB2YWwpOyAvLyB1cGRhdGUgc3VmZmljaWVudCBzdGF0cwogICAgcmV0dXJuIHZhbDsKICB9Owp9OwoKCi8vIFByb2JhYmlsaXR5IGNvbXB1dGF0aW9ucyAmIGNhbGN1bGF0aW9ucwoKdmFyIHBsdXMgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhK2I7IH07CnZhciBtaW51cyA9IGZ1bmN0aW9uKGEsIGIpIHsgcmV0dXJuIGEtYjsgfTsKdmFyIG11bHQgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhKmI7IH07CnZhciBkaXYgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhL2I7IH07Cgp2YXIgaWRGID0gZnVuY3Rpb24oeCl7IHJldHVybiB4OyB9Cgp2YXIgZXhwZWN0YXRpb24gPSBmdW5jdGlvbihlcnAsIGZ1bmMpewogIHZhciBmID0gZnVuYyA9PSB1bmRlZmluZWQgPyBpZEYgOiBmdW5jOwogIHZhciBzdXBwID0gZXJwLnN1cHBvcnQoW10pOwogIHJldHVybiBtYXBSZWR1Y2UocGx1cywKICAgICAgICAgICAgICAgICAgIHN1cHBbc3VwcC5sZW5ndGgtMV0sCiAgICAgICAgICAgICAgICAgICBmdW5jdGlvbihzKXtyZXR1cm4gTWF0aC5leHAoZXJwLnNjb3JlKFtdLHMpKSpmKHMpfSwKICAgICAgICAgICAgICAgICAgIHN1cHAuc2xpY2UoMCwgLTEpKTsKfTsKCnZhciBlbnRyb3B5ID0gZnVuY3Rpb24oZXJwKXsKICB2YXIgc3VwcCA9IGVycC5zdXBwb3J0KFtdKTsKICByZXR1cm4gLW1hcFJlZHVjZShwbHVzLAogICAgICAgICAgICAgICAgICAgIHN1cHBbc3VwcC5sZW5ndGgtMV0sCiAgICAgICAgICAgICAgICAgICAgZnVuY3Rpb24ocyl7dmFyIGxwID0gZXJwLnNjb3JlKFtdLHMpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIE1hdGguZXhwKGxwKSpscCB9LAogICAgICAgICAgICAgICAgICAgIHN1cHAuc2xpY2UoMCwgLTEpKTsKfTsKCgovLyBEYXRhIHN0cnVjdHVyZXMgJiBoaWdoZXItb3JkZXIgZnVuY3Rpb25zCgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7CiAgcmV0dXJuIGEuY29uY2F0KGIpOwp9OwoKdmFyIGNvbnMgPSBmdW5jdGlvbihhLGIpIHsgcmV0dXJuIFthXS5jb25jYXQoYik7IH07Cgp2YXIgc25vYyA9IGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gYS5jb25jYXQoW2JdKTsgfTsKCnZhciBmaXJzdCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1swXTsgfTsKdmFyIHNlY29uZCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1sxXTsgfTsKdmFyIHRoaXJkID0gZnVuY3Rpb24oeHMpIHsgcmV0dXJuIHhzWzJdOyB9Owp2YXIgZm91cnRoID0gZnVuY3Rpb24oeHMpIHsgcmV0dXJuIHhzWzNdOyB9Owp2YXIgc2Vjb25kTGFzdCA9IGZ1bmN0aW9uKHhzKXsgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDJdOyB9Owp2YXIgbGFzdCA9IGZ1bmN0aW9uKHhzKXsgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOyB9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogW2ZuKGFyWzBdKV0uY29uY2F0KG1hcChmbiwgYXIuc2xpY2UoMSkpKTsKfTsKCnZhciBtYXAyID0gZnVuY3Rpb24oZixsMSxsMikgewogIHJldHVybiBsMS5sZW5ndGggPT0gMAogICAgPyBbXQogICAgOiBbZihsMVswXSxsMlswXSldLmNvbmNhdChtYXAyKGYsIGwxLnNsaWNlKDEpLCBsMi5zbGljZSgxKSkpOwp9OwoKdmFyIHJlZHVjZSA9IGZ1bmN0aW9uKGZuLGluaXQsYXIpewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBpbml0IDogZm4oYXJbMF0sIHJlZHVjZShmbixpbml0LGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgbWFwUmVkdWNlID0gZnVuY3Rpb24oZixpbml0LGcsYXIpewogIHJldHVybiByZWR1Y2UoZnVuY3Rpb24oYSxiKSB7IHJldHVybiBmKGcoYSksYik7IH0sIGcoaW5pdCksIGFyKTsKfTsKCnZhciBzdW0gPSBmdW5jdGlvbihsKSB7IHJldHVybiByZWR1Y2UocGx1cywgMCwgbCk7IH07Cgp2YXIgcHJvZHVjdCA9IGZ1bmN0aW9uKGwpIHsgcmV0dXJuIHJlZHVjZShtdWx0LCAxLCBsKTsgfTsKCnZhciB6aXAgPSBmdW5jdGlvbih4cywgeXMpewogIHJldHVybiB4cy5sZW5ndGggPT0gMAogICAgPyBbXQogICAgOiBbW3hzWzBdLCB5c1swXV1dLmNvbmNhdCh6aXAoeHMuc2xpY2UoMSksIHlzLnNsaWNlKDEpKSk7Cn07Cgp2YXIgZmlsdGVyID0gZnVuY3Rpb24oZm4sYXIpIHsKICByZXR1cm4gYXIubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogYXBwZW5kKGZuKGFyWzBdKSA/IFthclswXV0gOiBbXSwgZmlsdGVyKGZuLGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgZmluZCA9IGZ1bmN0aW9uKGYsYXIpIHsKICByZXR1cm4gYXIubGVuZ3RoID09IDAgPyB1bmRlZmluZWQgOiAoZihhclswXSkgPyBhclswXSA6IGZpbmQoZixhci5zbGljZSgxKSkpOwp9OwoKdmFyIHJlbW92ZSA9IGZ1bmN0aW9uKGEsYXIpIHsKICByZXR1cm4gZmlsdGVyKGZ1bmN0aW9uKGUpIHsgcmV0dXJuIGEgIT0gZTt9LCBhcik7Cn07Cgp2YXIgZHJvcCA9IGZ1bmN0aW9uKG4sYXIpIHsgcmV0dXJuIG4gPiBhci5sZW5ndGggPyBbXSA6IGFyLnNsaWNlKG4pOyB9OwoKdmFyIHRha2UgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID49IGFyLmxlbmd0aCA/IGFyIDogYXIuc2xpY2UoMCxuKTsgfTsKCnZhciBkcm9wV2hpbGUgPSBmdW5jdGlvbihwLCBhcikgewogIHJldHVybiBwKGFyWzBdKSA/IGRyb3BXaGlsZShwLGFyLnNsaWNlKDEpKSA6IGFyOwp9OwoKdmFyIHRha2VXaGlsZSA9IGZ1bmN0aW9uKHAsIGFyKSB7CiAgcmV0dXJuIHAoYXJbMF0pID8gY29ucyhhclswXSx0YWtlV2hpbGUocCxhci5zbGljZSgxKSkpIDogW107Cn07Cgp2YXIgaW5kZXhPZiA9IGZ1bmN0aW9uKHgsIHhzKSB7CiAgdmFyIGZuID0gZnVuY3Rpb24oeHMsIGkpIHsKICAgIHJldHVybiAoeHMubGVuZ3RoID09IDApID8gdW5kZWZpbmVkIDogeCA9PSB4c1swXSA/IGkgOiBmbih4cy5zbGljZSgxKSwgaSsxKTsKICB9OwogIHJldHVybiBmbih4cywgMCk7Cn07Cgp2YXIgbWluV2l0aCA9IGZ1bmN0aW9uKGYsYXIpIHsKICB2YXIgZm4gPSBmdW5jdGlvbihfYXIsIF9iZXN0KSB7CiAgICBpZiAoX2FyLmxlbmd0aCA9PSAwKSB7CiAgICAgIHJldHVybiBfYmVzdDsKICAgIH0gZWxzZSBpZiAoX2FyWzBdWzFdIDwgX2Jlc3RbMV0pIHsKICAgICAgcmV0dXJuIGZuKF9hci5zbGljZSgxKSwgX2FyWzBdKTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9iZXN0KTsKICAgIH0KICB9OwogIHJldHVybiBmbih6aXAoYXIsbWFwKGYsYXIpKSwgW0luZmluaXR5LEluZmluaXR5XSk7Cn07Cgp2YXIgbWF4V2l0aCA9IGZ1bmN0aW9uKGYsYXIpIHsKICB2YXIgZm4gPSBmdW5jdGlvbihfYXIsIF9iZXN0KSB7CiAgICBpZiAoX2FyLmxlbmd0aCA9PSAwKSB7CiAgICAgIHJldHVybiBfYmVzdDsKICAgIH0gZWxzZSBpZiAoX2FyWzBdWzFdID4gX2Jlc3RbMV0pIHsKICAgICAgcmV0dXJuIGZuKF9hci5zbGljZSgxKSwgX2FyWzBdKTsKICAgIH0gZWxzZSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9iZXN0KTsKICAgIH0KICB9OwogIHJldHVybiBmbih6aXAoYXIsbWFwKGYsYXIpKSwgWy1JbmZpbml0eSwtSW5maW5pdHldKTsKfTsKCnZhciBzcGFuID0gZnVuY3Rpb24ocCwgYXIpIHsKICB2YXIgZm4gPSBmdW5jdGlvbihhcixfdHMsX2ZzKSB7CiAgICByZXR1cm4gYXIubGVuZ3RoID09IDAKICAgICAgPyBbX3RzLCBfZnNdCiAgICAgIDogcChhclswXSkKICAgICAgICA/IGZuKGFyLnNsaWNlKDEpLCBzbm9jKF90cyxhclswXSksIF9mcykKICAgICAgICA6IGZuKGFyLnNsaWNlKDEpLCBfdHMsIHNub2MoX2ZzLGFyWzBdKSk7CiAgfTsKICByZXR1cm4gZm4oYXIsW10sW10pOwp9OwoKdmFyIGdyb3VwQnkgPSBmdW5jdGlvbihjbXAsIGFyKSB7CiAgaWYgKGFyLmxlbmd0aCA9PSAwKSB7CiAgICByZXR1cm4gW107CiAgfSBlbHNlIHsKICAgIHZhciB4ID0gYXJbMF07CiAgICB2YXIgc3AgPSBzcGFuKGZ1bmN0aW9uKGIpIHsgcmV0dXJuIGNtcCh4LGIpOyB9LCBhci5zbGljZSgxKSk7CiAgICByZXR1cm4gW2NvbnMoeCxzcFswXSldLmNvbmNhdChncm91cEJ5KGNtcCxzcFsxXSkpOwogIH0KfTsKCnZhciByZXBlYXQgPSBmdW5jdGlvbihuLCBmbil7CiAgcmV0dXJuIG4gPT0gMCA/IFtdIDogYXBwZW5kKHJlcGVhdChuLTEsIGZuKSwgW2ZuKCldKTsKfTsKCnZhciBwdXNoID0gZnVuY3Rpb24oeHMsIHgpewogIHJldHVybiB4cy5jb25jYXQoW3hdKTsKfTsKCnZhciBjb21wb3NlID0gZnVuY3Rpb24oZiwgZyl7CiAgcmV0dXJuIGZ1bmN0aW9uKHgpewogICAgcmV0dXJuIGYoZyh4KSk7CiAgfTsKfTsK","base64");
+    var headerCode = Buffer("Ly8gRVJQcwoKdmFyIGZsaXAgPSBmdW5jdGlvbih0aGV0YSkgewogIHJldHVybiBzYW1wbGUoYmVybm91bGxpRVJQLCBbdGhldGFdKTsKfTsKCnZhciByYW5kb21JbnRlZ2VyID0gZnVuY3Rpb24obikgewogIHJldHVybiBzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW25dKTsKfTsKCnZhciBkaXNjcmV0ZSA9IGZ1bmN0aW9uKG4pIHsKICByZXR1cm4gc2FtcGxlKGRpc2NyZXRlRVJQLCBbbl0pOwp9OwoKdmFyIGdhdXNzaWFuID0gZnVuY3Rpb24obXUsIHNpZ21hKXsKICByZXR1cm4gc2FtcGxlKGdhdXNzaWFuRVJQLCBbbXUsIHNpZ21hXSk7Cn07Cgp2YXIgdW5pZm9ybSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUodW5pZm9ybUVSUCwgW2EsIGJdKTsKfTsKCnZhciB1bmlmb3JtRHJhdyA9IGZ1bmN0aW9uKGwpIHsKICByZXR1cm4gbFtzYW1wbGUocmFuZG9tSW50ZWdlckVSUCwgW2wubGVuZ3RoXSldOwp9OwoKdmFyIGRpcmljaGxldCA9IGZ1bmN0aW9uKGFscGhhKXsKICByZXR1cm4gc2FtcGxlKGRpcmljaGxldEVSUCwgYWxwaGEpOwp9OwoKdmFyIHBvaXNzb24gPSBmdW5jdGlvbihtdSwgayl7CiAgcmV0dXJuIHNhbXBsZShwb2lzc29uRVJQLCBbbXUsIGtdKTsKfTsKCnZhciBiaW5vbWlhbCA9IGZ1bmN0aW9uKHAsIG4pewogIHJldHVybiBzYW1wbGUoYmlub21pYWxFUlAsIFtwLCBuXSk7Cn07Cgp2YXIgYmV0YSA9IGZ1bmN0aW9uKGEsIGIpewogIHJldHVybiBzYW1wbGUoYmV0YUVSUCwgW2EsIGJdKTsKfTsKCnZhciBleHBvbmVudGlhbCA9IGZ1bmN0aW9uKGEpewogIHJldHVybiBzYW1wbGUoZXhwb25lbnRpYWxFUlAsIFthXSk7Cn07Cgp2YXIgZ2FtbWEgPSBmdW5jdGlvbihzaGFwZSwgc2NhbGUpewogIHJldHVybiBzYW1wbGUoZ2FtbWFFUlAsIFtzaGFwZSwgc2NhbGVdKTsKfTsKCi8vIFhSUHMKCnZhciBtYWtlQmV0YUJlcm5vdWxsaSA9IGZ1bmN0aW9uKHBzZXVkb2NvdW50cykgewogIGdsb2JhbFN0b3JlLkJCaW5kZXggPSAxICsgKGdsb2JhbFN0b3JlLkJCaW5kZXg9PXVuZGVmaW5lZCA/IDAgOiBnbG9iYWxTdG9yZS5CQmluZGV4KTsKICB2YXIgYmJuYW1lID0gIkJCIitnbG9iYWxTdG9yZS5CQmluZGV4OwogIGdsb2JhbFN0b3JlW2JibmFtZV0gPSBwc2V1ZG9jb3VudHM7CiAgcmV0dXJuIGZ1bmN0aW9uKCl7CiAgICB2YXIgcGMgPSBnbG9iYWxTdG9yZVtiYm5hbWVdOyAgLy8gZ2V0IGN1cnJlbnQgc3VmZmljaWVudCBzdGF0cwogICAgdmFyIHZhbCA9IHNhbXBsZShiZXJub3VsbGlFUlAsIFtwY1swXS8ocGNbMF0rcGNbMV0pXSk7ICAvLyBzYW1wbGUgZnJvbSBwcmVkaWN0aXZlLgogICAgZ2xvYmFsU3RvcmVbYmJuYW1lXSA9IFtwY1swXSt2YWwsIHBjWzFdKyF2YWxdOyAgLy8gdXBkYXRlIHN1ZmZpY2llbnQgc3RhdHMKICAgIHJldHVybiB2YWw7CiAgfTsKfTsKCnZhciBtYWtlRGlyaWNobGV0RGlzY3JldGUgPSBmdW5jdGlvbihwc2V1ZG9jb3VudHMpIHsKICB2YXIgYWRkQ291bnQgPSBmdW5jdGlvbihhLGksaikgewogICAgdmFyIGogPSBqPT11bmRlZmluZWQ/MDpqOwogICAgaWYoYS5sZW5ndGg9PTApewogICAgICByZXR1cm4gW107CiAgICB9IGVsc2UgewogICAgICByZXR1cm4gW2FbMF0gKyAoaT09aildLmNvbmNhdChhZGRDb3VudChhLnNsaWNlKDEpLGksaisxKSk7CiAgICB9CiAgfTsKICBnbG9iYWxTdG9yZS5ERGluZGV4ID0gMSsgKGdsb2JhbFN0b3JlLkREaW5kZXg9PXVuZGVmaW5lZD8wOmdsb2JhbFN0b3JlLkREaW5kZXgpOwogIHZhciBkZG5hbWUgPSAiREQiK2dsb2JhbFN0b3JlLkREaW5kZXg7CiAgZ2xvYmFsU3RvcmVbZGRuYW1lXSA9IHBzZXVkb2NvdW50czsKICByZXR1cm4gZnVuY3Rpb24oKXsKICAgIHZhciBwYyA9IGdsb2JhbFN0b3JlW2RkbmFtZV07ICAvLyBnZXQgY3VycmVudCBzdWZmaWNpZW50IHN0YXRzCiAgICB2YXIgdmFsID0gc2FtcGxlKGRpc2NyZXRlRVJQLCBbcGNdKTsgIC8vIHNhbXBsZSBmcm9tIHByZWRpY3RpdmUuIChkb2Vzbid0IG5lZWQgdG8gYmUgbm9ybWFsaXplZC4pCiAgICBnbG9iYWxTdG9yZVtkZG5hbWVdID0gYWRkQ291bnQocGMsIHZhbCk7IC8vIHVwZGF0ZSBzdWZmaWNpZW50IHN0YXRzCiAgICByZXR1cm4gdmFsOwogIH07Cn07CgovLyBhcml0aG1ldGljIGFuZCBvdGhlciBmdW5jdGlvbmFscwovLyBuZWVkc3dvcms6IGN1cnJ5IG1hbnVhbGx5IHdoZXJlIHBvc3NpYmxlIHRvIG1ha2UgZWFzaWVyIHRvIHVzZQovLyB2YXIgcGx1cyA9IGZ1bmN0aW9uKGEsYikge3JldHVybiBhcmd1bWVudHMubGVuZ3RoID09IDEgPyBmdW5jdGlvbihiKSB7cmV0dXJuIGErYn0gOiBhK2I7fQoKdmFyIHBsdXMgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhK2I7IH07CnZhciBtaW51cyA9IGZ1bmN0aW9uKGEsIGIpIHsgcmV0dXJuIGEtYjsgfTsKdmFyIG11bHQgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhKmI7IH07CnZhciBkaXYgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhL2I7IH07Cgp2YXIgZXEgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhID09IGI7IH07CnZhciBuZXEgPSBmdW5jdGlvbihhLCBiKSB7IHJldHVybiBhICE9IGI7IH07CnZhciBsdCA9IGZ1bmN0aW9uKGEsIGIpIHsgcmV0dXJuIGE8YjsgfTsKdmFyIGd0ID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYT5iOyB9Owp2YXIgbGVxID0gZnVuY3Rpb24oYSwgYikgeyByZXR1cm4gYTw9YjsgfTsKdmFyIGdlcSA9IGZ1bmN0aW9uKGEsIGIpIHsgcmV0dXJuIGE+PWI7IH07Cgp2YXIgaXNFdmVuID0gZnVuY3Rpb24odikge3JldHVybiB2JTIgPT0gMDt9Owp2YXIgaXNPZGQgPSBmdW5jdGlvbih2KSB7cmV0dXJuIHYlMiAhPSAwO307Cgp2YXIgaWRGID0gZnVuY3Rpb24oeCkgeyByZXR1cm4geDsgfQp2YXIgY29uc3RGID0gZnVuY3Rpb24oZikgeyByZXR1cm4gZnVuY3Rpb24oKSB7cmV0dXJuIGZ9IH07CnZhciBmYWxzZUYgPSBmdW5jdGlvbigpIHsgcmV0dXJuIGZhbHNlOyB9Owp2YXIgdHJ1ZUYgPSBmdW5jdGlvbigpIHsgcmV0dXJuIHRydWU7IH07CgovLyBQcm9iYWJpbGl0eSBjb21wdXRhdGlvbnMgJiBjYWxjdWxhdGlvbnMKCnZhciBleHBlY3RhdGlvbiA9IGZ1bmN0aW9uKGVycCwgZnVuYyl7CiAgdmFyIGYgPSBmdW5jID09IHVuZGVmaW5lZCA/IGlkRiA6IGZ1bmM7CiAgdmFyIHN1cHAgPSBlcnAuc3VwcG9ydChbXSk7CiAgcmV0dXJuIG1hcFJlZHVjZTEocGx1cywKICAgICAgICAgICAgICAgICAgICBmdW5jdGlvbihzKXtyZXR1cm4gTWF0aC5leHAoZXJwLnNjb3JlKFtdLHMpKSpmKHMpO30sCiAgICAgICAgICAgICAgICAgICAgc3VwcCk7Cn07Cgp2YXIgZW50cm9weSA9IGZ1bmN0aW9uKGVycCl7CiAgdmFyIHN1cHAgPSBlcnAuc3VwcG9ydChbXSk7CiAgcmV0dXJuIC1tYXBSZWR1Y2UxKHBsdXMsCiAgICAgICAgICAgICAgICAgICAgIGZ1bmN0aW9uKHMpe3ZhciBscCA9IGVycC5zY29yZShbXSxzKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcmV0dXJuIE1hdGguZXhwKGxwKSpscDsgfSwKICAgICAgICAgICAgICAgICAgICAgc3VwcCk7Cn07CgovLyBEYXRhIHN0cnVjdHVyZXMgJiBoaWdoZXItb3JkZXIgZnVuY3Rpb25zCgp2YXIgYXBwZW5kID0gZnVuY3Rpb24oYSxiKSB7cmV0dXJuIGEuY29uY2F0KGIpO307CnZhciBjb25zID0gZnVuY3Rpb24oYSxiKSB7IHJldHVybiBbYV0uY29uY2F0KGIpOyB9Owp2YXIgc25vYyA9IGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gYS5jb25jYXQoW2JdKTsgfTsKCnZhciBmaXJzdCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1swXTsgfTsKdmFyIHNlY29uZCA9IGZ1bmN0aW9uKHhzKSB7IHJldHVybiB4c1sxXTsgfTsKdmFyIHRoaXJkID0gZnVuY3Rpb24oeHMpIHsgcmV0dXJuIHhzWzJdOyB9Owp2YXIgZm91cnRoID0gZnVuY3Rpb24oeHMpIHsgcmV0dXJuIHhzWzNdOyB9Owp2YXIgc2Vjb25kTGFzdCA9IGZ1bmN0aW9uKHhzKXsgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDJdOyB9Owp2YXIgbGFzdCA9IGZ1bmN0aW9uKHhzKXsgcmV0dXJuIHhzW3hzLmxlbmd0aCAtIDFdOyB9OwoKdmFyIG1hcCA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aD09MCA/IFtdIDogW2ZuKGFyWzBdKV0uY29uY2F0KG1hcChmbiwgYXIuc2xpY2UoMSkpKTsKfTsKCnZhciBtYXAyID0gZnVuY3Rpb24oZixsMSxsMikgewogIHJldHVybiBsMS5sZW5ndGggPT0gMCB8fCBsMi5sZW5ndGggPT0gMAogICAgPyBbXQogICAgOiBbZihsMVswXSxsMlswXSldLmNvbmNhdChtYXAyKGYsIGwxLnNsaWNlKDEpLCBsMi5zbGljZSgxKSkpOwp9OwoKdmFyIF9yaW5nQXJvdW5kID0gZnVuY3Rpb24obCxuKSB7cmV0dXJuIGwuc2xpY2UobikuY29uY2F0KGwuc2xpY2UoMCxuKSk7fTsKdmFyIHJpbmdGb3J3YXJkID0gZnVuY3Rpb24obCwgbikge3JldHVybiBfcmluZ0Fyb3VuZChsLCBuID09IHVuZGVmaW5lZCA/IC0xIDogLW4pO30KdmFyIHJpbmdCYWNrd2FyZCA9IGZ1bmN0aW9uKGwsIG4pIHtyZXR1cm4gX3JpbmdBcm91bmQobCwgbiA9PSB1bmRlZmluZWQgPyAxIDogbik7fQoKdmFyIG1hcFBhaXJzMiA9IGZ1bmN0aW9uKGYsIGwxLCBsMikgewogIHZhciByZXMgPSBtYXAoZnVuY3Rpb24oYSl7cmV0dXJuIG1hcChmdW5jdGlvbihiKXtyZXR1cm4gZihhLGIpO30sIGwyKX0sIGwxKQogIHJldHVybiBbXS5jb25jYXQuYXBwbHkoW10scmVzKSAvLyBmbGF0dGVuCn0KCnZhciBtYXBQYWlyc0MgPSBmdW5jdGlvbihmLCBsKSB7CiAgdmFyIGZuID0gZnVuY3Rpb24obDEsIGwyLCBhY2MpIHsKICAgIHJldHVybiBsMi5sZW5ndGggPT0gMAogICAgICA/IGFjYwogICAgICA6IGZuKGwxLnNsaWNlKDEpLAogICAgICAgICAgIGwyLnNsaWNlKDEpLAogICAgICAgICAgIGFjYy5jb25jYXQobWFwKGZ1bmN0aW9uKGIpe3JldHVybiBmKGwxWzBdLGIpO30sbDIpKSk7CiAgfQogIHJldHVybiBmbihsLGwuc2xpY2UoMSksW10pOwp9Cgp2YXIgbWFwUGFpcnNOQyA9IGZ1bmN0aW9uKGYsIGwpIHsKICB2YXIgcmVzID0gbWFwUGFpcnMyKGZ1bmN0aW9uKGEsYil7IHJldHVybiBhID09PSBiID8gdW5kZWZpbmVkIDogZihhLGIpOyB9LCBsLCBsKTsKICByZXR1cm4gcmVtb3ZlKHVuZGVmaW5lZCwgW10uY29uY2F0LmFwcGx5KFtdLHJlcykpIC8vIGZsYXR0ZW4KfQoKdmFyIHJlZHVjZSA9IGZ1bmN0aW9uKGZuLGluaXQsYXIpewogIHJldHVybiBhci5sZW5ndGg9PTAgPyBpbml0IDogZm4oYXJbMF0sIHJlZHVjZShmbixpbml0LGFyLnNsaWNlKDEpKSk7Cn07Cgp2YXIgbWFwUmVkdWNlID0gZnVuY3Rpb24oZixpbml0LGcsYXIpewogIC8vIHNwZWNpYWxpemVkIHRvIGFib3ZlIHJlZHVjZQogIHJldHVybiByZWR1Y2UoZnVuY3Rpb24oYSxiKSB7IHJldHVybiBmKGcoYSksYik7IH0sIGcoaW5pdCksIGFyKTsKfTsKCnZhciBtYXBSZWR1Y2UxID0gZnVuY3Rpb24oZixnLGFyKXsKICAvLyBzcGVjaWFsaXplZCB0byBhYm92ZSByZWR1Y2UKICByZXR1cm4gcmVkdWNlKGZ1bmN0aW9uKGEsYikgeyByZXR1cm4gZihnKGEpLGIpOyB9LCBnKGFyW2FyLmxlbmd0aC0xXSksIGFyLnNsaWNlKDAsLTEpKTsKfTsKCnZhciBzdW0gPSBmdW5jdGlvbihsKSB7IHJldHVybiByZWR1Y2UocGx1cywgMCwgbCk7IH07CnZhciBwcm9kdWN0ID0gZnVuY3Rpb24obCkgeyByZXR1cm4gcmVkdWNlKG11bHQsIDEsIGwpOyB9OwoKdmFyIGxpc3RNZWFuID0gZnVuY3Rpb24obCkge3JldHVybiByZWR1Y2UocGx1cywwLGwpL2wubGVuZ3RoO307CnZhciBsaXN0VmFyID0gZnVuY3Rpb24obCxtdSkgewogIHZhciBtdSA9IG11ID09IHVuZGVmaW5lZD8gbGlzdE1lYW4obCkgOiBtdTsKICByZXR1cm4gbWFwUmVkdWNlMShwbHVzLGZ1bmN0aW9uKGEpe3JldHVybiAoYS1tdSkqKGEtbXUpO30sbCkvbC5sZW5ndGg7Cn07CnZhciBsaXN0U3RkZXYgPSBmdW5jdGlvbihsLG11KSB7cmV0dXJuIE1hdGguc3FydChsaXN0VmFyKGwsIG11KSk7fTsKCnZhciBhbGwgPSBmdW5jdGlvbihwLGwpIHsgcmV0dXJuIG1hcFJlZHVjZTEoZnVuY3Rpb24oYSxiKXsgcmV0dXJuIGEgJiYgYjsgfSwgcCwgbCk7IH07CnZhciBhbnkgPSBmdW5jdGlvbihwLGwpIHsgcmV0dXJuIG1hcFJlZHVjZTEoZnVuY3Rpb24oYSxiKXsgcmV0dXJuIGEgfHwgYjsgfSwgcCwgbCk7IH07Cgp2YXIgemlwID0gZnVuY3Rpb24oeHMsIHlzKXsKICByZXR1cm4geHMubGVuZ3RoID09IDAKICAgID8gW10KICAgIDogW1t4c1swXSwgeXNbMF1dXS5jb25jYXQoemlwKHhzLnNsaWNlKDEpLCB5cy5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbHRlciA9IGZ1bmN0aW9uKGZuLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwCiAgICA/IFtdCiAgICA6IGFwcGVuZChmbihhclswXSkgPyBbYXJbMF1dIDogW10sIGZpbHRlcihmbixhci5zbGljZSgxKSkpOwp9OwoKdmFyIGZpbmQgPSBmdW5jdGlvbihmLGFyKSB7CiAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwID8gdW5kZWZpbmVkIDogKGYoYXJbMF0pID8gYXJbMF0gOiBmaW5kKGYsYXIuc2xpY2UoMSkpKTsKfTsKCnZhciByZW1vdmUgPSBmdW5jdGlvbihhLGFyKSB7CiAgcmV0dXJuIGZpbHRlcihmdW5jdGlvbihlKSB7IHJldHVybiBhICE9IGU7fSwgYXIpOwp9OwoKdmFyIGRyb3AgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID4gYXIubGVuZ3RoID8gW10gOiBhci5zbGljZShuKTsgfTsKdmFyIHRha2UgPSBmdW5jdGlvbihuLGFyKSB7IHJldHVybiBuID49IGFyLmxlbmd0aCA/IGFyIDogYXIuc2xpY2UoMCxuKTsgfTsKdmFyIGRyb3BXaGlsZSA9IGZ1bmN0aW9uKHAsIGFyKSB7CiAgcmV0dXJuIHAoYXJbMF0pID8gZHJvcFdoaWxlKHAsYXIuc2xpY2UoMSkpIDogYXI7Cn07CnZhciB0YWtlV2hpbGUgPSBmdW5jdGlvbihwLCBhcikgewogIHJldHVybiBwKGFyWzBdKSA/IGNvbnMoYXJbMF0sdGFrZVdoaWxlKHAsYXIuc2xpY2UoMSkpKSA6IFtdOwp9OwoKdmFyIGluZGV4T2YgPSBmdW5jdGlvbih4LCB4cykgewogIHZhciBmbiA9IGZ1bmN0aW9uKHhzLCBpKSB7CiAgICByZXR1cm4gKHhzLmxlbmd0aCA9PSAwKSA/IHVuZGVmaW5lZCA6IHggPT0geHNbMF0gPyBpIDogZm4oeHMuc2xpY2UoMSksIGkrMSk7CiAgfTsKICByZXR1cm4gZm4oeHMsIDApOwp9OwoKdmFyIG1pbldpdGggPSBmdW5jdGlvbihmLGFyKSB7CiAgdmFyIGZuID0gZnVuY3Rpb24oX2FyLCBfYmVzdCkgewogICAgaWYgKF9hci5sZW5ndGggPT0gMCkgewogICAgICByZXR1cm4gX2Jlc3Q7CiAgICB9IGVsc2UgaWYgKF9hclswXVsxXSA8IF9iZXN0WzFdKSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9hclswXSk7CiAgICB9IGVsc2UgewogICAgICByZXR1cm4gZm4oX2FyLnNsaWNlKDEpLCBfYmVzdCk7CiAgICB9CiAgfTsKICByZXR1cm4gZm4oemlwKGFyLG1hcChmLGFyKSksIFtJbmZpbml0eSxJbmZpbml0eV0pOwp9OwoKdmFyIG1heFdpdGggPSBmdW5jdGlvbihmLGFyKSB7CiAgdmFyIGZuID0gZnVuY3Rpb24oX2FyLCBfYmVzdCkgewogICAgaWYgKF9hci5sZW5ndGggPT0gMCkgewogICAgICByZXR1cm4gX2Jlc3Q7CiAgICB9IGVsc2UgaWYgKF9hclswXVsxXSA+IF9iZXN0WzFdKSB7CiAgICAgIHJldHVybiBmbihfYXIuc2xpY2UoMSksIF9hclswXSk7CiAgICB9IGVsc2UgewogICAgICByZXR1cm4gZm4oX2FyLnNsaWNlKDEpLCBfYmVzdCk7CiAgICB9CiAgfTsKICByZXR1cm4gZm4oemlwKGFyLG1hcChmLGFyKSksIFstSW5maW5pdHksLUluZmluaXR5XSk7Cn07Cgp2YXIgc3BhbiA9IGZ1bmN0aW9uKHAsIGFyKSB7CiAgdmFyIGZuID0gZnVuY3Rpb24oYXIsX3RzLF9mcykgewogICAgcmV0dXJuIGFyLmxlbmd0aCA9PSAwCiAgICAgID8gW190cywgX2ZzXQogICAgICA6IChwKGFyWzBdKQogICAgICAgICA/IGZuKGFyLnNsaWNlKDEpLCBzbm9jKF90cyxhclswXSksIF9mcykKICAgICAgICAgOiBmbihhci5zbGljZSgxKSwgX3RzLCBzbm9jKF9mcyxhclswXSkpKTsKICB9OwogIHJldHVybiBmbihhcixbXSxbXSk7Cn07Cgp2YXIgZ3JvdXBCeSA9IGZ1bmN0aW9uKGNtcCwgYXIpIHsKICBpZiAoYXIubGVuZ3RoID09IDApIHsKICAgIHJldHVybiBbXTsKICB9IGVsc2UgewogICAgdmFyIHggPSBhclswXTsKICAgIHZhciBzcCA9IHNwYW4oZnVuY3Rpb24oYikgeyByZXR1cm4gY21wKHgsYik7IH0sIGFyLnNsaWNlKDEpKTsKICAgIHJldHVybiBbY29ucyh4LHNwWzBdKV0uY29uY2F0KGdyb3VwQnkoY21wLHNwWzFdKSk7CiAgfQp9OwoKdmFyIHJlcGVhdCA9IGZ1bmN0aW9uKG4sIGZuKXsKICByZXR1cm4gbiA9PSAwID8gW10gOiBhcHBlbmQocmVwZWF0KG4tMSwgZm4pLCBbZm4oKV0pOwp9OwoKdmFyIHB1c2ggPSBmdW5jdGlvbih4cywgeCl7CiAgcmV0dXJuIHhzLmNvbmNhdChbeF0pOwp9OwoKdmFyIGNvbXBvc2UgPSBmdW5jdGlvbihmLCBnKXsKICByZXR1cm4gZnVuY3Rpb24oeCl7CiAgICByZXR1cm4gZihnKHgpKTsKICB9Owp9OwoKdmFyIGV2ZXJ5T3RoZXIgPSBmdW5jdGlvbihsKSB7CiAgcmV0dXJuIGwubGVuZ3RoIDw9IDEgPyBsIDogW2xbMF1dLmNvbmNhdChldmVyeU90aGVyKGwuc2xpY2UoMikpKTsKfQp2YXIgX21lcmdlID0gZnVuY3Rpb24obDEsIGwyLCBwcmVkLCBrZXkpIHsKICByZXR1cm4gbDEubGVuZ3RoID09IDAKICAgID8gbDIKICAgIDogKGwyLmxlbmd0aCA9PSAwCiAgICAgICA/IGwxCiAgICAgICA6IChwcmVkKGtleShsMVswXSksIGtleShsMlswXSkpCiAgICAgICAgICA/IFtsMVswXV0uY29uY2F0KF9tZXJnZShsMS5zbGljZSgxKSwgbDIsIHByZWQsIGtleSkpCiAgICAgICAgICA6IFtsMlswXV0uY29uY2F0KF9tZXJnZShsMSwgbDIuc2xpY2UoMSksIHByZWQsIGtleSkpKSk7Cn0KdmFyIF9zb3J0ID0gZnVuY3Rpb24obCwgcHJlZCwga2V5KSB7CiAgcmV0dXJuIChsLmxlbmd0aCA8PSAxKQogICAgPyBsCiAgICA6IF9tZXJnZShfc29ydChldmVyeU90aGVyKGwpLCBwcmVkLCBrZXkpLAogICAgICAgICAgICAgX3NvcnQoZXZlcnlPdGhlcihsLnNsaWNlKDEpKSwgcHJlZCwga2V5KSwKICAgICAgICAgICAgIHByZWQsCiAgICAgICAgICAgICBrZXkpOwp9CnZhciBzb3J0ID0gZnVuY3Rpb24obCwgcHJlZCwga2V5KSB7CiAgcmV0dXJuIF9zb3J0KGwsCiAgICAgICAgICAgICAgIChwcmVkID09IHVuZGVmaW5lZCA/IGx0IDogcHJlZCksCiAgICAgICAgICAgICAgIChrZXkgPT0gdW5kZWZpbmVkID8gaWRGIDoga2V5KSk7Cn0KdmFyIHNvcnRPbiA9IGZ1bmN0aW9uKGwsIGtleSwgcHJlZCkgewogIHJldHVybiBfc29ydChsLCAocHJlZCA9PSB1bmRlZmluZWQgPyBsdCA6IHByZWQpLCBrZXkpCn0K","base64");
     headerAst = _compile(headerCode, 'dummyCont', true);
     global['CACHED_WEBPPL_HEADER'] = headerAst;
   }
@@ -25399,7 +25390,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./cps":84,"./header.js":85,"./naming":87,"./optimize":88,"./store":89,"./trampoline":90,"./util":91,"assert":92,"ast-types":16,"buffer":93,"escodegen":17,"esprima":75,"path":98}],87:[function(require,module,exports){
+},{"./cps":84,"./header.js":85,"./naming":87,"./optimize":88,"./store":89,"./trampoline":90,"./util":91,"./varargs":92,"assert":93,"ast-types":16,"buffer":94,"escodegen":17,"esprima":75,"path":99}],87:[function(require,module,exports){
 "use strict";
 
 var assert = require('assert');
@@ -25499,7 +25490,7 @@ function namingMain(node) {
 module.exports = {
 naming: namingMain
 };
-},{"./util.js":91,"assert":92,"ast-types":16,"escodegen":17,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],88:[function(require,module,exports){
+},{"./util.js":91,"assert":93,"ast-types":16,"escodegen":17,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],88:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -25624,7 +25615,7 @@ module.exports = {
   optimize: optimizeMain
 };
 
-},{"./util.js":91,"assert":92,"ast-types":16,"escodegen":17,"esmangle":30,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],89:[function(require,module,exports){
+},{"./util.js":91,"assert":93,"ast-types":16,"escodegen":17,"esmangle":30,"esprima":75,"estemplate":76,"estraverse":77,"underscore":83}],89:[function(require,module,exports){
 "use strict";
 
 var estraverse = require("estraverse");
@@ -25726,8 +25717,8 @@ function trampoline(node) {
 
 
 function trampolineMain(node, noWrapping) {
-
-  node = estraverse.replace(node, {leave: function(n){return trampoline(n);}});
+    
+  node = estraverse.replace(node, {leave: trampoline});
 
   if (noWrapping){
     // used for trampolining header which only contains
@@ -25752,7 +25743,7 @@ module.exports = {
   trampoline: trampolineMain
 };
 
-},{"assert":92,"ast-types":16,"escodegen":17,"esprima":75,"estraverse":77}],91:[function(require,module,exports){
+},{"assert":93,"ast-types":16,"escodegen":17,"esprima":75,"estraverse":77}],91:[function(require,module,exports){
 "use strict";
 
 var _ = require('underscore');
@@ -25776,7 +25767,7 @@ function prettyJSON(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
-var sum = function(xs){
+function sum(xs){
   if (xs.length == 0) {
     return 0.0;
   } else {
@@ -25788,28 +25779,28 @@ var sum = function(xs){
   }
 };
 
-var normalizeHist = function(hist){
+function normalizeHist(hist){
   var normHist = {};
   var Z = sum(_.values(hist));
   _.each(hist, function(val, key){normHist[key] = hist[key]/Z;});
   return normHist;
 };
 
-var normalizeArray = function(xs){
+function normalizeArray(xs){
   var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
 };
 
-var logsumexp = function(a) {
+function logsumexp(a) {
   var m = Math.max.apply(null, a);
   var sum = 0;
   for (var i=0; i<a.length; ++i) {
-    sum += Math.exp(a[i] - m);
+    sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
 };
 
-var copyObj = function(obj){
+function copyObj(obj){
   var newobj = {};
   for(var k in obj){
     if(obj.hasOwnProperty(k)){newobj[k] = obj[k];}
@@ -25830,6 +25821,22 @@ function cpsForEach(func, nextK, xs, i){
   }
 }
 
+function histsApproximatelyEqual(hist, expectedHist, tolerance){
+  var allOk = true;
+  _.each(
+    expectedHist,
+    function(expectedValue, key){
+      var value = hist[key] || 0;
+      var testPassed = Math.abs(value - expectedValue) <= tolerance;
+      allOk = allOk && testPassed;
+    });
+  if (!allOk){
+    console.log("Expected:", expectedHist);
+    console.log("Actual:", hist);
+  }
+  return allOk;
+};
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -25840,10 +25847,93 @@ module.exports = {
   normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  sum: sum
+  sum: sum,
+  histsApproximatelyEqual: histsApproximatelyEqual
 };
 
 },{"underscore":83}],92:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+var estraverse = require('estraverse');
+var types = require('ast-types');
+var escodegen = require('escodegen');
+var esprima = require('esprima');
+
+var build = types.builders;
+var Syntax = estraverse.Syntax;
+
+
+var argumentsIdCounter = 0;
+function makeArgumentsIdentifier(){
+  argumentsIdCounter += 1;
+  return '_arguments' + argumentsIdCounter;
+}
+
+function findEnclosingFunctionNode(node){
+  var ancestor = node;
+  while (ancestor !== undefined){
+    if (ancestor.type === 'FunctionExpression') break;
+    ancestor = ancestor.parentNode;
+  }
+  if (ancestor === undefined){
+    throw 'Used "arguments" outside of function context!';
+  }
+  return ancestor;
+}
+
+function addParents(node, parent){
+  node.parentNode = parent;
+  return node;
+}
+
+function varargs(node){
+
+  if (node.seenByVarargs){
+    return node;
+  }
+  node.seenByVarargs = true;
+
+  switch (node.type) {
+
+  // assign 'arguments' as first statement in body, rename to make it
+  // survive subsequent trampoline closure introduction
+  case Syntax.Identifier:
+    if (node.name !== 'arguments') return node;
+    var functionNode = findEnclosingFunctionNode(node);
+    var argumentsId = functionNode.argumentsId || makeArgumentsIdentifier();
+    node.name = argumentsId;
+    if (functionNode.argumentsId === undefined){
+      functionNode.argumentsId = argumentsId;
+      assert.equal(functionNode.body.type, 'BlockStatement');
+      var functionBlock = functionNode.body.body;
+      var argsDeclaration = (
+        esprima.parse('var REPLACEME = Array.prototype.slice.call(arguments, 3);').body[0]);
+      argsDeclaration.declarations[0].id.name = argumentsId;
+      functionNode.body.body = [argsDeclaration].concat(functionNode.body.body);
+    }
+    return node;
+
+  default:
+    return node;
+
+  }
+
+}
+
+function varargsMain(node){
+  node = estraverse.replace(
+    node, {
+      enter: addParents,
+      leave: varargs
+    });
+  return node;
+}
+
+module.exports = {
+  varargs: varargsMain
+};
+},{"assert":93,"ast-types":16,"escodegen":17,"esprima":75,"estraverse":77}],93:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -26205,7 +26295,7 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":101}],93:[function(require,module,exports){
+},{"util/":102}],94:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -26218,12 +26308,11 @@ var ieee754 = require('ieee754')
 var isArray = require('is-array')
 
 exports.Buffer = Buffer
-exports.SlowBuffer = SlowBuffer
+exports.SlowBuffer = Buffer
 exports.INSPECT_MAX_BYTES = 50
 Buffer.poolSize = 8192 // not used by this implementation
 
 var kMaxLength = 0x3fffffff
-var rootParent = {}
 
 /**
  * If `Buffer.TYPED_ARRAY_SUPPORT`:
@@ -26283,6 +26372,8 @@ function Buffer (subject, encoding, noZero) {
   if (type === 'number')
     length = subject > 0 ? subject >>> 0 : 0
   else if (type === 'string') {
+    if (encoding === 'base64')
+      subject = base64clean(subject)
     length = Buffer.byteLength(subject, encoding)
   } else if (type === 'object' && subject !== null) { // assume object is array-like
     if (subject.type === 'Buffer' && isArray(subject.data))
@@ -26291,7 +26382,7 @@ function Buffer (subject, encoding, noZero) {
   } else
     throw new TypeError('must start with number, buffer, array or string')
 
-  if (length > kMaxLength)
+  if (this.length > kMaxLength)
     throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
       'size: 0x' + kMaxLength.toString(16) + ' bytes')
 
@@ -26327,18 +26418,6 @@ function Buffer (subject, encoding, noZero) {
     }
   }
 
-  if (length > 0 && length <= Buffer.poolSize)
-    buf.parent = rootParent
-
-  return buf
-}
-
-function SlowBuffer(subject, encoding, noZero) {
-  if (!(this instanceof SlowBuffer))
-    return new SlowBuffer(subject, encoding, noZero)
-
-  var buf = new Buffer(subject, encoding, noZero)
-  delete buf.parent
   return buf
 }
 
@@ -26489,7 +26568,7 @@ Buffer.prototype.toString = function (encoding, start, end) {
 }
 
 Buffer.prototype.equals = function (b) {
-  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if(!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
   return Buffer.compare(this, b) === 0
 }
 
@@ -26549,7 +26628,7 @@ function hexWrite (buf, string, offset, length) {
 }
 
 function utf8Write (buf, string, offset, length) {
-  var charsWritten = blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+  var charsWritten = blitBuffer(utf8ToBytes(string), buf, offset, length)
   return charsWritten
 }
 
@@ -26568,7 +26647,7 @@ function base64Write (buf, string, offset, length) {
 }
 
 function utf16leWrite (buf, string, offset, length) {
-  var charsWritten = blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length, 2)
+  var charsWritten = blitBuffer(utf16leToBytes(string), buf, offset, length)
   return charsWritten
 }
 
@@ -26588,10 +26667,6 @@ Buffer.prototype.write = function (string, offset, length, encoding) {
   }
 
   offset = Number(offset) || 0
-
-  if (length < 0 || offset < 0 || offset > this.length)
-    throw new RangeError('attempt to write outside buffer bounds');
-
   var remaining = this.length - offset
   if (!length) {
     length = remaining
@@ -26670,19 +26745,13 @@ function asciiSlice (buf, start, end) {
   end = Math.min(buf.length, end)
 
   for (var i = start; i < end; i++) {
-    ret += String.fromCharCode(buf[i] & 0x7F)
+    ret += String.fromCharCode(buf[i])
   }
   return ret
 }
 
 function binarySlice (buf, start, end) {
-  var ret = ''
-  end = Math.min(buf.length, end)
-
-  for (var i = start; i < end; i++) {
-    ret += String.fromCharCode(buf[i])
-  }
-  return ret
+  return asciiSlice(buf, start, end)
 }
 
 function hexSlice (buf, start, end) {
@@ -26731,21 +26800,16 @@ Buffer.prototype.slice = function (start, end) {
   if (end < start)
     end = start
 
-  var newBuf
   if (Buffer.TYPED_ARRAY_SUPPORT) {
-    newBuf = Buffer._augment(this.subarray(start, end))
+    return Buffer._augment(this.subarray(start, end))
   } else {
     var sliceLen = end - start
-    newBuf = new Buffer(sliceLen, undefined, true)
+    var newBuf = new Buffer(sliceLen, undefined, true)
     for (var i = 0; i < sliceLen; i++) {
       newBuf[i] = this[i + start]
     }
+    return newBuf
   }
-
-  if (newBuf.length)
-    newBuf.parent = this.parent || this
-
-  return newBuf
 }
 
 /*
@@ -26756,35 +26820,6 @@ function checkOffset (offset, ext, length) {
     throw new RangeError('offset is not uint')
   if (offset + ext > length)
     throw new RangeError('Trying to access beyond buffer length')
-}
-
-Buffer.prototype.readUIntLE = function (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkOffset(offset, byteLength, this.length)
-
-  var val = this[offset]
-  var mul = 1
-  var i = 0
-  while (++i < byteLength && (mul *= 0x100))
-    val += this[offset + i] * mul
-
-  return val
-}
-
-Buffer.prototype.readUIntBE = function (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkOffset(offset, byteLength, this.length)
-
-  var val = this[offset + --byteLength]
-  var mul = 1
-  while (byteLength > 0 && (mul *= 0x100))
-    val += this[offset + --byteLength] * mul;
-
-  return val
 }
 
 Buffer.prototype.readUInt8 = function (offset, noAssert) {
@@ -26823,44 +26858,6 @@ Buffer.prototype.readUInt32BE = function (offset, noAssert) {
       ((this[offset + 1] << 16) |
       (this[offset + 2] << 8) |
       this[offset + 3])
-}
-
-Buffer.prototype.readIntLE = function (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkOffset(offset, byteLength, this.length)
-
-  var val = this[offset]
-  var mul = 1
-  var i = 0
-  while (++i < byteLength && (mul *= 0x100))
-    val += this[offset + i] * mul
-  mul *= 0x80
-
-  if (val >= mul)
-    val -= Math.pow(2, 8 * byteLength)
-
-  return val
-}
-
-Buffer.prototype.readIntBE = function (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkOffset(offset, byteLength, this.length)
-
-  var i = byteLength
-  var mul = 1
-  var val = this[offset + --i]
-  while (i > 0 && (mul *= 0x100))
-    val += this[offset + --i] * mul
-  mul *= 0x80
-
-  if (val >= mul)
-    val -= Math.pow(2, 8 * byteLength)
-
-  return val
 }
 
 Buffer.prototype.readInt8 = function (offset, noAssert) {
@@ -26931,40 +26928,8 @@ Buffer.prototype.readDoubleBE = function (offset, noAssert) {
 
 function checkInt (buf, value, offset, ext, max, min) {
   if (!Buffer.isBuffer(buf)) throw new TypeError('buffer must be a Buffer instance')
-  if (value > max || value < min) throw new RangeError('value is out of bounds')
-  if (offset + ext > buf.length) throw new RangeError('index out of range')
-}
-
-Buffer.prototype.writeUIntLE = function (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0)
-
-  var mul = 1
-  var i = 0
-  this[offset] = value & 0xFF
-  while (++i < byteLength && (mul *= 0x100))
-    this[offset + i] = (value / mul) >>> 0 & 0xFF
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeUIntBE = function (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert)
-    checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0)
-
-  var i = byteLength - 1
-  var mul = 1
-  this[offset + i] = value & 0xFF
-  while (--i >= 0 && (mul *= 0x100))
-    this[offset + i] = (value / mul) >>> 0 & 0xFF
-
-  return offset + byteLength
+  if (value > max || value < min) throw new TypeError('value is out of bounds')
+  if (offset + ext > buf.length) throw new TypeError('index out of range')
 }
 
 Buffer.prototype.writeUInt8 = function (value, offset, noAssert) {
@@ -27044,50 +27009,6 @@ Buffer.prototype.writeUInt32BE = function (value, offset, noAssert) {
   return offset + 4
 }
 
-Buffer.prototype.writeIntLE = function (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    checkInt(this,
-             value,
-             offset,
-             byteLength,
-             Math.pow(2, 8 * byteLength - 1) - 1,
-             -Math.pow(2, 8 * byteLength - 1))
-  }
-
-  var i = 0
-  var mul = 1
-  var sub = value < 0 ? 1 : 0
-  this[offset] = value & 0xFF
-  while (++i < byteLength && (mul *= 0x100))
-    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeIntBE = function (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    checkInt(this,
-             value,
-             offset,
-             byteLength,
-             Math.pow(2, 8 * byteLength - 1) - 1,
-             -Math.pow(2, 8 * byteLength - 1))
-  }
-
-  var i = byteLength - 1
-  var mul = 1
-  var sub = value < 0 ? 1 : 0
-  this[offset + i] = value & 0xFF
-  while (--i >= 0 && (mul *= 0x100))
-    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
-
-  return offset + byteLength
-}
-
 Buffer.prototype.writeInt8 = function (value, offset, noAssert) {
   value = +value
   offset = offset >>> 0
@@ -27153,9 +27074,8 @@ Buffer.prototype.writeInt32BE = function (value, offset, noAssert) {
 }
 
 function checkIEEE754 (buf, value, offset, ext, max, min) {
-  if (value > max || value < min) throw new RangeError('value is out of bounds')
-  if (offset + ext > buf.length) throw new RangeError('index out of range')
-  if (offset < 0) throw new RangeError('index out of range')
+  if (value > max || value < min) throw new TypeError('value is out of bounds')
+  if (offset + ext > buf.length) throw new TypeError('index out of range')
 }
 
 function writeFloat (buf, value, offset, littleEndian, noAssert) {
@@ -27194,19 +27114,18 @@ Buffer.prototype.copy = function (target, target_start, start, end) {
 
   if (!start) start = 0
   if (!end && end !== 0) end = this.length
-  if (target_start >= target.length) target_start = target.length
   if (!target_start) target_start = 0
-  if (end > 0 && end < start) end = start
 
   // Copy 0 bytes; we're done
-  if (end === start) return 0
-  if (target.length === 0 || source.length === 0) return 0
+  if (end === start) return
+  if (target.length === 0 || source.length === 0) return
 
   // Fatal error conditions
-  if (target_start < 0)
-    throw new RangeError('targetStart out of bounds')
-  if (start < 0 || start >= source.length) throw new RangeError('sourceStart out of bounds')
-  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+  if (end < start) throw new TypeError('sourceEnd < sourceStart')
+  if (target_start < 0 || target_start >= target.length)
+    throw new TypeError('targetStart out of bounds')
+  if (start < 0 || start >= source.length) throw new TypeError('sourceStart out of bounds')
+  if (end < 0 || end > source.length) throw new TypeError('sourceEnd out of bounds')
 
   // Are we oob?
   if (end > this.length)
@@ -27223,8 +27142,6 @@ Buffer.prototype.copy = function (target, target_start, start, end) {
   } else {
     target._set(this.subarray(start, start + len), target_start)
   }
-
-  return len
 }
 
 // fill(value, start=0, end=buffer.length)
@@ -27233,14 +27150,14 @@ Buffer.prototype.fill = function (value, start, end) {
   if (!start) start = 0
   if (!end) end = this.length
 
-  if (end < start) throw new RangeError('end < start')
+  if (end < start) throw new TypeError('end < start')
 
   // Fill 0 bytes; we're done
   if (end === start) return
   if (this.length === 0) return
 
-  if (start < 0 || start >= this.length) throw new RangeError('start out of bounds')
-  if (end < 0 || end > this.length) throw new RangeError('end out of bounds')
+  if (start < 0 || start >= this.length) throw new TypeError('start out of bounds')
+  if (end < 0 || end > this.length) throw new TypeError('end out of bounds')
 
   var i
   if (typeof value === 'number') {
@@ -27306,15 +27223,11 @@ Buffer._augment = function (arr) {
   arr.compare = BP.compare
   arr.copy = BP.copy
   arr.slice = BP.slice
-  arr.readUIntLE = BP.readUIntLE
-  arr.readUIntBE = BP.readUIntBE
   arr.readUInt8 = BP.readUInt8
   arr.readUInt16LE = BP.readUInt16LE
   arr.readUInt16BE = BP.readUInt16BE
   arr.readUInt32LE = BP.readUInt32LE
   arr.readUInt32BE = BP.readUInt32BE
-  arr.readIntLE = BP.readIntLE
-  arr.readIntBE = BP.readIntBE
   arr.readInt8 = BP.readInt8
   arr.readInt16LE = BP.readInt16LE
   arr.readInt16BE = BP.readInt16BE
@@ -27325,14 +27238,10 @@ Buffer._augment = function (arr) {
   arr.readDoubleLE = BP.readDoubleLE
   arr.readDoubleBE = BP.readDoubleBE
   arr.writeUInt8 = BP.writeUInt8
-  arr.writeUIntLE = BP.writeUIntLE
-  arr.writeUIntBE = BP.writeUIntBE
   arr.writeUInt16LE = BP.writeUInt16LE
   arr.writeUInt16BE = BP.writeUInt16BE
   arr.writeUInt32LE = BP.writeUInt32LE
   arr.writeUInt32BE = BP.writeUInt32BE
-  arr.writeIntLE = BP.writeIntLE
-  arr.writeIntBE = BP.writeIntBE
   arr.writeInt8 = BP.writeInt8
   arr.writeInt16LE = BP.writeInt16LE
   arr.writeInt16BE = BP.writeInt16BE
@@ -27349,13 +27258,11 @@ Buffer._augment = function (arr) {
   return arr
 }
 
-var INVALID_BASE64_RE = /[^+\/0-9A-z\-]/g
+var INVALID_BASE64_RE = /[^+\/0-9A-z]/g
 
 function base64clean (str) {
   // Node strips out invalid characters like \n and \t from the string, base64-js does not
   str = stringtrim(str).replace(INVALID_BASE64_RE, '')
-  // Node converts strings with length < 2 to ''
-  if (str.length < 2) return ''
   // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
   while (str.length % 4 !== 0) {
     str = str + '='
@@ -27379,100 +27286,22 @@ function toHex (n) {
   return n.toString(16)
 }
 
-function utf8ToBytes(string, units) {
-  var codePoint, length = string.length
-  var leadSurrogate = null
-  units = units || Infinity
-  var bytes = []
-  var i = 0
-
-  for (; i<length; i++) {
-    codePoint = string.charCodeAt(i)
-
-    // is surrogate component
-    if (codePoint > 0xD7FF && codePoint < 0xE000) {
-
-      // last char was a lead
-      if (leadSurrogate) {
-
-        // 2 leads in a row
-        if (codePoint < 0xDC00) {
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          leadSurrogate = codePoint
-          continue
-        }
-
-        // valid surrogate pair
-        else {
-          codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
-          leadSurrogate = null
-        }
+function utf8ToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    var b = str.charCodeAt(i)
+    if (b <= 0x7F) {
+      byteArray.push(b)
+    } else {
+      var start = i
+      if (b >= 0xD800 && b <= 0xDFFF) i++
+      var h = encodeURIComponent(str.slice(start, i+1)).substr(1).split('%')
+      for (var j = 0; j < h.length; j++) {
+        byteArray.push(parseInt(h[j], 16))
       }
-
-      // no lead yet
-      else {
-
-        // unexpected trail
-        if (codePoint > 0xDBFF) {
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          continue
-        }
-
-        // unpaired lead
-        else if (i + 1 === length) {
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          continue
-        }
-
-        // valid lead
-        else {
-          leadSurrogate = codePoint
-          continue
-        }
-      }
-    }
-
-    // valid bmp char, but last char was a lead
-    else if (leadSurrogate) {
-      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-      leadSurrogate = null
-    }
-
-    // encode utf8
-    if (codePoint < 0x80) {
-      if ((units -= 1) < 0) break
-      bytes.push(codePoint)
-    }
-    else if (codePoint < 0x800) {
-      if ((units -= 2) < 0) break
-      bytes.push(
-        codePoint >> 0x6 | 0xC0,
-        codePoint & 0x3F | 0x80
-      );
-    }
-    else if (codePoint < 0x10000) {
-      if ((units -= 3) < 0) break
-      bytes.push(
-        codePoint >> 0xC | 0xE0,
-        codePoint >> 0x6 & 0x3F | 0x80,
-        codePoint & 0x3F | 0x80
-      );
-    }
-    else if (codePoint < 0x200000) {
-      if ((units -= 4) < 0) break
-      bytes.push(
-        codePoint >> 0x12 | 0xF0,
-        codePoint >> 0xC & 0x3F | 0x80,
-        codePoint >> 0x6 & 0x3F | 0x80,
-        codePoint & 0x3F | 0x80
-      );
-    }
-    else {
-      throw new Error('Invalid code point')
     }
   }
-
-  return bytes
+  return byteArray
 }
 
 function asciiToBytes (str) {
@@ -27484,13 +27313,10 @@ function asciiToBytes (str) {
   return byteArray
 }
 
-function utf16leToBytes (str, units) {
+function utf16leToBytes (str) {
   var c, hi, lo
   var byteArray = []
   for (var i = 0; i < str.length; i++) {
-
-    if ((units -= 2) < 0) break
-
     c = str.charCodeAt(i)
     hi = c >> 8
     lo = c % 256
@@ -27502,11 +27328,10 @@ function utf16leToBytes (str, units) {
 }
 
 function base64ToBytes (str) {
-  return base64.toByteArray(base64clean(str))
+  return base64.toByteArray(str)
 }
 
-function blitBuffer (src, dst, offset, length, unitSize) {
-  if (unitSize) length -= length % unitSize;
+function blitBuffer (src, dst, offset, length) {
   for (var i = 0; i < length; i++) {
     if ((i + offset >= dst.length) || (i >= src.length))
       break
@@ -27523,7 +27348,7 @@ function decodeUtf8Char (str) {
   }
 }
 
-},{"base64-js":94,"ieee754":95,"is-array":96}],94:[function(require,module,exports){
+},{"base64-js":95,"ieee754":96,"is-array":97}],95:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -27538,16 +27363,12 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	var NUMBER = '0'.charCodeAt(0)
 	var LOWER  = 'a'.charCodeAt(0)
 	var UPPER  = 'A'.charCodeAt(0)
-	var PLUS_URL_SAFE = '-'.charCodeAt(0)
-	var SLASH_URL_SAFE = '_'.charCodeAt(0)
 
 	function decode (elt) {
 		var code = elt.charCodeAt(0)
-		if (code === PLUS ||
-		    code === PLUS_URL_SAFE)
+		if (code === PLUS)
 			return 62 // '+'
-		if (code === SLASH ||
-		    code === SLASH_URL_SAFE)
+		if (code === SLASH)
 			return 63 // '/'
 		if (code < NUMBER)
 			return -1 //no match
@@ -27649,7 +27470,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-},{}],95:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -27735,7 +27556,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],96:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 
 /**
  * isArray
@@ -27770,7 +27591,7 @@ module.exports = isArray || function (val) {
   return !! val && '[object Array]' == str.call(val);
 };
 
-},{}],97:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27795,7 +27616,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],98:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -28023,7 +27844,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":99}],99:[function(require,module,exports){
+},{"_process":100}],100:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -28111,14 +27932,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],100:[function(require,module,exports){
+},{}],101:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],101:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -28708,4 +28529,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":100,"_process":99,"inherits":97}]},{},[86]);
+},{"./support/isBuffer":101,"_process":100,"inherits":98}]},{},[86]);
