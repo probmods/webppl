@@ -48,7 +48,6 @@ var gamma = function(shape, scale){
   return sample(gammaERP, [shape, scale]);
 };
 
-
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {
@@ -190,8 +189,15 @@ var mapReduce1 = function(f,g,ar){
 var sum = function(l) { return reduce(plus, 0, l); };
 var product = function(l) { return reduce(mult, 1, l); };
 
-var all = function(p,l) { return mapReduce1(function(a,b){ return a & b; }, p, l); };
-var any = function(p,l) { return mapReduce1(function(a,b){ return a | b; }, p, l); };
+var listMean = function(l) {return reduce(plus,0,l)/l.length;};
+var listVar = function(l,mu) {
+  var mu = mu == undefined? listMean(l) : mu;
+  return mapReduce1(plus,function(a){return (a-mu)*(a-mu);},l)/l.length;
+};
+var listStdev = function(l,mu) {return Math.sqrt(listVar(l, mu));};
+
+var all = function(p,l) { return mapReduce1(function(a,b){ return a && b; }, p, l); };
+var any = function(p,l) { return mapReduce1(function(a,b){ return a || b; }, p, l); };
 
 var zip = function(xs, ys){
   return xs.length == 0
