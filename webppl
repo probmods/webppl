@@ -1,10 +1,37 @@
-#!/usr/bin/env node --stack-size=65500
+#!/usr/bin/env node
+
+'use strict';
 
 var fs = require('fs');
 var webppl = require('./src/main');
 var parseArgs = require('minimist');
 var path = require('path');
 var git = require('git-rev-2');
+
+function asArray(xs){
+  return (xs ? ((xs instanceof Array) ? xs : [xs]) : []);
+}
+
+function requireAsGlobal(modulePath){
+  var runtime = require(modulePath);
+  for (var prop in runtime){
+    if (runtime.hasOwnProperty(prop)){
+      global[prop] = runtime[prop];
+    }
+  }
+}
+
+function addModulePaths(names){
+  var namesWithPaths = [];
+  for (var i=0; i<names.length; i++){
+    var name = names[i];
+    namesWithPaths.push({
+      name: getModuleName(name),
+      path: getModulePath(name)
+    });
+  }
+  return namesWithPaths;
+}
 
 function isErp(x){
   return (x && (x.score != undefined) && (x.sample != undefined));
@@ -27,60 +54,71 @@ function printWebPPLValue(x){
   }
 }
 
-var getModuleName = function(req){
+function getModuleName(req){
   if (req.indexOf("/") != -1) {
-    xs = req.split("/");
+    var xs = req.split("/");
     return xs[xs.length-1];
   } else {
     return req;
   }
 }
 
-var getModulePath = function(req){
+function getModulePath(req){
   if (req.indexOf("/") != -1){
     try {
       return require.resolve(path.join(process.cwd(), req));
     } catch (e) {
-      return require.resolve(req);      
+      return require.resolve(req);
     }
   } else {
     return req;
   }
 }
 
-function run(code, requires, verbose){
-  requires.forEach(function(req){
-    global[req.name] = require(req.path);
-  })
-  webppl_eval(
+function run(code, requires, headers, verbose){
+  headers.forEach(
+    function(header){
+      requireAsGlobal(header.path);
+    });
+  requires.forEach(
+    function(req){
+      global[req.name] = require(req.path);
+    });
+  webppl.webppl_eval(
     function(s, x){
       console.log("\n* Program return value:\n");
       printWebPPLValue(x);
     },
     code,
-    verbose)
+    verbose);
 }
 
-function compile(code, requires, verbose, outputFile){
+function compile(code, requires, headers, verbose, outputFile){
   requires.push({
     name: 'webppl',
     path: require.resolve('./src/main')
   });
   // Build Javascript code
   var compiledCode = '';
-  requires.forEach(function(req){
-    compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
-  });
+  compiledCode += requireAsGlobal.toString() + ';\n';
+  requires.forEach(
+    function(req){
+      compiledCode += "var " + req.name + " = require('" + req.path + "');\n";
+    });
+  headers.forEach(
+    function(header){
+      compiledCode += "requireAsGlobal('" + header.path + "');\n";
+    });
   compiledCode += ("var _trampoline;\n" +
                    isErp.toString() + '\n' +
                    isErpWithSupport.toString() + '\n' +
                    printWebPPLValue.toString() + '\n' +
-                   "var topK = function(s, x){ " + 
+                   "var topK = function(s, x){ " +
                    " _trampoline = null; " +
                    " console.log('\\n* Program return value:\\n');" +
                    " printWebPPLValue(x); };\n");
   compiledCode += webppl.compile(code, verbose);
-  // Write Javascript code to file  
+  // Write Javascript code to file
   fs.writeFile(
     outputFile,
     compiledCode,
@@ -90,7 +128,7 @@ function compile(code, requires, verbose, outputFile){
       } else {
         console.log("Wrote webppl code to", outputFile);
       }
-    });  
+    });
 }
 
 function main(){
@@ -104,33 +142,33 @@ function main(){
       function(err, branch){
         __dirname,
         git.short(
-          function(err, short){
-            console.log(branch, short, __dirname);
+          function(err, shortName){
+            console.log(branch, shortName, __dirname);
           });
         }
     );
     return;
   };
 
+  // Return if no file argument given
+  if (argv._[0] === undefined){
+    console.log('No file argument given! Run webppl as follows:');
+    console.log('webppl file.wppl [--compile] [--out file.js] [--require file2.js] [--header file3.js]');
+    return;
+  }
+
   // Load webppl code
   var programFile = argv._[0];
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile);
 
-  var requires = (argv.require ? ((argv.require instanceof Array) ? argv.require : 
-                                  [argv.require]) : []);
+  var requires = addModulePaths(asArray(argv.require));
+  var headers = addModulePaths(asArray(argv.header));
 
-  for (var i=0; i<requires.length; i++){
-    var req = requires[i];
-    requires[i] = {
-      name: getModuleName(req),
-      path: getModulePath(req)
-    }
-  }
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : "tmp.js";
 
-  processCode(code, requires, argv.verbose, outputFile);
+  processCode(code, requires, headers, argv.verbose, outputFile);
 }
 
 main();

@@ -58,7 +58,7 @@ function cpsAtomic(node){
   case Syntax.Literal:
     return node;
   case Syntax.EmptyStatement:
-      return build.identifier("undefined");
+    return build.identifier("undefined");
   default:
     throw new Error("cpsAtomic: unknown expression type: " + node.type);
   };
@@ -69,7 +69,7 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   if (atFinalElement(nodes)){
     return getFinalElement(nodes, vars);
   } else if(isImmediate(nodes[0])) {
-//    var val = immediateVal(nodes[0])
+    //    var val = immediateVal(nodes[0])
     return cpsSequence(atFinalElement,
                        getFinalElement,
                        nodes.slice(1),
@@ -215,11 +215,11 @@ function cpsConditional(test, consequent, alternate, cont){
   var testName = makeGensymVariable("test");
   return build.callExpression(
     buildFunc([contName],
-      cps(test,
-          buildFunc([testName],
-                    build.conditionalExpression(testName,
-                                                cps(consequent, contName),
-                                                cps(alternate, contName))))),
+              cps(test,
+                  buildFunc([testName],
+                            build.conditionalExpression(testName,
+                                                        cps(consequent, contName),
+                                                        cps(alternate, contName))))),
     [cont]
   );
 }
@@ -236,12 +236,12 @@ function cpsIf(test, consequent, alternate, cont){
   }
   return build.callExpression(
     buildFunc([contName],
-      cps(test,
-          buildFunc([testName],
-                    build.ifStatement(
-                      testName,
-                      convertToStatement(consequentNode),
-                      convertToStatement(alternateNode))))),
+              cps(test,
+                  buildFunc([testName],
+                            build.ifStatement(
+                              testName,
+                              convertToStatement(consequentNode),
+                              convertToStatement(alternateNode))))),
     [cont]
   );
 }
@@ -257,20 +257,20 @@ function cpsArrayExpression(elements, cont){
 }
 
 function cpsObjectExpression(properties, cont, props){
-    props = props || [];
-    if (properties.length == 0 ) {
-        var objectExpr = build.objectExpression(props);
-        return buildContinuationCall(cont, objectExpr);
-    } else {
-        var nextVal = makeGensymVariable("ob");
-        var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
-        // FIXME: assert that value is not function, since can't call function methods...?
-        return cps(properties[0].value,
-                   buildFunc([nextVal],
-                             cpsObjectExpression(properties.slice(1),
-                                                 cont,
-                                                 props.concat([nextProp]))));
-    }
+  props = props || [];
+  if (properties.length == 0 ) {
+    var objectExpr = build.objectExpression(props);
+    return buildContinuationCall(cont, objectExpr);
+  } else {
+    var nextVal = makeGensymVariable("ob");
+    var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
+    // FIXME: assert that value is not function, since can't call function methods...?
+    return cps(properties[0].value,
+               buildFunc([nextVal],
+                         cpsObjectExpression(properties.slice(1),
+                                             cont,
+                                             props.concat([nextProp]))));
+  }
 }
 
 function cpsMemberExpression(obj, prop, computed, cont){
@@ -373,7 +373,7 @@ function cps(node, cont){
     return cpsLogicalExpression(node.operator, node.left, node.right, cont);
 
   case Syntax.AssignmentExpression:
-      return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
+    return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
 
   default:
     throw new Error("cps: unknown node type: " + node.type);

@@ -38,8 +38,8 @@ function trampoline(node) {
 
 
 function trampolineMain(node, noWrapping) {
-
-  node = estraverse.replace(node, {leave: function(n){return trampoline(n);}});
+    
+  node = estraverse.replace(node, {leave: trampoline});
 
   if (noWrapping){
     // used for trampolining header which only contains

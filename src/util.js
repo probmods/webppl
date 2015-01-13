@@ -21,7 +21,7 @@ function prettyJSON(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
-var sum = function(xs){
+function sum(xs){
   if (xs.length == 0) {
     return 0.0;
   } else {
@@ -33,28 +33,28 @@ var sum = function(xs){
   }
 };
 
-var normalizeHist = function(hist){
+function normalizeHist(hist){
   var normHist = {};
   var Z = sum(_.values(hist));
   _.each(hist, function(val, key){normHist[key] = hist[key]/Z;});
   return normHist;
 };
 
-var normalizeArray = function(xs){
+function normalizeArray(xs){
   var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
 };
 
-var logsumexp = function(a) {
+function logsumexp(a) {
   var m = Math.max.apply(null, a);
   var sum = 0;
   for (var i=0; i<a.length; ++i) {
-    sum += Math.exp(a[i] - m);
+    sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
 };
 
-var copyObj = function(obj){
+function copyObj(obj){
   var newobj = {};
   for(var k in obj){
     if(obj.hasOwnProperty(k)){newobj[k] = obj[k];}
@@ -75,6 +75,22 @@ function cpsForEach(func, nextK, xs, i){
   }
 }
 
+function histsApproximatelyEqual(hist, expectedHist, tolerance){
+  var allOk = true;
+  _.each(
+    expectedHist,
+    function(expectedValue, key){
+      var value = hist[key] || 0;
+      var testPassed = Math.abs(value - expectedValue) <= tolerance;
+      allOk = allOk && testPassed;
+    });
+  if (!allOk){
+    console.log("Expected:", expectedHist);
+    console.log("Actual:", hist);
+  }
+  return allOk;
+};
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -85,5 +101,6 @@ module.exports = {
   normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  sum: sum
+  sum: sum,
+  histsApproximatelyEqual: histsApproximatelyEqual
 };
