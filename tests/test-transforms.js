@@ -484,6 +484,17 @@ var tests = {
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
 
+    // FIXME: This test currently fails because varargs happens after
+    //        cps which introduces additional closures. To fix this,
+    //        move the varargs transform up earlier in the order of
+    //        transforms?
+    // { name: 'testVarargs4',
+    //   code: ("var bar = function(){return function(xs){return xs;}};;" +
+    //          "var foo = function(){return bar()(arguments)};" +
+    //          "foo(3, 4);"),
+    //   expected: [3, 4],
+    //   runners: [runVarargsTest, runTrampolineTest] },
+
     { name: 'testApply',
       code: ("var foo = function(x, y){return x + y};" +
              "var bar = function(){ return apply(foo, arguments); };" +
