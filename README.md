@@ -50,7 +50,13 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     // 5. (In separate terminal:) Load node inspector, resume program execution in node-inspector
     node-inspector
 
-**Using Javascript functions and external libraries**
+**Using external functions, part 1: importing WebPPL code**
+
+You can automatically prepend a webppl file `myLibrary.wppl` to your code using the following command:
+
+    webppl myFile.wppl --require-wppl myLibrary.wppl
+
+**Using external functions, part 2: Javascript functions and libraries**
 
 Using the example of reading and writing CSV files:
 
@@ -88,9 +94,9 @@ Using the example of reading and writing CSV files:
 
 3. Run your WebPPL file with `require` command line flag:
 
-        webppl csvTest.wppl --require ./simpleCSV
+        webppl csvTest.wppl --require-js ./simpleCSV.js
 
-**Using additional header files**
+**Using external functions, part 3: Additional header files**
 
 Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
 
@@ -119,6 +125,6 @@ Sometimes, it is useful to define external functions that are able to access the
         
         foo()
 
-3. Run your WebPPL file with `header` command line flag:
+3. Run your WebPPL file with `require-header` command line flag:
 
-        webppl addressTest.wppl --header ./addressHeader
+        webppl addressTest.wppl --require-header ./addressHeader.js
