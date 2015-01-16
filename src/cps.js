@@ -8,8 +8,6 @@ var util = require('./util.js');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var returnContIdentifier = build.identifier("_return");
-
 var gensym = util.makeGensym();
 
 function makeGensymVariable(name){
@@ -46,10 +44,8 @@ function cpsAtomic(node){
     var newParams = [newCont].concat(node.params);
     return buildFunc(
       newParams,
-      build.blockStatement([
-        build.variableDeclaration("var", [build.variableDeclarator(returnContIdentifier, newCont)]),
-        convertToStatement(cps(node.body, newCont))
-      ]));
+      convertToStatement(cps(node.body, newCont))
+    );
   case Syntax.Identifier:
   case Syntax.Literal:
     return node;
@@ -324,7 +320,7 @@ function cps(node, cont){
     return cpsBlock(node.body, cont);
 
   case Syntax.ReturnStatement:
-    return cps(node.argument, returnContIdentifier);
+    return cps(node.argument, cont);
 
   case Syntax.ExpressionStatement:
     return cps(node.expression, cont);
@@ -375,13 +371,20 @@ function cps(node, cont){
   }
 }
 
+
 function cpsMain(node){
   gensym = util.makeGensym();
 
     if( types.namedTypes.Program.check( node ) ) {
 	var k = build.identifier( gensym("k") );
 
-	return build.program([convertToStatement(buildFunc([k],cpsBlock(node.body,k)))])
+	var p = convertToStatement(buildFunc([k],cpsBlock(node.body,k)));
+
+	p.updateTopLevel = function( f ) {
+          return convertToStatement(buildFunc([k],f(this.body)));
+	}
+	
+	return build.program([p])
     }
     else throw new Error("cps: expected node of type program; got " + node.type );
 }

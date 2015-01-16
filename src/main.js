@@ -56,15 +56,20 @@ var compile = function(code, contName, isLibrary){
 function compileProgram(programCode, verbose){
   if (verbose && console.time){console.time('compile');}
 
-  var programAst, headerAst;
-
+  function UpdateTopLevel( prog, f ) {
+    return build.program([this.body[0].updateTopLevel( f )]);
+  }
+    
   var _compile = function( ast ){
+    console.log( escodegen.generate( ast ) );
     ast = naming(ast);
-      ast = cps(ast);
-      console.log(ast.body[0].expression); throw 44;
-    ast = store(ast);
-    ast = optimize(ast);
-    ast = trampoline(ast);
+    ast = cps(ast);
+//  ast = store(ast);
+    console.log( escodegen.generate( ast ) );  
+    ast = UpdateTopLevel( ast, optimize );
+//  ast = trampoline(ast);
+    console.log( escodegen.generate( ast ) );
+    throw 42;
     return ast;
   };
 
