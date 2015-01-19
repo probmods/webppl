@@ -2,3 +2,4 @@
 .pyc
 examples/scratch.wppl
 npm-debug.log
+node_modules/*
