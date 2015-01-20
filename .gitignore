@@ -1,4 +1,5 @@
 .DS_Store
 .pyc
+*.swp
 examples/scratch.wppl
 npm-debug.log
