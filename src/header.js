@@ -450,13 +450,16 @@ function factor(s, k, a, score) {
 }
 
 function sampleWithFactor(s, k, a, dist, params, scoreFn) {
-  if(typeof coroutine.sampleWithFactor  == "function"){
+  if (typeof coroutine.sampleWithFactor == "function"){
     coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    sample(s,
-           function(v){
-            scoreFn(s, function(sc){factor(s, function(s){k(s, v);},a+"swf2",sc);}, a+"swf1", v);},
-           a, dist, params);
+    var sampleK = function(s, v){
+      var scoreK = function(s, sc){
+        var factorK = function(s){
+          k(s, v); };
+        factor(s, factorK, a+"swf2", sc);};
+      scoreFn(s, scoreK, a+"swf1", v);};
+    sample(s, sampleK, a, dist, params);
   }
 }
 
@@ -541,13 +544,14 @@ Enumerate.prototype.factor = function(s,cc,a, score) {
   cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
-  coroutine.sample(s,cc,a,dist,params,
-                   function(v){
-                    var ret;
-                    scoreFn(s,function(x){ret = x;},a+"swf",v);
-                    return ret;});
-};
+// FIXME: can only call scoreFn in tail position!
+// Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+//   coroutine.sample(s,cc,a,dist,params,
+//                    function(v){
+//                      var ret;
+//                      scoreFn(s, function(s, x){ret = x;}, a+"swf", v);
+//                      return ret;});
+// };
 
 
 Enumerate.prototype.exit = function(s,retval) {
