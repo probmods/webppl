@@ -9,6 +9,7 @@ var util = require("../src/util.js");
 var store = require("../src/store").store;
 var naming = require("../src/naming.js").naming;
 var optimize = require("../src/optimize.js").optimize;
+var varargs = require("../src/varargs").varargs;
 var trampoline = require("../src/trampoline").trampoline;
 
 var build = types.builders;
@@ -25,7 +26,7 @@ var fooObj = {
 
 var plus, minus, times, and, plusTwo;
 
-var runTest = function(test, code, expected, transformAst){
+function runTest(test, code, expected, transformAst){
   var actual = "unset";
   var ast = esprima.parse(code);
   var newAst = transformAst(ast);
@@ -47,18 +48,18 @@ var runTest = function(test, code, expected, transformAst){
   test.done();
 };
 
-var addHeader = function(ast, headerCode){
+function addHeader(ast, headerCode){
   ast.body = esprima.parse(headerCode).body.concat(ast.body);
 };
 
-var transformAstCps = function(ast){
+function transformAstCps(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   addHeader(cpsAst, "var topK = function(x){ actual = x; };");
   addHeader(cpsAst, "var identityContinuation = function(x){return x}");
   return cpsAst;
 };
 
-var transformAstStorepassing = function(ast){
+function transformAstStorepassing(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   var storeAst = store(cpsAst);
   addHeader(storeAst, "var globalStore = {};");
@@ -66,23 +67,28 @@ var transformAstStorepassing = function(ast){
   return storeAst;
 };
 
-var transformAstNaming = function(ast){
+function transformAstNaming(ast){
   var namedAst = naming(ast);
   return transformAstStorepassing(namedAst);
 };
 
-var transformAstOptimize = function(ast){
+function transformAstOptimize(ast){
   var newAst = transformAstNaming(ast);
   return optimize(newAst);
 };
 
-var transformAstTrampoline = function(ast){
+function transformAstVarargs(ast){
   var newAst = transformAstOptimize(ast);
+  return varargs(newAst);
+};
+
+function transformAstTrampoline(ast){
+  var newAst = transformAstVarargs(ast);
   return trampoline(newAst, false);
 };
 
 
-var selectCpsPrimitives = function(){
+function selectCpsPrimitives(){
   // Set global definitions
   plus = function(k, x, y) {return k(x + y);};
   minus = function(k, x, y) {return k(x - y);};
@@ -91,7 +97,7 @@ var selectCpsPrimitives = function(){
   plusTwo = function(k, x, y) {return k(x + 2);};
 };
 
-var selectStorePrimitives = function(){
+function selectStorePrimitives(){
   // Set global definitions
   plus = function(s, k, x, y) {return k(s, x + y);};
   minus = function(s, k, x, y) {return k(s, x - y);};
@@ -100,7 +106,7 @@ var selectStorePrimitives = function(){
   plusTwo = function(s, k, x, y) {return k(s, x + 2);};
 };
 
-var selectNamingPrimitives = function(){
+function selectNamingPrimitives(){
   // Set global definitions
   plus = function(s, k, a, x, y) {return k(s, x + y);};
   minus = function(s, k, a, x, y) {return k(s, x - y);};
@@ -109,34 +115,39 @@ var selectNamingPrimitives = function(){
   plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
 };
 
-var runCpsTest = function(test, code, expected){
+function runCpsTest(test, code, expected){
   selectCpsPrimitives();
   return runTest(test, code, expected, transformAstCps);
 };
 
-var runStorepassingTest = function(test, code, expected){
+function runStorepassingTest(test, code, expected){
   selectStorePrimitives();
   return runTest(test, code, expected, transformAstStorepassing);
 };
 
-var runNamingTest = function(test, code, expected){
+function runNamingTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstNaming);
 };
 
-var runOptimizationTest = function(test, code, expected){
+function runOptimizationTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
 };
 
-var runTrampolineTest = function(test, code, expected){
+function runVarargsTest(test, code, expected){
+  selectNamingPrimitives();
+  return runTest(test, code, expected, transformAstVarargs);
+}
+
+function runTrampolineTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstTrampoline);
 };
 
 
 
-var generateTestFunctions = function(allTests, testRunner){
+function generateTestFunctions(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
     var tests = allTests[testClassName];
@@ -418,6 +429,24 @@ var tests = {
 
   ],
 
+  testLogicalExpressionTest: [
+    { name: 'testLogicalOr',
+      code: "true || false",
+      expected: true },
+    { name: 'testLogicalNot',
+      code: "!(true || true)",
+      expected: false },
+    { name: 'testLogicalAnd',
+      code: "true && false",
+      expected: false },
+    { name: 'testLogicalCompound1',
+      code: "true && (false || false || true)",
+      expected: true },
+    { name: 'testLogicalCompound2',
+      code: "!(true && (false || false || true))",
+      expected: false }
+  ],
+
   testPrimitiveWrapping: [
 
     { name: 'testMath',
@@ -432,6 +461,47 @@ var tests = {
       code: "var foo = function() {return [1]}; foo().concat([2])",
       expected: [1,2] }
 
+  ],
+
+  testVarargs: [
+
+    { name: 'testVarargs1',
+      code: ("var foo = function(){return arguments[0] + arguments[1]};" +
+             "foo(3, 4);"),
+      expected: 7,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testVarargs2',
+      code: ("var bar = function(){return arguments[0]*2};" +
+             "var foo = function(){return bar(arguments[0] + arguments[1]);};" +
+             "foo(3, 4);"),
+      expected: 14,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testVarargs3',
+      code: ("var foo = function(x, y){var f = function(){ return arguments[0]}; return f(y)};" +
+             "foo(3, 4);"),
+      expected: 4,
+      runners: [runVarargsTest, runTrampolineTest] },
+
+    // FIXME: This test currently fails because varargs happens after
+    //        cps which introduces additional closures. To fix this,
+    //        move the varargs transform up earlier in the order of
+    //        transforms?
+    // { name: 'testVarargs4',
+    //   code: ("var bar = function(){return function(xs){return xs;}};;" +
+    //          "var foo = function(){return bar()(arguments)};" +
+    //          "foo(3, 4);"),
+    //   expected: [3, 4],
+    //   runners: [runVarargsTest, runTrampolineTest] },
+
+    { name: 'testApply',
+      code: ("var foo = function(x, y){return x + y};" +
+             "var bar = function(){ return apply(foo, arguments); };" +
+             "bar(3, 4);"),
+      expected: 7,
+      runners: [runVarargsTest, runTrampolineTest] }
+
   ]
 
 };
@@ -440,4 +510,5 @@ exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
 exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);

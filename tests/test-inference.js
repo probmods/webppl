@@ -1,28 +1,12 @@
 "use strict";
 
 var util = require("../src/util.js");
-var _ = require('underscore');
 var webppl = require('../src/main.js');
 
 var topK;
 var _trampoline;
 
-var testHistsApproxEqual = function(test, hist, expectedHist, tolerance){
-  var allOk = true;
-  _.each(expectedHist,
-         function(expectedValue, key){
-           var value = hist[key] || 0;
-           var testPassed = Math.abs(value - expectedValue) <= tolerance;
-           test.ok(testPassed);
-           allOk = allOk && testPassed;
-         });
-  if (!allOk){
-    console.log("Expected:", expectedHist);
-    console.log("Actual:", hist);
-  }
-};
-
-var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
+function runContinuousSamplingTest(test, code, checkSamples, numSamples){
   var samples = [];
   topK = function(s, value){
     _trampoline = null;
@@ -38,7 +22,7 @@ var runContinuousSamplingTest = function(test, code, checkSamples, numSamples){
   }
 };
 
-var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tolerance){
+function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
   var numFinishedSamples = 0;
   topK = function(s, value){
@@ -48,7 +32,7 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
     numFinishedSamples += 1;
     if (numFinishedSamples == numSamples){
       var normHist = util.normalizeHist(hist);
-      testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+      test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
       test.done();
     }
   };
@@ -58,20 +42,18 @@ var runDiscreteSamplingTest = function(test, code, expectedHist, numSamples, tol
   }
 };
 
-var runDistributionTest = function(test, code, expectedHist, tolerance){
+function runDistributionTest(test, code, expectedHist, tolerance){
   var hist = {};
   topK = function(s,erp){
     _trampoline = null;
-    _.each(
-      erp.support(),
+    erp.support().forEach(
       function (value){
         hist[value] = Math.exp(erp.score([], value));
       });
     var normHist = util.normalizeHist(hist);
-    testHistsApproxEqual(test, normHist, expectedHist, tolerance);
+    test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
   };
-//  webppl.webppl_eval(topK, code)
   webppl.run(code, topK);
 };
 
@@ -135,7 +117,6 @@ exports.testForwardSampling = {
       var empiricalVariance = util.sum(
         samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
       var empiricalStd = Math.sqrt(empiricalVariance);
-      console.log(empiricalVariance);
       return ((empiricalMean > 2.8) && (empiricalMean < 3.2) &&
               (empiricalStd > 1.8) && (empiricalStd < 2.2));
     };
@@ -254,20 +235,20 @@ exports.testPMCMC = {
 };
 
 exports.testPFRj = {
-test1: function(test){
-  var code = ("ParticleFilterRejuv(" +
-              "  function(){" +
-              "    var x = flip(0.5);" +
-              "    var y = flip(0.5);" +
-              "    factor( (x|y) ? 0 : -Infinity);" +
-              "    return x;" +
-              "  }," +
-              "  1000, 10) // particles, rejuvenation steps");
-  var expectedHist = {
-    "true": 2/3,
-    "false": 1/3
-  };
-  var tolerance = .1;
-  runDistributionTest(test, code, expectedHist, tolerance);
-}
+  test1: function(test){
+    var code = ("ParticleFilterRejuv(" +
+                "  function(){" +
+                "    var x = flip(0.5);" +
+                "    var y = flip(0.5);" +
+                "    factor( (x|y) ? 0 : -Infinity);" +
+                "    return x;" +
+                "  }," +
+                "  1000, 10) // particles, rejuvenation steps");
+    var expectedHist = {
+      "true": 2/3,
+      "false": 1/3
+    };
+    var tolerance = .1;
+    runDistributionTest(test, code, expectedHist, tolerance);
+  }
 };

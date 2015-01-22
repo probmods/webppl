@@ -240,26 +240,33 @@ var binomialERP = new ERP(
   function binomialScore(params, val){
     var p = params[0];
     var n = params[1];
-    var s = val;
-    var inv2 = 1/2;
-    var inv3 = 1/3;
-    var inv6 = 1/6;
-    if (s >= n) return -Infinity;
-    var q = 1-p;
-    var S = s + inv2;
-    var T = n - s - inv2;
-    var d1 = s + inv6 - (n + inv3) * p;
-    var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
-    d2 = d1 + 0.02*d2;
-    var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
-    var den = (n + inv6) * p * q;
-    var z = num / den;
-    var invsd = Math.sqrt(z);
-    z = d2 * invsd;
-    return gaussianScore([0, 1], z) + Math.log(invsd);
+    if (n > 20 && n*p > 5 && n*(1-p) > 5) {
+      // large n, reasonable p approximation
+      var s = val;
+      var inv2 = 1/2;
+      var inv3 = 1/3;
+      var inv6 = 1/6;
+      if (s >= n) return -Infinity;
+      var q = 1-p;
+      var S = s + inv2;
+      var T = n - s - inv2;
+      var d1 = s + inv6 - (n + inv3) * p;
+      var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
+      d2 = d1 + 0.02*d2;
+      var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
+      var den = (n + inv6) * p * q;
+      var z = num / den;
+      var invsd = Math.sqrt(z);
+      z = d2 * invsd;
+      return gaussianScore([0, 1], z) + Math.log(invsd);
+    } else {
+      // exact formula
+      return lnfact(n) - lnfact(n-val) - lnfact(val) 
+          + val * Math.log(p) + (n-val) * Math.log(1 - p);
+    }
   },
   function binomialSupport(params) {
-    return _.range(params[1]);
+    return _.range(params[1]).concat([params[1]]);
   }
 );
 
@@ -450,13 +457,16 @@ function factor(s, k, a, score) {
 }
 
 function sampleWithFactor(s, k, a, dist, params, scoreFn) {
-  if(typeof coroutine.sampleWithFactor  == "function"){
+  if (typeof coroutine.sampleWithFactor == "function"){
     coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    sample(s,
-           function(v){
-            scoreFn(s, function(sc){factor(s, function(s){k(s, v);},a+"swf2",sc);}, a+"swf1", v);},
-           a, dist, params);
+    var sampleK = function(s, v){
+      var scoreK = function(s, sc){
+        var factorK = function(s){
+          k(s, v); };
+        factor(s, factorK, a+"swf2", sc);};
+      scoreFn(s, scoreK, a+"swf1", v);};
+    sample(s, sampleK, a, dist, params);
   }
 }
 
@@ -541,13 +551,14 @@ Enumerate.prototype.factor = function(s,cc,a, score) {
   cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
-  coroutine.sample(s,cc,a,dist,params,
-                   function(v){
-                    var ret;
-                    scoreFn(s,function(x){ret = x;},a+"swf",v);
-                    return ret;});
-};
+// FIXME: can only call scoreFn in tail position!
+// Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+//   coroutine.sample(s,cc,a,dist,params,
+//                    function(v){
+//                      var ret;
+//                      scoreFn(s, function(s, x){ret = x;}, a+"swf", v);
+//                      return ret;});
+// };
 
 
 Enumerate.prototype.exit = function(s,retval) {
@@ -673,32 +684,25 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
 
 ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     this.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (this.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -710,11 +714,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   this.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    this.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(this.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilter.prototype.exit = function(s,retval) {
@@ -751,8 +751,6 @@ ParticleFilter.prototype.exit = function(s,retval) {
 function pf(s, cc, a, wpplFn, numParticles) {
   return new ParticleFilter(s, cc, a, wpplFn, numParticles);
 }
-
-
 
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
@@ -1058,7 +1056,6 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 }
 
 
-
 ////////////////////////////////////////////////////////////////////
 // Particle filter with lightweight MH rejuvenation.
 //
@@ -1173,32 +1170,25 @@ function copyPFRParticle(particle){
 
 ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
-
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
+  var resetW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
-  var retainedCounts = [];
+  var newExpWeights = [];
   _.each(
     coroutine.particles,
     function(particle){
-      var numRetained = Math.floor(Math.exp(Math.log(m) + (particle.weight - W)));
-      for (var i=0; i<numRetained; i++){
+      var w = Math.exp(particle.weight - resetW);
+      var nRetained = Math.floor(w);
+      newExpWeights.push(w - nRetained);
+      for (var i=0; i<nRetained; i++) {
         retainedParticles.push(copyPFRParticle(particle));
-      }
-      retainedCounts.push(numRetained);
-    });
+      }});
 
   // Compute new particles
   var numNewParticles = m - retainedParticles.length;
-  var newExpWeights = [];
-  var w, tmp;
-  for (var i in this.particles){
-    tmp = Math.log(m) + (coroutine.particles[i].weight - W);
-    w = Math.exp(tmp) - retainedCounts[i];
-    newExpWeights.push(w);
-  }
   var newParticles = [];
   var j;
   for (var i=0; i<numNewParticles; i++){
@@ -1210,11 +1200,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   coroutine.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(
-    coroutine.particles,
-    function(particle){
-      particle.weight = W - Math.log(m);
-    });
+  _.each(coroutine.particles, function(particle){particle.weight = resetW;});
 };
 
 ParticleFilterRejuv.prototype.exit = function(s,retval) {
@@ -1552,6 +1538,11 @@ function cache(s, k, a, f) {
   k(s, cf);
 }
 
+// FIXME: handle fn.apply in cps transform?
+function apply(s, k, a, wpplFn, args){
+  return wpplFn.apply(this, [s, k, a].concat(args));
+}
+
 
 ////////////////////////////////////////////////////////////////////
 
@@ -1589,5 +1580,6 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
-  util: util
+  util: util,
+  apply: apply
 };
