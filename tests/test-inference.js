@@ -20,7 +20,7 @@ function runContinuousSamplingTest(test, code, checkSamples, numSamples){
   for (var i=0; i<numSamples; i++){
     eval('(function(){' + compiledProgram + '})()');
   }
-};
+}
 
 function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
@@ -40,7 +40,7 @@ function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance
   for (var i=0; i<numSamples; i++){
     eval('(function(){' + compiledProgram + '})()');
   }
-};
+}
 
 function runDistributionTest(test, code, expectedHist, tolerance){
   var hist = {};
@@ -55,7 +55,7 @@ function runDistributionTest(test, code, expectedHist, tolerance){
     test.done();
   };
   webppl.run(code, topK);
-};
+}
 
 exports.testDeterministic = {
 
@@ -73,10 +73,10 @@ exports.testForwardSampling = {
   testApplication: function (test) {
     var code = "flip(.5) & flip(.5)";
     var expectedHist = {
-      1: .25,
-      0: .75
+      1: 0.25,
+      0: 0.75
     };
-    var tolerance = .05;
+    var tolerance = 0.05;
     var numSamples = 1000;
     return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
@@ -90,7 +90,7 @@ exports.testForwardSampling = {
       3: 0.0064,
       4: 0.00128
     };
-    var tolerance = .05;
+    var tolerance = 0.05;
     var numSamples = 1000;
     return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
@@ -98,13 +98,13 @@ exports.testForwardSampling = {
   testRandomInteger: function(test) {
     var code = "randomInteger(5)";
     var expectedHist= {
-      0: .2,
-      1: .2,
-      2: .2,
-      3: .2,
-      4: .2
+      0: 0.2,
+      1: 0.2,
+      2: 0.2,
+      3: 0.2,
+      4: 0.2
     };
-    var tolerance = .05;
+    var tolerance = 0.05;
     var numSamples = 1000;
     return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
@@ -132,8 +132,8 @@ exports.testForwardSampling = {
         samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
       var expectedVariance = 1/12 * Math.pow(5-3, 2);
       var expectedMean = 4;
-      return ((Math.abs(empiricalVariance - expectedVariance) < .2) &&
-              (Math.abs(empiricalMean - expectedMean) < .2));
+      return ((Math.abs(empiricalVariance - expectedVariance) < 0.2) &&
+              (Math.abs(empiricalMean - expectedMean) < 0.2));
     };
     return runContinuousSamplingTest(test, code, check, numSamples);
   }
@@ -153,7 +153,7 @@ exports.testEnumeration = {
       "true": 2/3,
       "false": 1/3
     };
-    var tolerance = .1;
+    var tolerance = 0.1;
     runDistributionTest(test, code, expectedHist, tolerance);
   },
 
@@ -172,7 +172,7 @@ exports.testEnumeration = {
                 "          });");
     // TODO: Check that the expected hist is correct
     var expectedHist = { '0': 0.2053648535282959, '1': 0.794635146471704 };
-    var tolerance = .0001;
+    var tolerance = 0.0001;
     runDistributionTest(test, code, expectedHist, tolerance);
   }
 };
@@ -191,7 +191,7 @@ exports.testParticleFilter = {
       "true": 2/3,
       "false": 1/3
     };
-    var tolerance = .1;
+    var tolerance = 0.1;
     runDistributionTest(test, code, expectedHist, tolerance);
   }
 };
@@ -210,7 +210,7 @@ exports.testMH = {
       "true": 2/3,
       "false": 1/3
     };
-    var tolerance = .1;
+    var tolerance = 0.1;
     runDistributionTest(test, code, expectedHist, tolerance);
   }
 };
@@ -229,7 +229,7 @@ exports.testPMCMC = {
       "true": 2/3,
       "false": 1/3
     };
-    var tolerance = .1;
+    var tolerance = 0.1;
     runDistributionTest(test, code, expectedHist, tolerance);
   }
 };
