@@ -234,21 +234,21 @@ exports.testPMCMC = {
   }
 };
 
-exports.testPFRj = {
-  test1: function(test){
-    var code = ("ParticleFilterRejuv(" +
-                "  function(){" +
-                "    var x = flip(0.5);" +
-                "    var y = flip(0.5);" +
-                "    factor( (x|y) ? 0 : -Infinity);" +
-                "    return x;" +
-                "  }," +
-                "  1000, 10) // particles, rejuvenation steps");
-    var expectedHist = {
-      "true": 2/3,
-      "false": 1/3
-    };
-    var tolerance = .1;
-    runDistributionTest(test, code, expectedHist, tolerance);
-  }
-};
+// exports.testPFRj = {
+//   test1: function(test){
+//     var code = ("ParticleFilterRejuv(" +
+//                 "  function(){" +
+//                 "    var x = flip(0.5);" +
+//                 "    var y = flip(0.5);" +
+//                 "    factor( (x|y) ? 0 : -Infinity);" +
+//                 "    return x;" +
+//                 "  }," +
+//                 "  1000, 100) // particles, rejuvenation steps");
+//     var expectedHist = {
+//       "true": 2/3,
+//       "false": 1/3
+//     };
+//     var tolerance = 0.1;
+//     runDistributionTest(test, code, expectedHist, tolerance);
+//   }
+// };
