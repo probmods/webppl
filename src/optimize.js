@@ -1,14 +1,8 @@
 "use strict";
 
-var _ = require('underscore');
-var assert = require('assert');
-var escodegen = require("escodegen");
 var esmangle = require("esmangle");
-var esprima = require("esprima");
-var estemplate = require("estemplate");
 var estraverse = require("estraverse");
 var types = require("ast-types");
-var util = require('./util.js');
 
 var build = types.builders;
 var Syntax = estraverse.Syntax;
@@ -65,7 +59,7 @@ function identifiersEqual(x, y){
           x.name === y.name);
 }
 
-function optimize(node, parent){
+function optimize(node){
 
   switch (node.type) {
 
@@ -111,8 +105,8 @@ function optimizeMain(node){
   var out = estraverse.replace(
     node,
     {
-      enter: function(node, parent){return optimize(node, parent);},
-      leave: function(node, parent){return optimize(node, parent);}
+      enter: function(node){return optimize(node);},
+      leave: function(node){return optimize(node);}
     });
   out = esmangle.optimize(out, createPipeline(), {inStrictCode: true, legacy: false});
   return out;

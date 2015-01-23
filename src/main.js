@@ -2,7 +2,6 @@
 
 var assert = require('assert');
 var fs = require('fs');
-var path = require('path');
 var types = require("ast-types");
 var build = types.builders;
 var esprima = require("esprima");

@@ -3,7 +3,7 @@
 var _ = require('underscore');
 
 function runningInBrowser(){
-  return !(typeof window === 'undefined');
+  return (typeof window !== 'undefined');
 }
 
 function makeGensym() {
@@ -22,7 +22,7 @@ function prettyJSON(obj) {
 }
 
 function sum(xs){
-  if (xs.length == 0) {
+  if (xs.length === 0) {
     return 0.0;
   } else {
     var total = _(xs).reduce(
@@ -31,19 +31,19 @@ function sum(xs){
       });
     return total;
   }
-};
+}
 
 function normalizeHist(hist){
   var normHist = {};
   var Z = sum(_.values(hist));
   _.each(hist, function(val, key){normHist[key] = hist[key]/Z;});
   return normHist;
-};
+}
 
 function normalizeArray(xs){
   var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
-};
+}
 
 function logsumexp(a) {
   var m = Math.max.apply(null, a);
@@ -52,7 +52,7 @@ function logsumexp(a) {
     sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
-};
+}
 
 function copyObj(obj){
   var newobj = {};
@@ -89,7 +89,7 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance){
     console.log("Actual:", hist);
   }
   return allOk;
-};
+}
 
 module.exports = {
   copyObj: copyObj,
