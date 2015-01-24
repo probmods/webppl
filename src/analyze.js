@@ -1,77 +1,61 @@
 "use strict";
 
 var assert = require('assert');
-var _ = require('underscore');
 var estraverse = require("estraverse");
-var escodegen = require("escodegen");
-var esprima = require("esprima");
-var estemplate = require("estemplate");
 var types = require("ast-types");
-var util = require('./util.js');
 
 var build = types.builders;
 var ntypes = types.namedTypes;
 var Syntax = estraverse.Syntax;
+var parse = require("./parser-combinator");
+var analyzeRefs = require("./analyze-refs").analyzeRefs;
 
-var cps = require("./cps").cps;
-var optimize = require("./optimize").optimize;
-var naming = require("./naming").naming;
-var store = require("./store").store;
+var isHeapVar = null;
 
+Object.prototype.equals = function( x ) {
+    if( this === x ) {
+	return true;
+    }
+    else if( Object.getPrototypeOf( this ) === Object.getPrototypeOf( x ) ) {
+	var ps0 = Object.getOwnPropertyNames( this ).sort(),
+	    ps1 = Object.getOwnPropertyNames( x ).sort();
 
-Object.prototype.refines = function( x ) {
-    throw new Error( "object does not refine" );
+	if( ps0.length === ps1.length ) {
+	    for( var i = 0; i < ps0.length; ++i ) {
+		if( ( ps0[i] !== ps1[i] )
+		    || ( this[ps0[i]] === null && x[ps0[i]] !== null )
+		    || ( this[ps0[i]] !== null && x[ps0[i]] === null )
+		    || ( ( this[ps0[i]] !== null && x[ps0[i]] !== null )
+			 && ! this[ps0[i]].equals(x[ps0[i]]) ) ) {
+		    return false;
+		}
+	    }
+	}
+	else return false;
+    }
+    else return false;
 }
 
-Object.prototype.join = function( x ) {
-    throw new Error( "object does not join" );
+Boolean.prototype.equals = function( x ) {
+    return this.valueOf() === x.valueOf();
 }
 
-function Lat() {}
-
-Lat.prototype.refines = function( x ) {
-    throw new Error( "refines unimplemented" );
+Number.prototype.equals = function( x ) {
+    return this.valueOf() === x.valueOf();
 }
 
-Lat.prototype.join = function( x ) {
-    throw new Error( "join unimplemented" );
+String.prototype.equals = function( x ) {
+    return this.valueOf() === x.valueOf();
 }
-
-Lat.prototype.equals = function( x ) {
-    return this.refines( x ) && x.refines( this );
-}
-
-
-function Top() {}
-
-Top.prototype = new Lat();
-
-Top.top = new Top();
 
 function Pair( car, cdr ) {
     this.car = car;
     this.cdr = cdr;
 }
 
-Pair.prototype = new Lat();
-
-Pair.prototype.refines = function( x ) {
-    return ( x instanceof Pair )
-	&& this.car.refines( x.car )
-	&& this.cdr.refines( x.cdr );
-}
-
-Pair.prototype.join = function( x ) {
-    return ( x instanceof Pair )
-	? new Pair( this.car.join( x.car ), this.cdr.join( x.cdr ) )
-	: Top.top;
-}
-
 function Set( xs ) {
     this.xs = xs || [];
 }
-
-Set.prototype = new Lat();
 
 Set.singleton = function( x ) {
     return new Set([x]);
@@ -79,7 +63,7 @@ Set.singleton = function( x ) {
 				     
 Set.prototype.member = function( x ) {
     for( var i = 0; i < this.xs.length; ++i ) {
-	if( x.refines( this.xs[i] ) ) {
+	if( x.equals( this.xs[i] ) ) {
 	    return true;
 	}
     }
@@ -90,51 +74,25 @@ Set.prototype.member = function( x ) {
 Set.prototype.add = function( x ) {
     if( ! this.member( x ) ) {
 	this.xs.push( x );
+	return true;
     }
+    else return false;
 }
 
 Set.prototype.pop = function() {
     return this.xs.pop();
 }
 
-Set.prototype.empty = function() {
-    return ( this.xs.length === 0 );
+Set.prototype.size = function() {
+    return this.xs.length;
 }
 
-Set.prototype.refines = function( ys ) {
-    if( ys instanceof Set ) {
-	return this.xs.every( function( x ) {
-	    return ys.member( x );
-	});
-    }
-    else return false;
+Set.prototype.map = function( f ) {
+    return this.xs.map( f );
 }
 
-Set.prototype.join = function( s ) {
-    if( s instanceof Set ) {
-	var t = new Set( this.xs.concat() );
-
-	s.xs.forEach( function( x ) {
-	    t.add( x );
-	});
-
-	return t;
-    }
-    else return Top.top;
-}
-
-function Bot() {}
-
-Bot.prototype = new Lat();
-
-Bot.bot = new Bot();
-
-Bot.prototype.refines = function( x ) {
-    return true;
-}
-
-Bot.prototype.join = function( x ) {
-    return x;
+Set.prototype.forEach = function( f ) {
+    this.xs.forEach( f );
 }
 
 function Entry( key, value ) {
@@ -142,93 +100,87 @@ function Entry( key, value ) {
     this.value = value;
 }
 
-function Map() {}
-
-Map.prototype = new Lat();
-
-Map.prototype.refines = function( x ) {
-    if( x instanceof Map ) {
-	for( var p in this ) {
-	    if( this.hasOwnProperty( p )
-		&& ( ! x.hasOwnProperty( p ) )
-		|| ( ! this[p].refines( x[p] ) ) ) {
-		return false;
-	    }
-	}
-
-	return true;
-    }
-    else return false;
-}
-
-Map.prototype.extend = function( k, v ) {
-    this[k] = ( this[k] || Bot.bot ).join( v );
-}
-
 function Hash() {
     this.xs = [];
 }
 
-Hash.prototype.get = function( k ) {
-    var v = Bot.bot;
-
+Hash.prototype.get = function( k, v ) {
     for( var i = 0; i < this.xs.length; ++i ) {
-	if( k.refines( this.xs[i].key ) ) {
-	    v = v.join( this.xs[i].value );
+	if( k.equals( this.xs[i].key ) ) {
+	    return this.xs[i].value;
 	}
     }
-
+    
     return v;
 }
 
-Hash.prototype.set = function( k, v ) {
+/*Hash.prototype.set = function( k, v ) {
     var i = 0;
 
-    while( i < this.xs.length && ( ! k.refines( this.xs[i].key ) ) ) {
+    while( i < this.xs.length && ( ! k.equals( this.xs[i].key ) ) ) {
 	++i;
     }
 
-    if( i < this.xs.length ) {
-	this.xs[i].value = this.xs[i].value.join( v );
-    }
-    else {
+    if( i === this.xs.length ) {
 	this.xs.push( new Entry( k, v ) );
     }
-}
+}*/
 
-Hash.prototype.refines = function( d ) {
-    return ( d instanceof Hash )
-	&& this.xs.every( function( entry ) {
-	    return entry.value.refines( d.get( entry.key ) );
-	});
-}
+Hash.prototype.update = function( k, f, v ) {
+    var i = 0;
 
-/*Hash.prototype.join = function( d ) {
-    if( d instanceof Bottom ) {
-	return this;
+    while( i < this.xs.length && ! this.xs[i].key.equals( k ) ) {
+	++i;
     }
-    else if( d instanceof Hash ) {
-*/	
 
-/*function Timestamp( t ) {
-    this.t = t;
+    if( i === this.xs.length ) {
+	this.xs.push( new Entry( k, f( v ) ) );
+    }
+    else {
+	this.xs[i].value = f( this.xs[i].value );
+    }
 }
 
-Timestamp.prototype.refines = Top.embed( function( t ) {
-    return ( t instanceof Timestamp )
-	&& this.t < t.t;
-});
-
-Timestamp.prototype.increment = function() {
-    return new Timestamp( this.t );
+function primitive( name ) {
+    return Set.singleton({
+	type: "Primitive",
+	name: name
+    });
 }
-*/
 
-function Au( e, environment, astore ) {
+var global = {
+    bernoulliERP: {
+	type: "Primitive",
+	name: "bernoulliERP",
+	sample: function() {
+	    return build.literal( true );
+	}
+    },
+    sample: Set.singleton({
+	type: "Primitive",
+	name: "sample",
+	apply: function( erp ) {
+	    return erp.sample();
+	}
+    })
+};
+
+function Au( store, environment, e ) {
     switch( e.type ) {
+    case Syntax.Identifier:
+	var v = environment[ e.name ] || store[ e.name ] || global[ e.name ];
+
+	if( v ) {
+	    return v;
+	}
+	else {
+	    console.log( e );
+	    throw new Error( "not found in environment" );
+	}
     case Syntax.Literal:
-	return e.value;
+	return Set.singleton( e.value );
     default:
+	console.log( e );
 	throw new Error( "unimplemented Au" );
     }
 }
@@ -240,189 +192,413 @@ function fail( message, node ) {
     }
 }
 
-function destructFuncDec( node, success, fail ) {
+function foldsFuncDec( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) &&
 	ntypes.FunctionExpression.check( node.declarations[0].init ) ) {
-	return success( node.declarations[0].id.name, node.declarations[0].init );
+	return succeed( function( store ) {
+	    store[ node.declarations[0].id.name ] = Set.singleton( node.declarations[0].init );
+	    return store;
+	});
     }
     else return fail();
 }
 
-function destructNameAssgn( node, success, fail ) {
+function parseContBin( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) &&
+	( node.declarations[0].id.name === "_return" ) ) {
+	return succeed( node.declarations[0].init.name );
+    }
+    else return fail();
+}
+
+function foldsArguBin( node, succeed, fail ) {
+    if( ntypes.VariableDeclaration.check( node ) &&
+	( node.kind === "var" ) &&
+	( node.declarations.length === 1 ) ) {
+	return succeed( function( environment ) {
+	    environment[ node.declarations[0].id.name ] = Set.singleton( node.declarations[0].init );
+	    return environment;
+	});
+    }
+    else return fail();
+}
+
+
+function parseNameDec( node, succeed, fail ) {
+    if( ntypes.VariableDeclaration.check( node ) &&
+	( node.kind === "var" ) &&
+	( node.declarations.length === 1 ) &&
+	ntypes.CallExpression.check( node.declarations[0].init ) &&
+	ntypes.MemberExpression.check( node.declarations[0].init.callee ) &&
 	( node.declarations[0].init.callee.object.name === "address" ) &&
 	( node.declarations[0].init.callee.property.name === "concat" ) ) {
-	return success( node.declarations[0].init.arguments[0].value );
+	return succeed( node.declarations[0].init.arguments[0].value );
+    }
+    else return fail();
+}
+
+function callbFuncExp( node, succeed, fail ) {
+    if( ntypes.FunctionExpression.check( node ) ) {
+	return succeed( function( f ) {
+	    return f( node.params.slice(2).map( function( id ) {
+		return id.name;
+	    }), node.body );
+	});
     }
     else return fail();
 }
 
 function isContinuationCall( call ) {
     return ( call.arguments.length === 1 );
-    
-    /*assumes k is passed as parameter
-      return ( ntypes.Identifier.check( call.callee ) && ( call.callee.name === k.name ) )
-	|| ( ntypes.FunctionExpression.check( call.callee ) && ( call.callee.arguments.length === 1 ) );*/
 }
 
-function destructContCall( node, success, fail ) {
-    if( ntypes.ExpressionStatement.check( node ) &&
-	ntypes.CallExpression.check( node.expression ) &&
-	isContinuationCall( node.expression ) ) {
-	return success( node.expression.callee, node.expression.arguments[0] );
-    }
-    else return fail();
+function parseCEval( store, environment ) {
+    return parse.bind( parse.single( parseContCall( store, environment ) ), parse.finish );
 }
 
-function destructUserCall( node, success, fail ) {
-    if( ntypes.ExpressionStatement.check( node ) &&
-	ntypes.CallExpression.check( node.expression ) &&
-	( ! isContinuationCall( node.expression ) ) ) {
-	return success( node.expression.callee, node.expression.arguments.slice(2), node.expression.arguments[0] );
-    }
-    else fail();
-}
-
-function makeUEval( astore, label ) {
-    return function( callee, args, k ) {
-	if( ntypes.Identifier.check( k ) ) {
-	    return new UEvalExit( astore, label, callee, args );
+function parseContCall( store, environment ) {
+    return function( node, succeed, fail ) {
+	if( ntypes.ExpressionStatement.check( node ) &&
+	    ntypes.CallExpression.check( node.expression ) &&
+	    isContinuationCall( node.expression ) ) {
+	    return succeed( makeCEval( store, environment, node.expression.callee, node.expression.arguments[0] ) );
 	}
-	else {
-	    return new UEvalCall( astore, label, callee, args, k );
-	}
+	else return fail();
     }
 }
 
-function UEvalCall( astore, label, callee, args, k ) {
-    this.astore = astore;
+function makeCEval( store, environment, cont, argument ) {
+    if( ntypes.Identifier.check( cont ) ) {
+	return new CEvalExit( store, environment, argument );
+    }
+    else {
+	return new CEvalInner( store, environment, cont, argument );
+    }
+}
+
+function CEvalExit( store, environment, argument ) {
+    this.store = store;
+    this.environment = environment;
+    this.argument = argument;
+}
+
+CEvalExit.prototype.succs = function() {
+    return [];
+}
+
+CEvalExit.prototype.evaluatedArgument = function() {
+    return Au( this.store, this.environment, this.argument );
+}
+
+function CEvalInner( store, cont, argument ) {
+    console.log( "CEvalInner" );
+    assert( false );
+}
+
+function parseUEval( store, environment ) {
+    return parse.bind( parse.maybe( parse.single( parseContBin ), false ), function( k ) {
+	return parse.bind( parse.star( parse.single( parse.not( parseNameDec ) ) ), function( dummies ) {
+	    return parse.bind( parse.single( parseNameDec ), function( label ) {
+		return parse.bind( parse.apply( parse.star( parse.single( foldsArguBin ) ), function( fs ) {
+		    return fs.reduce( rapply, environment );
+		}), function( environment ) {
+		    return parse.bind( parse.single( parseUserCall( store, environment, label ) ), parse.finish )
+		});
+	    });
+	});
+    });
+}
+
+function parseUserCall( store, environment, label ) {
+    return function( node, succeed, fail ) {
+	if( ntypes.ExpressionStatement.check( node ) &&
+	    ntypes.CallExpression.check( node.expression ) &&
+	    ( ! isContinuationCall( node.expression ) ) ) {
+	    return succeed( makeUEval( store, environment, label, node.expression.callee, node.expression.arguments.slice(2), node.expression.arguments[0] ) );
+	}
+	else fail();
+    }
+}
+
+function makeUEval( store, environment, label, callee, args, k ) {
+    if( ntypes.Identifier.check( k ) ) {
+	return new UEvalExit( store, environment, label, callee, args );
+    }
+    else {
+	return new UEvalCall( store, environment, label, callee, args, k );
+    }
+}
+
+function UEvalCall( store, environment, label, callee, args, k ) {
+    this.store = store;
+    this.environment = environment;
     this.label = label;
     this.callee = callee;
     this.args = args;
     this.k = k;
 }
 
-function UEvalExit( astore, label, callee, args ) {
-    this.astore = astore;
+UEvalCall.prototype.succs = function() {
+    var store = this.store, environment = this.environment;
+    
+    var args = this.args.map( function( x ) {
+	return Au( store, environment, x );
+    });
+
+    return Au( this.store, this.environment, this.callee ).map( evalthis( store, environment, args ) );
+}
+
+
+function UEvalExit( store, environment, label, callee, args ) {
+    this.store = store;
+    this.environment = environment;
     this.label = label;
     this.callee = callee;
     this.args = args;
 }
 
-function makeCEval( astore ) {
-    return function( cont, argument ) {
-	if( ntypes.Identifier.check( cont ) ) {
-	    return new CEvalExit( astore, argument );
-	}
-	else {
-	    return new CEvalInner( astore, cont, argument );
+function evalthis( store, environment, args ) {
+    return function( f ) {
+	switch( f.type ) {
+	case "Primitive":
+	    switch( f.name ) {
+	    case "sample":
+		return new CEvalExit( store, environment, f.apply( args[0] ) );
+	    default:
+		throw new Error( "primitive procedure not implemented" );
+	    }
+	default:
+	    return new UApplyEntry( store, f, args );
 	}
     }
 }
+    
+UEvalExit.prototype.succs = function() {
+    var store = this.store, environment = this.environment;
+    
+    var args = this.args.map( function( x ) {
+	return Au( store, environment, x );
+    });
 
-function CEvalExit( astore, environment, argument ) {
-    this.astore = astore;
-    this.environment = environment;
-    this.argument = argument;
+    return Au( this.store, this.environment, this.callee ).map( evalthis( store, environment, args ) );
 }
 
-CEvalExit.prototype.successors = function() {
-    return [];
+function UApplyEntry( store, f, args ) {
+    this.store = store;
+    this.f = f;
+    this.args = args;
 }
 
-CEvalExit.prototype.refines = function( state ) {
-    return ( state instanceof CEvalExit )
-	&& ( this.astore.refines( state.astore ) )
-	&& ( this.argument.refines( state.argument ) );
+UApplyEntry.prototype.succs = function() {
+    var store = this.store, args = this.args;
+    
+    return [callbFuncExp( this.f, function( f ) {
+	return f( function( params, body ) {
+	    var environment = {};
+
+	    for( var i = 0; i < params.length; ++i ) {
+		environment[ params[i] ] = args[i];
+	    }
+
+	    return parseBody( store, environment )( body.body, 0, id, fail( "failed to parse function body", body.body[3] ) );
+	});
+    }, fail( "expected a function expression here", this.f ))];
 }
 
-CEvalExit.prototype.evaluatedArgument = function() {
-    return Au( this.argument, this.environment, this.astore );
+function rapply( x, f ) {
+    return f( x );
 }
 
-function CEvalInner( astore, cont, argument ) {
-    console.log( "CEvalInner" );
-    assert( false );
+function id( x ) {
+    return x;
+}
+
+var parseBody = function( store, environment ) {
+    return parse.or( parseCEval( store, environment ),
+		     parseUEval( store, environment ) );
 }
 
 function inject( node, k ) {
     assert( types.namedTypes.Program.check( node ) );
 
-    function makeBoundsCheck( f, message ) {
-	return function( xs, i, v ) {
-	    if( i < xs.length ) {
-		return f( xs, i, v );
-	    }
-	    else throw new Error( message );
-	}
-    }
-    
-    function FuncBody( stmts, i, astore ) {
-	return destructNameAssgn( stmts[i], function( label ) {
-	    return destructUserCall( stmts[i+1], makeUEval( astore, label ), fail( "expected a user call", stmts[i+1] ) );
-	}, function() {
-	    return destructContCall( stmts[i], makeCEval( astore ), fail( "expected a continuation call", stmts[i] ) );
-	});
-    }
-    
-    var FuncDecStar = makeBoundsCheck( function( stmts, i, astore ) {
-	return destructFuncDec( stmts[i], function( name, func ) {
-	    astore[ name ] = Set.singleton( func );
-	    
-	    return FuncDecStar( stmts, i + 1, astore );
-	}, function() {
-	    return FuncBody( stmts, i, astore );
-	});
-    }, "FuncDecStar went to end" );
+    var parser = parse.bind( parse.apply( parse.star( parse.single( foldsFuncDec ) ), function( fs ) {
+	return fs.reduce( rapply, {} );
+    }), function( store ) {
+	return parseBody( store, {} );
+    });
 
-    var state = FuncDecStar( node.body, 0, {} );
+    var state = parser( node.body, 0, id, fail( "uh oh", node ) );
 
     state.isInitial = true;
 
     return state;
 }
 
-// expects an AST of a named, CPS'd, storified program
+function showEnv( e ) {
+    return Object.getOwnPropertyNames( e ).toString();
+}
+
+function showArg( a ) {
+    if( a.hasOwnProperty( "type" ) ) {
+	switch( a.type ) {
+	case Syntax.FunctionExpression:
+	    return "lambda " + a.params.map( showArg ) + " -> ...";
+	case Syntax.Identifier:
+	    return a.name;
+	case Syntax.Literal:
+	    return a.value.toString();
+	default:
+	    console.log( a );
+	    throw new Error( "unhandled argument type" );
+	}
+    }
+    else if( a instanceof Set ) {
+	return a.map( showArg );
+    }
+    else if( a.constructor.name === "Number" ) {
+	return a.toString();
+    }
+    else {
+	console.log( a.constructor );
+	throw new Error( "unhandled argument" );
+    }
+}
+
+function show( s ) {
+    var name = s.constructor.name;
+
+    switch( name ) {
+    case "CEvalExit":
+	return name + "(" + showEnv( s.environment ) + "," + showArg( s.argument ) + ")";
+    case "UEvalExit":
+	return name + "(" + showEnv( s.environment ) + "," + showArg( s.callee ) + "(" + s.args.map( showArg ) + "))^" + s.label;
+    case "UApplyEntry":
+	return name + "(" + showArg( s.f ) + "(" + s.args.map( showArg ) + "))";
+    case "UEvalCall":
+	return name + "(" + showEnv( s.environment ) + "," + showArg( s.callee ) + "(" + s.args.map( showArg ) + "," + showArg( s.k ) +  "))^" + s.label;
+    default:
+	throw new Error( "no show case for " + name );
+    }
+}
+
+// expects an AST of a named, CPS'd program
 function analyzeMain( node, k ) {
-    //console.log( escodegen.generate( node ) );
+
+    isHeapVar = analyzeRefs( node, k );
     
     var seen = new Set(), work = new Set(), summaries = new Hash(),
-	callers = new Hash(), tcallers = new Hash(), finals = new Set();
+	callersf = new Hash(), callersr = new Hash(), tcallers = new Hash(), finals = new Set();
 
+    function propagate( s0, s1 ) {
+	var ss = new Pair( s0, s1 );
+
+	if( seen.add( ss ) ) {
+	    work.add( ss );
+	}
+    }
+
+    function set_add( x ) {
+	return function( xs ) {
+	    xs.add( x );
+	    return xs;
+	}
+    }
+
+    function callers_insert( s0ands1, s2 ) {
+	callersf.update( s0ands1, set_add( s2 ), new Set() );
+	callersr.update( s2, set_add( s0ands1 ), new Set() );
+    }
+
+    function update( s1, s2, s3, s4 ) {
+	d = s4.evaluatedArgument();
+	s2.environment
+	s4.store
+	
+	console.log( s1.constructor.name );
+	console.log( s2.constructor.name );
+	console.log( s3.constructor.name );
+	console.log( s4.constructor.name );
+	throw 53;
+    }
+    
     var init = inject( node, k );
 
     work.add( new Pair( init, init ) );
 
-    while( ! work.empty() ) {
+    while( work.size() > 0 ) {
 	var states = work.pop();
 
+	console.log( "handling " + show( states.car ) + " to " + show( states.cdr ) );
+	
 	if( states.cdr instanceof CEvalExit ) {
 	    if( states.car.isInitial ) {
 		finals.add( states.cdr.evaluatedArgument() );
 	    }
 	    else {
-		throw new Error( "Not implemented 1" );
+		summaries.update( states.car, set_add( states.cdr ), new Set() );
+
+		callersr.get( states.car, new Set() ).forEach( function( s0ands1 ) {
+		    update( s0ands1.car, s0ands1.cdr, states.car, states.cdr );
+		});
+
+		tcallers.get( states.car, new Set() ).forEach( function( s0ands1 ) {
+		    propagate( s0ands1.car, states.cdr );
+		});
 	    }
 	}
 	else if( states.cdr instanceof UEvalCall ) {
-	    var succs = states.cdr.succs();
+	    states.cdr.succs().forEach( function( state ) {
+		propagate( state, state );
 
-	    for( var i = 0; i < succs.length; ++i ) {
-		propagate( succs[i], succs[i] );
-		callers.set( new Pair( states.cdr, succs[i] ), states.car );
-		summary.get( succs[i] )
-		new Triple( states.car, states.cdr, succs[i] );		
-	    }
+		callers_insert( states, state );
+
+		summaries.get( state, new Set() ).forEach( function( state1 ) {
+		    update( states.car, states.cdr, state, state1 );
+		});
+	    });
+	}
+	else if( states.cdr instanceof UEvalExit ) {
+	    states.cdr.succs().forEach( function( state ) {
+		propagate( state, state );
+		
+		tcallers.update( state, set_add( states ), new Set() );
+		
+		summaries.get( state, new Set() ).forEach( function( state ) {
+		    propagate( states.car, state );
+		});
+	    });
+	}
+	else if( states.cdr instanceof UApplyEntry ) {
+	    states.cdr.succs().forEach( function( state ) {
+		propagate( states.car, state );
+	    });
 	}
 	else {
-	    throw new Error( "Not implemented 2" );
+	    console.log( states.car.constructor );
+	    console.log( states.car );
+	    console.log( states.cdr.constructor );
+	    console.log( states.cdr );
+	    throw new Error( "unhandled state" );
 	}
     }
 
+/*    console.log( "seen" );
+    console.log( seen );
+    console.log( "work" );
+    console.log( work );
+    console.log( "summaries" );
+    console.log( summaries );
+    console.log( "callersf" );
+    console.log( callersf );
+    console.log( "callersr" );
+    console.log( callersr );
+    console.log( "tcallers" );
+    console.log( tcallers );*/
+    
     return finals;
 }
 

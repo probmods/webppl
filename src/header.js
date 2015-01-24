@@ -527,13 +527,15 @@ Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) 
   // For each value in support, add the continuation paired with
   // support value and score to queue:
   for (var s in supp) {
-    var state = {
-      continuation: cc,
-      value: supp[s],
-      score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
-      store: util.copyObj(store)
-    };
-    this.queue.enq(state);
+    if( supp.hasOwnProperty( s ) ) {
+      var state = {
+        continuation: cc,
+        value: supp[s],
+        score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
+        store: util.copyObj(store)
+      };
+      this.queue.enq(state);
+    }	
   }
   // Call the next state on the queue
   this.nextInQueue();

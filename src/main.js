@@ -12,6 +12,7 @@ var naming = require("./naming").naming;
 var store = require("./store").store;
 var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
+var analyze = require("./analyze").analyze;
 var util = require("./util");
 
 // Make runtime stuff globally available:
@@ -111,7 +112,8 @@ if (util.runningInBrowser()){
     run: run,
     compile: compileProgram,
     cps: webpplCPS,
-    naming: webpplNaming
+    naming: webpplNaming,
+    analyze: analyze
   };
   console.log("webppl loaded.");
 } else {
@@ -122,6 +124,6 @@ if (util.runningInBrowser()){
 module.exports = {
   webppl_eval: webppl_eval,
   run: run,
-  compile: compileProgram,
-  compileRaw: compile
+  compile: compile,
+  analyze: analyze  
 };

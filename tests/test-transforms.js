@@ -155,19 +155,21 @@ function runTrampolineTest(test, code, expected){
 function generateTestFunctions(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
-    var tests = allTests[testClassName];
-    exports[testClassName] = {};
-    tests.forEach(
-      function(obj){
-        exports[testClassName][obj.name] = function(test){
-          if (!obj.runners || _.contains(obj.runners, testRunner)){
-            return testRunner(test, obj.code, obj.expected);
-          } else {
-            test.done();
-          }
-        };
-      });
-  }
+    if( allTests.hasOwnProperty( testClassName ) ) {
+      var tests = allTests[testClassName];
+	exports[testClassName] = {};
+	tests.forEach(
+	function(obj){
+          exports[testClassName][obj.name] = function(test){
+            if (!obj.runners || _.contains(obj.runners, testRunner)){
+              return testRunner(test, obj.code, obj.expected);
+            } else {
+              test.done();
+            }
+          };
+        });
+    }
+  };
   return exports;
 }
 
@@ -488,8 +490,6 @@ var tests = {
              "foo(3, 4);"),
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
-
-<<<<<<< HEAD
     // FIXME: This test currently fails because varargs happens after
     //        cps which introduces additional closures. To fix this,
     //        move the varargs transform up earlier in the order of
@@ -500,9 +500,6 @@ var tests = {
     //          "foo(3, 4);"),
     //   expected: [3, 4],
     //   runners: [runVarargsTest, runTrampolineTest] },
-
-=======
->>>>>>> Add 'apply'
     { name: 'testApply',
       code: ("var foo = function(x, y){return x + y};" +
              "var bar = function(){ return apply(foo, arguments); };" +
