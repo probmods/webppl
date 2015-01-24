@@ -70,7 +70,7 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
                        getFinalElement,
                        nodes.slice(1),
                        vars.concat([nodes[0]]));
-  } else if ((nodes[0].type == Syntax.VariableDeclaration) &&
+  } else if ((nodes[0].type === Syntax.VariableDeclaration) &&
              !isFunctionDeclaration(nodes[0])){
     assert.equal(nodes[0].declarations.length, 1);
     var declaration = nodes[0].declarations[0];
@@ -92,7 +92,7 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
 }
 
 function isImmediate(node) {
-  return node.type == Syntax.Literal || node.type == Syntax.Identifier;
+  return node.type === Syntax.Literal || node.type === Syntax.Identifier;
 }
 
 function isFunctionDeclaration(node){
@@ -124,7 +124,7 @@ function cpsBlock(nodes, cont){
     // FIXME: the sequence vars are going to be ignored (but will also
     // be removed by optimizer)
     return cpsSequence(
-      function (nodes){return (nodes.length == 1);},
+      function (nodes){return (nodes.length === 1);},
       function(nodes, vars){
         return cps(nodes[0], cont);
       },
@@ -184,7 +184,7 @@ function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
   return cpsSequence(
     function(nodes){return (nodes.length === 0);},
     function(nodes, vars){
-      assert.ok(vars.length == 2);
+      assert.equal(vars.length, 2);
       return buildContinuationCall(
         cont,
         build.binaryExpression(opNode, vars[0], vars[1]));
@@ -197,7 +197,7 @@ function cpsLogicalExpression(lopNode, leftNode, rightNode, cont){
   return cpsSequence(
     function(nodes){return (nodes.length === 0);},
     function(nodes, vars){
-      assert.ok(vars.length == 2);
+      assert.equal(vars.length, 2);
       return buildContinuationCall(
         cont,
         build.logicalExpression(lopNode, vars[0], vars[1]));
