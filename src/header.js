@@ -57,7 +57,7 @@ var bernoulliERP = new ERP(
     return val;
   },
   function flipScore(params, val) {
-    //FIXME: check domain
+    if (val != true && val != false) { return -Infinity; }
     var weight = params[0];
     return val ? Math.log(weight) : Math.log(1 - weight);
   },
