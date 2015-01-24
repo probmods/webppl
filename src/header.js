@@ -154,8 +154,9 @@ function gammaSample(params){
     do{x = gaussianSample([0,1]);  v = 1+c*x;} while(v <= 0);
     v=v*v*v;
     u=Math.random();
-    if ((u < 1 - 0.331*x*x*x*x) || (Math.log(u) < 0.5*x*x + d*(1 - v + Math.log(v))))
+    if ((u < 1 - 0.331*x*x*x*x) || (Math.log(u) < 0.5*x*x + d*(1 - v + Math.log(v)))){
       return b*d*v;
+    }
   }
 }
 
@@ -206,8 +207,8 @@ var betaERP = new ERP(
 );
 
 function binomialG(x){
-  if (x === 0) return 1;
-  if (x === 1) return 0;
+  if (x === 0) { return 1; }
+  if (x === 1) { return 0; }
   var d = 1 - x;
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
@@ -225,14 +226,14 @@ function binomialSample(params){
     if (x >= p){
       n = a-1; p /= x;
     }
-    else{ k += a; n = b - 1; p = (p-x) / (1-x); }
+    else { k += a; n = b - 1; p = (p-x) / (1-x); }
   }
   var u;
   for (var i=0; i<n; i++){
     u = Math.random();
-    if (u < p) k++;
+    if (u < p) { k++; }
   }
-  return k | 0;
+  return k || 0;
 }
 
 var binomialERP = new ERP(
@@ -246,7 +247,7 @@ var binomialERP = new ERP(
       var inv2 = 1/2;
       var inv3 = 1/3;
       var inv6 = 1/6;
-      if (s >= n) return -Infinity;
+      if (s >= n) { return -Infinity; }
       var q = 1-p;
       var S = s + inv2;
       var T = n - s - inv2;
@@ -271,14 +272,14 @@ var binomialERP = new ERP(
 );
 
 function fact(x){
-  var t=1;
-  while(x>1) t*=x--;
+  var t = 1;
+  while (x>1) { t*=x--; }
   return t;
 }
 
 function lnfact(x) {
-  if (x < 1) x = 1;
-  if (x < 12) return Math.log(fact(Math.round(x)));
+  if (x < 1) { x = 1; }
+  if (x < 12) { return Math.log(fact(Math.round(x))); }
   var invx = 1 / x;
   var invx2 = invx * invx;
   var invx3 = invx2 * invx;
@@ -299,7 +300,7 @@ var poissonERP = new ERP(
       var m = 7/8*mu;
       var x = gammaSample([m, 1]);
       if (x > mu) {
-        return (k + binomialSample([mu/x, m-1])) | 0;
+        return (k + binomialSample([mu/x, m-1])) || 0;
       } else {
         mu -= x;
         k += m;
@@ -308,7 +309,7 @@ var poissonERP = new ERP(
     var emu = Math.exp(-mu);
     var p = 1;
     do{ p *= Math.random(); k++; } while(p > emu);
-    return (k-1) | 0;
+    return (k-1) || 0;
   },
   function poissonScore(params, val){
     var mu = params[0];
@@ -457,7 +458,7 @@ function factor(s, k, a, score) {
 }
 
 function sampleWithFactor(s, k, a, dist, params, scoreFn) {
-  if (typeof coroutine.sampleWithFactor == "function"){
+  if (typeof coroutine.sampleWithFactor === "function"){
     coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
     var sampleK = function(s, v){
@@ -679,7 +680,7 @@ ParticleFilter.prototype.activeParticle = function() {
 };
 
 ParticleFilter.prototype.allParticlesAdvanced = function() {
-  return ((this.particleIndex + 1) == this.particles.length);
+  return ((this.particleIndex + 1) === this.particles.length);
 };
 
 ParticleFilter.prototype.resampleParticles = function() {
@@ -717,7 +718,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   _.each(this.particles, function(particle){particle.weight = resetW;});
 };
 
-ParticleFilter.prototype.exit = function(s,retval) {
+ParticleFilter.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
 
@@ -746,7 +747,7 @@ ParticleFilter.prototype.exit = function(s,retval) {
 
   // Return from particle filter by calling original continuation:
   this.k(this.oldStore, dist);
-}
+};
 
 function pf(s, cc, a, wpplFn, numParticles) {
   return new ParticleFilter(s, cc, a, wpplFn, numParticles);
@@ -798,7 +799,7 @@ function findChoice(trace, name) {
     return undefined;
   }
   for (var i = 0; i < trace.length; i++){
-    if (trace[i].name == name){
+    if (trace[i].name === name){
       return trace[i];
     }
   }
@@ -929,7 +930,7 @@ PMCMC.prototype.activeContinuationWithStore = function(){
 };
 
 PMCMC.prototype.allParticlesAdvanced = function() {
-  return ((this.particleIndex + 1) == this.particles.length);
+  return ((this.particleIndex + 1) === this.particles.length);
 };
 
 PMCMC.prototype.sample = function(s, cc, a, erp, params) {
@@ -1016,8 +1017,7 @@ PMCMC.prototype.exit = function(s, retval) {
     // Use all (unweighted) particles from the conditional SMC
     // iteration to estimate marginal distribution.
     if (this.sweep > 0) {
-      _.each(
-        this.particles.concat(this.retainedParticle),
+      this.particles.concat(this.retainedParticle).forEach(
         function(particle){
           var k = JSON.stringify(particle.value);
           if (coroutine.returnHist[k] === undefined){
@@ -1025,7 +1025,7 @@ PMCMC.prototype.exit = function(s, retval) {
           }
           coroutine.returnHist[k].prob += 1;
         });
-    };
+    }
 
     // Retain the first particle sampled after the final factor statement.
     this.retainedParticle = this.particles[0];
