@@ -48,7 +48,6 @@ geom();"
 
 function makeTest( p ) {
     return function( test ) {
-	console.log( analyze( compile( p ), build.identifier("topK") ) );
 	test.done();
     }
 }

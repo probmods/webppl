@@ -1,11 +1,11 @@
-function finish( v ) {
+function finish() {
+    var vs = arguments;
+    
     return function( nodes, i, succeed, fail ) {
 	if( i === nodes.length ) {
-	    return succeed( v, nodes, i );
+	    return succeed.apply( this, vs );
 	}
-	else {
-	    return fail();
-	}
+	else return fail();
     }
 }
 
@@ -18,32 +18,34 @@ function item( nodes, i, succeed, fail ) {
 	return fail();
     }
     else {
-	return succeed( nodes[i], nodes, i + 1 );
+	return succeed( nodes, i + 1, nodes[i] );
     }
 }
 
-function result( v ) {
+function result() {
+    var vs = arguments;
+    
     return function( nodes, i, succeed, fail ) {
-	return succeed( v, nodes, i );
+	return succeed.apply( this, Array.prototype.concat.apply( [ nodes, i ], vs ) );
     }
 }
 
 function bind( p, f ) {
     return function( nodes, i, succeed, fail ) {
-	return p( nodes, i, function( v, nodes, i ) {
-	    return f( v )( nodes, i, succeed, fail );
+	return p( nodes, i, function( nodes, i ) {
+	    return f.apply( this, Array.prototype.slice.call( arguments, 2 ) )( nodes, i, succeed, fail );
 	}, fail );
     }
 }
 
-function star( p ) {
+function rep( p ) {
     function loop( nodes, i, succeed, fail ) {
-	return bind( p, result )( nodes, i, function( v, nodes, i ) {
-	    return loop( nodes, i, function( vs, nodes, i ) {
-		return succeed( [v].concat(vs), nodes, i );
+	return bind( p, result )( nodes, i, function( nodes, i, v ) {
+	    return loop( nodes, i, function( nodes, i, vs ) {
+		return succeed( nodes, i, [v].concat(vs) );
 	    }, fail );
 	}, function() {
-	    return succeed( [], nodes, i );
+	    return succeed( nodes, i, [] );
 	});
     }
 
@@ -53,13 +55,13 @@ function star( p ) {
 function seq( ps ) {
     function loop( j ) {
 	return function( nodes, i, succeed, fail ) {
-	    if( i === ps.length ) {
-		return succeed( [], nodes, i );
+	    if( j === ps.length ) {
+		return succeed( nodes, i, [] );
 	    }
 	    else {
-		return bind( ps[j], result )( nodes, i, function( x, nodes, i ) {
-		    return loop( j + 1 )( nodes, i, function( xs, nodes, i ) {
-			return succeed( [x].concat(xs), nodes, i );
+		return bind( ps[j], result )( nodes, i, function( nodes, i, x ) {
+		    return loop( j + 1 )( nodes, i, function( nodes, i, xs ) {
+			return succeed( nodes, i, [x].concat(xs) );
 		    }, fail );
 		}, fail );
 	    }
@@ -72,32 +74,42 @@ function seq( ps ) {
 function maybe( p, x ) {
     return function( nodes, i, succeed, fail ) {
 	return p( nodes, i, succeed, function() {
-	    return succeed( x, nodes, i );
+	    return succeed( nodes, i, x );
 	});
     }
 }
 
 function apply( p, f ) {
     return function( nodes, i, succeed, fail ) {
-	return p( nodes, i, function( x, nodes, i ) {
-	    return succeed( f( x ), nodes, i );
+	return p( nodes, i, function( nodes, i ) {
+	    return succeed( nodes, i, f.apply( this, Array.prototype.slice.call( arguments, 2 ) ) );
 	}, fail );
     }
 }
 
-function or( p, q ) {
-    return function( nodes, i, succeed, fail ) {
-	return p( nodes, i, succeed, function() {
-	    return q( nodes, i, succeed, fail );
-	});
+function or( ps ) {
+    function loop( j ) {
+	if( j === ps.length ) {
+	    return function( nodes, i, succeed, fail ) {
+		return fail();
+	    }
+	}
+	else {
+	    return function( nodes, i, succeed, fail ) {
+		return ps[j]( nodes, i, succeed, function() {
+		    return loop( j + 1 )( nodes, i, succeed, fail );
+		});
+	    }
+	}
     }
-}
 
+    return loop( 0 );
+}
 function single( p ) {
     return function( nodes, i, succeed, fail ) {
-	return item( nodes, i, function( x, nodes, i ) {
-	    return p( x, function( y ) {
-		return succeed( y, nodes, i );
+	return item( nodes, i, function( nodes, i, node ) {
+	    return p( node, function( v ) {
+		return succeed.apply( this, Array.prototype.concat.apply( [ nodes, i ], arguments ) );
 	    }, fail );
 	}, fail );
     }
@@ -119,7 +131,7 @@ module.exports = {
     item: item,
     result: result,
     bind: bind,
-    star: star,
+    rep: rep,
     seq: seq,
     maybe: maybe,
     apply: apply,
@@ -149,7 +161,7 @@ function fail() {
 }
 
 console.log( bind( item, result )( [1,2,3], 0, id, fail ) );
-console.log( star( item )( [1,2,3], 0, id, fail ) );
+console.log( rep( item )( [1,2,3], 0, id, fail ) );
 console.log( single( singleton( 12 ) )( [12], 0, id, fail ) );
 console.log( seq([])( [12], 0, id, fail ) );
 console.log( seq([single(singleton( 12 ))])( [12], 0, id, fail ) );

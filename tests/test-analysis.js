@@ -9,6 +9,8 @@ var store = require("../src/store").store;
 var optimize = require("../src/optimize.js").optimize;
 var analyze = require("../src/analyze.js").analyze;
 
+var Set = require("immutable").Set;
+
 function compile( code, verbose ) {
   if( verbose && console.time ) {
     console.time('compile');
@@ -33,24 +35,33 @@ function compile( code, verbose ) {
 
 var tests = {
     constant: {
-	program: "3 + 4"
-	results: [7]
+	program: "3 + 4",
+	results: Set.of( 7 )
     },
     call: {
-	program: "flip(0.5)"
+	program: "flip(0.5)",
+	results: Set.of( true, false )
+	
     },
     recursion: {
 	program: "\
 var geom = function() {\n\
     return flip() ? 0 : 1 + geom();\n\
 }\n\
-geom();"
+geom();",
+	results: new Set()
     }
 }
 
-function makeTest( p ) {
+function makeTest( t ) {
     return function( test ) {
-	console.log( analyze( compile( p ), build.identifier("topK") ) );
+	if( t.results.isSubset( analyze( compile( t.program ), build.identifier("topK") ) ) ) {
+	    test.ok( true );
+	}
+	else {
+	    test.ok( false, "analyzer is unsound (or test is wrong)" );
+	}
+
 	test.done();
     }
 }
@@ -60,7 +71,7 @@ exports.test = (function( tests ) {
     
     for( var test in tests ) {
 	if( tests.hasOwnProperty( test ) ) {
-	    testfs[ test ] = makeTest( tests[ test ].program );
+	    testfs[ test ] = makeTest( tests[ test ] );
 	}
     }
 

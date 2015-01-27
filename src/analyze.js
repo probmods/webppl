@@ -1,174 +1,68 @@
 "use strict";
 
-var assert = require('assert');
+var assert = require("assert");
 var estraverse = require("estraverse");
 var types = require("ast-types");
+var Immutable = require("immutable");
 
-var build = types.builders;
+var Set = Immutable.Set;
+var Map = Immutable.Map;
+var Record = Immutable.Record;
+
 var ntypes = types.namedTypes;
+var build = types.builders;
 var Syntax = estraverse.Syntax;
 var parse = require("./parser-combinator");
 var analyzeRefs = require("./analyze-refs").analyzeRefs;
 
 var isHeapVar = null;
 
-Object.prototype.equals = function( x ) {
-    if( this === x ) {
-	return true;
+var Primitive = new Record({
+    type: "Primitive",
+    name: null,
+    apply: function( store, environment, args ) {
+	throw new Error( "apply not implemented for " + this.name );
     }
-    else if( Object.getPrototypeOf( this ) === Object.getPrototypeOf( x ) ) {
-	var ps0 = Object.getOwnPropertyNames( this ).sort(),
-	    ps1 = Object.getOwnPropertyNames( x ).sort();
+});
 
-	if( ps0.length === ps1.length ) {
-	    for( var i = 0; i < ps0.length; ++i ) {
-		if( ( ps0[i] !== ps1[i] )
-		    || ( this[ps0[i]] === null && x[ps0[i]] !== null )
-		    || ( this[ps0[i]] !== null && x[ps0[i]] === null )
-		    || ( ( this[ps0[i]] !== null && x[ps0[i]] !== null )
-			 && ! this[ps0[i]].equals(x[ps0[i]]) ) ) {
-		    return false;
-		}
-	    }
-	}
-	else return false;
-    }
-    else return false;
-}
-
-Boolean.prototype.equals = function( x ) {
-    return this.valueOf() === x.valueOf();
-}
-
-Number.prototype.equals = function( x ) {
-    return this.valueOf() === x.valueOf();
-}
-
-String.prototype.equals = function( x ) {
-    return this.valueOf() === x.valueOf();
-}
-
-function Pair( car, cdr ) {
-    this.car = car;
-    this.cdr = cdr;
-}
-
-function Set( xs ) {
-    this.xs = xs || [];
-}
-
-Set.singleton = function( x ) {
-    return new Set([x]);
-}
-				     
-Set.prototype.member = function( x ) {
-    for( var i = 0; i < this.xs.length; ++i ) {
-	if( x.equals( this.xs[i] ) ) {
-	    return true;
-	}
-    }
-
-    return false;
-}
-
-Set.prototype.add = function( x ) {
-    if( ! this.member( x ) ) {
-	this.xs.push( x );
-	return true;
-    }
-    else return false;
-}
-
-Set.prototype.pop = function() {
-    return this.xs.pop();
-}
-
-Set.prototype.size = function() {
-    return this.xs.length;
-}
-
-Set.prototype.map = function( f ) {
-    return this.xs.map( f );
-}
-
-Set.prototype.forEach = function( f ) {
-    this.xs.forEach( f );
-}
-
-function Entry( key, value ) {
-    this.key = key;
-    this.value = value;
-}
-
-function Hash() {
-    this.xs = [];
-}
-
-Hash.prototype.get = function( k, v ) {
-    for( var i = 0; i < this.xs.length; ++i ) {
-	if( k.equals( this.xs[i].key ) ) {
-	    return this.xs[i].value;
-	}
-    }
-    
-    return v;
-}
-
-/*Hash.prototype.set = function( k, v ) {
-    var i = 0;
-
-    while( i < this.xs.length && ( ! k.equals( this.xs[i].key ) ) ) {
-	++i;
-    }
-
-    if( i === this.xs.length ) {
-	this.xs.push( new Entry( k, v ) );
-    }
-}*/
-
-Hash.prototype.update = function( k, f, v ) {
-    var i = 0;
-
-    while( i < this.xs.length && ! this.xs[i].key.equals( k ) ) {
-	++i;
-    }
-
-    if( i === this.xs.length ) {
-	this.xs.push( new Entry( k, f( v ) ) );
-    }
-    else {
-	this.xs[i].value = f( this.xs[i].value );
-    }
-}
-
-function primitive( name ) {
-    return Set.singleton({
-	type: "Primitive",
-	name: name
-    });
-}
-
-var global = {
-    bernoulliERP: {
-	type: "Primitive",
+var global = new Map({
+    bernoulliERP: Set.of( new Primitive({
 	name: "bernoulliERP",
-	sample: function() {
-	    return build.literal( true );
-	}
-    },
-    sample: Set.singleton({
-	type: "Primitive",
+	apply: (function( argument ) {
+	    return function( store, environment, args ) {
+		// change environment value based on args, such as only true for theta of 1
+		return new CEvalExit({
+		    store: store,
+		    environment: environment.set( argument.name, Set.of( true, false ) ),
+		    argument: argument
+		});
+	    }
+	})({
+	    type: "Identifier",
+	    name: "bernoulliERP-argument",
+	    heapRef: false
+	})
+    })),
+    sample: Set.of( new Primitive({
 	name: "sample",
-	apply: function( erp ) {
-	    return erp.sample();
+	apply: function( store, environment, args ) {
+	    assert( args[0].size === 1 );
+	    return args[0].first().apply( store, environment, args[1] );
 	}
-    })
-};
+    }))
+});
 
 function Au( store, environment, e ) {
     switch( e.type ) {
     case Syntax.Identifier:
-	var v = environment[ e.name ] || store[ e.name ] || global[ e.name ];
+	var v = null;
+
+	if( e.heapRef ) {
+	    v = store.get( e.name, null ) || global.get( e.name, null );
+	}
+	else {
+	    v = environment.get( e.name, null );
+	}
 
 	if( v ) {
 	    return v;
@@ -178,7 +72,7 @@ function Au( store, environment, e ) {
 	    throw new Error( "not found in environment" );
 	}
     case Syntax.Literal:
-	return Set.singleton( e.value );
+	return Set.of( e.value );
     default:
 	console.log( e );
 	throw new Error( "unimplemented Au" );
@@ -192,20 +86,45 @@ function fail( message, node ) {
     }
 }
 
+function console_log( x ) {
+    console.log( x );
+}
+
+function store_extend( s, x, v ) {
+    return s.update( x, new Set(), function( D ) {
+	return D.add( v );
+    });
+}
+
+function store_join( s, x, D ) {
+    return s.update( x, new Set(), function( D0 ) {
+	return D0.union( D );
+    });
+}
+
+function makeCallb( destructor ) {
+    return function( f ) {
+	return function( node, succeed, fail ) {
+	    return destructor( node, function() {
+		return succeed( f.apply( this, arguments ) );
+	    }, fail );
+	}
+    }
+}
+
 function foldsFuncDec( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) &&
 	ntypes.FunctionExpression.check( node.declarations[0].init ) ) {
-	return succeed( function( store ) {
-	    store[ node.declarations[0].id.name ] = Set.singleton( node.declarations[0].init );
-	    return store;
+	return succeed( function( s ) {
+	    return store_extend( s, node.declarations[0].id.name, node.declarations[0].init );
 	});
     }
     else return fail();
 }
 
-function parseContBin( node, succeed, fail ) {
+function destructContBin( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) &&
@@ -215,20 +134,20 @@ function parseContBin( node, succeed, fail ) {
     else return fail();
 }
 
+var callbContBin = makeCallb( destructContBin );
+
 function foldsArguBin( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) ) {
-	return succeed( function( environment ) {
-	    environment[ node.declarations[0].id.name ] = Set.singleton( node.declarations[0].init );
-	    return environment;
+	return succeed( function( s ) {
+	    return store_extend( s, node.declarations[0].id.name, node.declarations[0].init );
 	});
     }
     else return fail();
 }
 
-
-function parseNameDec( node, succeed, fail ) {
+function destructNameDec( node, succeed, fail ) {
     if( ntypes.VariableDeclaration.check( node ) &&
 	( node.kind === "var" ) &&
 	( node.declarations.length === 1 ) &&
@@ -241,69 +160,137 @@ function parseNameDec( node, succeed, fail ) {
     else return fail();
 }
 
-function callbFuncExp( node, succeed, fail ) {
+var callbNameDec = makeCallb( destructNameDec );
+
+function destructFuncExp( node, succeed, fail ) {
     if( ntypes.FunctionExpression.check( node ) ) {
-	return succeed( function( f ) {
-	    return f( node.params.slice(2).map( function( id ) {
-		return id.name;
-	    }), node.body );
-	});
+	if( isContinuationFunc( node ) ) {
+	    return succeed( contParams( node ), node.body );
+	}
+	else {
+	    return succeed( funcParams( node ), node.body );
+	}
     }
     else return fail();
 }
 
-function isContinuationCall( call ) {
-    return ( call.arguments.length === 1 );
+var callbFuncExp = makeCallb( destructFuncExp );
+
+function destructCondExp( node, succeed, fail ) {
+    if( ntypes.ExpressionStatement.check( node ) &&
+	ntypes.ConditionalExpression.check( node.expression ) ) {
+	return succeed( node.expression.test, node.expression.consequent, node.expression.alternate );
+    }
+    else return fail();
 }
+
+var callbCondExp = makeCallb( destructCondExp );
+
+function destructContCall( node, succeed, fail ) {
+    if( ntypes.ExpressionStatement.check( node ) &&
+	ntypes.CallExpression.check( node.expression ) &&
+	isContinuationCall( node.expression ) ) {
+	return succeed( node.expression.callee, node.expression.arguments[0] );
+    }
+    else return fail();
+}
+
+var callbContCall = makeCallb( destructContCall );
+
+function destructUserCall( node, succeed, fail ) {
+    if( ntypes.ExpressionStatement.check( node ) &&
+	ntypes.CallExpression.check( node.expression ) &&
+	( ! isContinuationCall( node.expression ) ) ) {
+	return succeed( node.expression.callee, node.expression.arguments.slice(2), node.expression.arguments[0] );
+    }
+    else return fail();
+}
+
+var callbUserCall = makeCallb( destructUserCall );
+
+// ---
+
+function accessor( name ) {
+    return function( x ) {
+	return x[ name ];
+    }
+}
+
+function contParams( node ) {
+    return node.params.map( accessor( "name" ) );
+}
+
+function funcParams( node ) {
+    return node.params.slice(2).map( accessor( "name" ) );
+}
+
+function isContinuationFunc( f ) {
+    return f.continuationFunc || false;
+}
+
+function isContinuationCall( call ) {
+    return call.continuationCall || false;
+}
+
+// ---
+
+function parseBEval( store, environment ) {
+    return parse.bind( parse.single( parseCondExp( store, environment ) ), parse.finish );
+}
+
+function parseCondExp( store, environment ) {
+    return callbCondExp( function( test, consequent, alternate ) {
+	return makeBEval( store, environment, test, consequent, alternate );
+    });
+}
+
+function makeBEval( store, environment, test, consequent, alternate ) {
+    return new BEval({
+	store: store,
+	environment: environment,
+	test: test,
+	consequent: consequent,
+	alternate: alternate
+    });
+}    
+
+// ---
 
 function parseCEval( store, environment ) {
     return parse.bind( parse.single( parseContCall( store, environment ) ), parse.finish );
 }
 
 function parseContCall( store, environment ) {
-    return function( node, succeed, fail ) {
-	if( ntypes.ExpressionStatement.check( node ) &&
-	    ntypes.CallExpression.check( node.expression ) &&
-	    isContinuationCall( node.expression ) ) {
-	    return succeed( makeCEval( store, environment, node.expression.callee, node.expression.arguments[0] ) );
-	}
-	else return fail();
-    }
+    return callbContCall( function( cont, argument ) {
+	return makeCEval( store, environment, cont, argument );
+    });
 }
 
 function makeCEval( store, environment, cont, argument ) {
     if( ntypes.Identifier.check( cont ) ) {
-	return new CEvalExit( store, environment, argument );
+	return new CEvalExit({
+	    store: store,
+	    environment: environment,
+	    argument: argument
+	});
     }
     else {
-	return new CEvalInner( store, environment, cont, argument );
+	return new CEvalInner({
+	    store: store,
+	    environment: environment,
+	    cont: cont,
+	    argument: argument
+	});
     }
 }
 
-function CEvalExit( store, environment, argument ) {
-    this.store = store;
-    this.environment = environment;
-    this.argument = argument;
-}
-
-CEvalExit.prototype.succs = function() {
-    return [];
-}
-
-CEvalExit.prototype.evaluatedArgument = function() {
-    return Au( this.store, this.environment, this.argument );
-}
-
-function CEvalInner( store, cont, argument ) {
-    console.log( "CEvalInner" );
-    assert( false );
-}
+// ---
 
 function parseUEval( store, environment ) {
-    return parse.bind( parse.maybe( parse.single( parseContBin ), false ), function( k ) {
-	return parse.bind( parse.star( parse.single( parse.not( parseNameDec ) ) ), function( dummies ) {
-	    return parse.bind( parse.single( parseNameDec ), function( label ) {
-		return parse.bind( parse.apply( parse.star( parse.single( foldsArguBin ) ), function( fs ) {
+    return parse.bind( parse.maybe( parse.single( callbContBin( id ) ), false ), function() {
+	return parse.bind( parse.rep( parse.single( parse.not( callbNameDec( id ) ) ) ), function( dummies ) {
+	    return parse.bind( parse.single( callbNameDec( id ) ), function( label ) {
+		return parse.bind( parse.apply( parse.rep( parse.single( foldsArguBin ) ), function( fs ) {
 		    return fs.reduce( rapply, environment );
 		}), function( environment ) {
 		    return parse.bind( parse.single( parseUserCall( store, environment, label ) ), parse.finish )
@@ -312,35 +299,239 @@ function parseUEval( store, environment ) {
 	});
     });
 }
-
+    
 function parseUserCall( store, environment, label ) {
-    return function( node, succeed, fail ) {
-	if( ntypes.ExpressionStatement.check( node ) &&
-	    ntypes.CallExpression.check( node.expression ) &&
-	    ( ! isContinuationCall( node.expression ) ) ) {
-	    return succeed( makeUEval( store, environment, label, node.expression.callee, node.expression.arguments.slice(2), node.expression.arguments[0] ) );
-	}
-	else fail();
-    }
+    return callbUserCall( function( callee, args, k ) {
+	return makeUEval( store, environment, label, callee, args, k );
+    });
 }
 
 function makeUEval( store, environment, label, callee, args, k ) {
     if( ntypes.Identifier.check( k ) ) {
-	return new UEvalExit( store, environment, label, callee, args );
+	return new UEvalExit({
+	    store: store,
+	    environment: environment,
+	    label: label,
+	    callee: callee,
+	    args: args
+	});
     }
     else {
-	return new UEvalCall( store, environment, label, callee, args, k );
+	return new UEvalCall({
+	    store: store,
+	    environment: environment,
+	    label: label,
+	    callee: callee,
+	    args: args,
+	    k: k
+	});
     }
 }
 
-function UEvalCall( store, environment, label, callee, args, k ) {
-    this.store = store;
-    this.environment = environment;
-    this.label = label;
-    this.callee = callee;
-    this.args = args;
-    this.k = k;
+// ---
+
+var BEval = new Record({
+    type: "BEval",
+    store: null,
+    environment: null,
+    test: null,
+    consequent: null,
+    alternate: null,
+    toString: show({
+	environment: show_environment,
+	test: show_argument,
+	consequent: show_argument,
+	alternate: show_argument
+    })
+});
+
+function parse_single_or( p, q ) {
+    return function( node, succeed, fail ) {
+	return p( node, succeed, function() {
+	    return q( node, succeed, fail );
+	});
+    }
 }
+
+BEval.prototype.succs = function() {
+    var parse = parse_single_or( parseContCall( this.store, this.environment ),
+				 parseUserCall( this.store, this.environment ) );
+
+    var vs = Au( this.store, this.environment, this.test );
+
+    var states = new Set(), add = function( state ) {
+	states = states.add( state );
+    };
+
+    if( vs.has( true ) ) {
+	parse( build.expressionStatement( this.consequent ), add, fail( "not a call", this.consequent ) );
+    }
+
+    if( vs.has( false ) ) {
+	parse( build.expressionStatement( this.alternate ), add, fail( "not a call", this.alternate ) );
+    }
+    
+    return states;
+}
+
+var CEvalExit = new Record({
+    type: "CEvalExit",
+    store: null,
+    environment: null,
+    argument: null,
+    toString: show({
+	environment: show_environment,
+	argument: show_argument
+    })
+});
+
+CEvalExit.prototype.succs = function() {
+    return new Set();
+}
+
+CEvalExit.prototype.evaluatedArgument = function() {
+    return Au( this.store, this.environment, this.argument );
+}
+
+function show_environment( environment ) {
+    return "env";
+}
+
+function showFunc( f ) {
+    if( isContinuationFunc( f ) ) {
+	return "lambda " + contParams( f ).join(",") + ".<...>";
+    }
+    else {
+	return "lambda " + funcParams( f ).join(",") + ".<...>";
+    }
+}
+
+function show_argument( argument ) {
+    switch( argument.type ) {
+    case Syntax.CallExpression:
+	return show_argument( argument.callee ) + "(" + argument.arguments.map( show_argument ).join(",") + ")"
+    case Syntax.FunctionExpression:
+	return "<" + showFunc( argument ) + ">";
+    case Syntax.Identifier:
+	return "<" + argument.name + ">";
+    case Syntax.Literal:
+	return "<" + argument.value + ">";
+    case Syntax.MemberExpression:
+	if( argument.computed ) {
+	    return show_argument( argument.object ) + "[" + show_argument( arugment.property ) + "]";
+	}
+	else {
+	    return show_argument( argument.object ) + "." + argument.property.name;
+	}
+    default:
+	throw new Error( "show_argument type " + argument.type );
+    }
+}
+
+function show_value( x ) {
+    if( typeof x === "number" || typeof x === "boolean" ) {
+	return x.toString();
+    }
+    else if( x.type === "FunctionExpression" ) {
+	return showFunc( x );
+    }
+    else {
+	throw new Error( "show_value" );
+    }
+}
+
+function show_values( D ) {
+    return "{" + D.map( show_value ).toArray().join(",") + "}";
+}
+
+function map_show( show ) {
+    return function( xs ) {
+	return "[" + xs.map( show ).join(",") + "]";
+    }
+}
+
+function show_raw_value( x ) {
+    return x.toString();
+}
+
+function show( shows ) {
+    return function() {
+	var vs = [];
+
+	for( var p in shows ) {
+	    vs.push( shows[p]( this[p] ) );
+	}
+		   
+	return this.type + "(" + vs.join(",") + ")";
+    }
+}
+
+var CEvalInner = new Record({
+    type: "CEvalInner",
+    store: null,
+    environment: null,
+    cont: null,
+    argument: null,
+    toString: show({
+	cont: show_argument,
+	argument: show_argument
+    })
+});
+
+CEvalInner.prototype.succs = function() {
+    var argument = Au( this.store, this.environment, this.argument );
+
+    return Set.of( new CApply({
+	store: this.store,
+	environment: this.environment,
+	cont: this.cont,
+	argument: argument
+    }) );
+}
+
+var CApply = new Record({
+    type: "CApply",
+    store: null,
+    environment: null,
+    cont: null,
+    argument: null,
+    toString: show({
+	environment: show_environment,
+	cont: show_value,
+	argument: show_values
+    })
+});
+
+CApply.prototype.succs = function() {
+    var store = this.store, environment = this.environment, argument = this.argument;
+
+    return Set.of( destructFuncExp( this.cont, function( params, body ) {
+	environment = store_join( environment, params[0], argument );
+	    
+	if( isHeapVar( params[0] ) ) {
+	    store = store_join( store, params[0], argument );
+	}
+
+	return parseBody( store, environment )( body.body, 0, id, fail( "failed to parse function body", body.body ) );
+    }, fail( "expected a function expression", this.cont ) ) );
+}
+
+var UEvalCall = new Record({
+    type: "UEvalCall",
+    store: null,
+    environment: null,
+    label: null,
+    callee: null,
+    args: null,
+    k: null,
+    toString: show({
+	environment: show_environment,
+	label: show_raw_value,
+	callee: show_argument,
+	args: map_show( show_argument ),
+	k: show_argument
+    })
+});
 
 UEvalCall.prototype.succs = function() {
     var store = this.store, environment = this.environment;
@@ -353,33 +544,39 @@ UEvalCall.prototype.succs = function() {
 }
 
 
-function UEvalExit( store, environment, label, callee, args ) {
-    this.store = store;
-    this.environment = environment;
-    this.label = label;
-    this.callee = callee;
-    this.args = args;
-}
+var UEvalExit = new Record({
+    type: "UEvalExit",
+    store: null,
+    environment: null,
+    label: null,
+    callee: null,
+    args: null,
+    toString: show({
+	environment: show_environment,
+	label: show_raw_value,
+	callee: show_argument,
+	args: map_show( show_argument )
+    })
+});
 
 function evalthis( store, environment, args ) {
     return function( f ) {
 	switch( f.type ) {
 	case "Primitive":
-	    switch( f.name ) {
-	    case "sample":
-		return new CEvalExit( store, environment, f.apply( args[0] ) );
-	    default:
-		throw new Error( "primitive procedure not implemented" );
-	    }
+	    return f.apply( store, environment, args );
 	default:
-	    return new UApplyEntry( store, f, args );
+	    return new UApplyEntry({
+		store: store,
+		f: f,
+		args: args
+	    });
 	}
     }
 }
     
 UEvalExit.prototype.succs = function() {
     var store = this.store, environment = this.environment;
-    
+
     var args = this.args.map( function( x ) {
 	return Au( store, environment, x );
     });
@@ -387,26 +584,33 @@ UEvalExit.prototype.succs = function() {
     return Au( this.store, this.environment, this.callee ).map( evalthis( store, environment, args ) );
 }
 
-function UApplyEntry( store, f, args ) {
-    this.store = store;
-    this.f = f;
-    this.args = args;
-}
+var UApplyEntry = new Record({
+    type: "UApplyEntry",
+    store: null,
+    f: null,
+    args: null,
+    toString: show({
+	f: show_value,
+	args: map_show( show_values )
+    })
+});
 
 UApplyEntry.prototype.succs = function() {
     var store = this.store, args = this.args;
     
-    return [callbFuncExp( this.f, function( f ) {
-	return f( function( params, body ) {
-	    var environment = {};
+    return Set.of( destructFuncExp( this.f, function( params, body ) {
+	var environment = new Map();
 
-	    for( var i = 0; i < params.length; ++i ) {
-		environment[ params[i] ] = args[i];
+	for( var i = 0; i < params.length; ++i ) {
+	    environment = store_extend( environment, params[i], args[i] );
+		
+	    if( isHeapVar( params[i] ) ) {
+		store = store_extend( store, params[i], args[i] );
 	    }
+	}
 
-	    return parseBody( store, environment )( body.body, 0, id, fail( "failed to parse function body", body.body[3] ) );
-	});
-    }, fail( "expected a function expression here", this.f ))];
+	return parseBody( store, environment )( body.body, 0, id, fail( "failed to parse function body", body.body ) );
+    }, fail( "expected a function expression here", this.f ) ) );
 }
 
 function rapply( x, f ) {
@@ -418,26 +622,23 @@ function id( x ) {
 }
 
 var parseBody = function( store, environment ) {
-    return parse.or( parseCEval( store, environment ),
-		     parseUEval( store, environment ) );
+    return parse.or( [ parseBEval( store, environment ),
+		       parseCEval( store, environment ),
+		       parseUEval( store, environment ) ] );
 }
 
 function inject( node, k ) {
     assert( types.namedTypes.Program.check( node ) );
 
-    var parser = parse.bind( parse.apply( parse.star( parse.single( foldsFuncDec ) ), function( fs ) {
-	return fs.reduce( rapply, {} );
+    var parser = parse.bind( parse.apply( parse.rep( parse.single( foldsFuncDec ) ), function( fs ) {
+	return fs.reduce( rapply, new Map() );
     }), function( store ) {
-	return parseBody( store, {} );
+	return parseBody( store, new Map() );
     });
 
-    var state = parser( node.body, 0, id, fail( "uh oh", node ) );
-
-    state.isInitial = true;
-
-    return state;
+    return parser( node.body, 0, id, fail( "failed to parse main function body", node.body ) );
 }
-
+/*
 function showEnv( e ) {
     return Object.getOwnPropertyNames( e ).toString();
 }
@@ -483,65 +684,94 @@ function show( s ) {
     default:
 	throw new Error( "no show case for " + name );
     }
-}
+}*/
 
 // expects an AST of a named, CPS'd program
 function analyzeMain( node, k ) {
+    Map.prototype.toString = function() {
+	var rep = "{ ";
+	
+	var i = this.entries();
+
+	var v = i.next();
+
+	while( ! v.done ) {
+	    rep = rep + v.value[0] + "=>" + v.value[1];
+	    v = i.next();
+	}
+
+	rep = rep + "}";
+
+	return rep;
+    }
+    
+    var Pair = new Record({
+	car: null,
+	cdr: null,
+	toString: function() {
+	    return "(" + this.car + "," + this.cdr + ")";
+	}
+    });
 
     isHeapVar = analyzeRefs( node, k );
     
-    var seen = new Set(), work = new Set(), summaries = new Hash(),
-	callersf = new Hash(), callersr = new Hash(), tcallers = new Hash(), finals = new Set();
+    var seen = new Set(), work = new Set(), summaries = new Map(),
+	callers = new Map(), tcallers = new Map(), finals = new Set();
 
     function propagate( s0, s1 ) {
-	var ss = new Pair( s0, s1 );
+	var ss = new Pair({
+	    car: s0,
+	    cdr: s1
+	});
 
-	if( seen.add( ss ) ) {
-	    work.add( ss );
+	if( ! seen.has( ss ) ) {
+	    seen = seen.add( ss );
+	    work = work.add( ss );
 	}
-    }
-
-    function set_add( x ) {
-	return function( xs ) {
-	    xs.add( x );
-	    return xs;
-	}
-    }
-
-    function callers_insert( s0ands1, s2 ) {
-	callersf.update( s0ands1, set_add( s2 ), new Set() );
-	callersr.update( s2, set_add( s0ands1 ), new Set() );
     }
 
     function update( s1, s2, s3, s4 ) {
-	d = s4.evaluatedArgument();
-	s2.environment
-	s4.store
+	assert( s1.type === "UApplyEntry" );
+	assert( s2.type === "UEvalCall" );
+	assert( s3.type === "UApplyEntry" );
+	assert( s4.type === "CEvalExit" );
+
+	var environment = s2.environment;
+
+	if( ntypes.Identifier.check( s2.callee ) && ( ! s2.callee.heapRef ) ) {
+	    environment = store_extend( environment, s2.callee.name, s3.f );
+	}
 	
-	console.log( s1.constructor.name );
-	console.log( s2.constructor.name );
-	console.log( s3.constructor.name );
-	console.log( s4.constructor.name );
-	throw 53;
+	propagate( s1, new CApply({
+	    store: s4.store,
+	    environment: environment,
+	    cont: s2.k,
+	    argument: s4.evaluatedArgument()
+	}));
     }
     
     var init = inject( node, k );
 
-    work.add( new Pair( init, init ) );
+    propagate( init, init );
 
-    while( work.size() > 0 ) {
-	var states = work.pop();
+    while( work.size > 0 ) {
+	var states = work.first();
 
-	console.log( "handling " + show( states.car ) + " to " + show( states.cdr ) );
+	console.log( "CAR " + states.car );
+	console.log( "CDR " + states.cdr );
 	
+	work = work.rest();
+
 	if( states.cdr instanceof CEvalExit ) {
-	    if( states.car.isInitial ) {
-		finals.add( states.cdr.evaluatedArgument() );
+	    if( states.car.equals( init ) ) {
+		finals = finals.union( states.cdr.evaluatedArgument() );
+		console.log( "NEW FINALS" );
+		console.log( finals );
 	    }
 	    else {
-		summaries.update( states.car, set_add( states.cdr ), new Set() );
+		summaries = store_extend( summaries, states.car, states.cdr );
 
-		callersr.get( states.car, new Set() ).forEach( function( s0ands1 ) {
+		callers.get( states.car, new Set() ).forEach( function( s0ands1 ) {
 		    update( s0ands1.car, s0ands1.cdr, states.car, states.cdr );
 		});
 
@@ -554,8 +784,8 @@ function analyzeMain( node, k ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
 
-		callers_insert( states, state );
-
+		callers = store_extend( callers, state, states );
+		
 		summaries.get( state, new Set() ).forEach( function( state1 ) {
 		    update( states.car, states.cdr, state, state1 );
 		});
@@ -564,25 +794,26 @@ function analyzeMain( node, k ) {
 	else if( states.cdr instanceof UEvalExit ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
-		
-		tcallers.update( state, set_add( states ), new Set() );
+
+		tcallers = store_extend( tcallers, state, states );
 		
 		summaries.get( state, new Set() ).forEach( function( state ) {
 		    propagate( states.car, state );
 		});
 	    });
 	}
-	else if( states.cdr instanceof UApplyEntry ) {
+	else if( states.cdr instanceof UApplyEntry ||
+		 states.cdr instanceof CApply ||
+		 states.cdr instanceof CEvalInner ||
+		 states.cdr instanceof BEval ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( states.car, state );
 	    });
 	}
 	else {
-	    console.log( states.car.constructor );
-	    console.log( states.car );
-	    console.log( states.cdr.constructor );
-	    console.log( states.cdr );
-	    throw new Error( "unhandled state" );
+	    //console.log( states.car );
+	    //console.log( states.cdr );
+	    throw new Error( "unhandled state with type " + states.cdr.type );
 	}
     }
 
