@@ -10,19 +10,13 @@ var Syntax = estraverse.Syntax;
 
 var gensym = util.makeGensym();
 
-function makeGensymVariable(name){
-  return build.identifier("_".concat(gensym(name)));
-}
+var match = require("./util2").match;
+var clause = require("./util2").clause;
+var fail = require("./util2").fail;
+var functor = require("./util2").functor;
 
-function convertToStatement(node){
-  if (types.namedTypes.Statement.check(node)) {
-    return node;
-  } else if (types.namedTypes.Expression.check(node)) {
-    return build.expressionStatement(node);
-  } else {
-    throw new Error("convertToStatement: can't handle node type: " + node.type);
-  }
-}
+var linearize = require("./linearize").linearize;
+var isPrimitive = require("./primitive").isPrimitive;
 
 function buildFunc(args, body){
   if (types.namedTypes.BlockStatement.check(body)) {
@@ -87,61 +81,9 @@ function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
   }
 }
 
-function isImmediate(node) {
-  return node.type === Syntax.Literal || node.type === Syntax.Identifier;
-}
-
-function isFunctionDeclaration(node){
-  return (types.namedTypes.VariableDeclaration.check(node) &&
-          types.namedTypes.FunctionExpression.check(node.declarations[0].init));
-}
-
-function cpsBlock(nodes, cont){
-
-  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
-    // Function declarations that occur as the first nodes in a block
-    // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.
-    var node = nodes[0];
-    var newBlockElementNode;
-    assert.equal(node.declarations.length, 1);
-    var declaration = node.declarations[0];
-    newBlockElementNode = build.variableDeclaration(
-      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
-    var newRemainderNode = cpsBlock(nodes.slice(1), cont);
-    if (types.namedTypes.BlockStatement.check(newRemainderNode)){
-      // Flatten nested block
-      return build.blockStatement([newBlockElementNode].concat(newRemainderNode.body));
-    } else {
-      return build.blockStatement([newBlockElementNode, convertToStatement(newRemainderNode)]);
-    }
-
-  } else {
-    // FIXME: the sequence vars are going to be ignored (but will also
-    // be removed by optimizer)
-    return cpsSequence(
-      function (nodes){return (nodes.length === 1);},
-      function(nodes, vars){
-        return cps(nodes[0], cont);
-      },
-      nodes);
-  }
-}
-
-// we assume that a function called as a method is primitive (a hack,
-// for simplicity). have to wrap up the object in case it's compound.
-function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
-  var objNode = opNode.object;
-  var nodes = [objNode].concat(argNodes);
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed);
-      return buildContinuationCall(
-        cont,
-        build.callExpression(memberNode, vars.slice(1)));
-    },
-    nodes);
+function buildFunction( params, body, id ) {
+    return build.functionExpression( id || null, params,
+				     build.blockStatement([ build.expressionStatement( body ) ]) );
 }
 
 function cpsCompoundApplication(opNode, argNodes, cont){
@@ -155,24 +97,12 @@ function cpsCompoundApplication(opNode, argNodes, cont){
     nodes);
 }
 
-function cpsApplication(opNode, argNodes, cont){
-  if (types.namedTypes.MemberExpression.check(opNode)){
-    return cpsPrimitiveApplicationMember(opNode, argNodes, cont);
-  } else {
-    return cpsCompoundApplication(opNode, argNodes, cont);
-  }
+function buildContinuation( param, body ) {
+    return buildFunction( [ param ], body );
 }
 
-function cpsUnaryExpression(opNode, argNode, isPrefix, cont){
-  var nodes = [argNode];
-  return cpsSequence(
-    function(nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      return buildContinuationCall(
-        cont,
-        build.unaryExpression(opNode, vars[0], isPrefix));
-    },
-    nodes);
+function buildContinuationCall( callee, arg ) {
+    return buildCall( callee, [ arg ] );
 }
 
 function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
@@ -201,42 +131,29 @@ function cpsLogicalExpression(lopNode, leftNode, rightNode, cont){
     nodes);
 }
 
-function cpsConditional(test, consequent, alternate, cont){
-  // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("k");
-  var testName = makeGensymVariable("test");
-  return build.callExpression(
-    buildFunc([contName],
-              cps(test,
-                  buildFunc([testName],
-                            build.conditionalExpression(testName,
-                                                        cps(consequent, contName),
-                                                        cps(alternate, contName))))),
-    [cont]
-  );
-}
-
-function cpsIf(test, consequent, alternate, cont){
-  // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("k");
-  var testName = makeGensymVariable("test");
-  var consequentNode = cps(consequent, contName);
-  var alternateNode;
-  if (alternate === null) {
-    alternateNode = buildContinuationCall(contName, build.identifier("undefined"));
-  } else {
-    alternateNode = cps(alternate, contName);
-  }
-  return build.callExpression(
-    buildFunc([contName],
-              cps(test,
-                  buildFunc([testName],
-                            build.ifStatement(
-                              testName,
-                              convertToStatement(consequentNode),
-                              convertToStatement(alternateNode))))),
-    [cont]
-  );
+function isAtomic( node ) {
+    switch( node.type ) {
+    case Syntax.ArrayExpression:
+	return node.elements.every( isAtomic );
+    case Syntax.BinaryExpression:
+	return isAtomic( node.left ) && isAtomic( node.right );
+    case Syntax.CallExpression:
+	return isPrimitive( node.callee ) && node.arguments.every( isAtomic );
+    case Syntax.ConditionalExpression:
+	return isAtomic( node.test ) && isAtomic( node.consequent ) && isAtomic( node.alternate );
+    case Syntax.FunctionExpression:
+    case Syntax.Identifier:
+    case Syntax.Literal:
+	return true;
+    case Syntax.MemberExpression:
+	return isAtomic( node.object ) && isAtomic( node.property );
+    case Syntax.UnaryExpression:
+	return isAtomic( node.argument );
+    default:
+	console.log( node );
+	console.log( "isAtomic" );
+	throw "ha";
+    }
 }
 
 function cpsArrayExpression(elements, cont){
@@ -371,24 +288,17 @@ function cps(node, cont){
   }
 }
 
-
 function cpsMain(node){
-  gensym = util.makeGensym();
+    gensym = util.makeGensym();
 
-    if( types.namedTypes.Program.check( node ) ) {
-	var k = build.identifier( gensym("k") );
-
-	var p = convertToStatement(buildFunc([k],cpsBlock(node.body,k)));
-
-	p.updateTopLevel = function( f ) {
-          return convertToStatement(buildFunc([k],f(this.body)));
-	}
-	
-	return build.program([p])
-    }
-    else throw new Error("cps: expected node of type program; got " + node.type );
+    return inProgram( node, function( expression ) {
+	return clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
+	    return cpsFunction( id, params, body );
+	})( expression, fail( "cps: expected FunctionExpression", expression ) );
+    }, fail( "cps: inProgram", node ) );
 }
 
 module.exports = {
   cps: cpsMain
 };
+

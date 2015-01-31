@@ -1,10 +1,25 @@
 "use strict";
 
+<<<<<<< HEAD
 var estraverse = require("estraverse");
 var types = require("ast-types");
 
 var build = types.builders;
 var Syntax = estraverse.Syntax;
+=======
+var Syntax = require("estraverse").Syntax;
+var replace = require("estraverse").replace;
+
+var build = require("ast-types").builders;
+var types = require("ast-types").types;
+
+var functor = require("./util2").functor;
+var fail = require("./util2").fail;
+
+var util = require("./util");
+
+var isPrimitive = require("./primitive").isPrimitive;
+>>>>>>> Standardization.
 
 function makeNextCounter() {
     var gensym = util.makeGensym();
@@ -25,6 +40,7 @@ function makeAddressExtension(){
                               [nextCounter()]);
 }
 
+<<<<<<< HEAD
 function naming(node) {
 
   switch (node.type) {
@@ -38,6 +54,26 @@ function naming(node) {
     //add a gensym onto the address variable
   case Syntax.CallExpression:
     if(types.namedTypes.MemberExpression.check(node.callee)){
+=======
+function naming( node ) {
+    switch( node.type ) {
+    case Syntax.FunctionExpression:
+	return build.functionExpression(node.id,
+					[addressIdNode].concat(node.params),
+					node.body);
+
+      //add a gensym onto the address variable
+    case Syntax.CallExpression:
+	if( isPrimitive( node.callee ) ) {
+            return node;
+	}
+	else {
+            return build.callExpression(node.callee,
+					[makeAddressExtension()].concat(node.arguments));
+	}
+
+    default:
+>>>>>>> Standardization.
       return node;
     } else {
       return build.callExpression(node.callee,
@@ -50,14 +86,10 @@ function naming(node) {
   }
 }
 
-
 function namingMain(node) {
   nextCounter = makeNextCounter();
   return estraverse.replace(node, { leave: naming });
 }
-
-
-
 
 module.exports = {
   naming: namingMain
