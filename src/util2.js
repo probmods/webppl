@@ -59,7 +59,14 @@ function functor( node, f, fail ) {
 	    build.expressionStatement( f( node.body[0].expression ) )
 	]);
     }
-    else return fail();
+    else {
+	if( typeof fail === "Function" ) {
+	    return fail();
+	}
+	else {
+	    throw new Error( "functor: fail is not a function" );
+	}
+    }
 }
 
 function returnify( nodes ) {
@@ -91,6 +98,24 @@ function returnify( nodes ) {
     }
 }
 
+function isPrimitive( node ) {
+    switch( node.type ) {
+    case Syntax.FunctionExpression:
+    case Syntax.Identifier:
+	return false;
+    case Syntax.MemberExpression:
+	return ( types.Identifier.check( node.object )
+		 && node.object.name === "Math" )
+	    || ( ! node.computed
+		 && node.property.name === "concat" );
+	    
+    default:
+	console.log( node );
+	throw "isPrimitive doesn't handle node";
+    }
+}
+
+
 function thunkify( node, fail ) {
     if( types.Program.check( node ) ) {
 	return build.program([
@@ -112,3 +137,4 @@ exports.clause = clause;
 exports.match = match;
 exports.thunkify = thunkify;
 exports.functor = functor;
+exports.isPrimitive = isPrimitive;

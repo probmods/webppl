@@ -16,8 +16,8 @@ var fail = require("./util2").fail;
 var functor = require("./util2").functor;
 
 var linearize = require("./linearize").linearize;
-var isPrimitive = require("./primitive").isPrimitive;
 
+var isPrimitive = require("./util2").isPrimitive;
 var makeGenvar = require("./util2").makeGenvar;
 
 function buildContinuationCall(cont, value){
@@ -118,18 +118,37 @@ function isAtomic( node ) {
     default:
 	console.log( node );
 	console.log( "isAtomic" );
-	throw "ha";
+	throw "isAtomic";
     }
 }
 
-function cpsArrayExpression(elements, cont){
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var arrayExpr = build.arrayExpression(vars);
-      return buildContinuationCall(cont, arrayExpr);
-    },
-    elements);
+function atomize( node, K ) {
+    if( isAtomic( node ) ) {
+	switch( node.type ) {
+	case Syntax.FunctionExpression:
+	    return K( cpsFunction( node.id, node.params, node.body ) );
+	default:
+	    return K( node );
+	}
+    }
+    else {
+	switch( node.type ) {
+	case Syntax.BinaryExpression:
+	case Syntax.CallExpression:
+	    var x = genvar("result");
+	    return cps( node, buildContinuation( x, K( x ) ) );
+	case Syntax.MemberExpression:
+	    return atomize( node.object, function( object ) {
+		return atomize( node.property, function( property ) {
+		    return K( build.memberExpression( object, property, node.computed ) );
+		});
+	    });
+	default:
+	console.log( node );
+	console.log( "atomize" );
+	throw "atomize";
+	}
+    }
 }
 
 function cpsObjectExpression(properties, cont, props){
