@@ -13,31 +13,42 @@ var replace = require("estraverse").replace;
 var build = require("ast-types").builders;
 var types = require("ast-types").types;
 
+var makeGensym = require("./util").makeGensym;
+var makeGenvar = require("./util2").makeGenvar;
+
 var functor = require("./util2").functor;
 var fail = require("./util2").fail;
-
-var util = require("./util");
 
 var isPrimitive = require("./primitive").isPrimitive;
 >>>>>>> Standardization.
 
-function makeNextCounter() {
-    var gensym = util.makeGensym();
+function makeGenlit() {
+    var gensym = makeGensym();
 
     return function() {
 	return build.literal(gensym("_"));
     }
 }
 
-var nextCounter = null;
+var genlit = null;
+var genvar = null;
 
-var addressIdNode = build.identifier("address");
+var addresses = [];
 
-function makeAddressExtension(){
-  return build.callExpression(build.memberExpression(addressIdNode,
-                                                     build.identifier("concat"),
-                                                     false),
-                              [nextCounter()]);
+function makeAddressExtension( address ) {
+  return build.callExpression(build.memberExpression( address,
+                                                      build.identifier("concat"),
+                                                      false),
+                              [genlit()]);
+}
+
+function generating( node ) {
+    switch( node.type ) {
+    case Syntax.FunctionExpression:
+	addresses.unshift( genvar("address") );
+	break;
+    default:
+    }
 }
 
 <<<<<<< HEAD
@@ -59,7 +70,7 @@ function naming( node ) {
     switch( node.type ) {
     case Syntax.FunctionExpression:
 	return build.functionExpression(node.id,
-					[addressIdNode].concat(node.params),
+					[addresses.shift()].concat(node.params),
 					node.body);
 
       //add a gensym onto the address variable
@@ -69,7 +80,7 @@ function naming( node ) {
 	}
 	else {
             return build.callExpression(node.callee,
-					[makeAddressExtension()].concat(node.arguments));
+					[makeAddressExtension(addresses[0])].concat(node.arguments));
 	}
 
     default:

@@ -5,6 +5,14 @@ var build = require("ast-types").builders;
 var keys = require("estraverse").VisitorKeys;
 var Syntax = require("estraverse").Syntax;
 
+function makeGenvar() {
+    var gensym = require("./util").makeGensym();
+    
+    return function( name ) {
+	return build.identifier( "_".concat( gensym( name ) ) );
+    }
+}
+
 
 function fail( message, node ) {
     return function() {
@@ -73,6 +81,9 @@ function returnify( nodes ) {
 		return build.ifStatement( test,
 					  build.blockStatement( returnify( consequent.body ) ),
 					  alternate === null ? null : build.blockStatement( returnify( alternate.body ) ) );
+	    }),
+	    clause( Syntax.ReturnStatement, function( argument ) {
+		return build.returnStatement( argument );
 	    })
 	], fail( "returnify", nodes[ nodes.length - 1 ] ) );
 
@@ -95,6 +106,7 @@ function thunkify( node, fail ) {
     else return fail();
 }
 
+exports.makeGenvar = makeGenvar;
 exports.fail = fail;
 exports.clause = clause;
 exports.match = match;

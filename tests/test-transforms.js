@@ -4,6 +4,7 @@ var _ = require('underscore');
 var parse = require("esprima").parse;
 var unparse = require("escodegen").generate;
 var thunkify = require("../src/util2").thunkify;
+var fail = require("../src/util2").fail;
 var naming = require("../src/naming").naming;
 var cps = require("../src/cps").cps;
 var store = require("../src/store").store;
@@ -45,7 +46,24 @@ function runTest( test, code, expected, transformAst, run ) {
     }
 }
 
-var transformAstNaming = compose( naming, thunkify );
+function check( test, code, newCode, expected, actual ) {
+    var success = _.isEqual( expected, actual );
+
+    test.ok( success );
+
+    if( ! success ) {
+	console.log( code );
+	console.log( newCode );
+	console.log( "Expected:", expected );
+	console.log( "Actual:", actual );
+    }
+
+    test.done();
+}
+
+var transformAstNaming = compose( naming, function( node ) {
+    return thunkify( node, fail( "transform", node ) );
+});
 function runNaming( test, code, newCode, expected ) {
     check( test, code, newCode, expected, eval( newCode )( "" ) );
 }
@@ -104,7 +122,7 @@ var selectOptimizationPrimitives = selectStorePrimitives;
 var selectVarargsPrimitives = selectOptimizationPrimitives;
 var selectTrampolinePrimitives = selectVarargsPrimitives;
 
-function generateTestFunctions(allTests, testRunner){
+var generateTestFunctions = function(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
     var tests = allTests[testClassName];

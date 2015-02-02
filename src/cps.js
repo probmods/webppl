@@ -18,14 +18,7 @@ var functor = require("./util2").functor;
 var linearize = require("./linearize").linearize;
 var isPrimitive = require("./primitive").isPrimitive;
 
-function buildFunc(args, body){
-  if (types.namedTypes.BlockStatement.check(body)) {
-    return build.functionExpression(null, args, body);
-  } else {
-    return build.functionExpression(null, args, build.blockStatement(
-      [convertToStatement(body)]));
-  }
-}
+var makeGenvar = require("./util2").makeGenvar;
 
 function buildContinuationCall(cont, value){
   return build.callExpression(cont, [value]);
@@ -47,37 +40,6 @@ function cpsAtomic(node){
     return build.identifier("undefined");
   default:
     throw new Error("cpsAtomic: unknown expression type: " + node.type);
-  }
-}
-
-function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
-  vars = vars || [];
-  if (atFinalElement(nodes)){
-    return getFinalElement(nodes, vars);
-  } else if(isImmediate(nodes[0])) {
-    //    var val = immediateVal(nodes[0])
-    return cpsSequence(atFinalElement,
-                       getFinalElement,
-                       nodes.slice(1),
-                       vars.concat([nodes[0]]));
-  } else if ((nodes[0].type === Syntax.VariableDeclaration) &&
-             !isFunctionDeclaration(nodes[0])){
-    assert.equal(nodes[0].declarations.length, 1);
-    var declaration = nodes[0].declarations[0];
-    return cps(declaration.init,
-               buildFunc([declaration.id],
-                         cpsSequence(atFinalElement,
-                                     getFinalElement,
-                                     nodes.slice(1),
-                                     vars.concat([declaration.id]))));
-  } else {
-    var nextVar = makeGensymVariable("s");
-    return cps(nodes[0],
-               buildFunc([nextVar],
-                         cpsSequence(atFinalElement,
-                                     getFinalElement,
-                                     nodes.slice(1),
-                                     vars.concat([nextVar]))));
   }
 }
 
@@ -147,6 +109,10 @@ function isAtomic( node ) {
 	return true;
     case Syntax.MemberExpression:
 	return isAtomic( node.object ) && isAtomic( node.property );
+    case Syntax.ObjectExpression:
+	return node.properties.every( function( property ) {
+	    return isAtomic( property.key ) && isAtomic( property.value );
+	});
     case Syntax.UnaryExpression:
 	return isAtomic( node.argument );
     default:
