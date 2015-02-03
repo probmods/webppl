@@ -3,7 +3,7 @@ webppl
 
 Probabilistic programming for the web
 
-[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl)
+[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 
 
 ## Setup
