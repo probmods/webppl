@@ -16,7 +16,6 @@ var parse = require("./parser-combinator");
 var analyzeRefs = require("./analyze-refs").analyzeRefs;
 
 var fail = require("./util2").fail;
-var clause = require("./util2").clause;
 
 var isHeapVar = null;
 
@@ -49,8 +48,7 @@ var global = new Map({
     sample: Set.of( new Primitive({
 	name: "sample",
 	apply: function( store, environment, args ) {
-	    console.log( "sample apply" );
-	    console.log( args );
+	    // XXX full abstraction
 	    assert( args.get(0).size === 1 );
 	    return args.get(0).first().apply( store, environment, args.get(1) );
 	}
@@ -60,6 +58,7 @@ var global = new Map({
 function Ai( operator, left, right ) {
     switch( operator ) {
     case "+":
+	// XXX abstract values
 	return Set.of( 12 );
     default:
 	throw new Error( "Ai: unhandled operator " + operator );
@@ -116,20 +115,10 @@ function Au( store, environment, e ) {
     }
 }
 
-function console_log( x ) {
-    console.log( x );
-}
-
 function mapExtend( s, x, v ) {
     return s.update( x, new Set(), function( D ) {
 	return D.add( v );
     });
-}
-
-function makeMapExtend( x, v ) {
-    return function( s ) {
-	return mapExtend( s, x, v );
-    }
 }
 
 function mapJoin( s, x, D ) {
@@ -151,56 +140,6 @@ function makeCallb( destructor ) {
 	}
     }
 }
-
-function foldsFuncDec( node, succeed, fail ) {
-    if( types.VariableDeclaration.check( node ) &&
-	( node.kind === "var" ) &&
-	( node.declarations.length === 1 ) &&
-	types.FunctionExpression.check( node.declarations[0].init ) ) {
-	return succeed( function( s ) {
-	    return mapExtend( s, node.declarations[0].id.name, node.declarations[0].init );
-	});
-    }
-    else return fail();
-}
-
-function destructContBin( node, succeed, fail ) {
-    if( types.VariableDeclaration.check( node ) &&
-	( node.kind === "var" ) &&
-	( node.declarations.length === 1 ) &&
-	( node.declarations[0].id.name === "_return" ) ) {
-	return succeed( node.declarations[0].init.name );
-    }
-    else return fail();
-}
-
-var callbContBin = makeCallb( destructContBin );
-
-function foldsArguBin( node, succeed, fail ) {
-    if( types.VariableDeclaration.check( node ) &&
-	( node.kind === "var" ) &&
-	( node.declarations.length === 1 ) ) {
-	return succeed( function( s ) {
-	    return mapExtend( s, node.declarations[0].id.name, node.declarations[0].init );
-	});
-    }
-    else return fail();
-}
-
-function destructNameDec( node, succeed, fail ) {
-    if( types.VariableDeclaration.check( node ) &&
-	( node.kind === "var" ) &&
-	( node.declarations.length === 1 ) &&
-	types.CallExpression.check( node.declarations[0].init ) &&
-	types.MemberExpression.check( node.declarations[0].init.callee ) &&
-	( node.declarations[0].init.callee.object.name === "address" ) &&
-	( node.declarations[0].init.callee.property.name === "concat" ) ) {
-	return succeed( node.declarations[0].init.arguments[0].value );
-    }
-    else return fail();
-}
-
-var callbNameDec = makeCallb( destructNameDec );
 
 function destructFuncExp( node, succeed, fail ) {
     if( types.FunctionExpression.check( node ) ) {
@@ -329,18 +268,6 @@ function makeCEval( store, environment, cont, argument ) {
 
 function parseUEval( store, environment ) {
     return parse.bind( parse.single( parseUserCall( store, environment ) ), parse.finish )
-    /*
-    return parse.bind( parse.maybe( parse.single( callbContBin( id ) ), false ), function() {
-	return parse.bind( parse.rep( parse.single( parse.not( callbNameDec( id ) ) ) ), function( dummies ) {
-	    return parse.bind( parse.single( callbNameDec( id ) ), function( label ) {
-		return parse.bind( parse.apply( parse.rep( parse.single( foldsArguBin ) ), function( fs ) {
-		    return fs.reduce( rapply, environment );
-		}), function( environment ) {
-		    return parse.bind( parse.single( parseUserCall( store, environment, label ) ), parse.finish )
-		});
-	    });
-	});
-    });*/
 }
     
 function parseUserCall( store, environment ) {
@@ -438,84 +365,6 @@ CEvalExit.prototype.evaluatedArgument = function() {
     return Au( this.store, this.environment, this.argument );
 }
 
-function show_environment( environment ) {
-    return "m";
-    //return environment.toString();
-}
-
-function showFunc( f ) {
-    if( isContinuationFunc( f ) ) {
-	return "lambda " + contParams( f ).join(",") + ".<...>";
-    }
-    else {
-	return "lambda " + f.params[0].name + " " + funcParams( f ).join(",") + ".<...>";
-    }
-}
-
-function show_argument( argument ) {
-    switch( argument.type ) {
-    case Syntax.ArrayExpression:
-	return "<[" + argument.elements.map( show_argument ).join(",") + "]>";
-    case Syntax.BinaryExpression:
-	return "<" + show_argument( argument.left ) + argument.operator + show_argument( argument.right ) + ">";
-    case Syntax.CallExpression:
-	return show_argument( argument.callee ) + "(" + argument.arguments.map( show_argument ).join(",") + ")"
-    case Syntax.FunctionExpression:
-	return "<" + showFunc( argument ) + ">";
-    case Syntax.Identifier:
-	return "<" + argument.name + ">";
-    case Syntax.Literal:
-	return "<" + argument.value + ">";
-    case Syntax.MemberExpression:
-	if( argument.computed ) {
-	    return show_argument( argument.object ) + "[" + show_argument( arugment.property ) + "]";
-	}
-	else {
-	    return show_argument( argument.object ) + "." + argument.property.name;
-	}
-    default:
-	console.log( argument );
-	throw new Error( "show_argument type " + argument.type );
-    }
-}
-
-function show_value( x ) {
-    if( typeof x === "number" || typeof x === "boolean" ) {
-	return x.toString();
-    }
-    else if( x.type === "FunctionExpression" ) {
-	return showFunc( x );
-    }
-    else {
-	throw new Error( "show_value" );
-    }
-}
-
-function show_values( D ) {
-    return "{" + D.map( show_value ).toArray().join(",") + "}";
-}
-
-function map_show( show ) {
-    return function( xs ) {
-	return "[" + xs.map( show ).join(",") + "]";
-    }
-}
-
-function show_raw_value( x ) {
-    return x.toString();
-}
-
-function show( shows ) {
-    return function() {
-	var vs = [];
-
-	for( var p in shows ) {
-	    vs.push( shows[p]( this[p] ) );
-	}
-		   
-	return this.type + "(" + vs.join(",") + ")";
-    }
-}
 
 var CEvalInner = new Record({
     type: "CEvalInner",
@@ -595,7 +444,7 @@ UEvalCall.prototype.succs = function() {
 	return Au( store, environment, x );
     });
 
-    return Au( store, environment, this.callee ).map( evalthis( store, environment, args ) );
+    return Au( store, environment, this.callee ).map( enter( store, environment, args ) );
 }
 
 
@@ -615,21 +464,6 @@ var UEvalExit = new Record({
     })
 });
 
-function evalthis( store, environment, args ) {
-    return function( f ) {
-	switch( f.type ) {
-	case "Primitive":
-	    return f.apply( store, environment, args );
-	default:
-	    return new UApplyEntry({
-		store: store,
-		f: f,
-		args: args
-	    });
-	}
-    }
-}
-    
 UEvalExit.prototype.succs = function() {
     var store = this.store, environment = this.environment;
 
@@ -637,7 +471,7 @@ UEvalExit.prototype.succs = function() {
 	return Au( store, environment, x );
     });
 
-    return Au( this.store, this.environment, this.callee ).map( evalthis( store, environment, args ) );
+    return Au( this.store, this.environment, this.callee ).map( enter( store, environment, args ) );
 }
 
 var UApplyEntry = new Record({
@@ -667,11 +501,102 @@ UApplyEntry.prototype.succs = function() {
 	}
 
 	return parseBody( store, environment, body.body );
-    }, fail( "expected a function expression here", this.f ) ) );
+    }, fail( "expected a function expression", this.f ) ) );
 }
 
-function rapply( x, f ) {
-    return f( x );
+function enter( store, environment, args ) {
+    return function( f ) {
+	switch( f.type ) {
+	case "Primitive":
+	    return f.apply( store, environment, args );
+	default:
+	    return new UApplyEntry({
+		store: store,
+		f: f,
+		args: args
+	    });
+	}
+    }
+}
+
+// SHOW
+
+function show_environment( environment ) {
+    return "<map>";
+}
+
+function showFunc( f ) {
+    if( isContinuationFunc( f ) ) {
+	return "fun " + contParams( f ).join(",") + ".<...>";
+    }
+    else {
+	return "fun " + f.params[0].name + " " + funcParams( f ).join(",") + ".<...>";
+    }
+}
+
+function show_argument( argument ) {
+    switch( argument.type ) {
+    case Syntax.ArrayExpression:
+	return "<[" + argument.elements.map( show_argument ).join(",") + "]>";
+    case Syntax.BinaryExpression:
+	return "<" + show_argument( argument.left ) + argument.operator + show_argument( argument.right ) + ">";
+    case Syntax.CallExpression:
+	return show_argument( argument.callee ) + "(" + argument.arguments.map( show_argument ).join(",") + ")"
+    case Syntax.FunctionExpression:
+	return "<" + showFunc( argument ) + ">";
+    case Syntax.Identifier:
+	return "<" + argument.name + ">";
+    case Syntax.Literal:
+	return "<" + argument.value + ">";
+    case Syntax.MemberExpression:
+	if( argument.computed ) {
+	    return show_argument( argument.object ) + "[" + show_argument( arugment.property ) + "]";
+	}
+	else {
+	    return show_argument( argument.object ) + "." + argument.property.name;
+	}
+    default:
+	console.log( argument );
+	throw new Error( "show_argument type " + argument.type );
+    }
+}
+
+function show_value( x ) {
+    if( typeof x === "number" || typeof x === "boolean" ) {
+	return x.toString();
+    }
+    else if( x.type === "FunctionExpression" ) {
+	return showFunc( x );
+    }
+    else {
+	throw new Error( "show_value" );
+    }
+}
+
+function show_values( D ) {
+    return "{" + D.map( show_value ).toArray().join(",") + "}";
+}
+
+function map_show( show ) {
+    return function( xs ) {
+	return "[" + xs.map( show ).join(",") + "]";
+    }
+}
+
+function show_raw_value( x ) {
+    return x.toString();
+}
+
+function show( shows ) {
+    return function() {
+	var vs = [];
+
+	for( var p in shows ) {
+	    vs.push( shows[p]( this[p] ) );
+	}
+		   
+	return this.type + "(" + vs.join(",") + ")";
+    }
 }
 
 function id( x ) {
@@ -687,7 +612,6 @@ function parseDeclaration( node, succeed, fail ) {
     }
 
 function parseBody( store, environment, nodes ) {
-    //console.log( nodes );
     return parse.bind( parse.apply( parse.rep( parse.single( parseDeclaration ) ), function( declarations ) {
 	declarations.forEach( function( declaration ) {
 	    environment = mapExtend( environment, declaration.id.name, declaration.init );
@@ -713,86 +637,6 @@ function inject( node ) {
 	f: node.body[0].expression,
 	args: new List()
     });
-}
-/*
-function showEnv( e ) {
-    return Object.getOwnPropertyNames( e ).toString();
-}
-
-function showArg( a ) {
-    if( a.hasOwnProperty( "type" ) ) {
-	switch( a.type ) {
-	case Syntax.FunctionExpression:
-	    return "lambda " + a.params.map( showArg ) + " -> ...";
-	case Syntax.Identifier:
-	    return a.name;
-	case Syntax.Literal:
-	    return a.value.toString();
-	default:
-	    console.log( a );
-	    throw new Error( "unhandled argument type" );
-	}
-    }
-    else if( a instanceof Set ) {
-	return a.map( showArg );
-    }
-    else if( a.constructor.name === "Number" ) {
-	return a.toString();
-    }
-    else {
-	console.log( a.constructor );
-	throw new Error( "unhandled argument" );
-    }
-}
-
-function show( s ) {
-    var name = s.constructor.name;
-
-    switch( name ) {
-    case "CEvalExit":
-	return name + "(" + showEnv( s.environment ) + "," + showArg( s.argument ) + ")";
-    case "UEvalExit":
-	return name + "(" + showEnv( s.environment ) + "," + showArg( s.callee ) + "(" + s.args.map( showArg ) + "))^" + s.label;
-    case "UApplyEntry":
-	return name + "(" + showArg( s.f ) + "(" + s.args.map( showArg ) + "))";
-    case "UEvalCall":
-	return name + "(" + showEnv( s.environment ) + "," + showArg( s.callee ) + "(" + s.args.map( showArg ) + "," + showArg( s.k ) +  "))^" + s.label;
-    default:
-	throw new Error( "no show case for " + name );
-    }
-}*/
-
-function state_equal( s0, s1 ) {
-    var all = s0.reduce( function( x, v, k ) {
-	if( x ) {
-	    if( v.equals ) {
-		if( v.equals( s1[k] ) ) {
-		    console.log( v + " equ " + s1[k] );
-		    return true;
-		}
-		else {
-		    console.log( v + " NEQ " + s1[k] );
-		    return false;
-		}
-	    }
-	    else {
-		if( v === s1[k] ) {
-		    console.log( v + " === " + s1[k] );
-		    return true;
-		}
-		else {
-		    console.log( k + ": " + v + " !== " + s1[k] );
-		    return false;
-		}
-	    }
-	}
-    }, true );
-
-    if( all ) {
-	console.log( "all aspects are equal, states are equal: " + s0.equals( s1 ) );
-    }
-
-    return all;
 }
 
 // expects an AST of a named, CPS'd program
@@ -836,10 +680,6 @@ function analyzeMain( node ) {
 	});
 
 	if( ! seen.has( ss ) ) {
-	    /*seen.forEach( function( ss0 ) {
-		state_equal( ss.car, ss0.car ) && state_equal( ss.cdr, ss0.cdr );
-	    });*/
-	    
 	    seen = seen.add( ss );
 	    work = work.add( ss );
 	}
@@ -880,8 +720,6 @@ function analyzeMain( node ) {
 	if( states.cdr instanceof CEvalExit ) {
 	    if( states.car.equals( init ) ) {
 		finals = finals.union( states.cdr.evaluatedArgument() );
-		console.log( "NEW FINALS" );
-		console.log( finals );
 	    }
 	    else {
 		summaries = mapExtend( summaries, states.car, states.cdr );
@@ -929,25 +767,9 @@ function analyzeMain( node ) {
 	    throw new Error( "unhandled state with type " + states.cdr.type );
 	}
     }
-
-/*    console.log( "seen" );
-    console.log( seen );
-    console.log( "work" );
-    console.log( work );
-    console.log( "summaries" );
-    console.log( summaries );
-    console.log( "callersf" );
-    console.log( callersf );
-    console.log( "callersr" );
-    console.log( callersr );
-    console.log( "tcallers" );
-    console.log( tcallers );*/
     
     return finals;
 }
-
-
-
 
 module.exports = {
 analyze: analyzeMain
