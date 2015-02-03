@@ -46,18 +46,18 @@ function runTest(test, code, expected, transformAst){
     console.log("Actual:", actual);
   }
   test.done();
-};
+}
 
 function addHeader(ast, headerCode){
   ast.body = esprima.parse(headerCode).body.concat(ast.body);
-};
+}
 
 function transformAstCps(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
   addHeader(cpsAst, "var topK = function(x){ actual = x; };");
   addHeader(cpsAst, "var identityContinuation = function(x){return x}");
   return cpsAst;
-};
+}
 
 function transformAstStorepassing(ast){
   var cpsAst = cps.cps(ast, build.identifier("topK"));
@@ -65,27 +65,27 @@ function transformAstStorepassing(ast){
   addHeader(storeAst, "var globalStore = {};");
   addHeader(storeAst, "var topK = function(globalStore, x){ _trampoline=null; actual = x; };");
   return storeAst;
-};
+}
 
 function transformAstNaming(ast){
   var namedAst = naming(ast);
   return transformAstStorepassing(namedAst);
-};
+}
 
 function transformAstOptimize(ast){
   var newAst = transformAstNaming(ast);
   return optimize(newAst);
-};
+}
 
 function transformAstVarargs(ast){
   var newAst = transformAstOptimize(ast);
   return varargs(newAst);
-};
+}
 
 function transformAstTrampoline(ast){
   var newAst = transformAstVarargs(ast);
   return trampoline(newAst, false);
-};
+}
 
 
 function selectCpsPrimitives(){
@@ -95,7 +95,7 @@ function selectCpsPrimitives(){
   times = function(k, x, y) {return k(x * y);};
   and = function(k, x, y) {return k(x && y);};
   plusTwo = function(k, x, y) {return k(x + 2);};
-};
+}
 
 function selectStorePrimitives(){
   // Set global definitions
@@ -104,7 +104,7 @@ function selectStorePrimitives(){
   times = function(s, k, x, y) {return k(s, x * y);};
   and = function(s, k, x, y) {return k(s, x && y);};
   plusTwo = function(s, k, x, y) {return k(s, x + 2);};
-};
+}
 
 function selectNamingPrimitives(){
   // Set global definitions
@@ -113,27 +113,27 @@ function selectNamingPrimitives(){
   times = function(s, k, a, x, y) {return k(s, x * y);};
   and = function(s, k, a, x, y) {return k(s, x && y);};
   plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
-};
+}
 
 function runCpsTest(test, code, expected){
   selectCpsPrimitives();
   return runTest(test, code, expected, transformAstCps);
-};
+}
 
 function runStorepassingTest(test, code, expected){
   selectStorePrimitives();
   return runTest(test, code, expected, transformAstStorepassing);
-};
+}
 
 function runNamingTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstNaming);
-};
+}
 
 function runOptimizationTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstOptimize);
-};
+}
 
 function runVarargsTest(test, code, expected){
   selectNamingPrimitives();
@@ -143,7 +143,7 @@ function runVarargsTest(test, code, expected){
 function runTrampolineTest(test, code, expected){
   selectNamingPrimitives();
   return runTest(test, code, expected, transformAstTrampoline);
-};
+}
 
 
 
@@ -162,9 +162,9 @@ function generateTestFunctions(allTests, testRunner){
           }
         };
       });
-  };
+  }
   return exports;
-};
+}
 
 
 var tests = {

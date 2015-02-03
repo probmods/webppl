@@ -2,7 +2,6 @@
 
 var assert = require('assert');
 var fs = require('fs');
-var path = require('path');
 var types = require("ast-types");
 var build = types.builders;
 var esprima = require("esprima");
@@ -26,7 +25,7 @@ for (var prop in runtime){
   }
 }
 
-global['CACHED_WEBPPL_HEADER'] = undefined;
+global.CACHED_WEBPPL_HEADER = undefined;
 
 function addHeaderAst(targetAst, headerAst){
   targetAst.body = headerAst.body.concat(targetAst.body);
@@ -71,7 +70,7 @@ function compileProgram(programCode, verbose){
   } else {
     var headerCode = fs.readFileSync(__dirname + "/header.wppl");
     headerAst = compile(headerCode, 'dummyCont', true);
-    global['CACHED_WEBPPL_HEADER'] = headerAst;
+    global.CACHED_WEBPPL_HEADER = headerAst;
   }
 
   // Compile program code

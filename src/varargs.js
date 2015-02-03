@@ -3,10 +3,8 @@
 var assert = require('assert');
 var estraverse = require('estraverse');
 var types = require('ast-types');
-var escodegen = require('escodegen');
 var esprima = require('esprima');
 
-var build = types.builders;
 var Syntax = estraverse.Syntax;
 
 
@@ -19,10 +17,12 @@ function makeArgumentsIdentifier(){
 function findEnclosingFunctionNode(node){
   var ancestor = node;
   while (ancestor !== undefined){
-    if (ancestor.type === 'FunctionExpression') break;
+    if (ancestor.type === 'FunctionExpression') {
+      break;
+    }
     ancestor = ancestor.parentNode;
   }
-  if (ancestor === undefined){
+  if (ancestor === undefined) {
     throw 'Used "arguments" outside of function context!';
   }
   return ancestor;
@@ -45,14 +45,15 @@ function varargs(node){
   // assign 'arguments' as first statement in body, rename to make it
   // survive subsequent trampoline closure introduction
   case Syntax.Identifier:
-    if (node.name !== 'arguments') return node;
+    if (node.name !== 'arguments') {
+      return node;
+    }
     var functionNode = findEnclosingFunctionNode(node);
     var argumentsId = functionNode.argumentsId || makeArgumentsIdentifier();
     node.name = argumentsId;
     if (functionNode.argumentsId === undefined){
       functionNode.argumentsId = argumentsId;
       assert.equal(functionNode.body.type, 'BlockStatement');
-      var functionBlock = functionNode.body.body;
       var argsDeclaration = (
         esprima.parse('var REPLACEME = Array.prototype.slice.call(arguments, 3);').body[0]);
       argsDeclaration.declarations[0].id.name = argumentsId;

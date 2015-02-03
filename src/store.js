@@ -2,7 +2,6 @@
 
 var estraverse = require("estraverse");
 var types = require("ast-types");
-var escodegen = require("escodegen");
 
 var build = types.builders;
 var Syntax = estraverse.Syntax;
