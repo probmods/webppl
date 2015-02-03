@@ -1,40 +1,21 @@
 "use strict";
 
-var estraverse = require("estraverse");
+var traverse = require("estraverse").traverse;
+var Syntax = require("estraverse").Syntax;
 
-var traverse = estraverse.traverse;
-var Syntax = estraverse.Syntax;
+var Set = require("immutable").Set;
+var Stack = require("immutable").Stack;
 
-function analyzeRefs( node, k ) {
-    var stack = Object.create({
-	add: function( x ) {
-	    this.fs[this.fs.length-1].push( x );
-	},
-	contains: function( x ) {
-	    return this.fs[this.fs.length-1].indexOf( x ) !== -1;
-	},
-	push: function() {
-	    this.fs.push([]);
-	},
-	pop: function() {
-	    this.fs.pop();
-	}
-    }, {
-	fs: {
-	    value: []
-	}
-    });
-
+function analyzeRefs( node ) {
+    var stack = new Stack();
+    
     var heapRefs = {};
 
-    stack.push();
-    stack.add( k );
-    
     traverse( node, {
 	enter: function( node, parent ) {
 	    switch( node.type ) {
 	    case Syntax.Identifier:
-		if( stack.contains( node.name ) ) {
+		if( stack.peek().contains( node.name ) ) {
 		    node.heapRef = false;
 		}
 		else {
@@ -43,26 +24,29 @@ function analyzeRefs( node, k ) {
 		}
 		break;
 	    case Syntax.FunctionExpression:
+		var xs = node.params.reduce( function( xs, param ) {
+		    return xs.add( param.name );
+		}, new Set() );
+		
 		if( node.params.length > 1 ) {
-		    stack.push();
+		    stack = stack.push( xs );
 		}
-
-		node.params.forEach( function( param ) {
-		    stack.add( param.name );
-		});
+		else {
+		    stack = stack.pop().push( stack.first().union( xs ) )
+		}
 
 		break;
 	    case Syntax.VariableDeclarator:
-		stack.add( node.id.name );
+		stack = stack.pop().push( stack.first().add( node.id.name ) );
 		break;
 	    default:
 	    }
 	},
-	exit: function( node, parent ) {
+	leave: function( node, parent ) {
 	    switch( node.type ) {
 	    case Syntax.FunctionExpression:
 		if( node.params.length > 1 ) {
-		    stack.pop();
+		    stack = stack.pop();
 		}
 		break;
 	    default:
@@ -74,8 +58,6 @@ function analyzeRefs( node, k ) {
 	    VariableDeclarator: ["init"]
 	}
     });
-
-    stack.pop();
 
     return function( x ) {
 	return heapRefs[ x ] || false;

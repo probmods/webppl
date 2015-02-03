@@ -6,7 +6,7 @@ var Syntax = estraverse.Syntax;
 
 var build = require("ast-types").builders;
 
-var isPrimitive = require("./primitive").isPrimitive;
+var isPrimitive = require("./util2").isPrimitive;
 
 var storeIdNode = build.identifier("globalStore");
 

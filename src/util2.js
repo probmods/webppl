@@ -51,6 +51,15 @@ function match( node, clauses, fail ) {
     return loop( 0 );
 }
 
+function safeFail( who, fail ) {
+    if( typeof fail === "Function" ) {
+	return fail();
+    }
+    else {
+	throw new Error( who + ": fail is not a function" );
+    }
+}
+
 function functor( node, f, fail ) {
     if( types.Program.check( node ) &&
 	node.body.length === 1 &&
@@ -59,14 +68,7 @@ function functor( node, f, fail ) {
 	    build.expressionStatement( f( node.body[0].expression ) )
 	]);
     }
-    else {
-	if( typeof fail === "Function" ) {
-	    return fail();
-	}
-	else {
-	    throw new Error( "functor: fail is not a function" );
-	}
-    }
+    else return safeFail( "functor", fail );
 }
 
 function returnify( nodes ) {
@@ -128,7 +130,7 @@ function thunkify( node, fail ) {
 	    )
 	]);
     }
-    else return fail();
+    else return safeFail( "thunkify", fail );
 }
 
 exports.makeGenvar = makeGenvar;

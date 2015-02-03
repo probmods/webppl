@@ -9,28 +9,22 @@ var store = require("../src/store").store;
 var optimize = require("../src/optimize.js").optimize;
 var analyze = require("../src/analyze.js").analyze;
 
+var thunkify = require("../src/util2").thunkify;
+
 var Set = require("immutable").Set;
 
 function compile( code, verbose ) {
-  if( verbose && console.time ) {
-    console.time('compile');
-  }
+    var headAst = esprima.parse( readFile( __dirname + "/../src/header.wppl" ) ).body;
+    var codeAst = esprima.parse( code ).body;
 
-  var headAst = esprima.parse( readFile( __dirname + "/../src/header.wppl" ) ).body;
-  var codeAst = esprima.parse( code ).body;
+    var ast = build.program( headAst.concat( codeAst ) );  
+    ast = thunkify( ast );
+    ast = naming( ast );
+    ast = cps( ast );
+    //ast = store( ast );
+    ast = optimize( ast );
 
-  var ast = build.program( headAst.concat( codeAst ) );  
-
-  ast = naming( ast );
-  ast = cps( ast, build.identifier("topK") );
-  //ast = store( ast );
-  ast = optimize( ast );
-
-  if( verbose && console.timeEnd ) {
-    console.timeEnd('compile');
-  }
-  
-  return ast;
+    return ast;
 }
 
 var tests = {
@@ -46,7 +40,7 @@ var tests = {
     recursion: {
 	program: "\
 var geom = function() {\n\
-    return flip() ? 0 : 1 + geom();\n\
+    return flip(0.5) ? 0 : 1 + geom();\n\
 }\n\
 geom();",
 	results: new Set()

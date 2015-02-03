@@ -1,3 +1,5 @@
+"use strict";
+
 function finish() {
     var vs = arguments;
     
@@ -108,7 +110,7 @@ function or( ps ) {
 function single( p ) {
     return function( nodes, i, succeed, fail ) {
 	return item( nodes, i, function( nodes, i, node ) {
-	    return p( node, function( v ) {
+	    return p( node, function() {
 		return succeed.apply( this, Array.prototype.concat.apply( [ nodes, i ], arguments ) );
 	    }, fail );
 	}, fail );
@@ -116,11 +118,11 @@ function single( p ) {
 }
 
 function not( p ) {
-    return function( node, success, fail ) {
+    return function( node, succeed, fail ) {
 	return p( node, function( dummy ) {
 	    return fail();
 	}, function() {
-	    return success( 42 );
+	    return succeed( 42 );
 	});
     }
 }

@@ -1,12 +1,5 @@
 "use strict";
 
-<<<<<<< HEAD
-var estraverse = require("estraverse");
-var types = require("ast-types");
-
-var build = types.builders;
-var Syntax = estraverse.Syntax;
-=======
 var Syntax = require("estraverse").Syntax;
 var replace = require("estraverse").replace;
 
@@ -19,8 +12,7 @@ var makeGenvar = require("./util2").makeGenvar;
 var functor = require("./util2").functor;
 var fail = require("./util2").fail;
 
-var isPrimitive = require("./primitive").isPrimitive;
->>>>>>> Standardization.
+var isPrimitive = require("./util2").isPrimitive;
 
 function makeGenlit() {
     var gensym = makeGensym();
@@ -51,21 +43,6 @@ function generating( node ) {
     }
 }
 
-<<<<<<< HEAD
-function naming(node) {
-
-  switch (node.type) {
-
-    //have to add an address argument to each function
-  case Syntax.FunctionExpression:
-    return build.functionExpression(node.id,
-                                    [addressIdNode].concat(node.params),
-                                    node.body);
-
-    //add a gensym onto the address variable
-  case Syntax.CallExpression:
-    if(types.namedTypes.MemberExpression.check(node.callee)){
-=======
 function naming( node ) {
     switch( node.type ) {
     case Syntax.FunctionExpression:
@@ -84,16 +61,6 @@ function naming( node ) {
 	}
 
     default:
->>>>>>> Standardization.
-      return node;
-    } else {
-      return build.callExpression(node.callee,
-                                  [makeAddressExtension()].concat(node.arguments));
-    }
-
-  default:
-    return node;
-
   }
 }
 

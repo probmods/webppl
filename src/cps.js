@@ -67,6 +67,21 @@ function buildContinuationCall( callee, arg ) {
     return buildCall( callee, [ arg ] );
 }
 
+function cpsFunction( id, params, body ) {
+    var k = genvar("k");
+    return buildFunction( [k].concat(params), cpsSequence( linearize( body.body ), 0, k ), id );
+}
+
+function bindContinuation( k, K ) {
+    if( types.Identifier.check( k ) ) {
+	return K( k );
+    }
+    else {
+	var k0 = genvar("k");
+	return buildCall( buildFunction( [k0], K( k0 ) ), [k] );
+    }
+}
+
 function isAtomic( node ) {
     switch( node.type ) {
     case Syntax.ArrayExpression:
@@ -81,6 +96,8 @@ function isAtomic( node ) {
     case Syntax.Identifier:
     case Syntax.Literal:
 	return true;
+    case Syntax.LogicalExpression:
+	return isAtomic( node.left ) && isAtomic( node.right );
     case Syntax.MemberExpression:
 	return isAtomic( node.object ) && isAtomic( node.property );
     case Syntax.ObjectExpression:
@@ -107,8 +124,13 @@ function atomize( node, K ) {
     }
     else {
 	switch( node.type ) {
+	case Syntax.ArrayExpression:
+	    return atomizeStar( node.elements, function( elements ) {
+		return K( build.arrayExpression( elements ) );
+	    });
 	case Syntax.BinaryExpression:
 	case Syntax.CallExpression:
+	case Syntax.ConditionalExpression:
 	    var x = genvar("result");
 	    return cps( node, buildContinuation( x, K( x ) ) );
 	case Syntax.MemberExpression:
@@ -123,6 +145,120 @@ function atomize( node, K ) {
 	throw "atomize";
 	}
     }
+}
+
+function atomizeStar( es, K ) {
+    es = es.concat();
+    
+    function loop( i ) {
+	if( i === es.length ) {
+	    return K( es );
+	}
+	else {
+	    return atomize( es[i], function( e ) {
+		es[i] = e;
+		return loop( i + 1 );
+	    });
+	}
+    }
+
+    return loop( 0 );
+}
+
+function cps( node, k ) {
+    switch( node.type ) {
+    case Syntax.Identifier:
+    case Syntax.Literal:
+	return buildContinuationCall( k, node );
+    default:
+	return match( node, [
+	    clause( Syntax.ArrayExpression, function( elements ) {
+		return atomizeStar( elements, function( elements ) {
+		    return buildContinuationCall( k, build.arrayExpression( elements ) );
+		});
+	    }),
+	    clause( Syntax.AssignmentExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    return atomize( right, function( right ) {
+			return buildContinuationCall( k, build.assignmentExpression( node.operator, left, right ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.BinaryExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    return atomize( right, function( right ) {
+			return buildContinuationCall( k, build.binaryExpression( node.operator, left, right ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.CallExpression, function( callee, args ) {
+		if( isPrimitive( callee ) ) {
+		    return atomize( callee, function( callee ) {
+			return atomizeStar( args, function( args ) {
+			    return buildContinuationCall( k, buildCall( callee, args ) );
+			});
+		    });
+		}
+		else {
+		    return atomize( callee, function( callee ) {
+			return atomizeStar( args, function( args ) {
+			    return buildCall( callee, [k].concat( args ) );
+			});
+		    });
+		}
+	    }),
+	    clause( Syntax.ConditionalExpression, function( test, consequent, alternate ) {
+		return bindContinuation( k, function( k ) {
+		    return atomize( test, function( test ) {
+			return build.conditionalExpression( test, cps( consequent, k ), cps( alternate, k ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
+		return buildContinuationCall( k, cpsFunction( id, params, body ) );
+	    }),
+	    clause( Syntax.LogicalExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    if( node.operator === "||" ) {
+			return build.conditionalExpression( left, left, cps( right, k ) );
+		    }
+		    else if( node.operator === "&&" ) {
+			return build.conditionalExpression( left, cps( right, k ), left );
+		    }
+		    else {
+			console.log( node.operator );
+			throw new Error( "cps: unhandled logical operator " + node.operator );
+		    }
+		});
+	    }),
+	    clause( Syntax.MemberExpression, function( object, property ) {
+		return atomize( object, function( object ) {
+		    return atomize( property, function( property ) {
+			return buildContinuationCall( k, build.memberExpression( object, property, node.computed ) );
+		    })
+		});
+	    }),
+	    clause( Syntax.UnaryExpression, function( argument ) {
+		return atomize( argument, function( argument ) {
+		    return buildContinuationCall( k, build.unaryExpression( node.operator, argument ) );
+		});
+	    })], fail( "can't cps", node ) );
+    }
+}
+
+function cpsDeclarations( declarations, i, K ) {
+    return clause( Syntax.VariableDeclarator, function( id, init ) {
+	if( types.FunctionExpression.check( init ) ) {
+	    init.id = id;
+	}
+	
+	if( i + 1 === declarations.length ) {
+	    return cps( init, K( id ) );
+	}
+	else {
+	    return cps( init, buildContinuation( id, cpsDeclarations( declarations, i + 1, K ) ) );
+	}
+    })( declarations[i], fail( "expected declarator", declarations[i] ) );
 }
 
 function cpsSequence( nodes, i, k ) {
@@ -189,8 +325,8 @@ function cpsSequence( nodes, i, k ) {
     }
 }
 
-function cpsMain(node){
-    gensym = util.makeGensym();
+function cpsMain( node ) {
+    genvar = makeGenvar();
 
     return inProgram( node, function( expression ) {
 	return clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
