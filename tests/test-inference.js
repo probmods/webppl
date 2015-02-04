@@ -141,45 +141,45 @@ exports.testForwardSampling = {
 };
 
 function getTestCases(testNames) {
-	var rootDirectory = "./tests/test-data/";
-	var testCases = [];
-	for (var i = 0; i < testNames.length; i++) {
-		var codeFileName = rootDirectory + testNames[i] + ".wppl";
-		var resultFileName = rootDirectory + testNames[i] + ".json";
-		var codeFile = fs.readFileSync(codeFileName, "utf-8");
-		var expectedResult = JSON.parse(fs.readFileSync(resultFileName, "utf-8"));
-		testCases.push({
-			code: codeFile,
-			expectedHist: expectedResult.expectedHist,
-			tolerance: expectedResult.tolerance,
-			name: testNames[i]
-		});
-	}
-	return testCases;
+  var rootDirectory = "./tests/test-data/";
+  var testCases = [];
+  for (var i = 0; i < testNames.length; i++) {
+    var codeFileName = rootDirectory + testNames[i] + ".wppl";
+    var resultFileName = rootDirectory + testNames[i] + ".json";
+    var codeFile = fs.readFileSync(codeFileName, "utf-8");
+    var expectedResult = JSON.parse(fs.readFileSync(resultFileName, "utf-8"));
+    testCases.push({
+      code: codeFile,
+      expectedHist: expectedResult.expectedHist,
+      tolerance: expectedResult.tolerance,
+      name: testNames[i]
+    });
+  }
+  return testCases;
 }
 
 function makeTest(testData) {
-	function _makeTest (test) {
-		runDistributionTest(test, testData.code, testData.expectedHist, testData.tolerance);
-	}
-	return _makeTest;
+  function _makeTest (test) {
+    runDistributionTest(test, testData.code, testData.expectedHist, testData.tolerance);
+  }
+  return _makeTest;
 }
 
 var testNames = [
-	"testEnumeration",
-	"testEnumerationCached",
-	"testParticleFilter",
-	"testMH",
-	"testPMCMC",
-	//"testPFRj", TODO: fix test - pfrj (issue #25)
+  "testEnumeration",
+  "testEnumerationCached",
+  "testParticleFilter",
+  "testMH",
+  "testPMCMC",
+  //"testPFRj", TODO: fix test - pfrj (issue #25)
 ];
 
 var testsData = getTestCases(testNames);
 
 for (var i=0; i < testsData.length; i++) {
-	var testData = testsData[i];
-	var description = testData.desc ? testData.desc : "test";
-	var testCaseArgs = {};
-	testCaseArgs[description] = makeTest(testData);
-	exports[testData.name] = testCase(testCaseArgs);
+  var testData = testsData[i];
+  var description = testData.desc ? testData.desc : "test";
+  var testCaseArgs = {};
+  testCaseArgs[description] = makeTest(testData);
+  exports[testData.name] = testCase(testCaseArgs);
 }
