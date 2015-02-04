@@ -176,10 +176,9 @@ var testNames = [
 
 var testsData = getTestCases(testNames);
 
-for (var i=0; i < testsData.length; i++) {
-  var testData = testsData[i];
+testsData.forEach(function(testData){
   var description = testData.desc ? testData.desc : "test";
   var testCaseArgs = {};
   testCaseArgs[description] = makeTest(testData);
   exports[testData.name] = testCase(testCaseArgs);
-}
+});
