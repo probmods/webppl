@@ -1,0 +1,7 @@
+{
+  "expectedHist": {
+    "true": 0.66666,
+    "false": 0.33333
+  },
+  "tolerance": 0.1
+}
