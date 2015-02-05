@@ -30,11 +30,11 @@ function compile( code, verbose ) {
 var tests = {
     constant: {
 	program: "3 + 4",
-	results: Set.of( 7 )
+	values: Set.of( 7 )
     },
     call: {
 	program: "flip(0.5)",
-	results: Set.of( true, false )
+	values: Set.of( true, false )
 	
     },
     recursion: {
@@ -43,13 +43,19 @@ var geom = function() {\n\
     return flip(0.5) ? 0 : 1 + geom();\n\
 }\n\
 geom();",
-	results: new Set()
+	values: Set.of( 0 )
     }
 }
 
 function makeTest( t ) {
     return function( test ) {
-	if( t.results.isSubset( analyze( compile( t.program ), build.identifier("topK") ) ) ) {
+	var results = analyze( compile( t.program ) );
+
+	var values = results.reduce( function( values, result ) {
+	    return values.union( result.values );
+	}, new Set() );
+	
+	if( t.values.isSubset( values ) ) {
 	    test.ok( true );
 	}
 	else {

@@ -24,34 +24,66 @@ var Primitive = new Record({
     name: null,
     apply: function( store, environment, args ) {
 	throw new Error( "apply not implemented for " + this.name );
+    },
+    sample: function( theta ) {
+	throw new Error( "sample not implemented for " + this.name );
     }
 });
 
+var AValue = new Record({
+    values: new Set(),
+    states: new Set()
+});
+
+function makeGlobal( primitive ) {
+    return new AValue({
+	values: Set.of( primitive ),
+	states: new Set()
+    });
+}
+
 var global = new Map({
-    bernoulliERP: Set.of( new Primitive({
+    bernoulliERP: makeGlobal( new Primitive({
 	name: "bernoulliERP",
+	apply: function( tss ) {
+	    return tss.reduce( function( D, ts ) {
+		if( ts.get(0) === 1 ) {
+		    return D.add( true );
+		}
+		else if( ts.get(0) === 0 ) {
+		    return D.add( false );
+		}
+		else return Set.of( true, false );
+	    }, new Set() );
+	}
+    }) ),
+    sample: makeGlobal( new Primitive({
+	name: "sample",
 	apply: (function( argument ) {
-	    return function( store, environment, args ) {
-		// change environment value based on args, such as only true for theta of 1
-		return new CEvalExit({
-		    store: store,
-		    environment: environment.set( argument.name, Set.of( true, false ) ),
-		    argument: argument
+	    return function( state, store, environment, dependence, args ) {
+		var sampler = args.get(0), parameters = args.get(1);
+
+		return sampler.values.map( function( erp ) {
+		    var sample = new AValue({
+			values: sampler.values.reduce( function( vs, erp ) {
+			    return vs.union( erp.apply( parameters.values ) );
+			}, new Set() ),
+			states: dependence.union( sampler.states ).union( parameters.states ).add( state )
+		    });
+		    
+		    return new CEvalExit({
+			store: store,
+			environment: envJoin( environment, argument.name, sample ),
+			dependence: dependence,
+			argument: argument
+		    });
 		});
 	    }
 	})({
 	    type: "Identifier",
-	    name: "bernoulliERP-argument",
+	    name: "sample-identifier",
 	    heapRef: false
 	})
-    })),
-    sample: Set.of( new Primitive({
-	name: "sample",
-	apply: function( store, environment, args ) {
-	    // XXX full abstraction
-	    assert( args.get(0).size === 1 );
-	    return args.get(0).first().apply( store, environment, args.get(1) );
-	}
     }))
 });
 
@@ -59,37 +91,46 @@ function Ai( operator, left, right ) {
     switch( operator ) {
     case "+":
 	// XXX abstract values
-	return Set.of( 12 );
+	return new AValue({
+	    values: Set.of( 12 ),
+	    states: left.states.union( right.states )
+	});
     default:
 	throw new Error( "Ai: unhandled operator " + operator );
     }
 }
 
-function Austar( store, environment, es ) {
+function Austar( store, environment, dependence, es ) {
     function loop( i ) {
 	if( i == es.length ) {
-	    return Set.of( new List() );
+	    return new AValue({
+		values: Set.of( new List() ),
+		states: new Set()
+	    });
 	}
 	else {
-	    var v = Au( store, environment, es[i] ), vs = loop( i + 1 );
+	    var v = Au( store, environment, dependence, es[i] ), vs = loop( i + 1 );
 
-	    return v.reduce( function( vss, v ) {
-		return vs.reduce( function( vss, vs ) {
-		    return vss.add( vs.unshift( v ) );
-		}, vss );
-	    }, new Set() );
+	    return new AValue({
+		values: v.values.reduce( function( vss, v ) {
+		    return vs.values.reduce( function( vss, vs ) {
+			return vss.add( vs.unshift( v ) );
+		    }, vss );
+		}, new Set() ),
+		states: vs.states.union( v.states )
+	    });
 	}
     }
 
     return loop( 0 );
 }
 
-function Au( store, environment, e ) {
+function Au( store, environment, dependence, e ) {
     switch( e.type ) {
     case Syntax.ArrayExpression:
-	return Austar( store, environment, e.elements );
+	return Austar( store, environment, dependence, e.elements );
     case Syntax.BinaryExpression:
-	return Ai( e.operator, Au( store, environment, e.left ), Au( store, environment, e.right ) );
+	return Ai( e.operator, Au( store, environment, dependence, e.left ), Au( store, environment, dependence, e.right ) );
     case Syntax.Identifier:
 	var v = null;
 
@@ -108,11 +149,32 @@ function Au( store, environment, e ) {
 	    throw new Error( "not found in environment" );
 	}
     case Syntax.Literal:
-	return Set.of( e.value );
+	return new AValue({
+	    values: Set.of( e.value ),
+	    states: dependence
+	});
     default:
 	console.log( e );
 	throw new Error( "unimplemented Au" );
     }
+}
+
+function envExtend( s, x, v, ss ) {
+    return s.update( x, new AValue({}), function( D ) {
+	return new AValue({
+	    values: D.values.add( v ),
+	    states: D.states.union( ss )
+	});
+    })
+}
+
+function envJoin( s, x, D ) {
+    return s.update( x, new AValue({}), function( D0 ) {
+	return new AValue({
+	    values: D0.values.union( D.values ),
+	    states: D0.states.union( D.states )
+	});
+    });
 }
 
 function mapExtend( s, x, v ) {
@@ -214,20 +276,21 @@ function isContinuationCall( call ) {
 
 // ---
 
-function parseBEval( store, environment ) {
-    return parse.bind( parse.single( parseCondExp( store, environment ) ), parse.finish );
+function parseBEval( store, environment, dependence ) {
+    return parse.bind( parse.single( parseCondExp( store, environment, dependence ) ), parse.finish );
 }
 
-function parseCondExp( store, environment ) {
+function parseCondExp( store, environment, dependence ) {
     return callbCondExp( function( test, consequent, alternate ) {
-	return makeBEval( store, environment, test, consequent, alternate );
+	return makeBEval( store, environment, dependence, test, consequent, alternate );
     });
 }
 
-function makeBEval( store, environment, test, consequent, alternate ) {
+function makeBEval( store, environment, dependence, test, consequent, alternate ) {
     return new BEval({
 	store: store,
 	environment: environment,
+	dependence: dependence,
 	test: test,
 	consequent: consequent,
 	alternate: alternate
@@ -236,21 +299,22 @@ function makeBEval( store, environment, test, consequent, alternate ) {
 
 // ---
 
-function parseCEval( store, environment ) {
-    return parse.bind( parse.single( parseContCall( store, environment ) ), parse.finish );
+function parseCEval( store, environment, dependence ) {
+    return parse.bind( parse.single( parseContCall( store, environment, dependence ) ), parse.finish );
 }
 
-function parseContCall( store, environment ) {
+function parseContCall( store, environment, dependence ) {
     return callbContCall( function( cont, argument ) {
-	return makeCEval( store, environment, cont, argument );
+	return makeCEval( store, environment, dependence, cont, argument );
     });
 }
 
-function makeCEval( store, environment, cont, argument ) {
+function makeCEval( store, environment, dependence, cont, argument ) {
     if( types.Identifier.check( cont ) ) {
 	return new CEvalExit({
 	    store: store,
 	    environment: environment,
+	    dependence: dependence,
 	    argument: argument
 	});
     }
@@ -258,6 +322,7 @@ function makeCEval( store, environment, cont, argument ) {
 	return new CEvalInner({
 	    store: store,
 	    environment: environment,
+	    dependence: dependence,
 	    cont: cont,
 	    argument: argument
 	});
@@ -266,21 +331,22 @@ function makeCEval( store, environment, cont, argument ) {
 
 // ---
 
-function parseUEval( store, environment ) {
-    return parse.bind( parse.single( parseUserCall( store, environment ) ), parse.finish )
+function parseUEval( store, environment, dependence ) {
+    return parse.bind( parse.single( parseUserCall( store, environment, dependence ) ), parse.finish )
 }
     
-function parseUserCall( store, environment ) {
+function parseUserCall( store, environment, dependence ) {
     return callbUserCall( function( label, callee, args, k ) {
-	return makeUEval( store, environment, label, callee, args, k );
+	return makeUEval( store, environment, dependence, label, callee, args, k );
     });
 }
 
-function makeUEval( store, environment, label, callee, args, k ) {
+function makeUEval( store, environment, dependence, label, callee, args, k ) {
     if( types.Identifier.check( k ) ) {
 	return new UEvalExit({
 	    store: store,
 	    environment: environment,
+	    dependence: dependence,
 	    label: label,
 	    callee: callee,
 	    args: args
@@ -290,6 +356,7 @@ function makeUEval( store, environment, label, callee, args, k ) {
 	return new UEvalCall({
 	    store: store,
 	    environment: environment,
+	    dependence: dependence,
 	    label: label,
 	    callee: callee,
 	    args: args,
@@ -304,6 +371,7 @@ var BEval = new Record({
     type: "BEval",
     store: null,
     environment: null,
+    dependence: null,
     test: null,
     consequent: null,
     alternate: null,
@@ -324,21 +392,58 @@ function parse_single_or( p, q ) {
     }
 }
 
-BEval.prototype.succs = function() {
-    var parse = parse_single_or( parseContCall( this.store, this.environment ),
-				 parseUserCall( this.store, this.environment ) );
+function check_equal( v0, v1 ) {
+    v0.reduce( function( acc, value, key ) {
+	if( acc ) {
+	    if( value.equals ) {
+		if( value.equals( v1[ key ] ) ) {
+		    console.log( key + " equ " + key );
+		    return true;
+		}
+		else {
+		    console.log( key + " neq " + key );
+		    console.log( value );
+		    console.log( v1[ key ] );
+		    return false;
+		}
+	    }
+	    else {
+		if( value === v1[ key ] ) {
+		    console.log( key + " === " + key );
+		    return true;
+		}
+		else {
+		    console.log( key + " !== " + key );
+		    console.log( value );
+		    console.log( v1[ key ] );
+		    return false;
+		}
+	    }
+	}
+	else return false;
+    }, true );
+}
 
-    var vs = Au( this.store, this.environment, this.test );
+BEval.prototype.succs = function() {
+    var vs = Au( this.store, this.environment, this.dependence, this.test );
 
     var states = new Set(), add = function( state ) {
 	states = states.add( state );
     };
 
-    if( vs.has( true ) ) {
+    if( vs.states.size > 1 ) {
+	console.log( "checking equality" );
+	check_equal( vs.states.first(), vs.states.rest().first() );
+    }
+
+    var parse = parse_single_or( parseContCall( this.store, this.environment, this.dependence.union( vs.states ) ),
+				 parseUserCall( this.store, this.environment, this.dependence.union( vs.states ) ) );
+
+    if( vs.values.has( true ) ) {
 	parse( build.expressionStatement( this.consequent ), add, fail( "not a call", this.consequent ) );
     }
 
-    if( vs.has( false ) ) {
+    if( vs.values.has( false ) ) {
 	parse( build.expressionStatement( this.alternate ), add, fail( "not a call", this.alternate ) );
     }
     
@@ -349,9 +454,10 @@ var CEvalExit = new Record({
     type: "CEvalExit",
     store: null,
     environment: null,
+    dependence: null,
     argument: null,
     toString: show({
-	store: show_environment,
+	store: show_store,
 	environment: show_environment,
 	argument: show_argument
     })
@@ -362,7 +468,7 @@ CEvalExit.prototype.succs = function() {
 }
 
 CEvalExit.prototype.evaluatedArgument = function() {
-    return Au( this.store, this.environment, this.argument );
+    return Au( this.store, this.environment, this.dependence, this.argument );
 }
 
 
@@ -370,6 +476,7 @@ var CEvalInner = new Record({
     type: "CEvalInner",
     store: null,
     environment: null,
+    dependence: null,
     cont: null,
     argument: null,
     toString: show({
@@ -381,11 +488,12 @@ var CEvalInner = new Record({
 });
 
 CEvalInner.prototype.succs = function() {
-    var argument = Au( this.store, this.environment, this.argument );
+    var argument = Au( this.store, this.environment, this.dependence, this.argument );
 
     return Set.of( new CApply({
 	store: this.store,
 	environment: this.environment,
+	dependence: this.dependence,
 	cont: this.cont,
 	argument: argument
     }) );
@@ -395,34 +503,65 @@ var CApply = new Record({
     type: "CApply",
     store: null,
     environment: null,
+    dependence: null,
     cont: null,
     argument: null,
     toString: show({
-	store: show_environment,
+	store: show_store,
 	environment: show_environment,
-	cont: show_value,
-	argument: show_values
+	cont: show_operator,
+	argument: show_avalue
     })
 });
 
 CApply.prototype.succs = function() {
-    var store = this.store, environment = this.environment, argument = this.argument;
+    var store = this.store, environment = this.environment,
+	dependence = this.dependence, argument = this.argument;
 
     return Set.of( destructFuncExp( this.cont, function( params, body ) {
-	environment = mapJoin( environment, params[0], argument );
+	environment = envJoin( environment, params[0], argument );
 	    
 	if( isHeapVar( params[0] ) ) {
-	    store = mapJoin( store, params[0], argument );
+	    store = envJoin( store, params[0], argument );
 	}
 
-	return parseBody( store, environment, body.body );
+	return parseBody( store, environment, dependence, body.body );
     }, fail( "expected a function expression", this.cont ) ) );
+}
+
+function UEval_succs() {
+    var store = this.store, environment = this.environment, dependence = this.dependence;
+    
+    var Df = Au( store, environment, dependence, this.callee );
+
+    var Dargs = List.of.apply( List, this.args ).map( function( x ) {
+	return Au( store, environment, dependence, x );
+    });
+
+    var self = this;
+
+    dependence = dependence.union( Df.states );
+    
+    return Df.values.reduce( function( ss, f ) {
+	switch( f.type ) {
+	case "Primitive":
+	    return ss.union( f.apply( self, store, environment, dependence, Dargs ) );
+	default:
+	    return ss.add( new UApplyEntry({
+		store: store,
+		dependence: dependence,
+		f: f,
+		args: Dargs
+	    }));
+	}
+    }, new Set() );
 }
 
 var UEvalCall = new Record({
     type: "UEvalCall",
     store: null,
     environment: null,
+    dependence: null,
     label: null,
     callee: null,
     args: null,
@@ -437,26 +576,18 @@ var UEvalCall = new Record({
     })
 });
 
-UEvalCall.prototype.succs = function() {
-    var store = this.store, environment = this.environment;
-
-    var args = List.of.apply( List, this.args ).map( function( x ) {
-	return Au( store, environment, x );
-    });
-
-    return Au( store, environment, this.callee ).map( enter( store, environment, args ) );
-}
-
+UEvalCall.prototype.succs = UEval_succs;
 
 var UEvalExit = new Record({
     type: "UEvalExit",
     store: null,
     environment: null,
+    dependence: null,
     label: null,
     callee: null,
     args: null,
     toString: show({
-	store: show_environment,
+	store: show_store,
 	environment: show_environment,
 	label: show_raw_value,
 	callee: show_argument,
@@ -464,65 +595,64 @@ var UEvalExit = new Record({
     })
 });
 
-UEvalExit.prototype.succs = function() {
-    var store = this.store, environment = this.environment;
-
-    var args = List.of.apply( List, this.args ).map( function( x ) {
-	return Au( store, environment, x );
-    });
-
-    return Au( this.store, this.environment, this.callee ).map( enter( store, environment, args ) );
-}
+UEvalExit.prototype.succs = UEval_succs;
 
 var UApplyEntry = new Record({
     type: "UApplyEntry",
     store: null,
+    dependence: null,
     f: null,
     args: null,
     toString: show({
-	store: show_environment,
-	f: show_value,
-	args: map_show( show_values )
+	store: show_store,
+	f: show_operator,
+	args: map_show( show_avalue )
     })
 });
 
 UApplyEntry.prototype.succs = function() {
-    var store = this.store, args = this.args;
+    var store = this.store, dependence = this.dependence, args = this.args;
 
     return Set.of( destructFuncExp( this.f, function( params, body ) {
 	var environment = new Map();
 
 	for( var i = 0; i < params.length; ++i ) {
-	    environment = mapJoin( environment, params[i], args.get(i) );
+	    environment = envJoin( environment, params[i], args.get(i) );
 		
 	    if( isHeapVar( params[i] ) ) {
-		store = mapJoin( store, params[i], args.get(i) );
+		store = envJoin( store, params[i], args.get(i) );
 	    }
 	}
 
-	return parseBody( store, environment, body.body );
+	return parseBody( store, environment, dependence, body.body );
     }, fail( "expected a function expression", this.f ) ) );
 }
 
-function enter( store, environment, args ) {
-    return function( f ) {
-	switch( f.type ) {
-	case "Primitive":
-	    return f.apply( store, environment, args );
-	default:
-	    return new UApplyEntry({
-		store: store,
-		f: f,
-		args: args
-	    });
-	}
-    }
+function enter( store, environment, dependence, f, args ) {
 }
 
 // SHOW
 
+function show_store( store ) {
+    return "<sto>";
+}
+
 function show_environment( environment ) {
-    return "<map>";
+    return "<env>";
+}
+
+function show_operator( f ) {
+    if( f.type === "FunctionExpression" ) {
+	return showFunc( f );
+    }
+    else {
+	console.log( f );
+	throw new Error( "show_operator: unhandled type" );
+    }
+}
+
+function show_avalue( D ) {
+    return D.toString();
 }
 
 function showFunc( f ) {
@@ -604,26 +734,26 @@ function id( x ) {
 }
 
 function parseDeclaration( node, succeed, fail ) {
-	if( types.VariableDeclaration.check( node ) &&
-	    node.declarations.length === 1 ) {
-	    return succeed( node.declarations[0] );
-	}
-	else return fail();
+    if( types.VariableDeclaration.check( node ) &&
+	node.declarations.length === 1 ) {
+	return succeed( node.declarations[0] );
     }
+    else return fail();
+}
 
-function parseBody( store, environment, nodes ) {
+function parseBody( store, environment, dependence, nodes ) {
     return parse.bind( parse.apply( parse.rep( parse.single( parseDeclaration ) ), function( declarations ) {
 	declarations.forEach( function( declaration ) {
-	    environment = mapExtend( environment, declaration.id.name, declaration.init );
+	    environment = envExtend( environment, declaration.id.name, declaration.init, dependence );
 
 	    if( isHeapVar( declaration.id.name ) ) {
-		store = mapExtend( store, declaration.id.name, declaration.init );
+		store = envExtend( store, declaration.id.name, declaration.init, dependence );
 	    }
 	});
     }), function( ignore ) {
-	return parse.or([ parseBEval( store, environment ),
-			  parseCEval( store, environment ),
-			  parseUEval( store, environment ) ]);
+	return parse.or([ parseBEval( store, environment, dependence ),
+			  parseCEval( store, environment, dependence ),
+			  parseUEval( store, environment, dependence ) ]);
     })( nodes, 0, id, fail( "parseBody: failed", nodes ) );
 }
 
@@ -634,6 +764,7 @@ function inject( node ) {
 
     return new UApplyEntry({
 	store: new Map(),
+	dependence: new Set(),
 	f: node.body[0].expression,
 	args: new List()
     });
@@ -673,6 +804,17 @@ function analyzeMain( node ) {
     var seen = new Set(), work = new Set(), summaries = new Map(),
 	callers = new Map(), tcallers = new Map(), finals = new Set();
 
+    var pred = new Map();
+
+    function successor( s0, s1 ) {
+	if( pred.has( s1 ) ) {
+	    throw new Error( "successor: has the successor already!" );
+	}
+	else {
+	    pred = pred.set( s1, s0 );
+	}
+    }
+    
     function propagate( s0, s1 ) {
 	var ss = new Pair({
 	    car: s0,
@@ -694,12 +836,13 @@ function analyzeMain( node ) {
 	var environment = s2.environment;
 
 	if( types.Identifier.check( s2.callee ) && ( ! s2.callee.heapRef ) ) {
-	    environment = mapExtend( environment, s2.callee.name, s3.f );
+	    environment = envExtend( environment, s2.callee.name, s3.f, Au( s2.store, s2.environment, s2.dependence, s2.callee ).states );
 	}
 	
 	propagate( s1, new CApply({
 	    store: s4.store,
 	    environment: environment,
+	    dependence: s2.dependence, // XXX check this
 	    cont: s2.k,
 	    argument: s4.evaluatedArgument()
 	}));
@@ -708,6 +851,7 @@ function analyzeMain( node ) {
     var init = inject( node );
 
     propagate( init, init );
+    successor( init, init );
 
     while( work.size > 0 ) {
 	var states = work.first();
@@ -719,7 +863,9 @@ function analyzeMain( node ) {
 
 	if( states.cdr instanceof CEvalExit ) {
 	    if( states.car.equals( init ) ) {
-		finals = finals.union( states.cdr.evaluatedArgument() );
+		finals = finals.add( states.cdr.evaluatedArgument() );
+		console.log( "NEW FINALS!!!" );
+		console.log( finals );
 	    }
 	    else {
 		summaries = mapExtend( summaries, states.car, states.cdr );
@@ -736,6 +882,7 @@ function analyzeMain( node ) {
 	else if( states.cdr instanceof UEvalCall ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
+		successor( state, state );
 
 		callers = mapExtend( callers, state, states );
 		
@@ -747,6 +894,7 @@ function analyzeMain( node ) {
 	else if( states.cdr instanceof UEvalExit ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
+		successor( state, state );
 
 		tcallers = mapExtend( tcallers, state, states );
 		
@@ -761,12 +909,35 @@ function analyzeMain( node ) {
 		 states.cdr instanceof BEval ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( states.car, state );
+		successor( states.car, state );
 	    });
 	}
 	else {
 	    throw new Error( "unhandled state with type " + states.cdr.type );
 	}
     }
+
+    function trace( state ) {
+	var trace = new List();
+
+	if( state instanceof UEvalExit ) {
+	    trace = trace.unshift( state.label );
+
+	    state = pred.get( state );
+
+	    if( state instanceof UApplyEntry ) {
+		trace = trace.unshift( tcallers.get( state ).first().cdr.label );
+	    }
+	}
+
+	return trace;
+    }
+
+    finals.forEach( function( D ) {
+	console.log( D.states.map( trace ) );
+    });
+
+    console.log( finals );
     
     return finals;
 }
