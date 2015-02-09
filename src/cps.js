@@ -1,14 +1,11 @@
 "use strict";
 
 var assert = require('assert');
-var estraverse = require("estraverse");
-var types = require("ast-types");
-var util = require('./util.js');
 
-var build = types.builders;
-var Syntax = estraverse.Syntax;
+var build = require("ast-types").builders;
+var types = require("ast-types").namedTypes;
 
-var gensym = util.makeGensym();
+var Syntax = require("estraverse").Syntax;
 
 var match = require("./util2").match;
 var clause = require("./util2").clause;
@@ -20,43 +17,16 @@ var linearize = require("./linearize").linearize;
 var isPrimitive = require("./util2").isPrimitive;
 var makeGenvar = require("./util2").makeGenvar;
 
-function buildContinuationCall(cont, value){
-  return build.callExpression(cont, [value]);
-}
 
-function cpsAtomic(node){
-  switch (node.type) {
-  case Syntax.FunctionExpression:
-    var newCont = makeGensymVariable("k");
-    var newParams = [newCont].concat(node.params);
-    return buildFunc(
-      newParams,
-      convertToStatement(cps(node.body, newCont))
-    );
-  case Syntax.Identifier:
-  case Syntax.Literal:
-    return node;
-  case Syntax.EmptyStatement:
-    return build.identifier("undefined");
-  default:
-    throw new Error("cpsAtomic: unknown expression type: " + node.type);
-  }
-}
+var genvar = null;
 
 function buildFunction( params, body, id ) {
     return build.functionExpression( id || null, params,
 				     build.blockStatement([ build.expressionStatement( body ) ]) );
 }
 
-function cpsCompoundApplication(opNode, argNodes, cont){
-  var nodes = [opNode].concat(argNodes);
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var args = [cont].concat(vars.slice(1));
-      return build.callExpression(vars[0], args);
-    },
-    nodes);
+function buildCall( callee, args ) {
+    return build.callExpression( callee, args );
 }
 
 function buildContinuation( param, body ) {

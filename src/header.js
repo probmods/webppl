@@ -1574,7 +1574,7 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   gaussianFactor: gaussianFactor,
-  getAddress: getAddress,
+    //getAddress: getAddress,
   multinomialSample: multinomialSample,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
