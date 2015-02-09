@@ -119,7 +119,7 @@ function selectStorePrimitives(){
 }
 
 var selectOptimizePrimitives = selectStorePrimitives;
-var selectVarargsPrimitives = selectOptimizationPrimitives;
+var selectVarargsPrimitives = selectOptimizePrimitives;
 var selectTrampolinePrimitives = selectVarargsPrimitives;
 
 function runNamingTest(test, code, expected){
@@ -138,7 +138,7 @@ function runStorepassingTest(test, code, expected){
 };
 
 function runOptimizeTest(test, code, expected){
-    selectOptimizationPrimitives();
+    selectOptimizePrimitives();
   return runTest(test, code, expected, transformAstOptimize, runOptimize);
 };
 
@@ -297,7 +297,7 @@ var tests = {
              "var baz = function(){ return obj1['X']; };" +
              "foo();"),
       expected: 10,
-      runners: [runOptimizationTest, runTrampolineTest] }
+      runners: [runOptimizeTest, runTrampolineTest] }
 
   ],
 
@@ -514,7 +514,7 @@ var tests = {
 exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
-exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testOptimize = generateTestFunctions(tests, runOptimizeTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
