@@ -540,8 +540,6 @@ function UEval_succs() {
 
     var self = this;
 
-    dependence = dependence.union( Df.states );
-    
     return Df.values.reduce( function( ss, f ) {
 	switch( f.type ) {
 	case "Primitive":
@@ -549,7 +547,6 @@ function UEval_succs() {
 	default:
 	    return ss.add( new UApplyEntry({
 		store: store,
-		dependence: dependence,
 		f: f,
 		args: Dargs
 	    }));
@@ -600,7 +597,6 @@ UEvalExit.prototype.succs = UEval_succs;
 var UApplyEntry = new Record({
     type: "UApplyEntry",
     store: null,
-    dependence: null,
     f: null,
     args: null,
     toString: show({
@@ -611,10 +607,10 @@ var UApplyEntry = new Record({
 });
 
 UApplyEntry.prototype.succs = function() {
-    var store = this.store, dependence = this.dependence, args = this.args;
+    var store = this.store, args = this.args;
 
     return Set.of( destructFuncExp( this.f, function( params, body ) {
-	var environment = new Map();
+	var environment = new Map(), dependence = new Set();
 
 	for( var i = 0; i < params.length; ++i ) {
 	    environment = envJoin( environment, params[i], args.get(i) );
@@ -764,7 +760,6 @@ function inject( node ) {
 
     return new UApplyEntry({
 	store: new Map(),
-	dependence: new Set(),
 	f: node.body[0].expression,
 	args: new List()
     });
@@ -804,16 +799,63 @@ function analyzeMain( node ) {
     var seen = new Set(), work = new Set(), summaries = new Map(),
 	callers = new Map(), tcallers = new Map(), finals = new Set();
 
-    var pred = new Map();
+    //var pred = new Map();
+    var succ = new Map();
 
-    function successor( s0, s1 ) {
-	if( pred.has( s1 ) ) {
+    function trace( state ) {
+	var t = new List();
+
+	var s = succ.get( state );
+
+	var p = tcallers.get( s ).first();
+
+	t = t.unshift( p.cdr.label );
+	s = p.car;
+
+	
+	return t;
+/*	var t = new List();
+
+	if( state instanceof UEvalExit ) {
+	    t = t.unshift( state.label );
+
+	    state = pred.get( state );
+
+	    if( state instanceof UApplyEntry ) {
+		if( callers.has( state ) ) {
+		    console.log( "callers has it" );
+		    console.log( callers.get( state ) );
+		}
+		else if( tcallers.has( state ) ) {
+		    console.log( "tcallers has it" );
+		    console.log( tcallers.get( state ) );
+		}
+		else {
+		    console.log( "neither had it" );
+		}
+	    }
+	    //t = t.unshift( tcallers.get( state ).first().cdr.label );
+	}
+
+	return t;*/
+    }
+
+    function successor( s0, s1 ) { // first successor, really only meaningful if there's only one
+	if( ! succ.has( s0 ) ) {
+	    succ = succ.set( s0, s1 );
+	}
+    }
+    
+    /*function successor( s0, s1 ) {
+	if( pred.has( s1 ) && ! pred.get( s1 ).equals( s0 ) ) {
+	    console.log( "PRED CAR " + s0 );
+	    console.log( "PRED CDR " + s1 );
 	    throw new Error( "successor: has the successor already!" );
 	}
 	else {
 	    pred = pred.set( s1, s0 );
 	}
-    }
+    }*/
     
     function propagate( s0, s1 ) {
 	var ss = new Pair({
@@ -833,25 +875,31 @@ function analyzeMain( node ) {
 	assert( s3.type === "UApplyEntry" );
 	assert( s4.type === "CEvalExit" );
 
+	var f_dependence = Au( s2.store, s2.environment, s2.dependence, s2.callee ).states;
+
 	var environment = s2.environment;
 
 	if( types.Identifier.check( s2.callee ) && ( ! s2.callee.heapRef ) ) {
-	    environment = envExtend( environment, s2.callee.name, s3.f, Au( s2.store, s2.environment, s2.dependence, s2.callee ).states );
+	    environment = envExtend( environment, s2.callee.name, s3.f, f_dependence );
 	}
-	
+
+	var argument = s4.evaluatedArgument();
+
 	propagate( s1, new CApply({
 	    store: s4.store,
 	    environment: environment,
 	    dependence: s2.dependence, // XXX check this
 	    cont: s2.k,
-	    argument: s4.evaluatedArgument()
+	    argument: new AValue({
+		values: argument.values,
+		states: argument.states.union( f_dependence )
+	    })
 	}));
     }
     
     var init = inject( node );
 
     propagate( init, init );
-    successor( init, init );
 
     while( work.size > 0 ) {
 	var states = work.first();
@@ -875,14 +923,19 @@ function analyzeMain( node ) {
 		});
 
 		tcallers.get( states.car, new Set() ).forEach( function( s0ands1 ) {
-		    propagate( s0ands1.car, states.cdr );
+		    propagate( s0ands1.car, new CEvalExit({
+			store: states.cdr.store,
+			environment: states.cdr.environment,
+			dependence: states.cdr.dependence.union( s0ands1.cdr.dependence ),
+			argument: states.cdr.argument
+		    }) );
 		});
 	    }
 	}
 	else if( states.cdr instanceof UEvalCall ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
-		successor( state, state );
+		successor( states.cdr, state );
 
 		callers = mapExtend( callers, state, states );
 		
@@ -894,7 +947,7 @@ function analyzeMain( node ) {
 	else if( states.cdr instanceof UEvalExit ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( state, state );
-		successor( state, state );
+		successor( states.cdr, state );
 
 		tcallers = mapExtend( tcallers, state, states );
 		
@@ -909,7 +962,7 @@ function analyzeMain( node ) {
 		 states.cdr instanceof BEval ) {
 	    states.cdr.succs().forEach( function( state ) {
 		propagate( states.car, state );
-		successor( states.car, state );
+		successor( states.cdr, state );
 	    });
 	}
 	else {
@@ -917,21 +970,6 @@ function analyzeMain( node ) {
 	}
     }
 
-    function trace( state ) {
-	var trace = new List();
-
-	if( state instanceof UEvalExit ) {
-	    trace = trace.unshift( state.label );
-
-	    state = pred.get( state );
-
-	    if( state instanceof UApplyEntry ) {
-		trace = trace.unshift( tcallers.get( state ).first().cdr.label );
-	    }
-	}
-
-	return trace;
-    }
 
     finals.forEach( function( D ) {
 	console.log( D.states.map( trace ) );
