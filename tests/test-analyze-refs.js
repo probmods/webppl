@@ -19,6 +19,7 @@ function compile( code, verbose ) {
 
   var ast = build.program( headAst.concat( codeAst ) );  
 
+  ast = thunkify( ast );
   ast = naming( ast );
   ast = cps( ast, build.identifier("topK") );
   ast = optimize( ast );

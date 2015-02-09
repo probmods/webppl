@@ -51,7 +51,7 @@ function match( node, clauses, fail ) {
     return loop( 0 );
 }
 
-function safeFail( who, fail ) {
+function failSafe( who, fail ) {
     if( typeof fail === "Function" ) {
 	return fail();
     }
@@ -60,15 +60,27 @@ function safeFail( who, fail ) {
     }
 }
 
-function functor( node, f, fail ) {
-    if( types.Program.check( node ) &&
-	node.body.length === 1 &&
-	types.ExpressionStatement.check( node.body[0] ) ) {
-	return build.program([
-	    build.expressionStatement( f( node.body[0].expression ) )
-	]);
+function inProgram( f, fail ) {
+    return function( node ) {
+	if( types.Program.check( node ) &&
+	    node.body.length === 1 &&
+	    types.ExpressionStatement.check( node.body[0] ) ) {
+	    return build.program([
+		build.expressionStatement( f( node.body[0].expression ) )
+	    ]);
+	}
+	else return failSafe( "inProgram", fail );
     }
-    else return safeFail( "functor", fail );
+}
+
+function inBody( f, fail ) {
+    return inProgram( function( node ) {
+	if( types.FunctionExpression.check( node ) ) {
+	    return build.functionExpression( node.id, node.params,
+					     build.blockStatement( f( build.program( node.body.body ) ).body ) );
+	}
+	else return failSafe( "inBody", fail );
+    }, fail );
 }
 
 function returnify( nodes ) {
@@ -130,7 +142,7 @@ function thunkify( node, fail ) {
 	    )
 	]);
     }
-    else return safeFail( "thunkify", fail );
+    else return failSafe( "thunkify", fail );
 }
 
 exports.makeGenvar = makeGenvar;
@@ -138,5 +150,6 @@ exports.fail = fail;
 exports.clause = clause;
 exports.match = match;
 exports.thunkify = thunkify;
-exports.functor = functor;
+exports.inProgram = inProgram;
+exports.inBody = inBody;
 exports.isPrimitive = isPrimitive;

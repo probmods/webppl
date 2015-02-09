@@ -374,14 +374,7 @@ var BEval = new Record({
     dependence: null,
     test: null,
     consequent: null,
-    alternate: null,
-    toString: show({
-	store: show_environment,
-	environment: show_environment,
-	test: show_argument,
-	consequent: show_argument,
-	alternate: show_argument
-    })
+    alternate: null
 });
 
 function parse_single_or( p, q ) {
@@ -390,38 +383,6 @@ function parse_single_or( p, q ) {
 	    return q( node, succeed, fail );
 	});
     }
-}
-
-function check_equal( v0, v1 ) {
-    v0.reduce( function( acc, value, key ) {
-	if( acc ) {
-	    if( value.equals ) {
-		if( value.equals( v1[ key ] ) ) {
-		    console.log( key + " equ " + key );
-		    return true;
-		}
-		else {
-		    console.log( key + " neq " + key );
-		    console.log( value );
-		    console.log( v1[ key ] );
-		    return false;
-		}
-	    }
-	    else {
-		if( value === v1[ key ] ) {
-		    console.log( key + " === " + key );
-		    return true;
-		}
-		else {
-		    console.log( key + " !== " + key );
-		    console.log( value );
-		    console.log( v1[ key ] );
-		    return false;
-		}
-	    }
-	}
-	else return false;
-    }, true );
 }
 
 BEval.prototype.succs = function() {
@@ -455,12 +416,7 @@ var CEvalExit = new Record({
     store: null,
     environment: null,
     dependence: null,
-    argument: null,
-    toString: show({
-	store: show_store,
-	environment: show_environment,
-	argument: show_argument
-    })
+    argument: null
 });
 
 CEvalExit.prototype.succs = function() {
@@ -478,13 +434,7 @@ var CEvalInner = new Record({
     environment: null,
     dependence: null,
     cont: null,
-    argument: null,
-    toString: show({
-	store: show_environment,
-	environment: show_environment,
-	cont: show_argument,
-	argument: show_argument
-    })
+    argument: null
 });
 
 CEvalInner.prototype.succs = function() {
@@ -505,13 +455,7 @@ var CApply = new Record({
     environment: null,
     dependence: null,
     cont: null,
-    argument: null,
-    toString: show({
-	store: show_store,
-	environment: show_environment,
-	cont: show_operator,
-	argument: show_avalue
-    })
+    argument: null
 });
 
 CApply.prototype.succs = function() {
@@ -562,15 +506,7 @@ var UEvalCall = new Record({
     label: null,
     callee: null,
     args: null,
-    k: null,
-    toString: show({
-	store: show_environment,
-	environment: show_environment,
-	label: show_raw_value,
-	callee: show_argument,
-	args: map_show( show_argument ),
-	k: show_argument
-    })
+    k: null
 });
 
 UEvalCall.prototype.succs = UEval_succs;
@@ -582,14 +518,7 @@ var UEvalExit = new Record({
     dependence: null,
     label: null,
     callee: null,
-    args: null,
-    toString: show({
-	store: show_store,
-	environment: show_environment,
-	label: show_raw_value,
-	callee: show_argument,
-	args: map_show( show_argument )
-    })
+    args: null
 });
 
 UEvalExit.prototype.succs = UEval_succs;
@@ -598,12 +527,7 @@ var UApplyEntry = new Record({
     type: "UApplyEntry",
     store: null,
     f: null,
-    args: null,
-    toString: show({
-	store: show_store,
-	f: show_operator,
-	args: map_show( show_avalue )
-    })
+    args: null
 });
 
 UApplyEntry.prototype.succs = function() {
@@ -622,107 +546,6 @@ UApplyEntry.prototype.succs = function() {
 
 	return parseBody( store, environment, dependence, body.body );
     }, fail( "expected a function expression", this.f ) ) );
-}
-
-function enter( store, environment, dependence, f, args ) {
-}
-
-// SHOW
-
-function show_store( store ) {
-    return "<sto>";
-}
-
-function show_environment( environment ) {
-    return "<env>";
-}
-
-function show_operator( f ) {
-    if( f.type === "FunctionExpression" ) {
-	return showFunc( f );
-    }
-    else {
-	console.log( f );
-	throw new Error( "show_operator: unhandled type" );
-    }
-}
-
-function show_avalue( D ) {
-    return D.toString();
-}
-
-function showFunc( f ) {
-    if( isContinuationFunc( f ) ) {
-	return "fun " + contParams( f ).join(",") + ".<...>";
-    }
-    else {
-	return "fun " + f.params[0].name + " " + funcParams( f ).join(",") + ".<...>";
-    }
-}
-
-function show_argument( argument ) {
-    switch( argument.type ) {
-    case Syntax.ArrayExpression:
-	return "<[" + argument.elements.map( show_argument ).join(",") + "]>";
-    case Syntax.BinaryExpression:
-	return "<" + show_argument( argument.left ) + argument.operator + show_argument( argument.right ) + ">";
-    case Syntax.CallExpression:
-	return show_argument( argument.callee ) + "(" + argument.arguments.map( show_argument ).join(",") + ")"
-    case Syntax.FunctionExpression:
-	return "<" + showFunc( argument ) + ">";
-    case Syntax.Identifier:
-	return "<" + argument.name + ">";
-    case Syntax.Literal:
-	return "<" + argument.value + ">";
-    case Syntax.MemberExpression:
-	if( argument.computed ) {
-	    return show_argument( argument.object ) + "[" + show_argument( arugment.property ) + "]";
-	}
-	else {
-	    return show_argument( argument.object ) + "." + argument.property.name;
-	}
-    default:
-	console.log( argument );
-	throw new Error( "show_argument type " + argument.type );
-    }
-}
-
-function show_value( x ) {
-    if( typeof x === "number" || typeof x === "boolean" ) {
-	return x.toString();
-    }
-    else if( x.type === "FunctionExpression" ) {
-	return showFunc( x );
-    }
-    else {
-	throw new Error( "show_value" );
-    }
-}
-
-function show_values( D ) {
-    return "{" + D.map( show_value ).toArray().join(",") + "}";
-}
-
-function map_show( show ) {
-    return function( xs ) {
-	return "[" + xs.map( show ).join(",") + "]";
-    }
-}
-
-function show_raw_value( x ) {
-    return x.toString();
-}
-
-function show( shows ) {
-    return function() {
-	var vs = [];
-
-	for( var p in shows ) {
-	    vs.push( shows[p]( this[p] ) );
-	}
-		   
-	return this.type + "(" + vs.join(",") + ")";
-    }
 }
 
 function id( x ) {
@@ -767,25 +590,6 @@ function inject( node ) {
 
 // expects an AST of a named, CPS'd program
 function analyzeMain( node ) {
-    console.log( require("escodegen").generate( node ) );
-    
-    Map.prototype.toString = function() {
-	var rep = "{ ";
-	
-	var i = this.entries();
-
-	var v = i.next();
-
-	while( ! v.done ) {
-	    rep = rep + v.value[0] + "=>" + v.value[1];
-	    v = i.next();
-	}
-
-	rep = rep + "}";
-
-	return rep;
-    }
-    
     var Pair = new Record({
 	car: null,
 	cdr: null,
@@ -814,30 +618,6 @@ function analyzeMain( node ) {
 
 	
 	return t;
-/*	var t = new List();
-
-	if( state instanceof UEvalExit ) {
-	    t = t.unshift( state.label );
-
-	    state = pred.get( state );
-
-	    if( state instanceof UApplyEntry ) {
-		if( callers.has( state ) ) {
-		    console.log( "callers has it" );
-		    console.log( callers.get( state ) );
-		}
-		else if( tcallers.has( state ) ) {
-		    console.log( "tcallers has it" );
-		    console.log( tcallers.get( state ) );
-		}
-		else {
-		    console.log( "neither had it" );
-		}
-	    }
-	    //t = t.unshift( tcallers.get( state ).first().cdr.label );
-	}
-
-	return t;*/
     }
 
     function successor( s0, s1 ) { // first successor, really only meaningful if there's only one
@@ -845,17 +625,6 @@ function analyzeMain( node ) {
 	    succ = succ.set( s0, s1 );
 	}
     }
-    
-    /*function successor( s0, s1 ) {
-	if( pred.has( s1 ) && ! pred.get( s1 ).equals( s0 ) ) {
-	    console.log( "PRED CAR " + s0 );
-	    console.log( "PRED CDR " + s1 );
-	    throw new Error( "successor: has the successor already!" );
-	}
-	else {
-	    pred = pred.set( s1, s0 );
-	}
-    }*/
     
     function propagate( s0, s1 ) {
 	var ss = new Pair({
@@ -904,16 +673,11 @@ function analyzeMain( node ) {
     while( work.size > 0 ) {
 	var states = work.first();
 
-	console.log( "CAR " + states.car );
-	console.log( "CDR " + states.cdr );
-	
 	work = work.rest();
 
 	if( states.cdr instanceof CEvalExit ) {
 	    if( states.car.equals( init ) ) {
 		finals = finals.add( states.cdr.evaluatedArgument() );
-		console.log( "NEW FINALS!!!" );
-		console.log( finals );
 	    }
 	    else {
 		summaries = mapExtend( summaries, states.car, states.cdr );
@@ -969,13 +733,6 @@ function analyzeMain( node ) {
 	    throw new Error( "unhandled state with type " + states.cdr.type );
 	}
     }
-
-
-    finals.forEach( function( D ) {
-	console.log( D.states.map( trace ) );
-    });
-
-    console.log( finals );
     
     return finals;
 }

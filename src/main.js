@@ -12,6 +12,7 @@ var naming = require("./naming").naming;
 var store = require("./store").store;
 var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
+var thunkify = require("./util2").thunkify;
 var analyze = require("./analyze").analyze;
 var util = require("./util");
 
@@ -27,50 +28,38 @@ function concatPrograms( p0, p1 ) {
     return build.program( p0.body.concat( p1.body ) );
 }
 
-function removeFinalContinuationCall(ast, contName){
-  var x = ast.body[0];
-  var lastNode = x.body[x.body.length-1];
-  assert(types.namedTypes.ExpressionStatement.check(lastNode));
-  assert(types.namedTypes.CallExpression.check(lastNode.expression));
-  assert(types.namedTypes.Identifier.check(lastNode.expression.callee));
-  assert.equal(lastNode.expression.callee.name, contName);
-  x.body = x.body.slice(0, x.body.length-1);
-}
-
-var compile = function(code, contName, isLibrary){
-  var ast = esprima.parse(code);
-  var cont = build.identifier(contName);
-  ast = naming(ast);
-  ast = cps(ast, cont);
-  if (isLibrary){
-    // library contains only function definitions, so remove
-    // unnecessary final dummy continuation call
-    removeFinalContinuationCall(ast, contName);
-  }
-  ast = store(ast);
-  ast = optimize(ast);
-  ast = varargs(ast);
-  ast = trampoline(ast, isLibrary);
-  return ast;
-};
-
-function compileProgram(programCode, verbose){
-  if (verbose && console.time){console.time('compile');}
-
-  function UpdateTopLevel( prog, f ) {
-    return build.program([this.body[0].updateTopLevel( f )]);
-  }
+function prepare(programCode, verbose){
+  if (verbose && console.time){console.time('prepare');}
     
-  var _compile = function( ast ){
-    console.log( escodegen.generate( ast ) );
+    var _prepare = function( ast ){
+    ast = thunkify(ast);  
     ast = naming(ast);
     ast = cps(ast);
-//  ast = store(ast);
-    console.log( escodegen.generate( ast ) );  
-    ast = UpdateTopLevel( ast, optimize );
-//  ast = trampoline(ast);
-    console.log( escodegen.generate( ast ) );
-    throw 42;
+    ast = optimize(ast);
+    
+    return ast;
+  };
+
+  // parse header and program, combine, compile, and generate program
+  var out = _prepare( concatPrograms( esprima.parse( fs.readFileSync(__dirname + "/header.wppl") ),
+				      esprima.parse( programCode ) ) );
+
+  if (verbose && console.timeEnd){console.timeEnd('prepare');}
+  return out;
+}
+
+function compile(programCode, verbose){
+  if (verbose && console.time){console.time('compile');}
+
+  var _compile = function( ast ){
+    ast = thunkify(ast);  
+    ast = naming(ast);
+    ast = cps(ast);
+    ast = store(ast);
+    ast = optimize(ast);
+    ast = varargs(ast);  
+    ast = trampoline(ast);
+    
     return ast;
   };
 
@@ -84,7 +73,7 @@ function compileProgram(programCode, verbose){
 
 function run(code, contFun, verbose){
   var compiledCode = compile(code, verbose);
-  return eval(compiledCode)( {}, contFun, "" );
+  eval(compiledCode)( {}, contFun, "" );
 }
 
 // Compile and run some webppl code in global scope:
@@ -124,6 +113,7 @@ if (util.runningInBrowser()){
 module.exports = {
   webppl_eval: webppl_eval,
   run: run,
+  prepare: prepare,  
   compile: compile,
   analyze: analyze  
 };

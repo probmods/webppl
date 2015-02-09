@@ -7,7 +7,8 @@ var types = require("ast-types");
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var functor = require("./util2").functor;
+var fail = require("./util2").fail;
+var inBody = require("./util2").inBody;
 
 function createPipeline() {
 
@@ -103,7 +104,7 @@ function optimize(node){
 }
 
 function optimizeMain( node ) {
-    return functor( node, function( node ) {
+    return inBody( function( node ) {
 	return esmangle.optimize( estraverse.replace( node, {
 	    enter: optimize,
 	    leave: optimize
@@ -111,7 +112,7 @@ function optimizeMain( node ) {
 	    inStrictCode: true,
 	    legacy: false
 	});
-    });
+    })( node, fail( "optimize: inBody", node ) );
 }
 
 module.exports = {

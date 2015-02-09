@@ -1,31 +1,9 @@
 "use strict";
 
-var readFile = require('fs').readFileSync;
-var esprima = require("esprima");
-var build = require("ast-types").builders;
-var naming = require("../src/naming.js").naming;
-var cps = require("../src/cps.js").cps;
-var store = require("../src/store").store;
-var optimize = require("../src/optimize.js").optimize;
-var analyze = require("../src/analyze.js").analyze;
-
-var thunkify = require("../src/util2").thunkify;
+var prepare = require("../src/main").prepare;
+var analyze = require("../src/analyze").analyze;
 
 var Set = require("immutable").Set;
-
-function compile( code, verbose ) {
-    var headAst = esprima.parse( readFile( __dirname + "/../src/header.wppl" ) ).body;
-    var codeAst = esprima.parse( code ).body;
-
-    var ast = build.program( headAst.concat( codeAst ) );  
-    ast = thunkify( ast );
-    ast = naming( ast );
-    ast = cps( ast );
-    //ast = store( ast );
-    ast = optimize( ast );
-
-    return ast;
-}
 
 var tests = {
     constant: {
@@ -49,7 +27,7 @@ geom();",
 
 function makeTest( t ) {
     return function( test ) {
-	var results = analyze( compile( t.program ) );
+	var results = analyze( prepare( t.program ) );
 
 	var values = results.reduce( function( values, result ) {
 	    return values.union( result.values );

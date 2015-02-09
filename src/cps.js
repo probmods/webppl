@@ -13,7 +13,7 @@ var gensym = util.makeGensym();
 var match = require("./util2").match;
 var clause = require("./util2").clause;
 var fail = require("./util2").fail;
-var functor = require("./util2").functor;
+var inProgram = require("./util2").inProgram;
 
 var linearize = require("./linearize").linearize;
 
@@ -327,12 +327,12 @@ function cpsSequence( nodes, i, k ) {
 
 function cpsMain( node ) {
     genvar = makeGenvar();
-
-    return inProgram( node, function( expression ) {
+   
+    return inProgram( function( expression ) {
 	return clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
 	    return cpsFunction( id, params, body );
 	})( expression, fail( "cps: expected FunctionExpression", expression ) );
-    }, fail( "cps: inProgram", node ) );
+    })( node, fail( "cps: inProgram", node ) );
 }
 
 module.exports = {

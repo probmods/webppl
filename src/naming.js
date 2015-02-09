@@ -9,7 +9,7 @@ var types = require("ast-types").types;
 var makeGensym = require("./util").makeGensym;
 var makeGenvar = require("./util2").makeGenvar;
 
-var functor = require("./util2").functor;
+var inProgram = require("./util2").inProgram;
 var fail = require("./util2").fail;
 
 var isPrimitive = require("./util2").isPrimitive;
@@ -65,8 +65,12 @@ function naming( node ) {
 }
 
 function namingMain(node) {
-  nextCounter = makeNextCounter();
-  return estraverse.replace(node, { leave: naming });
+    genlit = makeGenlit();
+    genvar = makeGenvar();
+
+    return inProgram( function( node ) {
+	return replace( node, { enter: generating, leave: naming } );
+    })( node, fail( "naming: inProgram", node ) );
 }
 
 module.exports = {

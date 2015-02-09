@@ -7,7 +7,8 @@ var types = require("ast-types").namedTypes;
 
 var parse = require("esprima").parse;
 
-var functor = require("./util2").functor;
+var fail = require("./util2").fail;
+var inProgram = require("./util2").inProgram;
 var isPrimitive = require("./util2").isPrimitive;
 
 function thunkify( node ) {
@@ -58,12 +59,12 @@ var driver = parse("\
 })").body[0].expression;
 
 function trampolineMain( node ) {
-    return functor( node, function( node ) {
+    return inProgram( function( node ) {
 	return build.callExpression( driver, [replace( node, {
 	    enter: skip,
 	    leave: trampoline
-	})] );
-    });
+	})] )
+    })( node, fail( "trampoline", node ) );
 }
 
 module.exports = {
