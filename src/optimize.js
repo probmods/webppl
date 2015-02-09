@@ -8,7 +8,7 @@ var build = types.builders;
 var Syntax = estraverse.Syntax;
 
 var fail = require("./util2").fail;
-var inBody = require("./util2").inBody;
+var inProgram = require("./util2").inProgram;
 
 function createPipeline() {
 
@@ -104,7 +104,7 @@ function optimize(node){
 }
 
 function optimizeMain( node ) {
-    return inBody( function( node ) {
+    return inProgram( function( node ) {
 	return esmangle.optimize( estraverse.replace( node, {
 	    enter: optimize,
 	    leave: optimize
