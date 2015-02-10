@@ -24288,7 +24288,7 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(s, k, a, wpplFn, numParticles) {
+function ParticleFilter(s, k, a, wpplFn, numParticles, strict) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
@@ -24304,6 +24304,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
     this.particles.push(particle);
   }
 
+  this.strict = strict;
   // Move old coroutine out of the way and install this as the current
   // handler.
   this.k = k;
@@ -24350,35 +24351,42 @@ ParticleFilter.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
-  var resetW = W - Math.log(m);
+  var avgW = W - Math.log(m);
 
-  // Compute list of retained particles
-  var retainedParticles = [];
-  var newExpWeights = [];
-  _.each(
-    this.particles,
-    function(particle){
-      var w = Math.exp(particle.weight - resetW);
-      var nRetained = Math.floor(w);
-      newExpWeights.push(w - nRetained);
-      for (var i=0; i<nRetained; i++) {
-        retainedParticles.push(copyParticle(particle));
-      }});
+  if (avgW == -Infinity) {      // debugging: check if NaN
+    if (this.strict) throw "Error! All particles -Infinity"
+  } else {
+    // Compute list of retained particles
+    var retainedParticles = [];
+      var newExpWeights = [];
+    _.each(
+      this.particles,
+      function(particle){
+        var w = Math.exp(particle.weight - avgW);
+        if (isNaN(w)) console.log(particle.weight)
+        var nRetained = Math.floor(w);
+        newExpWeights.push(w - nRetained);
+        for (var i=0; i<nRetained; i++) {
+          retainedParticles.push(copyParticle(particle));
+        }});
+    if (_.some(newExpWeights, isNaN))
+      console.log(newExpWeights,
+                 _.map(this.particles, function(p){return p.weight;}))
+    // Compute new particles
+    var numNewParticles = m - retainedParticles.length;
+    var newParticles = [];
+    var j;
+    for (var i=0; i<numNewParticles; i++){
+      j = multinomialSample(newExpWeights);
+      newParticles.push(copyParticle(this.particles[j]));
+    }
 
-  // Compute new particles
-  var numNewParticles = m - retainedParticles.length;
-  var newParticles = [];
-  var j;
-  for (var i=0; i<numNewParticles; i++){
-    j = multinomialSample(newExpWeights);
-    newParticles.push(copyParticle(this.particles[j]));
+    // Particles after update: Retained + new particles
+    this.particles = newParticles.concat(retainedParticles);
   }
 
-  // Particles after update: Retained + new particles
-  this.particles = newParticles.concat(retainedParticles);
-
   // Reset all weights
-  _.each(this.particles, function(particle){particle.weight = resetW;});
+  _.each(this.particles, function(particle){particle.weight = avgW;});
 };
 
 ParticleFilter.prototype.exit = function(s,retval) {
@@ -24409,11 +24417,12 @@ ParticleFilter.prototype.exit = function(s,retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(this.oldStore, dist);
+  this.k(this.oldStore,
+         this.strict ? dist : {marginal:dist, weight: this.particles[0].weight});
 }
 
-function pf(s, cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(s, cc, a, wpplFn, numParticles);
+function pf(s, cc, a, wpplFn, numParticles, strict) {
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -24836,7 +24845,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
-  var resetW = W - Math.log(m);
+  var avgW = W - Math.log(m);
 
   // Compute list of retained particles
   var retainedParticles = [];
@@ -24844,7 +24853,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   _.each(
     coroutine.particles,
     function(particle){
-      var w = Math.exp(particle.weight - resetW);
+      var w = Math.exp(particle.weight - avgW);
       var nRetained = Math.floor(w);
       newExpWeights.push(w - nRetained);
       for (var i=0; i<nRetained; i++) {
@@ -24864,7 +24873,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   coroutine.particles = newParticles.concat(retainedParticles);
 
   // Reset all weights
-  _.each(coroutine.particles, function(particle){particle.weight = resetW;});
+  _.each(coroutine.particles, function(particle){particle.weight = avgW;});
 };
 
 ParticleFilterRejuv.prototype.exit = function(s,retval) {
