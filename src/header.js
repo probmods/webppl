@@ -454,18 +454,12 @@ function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   if (typeof coroutine.sampleWithFactor === "function"){
     return coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    var sampleK = function(s, v) {
-      var scoreK = function(s, sc) {
-        var factorK = function(s) {
-          return k(s, v);
-	};
-
-	return factor(s, factorK, a+"swf2", sc);
-      };
-
-      return scoreFn(s, scoreK, a+"swf1", v);
-    };
-      
+    var sampleK = function(s, v){
+      var scoreK = function(s, sc){
+        var factorK = function(s){
+          return k(s, v); };
+        return factor(s, factorK, a+"swf2", sc);};
+      return scoreFn(s, scoreK, a+"swf1", v);};
     return sample(s, sampleK, a, dist, params);
   }
 }
@@ -482,25 +476,30 @@ function exit(s,retval) {
 // Depth-first enumeration of all the paths through the computation.
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
-function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
-
+function Enumerate(store, k, a, wpplFn, maxExecutions, Q) {
   this.score = 0; // Used to track the score of the path currently being explored
-  this.queue = Q; // Queue of states that we have yet to explore
   this.marginal = {}; // We will accumulate the marginal distribution here
   this.numCompletedExecutions = 0;
-  this.maxExecutions = maxExecutions || Infinity;
 
-  this.oldStore = s; // will be reinstated at the end
-
-  // Move old coroutine out of the way and install this as the current handler
+  this.store = store; // will be reinstated at the end
   this.k = k;
-  this.oldCoroutine = coroutine;
-  coroutine = this;
+  this.a = a;
+  this.wpplFn = wpplFn;  
+  this.maxExecutions = maxExecutions || Infinity;
+  this.queue = Q; // Queue of states that we have yet to explore
 
+  // Move old coroutine out of the way
+  this.coroutine = coroutine;
+
+  // install this as the current handler
+  coroutine = this;
+}
+
+Enumerate.prototype.run = function() {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  return wpplFn(s, exit, a);
+  return this.wpplFn(this.s, exit, this.a);
 }
 
 // The queue is a bunch of computation states. each state is a
@@ -515,12 +514,11 @@ var stackSize = 0;
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
+    
   return nextState.continuation(nextState.store, nextState.value);
 };
 
-
 Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
-
   //allows extra factors to be taken into account in making exploration decisions:
   extraScoreFn = extraScoreFn || function(x){return 0;};
 
@@ -550,7 +548,7 @@ Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) 
 Enumerate.prototype.factor = function(s,cc,a, score) {
   // Update score and continue
   this.score += score;
-  cc(s);
+  return cc(s);
 };
 
 // FIXME: can only call scoreFn in tail position!
@@ -564,7 +562,6 @@ Enumerate.prototype.factor = function(s,cc,a, score) {
 
 
 Enumerate.prototype.exit = function(s,retval) {
-
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval);
   if (this.marginal[r] === undefined) {
@@ -577,21 +574,21 @@ Enumerate.prototype.exit = function(s,retval) {
 
   // If anything is left in queue do it:
   if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {
-    this.nextInQueue();
+    return this.nextInQueue();
   } else {
     var marginal = this.marginal;
     var dist = makeMarginalERP(marginal);
     // Reinstate previous coroutine:
-    coroutine = this.oldCoroutine;
+    coroutine = this.coroutine;
     // Return from enumeration by calling original continuation with original store:
-    this.k(this.oldStore, dist);
+    return this.k(this.store, dist);
   }
 };
 
 //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
 function enuPriority(s,cc, a, wpplFn, maxExecutions) {
   var q = new PriorityQueue(function(a, b){return a.score-b.score;});
-  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q).run();
 }
 
 function enuFilo(s,cc,a, wpplFn, maxExecutions) {
@@ -599,7 +596,7 @@ function enuFilo(s,cc,a, wpplFn, maxExecutions) {
   q.size = function(){return q.length;};
   q.enq = q.push;
   q.deq = q.pop;
-  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q).run();
 }
 
 function enuFifo(s,cc,a, wpplFn, maxExecutions) {
@@ -607,7 +604,7 @@ function enuFifo(s,cc,a, wpplFn, maxExecutions) {
   q.size = function(){return q.length;};
   q.enq = q.push;
   q.deq = q.shift;
-  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q);
+  return new Enumerate(s,cc,a, wpplFn, maxExecutions, q).run();
 }
 
 
@@ -634,7 +631,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
-      continuation: function(s){wpplFn(s,exit,a);},
+      continuation: function(s){ return wpplFn(s,exit,a);},
       weight: 0,
       value: undefined,
       store: util.copyObj(s)
@@ -649,13 +646,15 @@ function ParticleFilter(s, k, a, wpplFn, numParticles) {
   coroutine = this;
 
   this.oldStore = util.copyObj(s); // will be reinstated at the end
+}
 
+ParticleFilter.prototype.run = function() {
   // Run first particle
-  this.activeParticle().continuation(this.activeParticle().store);
+  return this.activeParticle().continuation(this.activeParticle().store);
 }
 
 ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
-  cc(s,erp.sample(params));
+  return cc(s,erp.sample(params));
 };
 
 ParticleFilter.prototype.factor = function(s,cc, a, score) {
@@ -673,7 +672,7 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     this.particleIndex += 1;
   }
 
-  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
+  return coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -747,11 +746,11 @@ ParticleFilter.prototype.exit = function(s, retval) {
   coroutine = this.oldCoroutine;
 
   // Return from particle filter by calling original continuation:
-  this.k(this.oldStore, dist);
+  return this.k(this.oldStore, dist);
 };
 
 function pf(s, cc, a, wpplFn, numParticles) {
-  return new ParticleFilter(s, cc, a, wpplFn, numParticles);
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles).run();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -772,15 +771,22 @@ function MH(s, k, a, wpplFn, numIterations) {
 
   // Move old coroutine out of the way and install this as the current
   // handler.
+
+  this.wpplFn = wpplFn;
+  this.s = s;
+  this.a = a;
+    
   this.oldCoroutine = coroutine;
   coroutine = this;
+}
 
-  wpplFn(s, exit, a);
+MH.prototype.run = function() {
+  return this.wpplFn(this.s, exit, this.a);
 }
 
 MH.prototype.factor = function(s, k, a, score) {
   coroutine.currScore += score;
-  k(s);
+  return k(s);
 };
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
@@ -793,7 +799,7 @@ MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
                        score: coroutine.currScore, choiceScore: choiceScore,
                        val: val, reused: reuse, store: util.copyObj(s)});
   coroutine.currScore += choiceScore;
-  cont(s, val);
+  return cont(s, val);
 };
 
 function findChoice(trace, name) {
@@ -850,7 +856,7 @@ MH.prototype.exit = function(s, val) {
     coroutine.currScore = regen.score;
     coroutine.oldVal = val;
 
-    coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
+    return coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
   } else {
     var dist = makeMarginalERP(coroutine.returnHist);
 
@@ -859,12 +865,12 @@ MH.prototype.exit = function(s, val) {
     coroutine = this.oldCoroutine;
 
     // Return by calling original continuation:
-    k(this.oldStore, dist);
+    return k(this.oldStore, dist);
   }
 };
 
 function mh(s, cc, a, wpplFn, numParticles) {
-  return new MH(s, cc, a, wpplFn, numParticles);
+  return new MH(s, cc, a, wpplFn, numParticles).run();
 }
 
 
@@ -897,9 +903,11 @@ function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps){
   this.numParticles = numParticles;
   this.resetParticles();
   this.returnHist = {};
+}
 
+PMCMC.prototype.run = function() {
   // Run first particle
-  this.activeContinuationWithStore()();
+  return this.activeContinuationWithStore();
 }
 
 PMCMC.prototype.resetParticles = function(){
@@ -908,7 +916,7 @@ PMCMC.prototype.resetParticles = function(){
   // Create initial particles
   for (var i=0; i<this.numParticles; i++) {
     var particle = {
-      continuations: [function(s){that.wpplFn(s, exit, that.address);}],
+      continuations: [function(s){return that.wpplFn(s, exit, that.address);}],
       stores: [that.oldStore],
       weights: [0],
       value: undefined
@@ -928,7 +936,7 @@ PMCMC.prototype.activeContinuation = function(){
 PMCMC.prototype.activeContinuationWithStore = function(){
   var k = last(this.activeParticle().continuations);
   var s = last(this.activeParticle().stores);
-  return function(){k(s);};
+  return function(){ return k(s);};
 };
 
 PMCMC.prototype.allParticlesAdvanced = function() {
@@ -936,7 +944,7 @@ PMCMC.prototype.allParticlesAdvanced = function() {
 };
 
 PMCMC.prototype.sample = function(s, cc, a, erp, params) {
-  cc(s, erp.sample(params));
+  return cc(s, erp.sample(params));
 };
 
 PMCMC.prototype.particleAtStep = function(particle, step){
@@ -1001,7 +1009,7 @@ PMCMC.prototype.factor = function(s, cc, a, score) {
     this.particleIndex += 1;
   }
 
-  this.activeContinuationWithStore()();
+  return this.activeContinuationWithStore();
 };
 
 PMCMC.prototype.exit = function(s, retval) {
@@ -1012,7 +1020,7 @@ PMCMC.prototype.exit = function(s, retval) {
 
     // Wait for all particles to reach exit
     this.particleIndex += 1;
-    return this.activeContinuationWithStore()();
+    return this.activeContinuationWithStore();
 
   } else {
 
@@ -1038,7 +1046,7 @@ PMCMC.prototype.exit = function(s, retval) {
       this.sweep += 1;
       this.particleIndex = 0;
       this.resetParticles();
-      this.activeContinuationWithStore()();
+      return this.activeContinuationWithStore();
 
     } else {
       var dist = makeMarginalERP(this.returnHist);
@@ -1047,14 +1055,14 @@ PMCMC.prototype.exit = function(s, retval) {
       coroutine = this.oldCoroutine;
 
       // Return from particle filter by calling original continuation:
-      this.k(this.oldStore, dist);
+      return this.k(this.oldStore, dist);
 
     }
   }
 };
 
 function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
-  return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps);
+    return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();
 }
 
 
@@ -1516,7 +1524,7 @@ function vari(s,cc, a, wpplFn, estS) {
 // Some primitive functions to make things simpler
 
 function display(s,k, a, x) {
-  k(s, console.log(x));
+  return k(s, console.log(x));
 }
 
 // Caching for a wppl function f. caution: if f isn't deterministic
@@ -1529,16 +1537,16 @@ function cache(s, k, a, f) {
     var args = Array.prototype.slice.call(arguments, 3);
     var stringedArgs = JSON.stringify(args);
     if (stringedArgs in c) {
-      k(s, c[stringedArgs]);
+      return k(s, c[stringedArgs]);
     } else {
       var newk = function(s, r) {
         c[stringedArgs] = r;
-        k(s, r);
+        return k(s, r);
       };
-      f.apply(this, [s, newk, a].concat(args));
+      return f.apply(this, [s, newk, a].concat(args));
     }
   };
-  k(s, cf);
+  return k(s, cf);
 }
 
 // FIXME: handle fn.apply in cps transform?
