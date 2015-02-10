@@ -1,6 +1,6 @@
 {
-  "name": "probprog-esslli2014",
-  "version": "0.0.0",
+  "name": "webppl",
+  "version": "0.0.1",
   "description": "",
   "main": "src/main.js",
   "directories": {
@@ -9,6 +9,7 @@
   "dependencies": {
     "amdefine": "^0.1.0",
     "ast-types": "^0.4.9",
+    "brfs": "^1.2.0",
     "escodegen": "^1.4.1",
     "esmangle": "^1.0.1",
     "esprima": "^1.2.2",

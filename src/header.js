@@ -13,7 +13,6 @@ var address = "";
 var globalStore = {};
 
 
-
 ////////////////////////////////////////////////////////////////////
 // ERPs
 //
@@ -58,7 +57,7 @@ var bernoulliERP = new ERP(
     return val;
   },
   function flipScore(params, val) {
-    //FIXME: check domain
+    if (val != true && val != false) { return -Infinity; }
     var weight = params[0];
     return val ? Math.log(weight) : Math.log(1 - weight);
   },
@@ -92,18 +91,18 @@ function gaussianSample(params){
   var u, v, x, y, q;
   do {
     u = 1 - Math.random();
-    v = 1.7156 * (Math.random() - .5);
+    v = 1.7156 * (Math.random() - 0.5);
     x = u - 0.449871;
     y = Math.abs(v) + 0.386595;
     q = x*x + y*(0.196*y - 0.25472*x);
-  } while(q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)))
+  } while (q >= 0.27597 && (q > 0.27846 || v*v > -4 * u * u * Math.log(u)));
   return mu + sigma*v/u;
 }
 
 function gaussianScore(params, x){
   var mu = params[0];
   var sigma = params[1];
-  return -.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
+  return -0.5*(1.8378770664093453 + 2*Math.log(sigma) + (x - mu)*(x - mu)/(sigma*sigma));
 }
 
 function gaussianFactor(store, k, addr, mu, std, val){
@@ -155,7 +154,9 @@ function gammaSample(params){
     do{x = gaussianSample([0,1]);  v = 1+c*x;} while(v <= 0);
     v=v*v*v;
     u=Math.random();
-    if((u < 1 - .331*x*x*x*x) || (Math.log(u) < .5*x*x + d*(1 - v + Math.log(v)))) return b*d*v;
+    if ((u < 1 - 0.331*x*x*x*x) || (Math.log(u) < 0.5*x*x + d*(1 - v + Math.log(v)))){
+      return b*d*v;
+    }
   }
 }
 
@@ -199,15 +200,15 @@ var betaERP = new ERP(
     var a = params[0];
     var b = params[1];
     var x = val;
-    return ((x > 0 && x < 1)
-            ? (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b)
-            : -Infinity);
+    return ((x > 0 && x < 1) ?
+            (a-1)*Math.log(x) + (b-1)*Math.log(1-x) - logBeta(a,b) :
+            -Infinity);
   }
 );
 
 function binomialG(x){
-  if (x == 0) return 1;
-  if (x == 1) return 0;
+  if (x === 0) { return 1; }
+  if (x === 1) { return 0; }
   var d = 1 - x;
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
@@ -225,14 +226,14 @@ function binomialSample(params){
     if (x >= p){
       n = a-1; p /= x;
     }
-    else{ k += a; n = b - 1; p = (p-x) / (1-x); }
+    else { k += a; n = b - 1; p = (p-x) / (1-x); }
   }
   var u;
   for (var i=0; i<n; i++){
     u = Math.random();
-    if (u < p) k++;
+    if (u < p) { k++; }
   }
-  return k | 0;
+  return k || 0;
 }
 
 var binomialERP = new ERP(
@@ -240,38 +241,45 @@ var binomialERP = new ERP(
   function binomialScore(params, val){
     var p = params[0];
     var n = params[1];
-    var s = val;
-    var inv2 = 1/2;
-    var inv3 = 1/3;
-    var inv6 = 1/6;
-    if (s >= n) return -Infinity;
-    var q = 1-p;
-    var S = s + inv2;
-    var T = n - s - inv2;
-    var d1 = s + inv6 - (n + inv3) * p;
-    var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
-    d2 = d1 + 0.02*d2;
-    var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
-    var den = (n + inv6) * p * q;
-    var z = num / den;
-    var invsd = Math.sqrt(z);
-    z = d2 * invsd;
-    return gaussianScore([0, 1], z) + Math.log(invsd);
+    if (n > 20 && n*p > 5 && n*(1-p) > 5) {
+      // large n, reasonable p approximation
+      var s = val;
+      var inv2 = 1/2;
+      var inv3 = 1/3;
+      var inv6 = 1/6;
+      if (s >= n) { return -Infinity; }
+      var q = 1-p;
+      var S = s + inv2;
+      var T = n - s - inv2;
+      var d1 = s + inv6 - (n + inv3) * p;
+      var d2 = q/(s+inv2) - p/(T+inv2) + (q-inv2)/(n+1);
+      d2 = d1 + 0.02*d2;
+      var num = 1 + q * binomialG(S/(n*p)) + p * binomialG(T/(n*q));
+      var den = (n + inv6) * p * q;
+      var z = num / den;
+      var invsd = Math.sqrt(z);
+      z = d2 * invsd;
+      return gaussianScore([0, 1], z) + Math.log(invsd);
+    } else {
+      // exact formula
+      return (lnfact(n) - lnfact(n-val) - lnfact(val) +
+              val * Math.log(p) + (n-val) * Math.log(1 - p));
+    }
   },
   function binomialSupport(params) {
-    return _.range(params[1]);
+    return _.range(params[1]).concat([params[1]]);
   }
 );
 
 function fact(x){
-  var t=1;
-  while(x>1) t*=x--;
+  var t = 1;
+  while (x>1) { t*=x--; }
   return t;
 }
 
 function lnfact(x) {
-  if (x < 1) x = 1;
-  if (x < 12) return Math.log(fact(Math.round(x)));
+  if (x < 1) { x = 1; }
+  if (x < 12) { return Math.log(fact(Math.round(x))); }
   var invx = 1 / x;
   var invx2 = invx * invx;
   var invx3 = invx2 * invx;
@@ -292,7 +300,7 @@ var poissonERP = new ERP(
       var m = 7/8*mu;
       var x = gammaSample([m, 1]);
       if (x > mu) {
-        return (k + binomialSample([mu/x, m-1])) | 0;
+        return (k + binomialSample([mu/x, m-1])) || 0;
       } else {
         mu -= x;
         k += m;
@@ -301,7 +309,7 @@ var poissonERP = new ERP(
     var emu = Math.exp(-mu);
     var p = 1;
     do{ p *= Math.random(); k++; } while(p > emu);
-    return (k-1) | 0;
+    return (k-1) || 0;
   },
   function poissonScore(params, val){
     var mu = params[0];
@@ -321,8 +329,8 @@ var dirichletERP = new ERP(
       theta[i] = t;
       ssum = ssum + t;
     }
-    for (var i = 0; i < theta.length; i++) {
-      theta[i] /= ssum;
+    for (var j = 0; j < theta.length; j++) {
+      theta[j] /= ssum;
     }
     return theta;
   },
@@ -334,9 +342,9 @@ var dirichletERP = new ERP(
       asum += alpha[i];
     }
     var logp = logGamma(asum);
-    for (var i = 0; i < alpha.length; i++){
-      logp += (alpha[i]-1)*Math.log(theta[i]);
-      logp -= logGamma(alpha[i]);
+    for (var j = 0; j < alpha.length; j++){
+      logp += (alpha[j]-1)*Math.log(theta[j]);
+      logp -= logGamma(alpha[j]);
     }
     return logp;
   }
@@ -366,7 +374,7 @@ function makeMarginalERP(marginal) {
     norm += marginal[v].prob;
     supp.push(marginal[v].val);
   }
-  for (var v in marginal) {
+  for (v in marginal) {
     marginal[v].prob = marginal[v].prob / norm;
   }
 
@@ -391,7 +399,7 @@ function makeMarginalERP(marginal) {
       var valString = JSON.stringify(val);
 
       if (valString in marginal) {
-        return Math.log( marginal[valString].prob )
+        return Math.log(marginal[valString].prob);
       }
 
       return -Infinity;
@@ -450,13 +458,16 @@ function factor(s, k, a, score) {
 }
 
 function sampleWithFactor(s, k, a, dist, params, scoreFn) {
-  if(typeof coroutine.sampleWithFactor  == "function"){
+  if (typeof coroutine.sampleWithFactor === "function"){
     coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    sample(s,
-           function(v){
-            scoreFn(s, function(sc){factor(s, function(s){k(s, v);},a+"swf2",sc);}, a+"swf1", v);},
-           a, dist, params);
+    var sampleK = function(s, v){
+      var scoreK = function(s, sc){
+        var factorK = function(s){
+          k(s, v); };
+        factor(s, factorK, a+"swf2", sc);};
+      scoreFn(s, scoreK, a+"swf1", v);};
+    sample(s, sampleK, a, dist, params);
   }
 }
 
@@ -541,20 +552,21 @@ Enumerate.prototype.factor = function(s,cc,a, score) {
   cc(s);
 };
 
-Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
-  coroutine.sample(s,cc,a,dist,params,
-                   function(v){
-                    var ret;
-                    scoreFn(s,function(x){ret = x;},a+"swf",v);
-                    return ret;});
-};
+// FIXME: can only call scoreFn in tail position!
+// Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
+//   coroutine.sample(s,cc,a,dist,params,
+//                    function(v){
+//                      var ret;
+//                      scoreFn(s, function(s, x){ret = x;}, a+"swf", v);
+//                      return ret;});
+// };
 
 
 Enumerate.prototype.exit = function(s,retval) {
 
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval);
-  if (this.marginal[r] == undefined) {
+  if (this.marginal[r] === undefined) {
     this.marginal[r] = {prob: 0, val: retval};
   }
   this.marginal[r].prob += Math.exp(this.score);
@@ -669,7 +681,7 @@ ParticleFilter.prototype.activeParticle = function() {
 };
 
 ParticleFilter.prototype.allParticlesAdvanced = function() {
-  return ((this.particleIndex + 1) == this.particles.length);
+  return ((this.particleIndex + 1) === this.particles.length);
 };
 
 ParticleFilter.prototype.resampleParticles = function() {
@@ -714,7 +726,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   _.each(this.particles, function(particle){particle.weight = avgW;});
 };
 
-ParticleFilter.prototype.exit = function(s,retval) {
+ParticleFilter.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
 
@@ -781,7 +793,7 @@ MH.prototype.factor = function(s, k, a, score) {
 
 MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined || forceSample);
+  var reuse = ! (prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: cont, name: name, erp: erp, params: params,
@@ -792,19 +804,19 @@ MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
 };
 
 function findChoice(trace, name) {
-  if (trace == undefined){
+  if (trace === undefined){
     return undefined;
   }
   for (var i = 0; i < trace.length; i++){
-    if (trace[i].name == name){
+    if (trace[i].name === name){
       return trace[i];
     }
   }
   return undefined;
 }
 
-function MHacceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  if(oldTrace == undefined){return 1;} //just for init
+function mhAcceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
+  if (oldTrace === undefined){return 1;} //just for init
   var fw = -Math.log(oldTrace.length);
   trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
   var bw = -Math.log(trace.length);
@@ -820,9 +832,9 @@ MH.prototype.exit = function(s, val) {
     coroutine.iterations -= 1;
 
     //did we like this proposal?
-    var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
+    var acceptance = mhAcceptProb(coroutine.trace, coroutine.oldTrace,
                                   coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
-    if (!(Math.random()<acceptance)){
+    if (Math.random() >= acceptance){
       // if rejected, roll back trace, etc:
       coroutine.trace = coroutine.oldTrace;
       coroutine.currScore = coroutine.oldScore;
@@ -927,7 +939,7 @@ PMCMC.prototype.activeContinuationWithStore = function(){
 };
 
 PMCMC.prototype.allParticlesAdvanced = function() {
-  return ((this.particleIndex + 1) == this.particles.length);
+  return ((this.particleIndex + 1) === this.particles.length);
 };
 
 PMCMC.prototype.sample = function(s, cc, a, erp, params) {
@@ -1014,8 +1026,7 @@ PMCMC.prototype.exit = function(s, retval) {
     // Use all (unweighted) particles from the conditional SMC
     // iteration to estimate marginal distribution.
     if (this.sweep > 0) {
-      _.each(
-        this.particles.concat(this.retainedParticle),
+      this.particles.concat(this.retainedParticle).forEach(
         function(particle){
           var k = JSON.stringify(particle.value);
           if (coroutine.returnHist[k] === undefined){
@@ -1023,7 +1034,7 @@ PMCMC.prototype.exit = function(s, retval) {
           }
           coroutine.returnHist[k].prob += 1;
         });
-    };
+    }
 
     // Retain the first particle sampled after the final factor statement.
     this.retainedParticle = this.particles[0];
@@ -1270,7 +1281,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
 
   // FIXME: do we need to save the store here?
 
-  if (numIterations==0) {
+  if (numIterations===0) {
     backToPF(particle);
   } else {
     // Move PF coroutine out of the way and install this as the current
@@ -1292,7 +1303,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
 
 MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
-  var reuse = ! (prev==undefined || forceSample);
+  var reuse = !(prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
   var choiceScore = erp.score(params,val);
   coroutine.trace.push({k: k, name: name, erp: erp, params: params,
@@ -1321,9 +1332,9 @@ MHP.prototype.exit = function(s,val) {
   coroutine.val = val;
 
   //did we like this proposal?
-  var acceptance = MHacceptProb(coroutine.trace, coroutine.oldTrace,
+  var acceptance = mhAcceptProb(coroutine.trace, coroutine.oldTrace,
                                 coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
-  if (!(Math.random()<acceptance)){
+  if (Math.random() >= acceptance){
     //if rejected, roll back trace, etc:
     coroutine.trace = coroutine.oldTrace;
     coroutine.currScore = coroutine.oldScore;
@@ -1364,19 +1375,19 @@ function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
 function Variational(s,k,a, wpplFn, estS) {
 
   this.wpplFn = wpplFn;
-  this.estimateSamples = estS
-  this.numS = 0
-  this.t = 1
-  this.variationalParams = {}
+  this.estimateSamples = estS;
+  this.numS = 0;
+  this.t = 1;
+  this.variationalParams = {};
   //historic gradient squared for each variational param, used for adagrad update:
-  this.runningG2 = {}
+  this.runningG2 = {};
   //gradient estimate per iteration:
-  this.grad = {}
+  this.grad = {};
   //gradient of each sample used to estimate gradient:
-  this.samplegrad = {}
+  this.samplegrad = {};
   //running score accumulation per sample:
-  this.jointScore = 0
-  this.variScore = 0
+  this.jointScore = 0;
+  this.variScore = 0;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
@@ -1385,38 +1396,38 @@ function Variational(s,k,a, wpplFn, estS) {
   coroutine = this;
 
   this.initialStore = s; // will be reinstated at the end
-  this.initialAddress = a
+  this.initialAddress = a;
 
   //kick off the estimation:
-  this.takeGradSample()
+  this.takeGradSample();
 }
 
 Variational.prototype.takeGradSample = function() {
   //reset sample info
-  coroutine.samplegrad = {}
-  coroutine.jointScore = 0
-  coroutine.variScore = 0
+  coroutine.samplegrad = {};
+  coroutine.jointScore = 0;
+  coroutine.variScore = 0;
   //get another sample
-  coroutine.numS++
-  coroutine.wpplFn(coroutine.initialStore, exit, coroutine.initialAddress)
+  coroutine.numS++;
+  coroutine.wpplFn(coroutine.initialStore, exit, coroutine.initialAddress);
 }
 
 Variational.prototype.sample = function(s,k,a, erp, params) {
   //sample from variational dist
   if(!coroutine.variationalParams.hasOwnProperty(a)){
     //initialize at prior (for this sample)...
-    coroutine.variationalParams[a] = params
+    coroutine.variationalParams[a] = params;
     coroutine.runningG2[a]=[0];//fixme: vec size
   }
-  var vParams = coroutine.variationalParams[a]
-  var val = erp.sample(vParams)
+  var vParams = coroutine.variationalParams[a];
+  var val = erp.sample(vParams);
 
   //compute variational dist grad
-  coroutine.samplegrad[a] = erp.grad(vParams, val)
+  coroutine.samplegrad[a] = erp.grad(vParams, val);
 
   //compute target score + variational score
-  coroutine.jointScore += erp.score(params, val)
-  coroutine.variScore += erp.score(vParams, val)
+  coroutine.jointScore += erp.score(params, val);
+  coroutine.variScore += erp.score(vParams, val);
 
   k(s,val); //TODO: need a?
 };
@@ -1424,58 +1435,58 @@ Variational.prototype.sample = function(s,k,a, erp, params) {
 Variational.prototype.factor = function(s,k,a, score) {
 
   //update joint score and keep going
-  coroutine.jointScore += score
+  coroutine.jointScore += score;
 
-  k(s) //TODO: need a?
+  k(s); //TODO: need a?
 };
 
 Variational.prototype.exit = function(s,retval) {
   //FIXME: params are arrays, so need vector arithmetic or something..
 
   //update gradient estimate
-  for(var a in coroutine.samplegrad) {
-    if(!coroutine.grad.hasOwnProperty(a)){
+  for (var a in coroutine.samplegrad) {
+    if (!coroutine.grad.hasOwnProperty(a)){
       //FIXME: size param vec:
       coroutine.grad[a]=[0];
     }
-    coroutine.grad[a] = vecPlus(coroutine.grad[a],
-                          vecScalarMult(coroutine.samplegrad[a],
-                            (coroutine.jointScore - coroutine.variScore)))
+    coroutine.grad[a] = vecPlus(
+      coroutine.grad[a],
+      vecScalarMult(coroutine.samplegrad[a],
+                    (coroutine.jointScore - coroutine.variScore)));
   }
 
   //do we have as many samples as we need for this gradient estimate?
   if (coroutine.numS < coroutine.estimateSamples) {
-    return coroutine.takeGradSample()
+    return coroutine.takeGradSample();
   }
-
 
   //we have all our samples to do a gradient step.
   //use AdaGrad update rule.
   //update variational parameters:
-  for(var a in coroutine.variationalParams){
-    for(var i in coroutine.variationalParams[a]) {
-      var grad = coroutine.grad[a][i] / coroutine.numS
-      coroutine.runningG2[a][i] += Math.pow(grad,2)
-      var weight = 1.0/Math.sqrt(coroutine.runningG2[a][i])
+  for (a in coroutine.variationalParams){
+    for (var i in coroutine.variationalParams[a]) {
+      var grad = coroutine.grad[a][i] / coroutine.numS;
+      coroutine.runningG2[a][i] += Math.pow(grad, 2);
+      var weight = 1.0/Math.sqrt(coroutine.runningG2[a][i]);
 //        console.log(a+" "+i+": weight "+ weight +" grad "+ grad +" vparam "+coroutine.variationalParams[a][i])
-      coroutine.variationalParams[a][i] += weight*grad
+      coroutine.variationalParams[a][i] += weight*grad;
     }
   }
-  coroutine.t++
-  console.log(coroutine.variationalParams)
+  coroutine.t++;
+  console.log(coroutine.variationalParams);
 
   //if we haven't converged then do another gradient estimate and step:
   //FIXME: converence test instead of fixed number of grad steps?
-  if(coroutine.t<500) {
-    coroutine.grad = {}
-    coroutine.numS = 0
-    return coroutine.takeGradSample()
+  if (coroutine.t<500) {
+    coroutine.grad = {};
+    coroutine.numS = 0;
+    return coroutine.takeGradSample();
   }
 
   //return variational dist as ERP:
   //FIXME
-  console.log(coroutine.variationalParams)
-  var dist = null
+  console.log(coroutine.variationalParams);
+  var dist = null;
 
   // Reinstate previous coroutine:
   var k = coroutine.k;
@@ -1487,19 +1498,19 @@ Variational.prototype.exit = function(s,retval) {
 };
 
 function vecPlus(a,b) {
-  var c = []
+  var c = [];
   for(var i=0;i<a.length;i++) {
-    c[i] = a[i]+b[i]
+    c[i] = a[i] + b[i];
   }
-  return c
+  return c;
 }
 
 function vecScalarMult(a,s) {
-  var c = []
+  var c = [];
   for(var i=0;i<a.length;i++) {
-    c[i] = a[i]*s
+    c[i] = a[i]*s;
   }
-  return c
+  return c;
 }
 
 function vari(s,cc, a, wpplFn, estS) {
@@ -1538,7 +1549,7 @@ function cache(s, k, a, f) {
 
 // FIXME: handle fn.apply in cps transform?
 function apply(s, k, a, wpplFn, args){
-  return wpplFn.apply(this, [s, k, a].concat(args));
+  return wpplFn.apply(global, [s, k, a].concat(args));
 }
 
 

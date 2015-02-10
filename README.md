@@ -5,12 +5,15 @@ Probabilistic programming for the web
 
 [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 
+
+## Setup
+
 Requirements:
 
 - [git](http://git-scm.com/)
 - [nodejs](http://nodejs.org)
 
-**Installation**
+Installation:
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
@@ -19,20 +22,21 @@ Requirements:
 
 To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
 
-**Running test**
+Running tests:
 
     npm test
 
-**Executing webppl programs**
+Executing webppl programs:
 
     ./webppl examples/geometric.wppl
 
-**Compiling webppl for use in browser**
+Compiling webppl for use in browser:
 
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
 
-**Debugging webppl programs**
+
+## Debugging webppl programs
 
 To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 
@@ -50,7 +54,16 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     // 5. (In separate terminal:) Load node inspector, resume program execution in node-inspector
     node-inspector
 
-**Using Javascript functions and external libraries**
+
+## Using external functions
+
+### WebPPL code
+
+You can automatically prepend a webppl file `myLibrary.wppl` to your code using the following command:
+
+    webppl myFile.wppl --require-wppl myLibrary.wppl
+
+### Javascript functions and libraries
 
 Using the example of reading and writing CSV files:
 
@@ -88,9 +101,9 @@ Using the example of reading and writing CSV files:
 
 3. Run your WebPPL file with `require` command line flag:
 
-        webppl csvTest.wppl --require ./simpleCSV
+        webppl csvTest.wppl --require-js ./simpleCSV.js
 
-**Using additional header files**
+### Additional header files
 
 Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
 
@@ -119,6 +132,6 @@ Sometimes, it is useful to define external functions that are able to access the
         
         foo()
 
-3. Run your WebPPL file with `header` command line flag:
+3. Run your WebPPL file with `require-header` command line flag:
 
-        webppl addressTest.wppl --header ./addressHeader
+        webppl addressTest.wppl --require-header ./addressHeader.js

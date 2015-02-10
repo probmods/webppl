@@ -2,7 +2,6 @@
 
 var assert = require('assert');
 var fs = require('fs');
-var path = require('path');
 var types = require("ast-types");
 var build = types.builders;
 var esprima = require("esprima");
@@ -26,52 +25,56 @@ for (var prop in runtime){
   }
 }
 
-global['CACHED_WEBPPL_HEADER'] = undefined;
+global.CACHED_WEBPPL_HEADER = undefined;
 
 function addHeaderAst(targetAst, headerAst){
   targetAst.body = headerAst.body.concat(targetAst.body);
   return targetAst;
 }
 
-function compile(programCode, verbose){
+function removeFinalContinuationCall(ast, contName){
+  var x = ast.body[0];
+  var lastNode = x.body[x.body.length-1];
+  assert(types.namedTypes.ExpressionStatement.check(lastNode));
+  assert(types.namedTypes.CallExpression.check(lastNode.expression));
+  assert(types.namedTypes.Identifier.check(lastNode.expression.callee));
+  assert.equal(lastNode.expression.callee.name, contName);
+  x.body = x.body.slice(0, x.body.length-1);
+}
+
+var compile = function(code, contName, isLibrary){
+  var ast = esprima.parse(code);
+  var cont = build.identifier(contName);
+  ast = naming(ast);
+  ast = cps(ast, cont);
+  if (isLibrary){
+    // library contains only function definitions, so remove
+    // unnecessary final dummy continuation call
+    removeFinalContinuationCall(ast, contName);
+  }
+  ast = store(ast);
+  ast = optimize(ast);
+  ast = varargs(ast);
+  ast = trampoline(ast, isLibrary);
+  return ast;
+};
+
+function compileProgram(programCode, verbose){
   if (verbose && console.time){console.time('compile');}
 
   var programAst, headerAst;
-
-  var _compile = function(code, contName, isHeader){
-    var ast = esprima.parse(code);
-    var cont = build.identifier(contName);
-    ast = naming(ast);
-    ast = cps(ast, cont);
-    if (isHeader){
-      // header contains only function definitions, so remove
-      // unnecessary final dummy continuation call
-      var x = ast.body[0];
-      var lastNode = x.body[x.body.length-1];
-      assert(types.namedTypes.ExpressionStatement.check(lastNode));
-      assert(types.namedTypes.CallExpression.check(lastNode.expression));
-      assert(types.namedTypes.Identifier.check(lastNode.expression.callee));
-      assert.equal(lastNode.expression.callee.name, 'dummyCont');
-      x.body = x.body.slice(0, x.body.length-1);
-    }
-    ast = store(ast);
-    ast = optimize(ast);
-    ast = varargs(ast);
-    ast = trampoline(ast, isHeader);
-    return ast;
-  };
 
   // Compile & cache WPPL header
   if (global.CACHED_WEBPPL_HEADER){
     headerAst = global.CACHED_WEBPPL_HEADER;
   } else {
     var headerCode = fs.readFileSync(__dirname + "/header.wppl");
-    headerAst = _compile(headerCode, 'dummyCont', true);
-    global['CACHED_WEBPPL_HEADER'] = headerAst;
+    headerAst = compile(headerCode, 'dummyCont', true);
+    global.CACHED_WEBPPL_HEADER = headerAst;
   }
 
   // Compile program code
-  programAst = _compile(programCode, 'topK', false);
+  programAst = compile(programCode, 'topK', false);
   if (verbose){
     console.log(escodegen.generate(programAst));
   }
@@ -88,7 +91,7 @@ function run(code, contFun, verbose){
     _trampoline = null;
     contFun(s, x);
   };
-  var compiledCode = compile(code, verbose);
+  var compiledCode = compileProgram(code, verbose);
   return eval(compiledCode);
 }
 
@@ -96,12 +99,12 @@ function run(code, contFun, verbose){
 function webppl_eval(k, code, verbose) {
   var oldk = global.topK;
   global._trampoline = undefined;
-  global.topK = function(s,x){  // Install top-level continuation
+  global.topK = function(s, x){  // Install top-level continuation
     global._trampoline = null;
-    k(s,x);
+    k(s, x);
     global.topK = oldk;
   };
-  var compiledCode = compile(code, verbose);
+  var compiledCode = compileProgram(code, verbose);
   eval.call(global, compiledCode);
 }
 
@@ -111,6 +114,7 @@ function webpplCPS(code){
   var newProgramAst = optimize(cps(programAst, build.identifier("topK")));
   return escodegen.generate(newProgramAst);
 }
+
 function webpplNaming(code){
   var programAst = esprima.parse(code);
   var newProgramAst = naming(programAst);
@@ -121,7 +125,7 @@ function webpplNaming(code){
 if (util.runningInBrowser()){
   window.webppl = {
     run: run,
-    compile: compile,
+    compile: compileProgram,
     cps: webpplCPS,
     naming: webpplNaming
   };
@@ -134,5 +138,6 @@ if (util.runningInBrowser()){
 module.exports = {
   webppl_eval: webppl_eval,
   run: run,
-  compile: compile
+  compile: compileProgram,
+  compileRaw: compile
 };
