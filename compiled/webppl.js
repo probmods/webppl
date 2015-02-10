@@ -25179,15 +25179,11 @@ ParticleFilter.prototype.resampleParticles = function() {
       this.particles,
       function(particle){
         var w = Math.exp(particle.weight - avgW);
-        if (isNaN(w)) console.log(particle.weight)
         var nRetained = Math.floor(w);
         newExpWeights.push(w - nRetained);
         for (var i=0; i<nRetained; i++) {
           retainedParticles.push(copyParticle(particle));
         }});
-    if (_.some(newExpWeights, isNaN))
-      console.log(newExpWeights,
-                 _.map(this.particles, function(p){return p.weight;}))
     // Compute new particles
     var numNewParticles = m - retainedParticles.length;
     var newParticles = [];
