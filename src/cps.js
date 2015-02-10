@@ -190,10 +190,10 @@ function cps( node, k ) {
 	    clause( Syntax.LogicalExpression, function( left, right ) {
 		return atomize( left, function( left ) {
 		    if( node.operator === "||" ) {
-			return build.conditionalExpression( left, left, cps( right, k ) );
+			return build.conditionalExpression( left, cps( left, k ), cps( right, k ) );
 		    }
 		    else if( node.operator === "&&" ) {
-			return build.conditionalExpression( left, cps( right, k ), left );
+			return build.conditionalExpression( left, cps( right, k ), cps( left, k ) );
 		    }
 		    else {
 			console.log( node.operator );
