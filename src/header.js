@@ -429,7 +429,7 @@ function makeMarginalERP(marginal) {
 var coroutine = {
   sample: function(s, cc, a, erp, params) {
     // Sample and keep going
-    cc(s, erp.sample(params));
+    return cc(s, erp.sample(params));
   },
   factor: function() {
     throw "factor allowed only inside inference.";
@@ -443,29 +443,35 @@ var coroutine = {
 // when called, we do it like this so that 'this' will be set
 // correctly to the coroutine object.
 function sample(s, k, a, dist, params) {
-  coroutine.sample(s, k, a, dist, params);
+  return coroutine.sample(s, k, a, dist, params);
 }
 
 function factor(s, k, a, score) {
-  coroutine.factor(s, k, a, score);
+  return coroutine.factor(s, k, a, score);
 }
 
 function sampleWithFactor(s, k, a, dist, params, scoreFn) {
   if (typeof coroutine.sampleWithFactor === "function"){
-    coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
+    return coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
   } else {
-    var sampleK = function(s, v){
-      var scoreK = function(s, sc){
-        var factorK = function(s){
-          k(s, v); };
-        factor(s, factorK, a+"swf2", sc);};
-      scoreFn(s, scoreK, a+"swf1", v);};
-    sample(s, sampleK, a, dist, params);
+    var sampleK = function(s, v) {
+      var scoreK = function(s, sc) {
+        var factorK = function(s) {
+          return k(s, v);
+	};
+
+	return factor(s, factorK, a+"swf2", sc);
+      };
+
+      return scoreFn(s, scoreK, a+"swf1", v);
+    };
+      
+    return sample(s, sampleK, a, dist, params);
   }
 }
 
 function exit(s,retval) {
-  coroutine.exit(s,retval);
+  return coroutine.exit(s,retval);
 }
 
 
@@ -494,7 +500,7 @@ function Enumerate(s, k, a, wpplFn, maxExecutions, Q) {
   // Run the wppl computation, when the computation returns we want it
   // to call the exit method of this coroutine so we pass that as the
   // continuation.
-  wpplFn(s, exit, a);
+  return wpplFn(s, exit, a);
 }
 
 // The queue is a bunch of computation states. each state is a
@@ -509,7 +515,7 @@ var stackSize = 0;
 Enumerate.prototype.nextInQueue = function() {
   var nextState = this.queue.deq();
   this.score = nextState.score;
-  nextState.continuation(nextState.store, nextState.value);
+  return nextState.continuation(nextState.store, nextState.value);
 };
 
 
@@ -538,7 +544,7 @@ Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) 
     }	
   }
   // Call the next state on the queue
-  this.nextInQueue();
+  return this.nextInQueue();
 };
 
 Enumerate.prototype.factor = function(s,cc,a, score) {

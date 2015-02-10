@@ -111,11 +111,11 @@ function selectCpsPrimitives(){
 
 function selectStorePrimitives(){
   // Set global definitions
-  plus = function(s, k, x, y) {return k(s, x + y);};
-  minus = function(s, k, x, y) {return k(s, x - y);};
-  times = function(s, k, x, y) {return k(s, x * y);};
-  and = function(s, k, x, y) {return k(s, x && y);};
-  plusTwo = function(s, k, x, y) {return k(s, x + 2);};
+  plus = function(s, k, a, x, y) {return k(s, x + y);};
+  minus = function(s, k, a, x, y) {return k(s, x - y);};
+  times = function(s, k, a, x, y) {return k(s, x * y);};
+  and = function(s, k, a, x, y) {return k(s, x && y);};
+  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
 }
 
 var selectOptimizePrimitives = selectStorePrimitives;
