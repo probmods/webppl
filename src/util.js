@@ -62,6 +62,24 @@ function copyObj(obj){
   return newobj;
 }
 
+// more efficient version of (indexOf o map p)
+var indexOfPred = function(l,p,start) {
+  var start = start || 0;
+  for(var i=start; i<l.length; i++){
+    if (p(l[i])) return i;
+  }
+  return -1
+}
+
+// more efficient version of (indexOf o map p o reverse)
+var lastIndexOfPred = function(l,p,start) {
+  var start = start || l.length-1;
+  for(var i=start; i>=0; i--){
+    if (p(l[i])) return i;
+  }
+  return -1
+}
+
 // func(x, i, xs, nextK)
 // nextK()
 function cpsForEach(func, nextK, xs, i){
@@ -96,6 +114,8 @@ module.exports = {
   cpsForEach: cpsForEach,
   gensym: gensym,
   logsumexp: logsumexp,
+  indexOfPred: indexOfPred,
+  lastIndexOfPred: lastIndexOfPred,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
