@@ -527,9 +527,16 @@ Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) 
 
   // Find support of this erp:
   if (!dist.support) {
+    console.error(dist, params);
     throw "Enumerate can only be used with ERPs that have support function.";
   }
   var supp = dist.support(params);
+
+  // Check that support is non-empty
+  if (supp.length === 0){
+    console.error(dist, params);
+    throw "Enumerate encountered ERP with empty support!";
+  }
 
   // For each value in support, add the continuation paired with
   // support value and score to queue:
