@@ -130,12 +130,19 @@ function webppl_eval(k, code, verbose, programFile) {
   try {
     eval.call(global, compiledCode);
   } catch (exception) {
-    var stackTrace = stacktrace.parse(exception);
-    var sourceMapConsumer = createSourceMapConsumer(compiledSourceMap);
-    console.log(" -- New Stack Trace --");
-    console.log(stacktrace.getSourceMappedStackTrace(stackTrace, sourceMapConsumer, code));
-    console.log("\n -- Old Stack Trace --");
-    console.log(exception.stack);
+    if (!exception.stack) {
+      var webppl_stack = exception;
+      var js_stack = exception;
+    } else {
+      var stackTrace = stacktrace.parse(exception);
+      var sourceMapConsumer = createSourceMapConsumer(compiledSourceMap);
+      var webppl_stack = stacktrace.getSourceMappedStackTrace(stackTrace, sourceMapConsumer, code);
+      var js_stack = exception.stack;
+    }
+    console.log("  ------ Compiled JS Stack Trace ------");
+    console.log(js_stack);
+    console.log("\n  ------ Webppl Stack Trace ------");
+    console.log(webppl_stack);
   }
 }
 
