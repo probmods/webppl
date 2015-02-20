@@ -32,11 +32,10 @@ function isErpWithSupport(x){
 function printWebPPLValue(x){
   if (isErpWithSupport(x)){
     console.log('ERP:');
-    var erpValues = x.support([]);
-    erpValues.forEach(
-      function(value){
-        console.log('    ' + value + ': ' + Math.exp(x.score([], value)));
-      });
+    var erpValues = x.support([])
+        .map(function(v){return [v, Math.exp(x.score([], v))]})
+        .sort(function(a,b){return b[1]-a[1]});
+    erpValues.forEach(function(val){console.log('    ' + val[0] + ': ' + val[1]);});
   } else {
     console.log(x);
   }

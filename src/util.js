@@ -3,7 +3,7 @@
 var _ = require('underscore');
 
 function runningInBrowser(){
-  return !(typeof window === 'undefined');
+  return (typeof window !== 'undefined');
 }
 
 function makeGensym() {
@@ -22,7 +22,7 @@ function prettyJSON(obj) {
 }
 
 function sum(xs){
-  if (xs.length == 0) {
+  if (xs.length === 0) {
     return 0.0;
   } else {
     var total = _(xs).reduce(
@@ -31,19 +31,19 @@ function sum(xs){
       });
     return total;
   }
-};
+}
 
 function normalizeHist(hist){
   var normHist = {};
   var Z = sum(_.values(hist));
   _.each(hist, function(val, key){normHist[key] = hist[key]/Z;});
   return normHist;
-};
+}
 
 function normalizeArray(xs){
   var Z = sum(xs);
   return xs.map(function(x){return x/Z;});
-};
+}
 
 function logsumexp(a) {
   var m = Math.max.apply(null, a);
@@ -52,7 +52,7 @@ function logsumexp(a) {
     sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
-};
+}
 
 function copyObj(obj){
   var newobj = {};
@@ -60,6 +60,24 @@ function copyObj(obj){
     if(obj.hasOwnProperty(k)){newobj[k] = obj[k];}
   }
   return newobj;
+}
+
+// more efficient version of (indexOf o map p)
+var indexOfPred = function(l,p,start) {
+  var start = start || 0;
+  for(var i=start; i<l.length; i++){
+    if (p(l[i])) return i;
+  }
+  return -1
+}
+
+// more efficient version of (indexOf o map p o reverse)
+var lastIndexOfPred = function(l,p,start) {
+  var start = start || l.length-1;
+  for(var i=start; i>=0; i--){
+    if (p(l[i])) return i;
+  }
+  return -1
 }
 
 // func(x, i, xs, nextK)
@@ -89,13 +107,15 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance){
     console.log("Actual:", hist);
   }
   return allOk;
-};
+}
 
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
   gensym: gensym,
   logsumexp: logsumexp,
+  indexOfPred: indexOfPred,
+  lastIndexOfPred: lastIndexOfPred,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
