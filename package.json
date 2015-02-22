@@ -22,7 +22,10 @@
     "priorityqueuejs": "^0.2.0",
     "underscore": "^1.6.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "closure-linter-wrapper": "^0.2.9",
+    "grunt": "^0.4.5"
+  },
   "scripts": {
     "test": "nodeunit tests"
   },
