@@ -171,7 +171,7 @@ var testNames = [
   "testParticleFilter",
   "testMH",
   "testPMCMC",
-  //"testPFRj", TODO: fix test - pfrj (issue #25)
+  "testPFRj"
 ];
 
 var testsData = getTestCases(testNames);
