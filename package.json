@@ -24,7 +24,9 @@
   },
   "devDependencies": {
     "closure-linter-wrapper": "^0.2.9",
-    "grunt": "^0.4.5"
+    "grunt": "^0.4.5",
+    "grunt-contrib-jshint": "^0.11.0",
+    "grunt-contrib-nodeunit": "^0.4.1"
   },
   "scripts": {
     "test": "nodeunit tests"
