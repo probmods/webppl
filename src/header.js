@@ -1113,11 +1113,13 @@ function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 }
 
 ParticleFilterRejuv.prototype.sample = function(s,cc,a, erp, params) {
+    
   var val = erp.sample(params);
+  var currScore = coroutine.activeParticle().score;
   var choiceScore = erp.score(params,val);
   coroutine.activeParticle().trace.push(
                                    {k: cc, name: a, erp: erp, params: params,
-                                   score: undefined, //FIXME: need to track particle total score?
+                                   score: currScore,
                                    choiceScore: choiceScore,
                                    val: val, reused: false,
                                    store: s});
@@ -1283,7 +1285,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress , wpplFn, numIteratio
   this.originalParticle = particle;
 
   // FIXME: do we need to save the store here?
-
+  
   if (numIterations===0) {
     backToPF(particle);
   } else {
@@ -1326,7 +1328,7 @@ MHP.prototype.propose = function() {
   coroutine.oldScore = coroutine.currScore;
   coroutine.currScore = regen.score;
   coroutine.oldVal = coroutine.val;
-
+  
   coroutine.sample(regen.store, regen.k, regen.name, regen.erp, regen.params, true);
 };
 
@@ -1336,14 +1338,15 @@ MHP.prototype.exit = function(s,val) {
 
   //did we like this proposal?
   var acceptance = mhAcceptProb(coroutine.trace, coroutine.oldTrace,
-                                coroutine.regenFrom, coroutine.currScore, coroutine.oldScore);
+                                coroutine.regenFrom,
+                                coroutine.currScore, coroutine.oldScore);
   if (Math.random() >= acceptance){
     //if rejected, roll back trace, etc:
     coroutine.trace = coroutine.oldTrace;
     coroutine.currScore = coroutine.oldScore;
     coroutine.val = coroutine.oldVal;
   }
-
+  
   coroutine.iterations -= 1;
 
   if( coroutine.iterations > 0 ) {
@@ -1352,6 +1355,7 @@ MHP.prototype.exit = function(s,val) {
     var newParticle = {continuation: coroutine.originalParticle.continuation,
                         weight: coroutine.originalParticle.weight,
                         value: coroutine.val,
+                        score: coroutine.currScore,
                         trace: coroutine.trace,
                         store: s
                       };
