@@ -1602,5 +1602,6 @@ module.exports = {
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
   util: util,
-  apply: apply
+  apply: apply,
+  assert: assert
 };
