@@ -1114,19 +1114,19 @@ function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
   coroutine.activeParticle().continuation(coroutine.activeParticle().store);
 }
 
-ParticleFilterRejuv.prototype.sample = function(s,cc,a, erp, params) {
+ParticleFilterRejuv.prototype.sample = function(s, cc, a, erp, params) {
     
   var val = erp.sample(params);
   var currScore = coroutine.activeParticle().score;
   var choiceScore = erp.score(params,val);
   coroutine.activeParticle().trace.push(
-                                   {k: cc, name: a, erp: erp, params: params,
-                                   score: currScore,
-                                   choiceScore: choiceScore,
-                                   val: val, reused: false,
-                                   store: _.clone(s)});
+    {k: cc, name: a, erp: erp, params: params,
+     score: currScore,
+     choiceScore: choiceScore,
+     val: val, reused: false,
+     store: _.clone(s)});
   coroutine.activeParticle().score += choiceScore;
-  cc(s,val);
+  cc(s, val);
 };
 
 ParticleFilterRejuv.prototype.factor = function(s,cc,a, score) {
@@ -1184,7 +1184,8 @@ function copyPFRParticle(particle){
   };
 }
 
-ParticleFilterRejuv.prototype.resampleParticles = function() {
+ParticleFilterRejuv.prototype.resampleParticles = function() {  
+  
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
@@ -1311,7 +1312,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
   }
 };
 
-MHP.prototype.sample = function(s,k, name, erp, params, forceSample) {
+MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {  
   var prev = findChoice(coroutine.oldTrace, name);
   var reuse = !(prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
@@ -1354,16 +1355,17 @@ MHP.prototype.exit = function(s,val) {
   
   coroutine.iterations -= 1;
 
-  if( coroutine.iterations > 0 ) {
+  if (coroutine.iterations > 0) {
     coroutine.propose();
   } else {
-    var newParticle = {continuation: coroutine.originalParticle.continuation,
-                        weight: coroutine.originalParticle.weight,
-                        value: coroutine.val,
-                        score: coroutine.currScore,
-                        trace: coroutine.trace,
-                        store: s
-                      };
+    var newParticle = {
+      continuation: coroutine.originalParticle.continuation,
+      weight: coroutine.originalParticle.weight,
+      value: coroutine.val,
+      score: coroutine.currScore,
+      trace: coroutine.trace,
+      store: s
+    };
 
     // Reinstate previous coroutine and return by calling original continuation:
     var backToPF = coroutine.backToPF;
