@@ -753,12 +753,14 @@ ParticleFilter.prototype.exit = function(s, retval) {
     });
   var dist = makeMarginalERP(hist);
 
+  // Save estimated normalization constant in erp (average particle weight)
+  dist.normalizationConstant = this.particles[0].weight;
+
   // Reinstate previous coroutine:
   coroutine = this.oldCoroutine;
 
-  // Return from particle filter by calling original continuation:
-  this.k(this.oldStore,
-         this.strict ? dist : {marginal:dist, weight: this.particles[0].weight});
+  // Return from particle filter by calling original continuation:  
+  this.k(this.oldStore, dist);
 }
 
 function pf(s, cc, a, wpplFn, numParticles, strict) {
@@ -1256,6 +1258,9 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
         });
       var dist = makeMarginalERP(hist);
 
+      // Save estimated normalization constant in erp (average particle weight)      
+      dist.normalizationConstant = coroutine.particles[0].weight;
+      
       // Reinstate previous coroutine:
       var k = coroutine.k;
       coroutine = coroutine.oldCoroutine;
