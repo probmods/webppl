@@ -828,7 +828,9 @@ function mhAcceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
   oldTrace.slice(regenFrom).map(function(s){
     var nc = findChoice(trace, s.name);
     bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
-  var acceptance = Math.min(1, Math.exp(currScore - oldScore + bw - fw));
+  var p = Math.exp(currScore - oldScore + bw - fw);
+  assert.ok(!isNaN(p));
+  var acceptance = Math.min(1, p);
   return acceptance;
 }
 
