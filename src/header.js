@@ -1289,6 +1289,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
 
 function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIterations) {
 
+  this.oldStore = particle.store; // previous store at limitAddress
   this.trace = particle.trace;
   this.oldTrace = undefined;
   this.currScore = particle.score;
@@ -1300,8 +1301,6 @@ function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIteration
   this.limitAddress = limitAddress;
   this.originalParticle = particle;
 
-  // FIXME: do we need to save the store here?
-  
   if (numIterations===0) {
     backToPF(particle);
   } else {
@@ -1348,16 +1347,22 @@ MHP.prototype.propose = function() {
   coroutine.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
 };
 
+
 MHP.prototype.exit = function(s,val) {
 
   coroutine.val = val;
 
-  //did we like this proposal?
+  // Did we like this proposal?
   var acceptance = mhAcceptProb(coroutine.trace, coroutine.oldTrace,
                                 coroutine.regenFrom,
                                 coroutine.currScore, coroutine.oldScore);
-  if (Math.random() >= acceptance){
-    //if rejected, roll back trace, etc:
+
+  var accepted = Math.random() < acceptance;
+  
+  if (accepted){
+    coroutine.oldStore = s;
+  } else {
+    // If rejected, roll back trace, etc:
     coroutine.trace = coroutine.oldTrace;
     coroutine.currScore = coroutine.oldScore;
     coroutine.val = coroutine.oldVal;
@@ -1373,8 +1378,8 @@ MHP.prototype.exit = function(s,val) {
       weight: coroutine.originalParticle.weight,
       value: coroutine.val,
       score: coroutine.currScore,
-      trace: coroutine.trace,
-      store: s
+      store: coroutine.oldStore, // use store from latest accepted proposal
+      trace: coroutine.trace      
     };
 
     // Reinstate previous coroutine and return by calling original continuation:
@@ -1386,7 +1391,7 @@ MHP.prototype.exit = function(s,val) {
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
-  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
+  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);  
 }
 
 
