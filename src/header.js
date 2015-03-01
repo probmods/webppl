@@ -1082,6 +1082,14 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
+var deepCopyTrace = function(trace){  
+  return trace.map(function(obj){
+    var objCopy = util.copyObj(obj);
+    objCopy.store = _.clone(obj.store);
+    return objCopy;
+  });
+}
+
 function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 
   this.particles = [];
@@ -1182,7 +1190,7 @@ function copyPFRParticle(particle){
     value: particle.value,
     score: particle.score,
     store: _.clone(particle.store),
-    trace: _.clone(particle.trace) //FIXME: need to deep copy trace??
+    trace: deepCopyTrace(particle.trace)
   };
 }
 
@@ -1331,7 +1339,7 @@ MHP.prototype.propose = function() {
   //make a new proposal:
   coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
   var regen = coroutine.trace[coroutine.regenFrom];
-  coroutine.oldTrace = coroutine.trace;
+  coroutine.oldTrace = deepCopyTrace(coroutine.trace);
   coroutine.trace = coroutine.trace.slice(0,coroutine.regenFrom);
   coroutine.oldScore = coroutine.currScore;
   coroutine.currScore = regen.score;
