@@ -56,6 +56,7 @@ function runDistributionTest(test, code, expectedHist, tolerance){
     test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
   };
+  global.globalStore = {};
   webppl.run(code, topK);
 }
 
@@ -167,11 +168,16 @@ function makeTest(testData) {
 
 var testNames = [
   "testEnumeration",
+  "testEnumerationStore",  
   "testEnumerationCached",
   "testParticleFilter",
+  "testParticleFilterStore",  
   "testMH",
+  "testMHStore",
   "testPMCMC",
-  //"testPFRj", TODO: fix test - pfrj (issue #25)
+  "testPMCMCStore",  
+  "testPFRj",
+  "testPFRjStore"  
 ];
 
 var testsData = getTestCases(testNames);
