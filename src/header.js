@@ -821,14 +821,14 @@ function findChoice(trace, name) {
 }
 
 function mhAcceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
-  if (oldTrace === undefined){return 1;} //just for init
+  if ((oldTrace === undefined) || oldScore === -Infinity){return 1;} // init
   var fw = -Math.log(oldTrace.length);
   trace.slice(regenFrom).map(function(s){fw += s.reused?0:s.choiceScore;});
   var bw = -Math.log(trace.length);
   oldTrace.slice(regenFrom).map(function(s){
     var nc = findChoice(trace, s.name);
     bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
-  var p = Math.exp(currScore - oldScore + bw - fw);
+  var p = Math.exp(currScore - oldScore + bw - fw);  
   assert.ok(!isNaN(p));
   var acceptance = Math.min(1, p);
   return acceptance;
