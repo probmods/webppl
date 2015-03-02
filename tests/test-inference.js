@@ -177,7 +177,8 @@ var testNames = [
   "testPMCMC",
   "testPMCMCStore",  
   "testPFRj",
-  "testPFRjStore"  
+  "testPFRjStore",
+  "testPFRjAsMH"    
 ];
 
 var testsData = getTestCases(testNames);

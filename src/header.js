@@ -1243,6 +1243,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
 
   //Final rejuvenation:
   var oldStore = this.oldStore;
+  var hist = {};
   util.cpsForEach(
     function(particle, i, particles, nextK){
       // make sure mhp coroutine doesn't escape:
@@ -1252,21 +1253,10 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
           particles[i]=p;
           nextK();
         },
-        particle, coroutine.baseAddress,
-        undefined, coroutine.wpplFn, coroutine.rejuvSteps);
+        particle, coroutine.baseAddress, undefined,
+        coroutine.wpplFn, coroutine.rejuvSteps, hist);
     },
     function(){
-      // Compute marginal distribution from (unweighted) particles
-      var hist = {};
-      _.each(
-        coroutine.particles,
-        function(particle){
-          var k = JSON.stringify(particle.value);
-          if (hist[k] === undefined){
-            hist[k] = { prob:0, val:particle.value };
-          }
-          hist[k].prob += 1;
-        });
       var dist = makeMarginalERP(hist);
 
       // Save estimated normalization constant in erp (average particle weight)      
@@ -1287,7 +1277,7 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
 
 ////// Lightweight MH on a particle
 
-function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIterations) {
+function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIterations, hist) {
 
   this.oldStore = particle.store; // previous store at limitAddress
   this.trace = particle.trace;
@@ -1300,6 +1290,7 @@ function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIteration
   this.iterations = numIterations;
   this.limitAddress = limitAddress;
   this.originalParticle = particle;
+  this.hist = hist;
 
   if (numIterations===0) {
     backToPF(particle);
@@ -1366,6 +1357,17 @@ MHP.prototype.exit = function(s,val) {
     coroutine.trace = coroutine.oldTrace;
     coroutine.currScore = coroutine.oldScore;
     coroutine.val = coroutine.oldVal;
+  }
+
+  // If this is the final rejuvenation run, build hist from
+  // all MCMC steps, not just final step
+  if (this.hist !== undefined){
+    // Compute marginal distribution from (unweighted) particles
+    var k = JSON.stringify(coroutine.val);
+    if (this.hist[k] === undefined){
+      this.hist[k] = { prob:0, val:coroutine.val };
+    }
+    this.hist[k].prob += 1;
   }
   
   coroutine.iterations -= 1;
