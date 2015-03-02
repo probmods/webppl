@@ -1201,6 +1201,12 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
   var avgW = W - Math.log(m);
 
+  // Allow -Infinity case (for mh initialization, in particular with few particles)
+  if (avgW == -Infinity) {
+    console.warn('ParticleFilterRejuv: resampleParticles: all ' + m + ' particles have weight -Inf');
+    return;
+  }
+
   // Compute list of retained particles
   var retainedParticles = [];
   var newExpWeights = [];
