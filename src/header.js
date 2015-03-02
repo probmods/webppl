@@ -454,6 +454,7 @@ function sample(s, k, a, dist, params) {
 }
 
 function factor(s, k, a, score) {
+  assert.ok(!isNaN(score));
   coroutine.factor(s, k, a, score);
 }
 
@@ -666,7 +667,7 @@ ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
 };
 
 ParticleFilter.prototype.factor = function(s,cc, a, score) {
-  // Update particle weight
+  // Update particle weight  
   this.activeParticle().weight += score;
   this.activeParticle().continuation = cc;
   this.activeParticle().store = s;
