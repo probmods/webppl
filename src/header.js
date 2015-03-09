@@ -770,7 +770,7 @@ function pf(s, cc, a, wpplFn, numParticles, strict) {
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-function MH(s, k, a, wpplFn, numIterations) {
+function MH(s, k, a, wpplFn, numIterations, retSamples) {
 
   this.trace = [];
   this.oldTrace = undefined;
@@ -778,7 +778,10 @@ function MH(s, k, a, wpplFn, numIterations) {
   this.oldScore = -Infinity;
   this.oldVal = undefined;
   this.regenFrom = 0;
-  this.returnHist = {};
+  if (retSamples)
+    this.returnSamps = [];
+  else
+    this.returnHist = {};
   this.k = k;
   this.oldStore = s;
   this.iterations = numIterations;
@@ -849,11 +852,16 @@ MH.prototype.exit = function(s, val) {
     }
 
     // now add val to hist:
-    var stringifiedVal = JSON.stringify(val);
-    if (coroutine.returnHist[stringifiedVal] === undefined){
-      coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
+    if (coroutine.returnSamps)
+      coroutine.returnSamps.push({prob: coroutine.currScore, val: val})
+    else
+    {
+       var stringifiedVal = JSON.stringify(val);
+        if (coroutine.returnHist[stringifiedVal] === undefined){
+          coroutine.returnHist[stringifiedVal] = { prob:0, val:val };
+        }
+        coroutine.returnHist[stringifiedVal].prob += 1;
     }
-    coroutine.returnHist[stringifiedVal].prob += 1;
 
     // make a new proposal:
     coroutine.regenFrom = Math.floor(Math.random() * coroutine.trace.length);
@@ -866,19 +874,23 @@ MH.prototype.exit = function(s, val) {
 
     coroutine.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
   } else {
-    var dist = makeMarginalERP(coroutine.returnHist);
+    var ret = null;
+    if (coroutine.returnSamps)
+      ret = coroutine.returnSamps
+    else
+      ret = makeMarginalERP(coroutine.returnHist);
 
     // Reinstate previous coroutine:
     var k = coroutine.k;
     coroutine = this.oldCoroutine;
 
     // Return by calling original continuation:
-    k(this.oldStore, dist);
+    k(this.oldStore, ret);
   }
 };
 
-function mh(s, cc, a, wpplFn, numParticles) {
-  return new MH(s, cc, a, wpplFn, numParticles);
+function mh(s, cc, a, wpplFn, numParticles, retSamples) {
+  return new MH(s, cc, a, wpplFn, numParticles, retSamples);
 }
 
 
