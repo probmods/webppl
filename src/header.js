@@ -770,7 +770,7 @@ function pf(s, cc, a, wpplFn, numParticles, strict) {
 ////////////////////////////////////////////////////////////////////
 // Lightweight MH
 
-function MH(s, k, a, wpplFn, numIterations, retSamples) {
+function MH(s, k, a, wpplFn, numIterations, verbose, justSample) {
 
   this.trace = [];
   this.oldTrace = undefined;
@@ -778,13 +778,14 @@ function MH(s, k, a, wpplFn, numIterations, retSamples) {
   this.oldScore = -Infinity;
   this.oldVal = undefined;
   this.regenFrom = 0;
-  if (retSamples)
+  if (justSample)
     this.returnSamps = [];
   else
     this.returnHist = {};
   this.k = k;
   this.oldStore = s;
   this.iterations = numIterations;
+  this.verbose = verbose;
 
   // Move old coroutine out of the way and install this as the current
   // handler.
@@ -839,6 +840,9 @@ function mhAcceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
 
 MH.prototype.exit = function(s, val) {
   if (coroutine.iterations > 0) {
+    if (this.verbose)
+      console.log("MH iteration")
+    
     coroutine.iterations -= 1;
 
     //did we like this proposal?
@@ -874,23 +878,21 @@ MH.prototype.exit = function(s, val) {
 
     coroutine.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
   } else {
-    var ret = null;
-    if (coroutine.returnSamps)
-      ret = coroutine.returnSamps
-    else
-      ret = makeMarginalERP(coroutine.returnHist);
+    var hist = coroutine.returnHist || {};
+    var dist = makeMarginalERP(hist);
+    dist.samples = coroutine.returnSamps || null;
 
     // Reinstate previous coroutine:
     var k = coroutine.k;
     coroutine = this.oldCoroutine;
 
     // Return by calling original continuation:
-    k(this.oldStore, ret);
+    k(this.oldStore, dist);
   }
 };
 
-function mh(s, cc, a, wpplFn, numParticles, retSamples) {
-  return new MH(s, cc, a, wpplFn, numParticles, retSamples);
+function mh(s, cc, a, wpplFn, numParticles, verbose, justSample) {
+  return new MH(s, cc, a, wpplFn, numParticles, verbose, justSample);
 }
 
 
