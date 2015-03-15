@@ -168,17 +168,18 @@ function makeTest(testData) {
 
 var testNames = [
   "testEnumeration",
-  "testEnumerationStore",  
+  "testEnumerationStore",
   "testEnumerationCached",
   "testParticleFilter",
-  "testParticleFilterStore",  
+  "testParticleFilterStore",
+  "testPFVarFactors",
   "testMH",
   "testMHStore",
   "testPMCMC",
-  "testPMCMCStore",  
+  "testPMCMCStore",
   "testPFRj",
   "testPFRjStore",
-  "testPFRjAsMH"    
+  "testPFRjAsMH"
 ];
 
 var testsData = getTestCases(testNames);
