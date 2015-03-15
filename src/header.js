@@ -677,11 +677,11 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     // Resample in proportion to weights
     this.resampleParticles();
     // variable #factors: resampling can kill all continuing particles
-    var fp = this.firstParticleIndex();
+    var fp = this.firstRunningParticleIndex();
     this.particleIndex = fp == -1 ? this.particles.length-1 : fp;
   } else {
     // Advance to the next particle
-    this.particleIndex = this.nextParticleIndex();
+    this.particleIndex = this.nextRunningParticleIndex();
   }
 
   this.activeParticle().continuation(this.activeParticle().store);
@@ -691,11 +691,11 @@ ParticleFilter.prototype.activeParticle = function() {
   return this.particles[this.particleIndex];
 };
 
-ParticleFilter.prototype.firstParticleIndex = function() {
+ParticleFilter.prototype.firstRunningParticleIndex = function() {
   return util.indexOfPred(this.particles, function(p){return !p.completed});
 };
 
-ParticleFilter.prototype.nextParticleIndex = function() {
+ParticleFilter.prototype.nextRunningParticleIndex = function() {
   var ni = this.particleIndex+1;
   var nxt = util.indexOfPred(this.particles, function(p){return !p.completed}, ni);
   return nxt >= 0
@@ -703,12 +703,12 @@ ParticleFilter.prototype.nextParticleIndex = function() {
     : util.indexOfPred(this.particles, function(p){return !p.completed});
 };
 
-ParticleFilter.prototype.lastParticleIndex = function() {
+ParticleFilter.prototype.lastRunningParticleIndex = function() {
   return util.lastIndexOfPred(this.particles, function(p){return !p.completed});
 };
 
 ParticleFilter.prototype.allParticlesAdvanced = function() {
-  return this.particleIndex === this.lastParticleIndex();
+  return this.particleIndex === this.lastRunningParticleIndex();
 };
 
 ParticleFilter.prototype.resampleParticles = function() {
@@ -753,14 +753,18 @@ ParticleFilter.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
   this.activeParticle().completed = true;
-  var nextp = this.nextParticleIndex();
+  // this should be negative if there are no valid next particles
+  var nextRunningParticleIndex = this.nextRunningParticleIndex();
 
   // Wait for all particles to reach exit.
-  // variable #factors: check to see if any particles are continuing
-  //                    and resample appropriately
-  if (!this.allParticlesAdvanced() && nextp >= 0){
-    if (nextp < this.particleIndex) this.resampleParticles();
-    this.particleIndex = nextp;
+  // variable #factors: check if any other particles are continuing
+  //   yes: not at last particle AND some running particle exists
+  if (!this.allParticlesAdvanced() && nextRunningParticleIndex >= 0){
+    // because you can't just resample everytime a particle exits,
+    // only when the next-running-particle-index wraps around.
+    if (nextRunningParticleIndex < this.particleIndex)
+      this.resampleParticles();
+    this.particleIndex = nextRunningParticleIndex;
     return this.activeParticle().continuation(this.activeParticle().store);
   }
 
