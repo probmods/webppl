@@ -760,7 +760,7 @@ ParticleFilter.prototype.exit = function(s, retval) {
   // Reinstate previous coroutine:
   coroutine = this.oldCoroutine;
 
-  // Return from particle filter by calling original continuation:  
+  // Return from particle filter by calling original continuation:
   this.k(this.oldStore, dist);
 }
 
@@ -829,7 +829,7 @@ function mhAcceptProb(trace, oldTrace, regenFrom, currScore, oldScore){
   oldTrace.slice(regenFrom).map(function(s){
     var nc = findChoice(trace, s.name);
     bw += (!nc || !nc.reused) ? s.choiceScore : 0;  });
-  var p = Math.exp(currScore - oldScore + bw - fw);  
+  var p = Math.exp(currScore - oldScore + bw - fw);
   assert.ok(!isNaN(p));
   var acceptance = Math.min(1, p);
   return acceptance;
@@ -1083,7 +1083,7 @@ function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
 // If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
 // if rejuvSteps==0 this is a plain PF without any MH.
 
-var deepCopyTrace = function(trace){  
+var deepCopyTrace = function(trace){
   return trace.map(function(obj){
     var objCopy = util.copyObj(obj);
     objCopy.store = _.clone(obj.store);
@@ -1126,7 +1126,7 @@ function ParticleFilterRejuv(s,k,a, wpplFn, numParticles, rejuvSteps) {
 }
 
 ParticleFilterRejuv.prototype.sample = function(s, cc, a, erp, params) {
-    
+
   var val = erp.sample(params);
   var currScore = coroutine.activeParticle().score;
   var choiceScore = erp.score(params,val);
@@ -1196,7 +1196,7 @@ function copyPFRParticle(particle){
 }
 
 ParticleFilterRejuv.prototype.resampleParticles = function() {
-  
+
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
   var m = coroutine.particles.length;
   var W = util.logsumexp(_.map(coroutine.particles, function(p){return p.weight;}));
@@ -1206,7 +1206,7 @@ ParticleFilterRejuv.prototype.resampleParticles = function() {
   if (avgW == -Infinity) {
     console.warn('ParticleFilterRejuv: resampleParticles: all ' + m + ' particles have weight -Inf');
     return;
-  }  
+  }
 
   // Compute list of retained particles
   var retainedParticles = [];
@@ -1266,9 +1266,9 @@ ParticleFilterRejuv.prototype.exit = function(s,retval) {
     function(){
       var dist = makeMarginalERP(hist);
 
-      // Save estimated normalization constant in erp (average particle weight)      
+      // Save estimated normalization constant in erp (average particle weight)
       dist.normalizationConstant = coroutine.particles[0].weight;
-      
+
       // Reinstate previous coroutine:
       var k = coroutine.k;
       coroutine = coroutine.oldCoroutine;
@@ -1319,7 +1319,7 @@ MHP.prototype.factor = function(s,k,a,sc) {
   }
 };
 
-MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {  
+MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {
   var prev = findChoice(coroutine.oldTrace, name);
   var reuse = !(prev===undefined || forceSample);
   var val = reuse ? prev.val : erp.sample(params);
@@ -1341,7 +1341,7 @@ MHP.prototype.propose = function() {
   coroutine.oldScore = coroutine.currScore;
   coroutine.currScore = regen.score;
   coroutine.oldVal = coroutine.val;
-  
+
   coroutine.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
 };
 
@@ -1356,7 +1356,7 @@ MHP.prototype.exit = function(s,val) {
                                 coroutine.currScore, coroutine.oldScore);
 
   var accepted = Math.random() < acceptance;
-  
+
   if (accepted){
     coroutine.oldStore = s;
   } else {
@@ -1376,7 +1376,7 @@ MHP.prototype.exit = function(s,val) {
     }
     this.hist[k].prob += 1;
   }
-  
+
   coroutine.iterations -= 1;
 
   if (coroutine.iterations > 0) {
@@ -1388,7 +1388,7 @@ MHP.prototype.exit = function(s,val) {
       value: coroutine.val,
       score: coroutine.currScore,
       store: coroutine.oldStore, // use store from latest accepted proposal
-      trace: coroutine.trace      
+      trace: coroutine.trace
     };
 
     // Reinstate previous coroutine and return by calling original continuation:
@@ -1400,7 +1400,7 @@ MHP.prototype.exit = function(s,val) {
 
 
 function pfr(s,cc, a, wpplFn, numParticles, rejuvSteps) {
-  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);  
+  return new ParticleFilterRejuv(s,cc, a, wpplFn, numParticles, rejuvSteps);
 }
 
 
@@ -1627,6 +1627,7 @@ module.exports = {
   sample: sample,
   sampleWithFactor: sampleWithFactor,
   uniformERP: uniformERP,
+  makeMarginalERP: makeMarginalERP,
   util: util,
   apply: apply,
   assert: assert
