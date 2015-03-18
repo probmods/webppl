@@ -367,7 +367,14 @@ function multinomialSample(theta) {
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
 
-  //normalize distribution:
+  // prune values with probability 0
+  for (var v in marginal){
+    if (marginal[v].prob === 0){
+      delete marginal[v];
+    }
+  }
+  
+  // normalize distribution:
   var norm = 0;
   var supp = [];
   for (var v in marginal) {
