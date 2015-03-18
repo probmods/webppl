@@ -109,6 +109,89 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance){
   return allOk;
 }
 
+var deepcopy = (function() {
+
+  // Cache of already-copied objects in case of cycles
+  // (we give each object a unique ID for fast lookup)
+  var nextid, visited, cache;
+
+  function deepcopy(val)
+  {
+    nextid = 0;
+    visited = [];
+    cache = {};
+    var cpval = recursive_deepcopy(val);
+    // Remove cache id from all sub-objects
+    var n = visited.length;
+    while(n--) delete visited[n].__deepcopy_id__;
+    return cpval;
+  }
+
+  function is(val, type)
+  {
+    return val.constructor === type;
+  }
+
+  function recursive_deepcopy(val)
+  {
+    // Atomics
+    if (val === null || is(val, Number) || is(val, Boolean) ||
+      is(val, String) || is(val, Function))
+      return val;
+    // Objects (check cache first)
+    var cachedcopy = cache[val.__deepcopy_id__];
+    if (!cachedcopy)
+    {
+      visited.push(val);
+      cachedcopy = deepcopy_object(val);
+      val.__deepcopy_id__ = nextid;
+      cache[nextid] = cachedcopy;
+      nextid++;
+    }
+    return cachedcopy;
+  }
+
+  function deepcopy_object(obj)
+  {
+    // Special objects
+    // TODO: Any more of these we want to support?
+    if (is(obj, Date) ||
+      is(obj, RegExp) ||
+      is(obj, Int8Array) ||
+      is(obj, Uint8Array) ||
+      is(obj, Uint8ClampedArray) ||
+      is(obj, Int16Array) ||
+      is(obj, Int32Array) ||
+      is(obj, Uint32Array) ||
+      is(obj, Float32Array) ||
+      is(obj, Float64Array))
+    {
+      return new obj.constructor(obj);
+    }
+    // Arrays
+    if (is(obj, Array))
+    {
+      var cparr = [];
+      for (var i = 0; i < obj.length; i++)
+        cparr.push(recursive_deepcopy(obj[i]));
+      return cparr;
+    }
+    // Generic objects
+    var cpobj = Object.create(obj.__proto__);
+    for (var prop in obj)
+    {
+      if (obj.hasOwnProperty(prop))
+      {
+        cpobj[prop] = recursive_deepcopy(obj[prop]);
+      }
+    }
+    return cpobj;
+  }
+
+  return deepcopy;
+
+})();
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -122,5 +205,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   sum: sum,
-  histsApproximatelyEqual: histsApproximatelyEqual
+  histsApproximatelyEqual: histsApproximatelyEqual,
+  deepcopy: deepcopy
 };
