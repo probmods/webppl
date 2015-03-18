@@ -1,6 +1,4 @@
-
-SRCFILES = ../src/main.js \
-		   ../src/header.js \
+SRCFILES = ../src/*.js \
 		   ../src/header.wppl
 MINIFIED = webppl.min.js
 BROWSERIFIED = webppl.js
@@ -12,3 +10,6 @@ $(MINIFIED): $(BROWSERIFIED)
 
 $(BROWSERIFIED): $(SRCFILES)
 	browserify -t brfs $< > $@
+
+clean:
+	rm -f $(MINIFIED) $(BROWSERIFIED)
