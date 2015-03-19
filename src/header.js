@@ -633,10 +633,12 @@ function copyParticle(particle){
   };
 }
 
-function ParticleFilter(s, k, a, wpplFn, numParticles, strict) {
+function ParticleFilter(s, k, a, wpplFn, numParticles, strict, justSample) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
+
+  this.justSample = justSample;
 
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
@@ -678,7 +680,7 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
     this.resampleParticles();
     // variable #factors: resampling can kill all continuing particles
     var fp = this.firstRunningParticleIndex();
-    this.particleIndex = fp == -1 ? this.particles.length-1 : fp;
+    this.particleIndex = (fp == -1 ? this.particles.length-1 : fp);
   } else {
     // Advance to the next particle
     this.particleIndex = this.nextRunningParticleIndex();
@@ -770,6 +772,8 @@ ParticleFilter.prototype.exit = function(s, retval) {
 
   // Compute marginal distribution from (unweighted) particles
   var hist = {};
+  if (!this.justSample)
+  {
   _.each(
     this.particles,
     function(particle){
@@ -779,7 +783,14 @@ ParticleFilter.prototype.exit = function(s, retval) {
       }
       hist[k].prob += 1;
     });
+  }
   var dist = makeMarginalERP(hist);
+  if (this.justSample)
+  {
+    dist.samples = _.map(this.particles, function(particle) {
+      return {val: particle.value, prob: 0};   // TODO: figure out prob?
+    });
+  }
 
   // Save estimated normalization constant in erp (average particle weight)
   dist.normalizationConstant = this.particles[0].weight;
@@ -791,8 +802,8 @@ ParticleFilter.prototype.exit = function(s, retval) {
   this.k(this.oldStore, dist);
 }
 
-function pf(s, cc, a, wpplFn, numParticles, strict) {
-  return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict);
+function pf(s, cc, a, wpplFn, numParticles, strict, justSample) {
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict, justSample);
 }
 
 ////////////////////////////////////////////////////////////////////
