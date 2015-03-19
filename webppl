@@ -62,7 +62,7 @@ function getRequirePath(req){
   }
 }
 
-function run(code, requires, verbose){
+function run(code, requires, verbose, programFile){
   requires.forEach(
     function(req){
       if (req.type === 'require-js'){
@@ -82,10 +82,11 @@ function run(code, requires, verbose){
       printWebPPLValue(x);
     },
     code,
-    verbose);
+    verbose,
+    programFile);
 }
 
-function compile(code, requires, verbose, outputFile){
+function compile(code, requires, verbose, programFile, outputFile){
   var compiledCode = '';
   compiledCode += requireAsGlobal.toString() + ';\n';
   requires.push({
@@ -115,7 +116,7 @@ function compile(code, requires, verbose, outputFile){
     " _trampoline = null; " +
     " console.log('\\n* Program return value:\\n');" +
     " printWebPPLValue(x); };\n");
-  compiledCode += webppl.compile(code, verbose);
+  compiledCode += webppl.compile(code, verbose, programFile).compiledCode;
   // Write Javascript code to file
   fs.writeFile(
     outputFile,
@@ -175,7 +176,7 @@ function main(){
 
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : "tmp.js";
-  processCode(code, requires, argv.verbose, outputFile);
+  processCode(code, requires, argv.verbose, programFile, outputFile);
 }
 
 main();

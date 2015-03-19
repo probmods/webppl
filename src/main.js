@@ -13,6 +13,8 @@ var store = require("./store").store;
 var varargs = require("./varargs").varargs;
 var trampoline = require("./trampoline").trampoline;
 var util = require("./util");
+var SourceMap = require('source-map');
+var stacktrace = require('./stacktrace');
 
 var topK;
 var _trampoline;
@@ -42,8 +44,19 @@ function removeFinalContinuationCall(ast, contName){
   x.body = x.body.slice(0, x.body.length-1);
 }
 
-var compile = function(code, contName, isLibrary){
-  var ast = esprima.parse(code);
+function createSourceMapConsumer(sourceMap){
+  if (typeof sourceMap === 'string') {
+    sourceMap = JSON.parse(sourceMap);
+  }
+  return new SourceMap.SourceMapConsumer(sourceMap);
+}
+
+var compile = function(code, contName, isLibrary, programFile){
+  if (isLibrary) {
+    var ast = esprima.parse(code);
+  } else {
+    var ast = esprima.parse(code, {loc: true, source: programFile});
+  }
   var cont = build.identifier(contName);
   ast = naming(ast);
   ast = cps(ast, cont);
@@ -59,7 +72,7 @@ var compile = function(code, contName, isLibrary){
   return ast;
 };
 
-function compileProgram(programCode, verbose){
+function compileProgram(programCode, verbose, programFile){
   if (verbose && console.time){console.time('compile');}
 
   var programAst, headerAst;
@@ -74,16 +87,22 @@ function compileProgram(programCode, verbose){
   }
 
   // Compile program code
-  programAst = compile(programCode, 'topK', false);
+  programAst = compile(programCode, 'topK', false, programFile);
   if (verbose){
     console.log(escodegen.generate(programAst));
   }
 
   // Concatenate header and program
-  var out = escodegen.generate(addHeaderAst(programAst, headerAst));
+  var out = escodegen.generate(addHeaderAst(programAst, headerAst), {
+    sourceMap: true,
+    sourceMapWithCode: true
+  });
 
   if (verbose && console.timeEnd){console.timeEnd('compile');}
-  return out;
+  return {
+    compiledCode: out.code,
+    sourceMap: out.map.toString()
+  };
 }
 
 function run(code, contFun, verbose){
@@ -91,12 +110,13 @@ function run(code, contFun, verbose){
     _trampoline = null;
     contFun(s, x);
   };
-  var compiledCode = compileProgram(code, verbose);
+  var compiledResult = compileProgram(code, verbose);
+  var compiledCode = compiledResult.compiledCode;
   return eval(compiledCode);
 }
 
 // Compile and run some webppl code in global scope:
-function webppl_eval(k, code, verbose) {
+function webppl_eval(k, code, verbose, programFile) {
   var oldk = global.topK;
   global._trampoline = undefined;
   global.topK = function(s, x){  // Install top-level continuation
@@ -104,8 +124,26 @@ function webppl_eval(k, code, verbose) {
     k(s, x);
     global.topK = oldk;
   };
-  var compiledCode = compileProgram(code, verbose);
-  eval.call(global, compiledCode);
+  var compiledResult = compileProgram(code, verbose, programFile);
+  var compiledCode = compiledResult.compiledCode;
+  var compiledSourceMap = compiledResult.sourceMap;
+  try {
+    eval.call(global, compiledCode);
+  } catch (exception) {
+    if (!exception.stack) {
+      var webppl_stack = exception;
+      var js_stack = exception;
+    } else {
+      var stackTrace = stacktrace.parse(exception);
+      var sourceMapConsumer = createSourceMapConsumer(compiledSourceMap);
+      var webppl_stack = stacktrace.getSourceMappedStackTrace(stackTrace, sourceMapConsumer, code);
+      var js_stack = exception.stack;
+    }
+    console.log("  ------ Compiled JS Stack Trace ------");
+    console.log(js_stack);
+    console.log("\n  ------ Webppl Stack Trace ------");
+    console.log(webppl_stack);
+  }
 }
 
 // For use in browser

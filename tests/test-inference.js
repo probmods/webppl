@@ -18,7 +18,7 @@ function runContinuousSamplingTest(test, code, checkSamples, numSamples){
       test.done();
     }
   };
-  var compiledProgram = webppl.compile(code);
+  var compiledProgram = webppl.compile(code).compiledCode;
   for (var i=0; i<numSamples; i++){
     eval('(function(){' + compiledProgram + '})()');
   }
@@ -38,7 +38,7 @@ function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance
       test.done();
     }
   };
-  var compiledProgram = webppl.compile(code);
+  var compiledProgram = webppl.compile(code).compiledCode;
   for (var i=0; i<numSamples; i++){
     eval('(function(){' + compiledProgram + '})()');
   }
