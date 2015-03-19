@@ -678,15 +678,17 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
   if (this.allParticlesAdvanced()){
     // Resample in proportion to weights
     this.resampleParticles();
+    this.particleIndex = this.firstRunningParticleIndex();
     // variable #factors: resampling can kill all continuing particles
-    var fp = this.firstRunningParticleIndex();
-    this.particleIndex = (fp == -1 ? this.particles.length-1 : fp);
+    if (this.particleIndex < 0)
+      this.finish();
+    else
+      this.activeParticle().continuation(this.activeParticle().store);
   } else {
     // Advance to the next particle
     this.particleIndex = this.nextRunningParticleIndex();
+    this.activeParticle().continuation(this.activeParticle().store);
   }
-
-  this.activeParticle().continuation(this.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
@@ -757,19 +759,20 @@ ParticleFilter.prototype.exit = function(s, retval) {
   this.activeParticle().completed = true;
   // this should be negative if there are no valid next particles
   var nextRunningParticleIndex = this.nextRunningParticleIndex();
+  var allParticlesFinished = nextRunningParticleIndex < 0;
 
   // Wait for all particles to reach exit.
   // variable #factors: check if any other particles are continuing
-  //   yes: not at last particle AND some running particle exists
-  if (!this.allParticlesAdvanced() && nextRunningParticleIndex >= 0){
-    // because you can't just resample everytime a particle exits,
-    // only when the next-running-particle-index wraps around.
-    if (nextRunningParticleIndex < this.particleIndex)
-      this.resampleParticles();
+  if (!allParticlesFinished){
     this.particleIndex = nextRunningParticleIndex;
     return this.activeParticle().continuation(this.activeParticle().store);
   }
 
+  this.finish();
+}
+
+ParticleFilter.prototype.finish = function()
+{
   // Compute marginal distribution from (unweighted) particles
   var hist = {};
   if (!this.justSample)
