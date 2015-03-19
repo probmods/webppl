@@ -627,6 +627,7 @@ function copyParticle(particle){
   return {
     continuation: particle.continuation,
     weight: particle.weight,
+    completed: particle.completed,
     value: particle.value,
     store: util.copyObj(particle.store)
   };
@@ -642,6 +643,7 @@ function ParticleFilter(s, k, a, wpplFn, numParticles, strict) {
     var particle = {
       continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
+      completed: false,
       value: undefined,
       store: util.copyObj(s)
     };
@@ -674,21 +676,39 @@ ParticleFilter.prototype.factor = function(s,cc, a, score) {
   if (this.allParticlesAdvanced()){
     // Resample in proportion to weights
     this.resampleParticles();
-    this.particleIndex = 0;
+    // variable #factors: resampling can kill all continuing particles
+    var fp = this.firstRunningParticleIndex();
+    this.particleIndex = fp == -1 ? this.particles.length-1 : fp;
   } else {
     // Advance to the next particle
-    this.particleIndex += 1;
+    this.particleIndex = this.nextRunningParticleIndex();
   }
 
-  coroutine.activeParticle().continuation(coroutine.activeParticle().store);
+  this.activeParticle().continuation(this.activeParticle().store);
 };
 
 ParticleFilter.prototype.activeParticle = function() {
   return this.particles[this.particleIndex];
 };
 
+ParticleFilter.prototype.firstRunningParticleIndex = function() {
+  return util.indexOfPred(this.particles, function(p){return !p.completed});
+};
+
+ParticleFilter.prototype.nextRunningParticleIndex = function() {
+  var ni = this.particleIndex+1;
+  var nxt = util.indexOfPred(this.particles, function(p){return !p.completed}, ni);
+  return nxt >= 0
+    ? nxt
+    : util.indexOfPred(this.particles, function(p){return !p.completed});
+};
+
+ParticleFilter.prototype.lastRunningParticleIndex = function() {
+  return util.lastIndexOfPred(this.particles, function(p){return !p.completed});
+};
+
 ParticleFilter.prototype.allParticlesAdvanced = function() {
-  return ((this.particleIndex + 1) === this.particles.length);
+  return this.particleIndex === this.lastRunningParticleIndex();
 };
 
 ParticleFilter.prototype.resampleParticles = function() {
@@ -702,7 +722,7 @@ ParticleFilter.prototype.resampleParticles = function() {
   } else {
     // Compute list of retained particles
     var retainedParticles = [];
-      var newExpWeights = [];
+    var newExpWeights = [];
     _.each(
       this.particles,
       function(particle){
@@ -732,11 +752,19 @@ ParticleFilter.prototype.resampleParticles = function() {
 ParticleFilter.prototype.exit = function(s, retval) {
 
   this.activeParticle().value = retval;
+  this.activeParticle().completed = true;
+  // this should be negative if there are no valid next particles
+  var nextRunningParticleIndex = this.nextRunningParticleIndex();
 
-  // Wait for all particles to reach exit before computing
-  // marginal distribution from particles
-  if (!this.allParticlesAdvanced()){
-    this.particleIndex += 1;
+  // Wait for all particles to reach exit.
+  // variable #factors: check if any other particles are continuing
+  //   yes: not at last particle AND some running particle exists
+  if (!this.allParticlesAdvanced() && nextRunningParticleIndex >= 0){
+    // because you can't just resample everytime a particle exits,
+    // only when the next-running-particle-index wraps around.
+    if (nextRunningParticleIndex < this.particleIndex)
+      this.resampleParticles();
+    this.particleIndex = nextRunningParticleIndex;
     return this.activeParticle().continuation(this.activeParticle().store);
   }
 
