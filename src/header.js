@@ -366,13 +366,6 @@ function multinomialSample(theta) {
 
 //make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
-
-  // prune values with probability 0
-  for (var v in marginal){
-    if (marginal[v].prob === 0){
-      delete marginal[v];
-    }
-  }
   
   // normalize distribution:
   var norm = 0;
@@ -581,10 +574,12 @@ Enumerate.prototype.exit = function(s,retval) {
 
   // We have reached an exit of the computation. Accumulate probability into retval bin.
   var r = JSON.stringify(retval);
-  if (this.marginal[r] === undefined) {
-    this.marginal[r] = {prob: 0, val: retval};
+  if (this.score !== -Infinity){
+    if (this.marginal[r] === undefined) {
+      this.marginal[r] = {prob: 0, val: retval};
+    }
+    this.marginal[r].prob += Math.exp(this.score);
   }
-  this.marginal[r].prob += Math.exp(this.score);
 
   // Increment the completed execution counter
   this.numCompletedExecutions++;
