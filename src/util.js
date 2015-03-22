@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 
+
 function runningInBrowser() {
   return (typeof window !== 'undefined');
 }

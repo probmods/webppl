@@ -1,19 +1,15 @@
 'use strict';
 
 var assert = require('assert');
-
 var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
-
 var Syntax = require('estraverse').Syntax;
 
 var match = require('./util2').match;
 var clause = require('./util2').clause;
 var fail = require('./util2').fail;
 var inProgram = require('./util2').inProgram;
-
 var linearize = require('./linearize').linearize;
-
 var isPrimitive = require('./util2').isPrimitive;
 var makeGenvar = require('./util2').makeGenvar;
 

@@ -4,12 +4,12 @@ var replace = require('estraverse').replace;
 var Syntax = require('estraverse').Syntax;
 var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
-
 var parse = require('esprima').parse;
 
 var fail = require('./util2').fail;
 var inProgram = require('./util2').inProgram;
 var isPrimitive = require('./util2').isPrimitive;
+
 
 function thunkify(node) {
   return build.functionExpression(

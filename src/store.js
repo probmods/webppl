@@ -1,12 +1,10 @@
 'use strict';
 
 var estraverse = require('estraverse');
-
 var Syntax = estraverse.Syntax;
-
 var build = require('ast-types').builders;
-
 var isPrimitive = require('./util2').isPrimitive;
+
 
 var storeIdNode = build.identifier('globalStore');
 

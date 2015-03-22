@@ -5,14 +5,13 @@ var build = require('ast-types').builders;
 var keys = require('estraverse').VisitorKeys;
 var Syntax = require('estraverse').Syntax;
 
+
 function makeGenvar() {
   var gensym = require('./util').makeGensym();
-
   return function(name) {
     return build.identifier('_'.concat(gensym(name)));
   }
 }
-
 
 function fail(message, node) {
   return function() {

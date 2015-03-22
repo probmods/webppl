@@ -10,6 +10,7 @@ var Syntax = estraverse.Syntax;
 var fail = require('./util2').fail;
 var inProgram = require('./util2').inProgram;
 
+
 function createPipeline() {
 
   var pipeline = [

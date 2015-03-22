@@ -6,6 +6,7 @@ var types = require('ast-types');
 var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
+
 var cps = require('./cps').cps;
 var optimize = require('./optimize').optimize;
 var naming = require('./naming').naming;
@@ -15,6 +16,7 @@ var trampoline = require('./trampoline').trampoline;
 var thunkify = require('./util2').thunkify;
 var analyze = require('./analyze').analyze;
 var util = require('./util');
+
 
 // Make runtime stuff globally available:
 var runtime = require('./header.js');
@@ -29,27 +31,33 @@ function concatPrograms(p0, p1) {
 }
 
 function prepare(programCode, verbose) {
-  if (verbose && console.time) {console.time('prepare');}
+  if (verbose && console.time) {
+    console.time('prepare');
+  }
 
   var _prepare = function(ast) {
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
     ast = optimize(ast);
-
     return ast;
   };
 
   // parse header and program, combine, compile, and generate program
-  var out = _prepare(concatPrograms(esprima.parse(fs.readFileSync(__dirname + '/header.wppl')),
-                                    esprima.parse(programCode)));
+  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
+  var programAST = esprima.parse(programCode);
+  var out = _prepare(concatPrograms(headerAST, programAST));
 
-  if (verbose && console.timeEnd) {console.timeEnd('prepare');}
+  if (verbose && console.timeEnd) {
+    console.timeEnd('prepare');
+  }
   return out;
 }
 
 function compile(programCode, verbose) {
-  if (verbose && console.time) {console.time('compile');}
+  if (verbose && console.time) {
+    console.time('compile');
+  }
 
   var _compile = function(ast) {
     ast = thunkify(ast);
@@ -59,15 +67,17 @@ function compile(programCode, verbose) {
     ast = optimize(ast);
     ast = varargs(ast);
     ast = trampoline(ast);
-
     return ast;
   };
 
   // parse header and program, combine, compile, and generate program
-  var out = escodegen.generate(_compile(concatPrograms(esprima.parse(fs.readFileSync(__dirname + '/header.wppl')),
-                                                       esprima.parse(programCode))));
+  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
+  var programAST = esprima.parse(programCode);
+  var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
-  if (verbose && console.timeEnd) {console.timeEnd('compile');}
+  if (verbose && console.timeEnd) {
+    console.timeEnd('compile');
+  }
   return out;
 }
 
