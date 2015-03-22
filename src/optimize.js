@@ -7,11 +7,13 @@ var types = require("ast-types");
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
+var fail = require("./util2").fail;
+var inProgram = require("./util2").inProgram;
 
 function createPipeline() {
 
   var pipeline = [
-    // 'pass/hoist-variable-to-arguments',
+    //* 'pass/hoist-variable-to-arguments',
     'pass/transform-dynamic-to-static-property-access',
     'pass/transform-dynamic-to-static-property-definition',
     'pass/transform-immediate-function-call',
@@ -21,7 +23,7 @@ function createPipeline() {
     'pass/remove-empty-statement',
     'pass/remove-wasted-blocks',
     'pass/transform-to-compound-assignment',
- //    'pass/transform-to-sequence-expression',
+ //*    'pass/transform-to-sequence-expression',
     'pass/transform-branch-to-expression',
     'pass/transform-typeof-undefined',
     'pass/reduce-sequence-expression',
@@ -31,9 +33,9 @@ function createPipeline() {
     'pass/remove-side-effect-free-expressions',
     'pass/remove-context-sensitive-expressions',
     'pass/tree-based-constant-folding',
- // 'pass/concatenate-variable-definition',
+ //* 'pass/concatenate-variable-definition',
     'pass/drop-variable-definition',
-    'pass/remove-unreachable-branch',
+//    'pass/remove-unreachable-branch',
     'pass/eliminate-duplicate-function-declarations'
   ];
 
@@ -101,15 +103,16 @@ function optimize(node){
   }
 }
 
-function optimizeMain(node){
-  var out = estraverse.replace(
-    node,
-    {
-      enter: function(node){return optimize(node);},
-      leave: function(node){return optimize(node);}
-    });
-  out = esmangle.optimize(out, createPipeline(), {inStrictCode: true, legacy: false});
-  return out;
+function optimizeMain( node ) {
+    return inProgram( function( node ) {
+	return esmangle.optimize( estraverse.replace( node, {
+	    enter: optimize,
+	    leave: optimize
+	}), createPipeline(), {
+	    inStrictCode: true,
+	    legacy: false
+	});
+    })( node, fail( "optimize: inBody", node ) );
 }
 
 module.exports = {

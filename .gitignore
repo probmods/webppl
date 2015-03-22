@@ -2,5 +2,5 @@
 .pyc
 *.swp
 examples/scratch.wppl
+node_modules
 npm-debug.log
-node_modules/*

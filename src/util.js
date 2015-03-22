@@ -85,10 +85,10 @@ var lastIndexOfPred = function(l,p,start) {
 function cpsForEach(func, nextK, xs, i){
   i = (i === undefined) ? 0 : i;
   if (i === xs.length){
-    nextK();
+    return nextK();
   } else {
-    func(xs[i], i, xs, function(){
-      cpsForEach(func, nextK, xs, i+1);
+    return func(xs[i], i, xs, function(){
+      return cpsForEach(func, nextK, xs, i+1);
     });
   }
 }

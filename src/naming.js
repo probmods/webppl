@@ -1,61 +1,77 @@
 "use strict";
 
-var estraverse = require("estraverse");
-var types = require("ast-types");
+var Syntax = require("estraverse").Syntax;
+var replace = require("estraverse").replace;
 
-var build = types.builders;
-var Syntax = estraverse.Syntax;
+var build = require("ast-types").builders;
+var types = require("ast-types").types;
 
-var counter = 0;
-function nextCounter(){
-  counter++;
-  return build.literal("_"+counter);//build.arrayExpression([build.literal(counter)])
-}
+var makeGensym = require("./util").makeGensym;
+var makeGenvar = require("./util2").makeGenvar;
 
-var addressIdNode = build.identifier("address");
+var inProgram = require("./util2").inProgram;
+var fail = require("./util2").fail;
 
-function makeAddressExtension(){
-  return build.callExpression(build.memberExpression(addressIdNode,
-                                                     build.identifier("concat"),
-                                                     false),
-                              [nextCounter()]);
-}
+var isPrimitive = require("./util2").isPrimitive;
 
-function naming(node) {
+function makeGenlit() {
+    var gensym = makeGensym();
 
-  switch (node.type) {
-
-    //have to add an address argument to each function
-  case Syntax.FunctionExpression:
-    return build.functionExpression(node.id,
-                                    [addressIdNode].concat(node.params),
-                                    node.body);
-
-    //add a gensym onto the address variable
-  case Syntax.CallExpression:
-    if(types.namedTypes.MemberExpression.check(node.callee)){
-      return node;
-    } else {
-      return build.callExpression(node.callee,
-                                  [makeAddressExtension()].concat(node.arguments));
+    return function() {
+	return build.literal(gensym("_"));
     }
+}
 
-  default:
-    return node;
+var genlit = null;
+var genvar = null;
 
+var addresses = [];
+
+function makeAddressExtension( address ) {
+  return build.callExpression(build.memberExpression( address,
+                                                      build.identifier("concat"),
+                                                      false),
+                              [genlit()]);
+}
+
+function generating( node ) {
+    switch( node.type ) {
+    case Syntax.FunctionExpression:
+	addresses.unshift( genvar("address") );
+	break;
+    default:
+    }
+}
+
+function naming( node ) {
+    switch( node.type ) {
+    case Syntax.FunctionExpression:
+	return build.functionExpression(node.id,
+					[addresses.shift()].concat(node.params),
+					node.body);
+
+      //add a gensym onto the address variable
+    case Syntax.CallExpression:
+	if( isPrimitive( node.callee ) ) {
+            return node;
+	}
+	else {
+            return build.callExpression(node.callee,
+					[makeAddressExtension(addresses[0])].concat(node.arguments));
+	}
+
+    default:
   }
 }
 
-
 function namingMain(node) {
-  counter = 0;
-  return estraverse.replace(node,
-                            {//enter: function(node){return node},
-                              leave: function(node){return naming(node);}});
+    genlit = makeGenlit();
+    genvar = makeGenvar();
+
+    return inProgram( function( node ) {
+	return replace( node, { enter: generating, leave: naming } );
+    })( node, fail( "naming: inProgram", node ) );
 }
-
-
-
 
 module.exports = {
   naming: namingMain

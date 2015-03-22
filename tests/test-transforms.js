@@ -1,20 +1,16 @@
 "use strict";
 
 var _ = require('underscore');
-var esprima = require("esprima");
-var escodegen = require("escodegen");
-var types = require("ast-types");
-var cps = require("../src/cps.js");
-var util = require("../src/util.js");
+var parse = require("esprima").parse;
+var unparse = require("escodegen").generate;
+var thunkify = require("../src/util2").thunkify;
+var fail = require("../src/util2").fail;
+var naming = require("../src/naming").naming;
+var cps = require("../src/cps").cps;
 var store = require("../src/store").store;
-var naming = require("../src/naming.js").naming;
-var optimize = require("../src/optimize.js").optimize;
-var varargs = require("../src/varargs").varargs;
+var optimize = require("../src/optimize").optimize;
 var trampoline = require("../src/trampoline").trampoline;
-
-var build = types.builders;
-
-var _trampoline;
+var varargs = require("../src/varargs").varargs;
 
 var fooObj = {
   bar: 1,
@@ -26,87 +22,94 @@ var fooObj = {
 
 var plus, minus, times, and, plusTwo;
 
-function runTest(test, code, expected, transformAst){
-  var actual = "unset";
-  var ast = esprima.parse(code);
-  var newAst = transformAst(ast);
-  var newCode = escodegen.generate(newAst);
-  // console.log(newCode);
-  try {
-    eval(newCode);
-  } catch (e) {
-    console.log('Exception:', e);
-    console.log(newCode);
-  }
-  var testPassed = _.isEqual(actual, expected);
-  test.ok(testPassed);
-  if (!testPassed){
-    console.log(newCode);
-    console.log("Expected:", expected);
-    console.log("Actual:", actual);
-  }
-  test.done();
+function compose() {
+    var fs = Array.prototype.concat.apply( [], arguments );
+
+    return function( x ) {
+	return fs.reduceRight( function( x, f ) {
+	    return f( x );
+	}, x );
+    }
 }
 
-function addHeader(ast, headerCode){
-  ast.body = esprima.parse(headerCode).body.concat(ast.body);
+function runTest( test, code, expected, transformAst, run ) {
+    var newCode = unparse( transformAst( parse( code ) ) );
+
+    try {
+	run( test, code, newCode, expected );
+    }
+    catch( e ) {
+	console.log( "Exception:", e );
+	console.log( newCode );
+	test.ok( false );
+	test.done();
+    }
 }
 
-function transformAstCps(ast){
-  var cpsAst = cps.cps(ast, build.identifier("topK"));
-  addHeader(cpsAst, "var topK = function(x){ actual = x; };");
-  addHeader(cpsAst, "var identityContinuation = function(x){return x}");
-  return cpsAst;
+function check( test, code, newCode, expected, actual ) {
+    var success = _.isEqual( expected, actual );
+
+    test.ok( success );
+
+    if( ! success ) {
+	console.log( code );
+	console.log( newCode );
+	console.log( "Expected:", expected );
+	console.log( "Actual:", actual );
+    }
+
+    test.done();
 }
 
-function transformAstStorepassing(ast){
-  var cpsAst = cps.cps(ast, build.identifier("topK"));
-  var storeAst = store(cpsAst);
-  addHeader(storeAst, "var globalStore = {};");
-  addHeader(storeAst, "var topK = function(globalStore, x){ _trampoline=null; actual = x; };");
-  return storeAst;
+var transformAstNaming = compose( naming, function( node ) {
+    return thunkify( node, fail( "transform", node ) );
+});
+function runNaming( test, code, newCode, expected ) {
+    check( test, code, newCode, expected, eval( newCode )( "" ) );
 }
 
-function transformAstNaming(ast){
-  var namedAst = naming(ast);
-  return transformAstStorepassing(namedAst);
+var transformAstCps = compose( cps, transformAstNaming );
+function runCps( test, code, newCode, expected ) {
+    eval( newCode )( function( actual ) {
+	check( test, code, newCode, expected, actual );
+    }, "" );
 }
 
-function transformAstOptimize(ast){
-  var newAst = transformAstNaming(ast);
-  return optimize(newAst);
+var transformAstStorepassing = compose( store, transformAstCps );
+function runStorepassing( test, code, newCode, expected ) {
+    eval( newCode )( {}, function( store, actual ) {
+	check( test, code, newCode, expected, actual );
+    }, "" );
 }
 
-function transformAstVarargs(ast){
-  var newAst = transformAstOptimize(ast);
-  return varargs(newAst);
-}
+var transformAstOptimize = compose( optimize, transformAstStorepassing );
+var runOptimize = runStorepassing;
 
-function transformAstTrampoline(ast){
-  var newAst = transformAstVarargs(ast);
-  return trampoline(newAst, false);
-}
+var transformAstVarargs = compose( varargs, transformAstOptimize );
+var runVarargs = runOptimize;
 
+var transformAstTrampoline = compose( trampoline, transformAstVarargs );
+var runTrampoline = runVarargs;
+
+var selectNamingPrimitives = function(){
+  // Set global definitions
+  plus = function(a, x, y) {return (x + y);};
+  minus = function(a, x, y) {return (x - y);};
+  times = function(a, x, y) {return (x * y);};
+  and = function(a, x, y) {return (x && y);};
+  plusTwo = function(a, x, y) {return (x + 2);};
+};
 
 function selectCpsPrimitives(){
   // Set global definitions
-  plus = function(k, x, y) {return k(x + y);};
-  minus = function(k, x, y) {return k(x - y);};
-  times = function(k, x, y) {return k(x * y);};
-  and = function(k, x, y) {return k(x && y);};
-  plusTwo = function(k, x, y) {return k(x + 2);};
-}
+  plus = function(k, a, x, y) {return k(x + y);};
+  minus = function(k, a, x, y) {return k(x - y);};
+  times = function(k, a, x, y) {return k(x * y);};
+  and = function(k, a, x, y) {return k(x && y);};
+  plusTwo = function(k, a, x, y) {return k(x + 2);};
+};
 
 function selectStorePrimitives(){
-  // Set global definitions
-  plus = function(s, k, x, y) {return k(s, x + y);};
-  minus = function(s, k, x, y) {return k(s, x - y);};
-  times = function(s, k, x, y) {return k(s, x * y);};
-  and = function(s, k, x, y) {return k(s, x && y);};
-  plusTwo = function(s, k, x, y) {return k(s, x + 2);};
-}
-
-function selectNamingPrimitives(){
   // Set global definitions
   plus = function(s, k, a, x, y) {return k(s, x + y);};
   minus = function(s, k, a, x, y) {return k(s, x - y);};
@@ -115,54 +118,58 @@ function selectNamingPrimitives(){
   plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
 }
 
-function runCpsTest(test, code, expected){
-  selectCpsPrimitives();
-  return runTest(test, code, expected, transformAstCps);
-}
-
-function runStorepassingTest(test, code, expected){
-  selectStorePrimitives();
-  return runTest(test, code, expected, transformAstStorepassing);
-}
+var selectOptimizePrimitives = selectStorePrimitives;
+var selectVarargsPrimitives = selectOptimizePrimitives;
+var selectTrampolinePrimitives = selectVarargsPrimitives;
 
 function runNamingTest(test, code, expected){
   selectNamingPrimitives();
-  return runTest(test, code, expected, transformAstNaming);
-}
+  return runTest(test, code, expected, transformAstNaming, runNaming);
+};
 
-function runOptimizationTest(test, code, expected){
-  selectNamingPrimitives();
-  return runTest(test, code, expected, transformAstOptimize);
-}
+function runCpsTest(test, code, expected){
+  selectCpsPrimitives();
+  return runTest(test, code, expected, transformAstCps, runCps );
+};
+
+function runStorepassingTest(test, code, expected){
+  selectStorePrimitives();
+  return runTest(test, code, expected, transformAstStorepassing, runStorepassing);
+};
+
+function runOptimizeTest(test, code, expected){
+    selectOptimizePrimitives();
+  return runTest(test, code, expected, transformAstOptimize, runOptimize);
+};
 
 function runVarargsTest(test, code, expected){
-  selectNamingPrimitives();
-  return runTest(test, code, expected, transformAstVarargs);
-}
+  selectVarargsPrimitives();
+  return runTest(test, code, expected, transformAstVarargs, runVarargs);
+};
 
 function runTrampolineTest(test, code, expected){
-  selectNamingPrimitives();
-  return runTest(test, code, expected, transformAstTrampoline);
-}
-
-
+  selectTrampolinePrimitives();
+  return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
+};
 
 function generateTestFunctions(allTests, testRunner){
   var exports = {};
   for (var testClassName in allTests){
-    var tests = allTests[testClassName];
-    exports[testClassName] = {};
-    tests.forEach(
-      function(obj){
-        exports[testClassName][obj.name] = function(test){
-          if (!obj.runners || _.contains(obj.runners, testRunner)){
-            return testRunner(test, obj.code, obj.expected);
-          } else {
-            test.done();
-          }
-        };
-      });
-  }
+    if( allTests.hasOwnProperty( testClassName ) ) {
+      var tests = allTests[testClassName];
+	exports[testClassName] = {};
+	tests.forEach(
+	function(obj){
+          exports[testClassName][obj.name] = function(test){
+            if (!obj.runners || _.contains(obj.runners, testRunner)){
+              return testRunner(test, obj.code, obj.expected);
+            } else {
+              test.done();
+            }
+          };
+        });
+    }
+  };
   return exports;
 }
 
@@ -290,7 +297,7 @@ var tests = {
              "var baz = function(){ return obj1['X']; };" +
              "foo();"),
       expected: 10,
-      runners: [runOptimizationTest, runTrampolineTest] }
+      runners: [runOptimizeTest, runTrampolineTest] }
 
   ],
 
@@ -483,7 +490,6 @@ var tests = {
              "foo(3, 4);"),
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
-
     // FIXME: This test currently fails because varargs happens after
     //        cps which introduces additional closures. To fix this,
     //        move the varargs transform up earlier in the order of
@@ -494,7 +500,6 @@ var tests = {
     //          "foo(3, 4);"),
     //   expected: [3, 4],
     //   runners: [runVarargsTest, runTrampolineTest] },
-
     { name: 'testApply',
       code: ("var foo = function(x, y){return x + y};" +
              "var bar = function(){ return apply(foo, arguments); };" +
@@ -506,9 +511,10 @@ var tests = {
 
 };
 
+exports.testNaming = generateTestFunctions(tests, runNamingTest);
 exports.testCps = generateTestFunctions(tests, runCpsTest);
 exports.testStorepassing = generateTestFunctions(tests, runStorepassingTest);
-exports.testNaming = generateTestFunctions(tests, runNamingTest);
-exports.testOptimization = generateTestFunctions(tests, runOptimizationTest);
+exports.testOptimize = generateTestFunctions(tests, runOptimizeTest);
+exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);

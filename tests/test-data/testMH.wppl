@@ -5,4 +5,4 @@ MH(
     factor( (x|y) ? 0 : -Infinity);
     return x;
   },
-	5000) // samples
+  5000) // samples

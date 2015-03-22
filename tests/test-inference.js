@@ -5,30 +5,27 @@ var util = require("../src/util.js");
 var webppl = require('../src/main.js');
 var testCase = require('nodeunit').testCase;
 
-var topK;
-var _trampoline;
-
 function runContinuousSamplingTest(test, code, checkSamples, numSamples){
   var samples = [];
-  topK = function(s, value){
-    _trampoline = null;
+  var k = function(s, value){
     samples.push(value);
     if (samples.length === numSamples){
       test.ok(checkSamples(samples));
       test.done();
     }
   };
-  var compiledProgram = webppl.compile(code);
+
+  var program = eval( webppl.compile( code ) );
+    
   for (var i=0; i<numSamples; i++){
-    eval('(function(){' + compiledProgram + '})()');
+    program( {}, k, "" );
   }
 }
 
 function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance){
   var hist = {};
   var numFinishedSamples = 0;
-  topK = function(s, value){
-    _trampoline = null;
+  var k = function(s, value){
     hist[value] = hist[value] || 0;
     hist[value] += 1;
     numFinishedSamples += 1;
@@ -38,16 +35,16 @@ function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance
       test.done();
     }
   };
-  var compiledProgram = webppl.compile(code);
+
+  var program = eval( webppl.compile( code ) );
   for (var i=0; i<numSamples; i++){
-    eval('(function(){' + compiledProgram + '})()');
+    program( {}, k, "" );
   }
 }
 
 function runDistributionTest(test, code, expectedHist, tolerance){
   var hist = {};
-  topK = function(s,erp){
-    _trampoline = null;
+  var k = function(s,erp){
     erp.support().forEach(
       function (value){
         hist[value] = Math.exp(erp.score([], value));
@@ -55,17 +52,17 @@ function runDistributionTest(test, code, expectedHist, tolerance){
     var normHist = util.normalizeHist(hist);
     test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
-  };
-  global.globalStore = {};
-  webppl.run(code, topK);
-}
+  }
+    
+  webppl.run( code, k );
+};
 
 exports.testDeterministic = {
 
   testApplication: function (test) {
     var code = "3 + 4";
     var expectedHist = {7: 1};
-    var tolerance = 0.0001; // in case of floating point errors
+    var tolerance = 0;
     return runDiscreteSamplingTest(test, code, expectedHist, 1, tolerance);
   }
 };

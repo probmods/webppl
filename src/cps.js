@@ -1,388 +1,311 @@
 "use strict";
 
 var assert = require('assert');
-var estraverse = require("estraverse");
-var types = require("ast-types");
-var util = require('./util.js');
 
-var build = types.builders;
-var Syntax = estraverse.Syntax;
+var build = require("ast-types").builders;
+var types = require("ast-types").namedTypes;
 
-var returnContIdentifier = build.identifier("_return");
+var Syntax = require("estraverse").Syntax;
 
-var gensym = util.makeGensym();
+var match = require("./util2").match;
+var clause = require("./util2").clause;
+var fail = require("./util2").fail;
+var inProgram = require("./util2").inProgram;
 
-function makeGensymVariable(name){
-  return build.identifier("_".concat(gensym(name)));
+var linearize = require("./linearize").linearize;
+
+var isPrimitive = require("./util2").isPrimitive;
+var makeGenvar = require("./util2").makeGenvar;
+
+
+var genvar = null;
+
+function buildFunction( params, body, id ) {
+    return build.functionExpression( id || null, params,
+				     build.blockStatement([ build.expressionStatement( body ) ]) );
 }
 
-function convertToStatement(node){
-  if (types.namedTypes.Statement.check(node)) {
-    return node;
-  } else if (types.namedTypes.Expression.check(node)) {
-    return build.expressionStatement(node);
-  } else {
-    throw new Error("convertToStatement: can't handle node type: " + node.type);
-  }
+function buildCall( callee, args ) {
+    return build.callExpression( callee, args );
 }
 
-function buildFunc(args, body){
-  if (types.namedTypes.BlockStatement.check(body)) {
-    return build.functionExpression(null, args, body);
-  } else {
-    return build.functionExpression(null, args, build.blockStatement(
-      [convertToStatement(body)]));
-  }
+function buildContinuation( param, body ) {
+    return buildFunction( [ param ], body );
 }
 
-function buildContinuationCall(cont, value){
-  return build.callExpression(cont, [value]);
+function buildContinuationCall( callee, arg ) {
+    return buildCall( callee, [ arg ] );
 }
 
-function cpsAtomic(node){
-  switch (node.type) {
-  case Syntax.FunctionExpression:
-    var newCont = makeGensymVariable("k");
-    var newParams = [newCont].concat(node.params);
-    return buildFunc(
-      newParams,
-      build.blockStatement([
-        build.variableDeclaration("var", [build.variableDeclarator(returnContIdentifier, newCont)]),
-        convertToStatement(cps(node.body, newCont))
-      ]));
-  case Syntax.Identifier:
-  case Syntax.Literal:
-    return node;
-  case Syntax.EmptyStatement:
-    return build.identifier("undefined");
-  default:
-    throw new Error("cpsAtomic: unknown expression type: " + node.type);
-  }
+function cpsFunction( id, params, body ) {
+    var k = genvar("k");
+    return buildFunction( [k].concat(params), cpsSequence( linearize( body.body ), 0, k ), id );
 }
 
-function cpsSequence(atFinalElement, getFinalElement, nodes, vars){
-  vars = vars || [];
-  if (atFinalElement(nodes)){
-    return getFinalElement(nodes, vars);
-  } else if(isImmediate(nodes[0])) {
-    //    var val = immediateVal(nodes[0])
-    return cpsSequence(atFinalElement,
-                       getFinalElement,
-                       nodes.slice(1),
-                       vars.concat([nodes[0]]));
-  } else if ((nodes[0].type === Syntax.VariableDeclaration) &&
-             !isFunctionDeclaration(nodes[0])){
-    assert.equal(nodes[0].declarations.length, 1);
-    var declaration = nodes[0].declarations[0];
-    return cps(declaration.init,
-               buildFunc([declaration.id],
-                         cpsSequence(atFinalElement,
-                                     getFinalElement,
-                                     nodes.slice(1),
-                                     vars.concat([declaration.id]))));
-  } else {
-    var nextVar = makeGensymVariable("s");
-    return cps(nodes[0],
-               buildFunc([nextVar],
-                         cpsSequence(atFinalElement,
-                                     getFinalElement,
-                                     nodes.slice(1),
-                                     vars.concat([nextVar]))));
-  }
+function bindContinuation( k, K ) {
+    if( types.Identifier.check( k ) ) {
+	return K( k );
+    }
+    else {
+	var k0 = genvar("k");
+	return buildCall( buildFunction( [k0], K( k0 ) ), [k] );
+    }
 }
 
-function isImmediate(node) {
-  return node.type === Syntax.Literal || node.type === Syntax.Identifier;
+function isAtomic( node ) {
+    switch( node.type ) {
+    case Syntax.ArrayExpression:
+	return node.elements.every( isAtomic );
+    case Syntax.BinaryExpression:
+	return isAtomic( node.left ) && isAtomic( node.right );
+    case Syntax.CallExpression:
+	return isPrimitive( node.callee ) && node.arguments.every( isAtomic );
+    case Syntax.ConditionalExpression:
+	return isAtomic( node.test ) && isAtomic( node.consequent ) && isAtomic( node.alternate );
+    case Syntax.FunctionExpression:
+    case Syntax.Identifier:
+    case Syntax.Literal:
+	return true;
+    case Syntax.LogicalExpression:
+	return isAtomic( node.left ) && isAtomic( node.right );
+    case Syntax.MemberExpression:
+	return isAtomic( node.object ) && isAtomic( node.property );
+    case Syntax.ObjectExpression:
+	return node.properties.every( function( property ) {
+	    return isAtomic( property.key ) && isAtomic( property.value );
+	});
+    case Syntax.UnaryExpression:
+	return isAtomic( node.argument );
+    default:
+	console.log( node );
+	console.log( "isAtomic" );
+	throw "isAtomic";
+    }
 }
 
-function isFunctionDeclaration(node){
-  return (types.namedTypes.VariableDeclaration.check(node) &&
-          types.namedTypes.FunctionExpression.check(node.declarations[0].init));
+function atomize( node, K ) {
+    if( isAtomic( node ) ) {
+	switch( node.type ) {
+	case Syntax.FunctionExpression:
+	    return K( cpsFunction( node.id, node.params, node.body ) );
+	default:
+	    return K( node );
+	}
+    }
+    else {
+	switch( node.type ) {
+	case Syntax.ArrayExpression:
+	    return atomizeStar( node.elements, function( elements ) {
+		return K( build.arrayExpression( elements ) );
+	    });
+	case Syntax.BinaryExpression:
+	case Syntax.CallExpression:
+	case Syntax.ConditionalExpression:
+	    var x = genvar("result");
+	    return cps( node, buildContinuation( x, K( x ) ) );
+	case Syntax.MemberExpression:
+	    return atomize( node.object, function( object ) {
+		return atomize( node.property, function( property ) {
+		    return K( build.memberExpression( object, property, node.computed ) );
+		});
+	    });
+	default:
+	console.log( node );
+	console.log( "atomize" );
+	throw "atomize";
+	}
+    }
 }
 
-function cpsBlock(nodes, cont){
-
-  if ((nodes.length > 1) && isFunctionDeclaration(nodes[0])){
-    // Function declarations that occur as the first nodes in a block
-    // will be assigned within the same scope that the block
-    // occurs. This allows us to define functions at the top-level scope.
-    var node = nodes[0];
-    var newBlockElementNode;
-    assert.equal(node.declarations.length, 1);
-    var declaration = node.declarations[0];
-    newBlockElementNode = build.variableDeclaration(
-      "var", [build.variableDeclarator(declaration.id, cpsAtomic(declaration.init))]);
-    var newRemainderNode = cpsBlock(nodes.slice(1), cont);
-    if (types.namedTypes.BlockStatement.check(newRemainderNode)){
-      // Flatten nested block
-      return build.blockStatement([newBlockElementNode].concat(newRemainderNode.body));
-    } else {
-      return build.blockStatement([newBlockElementNode, convertToStatement(newRemainderNode)]);
+function atomizeStar( es, K ) {
+    es = es.concat();
+    
+    function loop( i ) {
+	if( i === es.length ) {
+	    return K( es );
+	}
+	else {
+	    return atomize( es[i], function( e ) {
+		es[i] = e;
+		return loop( i + 1 );
+	    });
+	}
     }
 
-  } else {
-    // FIXME: the sequence vars are going to be ignored (but will also
-    // be removed by optimizer)
-    return cpsSequence(
-      function (nodes){return (nodes.length === 1);},
-      function(nodes, vars){
-        return cps(nodes[0], cont);
-      },
-      nodes);
-  }
+    return loop( 0 );
 }
 
-// we assume that a function called as a method is primitive (a hack,
-// for simplicity). have to wrap up the object in case it's compound.
-function cpsPrimitiveApplicationMember(opNode, argNodes, cont){
-  var objNode = opNode.object;
-  var nodes = [objNode].concat(argNodes);
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var memberNode = build.memberExpression(vars[0], opNode.property, opNode.computed);
-      return buildContinuationCall(
-        cont,
-        build.callExpression(memberNode, vars.slice(1)));
-    },
-    nodes);
+function cps( node, k ) {
+    switch( node.type ) {
+    case Syntax.Identifier:
+    case Syntax.Literal:
+	return buildContinuationCall( k, node );
+    default:
+	return match( node, [
+	    clause( Syntax.ArrayExpression, function( elements ) {
+		return atomizeStar( elements, function( elements ) {
+		    return buildContinuationCall( k, build.arrayExpression( elements ) );
+		});
+	    }),
+	    clause( Syntax.AssignmentExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    return atomize( right, function( right ) {
+			return buildContinuationCall( k, build.assignmentExpression( node.operator, left, right ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.BinaryExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    return atomize( right, function( right ) {
+			return buildContinuationCall( k, build.binaryExpression( node.operator, left, right ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.CallExpression, function( callee, args ) {
+		if( isPrimitive( callee ) ) {
+		    return atomize( callee, function( callee ) {
+			return atomizeStar( args, function( args ) {
+			    return buildContinuationCall( k, buildCall( callee, args ) );
+			});
+		    });
+		}
+		else {
+		    return atomize( callee, function( callee ) {
+			return atomizeStar( args, function( args ) {
+			    return buildCall( callee, [k].concat( args ) );
+			});
+		    });
+		}
+	    }),
+	    clause( Syntax.ConditionalExpression, function( test, consequent, alternate ) {
+		return bindContinuation( k, function( k ) {
+		    return atomize( test, function( test ) {
+			return build.conditionalExpression( test, cps( consequent, k ), cps( alternate, k ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
+		return buildContinuationCall( k, cpsFunction( id, params, body ) );
+	    }),
+	    clause( Syntax.LogicalExpression, function( left, right ) {
+		return atomize( left, function( left ) {
+		    if( node.operator === "||" ) {
+			return build.conditionalExpression( left, cps( left, k ), cps( right, k ) );
+		    }
+		    else if( node.operator === "&&" ) {
+			return build.conditionalExpression( left, cps( right, k ), cps( left, k ) );
+		    }
+		    else {
+			console.log( node.operator );
+			throw new Error( "cps: unhandled logical operator " + node.operator );
+		    }
+		});
+	    }),
+	    clause( Syntax.MemberExpression, function( object, property ) {
+		return atomize( object, function( object ) {
+		    return atomize( property, function( property ) {
+			return buildContinuationCall( k, build.memberExpression( object, property, node.computed ) );
+		    })
+		});
+	    }),
+	    clause( Syntax.UnaryExpression, function( argument ) {
+		return atomize( argument, function( argument ) {
+		    return buildContinuationCall( k, build.unaryExpression( node.operator, argument ) );
+		});
+	    })], fail( "can't cps", node ) );
+    }
 }
 
-function cpsCompoundApplication(opNode, argNodes, cont){
-  var nodes = [opNode].concat(argNodes);
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var args = [cont].concat(vars.slice(1));
-      return build.callExpression(vars[0], args);
-    },
-    nodes);
+function cpsDeclarations( declarations, i, K ) {
+    return clause( Syntax.VariableDeclarator, function( id, init ) {
+	if( types.FunctionExpression.check( init ) ) {
+	    init.id = id;
+	}
+	
+	if( i + 1 === declarations.length ) {
+	    return cps( init, K( id ) );
+	}
+	else {
+	    return cps( init, buildContinuation( id, cpsDeclarations( declarations, i + 1, K ) ) );
+	}
+    })( declarations[i], fail( "expected declarator", declarations[i] ) );
 }
 
-function cpsApplication(opNode, argNodes, cont){
-  if (types.namedTypes.MemberExpression.check(opNode)){
-    return cpsPrimitiveApplicationMember(opNode, argNodes, cont);
-  } else {
-    return cpsCompoundApplication(opNode, argNodes, cont);
-  }
+function cpsSequence( nodes, i, k ) {
+    if( i === nodes.length ) {
+	return cps( build.identifier("undefined"), k );
+    }
+    else if( i + 1 === nodes.length ) {
+	return match( nodes[i], [
+	    clause( Syntax.BlockStatement, function( body ) {
+		return cpsSequence( body, 0, k );
+	    }),
+	    clause( Syntax.EmptyStatement, function() {
+		return cps( build.identifier("undefined"), k );
+	    }),
+	    clause( Syntax.ExpressionStatement, function( expression ) {
+		return cps( expression, k );
+	    }),
+	    clause( Syntax.IfStatement, function( test, consequent, alternate ) {
+		return bindContinuation( k, function( k ) { // most likely unnecessary
+		    return atomize( test, function( test ) {
+			return build.conditionalExpression( test,
+							    cpsSequence( consequent.body, 0, k ),
+							    cpsSequence( alternate.body, 0, k ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.ReturnStatement, function( argument ) {
+		return cps( argument, k );
+	    }),
+	    clause( Syntax.VariableDeclaration, function( declarations ) {
+		return cpsDeclarations( declarations, 0, function( id ) {
+		    return buildContinuation( id, cpsSequence( nodes, i + 1, k ) );
+		});
+	    })], fail( "last one", nodes[i] ) );
+    }
+    else {
+	return match( nodes[i], [
+	    clause( Syntax.BlockStatement, function( body ) {
+		return cpsSequence( body, 0, buildContinuation( genvar("dummy"), cpsSequence( nodes, i + 1, k ) ) );
+	    }),
+	    clause( Syntax.EmptyStatement, function() {
+		return cpsSequence( nodes, i + 1, k );
+	    }),
+	    clause( Syntax.ExpressionStatement, function( expression ) {
+		return cps( expression, buildContinuation( genvar("dummy"), cpsSequence( nodes, i + 1, k ) ) );
+	    }),
+	    clause( Syntax.IfStatement, function( test, consequent, alternate ) {
+		return bindContinuation( k, function( k ) { // most likely unnecessary
+		    return atomize( test, function( test ) {
+			return build.conditionalExpression( test,
+							    cpsSequence( consequent.body, 0, k ),
+							    cpsSequence( alternate.body, 0, k ) );
+		    });
+		});
+	    }),
+	    clause( Syntax.ReturnStatement, function( argument ) {
+		return cps( argument, k );
+	    }),
+	    clause( Syntax.VariableDeclaration, function( declarations ) {
+		return cpsDeclarations( declarations, 0, function( id ) {
+		    return buildContinuation( id, cpsSequence( nodes, i + 1, k ) );
+		});
+	    })], fail( "unknown deal", nodes[i] ) );
+    }
 }
 
-function cpsUnaryExpression(opNode, argNode, isPrefix, cont){
-  var nodes = [argNode];
-  return cpsSequence(
-    function(nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      return buildContinuationCall(
-        cont,
-        build.unaryExpression(opNode, vars[0], isPrefix));
-    },
-    nodes);
-}
-
-function cpsBinaryExpression(opNode, leftNode, rightNode, cont){
-  var nodes = [leftNode, rightNode];
-  return cpsSequence(
-    function(nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      assert.equal(vars.length, 2);
-      return buildContinuationCall(
-        cont,
-        build.binaryExpression(opNode, vars[0], vars[1]));
-    },
-    nodes);
-}
-
-function cpsLogicalExpression(lopNode, leftNode, rightNode, cont){
-  var nodes = [leftNode, rightNode];
-  return cpsSequence(
-    function(nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      assert.equal(vars.length, 2);
-      return buildContinuationCall(
-        cont,
-        build.logicalExpression(lopNode, vars[0], vars[1]));
-    },
-    nodes);
-}
-
-function cpsConditional(test, consequent, alternate, cont){
-  // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("k");
-  var testName = makeGensymVariable("test");
-  return build.callExpression(
-    buildFunc([contName],
-              cps(test,
-                  buildFunc([testName],
-                            build.conditionalExpression(testName,
-                                                        cps(consequent, contName),
-                                                        cps(alternate, contName))))),
-    [cont]
-  );
-}
-
-function cpsIf(test, consequent, alternate, cont){
-  // bind continuation to avoid code blowup
-  var contName = makeGensymVariable("k");
-  var testName = makeGensymVariable("test");
-  var consequentNode = cps(consequent, contName);
-  var alternateNode;
-  if (alternate === null) {
-    alternateNode = buildContinuationCall(contName, build.identifier("undefined"));
-  } else {
-    alternateNode = cps(alternate, contName);
-  }
-  return build.callExpression(
-    buildFunc([contName],
-              cps(test,
-                  buildFunc([testName],
-                            build.ifStatement(
-                              testName,
-                              convertToStatement(consequentNode),
-                              convertToStatement(alternateNode))))),
-    [cont]
-  );
-}
-
-function cpsArrayExpression(elements, cont){
-  return cpsSequence(
-    function (nodes){return (nodes.length === 0);},
-    function(nodes, vars){
-      var arrayExpr = build.arrayExpression(vars);
-      return buildContinuationCall(cont, arrayExpr);
-    },
-    elements);
-}
-
-function cpsObjectExpression(properties, cont, props){
-  props = props || [];
-  if (properties.length === 0 ) {
-    var objectExpr = build.objectExpression(props);
-    return buildContinuationCall(cont, objectExpr);
-  } else {
-    var nextVal = makeGensymVariable("ob");
-    var nextProp = build.property(properties[0].kind, properties[0].key, nextVal);
-    // FIXME: assert that value is not function, since can't call function methods...?
-    return cps(properties[0].value,
-               buildFunc([nextVal],
-                         cpsObjectExpression(properties.slice(1),
-                                             cont,
-                                             props.concat([nextProp]))));
-  }
-}
-
-function cpsMemberExpression(obj, prop, computed, cont){
-  var objName, memberExpr;
-  if (computed) {
-    objName = makeGensymVariable("obj");
-    var propName = makeGensymVariable("prop");
-    memberExpr = build.memberExpression(objName, propName, computed);
-    return cps(obj,
-               buildFunc([objName],
-                         cps(prop,
-                             buildFunc([propName],
-                                       buildContinuationCall(cont, memberExpr)))));
-  } else {
-    objName = makeGensymVariable("obj");
-    memberExpr = build.memberExpression(objName, prop, false);
-    return cps(obj,
-               buildFunc([objName],
-                         buildContinuationCall(cont, memberExpr)));
-  }
-}
-
-function cpsVariableDeclaration(declarationId, declarationInit, cont){
-  if (types.namedTypes.FunctionExpression.check(declarationInit)){
-    return build.blockStatement(
-      [
-        build.variableDeclaration(
-          "var",
-          [build.variableDeclarator(declarationId, cpsAtomic(declarationInit))]),
-        convertToStatement(buildContinuationCall(cont, build.identifier("undefined")))
-      ]);
-  } else {
-    return cps(declarationInit,
-               buildFunc([declarationId],
-                         buildContinuationCall(cont, build.identifier("undefined"))));
-  }
-}
-
-function cpsAssignmentExpression(operator, left, right, cont) {
-  //cps the right side (and left??), make assignment, call cont with assignment result.
-  assert.equal(left.type,Syntax.MemberExpression, "Assignment is allowed only to fields of globalStore.");
-  assert.equal(left.object.name,"globalStore", "Assignment is allowed only to fields of globalStore.");
-  var rhsName = makeGensymVariable("rhs");
-  var assignmentExpr = build.assignmentExpression(operator, left, rhsName);
-  return cps(right, buildFunc([rhsName],
-                              buildContinuationCall(cont, assignmentExpr)));
-}
-
-function cps(node, cont){
-
-  switch (node.type) {
-
-  case Syntax.BlockStatement:
-    return cpsBlock(node.body, cont);
-
-  case Syntax.Program:
-    return build.program([convertToStatement(cpsBlock(node.body, cont))]);
-
-  case Syntax.ReturnStatement:
-    return cps(node.argument, returnContIdentifier);
-
-  case Syntax.ExpressionStatement:
-    return cps(node.expression, cont);
-
-  case Syntax.EmptyStatement:
-  case Syntax.Identifier:
-  case Syntax.Literal:
-  case Syntax.FunctionExpression:
-    return buildContinuationCall(cont, cpsAtomic(node));
-
-  case Syntax.VariableDeclaration:
-    assert.equal(node.declarations.length, 1);
-    var declaration = node.declarations[0];
-    return cpsVariableDeclaration(declaration.id, declaration.init, cont);
-
-  case Syntax.CallExpression:
-    return cpsApplication(node.callee, node.arguments, cont);
-
-  case Syntax.IfStatement:
-    return cpsIf(node.test, node.consequent, node.alternate, cont);
-
-  case Syntax.ConditionalExpression:
-    return cpsConditional(node.test, node.consequent, node.alternate, cont);
-
-  case Syntax.ArrayExpression:
-    return cpsArrayExpression(node.elements, cont);
-
-  case Syntax.ObjectExpression:
-    return cpsObjectExpression(node.properties, cont);
-
-  case Syntax.MemberExpression:
-    return cpsMemberExpression(node.object, node.property, node.computed, cont);
-
-  case Syntax.UnaryExpression:
-    return cpsUnaryExpression(node.operator, node.argument, node.prefix, cont);
-
-  case Syntax.BinaryExpression:
-    return cpsBinaryExpression(node.operator, node.left, node.right, cont);
-
-  case Syntax.LogicalExpression:
-    return cpsLogicalExpression(node.operator, node.left, node.right, cont);
-
-  case Syntax.AssignmentExpression:
-    return cpsAssignmentExpression(node.operator, node.left, node.right, cont);
-
-  default:
-    throw new Error("cps: unknown node type: " + node.type);
-  }
-}
-
-function cpsMain(node, cont){
-  gensym = util.makeGensym();
-  return cps(node, cont);
+function cpsMain( node ) {
+    genvar = makeGenvar();
+   
+    return inProgram( function( expression ) {
+	return clause( Syntax.FunctionExpression, function( id, params, defaults, rest, body ) {
+	    return cpsFunction( id, params, body );
+	})( expression, fail( "cps: expected FunctionExpression", expression ) );
+    })( node, fail( "cps: inProgram", node ) );
 }
 
 module.exports = {
   cps: cpsMain
 };
+
