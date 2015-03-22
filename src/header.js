@@ -6,8 +6,8 @@ var PriorityQueue = require('priorityqueuejs');
 var util = require('./util.js');
 
 
-module.exports = function(env){
-  
+module.exports = function(env) {
+
   var erp = require('./erp.js')(env);
 
 
@@ -29,7 +29,7 @@ module.exports = function(env){
   // called when the fn is exited, it can call the inference cc when
   // inference is done to contintue the program.
 
-  
+
   // This global variable tracks the current coroutine, sample and
   // factor use it to interface with the inference algorithm. Default
   // setting throws an error on factor calls.
@@ -116,8 +116,6 @@ module.exports = function(env){
   // This function runs the highest priority state in the
   // queue. Currently priority is score, but could be adjusted to give
   // depth-first or breadth-first or some other search strategy
-
-  var stackSize = 0;
 
   Enumerate.prototype.nextInQueue = function() {
     var nextState = this.queue.deq();
@@ -316,14 +314,14 @@ module.exports = function(env){
       var retainedParticles = [];
       var newExpWeights = [];
       _.each(
-        this.particles,
-        function(particle) {
-          var w = Math.exp(particle.weight - avgW);
-          var nRetained = Math.floor(w);
-          newExpWeights.push(w - nRetained);
-          for (var i = 0; i < nRetained; i++) {
-            retainedParticles.push(copyParticle(particle));
-          }});
+          this.particles,
+          function(particle) {
+            var w = Math.exp(particle.weight - avgW);
+            var nRetained = Math.floor(w);
+            newExpWeights.push(w - nRetained);
+            for (var i = 0; i < nRetained; i++) {
+              retainedParticles.push(copyParticle(particle));
+            }});
       // Compute new particles
       var numNewParticles = m - retainedParticles.length;
       var newParticles = [];
@@ -355,14 +353,14 @@ module.exports = function(env){
     // Compute marginal distribution from (unweighted) particles
     var hist = {};
     _.each(
-      this.particles,
-      function(particle) {
-        var k = JSON.stringify(particle.value);
-        if (hist[k] === undefined) {
-          hist[k] = { prob: 0, val: particle.value };
-        }
-        hist[k].prob += 1;
-      });
+        this.particles,
+        function(particle) {
+          var k = JSON.stringify(particle.value);
+          if (hist[k] === undefined) {
+            hist[k] = { prob: 0, val: particle.value };
+          }
+          hist[k].prob += 1;
+        });
     var dist = erp.makeMarginalERP(hist);
 
     // Save estimated normalization constant in erp (average particle weight)
@@ -422,8 +420,8 @@ module.exports = function(env){
     var val = reuse ? prev.val : erp.sample(params);
     var choiceScore = erp.score(params, val);
     this.trace.push({k: cont, name: name, erp: erp, params: params,
-                     score: this.currScore, choiceScore: choiceScore,
-                     val: val, reused: reuse, store: _.clone(s)});
+      score: this.currScore, choiceScore: choiceScore,
+      val: val, reused: reuse, store: _.clone(s)});
     this.currScore += choiceScore;
     return cont(s, val);
   };
@@ -603,7 +601,7 @@ module.exports = function(env){
 
   PMCMC.prototype.resampleParticles = function(particles) {
     var weights = particles.map(
-      function(particle) {return Math.exp(last(particle.weights));});
+        function(particle) {return Math.exp(last(particle.weights));});
 
     var j;
     var newParticles = [];
@@ -656,13 +654,13 @@ module.exports = function(env){
       // iteration to estimate marginal distribution.
       if (this.sweep > 0) {
         this.particles.concat(this.retainedParticle).forEach(
-          function(particle) {
-            var k = JSON.stringify(particle.value);
-            if (this.returnHist[k] === undefined) {
-              this.returnHist[k] = { prob: 0, val: particle.value };
-            }
-            this.returnHist[k].prob += 1;
-          }.bind(this));
+            function(particle) {
+              var k = JSON.stringify(particle.value);
+              if (this.returnHist[k] === undefined) {
+                this.returnHist[k] = { prob: 0, val: particle.value };
+              }
+              this.returnHist[k].prob += 1;
+            }.bind(this));
       }
 
       // Retain the first particle sampled after the final factor statement.
@@ -754,11 +752,11 @@ module.exports = function(env){
     var currScore = this.activeParticle().score;
     var choiceScore = erp.score(params, val);
     this.activeParticle().trace.push(
-      {k: cc, name: a, erp: erp, params: params,
-       score: currScore,
-       choiceScore: choiceScore,
-       val: val, reused: false,
-       store: _.clone(s)});
+        {k: cc, name: a, erp: erp, params: params,
+          score: currScore,
+          choiceScore: choiceScore,
+          val: val, reused: false,
+          store: _.clone(s)});
     this.activeParticle().score += choiceScore;
     return cc(s, val);
   };
@@ -775,22 +773,22 @@ module.exports = function(env){
       this.resampleParticles();
       //rejuvenate each particle via MH
       return util.cpsForEach(
-        function(particle, i, particles, nextK) {
-          // make sure mhp coroutine doesn't escape:
-          assert(env.coroutine.isParticleFilterRejuvCoroutine);
-          return new MHP(
-            function(p) {
-              particles[i] = p;
-              return nextK();
-            },
-            particle, this.baseAddress,
-            a, this.wpplFn, this.rejuvSteps).run();
-        }.bind(this),
-        function() {
-          this.particleIndex = 0;
-          return this.activeParticle().continuation(this.activeParticle().store);
-        }.bind(this),
-        this.particles
+          function(particle, i, particles, nextK) {
+            // make sure mhp coroutine doesn't escape:
+            assert(env.coroutine.isParticleFilterRejuvCoroutine);
+            return new MHP(
+                function(p) {
+                  particles[i] = p;
+                  return nextK();
+                },
+                particle, this.baseAddress,
+                a, this.wpplFn, this.rejuvSteps).run();
+          }.bind(this),
+          function() {
+            this.particleIndex = 0;
+            return this.activeParticle().continuation(this.activeParticle().store);
+          }.bind(this),
+          this.particles
       );
     } else {
       // Advance to the next particle
@@ -835,14 +833,14 @@ module.exports = function(env){
     var retainedParticles = [];
     var newExpWeights = [];
     _.each(
-      this.particles,
-      function(particle) {
-        var w = Math.exp(particle.weight - avgW);
-        var nRetained = Math.floor(w);
-        newExpWeights.push(w - nRetained);
-        for (var i = 0; i < nRetained; i++) {
-          retainedParticles.push(copyPFRParticle(particle));
-        }});
+        this.particles,
+        function(particle) {
+          var w = Math.exp(particle.weight - avgW);
+          var nRetained = Math.floor(w);
+          newExpWeights.push(w - nRetained);
+          for (var i = 0; i < nRetained; i++) {
+            retainedParticles.push(copyPFRParticle(particle));
+          }});
 
     // Compute new particles
     var numNewParticles = m - retainedParticles.length;
@@ -875,31 +873,31 @@ module.exports = function(env){
     var oldStore = this.oldStore;
     var hist = {};
     return util.cpsForEach(
-      function(particle, i, particles, nextK) {
-        // make sure mhp coroutine doesn't escape:
-        assert(env.coroutine.isParticleFilterRejuvCoroutine);
-        return new MHP(
-          function(p) {
-            particles[i] = p;
-            return nextK();
-          },
-          particle, this.baseAddress, undefined,
-          this.wpplFn, this.rejuvSteps, hist).run();
-      }.bind(this),
-      function() {
-        var dist = erp.makeMarginalERP(hist);
+        function(particle, i, particles, nextK) {
+          // make sure mhp coroutine doesn't escape:
+          assert(env.coroutine.isParticleFilterRejuvCoroutine);
+          return new MHP(
+              function(p) {
+                particles[i] = p;
+                return nextK();
+              },
+              particle, this.baseAddress, undefined,
+              this.wpplFn, this.rejuvSteps, hist).run();
+        }.bind(this),
+        function() {
+          var dist = erp.makeMarginalERP(hist);
 
-        // Save estimated normalization constant in erp (average particle weight)
-        dist.normalizationConstant = this.particles[0].weight;
+          // Save estimated normalization constant in erp (average particle weight)
+          dist.normalizationConstant = this.particles[0].weight;
 
-        // Reinstate previous coroutine:
-        var k = this.k;
-        env.coroutine = this.oldCoroutine;
+          // Reinstate previous coroutine:
+          var k = this.k;
+          env.coroutine = this.oldCoroutine;
 
-        // Return from particle filter by calling original continuation:
-        return k(oldStore, dist);
-      }.bind(this),
-      this.particles
+          // Return from particle filter by calling original continuation:
+          return k(oldStore, dist);
+        }.bind(this),
+        this.particles
     );
 
   };
@@ -952,8 +950,8 @@ module.exports = function(env){
     var val = reuse ? prev.val : erp.sample(params);
     var choiceScore = erp.score(params, val);
     this.trace.push({k: k, name: name, erp: erp, params: params,
-                          score: this.currScore, choiceScore: choiceScore,
-                          val: val, reused: reuse, store: _.clone(s)});
+      score: this.currScore, choiceScore: choiceScore,
+      val: val, reused: reuse, store: _.clone(s)});
     this.currScore += choiceScore;
     return k(s, val);
   };
@@ -1114,9 +1112,9 @@ module.exports = function(env){
         this.grad[a] = [0];
       }
       this.grad[a] = vecPlus(
-        this.grad[a],
-        vecScalarMult(this.samplegrad[a],
-                      (this.jointScore - this.variScore)));
+          this.grad[a],
+          vecScalarMult(this.samplegrad[a],
+          (this.jointScore - this.variScore)));
     }
 
     //do we have as many samples as we need for this gradient estimate?
@@ -1246,7 +1244,7 @@ module.exports = function(env){
     assert: assert
   };
 
-  _.each(erp, function(val, key){
+  _.each(erp, function(val, key) {
     exports[key] = val;
   });
 
