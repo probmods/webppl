@@ -93,7 +93,7 @@ function run(code, requires, headers, verbose){
 
 function compile(code, requires, headers, verbose, outputFile){
   requires.push({
-    name: 'webppl',
+    name: 'webppl', // this makes header.js exports globally available
     path: require.resolve('./src/main'),
     type: 'require-js'
   });

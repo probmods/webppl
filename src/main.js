@@ -18,8 +18,11 @@ var analyze = require('./analyze').analyze;
 var util = require('./util');
 
 
+// Container for the coroutine object
+var env = {};
+
 // Make runtime stuff globally available:
-var runtime = require('./header.js');
+var runtime = require('./header.js')(env);
 for (var prop in runtime) {
   if (runtime.hasOwnProperty(prop)) {
     global[prop] = runtime[prop];
