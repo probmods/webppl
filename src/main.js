@@ -18,7 +18,8 @@ var analyze = require('./analyze').analyze;
 var util = require('./util');
 
 
-// Container for the coroutine object
+// Container for coroutine object and shared top-level
+// functions (sample, factor, exit)
 var env = {};
 
 // Make runtime stuff globally available:
