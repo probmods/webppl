@@ -44,6 +44,10 @@ Before committing changes, run grunt (which runs tests and linting):
 
 Make sure grunt succeeds before committing. If it doesn't, the continuous integration test will fail.
 
+If grunt complains about style errors (like indentation), you can fix some of them automatically using:
+
+    grunt fixjsstyle
+
 
 ## Debugging webppl programs
 
