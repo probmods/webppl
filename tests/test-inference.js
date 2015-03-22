@@ -1,66 +1,66 @@
-"use strict";
+'use strict';
 
 var fs = require('fs');
-var util = require("../src/util.js");
+var util = require('../src/util.js');
 var webppl = require('../src/main.js');
 var testCase = require('nodeunit').testCase;
 
-function runContinuousSamplingTest(test, code, checkSamples, numSamples){
+function runContinuousSamplingTest(test, code, checkSamples, numSamples) {
   var samples = [];
-  var k = function(s, value){
+  var k = function(s, value) {
     samples.push(value);
-    if (samples.length === numSamples){
+    if (samples.length === numSamples) {
       test.ok(checkSamples(samples));
       test.done();
     }
   };
 
-  var program = eval( webppl.compile( code ) );
-    
-  for (var i=0; i<numSamples; i++){
-    program( {}, k, "" );
+  var program = eval(webppl.compile(code));
+
+  for (var i = 0; i < numSamples; i++) {
+    program({}, k, '');
   }
 }
 
-function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance){
+function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance) {
   var hist = {};
   var numFinishedSamples = 0;
-  var k = function(s, value){
+  var k = function(s, value) {
     hist[value] = hist[value] || 0;
     hist[value] += 1;
     numFinishedSamples += 1;
-    if (numFinishedSamples === numSamples){
+    if (numFinishedSamples === numSamples) {
       var normHist = util.normalizeHist(hist);
       test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
       test.done();
     }
   };
 
-  var program = eval( webppl.compile( code ) );
-  for (var i=0; i<numSamples; i++){
-    program( {}, k, "" );
+  var program = eval(webppl.compile(code));
+  for (var i = 0; i < numSamples; i++) {
+    program({}, k, '');
   }
 }
 
-function runDistributionTest(test, code, expectedHist, tolerance){
+function runDistributionTest(test, code, expectedHist, tolerance) {
   var hist = {};
-  var k = function(s,erp){
+  var k = function(s, erp) {
     erp.support().forEach(
-      function (value){
-        hist[value] = Math.exp(erp.score([], value));
-      });
+        function(value) {
+          hist[value] = Math.exp(erp.score([], value));
+        });
     var normHist = util.normalizeHist(hist);
     test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
     test.done();
-  }
-    
-  webppl.run( code, k );
-};
+  };
+
+  webppl.run(code, k);
+}
 
 exports.testDeterministic = {
 
-  testApplication: function (test) {
-    var code = "3 + 4";
+  testApplication: function(test) {
+    var code = '3 + 4';
     var expectedHist = {7: 1};
     var tolerance = 0;
     return runDiscreteSamplingTest(test, code, expectedHist, 1, tolerance);
@@ -69,8 +69,8 @@ exports.testDeterministic = {
 
 exports.testForwardSampling = {
 
-  testApplication: function (test) {
-    var code = "flip(.5) & flip(.5)";
+  testApplication: function(test) {
+    var code = 'flip(.5) & flip(.5)';
     var expectedHist = {
       1: 0.25,
       0: 0.75
@@ -81,8 +81,8 @@ exports.testForwardSampling = {
   },
 
   testGeometric: function(test) {
-    var code = "var geom = function() { return flip(.8) ? 0 : 1 + geom() }; geom()";
-    var expectedHist= {
+    var code = 'var geom = function() { return flip(.8) ? 0 : 1 + geom() }; geom()';
+    var expectedHist = {
       0: 0.8,
       1: 0.16,
       2: 0.032,
@@ -95,8 +95,8 @@ exports.testForwardSampling = {
   },
 
   testRandomInteger: function(test) {
-    var code = "randomInteger(5)";
-    var expectedHist= {
+    var code = 'randomInteger(5)';
+    var expectedHist = {
       0: 0.2,
       1: 0.2,
       2: 0.2,
@@ -108,13 +108,13 @@ exports.testForwardSampling = {
     return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
   },
 
-  testGaussian: function(test){
-    var code = "gaussian(3, 2)";
+  testGaussian: function(test) {
+    var code = 'gaussian(3, 2)';
     var numSamples = 10000;
-    var check = function(samples){
+    var check = function(samples) {
       var empiricalMean = util.sum(samples) / samples.length;
       var empiricalVariance = util.sum(
-        samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
+          samples.map(function(x) {return Math.pow(x - empiricalMean, 2);})) / samples.length;
       var empiricalStd = Math.sqrt(empiricalVariance);
       return ((empiricalMean > 2.8) && (empiricalMean < 3.2) &&
               (empiricalStd > 1.8) && (empiricalStd < 2.2));
@@ -122,14 +122,14 @@ exports.testForwardSampling = {
     return runContinuousSamplingTest(test, code, check, numSamples);
   },
 
-  testUniform: function(test){
-    var code = "uniform(3, 5)";
+  testUniform: function(test) {
+    var code = 'uniform(3, 5)';
     var numSamples = 10000;
-    var check = function(samples){
+    var check = function(samples) {
       var empiricalMean = util.sum(samples) / samples.length;
       var empiricalVariance = util.sum(
-        samples.map(function(x){return Math.pow(x - empiricalMean, 2);})) / samples.length;
-      var expectedVariance = 1/12 * Math.pow(5-3, 2);
+          samples.map(function(x) {return Math.pow(x - empiricalMean, 2);})) / samples.length;
+      var expectedVariance = 1 / 12 * Math.pow(5 - 3, 2);
       var expectedMean = 4;
       return ((Math.abs(empiricalVariance - expectedVariance) < 0.2) &&
               (Math.abs(empiricalMean - expectedMean) < 0.2));
@@ -139,13 +139,13 @@ exports.testForwardSampling = {
 };
 
 function getTestCases(testNames) {
-  var rootDirectory = "./tests/test-data/";
+  var rootDirectory = './tests/test-data/';
   var testCases = [];
   for (var i = 0; i < testNames.length; i++) {
-    var codeFileName = rootDirectory + testNames[i] + ".wppl";
-    var resultFileName = rootDirectory + testNames[i] + ".json";
-    var codeFile = fs.readFileSync(codeFileName, "utf-8");
-    var expectedResult = JSON.parse(fs.readFileSync(resultFileName, "utf-8"));
+    var codeFileName = rootDirectory + testNames[i] + '.wppl';
+    var resultFileName = rootDirectory + testNames[i] + '.json';
+    var codeFile = fs.readFileSync(codeFileName, 'utf-8');
+    var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
     testCases.push({
       code: codeFile,
       expectedHist: expectedResult.expectedHist,
@@ -157,31 +157,31 @@ function getTestCases(testNames) {
 }
 
 function makeTest(testData) {
-  function _makeTest (test) {
+  function _makeTest(test) {
     runDistributionTest(test, testData.code, testData.expectedHist, testData.tolerance);
   }
   return _makeTest;
 }
 
 var testNames = [
-  "testEnumeration",
-  "testEnumerationStore",  
-  "testEnumerationCached",
-  "testParticleFilter",
-  "testParticleFilterStore",  
-  "testMH",
-  "testMHStore",
-  "testPMCMC",
-  "testPMCMCStore",  
-  "testPFRj",
-  "testPFRjStore",
-  "testPFRjAsMH"    
+  'testEnumeration',
+  'testEnumerationStore',
+  'testEnumerationCached',
+  'testParticleFilter',
+  'testParticleFilterStore',
+  'testMH',
+  'testMHStore',
+  'testPMCMC',
+  'testPMCMCStore',
+  'testPFRj',
+  'testPFRjStore',
+  'testPFRjAsMH'
 ];
 
 var testsData = getTestCases(testNames);
 
-testsData.forEach(function(testData){
-  var description = testData.desc ? testData.desc : "test";
+testsData.forEach(function(testData) {
+  var description = testData.desc ? testData.desc : 'test';
   var testCaseArgs = {};
   testCaseArgs[description] = makeTest(testData);
   exports[testData.name] = testCase(testCaseArgs);

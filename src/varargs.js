@@ -11,14 +11,14 @@ var Syntax = estraverse.Syntax;
 
 
 var argumentsIdCounter = 0;
-function makeArgumentsIdentifier(){
+function makeArgumentsIdentifier() {
   argumentsIdCounter += 1;
   return '_arguments' + argumentsIdCounter;
 }
 
-function findEnclosingFunctionNode(node){
+function findEnclosingFunctionNode(node) {
   var ancestor = node;
-  while (ancestor !== undefined){
+  while (ancestor !== undefined) {
     if (ancestor.type === 'FunctionExpression') {
       break;
     }
@@ -30,14 +30,14 @@ function findEnclosingFunctionNode(node){
   return ancestor;
 }
 
-function addParents(node, parent){
+function addParents(node, parent) {
   node.parentNode = parent;
   return node;
 }
 
-function varargs(node){
+function varargs(node) {
 
-  if (node.seenByVarargs){
+  if (node.seenByVarargs) {
     return node;
   }
   node.seenByVarargs = true;
@@ -46,36 +46,36 @@ function varargs(node){
 
   // assign 'arguments' as first statement in body, rename to make it
   // survive subsequent trampoline closure introduction
-  case Syntax.Identifier:
-    if (node.name !== 'arguments') {
+    case Syntax.Identifier:
+      if (node.name !== 'arguments') {
+        return node;
+      }
+      var functionNode = findEnclosingFunctionNode(node);
+      var argumentsId = functionNode.argumentsId || makeArgumentsIdentifier();
+      node.name = argumentsId;
+      if (functionNode.argumentsId === undefined) {
+        functionNode.argumentsId = argumentsId;
+        assert.equal(functionNode.body.type, 'BlockStatement');
+        var argsDeclaration = (
+            esprima.parse('var REPLACEME = Array.prototype.slice.call(arguments, 3);').body[0]);
+        argsDeclaration.declarations[0].id.name = argumentsId;
+        functionNode.body.body = [argsDeclaration].concat(functionNode.body.body);
+      }
       return node;
-    }
-    var functionNode = findEnclosingFunctionNode(node);
-    var argumentsId = functionNode.argumentsId || makeArgumentsIdentifier();
-    node.name = argumentsId;
-    if (functionNode.argumentsId === undefined){
-      functionNode.argumentsId = argumentsId;
-      assert.equal(functionNode.body.type, 'BlockStatement');
-      var argsDeclaration = (
-        esprima.parse('var REPLACEME = Array.prototype.slice.call(arguments, 3);').body[0]);
-      argsDeclaration.declarations[0].id.name = argumentsId;
-      functionNode.body.body = [argsDeclaration].concat(functionNode.body.body);
-    }
-    return node;
 
-  default:
-    return node;
+    default:
+      return node;
 
   }
 
 }
 
-function varargsMain(node){
+function varargsMain(node) {
   node = estraverse.replace(
-    node, {
-      enter: addParents,
-      leave: varargs
-    });
+      node, {
+        enter: addParents,
+        leave: varargs
+      });
   return node;
 }
 

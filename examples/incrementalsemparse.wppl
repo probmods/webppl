@@ -1,16 +1,19 @@
 
-/* This version constructs a function from worlds to truth value, rather than direct compositionality, so that the parsing can be done once and then used to build up a consistent world interpretation.
- 
+/* This version constructs a function from worlds to truth value,
+ * rather than direct compositionality, so that the parsing can be
+ * done once and then used to build up a consistent world
+ * interpretation.
+
  */
 
 
 var literalListener = function(utterance) {
-  Enumerate(function(){
-            var m = meaning(utterance)
-            var world = worldPrior(3,m)
-            factor(m(world)?0:-Infinity)
-            return world
-            }, 100)
+  Enumerate(function() {
+    var m = meaning(utterance)
+    var world = worldPrior(3, m)
+    factor(m(world) ? 0 : -Infinity)
+    return world
+  }, 100)
 }
 
 
@@ -19,17 +22,17 @@ var makeObj = function() {
 }
 
 var worldPrior = function(nObjLeft, meaningFn, worldSoFar, prevFactor) {
-  var worldSoFar = worldSoFar==undefined ? [] : worldSoFar
-  var prevFactor = prevFactor==undefined ? 0 : prevFactor
-  if(nObjLeft==0) {
+  var worldSoFar = worldSoFar == undefined ? [] : worldSoFar
+  var prevFactor = prevFactor == undefined ? 0 : prevFactor
+  if (nObjLeft == 0) {
     factor(-prevFactor)
     return worldSoFar
   } else {
     var newObj = makeObj()
     var newWorld = worldSoFar.concat([newObj])
-    var newFactor = meaningFn(newWorld)?0:-100
+    var newFactor = meaningFn(newWorld) ? 0 : -100
     factor(newFactor - prevFactor)
-    return worldPrior(nObjLeft-1, meaningFn, newWorld, newFactor)
+    return worldPrior(nObjLeft - 1, meaningFn, newWorld, newFactor)
   }
 }
 
@@ -38,107 +41,112 @@ var worldPrior = function(nObjLeft, meaningFn, worldSoFar, prevFactor) {
 
 var meaning = function(utterance) {
   return combine_meanings(
-    filter(map(utterance.split(" "),
-               function(w){return lexical_meaning(w)}),
-           function(m){return !(m.sem==undefined)}))
+      filter(map(utterance.split(' '),
+      function(w) {return lexical_meaning(w)}),
+      function(m) {return !(m.sem == undefined)}))
 }
 
 
 var lexical_meaning = function(word) {
 
   var wordMeanings = {
-    
-    "blond" : {
-      sem: function(world){return function(obj){return obj.blond}},
-      syn: {dir:'L', int:'NP', out:'S'} },
-    
-    "nice" : {
-      sem: function(world){return function(obj){return obj.nice}},
-      syn: {dir:'L', int:'NP', out:'S'} },
-    
-    "Bob" : {
-    sem: function(world){return find(world, function(obj){return obj.name=="Bob"})},
+
+    'blond' : {
+      sem: function(world) {return function(obj) {return obj.blond}},
+      syn: {dir: 'L', int: 'NP', out: 'S'} },
+
+    'nice' : {
+      sem: function(world) {return function(obj) {return obj.nice}},
+      syn: {dir: 'L', int: 'NP', out: 'S'} },
+
+    'Bob' : {
+      sem: function(world) {return find(world, function(obj) {return obj.name == 'Bob'})},
       syn: 'NP' },
-    
-    "some" : {
-      sem: function(world){return function(P){return function(Q){return filter(filter(world, P), Q).length>0}}},
-      syn: {dir:'R',
-            int:{dir:'L', int:'NP', out:'S'},
-            out:{dir:'R',
-                 int:{dir:'L', int:'NP', out:'S'},
-                 out:'S'}} },  
-    
-    "all" : {
-      sem: function(world){return function(P){return function(Q){return filter(filter(world, P), neg(Q)).length==0}}},
-      syn: {dir:'R',
-            int:{dir:'L', int:'NP', out:'S'},
-            out:{dir:'R',
-                 int:{dir:'L', int:'NP', out:'S'},
-                 out:'S'}} }
+
+    'some' : {
+      sem: function(world) {return function(P) {return function(Q) {return filter(filter(world, P), Q).length > 0}}},
+      syn: {dir: 'R',
+        int: {dir: 'L', int: 'NP', out: 'S'},
+        out: {dir: 'R',
+          int: {dir: 'L', int: 'NP', out: 'S'},
+          out: 'S'}} },
+
+    'all' : {
+      sem: function(world) {
+        return function(P) {
+          return function(Q) {
+            return filter(filter(world, P), neg(Q)).length == 0}}},
+      syn: {dir: 'R',
+        int: {dir: 'L', int: 'NP', out: 'S'},
+        out: {dir: 'R',
+          int: {dir: 'L', int: 'NP', out: 'S'},
+          out: 'S'}} }
   }
 
   var meaning = wordMeanings[word];
-  return meaning == undefined?{sem: undefined, syn: ''}:meaning;
+  return meaning == undefined ? {sem: undefined, syn: ''} :meaning;
 }
 
 // We use this helper function to negate a predicate above:
-var neg = function(Q){
-  return function(x){return !Q(x)}
+var neg = function(Q) {
+  return function(x) {return !Q(x)}
 }
 
 
-//assume that both f and a will give their actual semantic value after being applied to a world. make a new meaning that passes on world arg.
-var applyWorldPassing = function(f,a) {
-  return function(w){return f(w)(a(w))}
+//assume that both f and a will give their actual semantic value after
+//being applied to a world. make a new meaning that passes on world
+//arg.
+var applyWorldPassing = function(f, a) {
+  return function(w) {return f(w)(a(w))}
 }
 
 var combine_meaning = function(meanings) {
-  var possibleComb = canApply(meanings,0)
+  var possibleComb = canApply(meanings, 0)
   var i = possibleComb[randomInteger(possibleComb.length)]
   var s = meanings[i].syn
   if (s.dir == 'L') {
     var f = meanings[i].sem
-    var a = meanings[i-1].sem
-    var newmeaning = {sem: applyWorldPassing(f,a), syn: s.out}
-    return meanings.slice(0,i-1).concat([newmeaning]).concat(meanings.slice(i+1))
+    var a = meanings[i - 1].sem
+    var newmeaning = {sem: applyWorldPassing(f, a), syn: s.out}
+    return meanings.slice(0, i - 1).concat([newmeaning]).concat(meanings.slice(i + 1))
   }
   if (s.dir == 'R') {
     var f = meanings[i].sem
-    var a = meanings[i+1].sem
-    var newmeaning = {sem: applyWorldPassing(f,a), syn: s.out}
-    return meanings.slice(0,i).concat([newmeaning]).concat(meanings.slice(i+2))
+    var a = meanings[i + 1].sem
+    var newmeaning = {sem: applyWorldPassing(f, a), syn: s.out}
+    return meanings.slice(0, i).concat([newmeaning]).concat(meanings.slice(i + 2))
   }
 }
 
 //make a list of the indexes that can (syntactically) apply.
-var canApply = function(meanings,i) {
-  if(i==meanings.length){
+var canApply = function(meanings, i) {
+  if (i == meanings.length) {
     return []
   }
   var s = meanings[i].syn
-  if (s.hasOwnProperty('dir')){ //a functor
-    var a = ((s.dir == 'L')?syntaxMatch(s.int, meanings[i-1].syn):false) |
-            ((s.dir == 'R')?syntaxMatch(s.int, meanings[i+1].syn):false)
-    if(a){return [i].concat(canApply(meanings,i+1))}
+  if (s.hasOwnProperty('dir')) { //a functor
+    var a = ((s.dir == 'L') ? syntaxMatch(s.int, meanings[i - 1].syn) : false) |
+            ((s.dir == 'R') ? syntaxMatch(s.int, meanings[i + 1].syn) : false)
+    if (a) {return [i].concat(canApply(meanings, i + 1))}
   }
-  return canApply(meanings,i+1)
+  return canApply(meanings, i + 1)
 }
 
 
-// The syntaxMatch function is a simple recursion to 
+// The syntaxMatch function is a simple recursion to
 // check if two syntactic types are equal.
-var syntaxMatch = function(s,t) {
-  return !s.hasOwnProperty('dir') ? s==t :
-  s.dir==t.dir & syntaxMatch(s.int,t.int) & syntaxMatch(s.out,t.out)
+var syntaxMatch = function(s, t) {
+  return !s.hasOwnProperty('dir') ? s == t :
+      s.dir == t.dir & syntaxMatch(s.int, t.int) & syntaxMatch(s.out, t.out)
 }
 
 
-// Recursively do the above until only one meaning is 
+// Recursively do the above until only one meaning is
 // left, return it's semantics.
-var combine_meanings = function(meanings){
-  return meanings.length==1 ? meanings[0].sem : combine_meanings(combine_meaning(meanings))
+var combine_meanings = function(meanings) {
+  return meanings.length == 1 ? meanings[0].sem : combine_meanings(combine_meaning(meanings))
 }
 
 
-literalListener("all blond people are nice")
+literalListener('all blond people are nice')
 

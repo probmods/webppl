@@ -1,8 +1,8 @@
-var foo = function(a, b){
+var foo = function(a, b) {
   return (a > b) ? a + b : a - b;
 };
 
-var bar = function(c, d){
+var bar = function(c, d) {
   return c * foo(d, 3);
 };
 

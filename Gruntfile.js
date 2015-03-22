@@ -1,5 +1,30 @@
 'use strict';
 
+var jslintSettings = {
+  options: {
+    flags: [
+      '--flagfile grunt_tasks/.gjslintrc'
+    ],
+    reporter: {
+      name: 'console'
+    },
+    force: false
+  },
+  lib: {
+    src: ['src/*.js', 'Gruntfile.js']
+  },
+  test: {
+    src: ['tests/*.js']
+  },
+  wppl: {
+    src: ['examples/*.wppl', 'tests/test-data/*.wppl'],
+    additionalFlags: [
+      '--disable 10,11', // Disable semicolon errors.
+      '--additional_extensions=wppl'
+    ]
+  }
+};
+
 module.exports = function(grunt) {
   grunt.initConfig({
     nodeunit: {
@@ -24,47 +49,8 @@ module.exports = function(grunt) {
         gcl: true
       }
     },
-    gjslint: {
-      options: {
-        flags: [
-          '--flagfile grunt_tasks/.gjslintrc'
-        ],
-        reporter: {
-          name: 'console'
-        },
-        force: false
-      },
-      lib: {
-        src: ['src/*.js', 'Gruntfile.js']
-      },
-      test: {
-        src: ['tests/*.js']
-      },
-      wppl: {
-        src: ['examples/*.wppl', 'tests/test-data/*.wppl'],
-        additionalFlags: [
-          '--disable 10,11', // Disable semicolon errors.
-          '--additional_extensions=wppl'
-        ]
-      }
-    },
-    fixjsstyle: {
-      options: {
-        flags: [
-          '--flagfile grunt_tasks/.gjslintrc'
-        ],
-        reporter: {
-          name: 'console'
-        },
-        force: false
-      },
-      lib: {
-        src: ['src/*.js', 'Gruntfile.js']
-      },
-      test: {
-        src: ['tests/*.js']
-      }
-    }
+    gjslint: jslintSettings,
+    fixjsstyle: jslintSettings
   });
 
   grunt.loadTasks('grunt_tasks');

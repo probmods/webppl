@@ -7,54 +7,54 @@
 
 
 var literalListener = function(utterance) {
-    Enumerate(function(){
-              var world = worldPrior()
-              var m = meaning(utterance, world)
-              factor(m?0:-Infinity)
-              return world
-              }, 100)
+  Enumerate(function() {
+    var world = worldPrior()
+    var m = meaning(utterance, world)
+    factor(m ? 0 : -Infinity)
+    return world
+  }, 100)
 }
 
 var worldPrior = function() {
-    var num_nice_people = randomInteger(4)//3 people.. 0-3 can be nice.
-    return num_nice_people
+  var num_nice_people = randomInteger(4)//3 people.. 0-3 can be nice.
+  return num_nice_people
 }
 
 var utterancePrior = function() {
-    var utterances = ["some of the people are nice",
-                      "all of the people are nice",
-                      "none of the people are nice"]
-    var i = randomInteger(utterances.length)
-    return utterances[i]
+  var utterances = ['some of the people are nice',
+    'all of the people are nice',
+    'none of the people are nice']
+  var i = randomInteger(utterances.length)
+  return utterances[i]
 }
 
-var meaning = function(utt,world) {
-    return  utt=="some of the people are nice"? world>0 :
-            utt=="all of the people are nice"? world==3 :
-            utt=="none of the people are nice"? world==0 :
-            true
+var meaning = function(utt, world) {
+  return utt == 'some of the people are nice' ? world > 0 :
+      utt == 'all of the people are nice' ? world == 3 :
+      utt == 'none of the people are nice' ? world == 0 :
+      true
 }
 
 
 //informative speaker:
 var speaker = function(world) {
-    Enumerate(function(){
-              var utterance = utterancePrior()
-              factor(world == sample(literalListener(utterance)) ?0:-Infinity)
-              return utterance
-              },100)
+  Enumerate(function() {
+    var utterance = utterancePrior()
+    factor(world == sample(literalListener(utterance)) ? 0 : -Infinity)
+    return utterance
+  },100)
 }
 
 //savy listener:
 var listener = function(utterance) {
-    Enumerate(function(){
-              var world = worldPrior()
-              factor(utterance == sample(speaker(world)) ?0:-Infinity)
-              return world
-              },100)
+  Enumerate(function() {
+    var world = worldPrior()
+    factor(utterance == sample(speaker(world)) ? 0 : -Infinity)
+    return world
+  },100)
 }
 
 //literalListener("some of the people are nice")
 //speaker(2)
-listener("some of the people are nice")
+listener('some of the people are nice')
 

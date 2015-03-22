@@ -1,14 +1,14 @@
-"use strict";
+'use strict';
 
-var esmangle = require("esmangle");
-var estraverse = require("estraverse");
-var types = require("ast-types");
+var esmangle = require('esmangle');
+var estraverse = require('estraverse');
+var types = require('ast-types');
 
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var fail = require("./util2").fail;
-var inProgram = require("./util2").inProgram;
+var fail = require('./util2').fail;
+var inProgram = require('./util2').inProgram;
 
 function createPipeline() {
 
@@ -23,7 +23,7 @@ function createPipeline() {
     'pass/remove-empty-statement',
     'pass/remove-wasted-blocks',
     'pass/transform-to-compound-assignment',
- //*    'pass/transform-to-sequence-expression',
+    //*    'pass/transform-to-sequence-expression',
     'pass/transform-branch-to-expression',
     'pass/transform-typeof-undefined',
     'pass/reduce-sequence-expression',
@@ -33,9 +33,9 @@ function createPipeline() {
     'pass/remove-side-effect-free-expressions',
     'pass/remove-context-sensitive-expressions',
     'pass/tree-based-constant-folding',
- //* 'pass/concatenate-variable-definition',
+    //* 'pass/concatenate-variable-definition',
     'pass/drop-variable-definition',
-//    'pass/remove-unreachable-branch',
+    //    'pass/remove-unreachable-branch',
     'pass/eliminate-duplicate-function-declarations'
   ];
 
@@ -55,64 +55,64 @@ function createPipeline() {
 }
 
 
-function identifiersEqual(x, y){
+function identifiersEqual(x, y) {
   return (types.namedTypes.Identifier.check(x) &&
           types.namedTypes.Identifier.check(y) &&
           x.name === y.name);
 }
 
-function optimize(node){
+function optimize(node) {
 
   switch (node.type) {
 
-  case Syntax.BlockStatement:
-    for (var i=0; i<node.body.length; i++){
-      var ithNode = node.body[i];
-      // remove 'var x = x' variable declarations
-      if (types.namedTypes.VariableDeclaration.check(ithNode)){
-        var declaration = ithNode.declarations[0];
-        if (identifiersEqual(declaration.id, declaration.init)){
-          node.body.splice(i, 1);
+    case Syntax.BlockStatement:
+      for (var i = 0; i < node.body.length; i++) {
+        var ithNode = node.body[i];
+        // remove 'var x = x' variable declarations
+        if (types.namedTypes.VariableDeclaration.check(ithNode)) {
+          var declaration = ithNode.declarations[0];
+          if (identifiersEqual(declaration.id, declaration.init)) {
+            node.body.splice(i, 1);
+          }
         }
       }
-    }
-    return node;
-
-  case Syntax.ExpressionStatement:
-    // turn immediate anonymous function calls into blocks
-    if (types.namedTypes.CallExpression.check(node.expression) &&
-        types.namedTypes.FunctionExpression.check(node.expression.callee)){
-      var funcNode = node.expression.callee;
-      var appNode = node.expression;
-      var stmts = [];
-      // for each argument add a variable definition
-      for (var i=0; i<appNode.arguments.length; i++){
-        var stmt = build.variableDeclaration(
-          "var", [build.variableDeclarator(funcNode.params[i], appNode.arguments[i])]);
-        stmts.push(stmt);
-      }
-      // finally, add expressionstatement for func body
-      stmts.push(funcNode.body);
-      return build.blockStatement(stmts);
-    } else {
       return node;
-    }
 
-  default:
-    return node;
+    case Syntax.ExpressionStatement:
+      // turn immediate anonymous function calls into blocks
+      if (types.namedTypes.CallExpression.check(node.expression) &&
+          types.namedTypes.FunctionExpression.check(node.expression.callee)) {
+        var funcNode = node.expression.callee;
+        var appNode = node.expression;
+        var stmts = [];
+        // for each argument add a variable definition
+        for (var i = 0; i < appNode.arguments.length; i++) {
+          var stmt = build.variableDeclaration(
+              'var', [build.variableDeclarator(funcNode.params[i], appNode.arguments[i])]);
+          stmts.push(stmt);
+        }
+        // finally, add expressionstatement for func body
+        stmts.push(funcNode.body);
+        return build.blockStatement(stmts);
+      } else {
+        return node;
+      }
+
+    default:
+      return node;
   }
 }
 
-function optimizeMain( node ) {
-    return inProgram( function( node ) {
-	return esmangle.optimize( estraverse.replace( node, {
-	    enter: optimize,
-	    leave: optimize
-	}), createPipeline(), {
-	    inStrictCode: true,
-	    legacy: false
-	});
-    })( node, fail( "optimize: inBody", node ) );
+function optimizeMain(node) {
+  return inProgram(function(node) {
+    return esmangle.optimize(estraverse.replace(node, {
+      enter: optimize,
+      leave: optimize
+    }), createPipeline(), {
+      inStrictCode: true,
+      legacy: false
+    });
+  })(node, fail('optimize: inBody', node));
 }
 
 module.exports = {
