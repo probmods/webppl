@@ -36,6 +36,15 @@ Compiling webppl for use in browser:
     browserify -t brfs src/main.js > compiled/webppl.js
 
 
+## Development
+
+Before committing changes, run grunt (which runs tests and linting):
+
+    grunt
+
+Make sure grunt succeeds before committing. If it doesn't, the continuous integration test will fail.
+
+
 ## Debugging webppl programs
 
 To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
