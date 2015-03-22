@@ -1,0 +1,4 @@
+--nojsdoc
+--jslint_error=all
+--strict
+--max_line_length=120
