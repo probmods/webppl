@@ -7,8 +7,8 @@ var types = require('ast-types');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-var fail = require('../util2').fail;
-var inProgram = require('../util2').inProgram;
+var fail = require('../syntaxUtils').fail;
+var inProgram = require('../syntaxUtils').inProgram;
 
 
 function createPipeline() {

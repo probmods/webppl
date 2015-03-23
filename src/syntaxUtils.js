@@ -142,11 +142,14 @@ function thunkify(node, fail) {
   else return failSafe('thunkify', fail);
 }
 
-exports.makeGenvar = makeGenvar;
-exports.fail = fail;
-exports.clause = clause;
-exports.match = match;
-exports.thunkify = thunkify;
-exports.inProgram = inProgram;
-exports.inBody = inBody;
-exports.isPrimitive = isPrimitive;
+module.exports = {
+  makeGenvar: makeGenvar,
+  fail: fail,
+  clause: clause,
+  match: match,
+  thunkify: thunkify,
+  inProgram: inProgram,
+  inBody: inBody,
+  isPrimitive: isPrimitive
+};
+

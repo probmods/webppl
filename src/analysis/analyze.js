@@ -15,7 +15,7 @@ var Syntax = require('estraverse').Syntax;
 var parse = require('./parser-combinator');
 var analyzeRefs = require('./analyze-refs').analyzeRefs;
 
-var fail = require('../util2').fail;
+var fail = require('../syntaxUtils').fail;
 
 var isHeapVar = null;
 

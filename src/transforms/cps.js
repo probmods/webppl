@@ -6,12 +6,12 @@ var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;
 
 var linearize = require('./linearize').linearize;
-var match = require('../util2').match;
-var clause = require('../util2').clause;
-var fail = require('../util2').fail;
-var inProgram = require('../util2').inProgram;
-var isPrimitive = require('../util2').isPrimitive;
-var makeGenvar = require('../util2').makeGenvar;
+var match = require('../syntaxUtils').match;
+var clause = require('../syntaxUtils').clause;
+var fail = require('../syntaxUtils').fail;
+var inProgram = require('../syntaxUtils').inProgram;
+var isPrimitive = require('../syntaxUtils').isPrimitive;
+var makeGenvar = require('../syntaxUtils').makeGenvar;
 
 
 var genvar = null;
