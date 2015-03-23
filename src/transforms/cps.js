@@ -38,13 +38,13 @@ function cpsFunction(id, params, body) {
   return buildFunction([k].concat(params), cpsSequence(linearize(body.body), 0, k), id);
 }
 
-function bindContinuation(k, K) {
+function bindContinuation(k, metaK) {
   if (types.Identifier.check(k)) {
-    return K(k);
+    return metaK(k);
   }
   else {
     var k0 = genvar('k');
-    return buildCall(buildFunction([k0], K(k0)), [k]);
+    return buildCall(buildFunction([k0], metaK(k0)), [k]);
   }
 }
 
@@ -79,30 +79,30 @@ function isAtomic(node) {
   }
 }
 
-function atomize(node, K) {
+function atomize(node, metaK) {
   if (isAtomic(node)) {
     switch (node.type) {
       case Syntax.FunctionExpression:
-        return K(cpsFunction(node.id, node.params, node.body));
+        return metaK(cpsFunction(node.id, node.params, node.body));
       default:
-        return K(node);
+        return metaK(node);
     }
   }
   else {
     switch (node.type) {
       case Syntax.ArrayExpression:
         return atomizeStar(node.elements, function(elements) {
-          return K(build.arrayExpression(elements));
+          return metaK(build.arrayExpression(elements));
         });
       case Syntax.BinaryExpression:
       case Syntax.CallExpression:
       case Syntax.ConditionalExpression:
         var x = genvar('result');
-        return cps(node, buildContinuation(x, K(x)));
+        return cps(node, buildContinuation(x, metaK(x)));
       case Syntax.MemberExpression:
         return atomize(node.object, function(object) {
           return atomize(node.property, function(property) {
-            return K(build.memberExpression(object, property, node.computed));
+            return metaK(build.memberExpression(object, property, node.computed));
           });
         });
       default:
@@ -113,12 +113,12 @@ function atomize(node, K) {
   }
 }
 
-function atomizeStar(es, K) {
+function atomizeStar(es, metaK) {
   es = es.concat();
 
   function loop(i) {
     if (i === es.length) {
-      return K(es);
+      return metaK(es);
     }
     else {
       return atomize(es[i], function(e) {
@@ -212,17 +212,17 @@ function cps(node, k) {
   }
 }
 
-function cpsDeclarations(declarations, i, K) {
+function cpsDeclarations(declarations, i, metaK) {
   return clause(Syntax.VariableDeclarator, function(id, init) {
     if (types.FunctionExpression.check(init)) {
       init.id = id;
     }
 
     if (i + 1 === declarations.length) {
-      return cps(init, K(id));
+      return cps(init, metaK(id));
     }
     else {
-      return cps(init, buildContinuation(id, cpsDeclarations(declarations, i + 1, K)));
+      return cps(init, buildContinuation(id, cpsDeclarations(declarations, i + 1, metaK)));
     }
   })(declarations[i], fail('expected declarator', declarations[i]));
 }

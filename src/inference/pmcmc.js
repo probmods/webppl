@@ -44,11 +44,12 @@ module.exports = function(env) {
 
   PMCMC.prototype.resetParticles = function() {
     var that = this;
-    this.particles = [];
     // Create initial particles
+    this.particles = [];
+    var exitK = function(s) {return that.wpplFn(s, env.exit, that.address);};
     for (var i = 0; i < this.numParticles; i++) {
       var particle = {
-        continuations: [function(s) {return that.wpplFn(s, env.exit, that.address);}],
+        continuations: [exitK],
         stores: [that.oldStore],
         weights: [0],
         value: undefined
@@ -112,7 +113,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = multinomialSample(weights);
+      j = erp.multinomialSample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 

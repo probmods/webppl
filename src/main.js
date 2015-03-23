@@ -1,5 +1,6 @@
 'use strict';
 
+var _ = require('underscore');
 var assert = require('assert');
 var fs = require('fs');
 var types = require('ast-types');
@@ -22,11 +23,11 @@ var util = require('./util');
 // functions (sample, factor, exit)
 var env = {};
 
-// Make runtime stuff globally available:
-var runtime = require('./header.js')(env);
-for (var prop in runtime) {
-  if (runtime.hasOwnProperty(prop)) {
-    global[prop] = runtime[prop];
+// Make header functions globally available:
+var header = require('./header.js')(env);
+for (var prop in header) {
+  if (header.hasOwnProperty(prop)) {
+    global[prop] = header[prop];
   }
 }
 
@@ -47,7 +48,7 @@ function prepare(programCode, verbose) {
     return ast;
   };
 
-  // parse header and program, combine, compile, and generate program
+  // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
   var out = _prepare(concatPrograms(headerAST, programAST));
@@ -74,7 +75,7 @@ function compile(programCode, verbose) {
     return ast;
   };
 
-  // parse header and program, combine, compile, and generate program
+  // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));

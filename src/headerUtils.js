@@ -1,6 +1,3 @@
-////////////////////////////////////////////////////////////////////
-// Some primitive functions to make things simpler
-
 'use strict';
 
 
@@ -10,10 +7,11 @@ module.exports = function(env) {
     return k(s, console.log(x));
   }
 
-  // Caching for a wppl function f. caution: if f isn't deterministic
-  // weird stuff can happen, since caching is across all uses of f, even
-  // in different execuation paths.
-  //FIXME: use global store for caching?
+  // Caching for a wppl function f.
+  //
+  // Caution: if f isn't deterministic weird stuff can happen, since
+  // caching is across all uses of f, even in different execuation
+  // paths.
   function cache(s, k, a, f) {
     var c = {};
     var cf = function(s, k, a) {
@@ -32,7 +30,6 @@ module.exports = function(env) {
     return k(s, cf);
   }
 
-  // FIXME: handle fn.apply in cps transform?
   function apply(s, k, a, wpplFn, args) {
     return wpplFn.apply(global, [s, k, a].concat(args));
   }

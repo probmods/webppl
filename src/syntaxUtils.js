@@ -75,8 +75,10 @@ function inProgram(f, fail) {
 function inBody(f, fail) {
   return inProgram(function(node) {
     if (types.FunctionExpression.check(node)) {
-      return build.functionExpression(node.id, node.params,
-                                      build.blockStatement(f(build.program(node.body.body)).body));
+      return build.functionExpression(
+          node.id,
+          node.params,
+          build.blockStatement(f(build.program(node.body.body)).body));
     }
     else return failSafe('inBody', fail);
   }, fail);
@@ -98,9 +100,10 @@ function returnify(nodes) {
         return build.returnStatement(expression);
       }),
       clause(Syntax.IfStatement, function(test, consequent, alternate) {
-        return build.ifStatement(test,
-                                 build.blockStatement(returnify(consequent.body)),
-                                 alternate === null ? null : build.blockStatement(returnify(alternate.body)));
+        return build.ifStatement(
+            test,
+            build.blockStatement(returnify(consequent.body)),
+            alternate === null ? null : build.blockStatement(returnify(alternate.body)));
       }),
       clause(Syntax.ReturnStatement, function(argument) {
         return build.returnStatement(argument);

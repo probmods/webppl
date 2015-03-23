@@ -63,7 +63,7 @@ function copyObj(obj) {
   return newobj;
 }
 
-// more efficient version of (indexOf o map p)
+// More efficient version of (indexOf o map p)
 var indexOfPred = function(l, p, start) {
   var start = start || 0;
   for (var i = start; i < l.length; i++) {

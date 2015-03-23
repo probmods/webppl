@@ -50,7 +50,7 @@ module.exports = function(env) {
     this.variScore = 0;
     //get another sample
     this.numS++;
-    this.wpplFn(this.initialStore, exit, this.initialAddress);
+    this.wpplFn(this.initialStore, env.exit, this.initialAddress);
   };
 
   Variational.prototype.sample = function(s, k, a, erp, params) {
@@ -129,13 +129,11 @@ module.exports = function(env) {
     console.log(this.variationalParams);
     var dist = null;
 
-    // Reinstate previous this:
-    var k = this.k;
-    var s = this.initialStore;
+    // Reinstate previous coroutine
     env.coroutine = this.oldCoroutine;
 
     // Return from particle filter by calling original continuation:
-    k(s, dist);
+    this.k(this.initialStore, dist);
   };
 
   function vecPlus(a, b) {

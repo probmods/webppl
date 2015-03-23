@@ -44,9 +44,10 @@ function linearizeSequence(ss, i, ks) {
         }
 
         if (hasReturn(consequent) || hasReturn(alternate)) {
-          return [build.ifStatement(test,
-                                    build.blockStatement(linearizeSequence([consequent], 0, ks)),
-                                    build.blockStatement(linearizeSequence([alternate], 0, ks)))];
+          return [build.ifStatement(
+              test,
+              build.blockStatement(linearizeSequence([consequent], 0, ks)),
+              build.blockStatement(linearizeSequence([alternate], 0, ks)))];
         }
         else {
           return [build.ifStatement(test, consequent, alternate)].concat(ks);

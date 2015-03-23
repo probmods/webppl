@@ -82,9 +82,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
-// arithmetic and other functionals
-// needswork: curry manually where possible to make easier to use
-// var plus = function(a,b) {return arguments.length == 1 ? function(b) {return a+b} : a+b;}
+// Arithmetic and other functionals
 
 var plus = function(a, b) { return a+b; };
 var minus = function(a, b) { return a-b; };
@@ -299,6 +297,7 @@ var compose = function(f, g){
 var everyOther = function(l) {
   return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
 }
+
 var _merge = function(l1, l2, pred, key) {
   return l1.length == 0
     ? l2
@@ -308,6 +307,7 @@ var _merge = function(l1, l2, pred, key) {
           ? [l1[0]].concat(_merge(l1.slice(1), l2, pred, key))
           : [l2[0]].concat(_merge(l1, l2.slice(1), pred, key))));
 }
+
 var _sort = function(l, pred, key) {
   return (l.length <= 1)
     ? l
@@ -316,11 +316,13 @@ var _sort = function(l, pred, key) {
              pred,
              key);
 }
+
 var sort = function(l, pred, key) {
   return _sort(l,
                (pred == undefined ? lt : pred),
                (key == undefined ? idF : key));
 }
+
 var sortOn = function(l, key, pred) {
   return _sort(l, (pred == undefined ? lt : pred), key)
 }

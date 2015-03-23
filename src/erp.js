@@ -1,9 +1,3 @@
-'use strict';
-
-var _ = require('underscore');
-var util = require('./util.js');
-
-
 ////////////////////////////////////////////////////////////////////
 // ERPs
 //
@@ -20,6 +14,12 @@ var util = require('./util.js');
 // erp.score(params, val) returns the log-probability of val under the distribution.
 // erp.support(params) gives an array of support elements.
 // erp.grad(params, val) gives the gradient of score at val wrt params.
+
+'use strict';
+
+var _ = require('underscore');
+var util = require('./util.js');
+
 
 function ERP(sampler, scorer, supporter, grad) {
   this.sample = sampler;
@@ -347,10 +347,10 @@ function multinomialSample(theta) {
   return k;
 }
 
-//make a discrete ERP from a {val: prob, etc.} object (unormalized).
+// Make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
 
-  // normalize distribution:
+  // Normalize distribution:
   var norm = 0;
   var supp = [];
   for (var v in marginal) {
@@ -364,7 +364,7 @@ function makeMarginalERP(marginal) {
   // console.log("Creating distribution: ");
   // console.log(marginal);
 
-  //make an ERP from marginal:
+  // Make an ERP from marginal:
   var dist = new ERP(
       function(params) {
         var x = Math.random();

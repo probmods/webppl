@@ -11,6 +11,7 @@
 'use strict';
 
 var _ = require('underscore');
+var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
 
@@ -45,9 +46,10 @@ module.exports = function(env) {
     this.oldStore = s; // will be reinstated at the end
 
     // Create initial particles
+    var exitK = function(s) {return wpplFn(s, env.exit, a);};
     for (var i = 0; i < numParticles; i++) {
       var particle = {
-        continuation: function(s) {return wpplFn(s, env.exit, a);},
+        continuation: exitK,
         weight: 0,
         score: 0,
         value: undefined,
@@ -164,7 +166,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = multinomialSample(newExpWeights);
+      j = erp.multinomialSample(newExpWeights);
       newParticles.push(copyPFRParticle(this.particles[j]));
     }
 
@@ -245,7 +247,7 @@ module.exports = function(env) {
   MHP.prototype.run = function() {
     if (this.iterations === 0) {
       env.coroutine = this.oldCoroutine;
-      return backToPF(particle);
+      return this.backToPF(this.originalParticle);
     } else {
       return this.propose(); //FIXME: on final exit, will this end up calling the MH exit correctly?
     }
@@ -262,7 +264,6 @@ module.exports = function(env) {
 
   MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {
     var prev = mh.findChoice(this.oldTrace, name);
-
     var reuse = !(prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
     var choiceScore = erp.score(params, val);

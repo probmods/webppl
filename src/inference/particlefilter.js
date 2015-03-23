@@ -28,9 +28,10 @@ module.exports = function(env) {
     this.particleIndex = 0;  // marks the active particle
 
     // Create initial particles
+    var exitK = function(s) {return wpplFn(s, env.exit, a);};
     for (var i = 0; i < numParticles; i++) {
       var particle = {
-        continuation: function(s) { return wpplFn(s, env.exit, a);},
+        continuation: exitK,
         weight: 0,
         value: undefined,
         store: util.copyObj(s)
@@ -111,7 +112,7 @@ module.exports = function(env) {
       var newParticles = [];
       var j;
       for (var i = 0; i < numNewParticles; i++) {
-        j = multinomialSample(newExpWeights);
+        j = erp.multinomialSample(newExpWeights);
         newParticles.push(copyParticle(this.particles[j]));
       }
 
@@ -158,7 +159,7 @@ module.exports = function(env) {
   };
 
   function pf(s, cc, a, wpplFn, numParticles, strict) {
-    return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict).run();
+    return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict === undefined ? true : strict).run();
   }
 
   return {
