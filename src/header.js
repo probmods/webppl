@@ -26,12 +26,12 @@ var util = require('./util.js');
 var erp = require('./erp.js');
 
 var headerModules = [
-  './enumerate.js',
-  './particlefilter.js',
-  './mh.js',
-  './pmcmc.js',
-  './smc.js',
-  './variational.js',
+  './inference/enumerate.js',
+  './inference/particlefilter.js',
+  './inference/mh.js',
+  './inference/pmcmc.js',
+  './inference/smc.js',
+  './inference/variational.js',
   './headerUtils.js'
 ];
 
