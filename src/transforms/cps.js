@@ -5,7 +5,6 @@ var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;
 
-var linearize = require('./linearize').linearize;
 var match = require('../syntaxUtils').match;
 var clause = require('../syntaxUtils').clause;
 var fail = require('../syntaxUtils').fail;
@@ -35,7 +34,7 @@ function buildContinuationCall(callee, arg) {
 
 function cpsFunction(id, params, body) {
   var k = genvar('k');
-  return buildFunction([k].concat(params), cpsSequence(linearize(body.body), 0, k), id);
+  return buildFunction([k].concat(params), cpsFinalStatement(body, k, k), id);
 }
 
 function bindContinuation(k, metaK) {
@@ -238,68 +237,86 @@ function cpsDeclarations(declarations, i, metaK) {
   })(declarations[i], fail('expected declarator', declarations[i]));
 }
 
-function cpsSequence(nodes, i, k) {
+function cpsSequence(nodes, i, k, fk) {
   if (i === nodes.length) {
     return cps(build.identifier('undefined'), k);
   }
   else if (i + 1 === nodes.length) {
-    return match(nodes[i], [
-      clause(Syntax.BlockStatement, function(body) {
-        return cpsSequence(body, 0, k);
-      }),
-      clause(Syntax.EmptyStatement, function() {
-        return cps(build.identifier('undefined'), k);
-      }),
-      clause(Syntax.ExpressionStatement, function(expression) {
-        return cps(expression, k);
-      }),
-      clause(Syntax.IfStatement, function(test, consequent, alternate) {
-        return bindContinuation(k, function(k) { // most likely unnecessary
-          return atomize(test, function(test) {
-            return build.conditionalExpression(test,
-                                               cpsSequence(consequent.body, 0, k),
-                                               cpsSequence(alternate.body, 0, k));
-          });
-        });
-      }),
-      clause(Syntax.ReturnStatement, function(argument) {
-        return cps(argument, k);
-      }),
-      clause(Syntax.VariableDeclaration, function(declarations) {
-        return cpsDeclarations(declarations, 0, function(id) {
-          return buildContinuation(id, cpsSequence(nodes, i + 1, k));
-        });
-      })], fail('last one', nodes[i]));
+    return cpsFinalStatement(nodes[i], k, fk);
   }
   else {
-    return match(nodes[i], [
-      clause(Syntax.BlockStatement, function(body) {
-        return cpsSequence(body, 0, buildContinuation(genvar('dummy'), cpsSequence(nodes, i + 1, k)));
-      }),
-      clause(Syntax.EmptyStatement, function() {
-        return cpsSequence(nodes, i + 1, k);
-      }),
-      clause(Syntax.ExpressionStatement, function(expression) {
-        return cps(expression, buildContinuation(genvar('dummy'), cpsSequence(nodes, i + 1, k)));
-      }),
-      clause(Syntax.IfStatement, function(test, consequent, alternate) {
-        return bindContinuation(k, function(k) { // most likely unnecessary
-          return atomize(test, function(test) {
-            return build.conditionalExpression(test,
-                                               cpsSequence(consequent.body, 0, k),
-                                               cpsSequence(alternate.body, 0, k));
+    return cpsInnerStatement(nodes[i], cpsSequence(nodes, i + 1, k, fk), fk);
+  }
+}
+
+function cpsInnerStatement(node, e, fk) {
+  return match(node, [
+    clause(Syntax.BlockStatement, function(body) {
+	return cpsSequence(body, 0, buildContinuation(genvar('dummy'), e), fk);
+    }),
+    clause(Syntax.EmptyStatement, function() {
+      return e;
+    }),
+    clause(Syntax.ExpressionStatement, function(expression) {
+      return cps(expression, buildContinuation(genvar('dummy'), e));
+    }),
+    clause(Syntax.IfStatement, function(test, consequent, alternate) {
+      if( ! alternate ) {
+        alternate = build.emptyStatement();
+      }
+
+      var k = buildContinuation(genvar('dummy'), e);
+	
+      return bindContinuation( k, function(k) { // most likely unnecessary
+        return atomize(test, function(test) {
+          return build.conditionalExpression(test,
+                                             cpsFinalStatement(consequent, k, fk),
+                                             cpsFinalStatement(alternate, k, fk));
           });
         });
       }),
       clause(Syntax.ReturnStatement, function(argument) {
-        return cps(argument, k);
+        return cps(argument, fk);
       }),
       clause(Syntax.VariableDeclaration, function(declarations) {
         return cpsDeclarations(declarations, 0, function(id) {
-          return buildContinuation(id, cpsSequence(nodes, i + 1, k));
+          return buildContinuation(id, e);
         });
-      })], fail('unknown deal', nodes[i]));
-  }
+      })], fail('cpsInnerStatement', node));
+}
+
+function cpsFinalStatement( node, k, fk ) {
+  return match(node, [
+    clause(Syntax.BlockStatement, function(body) {
+      return cpsSequence(body, 0, k, fk);
+    }),
+    clause(Syntax.EmptyStatement, function() {
+      return cps(build.identifier('undefined'), k);
+    }),
+    clause(Syntax.ExpressionStatement, function(expression) {
+      return cps(expression, k);
+    }),
+    clause(Syntax.IfStatement, function(test, consequent, alternate) {
+      if( ! alternate ) {
+        alternate = build.emptyStatement();
+      }
+
+      return bindContinuation(k, function(k) { // most likely unnecessary
+        return atomize(test, function(test) {
+          return build.conditionalExpression(test,
+                                             cpsFinalStatement(consequent, k, fk),
+                                             cpsFinalStatement(alternate, k, fk));
+        });
+      });
+    }),
+    clause(Syntax.ReturnStatement, function(argument) {
+      return cps(argument, fk);
+    }),
+    clause(Syntax.VariableDeclaration, function(declarations) {
+      return cpsDeclarations(declarations, 0, function(id) {
+        return buildContinuation(id, cps(build.identifier('undefined'), k));
+      });
+    })], fail('cpsFinalStatement', node));
 }
 
 function cpsMain(node) {
