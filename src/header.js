@@ -627,24 +627,29 @@ function copyParticle(particle){
   return {
     continuation: particle.continuation,
     weight: particle.weight,
+    score: particle.score,
     completed: particle.completed,
     value: particle.value,
     store: util.copyObj(particle.store)
   };
 }
 
-function ParticleFilter(s, k, a, wpplFn, numParticles, strict, justSample) {
+function ParticleFilter(s, k, a, wpplFn, numParticles, strict, justSample, saveHistory) {
 
   this.particles = [];
   this.particleIndex = 0;  // marks the active particle
 
   this.justSample = justSample;
+  this.saveHistory = saveHistory;
+  if (this.saveHistory)
+    this.particleHistory = [];
 
   // Create initial particles
   for (var i=0; i<numParticles; i++) {
     var particle = {
       continuation: function(s){wpplFn(s,exit,a);},
       weight: 0,
+      score: 0,
       completed: false,
       value: undefined,
       store: util.copyObj(s)
@@ -666,12 +671,15 @@ function ParticleFilter(s, k, a, wpplFn, numParticles, strict, justSample) {
 }
 
 ParticleFilter.prototype.sample = function(s,cc, a, erp, params) {
-  cc(s,erp.sample(params));
+  var sampval = erp.sample(params);
+  this.activeParticle().score += erp.score(params, sampval);
+  cc(s,sampval);
 };
 
 ParticleFilter.prototype.factor = function(s,cc, a, score) {
   // Update particle weight
   this.activeParticle().weight += score;
+  this.activeParticle().score += score;
   this.activeParticle().continuation = cc;
   this.activeParticle().store = s;
 
@@ -715,7 +723,19 @@ ParticleFilter.prototype.allParticlesAdvanced = function() {
   return this.particleIndex === this.lastRunningParticleIndex();
 };
 
+function copyParticles(particles) {
+  return _.map(particles, function(particle) {
+    return copyParticle(particle);
+  });
+}
+
 ParticleFilter.prototype.resampleParticles = function() {
+
+  if (this.saveHistory)
+  {
+    this.particleHistory.push(copyParticles(this.particles));
+  }
+
   // Residual resampling following Liu 2008; p. 72, section 3.4.4
   var m = this.particles.length;
   var W = util.logsumexp(_.map(this.particles, function(p){return p.weight;}));
@@ -751,6 +771,11 @@ ParticleFilter.prototype.resampleParticles = function() {
 
   // Reset all weights
   _.each(this.particles, function(particle){particle.weight = avgW;});
+
+  if (this.saveHistory)
+  {
+    this.particleHistory.push(copyParticles(this.particles));
+  }
 };
 
 ParticleFilter.prototype.exit = function(s, retval) {
@@ -789,11 +814,9 @@ ParticleFilter.prototype.finish = function()
   }
   var dist = makeMarginalERP(hist);
   if (this.justSample)
-  {
-    dist.samples = _.map(this.particles, function(particle) {
-      return {val: particle.value, prob: 0};   // TODO: figure out prob?
-    });
-  }
+    dist.samples = this.particles.slice();
+  if (this.saveHistory)
+    dist.particleHistory = this.particleHistory;
 
   // Save estimated normalization constant in erp (average particle weight)
   dist.normalizationConstant = this.particles[0].weight;
@@ -805,8 +828,8 @@ ParticleFilter.prototype.finish = function()
   this.k(this.oldStore, dist);
 }
 
-function pf(s, cc, a, wpplFn, numParticles, strict, justSample) {
-  return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict, justSample);
+function pf(s, cc, a, wpplFn, numParticles, strict, justSample, saveHistory) {
+  return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict == undefined ? true : strict, justSample, saveHistory);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -899,7 +922,7 @@ MH.prototype.exit = function(s, val) {
 
     // now add val to hist:
     if (coroutine.returnSamps)
-      coroutine.returnSamps.push({prob: coroutine.currScore, val: val})
+      coroutine.returnSamps.push({score: coroutine.currScore, value: val})
     else
     {
        var stringifiedVal = JSON.stringify(val);
