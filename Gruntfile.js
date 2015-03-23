@@ -27,7 +27,8 @@ module.exports = function(grunt) {
       all: ['tests/*.js']
     },
     jshint: {
-      files: ['Gruntfile.js', 'src/*.js', 'tests/*.js'],
+      files: ['Gruntfile.js', 'src/*.js', 'tests/*.js', 'src/analysis/*.js',
+              'src/transforms/*.js', 'src/inference/*.js'],
       options: {
         nonew: true,
         curly: true,
