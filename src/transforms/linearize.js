@@ -4,9 +4,9 @@ var Syntax = require('estraverse').Syntax;
 var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
 
-var match = require('./util2').match;
-var clause = require('./util2').clause;
-var fail = require('./util2').fail;
+var match = require('../util2').match;
+var clause = require('../util2').clause;
+var fail = require('../util2').fail;
 
 
 function hasReturn(node) {

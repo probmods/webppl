@@ -5,12 +5,12 @@ var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
 var thunkify = require('../src/util2').thunkify;
 var fail = require('../src/util2').fail;
-var naming = require('../src/naming').naming;
-var cps = require('../src/cps').cps;
-var store = require('../src/store').store;
-var optimize = require('../src/optimize').optimize;
-var trampoline = require('../src/trampoline').trampoline;
-var varargs = require('../src/varargs').varargs;
+var naming = require('../src/transforms/naming').naming;
+var cps = require('../src/transforms/cps').cps;
+var store = require('../src/transforms/store').store;
+var optimize = require('../src/transforms/optimize').optimize;
+var trampoline = require('../src/transforms/trampoline').trampoline;
+var varargs = require('../src/transforms/varargs').varargs;
 
 var fooObj = {
   bar: 1,

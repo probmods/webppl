@@ -1,9 +1,10 @@
 'use strict';
 
 var fs = require('fs');
+var testCase = require('nodeunit').testCase;
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
-var testCase = require('nodeunit').testCase;
+
 
 function runContinuousSamplingTest(test, code, checkSamples, numSamples) {
   var samples = [];

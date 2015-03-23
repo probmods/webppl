@@ -5,11 +5,11 @@ var replace = require('estraverse').replace;
 var build = require('ast-types').builders;
 var types = require('ast-types').types;
 
-var makeGensym = require('./util').makeGensym;
-var makeGenvar = require('./util2').makeGenvar;
-var inProgram = require('./util2').inProgram;
-var fail = require('./util2').fail;
-var isPrimitive = require('./util2').isPrimitive;
+var makeGensym = require('../util').makeGensym;
+var makeGenvar = require('../util2').makeGenvar;
+var inProgram = require('../util2').inProgram;
+var fail = require('../util2').fail;
+var isPrimitive = require('../util2').isPrimitive;
 
 
 function makeGenlit() {

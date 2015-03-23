@@ -3,10 +3,10 @@
 var readFile = require('fs').readFileSync;
 var esprima = require('esprima');
 var build = require('ast-types').builders;
-var naming = require('../src/naming.js').naming;
-var cps = require('../src/cps.js').cps;
-var store = require('../src/store').store;
-var optimize = require('../src/optimize.js').optimize;
+var naming = require('../src/transforms/naming.js').naming;
+var cps = require('../src/transforms/cps.js').cps;
+var store = require('../src/transforms/store').store;
+var optimize = require('../src/transforms/optimize.js').optimize;
 var analyze = require('../src/analysis/analyze.js').analyze;
 
 function compile(code, verbose) {
