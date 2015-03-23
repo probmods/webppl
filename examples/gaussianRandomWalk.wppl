@@ -1,0 +1,18 @@
+var init = function(dim) {
+  return repeat(dim, function() { return gaussian(200, 1) });
+}
+
+var transition = function(pos) {
+  return map(
+      function(x) { return gaussian(x, 10); },
+      pos
+  );
+};
+
+var gaussianRandomWalk = function(n, dim) {
+  var prevStates = (n == 1) ? [init(dim)] : gaussianRandomWalk(n - 1, dim);
+  var newState = transition(last(prevStates));
+  return prevStates.concat([newState]);
+};
+
+gaussianRandomWalk(100, 2);

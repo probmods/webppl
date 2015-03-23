@@ -1,0 +1,29 @@
+var transition = function(s) {
+  return s ? flip(0.7) : flip(0.3)
+}
+
+var observe = function(s) {
+  return s ? flip(0.9) : flip(0.1)
+}
+
+var hmm = function(n) {
+  var prev = (n == 1) ? {states: [true], observations: []} : hmm(n - 1);
+  var newState = transition(prev.states[prev.states.length - 1]);
+  var newObs = observe(newState);
+  return {
+    states: prev.states.concat([newState]),
+    observations: prev.observations.concat([newObs])
+  };
+}
+
+var trueObservations = [false, false, false];
+
+var arrayEq = function(a, b) {
+  return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
+}
+
+Enumerate(function() {
+  var r = hmm(3);
+  factor(arrayEq(r.observations, trueObservations) ? 0 : -Infinity);
+  return r.states;
+})
