@@ -388,7 +388,7 @@ var tests = {
 
   ],
 
-  testArrayExpressionTests: [
+  testArrayExpression: [
 
     { name: 'testArray1',
       code: '[1, 2, 3]',
@@ -397,6 +397,18 @@ var tests = {
     { name: 'testArray2',
       code: '[plusTwo(1), plus(2, 5), 3]',
       expected: [3, 7, 3] }
+
+  ],
+
+  testObjectExpression: [
+
+    { name: 'testObjectAtomic',
+      code: 'var x = {a: 1, b: 2}; x',
+      expected: {a: 1, b: 2} },
+
+    { name: 'testObjectCompound',
+      code: 'var x = {a: 1+2, b: [4,5]}; x',
+      expected: {a: 3, b: [4, 5]} }
 
   ],
 

@@ -204,6 +204,17 @@ function cps(node, k) {
             });
           });
         }),
+        clause(Syntax.ObjectExpression, function(properties) {
+          var keys = properties.map(function(property) {return property.key;});
+          var values = properties.map(function(property) {return property.value;});
+          return atomizeStar(values, function(values) {
+            var properties = [];
+            for (var i = 0; i < values.length; i++) {
+              properties.push(build.property('init', keys[i], values[i]));
+            }
+            return buildContinuationCall(k, build.objectExpression(properties));
+          });
+        }),
         clause(Syntax.UnaryExpression, function(argument) {
           return atomize(argument, function(argument) {
             return buildContinuationCall(k, build.unaryExpression(node.operator, argument));
