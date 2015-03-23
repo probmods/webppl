@@ -1,4 +1,0 @@
-var geom = function() {
-  return flip(0.1) ? 0 : 1 + geom()
-}
-Enumerate(geom, 100);

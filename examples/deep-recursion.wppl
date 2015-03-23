@@ -1,9 +1,0 @@
-var foo = function(n) {
-  if (n == 0) {
-    return 'success!';
-  } else {
-    return foo(n - 1);
-  }
-}
-
-foo(10000000)
