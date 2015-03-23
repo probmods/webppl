@@ -3,7 +3,7 @@
 var jslintSettings = {
   options: {
     flags: [
-      '--flagfile grunt_tasks/.gjslintrc'
+      '--flagfile .gjslintrc'
     ],
     reporter: {
       name: 'console'
@@ -11,17 +11,13 @@ var jslintSettings = {
     force: false
   },
   lib: {
-    src: ['src/*.js', 'Gruntfile.js']
+    src: ['src/*.js', 'src/analysis/*.js', 'src/transforms/*.js', 'src/inference/*.js', 'Gruntfile.js']
   },
   test: {
     src: ['tests/*.js']
   },
   wppl: {
-    src: ['examples/*.wppl', 'tests/test-data/*.wppl'],
-    additionalFlags: [
-      '--disable 10,11', // Disable semicolon errors.
-      '--additional_extensions=wppl'
-    ]
+    src: ['tests/test-data/*.wppl']
   }
 };
 
@@ -53,7 +49,7 @@ module.exports = function(grunt) {
     fixjsstyle: jslintSettings
   });
 
-  grunt.loadTasks('grunt_tasks');
+  grunt.loadNpmTasks('grunt-gjslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
 
