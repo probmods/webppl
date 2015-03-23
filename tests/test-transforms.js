@@ -359,9 +359,17 @@ var tests = {
       code: 'var f = function(){ if (1 < 0) { return 1; }; return 5; }; f();',
       expected: 5 },
 
+    // { name: 'testIfWithoutElse5',
+    //   code: 'var f = function(){ if (false) { "bad"; }; }; f();',
+    //   expected: undefined },
+
     { name: 'testNestedIf',
       code: 'if (1 > 2) { 3 } else { if (4 < 5) { 6 } else { 7 }}',
       expected: 6 },
+
+    // { name: 'testNestedIf2',
+    //   code: 'var f = function(){ if (true) { "bad"; }; return "good"; }; f();',
+    //   expected: 'good' },
 
     { name: 'testIfWithReturn',
       code: 'var foo = function(){ if (true) { return 3 } return 4 }; foo()',
