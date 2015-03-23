@@ -5,11 +5,9 @@
 
 var _ = require('underscore');
 var util = require('./util.js');
-
+var erp = require('./erp.js');
 
 module.exports = function(env) {
-
-  var erp = require('./erp.js')(env);
 
   function findChoice(trace, name) {
     if (trace === undefined) {

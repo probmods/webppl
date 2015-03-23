@@ -6,13 +6,12 @@
 
 'use strict';
 
-var util = require('./util.js');
 var PriorityQueue = require('priorityqueuejs');
+var util = require('./util.js');
+var erp = require('./erp.js');
 
 
 module.exports = function(env) {
-
-  var erp = require('./erp.js')(env);
 
   function Enumerate(store, k, a, wpplFn, maxExecutions, Q) {
     this.score = 0; // Used to track the score of the path currently being explored
