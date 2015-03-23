@@ -4,8 +4,8 @@
 'use strict';
 
 var _ = require('underscore');
-var util = require('./util.js');
-var erp = require('./erp.js');
+var util = require('../util.js');
+var erp = require('../erp.js');
 
 module.exports = function(env) {
 

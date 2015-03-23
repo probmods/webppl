@@ -14,7 +14,7 @@ var store = require('./store').store;
 var varargs = require('./varargs').varargs;
 var trampoline = require('./trampoline').trampoline;
 var thunkify = require('./util2').thunkify;
-var analyze = require('./analyze').analyze;
+var analyze = require('./analysis/analyze').analyze;
 var util = require('./util');
 
 

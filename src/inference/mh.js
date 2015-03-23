@@ -4,7 +4,7 @@
 'use strict';
 
 var _ = require('underscore');
-var assert = require('underscore');
+var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
 

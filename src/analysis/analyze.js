@@ -15,7 +15,7 @@ var Syntax = require('estraverse').Syntax;
 var parse = require('./parser-combinator');
 var analyzeRefs = require('./analyze-refs').analyzeRefs;
 
-var fail = require('./util2').fail;
+var fail = require('../util2').fail;
 
 var isHeapVar = null;
 
@@ -42,7 +42,7 @@ function makeGlobal(primitive) {
   });
 }
 
-var global = new Map({
+var global = new Map({ // FIXME: rename (global is protected name)
   bernoulliERP: makeGlobal(new Primitive({
     name: 'bernoulliERP',
     apply: function(tss) {

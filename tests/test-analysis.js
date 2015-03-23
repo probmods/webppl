@@ -1,7 +1,7 @@
 'use strict';
 
 var prepare = require('../src/main').prepare;
-var analyze = require('../src/analyze').analyze;
+var analyze = require('../src/analysis/analyze').analyze;
 
 var Set = require('immutable').Set;
 
