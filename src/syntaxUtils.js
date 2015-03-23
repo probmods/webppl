@@ -120,9 +120,8 @@ function isPrimitive(node) {
     case Syntax.Identifier:
       return false;
     case Syntax.MemberExpression:
-      return ((types.Identifier.check(node.object) && node.object.name === 'Math') ||
-          (! node.computed && node.property.name === 'concat'));
-
+      return (types.Identifier.check(node.object) ||
+          (!node.computed) && types.Identifier.check(node.property));
     default:
       console.log(node);
       throw "isPrimitive doesn't handle node";
