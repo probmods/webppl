@@ -352,7 +352,7 @@ var tests = {
       expected: undefined },
 
     { name: 'testIfWithoutElse3',
-      code: 'var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y;       }}; f();',
+      code: 'var f = function(){ if (1 < 2) { var x = 1; var y = 2; return x + y; }}; f();',
       expected: 3 },
 
     { name: 'testIfWithoutElse4',
