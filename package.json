@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "amdefine": "^0.1.0",
-    "ast-types": "^0.4.9",
+    "ast-types": "^0.7.0",
     "brfs": "^1.2.0",
     "escodegen": "^1.4.1",
     "esmangle": "^1.0.1",
