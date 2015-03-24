@@ -198,15 +198,15 @@ var all = function(p, l) { return mapReduce1(function(a, b) { return a && b; }, 
 var any = function(p, l) { return mapReduce1(function(a, b) { return a || b; }, p, l); };
 
 var zip = function(xs, ys) {
-  return xs.length == 0
-    ? []
-    : [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
+  return xs.length == 0 ?
+      [] :
+      [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
 };
 
 var filter = function(fn, ar) {
-  return ar.length == 0
-    ? []
-    : append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
+  return ar.length == 0 ?
+      [] :
+      append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
 };
 
 var find = function(f, ar) {
@@ -261,11 +261,11 @@ var maxWith = function(f, ar) {
 
 var span = function(p, ar) {
   var fn = function(ar, _ts, _fs) {
-    return ar.length == 0
-      ? [_ts, _fs]
-      : (p(ar[0])
-         ? fn(ar.slice(1), snoc(_ts, ar[0]), _fs)
-         : fn(ar.slice(1), _ts, snoc(_fs, ar[0])));
+    return (ar.length == 0 ?
+            [_ts, _fs] :
+            (p(ar[0]) ?
+             fn(ar.slice(1), snoc(_ts, ar[0]), _fs) :
+             fn(ar.slice(1), _ts, snoc(_fs, ar[0]))));
   };
   return fn(ar, [], []);
 };
@@ -299,22 +299,22 @@ var everyOther = function(l) {
 }
 
 var _merge = function(l1, l2, pred, key) {
-  return l1.length == 0
-    ? l2
-    : (l2.length == 0
-       ? l1
-       : (pred(key(l1[0]), key(l2[0]))
-          ? [l1[0]].concat(_merge(l1.slice(1), l2, pred, key))
-          : [l2[0]].concat(_merge(l1, l2.slice(1), pred, key))));
+  return (l1.length == 0 ?
+          l2 :
+          (l2.length == 0 ?
+           l1 :
+           (pred(key(l1[0]), key(l2[0])) ?
+            [l1[0]].concat(_merge(l1.slice(1), l2, pred, key)) :
+            [l2[0]].concat(_merge(l1, l2.slice(1), pred, key)))));
 }
 
 var _sort = function(l, pred, key) {
-  return (l.length <= 1)
-    ? l
-    : _merge(_sort(everyOther(l), pred, key),
-             _sort(everyOther(l.slice(1)), pred, key),
-             pred,
-             key);
+  return ((l.length <= 1) ?
+          l :
+          _merge(_sort(everyOther(l), pred, key),
+                 _sort(everyOther(l.slice(1)), pred, key),
+                 pred,
+                 key));
 }
 
 var sort = function(l, pred, key) {
