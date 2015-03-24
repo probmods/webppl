@@ -204,7 +204,7 @@ var tests = {
 
   ],
 
-  testCallExpressionTests: [
+  testCallExpression: [
 
     { name: 'testPrimitive',
       code: 'plusTwo(3)',
@@ -471,7 +471,7 @@ var tests = {
 
   ],
 
-  testNAryExpressionTests: [
+  testNAryExpression: [
 
     { name: 'testPlus',
       code: '3 + 4',
@@ -491,19 +491,24 @@ var tests = {
 
   ],
 
-  testLogicalExpressionTest: [
+  testLogicalExpression: [
+    
     { name: 'testLogicalOr',
       code: 'true || false',
       expected: true },
+    
     { name: 'testLogicalNot',
       code: '!(true || true)',
       expected: false },
+    
     { name: 'testLogicalAnd',
       code: 'true && false',
       expected: false },
+    
     { name: 'testLogicalCompound1',
       code: 'true && (false || false || true)',
       expected: true },
+    
     { name: 'testLogicalCompound2',
       code: '!(true && (false || false || true))',
       expected: false }
