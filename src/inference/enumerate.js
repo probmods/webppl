@@ -6,6 +6,7 @@
 
 'use strict';
 
+var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util.js');
 var erp = require('../erp.js');
@@ -78,7 +79,7 @@ module.exports = function(env) {
           continuation: cc,
           value: supp[s],
           score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
-          store: util.copyObj(store)
+          store: _.clone(store)
         };
         this.queue.enq(state);
       }
