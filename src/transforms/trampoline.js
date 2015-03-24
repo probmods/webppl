@@ -6,9 +6,9 @@ var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
 var parse = require('esprima').parse;
 
-var fail = require('../syntaxUtils').fail;
-var inProgram = require('../syntaxUtils').inProgram;
-var isPrimitive = require('../syntaxUtils').isPrimitive;
+var fail = require('../syntax').fail;
+var inProgram = require('../syntax').inProgram;
+var isPrimitive = require('../syntax').isPrimitive;
 
 
 function thunkify(node) {

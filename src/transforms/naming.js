@@ -6,10 +6,10 @@ var build = require('ast-types').builders;
 var types = require('ast-types').types;
 
 var makeGensym = require('../util').makeGensym;
-var makeGenvar = require('../syntaxUtils').makeGenvar;
-var inProgram = require('../syntaxUtils').inProgram;
-var fail = require('../syntaxUtils').fail;
-var isPrimitive = require('../syntaxUtils').isPrimitive;
+var makeGenvar = require('../syntax').makeGenvar;
+var inProgram = require('../syntax').inProgram;
+var fail = require('../syntax').fail;
+var isPrimitive = require('../syntax').isPrimitive;
 
 
 function makeGenlit() {
