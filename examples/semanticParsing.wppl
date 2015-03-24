@@ -28,7 +28,7 @@ var worldPrior = function(nObjLeft, meaningFn, worldSoFar, prevFactor) {
 }
 
 var meaning = function(utterance) {
-  return combine_meanings(
+  return combineMeanings(
       filter(function(m) {return !(m.sem == undefined)},
       map(function(w) {return lexicalMeaning(w)},
                        utterance.split(' '))))
