@@ -252,7 +252,7 @@ function cpsSequence(nodes, i, k, fk) {
 function cpsInnerStatement(node, e, fk) {
   return match(node, [
     clause(Syntax.BlockStatement, function(body) {
-	return cpsSequence(body, 0, buildContinuation(genvar('dummy'), e), fk);
+      return cpsSequence(body, 0, buildContinuation(genvar('dummy'), e), fk);
     }),
     clause(Syntax.EmptyStatement, function() {
       return e;
@@ -261,31 +261,31 @@ function cpsInnerStatement(node, e, fk) {
       return cps(expression, buildContinuation(genvar('dummy'), e));
     }),
     clause(Syntax.IfStatement, function(test, consequent, alternate) {
-      if( ! alternate ) {
+      if (! alternate) {
         alternate = build.emptyStatement();
       }
 
       var k = buildContinuation(genvar('dummy'), e);
-	
-      return bindContinuation( k, function(k) { // most likely unnecessary
+
+      return bindContinuation(k, function(k) { // most likely unnecessary
         return atomize(test, function(test) {
           return build.conditionalExpression(test,
                                              cpsFinalStatement(consequent, k, fk),
                                              cpsFinalStatement(alternate, k, fk));
-          });
         });
-      }),
-      clause(Syntax.ReturnStatement, function(argument) {
-        return cps(argument, fk);
-      }),
-      clause(Syntax.VariableDeclaration, function(declarations) {
-        return cpsDeclarations(declarations, 0, function(id) {
-          return buildContinuation(id, e);
-        });
-      })], fail('cpsInnerStatement', node));
+      });
+    }),
+    clause(Syntax.ReturnStatement, function(argument) {
+      return cps(argument, fk);
+    }),
+    clause(Syntax.VariableDeclaration, function(declarations) {
+      return cpsDeclarations(declarations, 0, function(id) {
+        return buildContinuation(id, e);
+      });
+    })], fail('cpsInnerStatement', node));
 }
 
-function cpsFinalStatement( node, k, fk ) {
+function cpsFinalStatement(node, k, fk) {
   return match(node, [
     clause(Syntax.BlockStatement, function(body) {
       return cpsSequence(body, 0, k, fk);
@@ -297,7 +297,7 @@ function cpsFinalStatement( node, k, fk ) {
       return cps(expression, k);
     }),
     clause(Syntax.IfStatement, function(test, consequent, alternate) {
-      if( ! alternate ) {
+      if (! alternate) {
         alternate = build.emptyStatement();
       }
 
