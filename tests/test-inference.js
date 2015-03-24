@@ -143,8 +143,8 @@ function getTestCases(testNames) {
   var rootDirectory = './tests/test-data/';
   var testCases = [];
   for (var i = 0; i < testNames.length; i++) {
-    var codeFileName = rootDirectory + testNames[i] + '.wppl';
-    var resultFileName = rootDirectory + testNames[i] + '.json';
+    var codeFileName = rootDirectory + '/models/' + testNames[i] + '.wppl';
+    var resultFileName = rootDirectory + '/expected/' + testNames[i] + '.json';
     var codeFile = fs.readFileSync(codeFileName, 'utf-8');
     var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
     testCases.push({
