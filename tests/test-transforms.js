@@ -336,16 +336,16 @@ var tests = {
 
     { name: 'testConditional3',
       code: 'and(true, false) ? 2 : 3',
-      expected: 3 }
+      expected: 3 },
 
-    // { name: 'testConditional4',
-    //   code: [
-    //     'var id = function(x){return x};',
-    //     'var x = undefined;',
-    //     'var a = ((x === undefined) ? false : id(x.foo)) || true;',
-    //     'a'
-    //   ].join('\n'),
-    //   expected: true }
+     { name: 'testConditional4',
+       code: [
+         'var id = function(x){return x};',
+         'var x = undefined;',
+         'var a = ((x === undefined) ? false : id(x.foo)) || true;',
+         'a'
+       ].join('\n'),
+       expected: true }
 
   ],
 
