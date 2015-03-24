@@ -20,7 +20,7 @@
     "immutable": "^3.6.2",
     "minimist": "^1.1.0",
     "nodeunit": "^0.9.0",
-    "priorityqueuejs": "^0.2.0",
+    "priorityqueuejs": "~1.0.0",
     "underscore": "^1.6.0"
   },
   "devDependencies": {
