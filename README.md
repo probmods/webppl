@@ -18,7 +18,7 @@ Installation:
     git clone https://github.com/probmods/webppl.git
     cd webppl
     npm install
-    npm install -g nodeunit
+    npm install -g nodeunit grunt-cli
 
 To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
 
@@ -34,6 +34,19 @@ Compiling webppl for use in browser:
 
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
+
+
+## Development
+
+Before committing changes, run grunt (which runs tests and linting):
+
+    grunt
+
+Make sure grunt succeeds before committing. If it doesn't, the continuous integration test will fail.
+
+If grunt complains about style errors (like indentation), you can fix some of them automatically using:
+
+    grunt fixjsstyle
 
 
 ## Debugging webppl programs

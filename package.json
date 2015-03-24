@@ -17,12 +17,19 @@
     "estraverse": "^1.8.0",
     "esutils": "^1.1.6",
     "git-rev-2": "^0.1.0",
+    "immutable": "^3.6.2",
     "minimist": "^1.1.0",
     "nodeunit": "^0.9.0",
     "priorityqueuejs": "^0.2.0",
     "underscore": "^1.6.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "closure-linter-wrapper": "^0.2.9",
+    "grunt": "^0.4.5",
+    "grunt-contrib-jshint": "^0.11.0",
+    "grunt-contrib-nodeunit": "^0.4.1",
+    "grunt-gjslint": "^0.1.6"
+  },
   "scripts": {
     "test": "nodeunit tests"
   },
