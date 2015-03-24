@@ -48,6 +48,7 @@ var gamma = function(shape, scale) {
   return sample(gammaERP, [shape, scale]);
 };
 
+
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {
@@ -99,10 +100,11 @@ var geq = function(a, b) { return a >= b; };
 var isEven = function(v) {return v % 2 == 0;};
 var isOdd = function(v) {return v % 2 != 0;};
 
-var idF = function(x) { return x; }
-    var constF = function(f) { return function() {return f} };
+var idF = function(x) { return x; };
+var constF = function(f) { return function() {return f;}; };
 var falseF = function() { return false; };
 var trueF = function() { return true; };
+
 
 // Probability computations & calculations
 
@@ -121,6 +123,7 @@ var entropy = function(erp) {
         return Math.exp(lp) * lp; },
                      supp);
 };
+
 
 // Data structures & higher-order functions
 
@@ -146,14 +149,15 @@ var map2 = function(f, l1, l2) {
 };
 
 var _ringAround = function(l, n) {return l.slice(n).concat(l.slice(0, n));};
-var ringForward = function(l, n) {return _ringAround(l, n == undefined ? -1 : -n);}
-    var ringBackward = function(l, n) {return _ringAround(l, n == undefined ? 1 : n);}
 
-    var mapPairs2 = function(f, l1, l2) {
-  var res = map(function(a) {return map(function(b) {return f(a, b);}, l2)}, l1)
-  return [].concat.apply([], res) // flatten
-}
+var ringForward = function(l, n) {return _ringAround(l, n == undefined ? -1 : -n);};
 
+var ringBackward = function(l, n) {return _ringAround(l, n == undefined ? 1 : n);};
+
+var mapPairs2 = function(f, l1, l2) {
+  var res = map(function(a) {return map(function(b) {return f(a, b);}, l2)}, l1);
+  return [].concat.apply([], res); // flatten
+};
 var mapPairsC = function(f, l) {
   var fn = function(l1, l2, acc) {
     return (l2.length == 0 ?
@@ -161,14 +165,14 @@ var mapPairsC = function(f, l) {
             fn(l1.slice(1),
                l2.slice(1),
                acc.concat(map(function(b) {return f(l1[0], b);},l2))));
-  }
+  };
   return fn(l, l.slice(1), []);
-}
+};
 
 var mapPairsNC = function(f, l) {
   var res = mapPairs2(function(a, b) { return a === b ? undefined : f(a, b); }, l, l);
-  return remove(undefined, [].concat.apply([], res)) // flatten
-}
+  return remove(undefined, [].concat.apply([], res)); // flatten
+};
 
 var reduce = function(fn, init, ar) {
   return ar.length == 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
@@ -296,7 +300,7 @@ var compose = function(f, g) {
 
 var everyOther = function(l) {
   return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
-}
+};
 
 var _merge = function(l1, l2, pred, key) {
   return (l1.length == 0 ?
@@ -306,7 +310,7 @@ var _merge = function(l1, l2, pred, key) {
            (pred(key(l1[0]), key(l2[0])) ?
             [l1[0]].concat(_merge(l1.slice(1), l2, pred, key)) :
             [l2[0]].concat(_merge(l1, l2.slice(1), pred, key)))));
-}
+};
 
 var _sort = function(l, pred, key) {
   return ((l.length <= 1) ?
@@ -315,14 +319,16 @@ var _sort = function(l, pred, key) {
                  _sort(everyOther(l.slice(1)), pred, key),
                  pred,
                  key));
-}
+};
 
 var sort = function(l, pred, key) {
   return _sort(l,
                (pred == undefined ? lt : pred),
                (key == undefined ? idF : key));
-}
+};
 
 var sortOn = function(l, key, pred) {
-  return _sort(l, (pred == undefined ? lt : pred), key)
-}
+  return _sort(l, (pred == undefined ? lt : pred), key);
+};
+
+
