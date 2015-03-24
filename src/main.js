@@ -114,7 +114,7 @@ function webpplNaming(code) {
 if (util.runningInBrowser()) {
   window.webppl = {
     run: run,
-    compile: compileProgram,
+    compile: compile,
     cps: webpplCPS,
     naming: webpplNaming,
     analyze: analyze
