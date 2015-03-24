@@ -83,11 +83,10 @@ function atomize(node, metaK) {
     }),
     clause(Syntax.ConditionalExpression, function(test, consequent, alternate) {
       return atomize(test, function(test) {
-        return atomize(consequent, function(consequent) {
-          return atomize(alternate, function(alternate) {
-            return metaK(build.conditionalExpression(test, consequent, alternate));
-          });
-        });
+	var x = genvar('result');
+	return bindContinuation(buildContinuation(x, metaK(x)), function(k) {
+	  return build.conditionalExpression(test, cps(consequent, k), cps(alternate, k));
+	});
       });
     }),
     clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
@@ -101,9 +100,23 @@ function atomize(node, metaK) {
     }),
     clause(Syntax.LogicalExpression, function(left, right) {
       return atomize(left, function(left) {
-        return atomize(right, function(right) {
-          return metaK(build.logicalExpression(node.operator, left, right));
-        });
+	var x = genvar('result');
+	return bindContinuation(buildContinuation(x, metaK(x)), function(k) {
+	  if (node.operator === '||') {
+	    return build.conditionalExpression(left, cps(left, k), cps(right, k));
+	  }
+	  else if (node.operator === '&&') {
+	    return build.conditionalExpression(left, cps(right, k), cps(left, k));
+	  }
+	  else {
+	    console.log(node.operator);
+	    throw new Error('cps: unhandled logical operator ' + node.operator);
+	  }
+	});
+      });
+      return atomize(test, function(test) {
+	var x = genvar('result');
+	
       });
     }),
     clause(Syntax.MemberExpression, function(object, property) {
@@ -128,6 +141,8 @@ function atomize(node, metaK) {
         return metaK(build.unaryExpression(node.operator, argument));
       });
     })
+	
+
 
   ], fail('atomize: unrecognized node', node));
 }
@@ -156,54 +171,51 @@ function cps(node, k) {
     case Syntax.AssignmentExpression:
     case Syntax.BinaryExpression:
     case Syntax.FunctionExpression:
+    case Syntax.Identifier:
+    case Syntax.Literal:
     case Syntax.MemberExpression:
     case Syntax.ObjectExpression:
     case Syntax.UnaryExpression:
       return atomize(node, function(node) {
         return buildContinuationCall(k, node);
       });
-    case Syntax.Identifier:
-    case Syntax.Literal:
-      return buildContinuationCall(k, node);
     default:
       return match(node, [
         clause(Syntax.CallExpression, function(callee, args) {
-          if (isPrimitive(callee)) {
-            return atomize(callee, function(callee) {
-              return atomizeStar(args, function(args) {
+          return atomize(callee, function(callee) {
+            return atomizeStar(args, function(args) {
+	      if (isPrimitive(callee)) {
                 return buildContinuationCall(k, buildCall(callee, args));
-              });
-            });
-          }
-          else {
-            return atomize(callee, function(callee) {
-              return atomizeStar(args, function(args) {
+              }
+	      else {
                 return buildCall(callee, [k].concat(args));
-              });
-            });
-          }
-        }),
-        clause(Syntax.ConditionalExpression, function(test, consequent, alternate) {
-          return bindContinuation(k, function(k) {
-            return atomize(test, function(test) {
-              return build.conditionalExpression(test, cps(consequent, k), cps(alternate, k));
+              }
             });
           });
         }),
-        clause(Syntax.LogicalExpression, function(left, right) {
-          return atomize(left, function(left) {
-            if (node.operator === '||') {
-              return build.conditionalExpression(left, cps(left, k), cps(right, k));
-            }
-            else if (node.operator === '&&') {
-              return build.conditionalExpression(left, cps(right, k), cps(left, k));
-            }
-            else {
-              console.log(node.operator);
-              throw new Error('cps: unhandled logical operator ' + node.operator);
-            }
-          });
-        })], fail("can't cps", node));
+	clause(Syntax.ConditionalExpression, function(test, consequent, alternate) {
+	  return atomize(test, function(test) {
+	    return bindContinuation(k, function(k) {
+	      return build.conditionalExpression(test, cps(consequent, k), cps(alternate, k));
+	    });
+	  });
+	}),
+        clause(Syntax.LogicalExpression, function(left,right) {
+	  return atomize(left, function(left) {
+	    return bindContinuation(k, function(k) {
+	      if (node.operator === '||') {
+		return build.conditionalExpression(left, cps(left, k), cps(right, k));
+	      }
+	      else if (node.operator === '&&') {
+	        return build.conditionalExpression(left, cps(right, k), cps(left, k));
+	      }
+	      else {
+		console.log(node.operator);
+		throw new Error('cps: unhandled logical operator ' + node.operator);
+	      }
+	    });
+	  });
+	})], fail("can't cps", node));
   }
 }
 

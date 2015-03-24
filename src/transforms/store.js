@@ -20,9 +20,15 @@ function store(node) {
     case Syntax.CallExpression:
       if (isPrimitive(node.callee)) {
         return node;
-      } else {
-        return build.callExpression(node.callee,
-            [storeIdNode].concat(node.arguments));
+      }
+      else if( node.arguments.length > 0
+	       && node.arguments[0].type === "Identifier"
+	       && node.arguments[0].name === "globalStore" ) {
+	return node;
+      }
+      else {
+          return build.callExpression(node.callee,
+              [storeIdNode].concat(node.arguments));
       }
 
     default:
