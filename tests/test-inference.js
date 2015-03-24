@@ -179,7 +179,13 @@ var testNames = [
 ];
 
 var exampleNames = [
-  'binomial'
+  'binomial',
+  'geometric',
+  'hmm',
+  'hmmIncremental',
+  'pcfg',
+  'pcfgIncremental',
+  'scalarImplicature'
 ]
 
 var testDataDir = './tests/test-data/';
