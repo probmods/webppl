@@ -1,0 +1,25 @@
+// Source: http://forestdb.org/models/logistic-regression.html
+var xs = [-10, -5, 2, 6, 10]
+var labels = [false, false, true, true, true]
+
+var samples = function() {
+  var m = gaussian(0, 1)
+  var b = gaussian(0, 1)
+  var sigma_squared = gamma(1, 1)
+  var y = function(x) {
+    return gaussian(m * x + b, sigma_squared)
+  }
+  var sigmoid = function(x) {
+    return 1 / (1 + Math.exp(-1 * y(x)))
+  }
+
+  map2(function(x, label) {
+    factor(bernoulliERP.score([sigmoid(x)], label))
+  },
+  xs,
+  labels)
+
+  return sigmoid(8)
+}
+
+MH(samples, 100000)

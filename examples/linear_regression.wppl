@@ -1,0 +1,22 @@
+// Source: http://forestdb.org/models/linear-regression.html
+var xs = [0, 1, 2, 3]
+var ys = [0, 1, 4, 6]
+
+var samples = function() {
+  var m = gaussian(0, 2)
+  var b = gaussian(0, 2)
+  var sigma_squared = gamma(1, 1)
+
+  var f = function(x) {
+    return m * x + b
+  }
+
+  map2(function(x, y) {
+    factor(gaussianERP.score([(f(x)), sigma_squared], y))
+  },
+  xs,
+  ys)
+
+  return f(4)
+}
+MH(samples, 100000)
