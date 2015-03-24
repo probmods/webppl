@@ -1,7 +1,7 @@
 var observe = function(pos) {
   return map(
       function(x) { return gaussian(x, 5); },
-	pos
+      pos
   );
 };
 
@@ -34,7 +34,7 @@ var transition = function(lastPos, secondLastPos) {
         var momentum = (lastX - secondLastX) * .7;
         return gaussian(lastX + momentum, 3);
       },
-	lastPos,
+      lastPos,
       secondLastPos
   );
 };
@@ -42,8 +42,8 @@ var transition = function(lastPos, secondLastPos) {
 
 var observeConstrained = function(pos, trueObs) {
   return map2(
-      function(x, obs) { return gaussianFactor(x, 5, obs); },
-	pos,
+      function(x, obs) { factor(gaussianERP.score([x, 5], obs)); },
+      pos,
       trueObs
   );
 };

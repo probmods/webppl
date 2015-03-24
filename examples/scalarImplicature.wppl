@@ -12,9 +12,9 @@ var utterancePrior = function() {
 }
 
 var meaning = function(utt, world) {
-  return utt == 'some of the people are nice'? world > 0 :
-         utt == 'all of the people are nice'? world == 3 :
-         utt == 'none of the people are nice'? world == 0 :
+  return utt == 'some of the people are nice' ? world > 0 :
+         utt == 'all of the people are nice' ? world == 3 :
+         utt == 'none of the people are nice' ? world == 0 :
          true
 }
 
@@ -45,4 +45,4 @@ var listener = function(utterance) {
   })
 }
 
-print(listener('some of the people are nice'))
+listener('some of the people are nice')

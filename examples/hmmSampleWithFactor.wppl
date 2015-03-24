@@ -23,7 +23,7 @@ var hmm = function(n) {
   return hmmRecur(n, [true], [])
 }
 
-print(Enumerate(function() {
+Enumerate(function() {
   var r = hmm(3)
   return r.states
-}, 500))
+}, 500)

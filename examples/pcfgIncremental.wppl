@@ -21,12 +21,8 @@ var terminal = function(symbol) {
 var pcfg = function(symbol, yieldsofar, trueyield) {
   if (preTerminal(symbol)) {
     var t = terminal(symbol)
-    console.log(yieldsofar)
     if (yieldsofar.length < trueyield.length) {
-      // factor(t == trueyield[yieldsofar.length] ? 0 : -Infinity)
-      10;
-    } else {
-      20;
+      factor(t == trueyield[yieldsofar.length] ? 0 : -Infinity)
     }
     return yieldsofar.concat([t])
   } else {
@@ -44,9 +40,7 @@ var expand = function(symbols, yieldsofar, trueyield) {
   }
 }
 
-// Enumerate(function() {
-//   var y = pcfg('start', [], ['tall', 'John'])
-//   return y[2] ? y[2] : '' //distribution on next word?
-// }, 20)
-
-pcfg('start', [], ['tall', 'John'])
+Enumerate(function() {
+  var y = pcfg('start', [], ['tall', 'John'])
+  return y[2] ? y[2] : '' //distribution on next word?
+}, 20)

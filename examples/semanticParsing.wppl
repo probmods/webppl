@@ -30,8 +30,8 @@ var worldPrior = function(nObjLeft, meaningFn, worldSoFar, prevFactor) {
 var meaning = function(utterance) {
   return combine_meanings(
       filter(function(m) {return !(m.sem == undefined)},
-	       map(function(w) {return lexicalMeaning(w)},
-		       utterance.split(' '))))
+      map(function(w) {return lexicalMeaning(w)},
+                       utterance.split(' '))))
 }
 
 
@@ -60,7 +60,10 @@ var lexicalMeaning = function(word) {
           out: 'S'}} },
 
     'all' : {
-      sem: function(world) {return function(P) {return function(Q) {return filter(neg(Q), filter(P, world)).length == 0}}},
+      sem: function(world) {
+        return function(P) {
+          return function(Q) {
+            return filter(neg(Q), filter(P, world)).length == 0}}},
       syn: {dir: 'R',
         int: {dir: 'L', int: 'NP', out: 'S'},
         out: {dir: 'R',
@@ -78,12 +81,14 @@ var neg = function(Q) {
 }
 
 
-//assume that both f and a will give their actual semantic value after being applied to a world. make a new meaning that passes on world arg.
+// Assume that both f and a will give their actual semantic value
+// after being applied to a world. make a new meaning that passes on
+// world arg.
 var applyWorldPassing = function(f, a) {
   return function(w) {return f(w)(a(w))}
 }
 
-var combine_meaning = function(meanings) {
+var combineMeaning = function(meanings) {
   var possibleComb = canApply(meanings, 0)
   var i = possibleComb[randomInteger(possibleComb.length)]
   var s = meanings[i].syn
@@ -126,8 +131,8 @@ var syntaxMatch = function(s, t) {
 
 // Recursively do the above until only one meaning is
 // left, return it's semantics.
-var combine_meanings = function(meanings) {
-  return meanings.length == 1 ? meanings[0].sem : combine_meanings(combine_meaning(meanings))
+var combineMeanings = function(meanings) {
+  return meanings.length == 1 ? meanings[0].sem : combineMeanings(combineMeaning(meanings))
 }
 
-print(literalListener('all blond people are nice'))
+literalListener('all blond people are nice')

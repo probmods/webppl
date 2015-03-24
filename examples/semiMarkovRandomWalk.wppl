@@ -8,7 +8,7 @@ var transition = function(lastPos, secondLastPos) {
         var momentum = (lastX - secondLastX) * .7;
         return gaussian(lastX + momentum, 3);
       },
-	lastPos,
+      lastPos,
       secondLastPos
   );
 };

@@ -5,7 +5,7 @@ var init = function(dim) {
 var observe = function(pos) {
   return map(
       function(x) { return gaussian(x, 5); },
-	pos
+      pos
   );
 };
 
@@ -15,7 +15,7 @@ var transition = function(lastPos, secondLastPos) {
         var momentum = (lastX - secondLastX) * .7;
         return gaussian(lastX + momentum, 3);
       },
-	lastPos,
+      lastPos,
       secondLastPos
   );
 };
@@ -23,7 +23,7 @@ var transition = function(lastPos, secondLastPos) {
 var semiMarkovWalk = function(n, dim) {
   var prevStates = (n == 2) ? [init(dim), init(dim)] : semiMarkovWalk(n - 1, dim);
   var newState = transition(last(prevStates), secondLast(prevStates));
-  var newObservation = observe(newState);
+  // var newObservation = observe(newState);
   // could condition on observation here
   return prevStates.concat([newState]);
 };
