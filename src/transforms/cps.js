@@ -47,69 +47,82 @@ function bindContinuation(k, metaK) {
   }
 }
 
-function isAtomic(node) {
-  switch (node.type) {
-    case Syntax.ArrayExpression:
-      return node.elements.every(isAtomic);
-    case Syntax.BinaryExpression:
-      return isAtomic(node.left) && isAtomic(node.right);
-    case Syntax.CallExpression:
-      return isPrimitive(node.callee) && node.arguments.every(isAtomic);
-    case Syntax.ConditionalExpression:
-      return isAtomic(node.test) && isAtomic(node.consequent) && isAtomic(node.alternate);
-    case Syntax.FunctionExpression:
-    case Syntax.Identifier:
-    case Syntax.Literal:
-      return true;
-    case Syntax.LogicalExpression:
-      return isAtomic(node.left) && isAtomic(node.right);
-    case Syntax.MemberExpression:
-      return isAtomic(node.object) && isAtomic(node.property);
-    case Syntax.ObjectExpression:
-      return node.properties.every(function(property) {
-        return isAtomic(property.key) && isAtomic(property.value);
-      });
-    case Syntax.UnaryExpression:
-      return isAtomic(node.argument);
-    default:
-      console.log(node);
-      console.log('isAtomic');
-      throw 'isAtomic';
-  }
-}
-
 function atomize(node, metaK) {
-  if (isAtomic(node)) {
-    switch (node.type) {
-      case Syntax.FunctionExpression:
-        return metaK(cpsFunction(node.id, node.params, node.body));
-      default:
-        return metaK(node);
-    }
-  }
-  else {
-    switch (node.type) {
-      case Syntax.ArrayExpression:
-        return atomizeStar(node.elements, function(elements) {
-          return metaK(build.arrayExpression(elements));
-        });
-      case Syntax.BinaryExpression:
-      case Syntax.CallExpression:
-      case Syntax.ConditionalExpression:
-        var x = genvar('result');
-        return cps(node, buildContinuation(x, metaK(x)));
-      case Syntax.MemberExpression:
-        return atomize(node.object, function(object) {
-          return atomize(node.property, function(property) {
-            return metaK(build.memberExpression(object, property, node.computed));
+    return match( node, [
+	clause(Syntax.ArrayExpression, function(elements) {
+	  return atomizeStar(elements, function(elements) {
+	    return metaK(build.arrayExpression(elements));
+	  });
+	}),
+	clause(Syntax.BinaryExpression, function(left, right) {
+          return atomize(left, function(left) {
+            return atomize(right, function(right) {
+              return metaK(build.binaryExpression(node.operator, left, right));
+            });
           });
-        });
-      default:
-        console.log(node);
-        console.log('atomize');
-        throw 'atomize';
-    }
-  }
+        }),
+	clause(Syntax.CallExpression, function(callee, args) {
+	    if(isPrimitive(callee)) {
+	      return atomize(callee, function(callee) {
+		return atomizeStar(args, function(args) {
+		  return metaK(build.callExpression(callee, args));
+		});
+	      });
+	    }
+	    else {
+	      var x = genvar('result');
+	      return cps(node, buildContinuation(x, metaK(x)));
+	    }
+	}),  
+        clause(Syntax.ConditionalExpression, function(test, consequent, alternate) {
+          return atomize(test, function(test) {
+	    return atomize(consequent, function(consequent) {
+	      return atomize(alternate, function(alternate) {
+		return metaK(build.conditionalExpression(test, consequent, alternate));
+	      });
+	    });
+	  });
+	}),
+        clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
+          return metaK(cpsFunction(id, params, body));
+        }),
+	clause(Syntax.Identifier, function() {
+	  return metaK(node);
+	}),
+	clause(Syntax.Literal, function() {
+	  return metaK(node);
+	}),
+	clause(Syntax.LogicalExpression, function(left, right) {
+          return atomize(left, function(left) {
+            return atomize(right, function(right) {
+              return metaK(build.logicalExpression(node.operator, left, right));
+            });
+          });
+        }),
+	clause(Syntax.MemberExpression, function(object, property) {
+          return atomize(object, function(object) {
+            return atomize(property, function(property) {
+              return metaK(build.memberExpression(object, property, node.computed));
+            });
+          });
+	}),
+	clause(Syntax.ObjectExpression, function(properties) {
+	  return atomizeStar(properties, function(properties) {
+	    return metaK(build.objectExpression(properties));
+	  })
+	}),
+	clause(Syntax.Property, function(key, value) {
+	  return atomize(value, function(value) {
+	    return metaK(build.property( "init", key, value));
+	  });
+	}),
+	clause(Syntax.UnaryExpression, function(argument) {
+          return atomize(argument, function(argument) {
+            return metaK(build.unaryExpression(node.operator, argument));
+          });
+        }),
+
+    ], fail( "atomize: unrecognized node", node ) );
 }
 
 function atomizeStar(es, metaK) {
@@ -204,13 +217,7 @@ function cps(node, k) {
           });
         }),
         clause(Syntax.ObjectExpression, function(properties) {
-          var keys = properties.map(function(property) {return property.key;});
-          var values = properties.map(function(property) {return property.value;});
-          return atomizeStar(values, function(values) {
-            var properties = [];
-            for (var i = 0; i < values.length; i++) {
-              properties.push(build.property('init', keys[i], values[i]));
-            }
+          return atomizeStar(properties, function(properties) {
             return buildContinuationCall(k, build.objectExpression(properties));
           });
         }),

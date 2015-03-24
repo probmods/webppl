@@ -427,22 +427,22 @@ var tests = {
 
     { name: 'testObjectCompound',
       code: 'var x = {a: 1+2, b: [4,5]}; x',
-      expected: {a: 3, b: [4, 5]} }
+      expected: {a: 3, b: [4, 5]} },
 
-    // { name: 'testNestedObject',
-    //   code: ['var box = {',
-    //          '  sub: {',
-    //          '    f: function(x1){',
-    //          '      return function(x2){',
-    //          '        return x1 + x2;',
-    //          '      }',
-    //          '    }',
-    //          '  }',
-    //          '}',
-    //          '',
-    //          'var g = box.sub.f;',
-    //          'g(1)(2)'].join('\n'),
-    //   expected: 3 }
+     { name: 'testNestedObject',
+       code: ['var box = {',
+              '  sub: {',
+              '    f: function(x1){',
+              '      return function(x2){',
+              '        return x1 + x2;',
+              '      }',
+              '    }',
+              '  }',
+              '}',
+              '',
+              'var g = box.sub.f;',
+              'g(1)(2)'].join('\n'),
+       expected: 3 }
 
   ],
 
