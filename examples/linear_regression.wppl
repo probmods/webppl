@@ -19,4 +19,5 @@ var samples = function() {
 
   return f(4)
 }
+
 MH(samples, 100000)

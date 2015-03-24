@@ -6,6 +6,7 @@ var samples = function() {
   var m = gaussian(0, 1)
   var b = gaussian(0, 1)
   var sigma_squared = gamma(1, 1)
+  
   var y = function(x) {
     return gaussian(m * x + b, sigma_squared)
   }
