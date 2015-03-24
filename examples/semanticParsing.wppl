@@ -1,10 +1,10 @@
-var literalListener = function(utterance) {
+var literalListener = function(utterance, qud) {
   Enumerate(function() {
     var m = meaning(utterance)
     var world = worldPrior(3, m)
     factor(m(world) ? 0 : -Infinity)
-    return world
-  }, 100)
+    return qud(world)
+  })
 }
 
 
@@ -135,4 +135,6 @@ var combineMeanings = function(meanings) {
   return meanings.length == 1 ? meanings[0].sem : combineMeanings(combineMeaning(meanings))
 }
 
-literalListener('all blond people are nice')
+literalListener(
+    'all blond people are nice',
+    function(world) {return sum(map(function(x) {return x['nice']}, world))});

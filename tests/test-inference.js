@@ -185,7 +185,9 @@ var exampleNames = [
   'hmmIncremental',
   'pcfg',
   'pcfgIncremental',
-  'scalarImplicature'
+  'scalarImplicature',
+  'semanticParsing',
+  'pragmaticsWithSemanticParsing'
 ]
 
 var testDataDir = './tests/test-data/';
