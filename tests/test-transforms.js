@@ -511,7 +511,17 @@ var tests = {
     
     { name: 'testLogicalCompound2',
       code: '!(true && (false || false || true))',
-      expected: false }
+      expected: false },
+
+    { name: 'testLazyLogical',
+      code: [
+        'var id = function(x){return x};',
+        'var x = undefined;',
+        'var a = true || id(x.foo);',
+        'a'
+      ].join('\n'),
+      expected: true }
+    
   ],
 
   testPrimitiveWrapping: [
