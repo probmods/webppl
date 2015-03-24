@@ -54,6 +54,13 @@ function atomize(node, metaK) {
 	    return metaK(build.arrayExpression(elements));
 	  });
 	}),
+	clause(Syntax.AssignmentExpression, function(left, right) {
+          return atomize(left, function(left) {
+            return atomize(right, function(right) {
+	      return metaK(build.assignmentExpression(node.operator, left, right));
+            });
+          });
+        }),
 	clause(Syntax.BinaryExpression, function(left, right) {
           return atomize(left, function(left) {
             return atomize(right, function(right) {
@@ -145,30 +152,21 @@ function atomizeStar(es, metaK) {
 
 function cps(node, k) {
   switch (node.type) {
-    case Syntax.Identifier:
-    case Syntax.Literal:
+  case Syntax.ArrayExpression:
+  case Syntax.AssignmentExpression:
+  case Syntax.BinaryExpression:
+  case Syntax.FunctionExpression:
+  case Syntax.MemberExpression:
+  case Syntax.ObjectExpression:
+  case Syntax.UnaryExpression:
+    return atomize(node, function(node) {
       return buildContinuationCall(k, node);
-    default:
+    });
+  case Syntax.Identifier:
+  case Syntax.Literal:
+    return buildContinuationCall(k, node);
+  default:
       return match(node, [
-        clause(Syntax.ArrayExpression, function(elements) {
-          return atomizeStar(elements, function(elements) {
-            return buildContinuationCall(k, build.arrayExpression(elements));
-          });
-        }),
-        clause(Syntax.AssignmentExpression, function(left, right) {
-          return atomize(left, function(left) {
-            return atomize(right, function(right) {
-              return buildContinuationCall(k, build.assignmentExpression(node.operator, left, right));
-            });
-          });
-        }),
-        clause(Syntax.BinaryExpression, function(left, right) {
-          return atomize(left, function(left) {
-            return atomize(right, function(right) {
-              return buildContinuationCall(k, build.binaryExpression(node.operator, left, right));
-            });
-          });
-        }),
         clause(Syntax.CallExpression, function(callee, args) {
           if (isPrimitive(callee)) {
             return atomize(callee, function(callee) {
@@ -192,9 +190,6 @@ function cps(node, k) {
             });
           });
         }),
-        clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
-          return buildContinuationCall(k, cpsFunction(id, params, body));
-        }),
         clause(Syntax.LogicalExpression, function(left, right) {
           return atomize(left, function(left) {
             if (node.operator === '||') {
@@ -207,23 +202,6 @@ function cps(node, k) {
               console.log(node.operator);
               throw new Error('cps: unhandled logical operator ' + node.operator);
             }
-          });
-        }),
-        clause(Syntax.MemberExpression, function(object, property) {
-          return atomize(object, function(object) {
-            return atomize(property, function(property) {
-              return buildContinuationCall(k, build.memberExpression(object, property, node.computed));
-            });
-          });
-        }),
-        clause(Syntax.ObjectExpression, function(properties) {
-          return atomizeStar(properties, function(properties) {
-            return buildContinuationCall(k, build.objectExpression(properties));
-          });
-        }),
-        clause(Syntax.UnaryExpression, function(argument) {
-          return atomize(argument, function(argument) {
-            return buildContinuationCall(k, build.unaryExpression(node.operator, argument));
           });
         })], fail("can't cps", node));
   }
