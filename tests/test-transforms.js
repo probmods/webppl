@@ -218,6 +218,17 @@ var tests = {
       code: '(function(y){return y})(plusTwo(123))',
       expected: 125 },
 
+    { name: 'testHigherOrder1',
+      code: ['var foo = function(func1, func2) {',
+             '  return function(x) {',
+             '    return func1(x)(func2(x))',
+             '  }',
+             '};',
+             'var f1 = function(y){return function(x){return x * y;}};',
+             'var f2 = function(x){return x + 1;}',
+             'foo(f1, f2)(3)'].join('\n'),
+      expected: 12 },
+
     { name: 'testBinaryFuncPlus',
       code: 'plus(3, 5)',
       expected: 8 },
