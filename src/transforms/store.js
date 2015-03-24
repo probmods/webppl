@@ -21,14 +21,14 @@ function store(node) {
       if (isPrimitive(node.callee)) {
         return node;
       }
-      else if( node.arguments.length > 0
-	       && node.arguments[0].type === "Identifier"
-	       && node.arguments[0].name === "globalStore" ) {
-	return node;
+      else if (node.arguments.length > 0 &&
+          node.arguments[0].type === 'Identifier' &&
+          node.arguments[0].name === 'globalStore') {
+        return node;
       }
       else {
-          return build.callExpression(node.callee,
-              [storeIdNode].concat(node.arguments));
+        return build.callExpression(node.callee,
+            [storeIdNode].concat(node.arguments));
       }
 
     default:
