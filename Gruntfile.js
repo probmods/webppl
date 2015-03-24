@@ -11,7 +11,8 @@ var jslintSettings = {
     force: false
   },
   lib: {
-    src: ['src/*.js', 'src/analysis/*.js', 'src/transforms/*.js', 'src/inference/*.js', 'Gruntfile.js']
+    src: ['src/*.js', 'src/header.wppl', 'src/analysis/*.js', 'src/transforms/*.js',
+          'src/inference/*.js', 'Gruntfile.js']
   },
   test: {
     src: ['tests/*.js']
@@ -27,7 +28,7 @@ module.exports = function(grunt) {
       all: ['tests/*.js']
     },
     jshint: {
-      files: ['Gruntfile.js', 'src/*.js', 'tests/*.js', 'src/analysis/*.js',
+      files: ['Gruntfile.js', 'src/*.js', 'src/header.wppl', 'tests/*.js', 'src/analysis/*.js',
               'src/transforms/*.js', 'src/inference/*.js'],
       options: {
         nonew: true,
