@@ -139,12 +139,11 @@ exports.testForwardSampling = {
   }
 };
 
-function getTestCases(testNames) {
-  var rootDirectory = './tests/test-data/';
+function getTestCases(testDir, dataDir, testNames) {
   var testCases = [];
   for (var i = 0; i < testNames.length; i++) {
-    var codeFileName = rootDirectory + '/models/' + testNames[i] + '.wppl';
-    var resultFileName = rootDirectory + '/expected/' + testNames[i] + '.json';
+    var codeFileName = testDir + testNames[i] + '.wppl';
+    var resultFileName = dataDir + testNames[i] + '.json';
     var codeFile = fs.readFileSync(codeFileName, 'utf-8');
     var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
     testCases.push({
@@ -179,7 +178,14 @@ var testNames = [
   'testPFRjAsMH'
 ];
 
-var testsData = getTestCases(testNames);
+var exampleNames = [
+  'binomial'
+]
+
+var testDataDir = './tests/test-data/';
+var testsData = [];
+testsData = testsData.concat(getTestCases(testDataDir + 'models/', testDataDir + 'expected/', testNames));
+testsData = testsData.concat(getTestCases('./examples/', testDataDir + 'expected/', exampleNames));
 
 testsData.forEach(function(testData) {
   var description = testData.desc ? testData.desc : 'test';
