@@ -1,4 +1,4 @@
-webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
+webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl)
 ======
 
 Probabilistic programming for the web
@@ -56,7 +56,7 @@ Before committing changes, run grunt (which runs tests and linting):
 
     grunt
 
-If grunt doesn't succeed, the [continuous integration tests](https://travis-ci.org/probmods/webppl.svg?branch=dev) will fail as well.
+If grunt doesn't succeed, the [continuous integration tests](https://travis-ci.org/probmods/webppl) will fail as well.
 
 To only run the tests, do:
 
