@@ -1,4 +1,4 @@
-# The MIT License (MIT)
+# The MIT License
 
 Copyright © `2014` `WebPPL contributors`
 
