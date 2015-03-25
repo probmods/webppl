@@ -5,7 +5,6 @@ Probabilistic programming for the web
 
 [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 
-
 ## Setup
 
 Requirements:
@@ -35,6 +34,14 @@ Compiling webppl programs to Javascript:
 The compiled file can be run using nodejs:
 
     node geometric.js
+
+## License
+
+webppl is released under the [MIT License](LICENSE.md).
+
+## Contributing
+
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
 
 ## Development
 
