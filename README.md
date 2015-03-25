@@ -68,7 +68,7 @@ To compile webppl for use in browser, run:
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
 
-## Debugging webppl programs
+## Debugging
 
 To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 
