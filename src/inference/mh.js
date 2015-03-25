@@ -125,7 +125,7 @@ module.exports = function(env) {
     }
   };
 
-  MH.prototype.cache = env.defaultCoroutine.cache;
+  MH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function mh(s, cc, a, wpplFn, numParticles) {
     return new MH(s, cc, a, wpplFn, numParticles).run();

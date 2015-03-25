@@ -158,7 +158,7 @@ module.exports = function(env) {
     return this.k(this.oldStore, dist);
   };
 
-  ParticleFilter.prototype.cache = env.defaultCoroutine.cache;
+  ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function pf(s, cc, a, wpplFn, numParticles, strict) {
     return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict === undefined ? true : strict).run();

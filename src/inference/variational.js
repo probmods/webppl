@@ -136,7 +136,7 @@ module.exports = function(env) {
     this.k(this.initialStore, dist);
   };
 
-  Variational.prototype.cache = env.defaultCoroutine.cache;
+  Variational.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function vecPlus(a, b) {
     var c = [];

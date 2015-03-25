@@ -129,7 +129,7 @@ module.exports = function(env) {
     }
   };
 
-  Enumerate.prototype.cache = env.defaultCoroutine.cache;
+  Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
   function enuPriority(s, cc, a, wpplFn, maxExecutions) {

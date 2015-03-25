@@ -62,7 +62,7 @@ module.exports = function(env) {
     exit: function(s, r) {
       return r;
     },
-    cache: function(s, cc, a, fn) {
+    incrementalize: function(s, cc, a, fn) {
       var args = [s, cc, a].concat(Array.prototype.slice.call(arguments, 4));
       return fn.apply(global, args);
     }
@@ -97,8 +97,8 @@ module.exports = function(env) {
     return env.coroutine.exit(s, retval);
   };
 
-  env.cache = function() {
-    return env.coroutine.cache.apply(global, arguments);
+  env.incrementalize = function() {
+    return env.coroutine.incrementalize.apply(global, arguments);
   }
 
 
@@ -114,7 +114,8 @@ module.exports = function(env) {
   addExports({
     factor: env.factor,
     sample: env.sample,
-    sampleWithFactor: env.sampleWithFactor
+    sampleWithFactor: env.sampleWithFactor,
+    incrementalize: env.incrementalize
   });
 
   // Modules we want to use from webppl

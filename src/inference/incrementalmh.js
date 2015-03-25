@@ -10,8 +10,11 @@ var erp = require('../erp.js');
 
 module.exports = function(env) {
 
+  var genid = util.makeGensym();
+
   // A cached ERP call
   function ERPNode(coroutine, parent, s, k, a, erp, params, val, score) {
+    this.id = genid("");
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -25,8 +28,8 @@ module.exports = function(env) {
     this.needsUpdate = false;
 
     this.params = params;
-    this.val = val || erp.sample(params);
-    this.score = score || this.erp.score(this.params, this.val);
+    this.val = (val !== undefined) ? val : erp.sample(params);
+    this.score = (score !== undefined) ? score : erp.score(this.params, this.val);
 
     // Add this to the master list of ERP nodes
     this.coroutine.trace.erpNodes.push(this);
@@ -45,15 +48,18 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.execute = function() {
-    if (this.parent !== null)
-      this.parent.notifyChildExecuted(this);
-    if (this.needsUpdate)
+    this.parent.notifyChildExecuted(this);
+    if (this.needsUpdate) {
+      this.needsUpdate = false;
       this.score = this.erp.score(this.params, this.val);
+      this.parent.notifyChildChanged(this);
+    }
     return this.kontinue();
   };
 
-  ERPNode.prototype.registerInputChanges = function(s, params) {
+  ERPNode.prototype.registerInputChanges = function(s, k, params) {
     this.store = _.clone(s);
+    this.continuation = k;
     this.reachable = true;
     this.needsUpdate = false;
     // Check params for changes
@@ -79,17 +85,62 @@ module.exports = function(env) {
 
   ERPNode.prototype.propose = function() {
     this.store = _.clone(this.store);   // Not sure if this is really necessary...
+    var oldval = this.val;
     this.val = this.erp.sample(this.params);
-    this.score = this.erp.score(this.params, this.val);
     this.coroutine.currNode = this.parent;
-    return this.kontinue();
+    this.needsUpdate = true;
+    return this.execute();
   };
 
   // ------------------------------------------------------------------
 
+  // A cached factor call
+  function FactorNode(coroutine, parent, s, k, a, unused, args) {
+    this.id = genid("");
+    this.coroutine = coroutine;
+
+    this.store = s;
+    this.continuation = k;
+    this.address = a;
+
+    this.parent = parent;
+
+    this.reachable = true;
+
+    this.score = args[0];
+  }
+
+  FactorNode.prototype.clone = function(cloneparent) {
+    return new FactorNode(this.coroutine, cloneparent, this.store,
+                          this.continuation, this.address, null,
+                          [this.score]);
+  };
+
+  FactorNode.prototype.execute = function() {
+    this.parent.notifyChildExecuted(this);
+    return this.kontinue();
+  };
+
+  FactorNode.prototype.registerInputChanges = function(s, k, args) {
+    this.reachable = true;
+    this.store = s;
+    this.continuation = k;
+    this.score = args[0];
+  };
+
+  FactorNode.prototype.kontinue = function() {
+    return this.continuation(this.store);
+  };
+
+  FactorNode.prototype.markDead = function() {
+    this.reachable = false;
+  }
+
+  // ------------------------------------------------------------------
 
   // A cached, general WebPPL function call
-  function CacheNode(coroutine, parent, s, k, a, fn, args) {
+  function FunctionNode(coroutine, parent, s, k, a, fn, args) {
+    this.id = genid("");
     this.coroutine = coroutine;
 
     this.continuation = k;
@@ -111,8 +162,8 @@ module.exports = function(env) {
     this.score = 0;
   }
 
-  CacheNode.prototype.clone = function(cloneparent) {
-    var n = new CacheNode(this.coroutine, cloneparent, this.inStore,
+  FunctionNode.prototype.clone = function(cloneparent) {
+    var n = new FunctionNode(this.coroutine, cloneparent, this.inStore,
                           this.continuation, this.address, this.func,
                           this.args);
     n.retval = this.retval;
@@ -126,29 +177,30 @@ module.exports = function(env) {
     return n;
   };
 
-  CacheNode.prototype.execute = function() {
+  FunctionNode.prototype.execute = function() {
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
       this.needsUpdate = false;
       // Keep track of the currently-executing node
-      var oldCurrNode = this.coroutine.currNode;
+      this.coroutine.backupCurrNode = this.coroutine.currNode;
       this.coroutine.currNode = this;
       // Reset nextChildToExecIdx
       this.nextChildToExecIdx = 0;
-      // Reset score
-      this.score = 0;
-      var that = this;
+      // Preserve reference to coroutine object so
+      //    continuation can refer to it.
+      var coroutine = this.coroutine;
       return this.func.apply(global, [
         this.inStore,
         function(s, retval) {
+          // Recover a reference to 'this'
+          // (This is not safe to do through closure (i.e. var that = this above)
+          //    because we clone the cache, producing different node objects).
+          var that = coroutine.currNode;
           that.outStore = _.clone(s);
           that.retval = retval;
           // Restore the previous currently-executing node
-          that.coroutine.currNode = oldCurrNode;
-          // The 'parent === null' case will correspond to the
-          //    program root, in which case calling the continuation
-          //    will invoke exit().
+          coroutine.currNode = coroutine.backupCurrNode;
           if (that.parent !== null)
             that.parent.notifyChildChanged(that);
           return that.kontinue();
@@ -160,9 +212,10 @@ module.exports = function(env) {
     }
   };
 
-  CacheNode.prototype.registerInputChanges = function(s, args) {
+  FunctionNode.prototype.registerInputChanges = function(s, k, args) {
     this.reachable = true;
     this.needsUpdate = false;
+    this.continuation = k;
     // Check args for changes
     for (var i = 0; i < args.length; i++)
     {
@@ -184,14 +237,14 @@ module.exports = function(env) {
     }
   };
 
-  CacheNode.prototype.markDead = function() {
+  FunctionNode.prototype.markDead = function() {
     this.reachable = false;
     _.each(this.children, function(child) {
       child.markDead();
     });
   };
 
-  CacheNode.prototype.kontinue = function() {
+  FunctionNode.prototype.kontinue = function() {
     // Clear out any children that have become unreachable
     //    before passing control back up to the parent
     this.children = _.filter(this.children, function(child) {
@@ -203,18 +256,19 @@ module.exports = function(env) {
       return child.reachable;
     });
     // Accumulate scores from all reachable children
+    this.score = 0;
     for (var i = 0; i < this.children.length; i++)
       this.score += this.children[i].score;
     // Call continuation
     return this.continuation(this.outStore, this.retval);
   };
 
-  CacheNode.prototype.notifyChildExecuted = function(child) {
+  FunctionNode.prototype.notifyChildExecuted = function(child) {
     var idx = this.children.indexOf(child);
     this.nextChildToExecIdx = idx + 1;
   };
 
-  CacheNode.prototype.notifyChildChanged = function(child) {
+  FunctionNode.prototype.notifyChildChanged = function(child) {
     var idx = this.children.indexOf(child);
     // Children later in the execution order may become unreachable due
     //    to this change, so we mark them all as unreachable and see which
@@ -230,13 +284,12 @@ module.exports = function(env) {
     this.trace = {
       cacheRoot: null,
       erpNodes: [],
-      score: 0,
-      val: undefined
     };
     this.backupTrace = null;
     this.newVarScore = 0;
     this.oldVarScore = 0;
     this.currNode = null;
+    this.backupCurrNode = null;
 
     this.returnHist = {};
     this.k = k;
@@ -255,29 +308,22 @@ module.exports = function(env) {
   IncrementalMH.prototype.run = function() {
     // Cache the top-level function, so that we always have a valid
     //    cache root.
-    return this.cache(this.s, env.exit, this.a, this.wpplFn);
-    // return this.wpplFn(this.s, env.exit, this.a);
+    return this.incrementalize(this.s, env.exit, this.a, this.wpplFn);
   };
 
   IncrementalMH.prototype.factor = function(s, k, a, score) {
-    // If this.currNode is null (i.e. if we have some top part of the
-    //    program that runs without caching), then we add directly to
-    //    this.score.
-    if (this.currNode === null)
-      this.trace.score += score;
-    else
-      this.currNode.score += score;
+    return this.cachelookup(FactorNode, s, k, a, null, [score]).execute();
   };
 
   IncrementalMH.prototype.sample = function(s, cont, name, erp, params) {
-    return this.cachelookup(true, s, cont, name, erp, params).execute();
+    return this.cachelookup(ERPNode, s, cont, name, erp, params).execute();
   };
 
   function acceptProb(currTrace, oldTrace, oldVarScore, newVarScore) {
-    if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
+    if (!oldTrace || oldTrace.cacheRoot.score === -Infinity) { return 1; } // init
     var fw = -Math.log(oldTrace.erpNodes.length) + newVarScore;
     var bw = -Math.log(currTrace.erpNodes.length) + oldVarScore;
-    var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
+    var p = Math.exp(currTrace.cacheRoot.score - oldTrace.cacheRoot.score + bw - fw);
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
@@ -285,7 +331,7 @@ module.exports = function(env) {
 
   IncrementalMH.prototype.exit = function(s, val) {
     if (this.iterations > 0) {
-      this.iterations -= 1;
+      this.iterations--;
 
       this.trace.val = val;
 
@@ -302,9 +348,9 @@ module.exports = function(env) {
         this.trace = this.backupTrace;
 
       // Add val to accumulated histogram
-      var stringifiedVal = JSON.stringify(val);
+      var stringifiedVal = JSON.stringify(this.trace.val);
       if (this.returnHist[stringifiedVal] === undefined) {
-        this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        this.returnHist[stringifiedVal] = { prob: 0, val: this.trace.val };
       }
       this.returnHist[stringifiedVal].prob += 1;
 
@@ -314,12 +360,11 @@ module.exports = function(env) {
       this.backupTrace = this.trace;
       this.trace = {
         erpNodes: [],
-        score: 0,
-        val: undefined
       };
       this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
       var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
-      return this.trace.erpNodes[idx].propose();
+      var propnode = this.trace.erpNodes[idx];
+      return propnode.propose();
     } else {
       // Finalize returned histogram-based ERP
       var dist = erp.makeMarginalERP(this.returnHist);
@@ -333,14 +378,13 @@ module.exports = function(env) {
     }
   };
 
-  IncrementalMH.prototype.cache = function(s, k, a, fn) {
+  IncrementalMH.prototype.incrementalize = function(s, k, a, fn) {
     var args = Array.prototype.slice.call(arguments, 4);
-    return this.cachelookup(false, s, k, a, fn, args).execute();
+    return this.cachelookup(FunctionNode, s, k, a, fn, args).execute();
   };
 
-  // Returns a CacheNode (or an ERPNode)
-  IncrementalMH.prototype.cachelookup = function(isERP, s, k, a, fn, args) {
-    var NodeType = isERP ? ERPNode : CacheNode;
+  // Returns a cache node
+  IncrementalMH.prototype.cachelookup = function(NodeType, s, k, a, fn, args) {
     var cacheNode;
     // If the cache is empty, then initialize it.
     if (this.trace.cacheRoot === null) {
@@ -353,7 +397,7 @@ module.exports = function(env) {
       });
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
-        cacheNode.registerInputChanges(s, args);
+        cacheNode.registerInputChanges(s, k, args);
       } else {
         // Lookup failed; create new node and insert it into this.currNode.children
         cacheNode = new NodeType(this, this.currNode, s, k, a, fn, args);
