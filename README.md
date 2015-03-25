@@ -1,18 +1,33 @@
-webppl
+webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 ======
 
 Probabilistic programming for the web
 
-[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
+## Quick start
 
-## Setup
+Install using [nodejs](http://nodejs.org):
 
-Requirements:
+    npm install -g webppl
 
-- [git](http://git-scm.com/)
-- [nodejs](http://nodejs.org)
+Use:
 
-Installation:
+    webppl myprogram.wppl
+
+Upgrade:
+
+    npm update -g webppl
+
+## License
+
+webppl is released under the [MIT License](LICENSE.md).
+
+## Contributions
+
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
+
+## Installation from GitHub
+
+Run:
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
@@ -34,14 +49,6 @@ Compiling webppl programs to Javascript:
 The compiled file can be run using nodejs:
 
     node geometric.js
-
-## License
-
-webppl is released under the [MIT License](LICENSE.md).
-
-## Contributions
-
-We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
 
 ## Development
 
