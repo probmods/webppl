@@ -39,7 +39,7 @@ The compiled file can be run using nodejs:
 
 webppl is released under the [MIT License](LICENSE.md).
 
-## Contributing
+## Contributions
 
 We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
 
