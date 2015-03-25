@@ -1,0 +1,29 @@
+var transition = function(s) {
+  return s ? flip(0.7) : flip(0.3)
+}
+
+var observe = cache(function(s) {
+  Enumerate(function() {return s ? flip(0.9) : flip(0.1)})
+})
+
+var trueObs = [false, false, false]
+
+var hmmRecur = function(n, states, observations) {
+  var newState = transition(states[states.length - 1])
+  var newObs = sampleWithFactor(observe(newState), [],
+                                function(v) {return v == trueObs[observations.length] ? 0 : -Infinity})
+  var newStates = states.concat([newState])
+  var newObservations = observations.concat([newObs])
+  return ((n == 1) ?
+          {states: newStates, observations: newObservations} :
+          hmmRecur(n - 1, states, observations));
+}
+
+var hmm = function(n) {
+  return hmmRecur(n, [true], [])
+}
+
+Enumerate(function() {
+  var r = hmm(3)
+  return r.states
+}, 500)

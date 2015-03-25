@@ -1,38 +1,81 @@
-webppl
+webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 ======
 
 Probabilistic programming for the web
 
-[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl)
+## Quick start
 
-Requirements:
+Install using [nodejs](http://nodejs.org):
 
-- [git](http://git-scm.com/)
-- [nodejs](http://nodejs.org)
+    npm install -g webppl
 
-**Installation**
+Run webppl programs:
+
+    webppl myprogram.wppl
+
+Upgrade webppl:
+
+    npm update -g webppl
+
+## License
+
+webppl is released under the [MIT License](LICENSE.md).
+
+## Contributions
+
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
+
+## Installation from GitHub
+
+Run:
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
     npm install
-    npm install -g nodeunit
+    npm install -g nodeunit grunt-cli
 
 To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
 
-**Running test**
+## Usage
+
+Running webppl programs:
+
+    webppl examples/geometric.wppl
+
+Compiling webppl programs to Javascript:
+
+    webppl examples/geometric.wppl --compile --out geometric.js
+
+The compiled file can be run using nodejs:
+
+    node geometric.js
+
+## Development
+
+Before committing changes, run grunt (which runs tests and linting):
+
+    grunt
+
+If grunt doesn't succeed, the [continuous integration tests](https://travis-ci.org/probmods/webppl.svg?branch=dev) will fail as well.
+
+To only run the tests, do:
 
     npm test
 
-**Executing webppl programs**
+To only run the linter:
 
-    ./webppl examples/geometric.wppl
+    grunt gjslint
 
-**Compiling webppl for use in browser**
+If the linter complains about style errors (like indentation), you can fix many of them automatically using:
+
+    grunt fixjsstyle
+
+To compile webppl for use in browser, run:
 
     npm install -g browserify
     browserify -t brfs src/main.js > compiled/webppl.js
 
-**Debugging webppl programs**
+## Debugging
 
 To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 
@@ -50,13 +93,16 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     // 5. (In separate terminal:) Load node inspector, resume program execution in node-inspector
     node-inspector
 
-**Using external functions, part 1: importing WebPPL code**
+
+## Using external functions
+
+### WebPPL code
 
 You can automatically prepend a webppl file `myLibrary.wppl` to your code using the following command:
 
     webppl myFile.wppl --require-wppl myLibrary.wppl
 
-**Using external functions, part 2: Javascript functions and libraries**
+### Javascript functions and libraries
 
 Using the example of reading and writing CSV files:
 
@@ -96,7 +142,7 @@ Using the example of reading and writing CSV files:
 
         webppl csvTest.wppl --require-js ./simpleCSV.js
 
-**Using external functions, part 3: Additional header files**
+### Additional header files
 
 Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
 

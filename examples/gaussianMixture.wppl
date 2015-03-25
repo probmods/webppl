@@ -1,0 +1,21 @@
+var makeGaussian = function(dim) {
+  var means = repeat(dim, function() {uniform(20, 380)});
+  var stds = repeat(dim, function() {uniform(5, 50)});
+  return function() {
+    return map2(gaussian, means, stds);
+  }
+}
+
+var mixtureWeight = uniform(0, 1);
+var gaussian1 = makeGaussian(2);
+var gaussian2 = makeGaussian(2);
+
+var gaussianMixture = function() {
+  if (flip(mixtureWeight)) {
+    return gaussian1();
+  } else {
+    return gaussian2();
+  }
+}
+
+repeat(100, gaussianMixture);

@@ -1,0 +1,6 @@
+--nojsdoc
+--jslint_error=all
+--strict
+--max_line_length=120
+--disable=10,11
+--additional_extensions=wppl

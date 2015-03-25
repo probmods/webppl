@@ -1,4 +1,7 @@
-var geom = function() {
-    return flip(0.1) ? 0 : 1+geom()
-}
-Enumerate(geom,100);
+var geometric = function(p) {
+  return flip(p) ? 1 + geometric(p) : 1;
+};
+
+Enumerate(
+    function() {return geometric(0.5);},
+    10);
