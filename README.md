@@ -27,8 +27,6 @@ We encourage you to contribute to webppl! Check out our [guidelines for contribu
 
 ## Installation from GitHub
 
-Run:
-
     git clone https://github.com/probmods/webppl.git
     cd webppl
     npm install
