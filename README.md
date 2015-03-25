@@ -9,11 +9,11 @@ Install using [nodejs](http://nodejs.org):
 
     npm install -g webppl
 
-Use:
+Run webppl programs:
 
     webppl myprogram.wppl
 
-Upgrade:
+Upgrade webppl:
 
     npm update -g webppl
 
