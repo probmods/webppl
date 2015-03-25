@@ -221,6 +221,8 @@ module.exports = function(env) {
 
   };
 
+  ParticleFilterRejuv.prototype.cache = env.defaultCoroutine.cache;
+
 
   ////// Lightweight MH on a particle
 
@@ -339,6 +341,9 @@ module.exports = function(env) {
       return this.backToPF(newParticle);
     }
   };
+
+  // TODO: Incrementalized version?
+  MHP.prototype.cache = env.defaultCoroutine.cache;
 
 
   function pfr(s, cc, a, wpplFn, numParticles, rejuvSteps) {

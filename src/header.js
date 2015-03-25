@@ -33,6 +33,7 @@ var mh = require('./inference/mh.js');
 var pmcmc = require('./inference/pmcmc.js');
 var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
+var incrementalmh = require('./inference/incrementalmh.js');
 var headerUtils = require('./headerUtils.js');
 var headerModules = [
   enumerate,
@@ -41,6 +42,7 @@ var headerModules = [
   pmcmc,
   smc,
   variational,
+  incrementalmh,
   headerUtils
 ];
 
@@ -59,8 +61,14 @@ module.exports = function(env) {
     },
     exit: function(s, r) {
       return r;
+    },
+    cache: function(s, cc, a, fn) {
+      var args = [s, cc, a].concat(Array.prototype.slice.call(arguments, 4));
+      return fn.apply(global, args);
     }
   };
+
+  env.defaultCoroutine = env.coroutine;
 
   env.sample = function(s, k, a, dist, params) {
     return env.coroutine.sample(s, k, a, dist, params);
@@ -88,6 +96,10 @@ module.exports = function(env) {
   env.exit = function(s, retval) {
     return env.coroutine.exit(s, retval);
   };
+
+  env.cache = function() {
+    return env.coroutine.cache.apply(global, arguments);
+  }
 
 
   // Exports
