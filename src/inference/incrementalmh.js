@@ -83,7 +83,6 @@ module.exports = function(env) {
   ERPNode.prototype.propose = function() {
     this.store = _.clone(this.store);   // Not sure if this is really necessary...
     this.val = this.erp.sample(this.params);
-    this.coroutine.currNode = this.parent;
     this.needsUpdate = true;
     return this.execute();
   };
@@ -176,9 +175,8 @@ module.exports = function(env) {
       this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
       this.needsUpdate = false;
-      // Keep track of the currently-executing node
-      this.coroutine.backupCurrNode = this.coroutine.currNode;
-      this.coroutine.currNode = this;
+      // Keep track of program stack
+      this.coroutine.nodeStack.push(this);
       // Reset nextChildToExecIdx
       this.nextChildToExecIdx = 0;
       // Preserve reference to coroutine object so
@@ -190,11 +188,9 @@ module.exports = function(env) {
           // Recover a reference to 'this'
           // (This is not safe to do through closure (i.e. var that = this above)
           //    because we clone the cache, producing different node objects).
-          var that = coroutine.currNode;
+          var that = coroutine.nodeStack.pop();
           that.outStore = _.clone(s);
           that.retval = retval;
-          // Restore the previous currently-executing node
-          coroutine.currNode = coroutine.backupCurrNode;
           if (that.parent !== null)
             that.parent.notifyChildChanged(that);
           return that.kontinue();
@@ -282,8 +278,7 @@ module.exports = function(env) {
     this.backupTrace = null;
     this.newVarScore = 0;
     this.oldVarScore = 0;
-    this.currNode = null;
-    this.backupCurrNode = null;
+    this.nodeStack = [];
 
     this.returnHist = {};
     this.k = k;
@@ -348,7 +343,8 @@ module.exports = function(env) {
       }
       this.returnHist[stringifiedVal].prob += 1;
 
-      // Make a new proposal (copy trace, etc.)
+      // Prepare to make a new proposal
+      // Copy trace
       this.oldVarScore = 0;
       this.newVarScore = 0;
       this.backupTrace = this.trace;
@@ -356,8 +352,12 @@ module.exports = function(env) {
         erpNodes: []
       };
       this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
+      // Select ERP to change.
       var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
       var propnode = this.trace.erpNodes[idx];
+      // Restore node stack up to this point
+      this.restoreStackUpTo(propnode.parent);
+      // Propose change and resume execution
       return propnode.propose();
     } else {
       // Finalize returned histogram-based ERP
@@ -385,21 +385,32 @@ module.exports = function(env) {
       cacheNode = new NodeType(this, null, s, k, a, fn, args);
       this.trace.cacheRoot = cacheNode;
     } else {
-      // Look for cache node among the children of this.currNode
-      cacheNode = _.find(this.currNode.children, function(node) {
+      var currNode = this.nodeStack[this.nodeStack.length-1];
+      // Look for cache node among the children of currNode
+      cacheNode = _.find(currNode.children, function(node) {
         return a == node.address;
       });
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
         cacheNode.registerInputChanges(s, k, args);
       } else {
-        // Lookup failed; create new node and insert it into this.currNode.children
-        cacheNode = new NodeType(this, this.currNode, s, k, a, fn, args);
-        var insertidx = this.currNode.nextChildToExecIdx;
-        this.currNode.children.splice(insertidx, 0, cacheNode);
+        // Lookup failed; create new node and insert it into currNode.children
+        cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
+        var insertidx = currNode.nextChildToExecIdx;
+        currNode.children.splice(insertidx, 0, cacheNode);
       }
     }
     return cacheNode;
+  };
+
+  // Restore this.nodeStack up to the specified node
+  IncrementalMH.prototype.restoreStackUpTo = function(node) {
+    this.nodeStack = [];
+    while (node !== null) {
+      this.nodeStack.push(node);
+      node = node.parent;
+    }
+    this.nodeStack.reverse();
   };
 
   // ------------------------------------------------------------------
