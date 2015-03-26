@@ -85,7 +85,7 @@ module.exports = function(env) {
   };
 
   env.incrementalize = function() {
-    return env.coroutine.incrementalize.apply(global, arguments);
+    return env.coroutine.incrementalize.apply(env.coroutine, arguments);
   }
 
 
