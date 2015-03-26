@@ -171,6 +171,8 @@ var testNames = [
   'testParticleFilterStore',
   'testMH',
   'testMHStore',
+  'testIncrementalMH',
+  'testIncrementalMHStore',
   'testPMCMC',
   'testPMCMCStore',
   'testPFRj',

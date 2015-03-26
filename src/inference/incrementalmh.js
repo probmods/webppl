@@ -82,7 +82,6 @@ module.exports = function(env) {
 
   ERPNode.prototype.propose = function() {
     this.store = _.clone(this.store);   // Not sure if this is really necessary...
-    var oldval = this.val;
     this.val = this.erp.sample(this.params);
     this.coroutine.currNode = this.parent;
     this.needsUpdate = true;
@@ -95,7 +94,7 @@ module.exports = function(env) {
   function FactorNode(coroutine, parent, s, k, a, unused, args) {
     this.coroutine = coroutine;
 
-    this.store = s;
+    this.store = _.clone(s);
     this.continuation = k;
     this.address = a;
 
@@ -119,7 +118,7 @@ module.exports = function(env) {
 
   FactorNode.prototype.registerInputChanges = function(s, k, args) {
     this.reachable = true;
-    this.store = s;
+    this.store = _.clone(s);
     this.continuation = k;
     this.score = args[0];
   };
@@ -159,8 +158,8 @@ module.exports = function(env) {
 
   FunctionNode.prototype.clone = function(cloneparent) {
     var n = new FunctionNode(this.coroutine, cloneparent, this.inStore,
-                          this.continuation, this.address, this.func,
-                          this.args);
+                             this.continuation, this.address, this.func,
+                             this.args);
     n.retval = this.retval;
     n.outStore = this.outStore;
     n.score = this.score;
@@ -268,7 +267,7 @@ module.exports = function(env) {
     // Children later in the execution order may become unreachable due
     //    to this change, so we mark them all as unreachable and see which
     //    ones we hit.
-    for (var i = idx+1; i < this.children.length; i++)
+    for (var i = idx + 1; i < this.children.length; i++)
       this.children[i].reachable = false;
   };
 
@@ -278,7 +277,7 @@ module.exports = function(env) {
 
     this.trace = {
       cacheRoot: null,
-      erpNodes: [],
+      erpNodes: []
     };
     this.backupTrace = null;
     this.newVarScore = 0;
@@ -354,7 +353,7 @@ module.exports = function(env) {
       this.newVarScore = 0;
       this.backupTrace = this.trace;
       this.trace = {
-        erpNodes: [],
+        erpNodes: []
       };
       this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
       var idx = Math.floor(Math.random() * this.trace.erpNodes.length);

@@ -32,16 +32,6 @@ var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
 var incrementalmh = require('./inference/incrementalmh.js');
 var headerUtils = require('./headerUtils.js');
-var headerModules = [
-  enumerate,
-  particlefilter,
-  mh,
-  pmcmc,
-  smc,
-  variational,
-  incrementalmh,
-  headerUtils
-];
 
 
 module.exports = function(env) {
@@ -124,7 +114,7 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, particlefilter, mh, pmcmc,
+    enumerate, particlefilter, mh, incrementalmh, pmcmc,
     smc, variational, headerUtils
   ];
   headerModules.forEach(function(mod) {
