@@ -10,11 +10,8 @@ var erp = require('../erp.js');
 
 module.exports = function(env) {
 
-  var genid = util.makeGensym();
-
   // A cached ERP call
   function ERPNode(coroutine, parent, s, k, a, erp, params, val, score) {
-    this.id = genid("");
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -96,7 +93,6 @@ module.exports = function(env) {
 
   // A cached factor call
   function FactorNode(coroutine, parent, s, k, a, unused, args) {
-    this.id = genid("");
     this.coroutine = coroutine;
 
     this.store = s;
@@ -140,7 +136,6 @@ module.exports = function(env) {
 
   // A cached, general WebPPL function call
   function FunctionNode(coroutine, parent, s, k, a, fn, args) {
-    this.id = genid("");
     this.coroutine = coroutine;
 
     this.continuation = k;
