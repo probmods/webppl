@@ -10,6 +10,22 @@ var erp = require('../erp.js');
 
 module.exports = function(env) {
 
+  var DEBUG = true;
+  function debuglog() {
+    if (DEBUG)
+      console.log.apply(global, arguments);
+  }
+
+  function tabbedlog(depth) {
+    if (DEBUG) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      var pad = "";
+      for (var i = 0; i < depth; i++) pad += "  ";
+      pad += "["+depth+"] ";
+      console.log.apply(global, [pad].concat(args));
+    }
+  }
+
   // A cached ERP call
   function ERPNode(coroutine, parent, s, k, a, erp, params, val, score) {
     this.coroutine = coroutine;
@@ -20,6 +36,7 @@ module.exports = function(env) {
     this.erp = erp;
 
     this.parent = parent;
+    this.depth = parent.depth + 1;
 
     this.reachable = true;
     this.needsUpdate = false;
@@ -31,8 +48,10 @@ module.exports = function(env) {
     // Add this to the master list of ERP nodes
     this.coroutine.trace.erpNodes.push(this);
     var iscopy = val !== undefined;
-    if (!iscopy)
+    if (!iscopy) {
       this.coroutine.newVarScore += this.score;
+      tabbedlog(this.depth, "new ERP");
+    }
   }
 
   // Careful with how this adds to coroutine.trace.erpNodes (i.e. the contents
@@ -45,11 +64,16 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.execute = function() {
+    tabbedlog(this.depth, "execute ERP");
     this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
+      tabbedlog(this.depth, "yes, ERP changed");
       this.needsUpdate = false;
       this.score = this.erp.score(this.params, this.val);
       this.parent.notifyChildChanged(this);
+    }
+    else {
+      tabbedlog(this.depth, "no, ERP has not changed");
     }
     return this.kontinue();
   };
@@ -78,12 +102,15 @@ module.exports = function(env) {
   ERPNode.prototype.markDead = function() {
     this.reachable = false;
     this.coroutine.oldVarScore += this.score;
+    tabbedlog(this.depth, "kill ERP");
   };
 
   ERPNode.prototype.propose = function() {
     this.store = _.clone(this.store);   // Not sure if this is really necessary...
+    var oldval = this.val;
     this.val = this.erp.sample(this.params);
-    this.needsUpdate = true;
+    if (oldval !== this.val)
+      this.needsUpdate = true;
     return this.execute();
   };
 
@@ -98,6 +125,7 @@ module.exports = function(env) {
     this.address = a;
 
     this.parent = parent;
+    this.depth = parent.depth + 1;
 
     this.reachable = true;
 
@@ -111,6 +139,7 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.execute = function() {
+    tabbedlog(this.depth, "execute factor");
     this.parent.notifyChildExecuted(this);
     return this.kontinue();
   };
@@ -128,6 +157,7 @@ module.exports = function(env) {
 
   FactorNode.prototype.markDead = function() {
     this.reachable = false;
+    tabbedlog(this.depth, "kill factor");
   }
 
   // ------------------------------------------------------------------
@@ -141,6 +171,7 @@ module.exports = function(env) {
     this.func = fn;
 
     this.parent = parent;
+    this.depth = parent ? parent.depth + 1 : 0;
     this.children = [];
     this.nextChildToExecIdx = 0;
 
@@ -171,9 +202,11 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.execute = function() {
+    tabbedlog(this.depth, "execute function");
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
+      tabbedlog(this.depth, "yes, function needs update");
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
@@ -189,6 +222,7 @@ module.exports = function(env) {
           // (This is not safe to do through closure (i.e. var that = this above)
           //    because we clone the cache, producing different node objects).
           var that = coroutine.nodeStack.pop();
+          tabbedlog(that.depth, "continue from function");
           that.outStore = _.clone(s);
           that.retval = retval;
           if (that.parent !== null)
@@ -198,6 +232,7 @@ module.exports = function(env) {
         this.address
       ].concat(this.args));
     } else {
+      tabbedlog(this.depth, "no, function has not changed; continuing");
       return this.kontinue();
     }
   };
@@ -229,12 +264,14 @@ module.exports = function(env) {
 
   FunctionNode.prototype.markDead = function() {
     this.reachable = false;
+    tabbedlog(this.depth, "kill function");
     _.each(this.children, function(child) {
       child.markDead();
     });
   };
 
   FunctionNode.prototype.kontinue = function() {
+
     // Clear out any children that have become unreachable
     //    before passing control back up to the parent
     this.children = _.filter(this.children, function(child) {
@@ -358,6 +395,7 @@ module.exports = function(env) {
       // Restore node stack up to this point
       this.restoreStackUpTo(propnode.parent);
       // Propose change and resume execution
+      debuglog("-------------------------------------");
       return propnode.propose();
     } else {
       // Finalize returned histogram-based ERP
