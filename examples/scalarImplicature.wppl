@@ -1,0 +1,48 @@
+var worldPrior = function() {
+  var num_nice_people = randomInteger(4) //3 people.. 0-3 can be nice.
+  return num_nice_people
+}
+
+var utterancePrior = function() {
+  var utterances = ['some of the people are nice',
+                    'all of the people are nice',
+                    'none of the people are nice']
+  var i = randomInteger(utterances.length)
+  return utterances[i]
+}
+
+var meaning = function(utt, world) {
+  return utt == 'some of the people are nice' ? world > 0 :
+         utt == 'all of the people are nice' ? world == 3 :
+         utt == 'none of the people are nice' ? world == 0 :
+         true
+}
+
+var literalListener = cache(function(utterance) {
+  Enumerate(function() {
+    var world = worldPrior()
+    var m = meaning(utterance, world)
+    factor(m ? 0 : -Infinity)
+    return world
+  })
+})
+
+var speaker = cache(function(world) {
+  Enumerate(function() {
+    var utterance = utterancePrior()
+    var L = literalListener(utterance)
+    factor(L.score([], world))
+    return utterance
+  })
+})
+
+var listener = function(utterance) {
+  Enumerate(function() {
+    var world = worldPrior()
+    var S = speaker(world)
+    factor(S.score([], utterance))
+    return world
+  })
+}
+
+listener('some of the people are nice')

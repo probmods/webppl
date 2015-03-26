@@ -22,7 +22,7 @@ module.exports = function(env) {
 
   var deepCopyTrace = function(trace) {
     return trace.map(function(obj) {
-      var objCopy = util.copyObj(obj);
+      var objCopy = _.clone(obj);
       objCopy.store = _.clone(obj.store);
       return objCopy;
     });

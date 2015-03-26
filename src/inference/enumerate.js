@@ -6,6 +6,7 @@
 
 'use strict';
 
+var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util.js');
 var erp = require('../erp.js');
@@ -17,18 +18,20 @@ module.exports = function(env) {
     this.score = 0; // Used to track the score of the path currently being explored
     this.marginal = {}; // We will accumulate the marginal distribution here
     this.numCompletedExecutions = 0;
-
     this.store = store; // will be reinstated at the end
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
     this.maxExecutions = maxExecutions || Infinity;
-    this.queue = Q; // Queue of states that we have yet to explore
+
+    // Queue of states that we have yet to explore.  This queue is a
+    // bunch of computation states. Each state is a continuation, a
+    // value to apply it to, and a score.
+    this.queue = Q;
 
     // Move old coroutine out of the way
+    // and install this as the current handler
     this.coroutine = env.coroutine;
-
-    // install this as the current handler
     env.coroutine = this;
   }
 
@@ -39,22 +42,15 @@ module.exports = function(env) {
     return this.wpplFn(this.store, env.exit, this.a);
   };
 
-  // The queue is a bunch of computation states. each state is a
-  // continuation, a value to apply it to, and a score.
-  //
-  // This function runs the highest priority state in the
-  // queue. Currently priority is score, but could be adjusted to give
-  // depth-first or breadth-first or some other search strategy
-
   Enumerate.prototype.nextInQueue = function() {
     var nextState = this.queue.deq();
     this.score = nextState.score;
-
     return nextState.continuation(nextState.store, nextState.value);
   };
 
   Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
-    //allows extra factors to be taken into account in making exploration decisions:
+
+    // Allows extra factors to be taken into account in making exploration decisions:
     extraScoreFn = extraScoreFn || function(x) {return 0;};
 
     // Find support of this erp:
@@ -78,7 +74,7 @@ module.exports = function(env) {
           continuation: cc,
           value: supp[s],
           score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
-          store: util.copyObj(store)
+          store: _.clone(store)
         };
         this.queue.enq(state);
       }

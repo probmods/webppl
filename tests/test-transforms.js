@@ -3,8 +3,8 @@
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
-var thunkify = require('../src/syntaxUtils').thunkify;
-var fail = require('../src/syntaxUtils').fail;
+var thunkify = require('../src/syntax').thunkify;
+var fail = require('../src/syntax').fail;
 var naming = require('../src/transforms/naming').naming;
 var cps = require('../src/transforms/cps').cps;
 var store = require('../src/transforms/store').store;
@@ -204,7 +204,7 @@ var tests = {
 
   ],
 
-  testCallExpressionTests: [
+  testCallExpression: [
 
     { name: 'testPrimitive',
       code: 'plusTwo(3)',
@@ -217,6 +217,17 @@ var tests = {
     { name: 'testCompound2',
       code: '(function(y){return y})(plusTwo(123))',
       expected: 125 },
+
+    { name: 'testHigherOrder1',
+      code: ['var foo = function(func1, func2) {',
+             '  return function(x) {',
+             '    return func1(x)(func2(x))',
+             '  }',
+             '};',
+             'var f1 = function(y){return function(x){return x * y;}};',
+             'var f2 = function(x){return x + 1;}',
+             'foo(f1, f2)(3)'].join('\n'),
+      expected: 12 },
 
     { name: 'testBinaryFuncPlus',
       code: 'plus(3, 5)',
@@ -325,7 +336,16 @@ var tests = {
 
     { name: 'testConditional3',
       code: 'and(true, false) ? 2 : 3',
-      expected: 3 }
+      expected: 3 },
+
+    { name: 'testConditional4',
+      code: [
+        'var id = function(x){return x};',
+        'var x = undefined;',
+        'var a = ((x === undefined) ? false : id(x.foo)) || true;',
+        'a'
+      ].join('\n'),
+      expected: true }
 
   ],
 
@@ -416,7 +436,22 @@ var tests = {
 
     { name: 'testObjectCompound',
       code: 'var x = {a: 1+2, b: [4,5]}; x',
-      expected: {a: 3, b: [4, 5]} }
+      expected: {a: 3, b: [4, 5]} },
+
+    { name: 'testNestedObject',
+      code: ['var box = {',
+        '  sub: {',
+        '    f: function(x1){',
+        '      return function(x2){',
+        '        return x1 + x2;',
+        '      }',
+        '    }',
+        '  }',
+        '}',
+        '',
+        'var g = box.sub.f;',
+        'g(1)(2)'].join('\n'),
+      expected: 3 }
 
   ],
 
@@ -436,7 +471,7 @@ var tests = {
 
   ],
 
-  testNAryExpressionTests: [
+  testNAryExpression: [
 
     { name: 'testPlus',
       code: '3 + 4',
@@ -456,22 +491,37 @@ var tests = {
 
   ],
 
-  testLogicalExpressionTest: [
+  testLogicalExpression: [
+
     { name: 'testLogicalOr',
       code: 'true || false',
       expected: true },
+
     { name: 'testLogicalNot',
       code: '!(true || true)',
       expected: false },
+
     { name: 'testLogicalAnd',
       code: 'true && false',
       expected: false },
+
     { name: 'testLogicalCompound1',
       code: 'true && (false || false || true)',
       expected: true },
+
     { name: 'testLogicalCompound2',
       code: '!(true && (false || false || true))',
-      expected: false }
+      expected: false },
+
+    { name: 'testLazyLogical',
+      code: [
+        'var id = function(x){return x};',
+        'var x = undefined;',
+        'var a = true || id(x.foo);',
+        'a'
+      ].join('\n'),
+      expected: true }
+
   ],
 
   testPrimitiveWrapping: [

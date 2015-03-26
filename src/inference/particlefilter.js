@@ -18,7 +18,7 @@ module.exports = function(env) {
       continuation: particle.continuation,
       weight: particle.weight,
       value: particle.value,
-      store: util.copyObj(particle.store)
+      store: _.clone(particle.store)
     };
   }
 
@@ -34,7 +34,7 @@ module.exports = function(env) {
         continuation: exitK,
         weight: 0,
         value: undefined,
-        store: util.copyObj(s)
+        store: _.clone(s)
       };
       this.particles.push(particle);
     }
@@ -46,7 +46,7 @@ module.exports = function(env) {
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    this.oldStore = util.copyObj(s); // will be reinstated at the end
+    this.oldStore = _.clone(s); // will be reinstated at the end
   }
 
   ParticleFilter.prototype.run = function() {

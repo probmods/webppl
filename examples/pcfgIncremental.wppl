@@ -1,0 +1,46 @@
+var pcfgTransition = function(symbol) {
+  var rules = {
+    'start': {rhs: [['NP', 'V', 'NP'], ['NP', 'V']], probs: [0.4, 0.6]},
+    'NP': {rhs: [['A', 'NP'], ['N']], probs: [0.4, 0.6]}
+  };
+  return rules[symbol].rhs[discrete(rules[symbol].probs)]
+}
+
+var preTerminal = function(symbol) {
+  return symbol == 'N' || symbol == 'V' || symbol == 'A'
+}
+
+var terminal = function(symbol) {
+  var rules = {
+    'N': {words: ['John', 'soup'], probs: [0.6, 0.4]},
+    'V': {words: ['loves', 'hates', 'runs'], probs: [0.3, 0.3, 0.4]},
+    'A': {words: ['tall', 'salty'], probs: [0.6, 0.4]} }
+  return rules[symbol].words[discrete(rules[symbol].probs)]
+}
+
+var pcfg = function(symbol, yieldsofar, trueyield) {
+  if (preTerminal(symbol)) {
+    var t = terminal(symbol)
+    if (yieldsofar.length < trueyield.length) {
+      factor(t == trueyield[yieldsofar.length] ? 0 : -Infinity)
+    }
+    return yieldsofar.concat([t])
+  } else {
+    return expand(pcfgTransition(symbol), yieldsofar, trueyield) }
+}
+
+var expand = function(symbols, yieldsofar, trueyield) {
+  if (symbols.length == 0) {
+    return yieldsofar;
+  } else {
+    return expand(
+        symbols.slice(1),
+        pcfg(symbols[0], yieldsofar, trueyield),
+        trueyield);
+  }
+}
+
+Enumerate(function() {
+  var y = pcfg('start', [], ['tall', 'John'])
+  return y[2] ? y[2] : '' //distribution on next word?
+}, 300)

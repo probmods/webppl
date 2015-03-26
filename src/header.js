@@ -24,9 +24,6 @@ var PriorityQueue = require('priorityqueuejs');
 
 var util = require('./util.js');
 var erp = require('./erp.js');
-
-// browserify apparently needs require statements to be top-level in
-//    order to correctly track dependencies.
 var enumerate = require('./inference/enumerate.js');
 var particlefilter = require('./inference/particlefilter.js');
 var mh = require('./inference/mh.js');
@@ -126,6 +123,10 @@ module.exports = function(env) {
   });
 
   // Inference functions and header utils
+  var headerModules = [
+    enumerate, particlefilter, mh, pmcmc,
+    smc, variational, headerUtils
+  ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));
   });

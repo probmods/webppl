@@ -3,7 +3,7 @@
 var estraverse = require('estraverse');
 var Syntax = estraverse.Syntax;
 var build = require('ast-types').builders;
-var isPrimitive = require('../syntaxUtils').isPrimitive;
+var isPrimitive = require('../syntax').isPrimitive;
 
 
 var storeIdNode = build.identifier('globalStore');
@@ -20,7 +20,13 @@ function store(node) {
     case Syntax.CallExpression:
       if (isPrimitive(node.callee)) {
         return node;
-      } else {
+      }
+      else if (node.arguments.length > 0 &&
+          node.arguments[0].type === 'Identifier' &&
+          node.arguments[0].name === 'globalStore') {
+        return node;
+      }
+      else {
         return build.callExpression(node.callee,
             [storeIdNode].concat(node.arguments));
       }

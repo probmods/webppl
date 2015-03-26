@@ -1,19 +1,31 @@
-webppl
+webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
 ======
 
 Probabilistic programming for the web
 
-[![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl)
+## Quick start
 
+Install using [nodejs](http://nodejs.org):
 
-## Setup
+    npm install -g webppl
 
-Requirements:
+Run webppl programs:
 
-- [git](http://git-scm.com/)
-- [nodejs](http://nodejs.org)
+    webppl myprogram.wppl
 
-Installation:
+Upgrade webppl:
+
+    npm update -g webppl
+
+## License
+
+webppl is released under the [MIT License](LICENSE.md).
+
+## Contributions
+
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
+
+## Installation from GitHub
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
@@ -22,19 +34,19 @@ Installation:
 
 To use the `webppl` command line tool from any directory, add the webppl directory to your `$PATH`.
 
-Running tests:
+## Usage
 
-    npm test
+Running webppl programs:
 
-Executing webppl programs:
+    webppl examples/geometric.wppl
 
-    ./webppl examples/geometric.wppl
+Compiling webppl programs to Javascript:
 
-Compiling webppl for use in browser:
+    webppl examples/geometric.wppl --compile --out geometric.js
 
-    npm install -g browserify
-    browserify -t brfs src/main.js > compiled/webppl.js
+The compiled file can be run using nodejs:
 
+    node geometric.js
 
 ## Development
 
@@ -42,14 +54,26 @@ Before committing changes, run grunt (which runs tests and linting):
 
     grunt
 
-Make sure grunt succeeds before committing. If it doesn't, the continuous integration test will fail.
+If grunt doesn't succeed, the [continuous integration tests](https://travis-ci.org/probmods/webppl) will fail as well.
 
-If grunt complains about style errors (like indentation), you can fix some of them automatically using:
+To only run the tests, do:
+
+    npm test
+
+To only run the linter:
+
+    grunt gjslint
+
+If the linter complains about style errors (like indentation), you can fix many of them automatically using:
 
     grunt fixjsstyle
 
+To compile webppl for use in browser, run:
 
-## Debugging webppl programs
+    npm install -g browserify
+    browserify -t brfs src/main.js > compiled/webppl.js
+
+## Debugging
 
 To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptions](https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions) in the Chrome debugger. To debug WebPPL programs running in nodejs, use node-inspector as follows:
 

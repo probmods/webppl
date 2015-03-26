@@ -54,7 +54,7 @@ module.exports = function(env) {
         weights: [0],
         value: undefined
       };
-      this.particles.push(util.copyObj(particle));
+      this.particles.push(_.clone(particle));
     }
   };
 
