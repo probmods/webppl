@@ -76,13 +76,13 @@ module.exports = function(env) {
     } else {
       this.parent.notifyChildExecuted(this);
       if (this.needsUpdate) {
-        tabbedlog(this.depth, "yes, ERP changed");
+        tabbedlog(this.depth, "yes, ERP params changed");
         this.needsUpdate = false;
         this.rescore();
         this.parent.notifyChildChanged(this);
       }
       else {
-        tabbedlog(this.depth, "no, ERP has not changed");
+        tabbedlog(this.depth, "no, ERP params have not changed");
       }
       return this.kontinue();
     }
@@ -247,7 +247,7 @@ module.exports = function(env) {
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
-      tabbedlog(this.depth, "yes, function needs update; running");
+      tabbedlog(this.depth, "yes, function args changed; re-running");
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
@@ -273,7 +273,7 @@ module.exports = function(env) {
         this.address
       ].concat(this.args));
     } else {
-      tabbedlog(this.depth, "no, function has not changed; continuing");
+      tabbedlog(this.depth, "no, function args have not changed; continuing");
       return this.kontinue();
     }
   };
