@@ -82,11 +82,12 @@ module.exports = function(env) {
 
     var reuse = ! (prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
-    // // On proposal: bail out early if the value didn't change
-    // if (forceSample && prev.val === val) {
-    //   this.trace = this.oldTrace;
-    //   return this.exit(null, this.oldVal);
-    // } else {
+    // On proposal: bail out early if the value didn't change
+    if (forceSample && prev.val === val) {
+      this.trace = this.oldTrace;
+      this.currScore = this.oldScore;
+      return this.exit(null, this.oldVal);
+    } else {
       var choiceScore = erp.score(params, val);
       this.trace.push({k: cont, name: name, erp: erp, params: params,
         score: this.currScore, choiceScore: choiceScore,
@@ -97,7 +98,7 @@ module.exports = function(env) {
         return this.exit();
       else
         return cont(s, val);
-    // }
+    }
   };
 
   MH.prototype.isInitialized = function() {
