@@ -69,17 +69,23 @@ module.exports = function(env) {
 
   ERPNode.prototype.execute = function() {
     tabbedlog(this.depth, "execute ERP");
-    this.parent.notifyChildExecuted(this);
-    if (this.needsUpdate) {
-      tabbedlog(this.depth, "yes, ERP changed");
-      this.needsUpdate = false;
-      this.rescore();
-      this.parent.notifyChildChanged(this);
+    // Bail out early if we know the proposal will be rejected
+    if (this.score === -Infinity && this.coroutine.isInitialized()) {
+      tabbedlog(this.depth, "score became -Infinity; bailing out early");
+      return this.coroutine.exit();
+    } else {
+      this.parent.notifyChildExecuted(this);
+      if (this.needsUpdate) {
+        tabbedlog(this.depth, "yes, ERP changed");
+        this.needsUpdate = false;
+        this.rescore();
+        this.parent.notifyChildChanged(this);
+      }
+      else {
+        tabbedlog(this.depth, "no, ERP has not changed");
+      }
+      return this.kontinue();
     }
-    else {
-      tabbedlog(this.depth, "no, ERP has not changed");
-    }
-    return this.kontinue();
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, params) {
@@ -110,23 +116,30 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.propose = function() {
+    tabbedlog(this.depth, "proposing change to ERP");
     this.store = _.clone(this.store);
     var oldval = this.val;
-    var oldscore = this.score
     this.val = this.erp.sample(this.params);
-    this.rescore();
-    this.coroutine.rvsPropLP = oldscore;
-    this.coroutine.fwdPropLP = this.score;
-    this.parent.notifyChildChanged(this);
-    this.needsUpdate = false;
-    return this.execute();
+    // If the value didn't change, then just bail out (we know the
+    //    the proposal will be accepted)
+    if (oldval === this.val) {
+      tabbedlog(this.depth, "proposal didn't change value; bailing out early");
+      return this.coroutine.exit();
+    } else {
+      var oldscore = this.score;
+      this.rescore();
+      this.coroutine.rvsPropLP = oldscore;
+      this.coroutine.fwdPropLP = this.score;
+      this.parent.notifyChildChanged(this);
+      this.needsUpdate = false;
+      return this.execute();
+    }
   };
 
   ERPNode.prototype.rescore = function() {
     var oldscore = this.score;
     this.score = this.erp.score(this.params, this.val);
-    if (this.coroutine.trace.score !== -Infinity)
-      this.coroutine.trace.score += this.score - oldscore;
+    this.coroutine.trace.score += this.score - oldscore;
   };
 
   // ------------------------------------------------------------------
@@ -159,8 +172,14 @@ module.exports = function(env) {
 
   FactorNode.prototype.execute = function() {
     tabbedlog(this.depth, "execute factor");
-    this.parent.notifyChildExecuted(this);
-    return this.kontinue();
+    // Bail out early if we know proposal will be rejected
+    if (this.score === -Infinity && this.coroutine.isInitialized()) {
+      tabbedlog(this.depth, "score became -Infinity; bailing out early");
+      return this.coroutine.exit();
+    } else {
+      this.parent.notifyChildExecuted(this);
+      return this.kontinue();
+    }
   };
 
   FactorNode.prototype.registerInputChanges = function(s, k, args) {
@@ -181,8 +200,7 @@ module.exports = function(env) {
 
   FactorNode.prototype.rescore = function(oldscore, score) {
     this.score = score;
-    if (this.coroutine.trace.score !== -Infinity)
-      this.coroutine.trace.score += score - oldscore;
+    this.coroutine.trace.score += score - oldscore;
   };
 
   // ------------------------------------------------------------------
@@ -381,7 +399,7 @@ module.exports = function(env) {
     return this.iterations < this.totalIterations;
   }
 
-  IncrementalMH.prototype.exit = function(s) {
+  IncrementalMH.prototype.exit = function() {
     if (this.iterations > 0) {
       // Initialization: Keep rejection sampling until we get a trace with
       //    non-zero probability
