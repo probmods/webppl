@@ -44,7 +44,10 @@ module.exports = function(env) {
 
     this.params = params;
     this.val = (val !== undefined) ? val : erp.sample(params);
-    this.score = (score !== undefined) ? score : erp.score(this.params, this.val);
+    if (score === undefined) {
+      this.score = 0;
+      this.rescore();
+    } else this.score = score;
 
     // Add this to the master list of ERP nodes
     this.coroutine.trace.erpNodes.push(this);
@@ -70,7 +73,7 @@ module.exports = function(env) {
     if (this.needsUpdate) {
       tabbedlog(this.depth, "yes, ERP changed");
       this.needsUpdate = false;
-      this.score = this.erp.score(this.params, this.val);
+      this.rescore();
       this.parent.notifyChildChanged(this);
     }
     else {
@@ -107,21 +110,29 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.propose = function() {
-    this.store = _.clone(this.store);   // Not sure if this is really necessary...
+    this.store = _.clone(this.store);
     var oldval = this.val;
+    var oldscore = this.score
     this.val = this.erp.sample(this.params);
-    this.coroutine.rvsPropLP = this.score;
-    this.score = this.erp.score(this.params, this.val);
+    this.rescore();
+    this.coroutine.rvsPropLP = oldscore;
     this.coroutine.fwdPropLP = this.score;
     this.parent.notifyChildChanged(this);
     this.needsUpdate = false;
     return this.execute();
   };
 
+  ERPNode.prototype.rescore = function() {
+    var oldscore = this.score;
+    this.score = this.erp.score(this.params, this.val);
+    if (this.coroutine.trace.score !== -Infinity)
+      this.coroutine.trace.score += this.score - oldscore;
+  };
+
   // ------------------------------------------------------------------
 
   // A cached factor call
-  function FactorNode(coroutine, parent, s, k, a, unused, args) {
+  function FactorNode(coroutine, parent, s, k, a, unused, args, iscopy) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -134,12 +145,16 @@ module.exports = function(env) {
     this.reachable = true;
 
     this.score = args[0];
+    if (!iscopy)
+      this.rescore(0, args[0]);
+    else
+      this.score = args[0];
   }
 
   FactorNode.prototype.clone = function(cloneparent) {
     return new FactorNode(this.coroutine, cloneparent, this.store,
                           this.continuation, this.address, null,
-                          [this.score]);
+                          [this.score], true);
   };
 
   FactorNode.prototype.execute = function() {
@@ -152,7 +167,7 @@ module.exports = function(env) {
     this.reachable = true;
     this.store = _.clone(s);
     this.continuation = k;
-    this.score = args[0];
+    this.rescore(this.score, args[0]);
   };
 
   FactorNode.prototype.kontinue = function() {
@@ -163,6 +178,12 @@ module.exports = function(env) {
     this.reachable = false;
     tabbedlog(this.depth, "kill factor");
   }
+
+  FactorNode.prototype.rescore = function(oldscore, score) {
+    this.score = score;
+    if (this.coroutine.trace.score !== -Infinity)
+      this.coroutine.trace.score += score - oldscore;
+  };
 
   // ------------------------------------------------------------------
 
@@ -187,7 +208,6 @@ module.exports = function(env) {
 
     this.retval = undefined;
     this.outStore = null;
-    this.score = 0;
   }
 
   FunctionNode.prototype.clone = function(cloneparent) {
@@ -196,7 +216,6 @@ module.exports = function(env) {
                              this.args);
     n.retval = this.retval;
     n.outStore = this.outStore;
-    n.score = this.score;
 
     _.each(this.children, function(child) {
       n.children.push(child.clone(n));
@@ -286,10 +305,6 @@ module.exports = function(env) {
         child.markDead();
       return child.reachable;
     });
-    // Accumulate scores from all reachable children
-    this.score = 0;
-    for (var i = 0; i < this.children.length; i++)
-      this.score += this.children[i].score;
     // Call continuation
     return this.continuation(this.outStore, this.retval);
   };
@@ -311,16 +326,6 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   function IncrementalMH(s, k, a, wpplFn, numIterations) {
-
-    this.trace = {
-      cacheRoot: null,
-      erpNodes: []
-    };
-    this.backupTrace = null;
-    this.fwdPropLP = 0;
-    this.rvsPropLP = 0;
-    this.nodeStack = [];
-
     this.returnHist = {};
     this.k = k;
     this.oldStore = s;
@@ -339,6 +344,15 @@ module.exports = function(env) {
   }
 
   IncrementalMH.prototype.run = function() {
+    this.trace = {
+      cacheRoot: null,
+      erpNodes: [],
+      score: 0
+    };
+    this.backupTrace = null;
+    this.fwdPropLP = 0;
+    this.rvsPropLP = 0;
+    this.nodeStack = [];
     // Cache the top-level function, so that we always have a valid
     //    cache root.
     return this.incrementalize(this.s, env.exit, this.a, this.wpplFn);
@@ -353,57 +367,68 @@ module.exports = function(env) {
   };
 
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
-    if (!oldTrace || oldTrace.cacheRoot.score === -Infinity) { return 1; } // init
+    if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
     var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
     var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
-    var p = Math.exp(currTrace.cacheRoot.score - oldTrace.cacheRoot.score + bw - fw);
+    var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
   }
 
-  IncrementalMH.prototype.exit = function(s, val) {
+  // Returns true if we've successfully rejection initialized.
+  IncrementalMH.prototype.isInitialized = function() {
+    return this.iterations < this.totalIterations;
+  }
+
+  IncrementalMH.prototype.exit = function(s) {
     if (this.iterations > 0) {
-      this.iterations--;
+      // Initialization: Keep rejection sampling until we get a trace with
+      //    non-zero probability
+      if (!this.isInitialized() && this.trace.score === -Infinity) {
+        return this.run();
+      } else {
+        // Continue proposing as normal
+        this.iterations--;
 
-      this.trace.val = val;
+        // Remove any erpNodes that have become unreachable.
+        this.trace.erpNodes = _.filter(this.trace.erpNodes, function(node) {
+          return node.reachable;
+        });
 
-      // Remove any erpNodes that have become unreachable.
-      this.trace.erpNodes = _.filter(this.trace.erpNodes, function(node) {
-        return node.reachable;
-      });
+        // Accept/reject the current proposal
+        var acceptance = acceptProb(this.trace, this.backupTrace,
+                                    this.rvsPropLP, this.fwdPropLP);
+        // Restore backup trace if rejected
+        if (Math.random() >= acceptance)
+          this.trace = this.backupTrace;
+        else
+          this.acceptedProps++;
 
-      // Accept/reject the current proposal
-      var acceptance = acceptProb(this.trace, this.backupTrace,
-                                  this.rvsPropLP, this.fwdPropLP);
-      // Restore backup trace if rejected
-      if (Math.random() >= acceptance)
-        this.trace = this.backupTrace;
-      else
-        this.acceptedProps++;
+        // Add return val to accumulated histogram
+        var stringifiedVal = JSON.stringify(this.trace.cacheRoot.retval);
+        if (this.returnHist[stringifiedVal] === undefined) {
+          this.returnHist[stringifiedVal] = { prob: 0, val: this.trace.cacheRoot.retval };
+        }
+        this.returnHist[stringifiedVal].prob += 1;
 
-      // Add val to accumulated histogram
-      var stringifiedVal = JSON.stringify(this.trace.val);
-      if (this.returnHist[stringifiedVal] === undefined) {
-        this.returnHist[stringifiedVal] = { prob: 0, val: this.trace.val };
+        // Prepare to make a new proposal
+        // Copy trace
+        this.backupTrace = this.trace;
+        this.trace = {
+          erpNodes: [],
+          score: this.backupTrace.score
+        };
+        this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
+        // Select ERP to change.
+        var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
+        var propnode = this.trace.erpNodes[idx];
+        // Restore node stack up to this point
+        this.restoreStackUpTo(propnode.parent);
+        // Propose change and resume execution
+        debuglog("-------------------------------------");
+        return propnode.propose();
       }
-      this.returnHist[stringifiedVal].prob += 1;
-
-      // Prepare to make a new proposal
-      // Copy trace
-      this.backupTrace = this.trace;
-      this.trace = {
-        erpNodes: []
-      };
-      this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
-      // Select ERP to change.
-      var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
-      var propnode = this.trace.erpNodes[idx];
-      // Restore node stack up to this point
-      this.restoreStackUpTo(propnode.parent);
-      // Propose change and resume execution
-      debuglog("-------------------------------------");
-      return propnode.propose();
     } else {
       // Finalize returned histogram-based ERP
       var dist = erp.makeMarginalERP(this.returnHist);
