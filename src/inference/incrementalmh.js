@@ -10,7 +10,8 @@ var erp = require('../erp.js');
 
 module.exports = function(env) {
 
-  var DEBUG = true;
+  var DEBUG = false;
+  // var DEBUG = true;
   function debuglog() {
     if (DEBUG)
       console.log.apply(global, arguments);
@@ -49,7 +50,7 @@ module.exports = function(env) {
     this.coroutine.trace.erpNodes.push(this);
     var iscopy = val !== undefined;
     if (!iscopy) {
-      this.coroutine.newVarScore += this.score;
+      this.coroutine.fwdPropLP += this.score;
       tabbedlog(this.depth, "new ERP");
     }
   }
@@ -101,7 +102,7 @@ module.exports = function(env) {
 
   ERPNode.prototype.markDead = function() {
     this.reachable = false;
-    this.coroutine.oldVarScore += this.score;
+    this.coroutine.rvsPropLP += this.score;
     tabbedlog(this.depth, "kill ERP");
   };
 
@@ -109,8 +110,11 @@ module.exports = function(env) {
     this.store = _.clone(this.store);   // Not sure if this is really necessary...
     var oldval = this.val;
     this.val = this.erp.sample(this.params);
-    if (oldval !== this.val)
-      this.needsUpdate = true;
+    this.coroutine.rvsPropLP = this.score;
+    this.score = this.erp.score(this.params, this.val);
+    this.coroutine.fwdPropLP = this.score;
+    this.parent.notifyChildChanged(this);
+    this.needsUpdate = false;
     return this.execute();
   };
 
@@ -206,7 +210,7 @@ module.exports = function(env) {
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
-      tabbedlog(this.depth, "yes, function needs update");
+      tabbedlog(this.depth, "yes, function needs update; running");
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
@@ -313,8 +317,8 @@ module.exports = function(env) {
       erpNodes: []
     };
     this.backupTrace = null;
-    this.newVarScore = 0;
-    this.oldVarScore = 0;
+    this.fwdPropLP = 0;
+    this.rvsPropLP = 0;
     this.nodeStack = [];
 
     this.returnHist = {};
@@ -324,6 +328,9 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+
+    this.totalIterations = numIterations;
+    this.acceptedProps = 0;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -345,10 +352,10 @@ module.exports = function(env) {
     return this.cachelookup(ERPNode, s, cont, name, erp, params).execute();
   };
 
-  function acceptProb(currTrace, oldTrace, oldVarScore, newVarScore) {
+  function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
     if (!oldTrace || oldTrace.cacheRoot.score === -Infinity) { return 1; } // init
-    var fw = -Math.log(oldTrace.erpNodes.length) + newVarScore;
-    var bw = -Math.log(currTrace.erpNodes.length) + oldVarScore;
+    var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
+    var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
     var p = Math.exp(currTrace.cacheRoot.score - oldTrace.cacheRoot.score + bw - fw);
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
@@ -368,10 +375,12 @@ module.exports = function(env) {
 
       // Accept/reject the current proposal
       var acceptance = acceptProb(this.trace, this.backupTrace,
-                                  this.oldVarScore, this.newVarScore);
+                                  this.rvsPropLP, this.fwdPropLP);
       // Restore backup trace if rejected
       if (Math.random() >= acceptance)
         this.trace = this.backupTrace;
+      else
+        this.acceptedProps++;
 
       // Add val to accumulated histogram
       var stringifiedVal = JSON.stringify(this.trace.val);
@@ -382,8 +391,6 @@ module.exports = function(env) {
 
       // Prepare to make a new proposal
       // Copy trace
-      this.oldVarScore = 0;
-      this.newVarScore = 0;
       this.backupTrace = this.trace;
       this.trace = {
         erpNodes: []
@@ -405,6 +412,8 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
 
+      console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
+
       // Return by calling original continuation:
       return k(this.oldStore, dist);
     }
@@ -424,15 +433,22 @@ module.exports = function(env) {
       this.trace.cacheRoot = cacheNode;
     } else {
       var currNode = this.nodeStack[this.nodeStack.length-1];
+      tabbedlog(currNode.depth, "lookup " + NodeType.name + " " + a);
       // Look for cache node among the children of currNode
       cacheNode = _.find(currNode.children, function(node) {
         return a == node.address;
       });
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
+        tabbedlog(currNode.depth, "found");
         cacheNode.registerInputChanges(s, k, args);
       } else {
         // Lookup failed; create new node and insert it into currNode.children
+        if (DEBUG) {
+          var addrs = _.map(_.filter(currNode.children, function(node) { return node instanceof NodeType; }),
+            function(node) { return node.address; });
+          tabbedlog(currNode.depth, "*not* found; options were", addrs);
+        }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildToExecIdx;
         currNode.children.splice(insertidx, 0, cacheNode);

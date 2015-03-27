@@ -49,6 +49,9 @@ module.exports = function(env) {
     this.oldStore = s;
     this.iterations = numIterations;
 
+    this.totalIterations = numIterations;
+    this.acceptedProps = 0;
+
     // Move old coroutine out of the way and install this as the current
     // handler.
 
@@ -94,7 +97,7 @@ module.exports = function(env) {
         this.trace = this.oldTrace;
         this.currScore = this.oldScore;
         val = this.oldVal;
-      }
+      } else this.acceptedProps++;
 
       // now add val to hist:
       var stringifiedVal = JSON.stringify(val);
@@ -119,6 +122,8 @@ module.exports = function(env) {
       // Reinstate previous coroutine:
       var k = this.k;
       env.coroutine = this.oldCoroutine;
+
+      console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
 
       // Return by calling original continuation:
       return k(this.oldStore, dist);
