@@ -24,6 +24,7 @@ module.exports = function(env) {
 
   function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore) {
     if ((oldTrace === undefined) || oldScore === -Infinity) {return 1;} // init
+    if (currScore === -Infinity) return 0; // auto-reject
     var fw = -Math.log(oldTrace.length);
     trace.slice(regenFrom).map(function(s) {fw += s.reused ? 0 : s.choiceScore;});
     var bw = -Math.log(trace.length);
@@ -38,12 +39,6 @@ module.exports = function(env) {
 
   function MH(s, k, a, wpplFn, numIterations) {
 
-    this.trace = [];
-    this.oldTrace = undefined;
-    this.currScore = 0;
-    this.oldScore = -Infinity;
-    this.oldVal = undefined;
-    this.regenFrom = 0;
     this.returnHist = {};
     this.k = k;
     this.oldStore = s;
@@ -64,12 +59,22 @@ module.exports = function(env) {
   }
 
   MH.prototype.run = function() {
+    this.trace = [];
+    this.oldTrace = undefined;
+    this.currScore = 0;
+    this.oldScore = -Infinity;
+    this.oldVal = undefined;
+    this.regenFrom = 0;
     return this.wpplFn(this.s, env.exit, this.a);
   };
 
   MH.prototype.factor = function(s, k, a, score) {
     this.currScore += score;
-    return k(s);
+    // Bail out early if score became -Infinity
+    if (this.currScore === -Infinity)
+      return this.exit();
+    else
+      return k(s);
   };
 
   MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
@@ -77,45 +82,65 @@ module.exports = function(env) {
 
     var reuse = ! (prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
-    this.trace.push({k: cont, name: name, erp: erp, params: params,
-      score: this.currScore, choiceScore: choiceScore,
-      val: val, reused: reuse, store: _.clone(s)});
-    this.currScore += choiceScore;
-    return cont(s, val);
+    // // On proposal: bail out early if the value didn't change
+    // if (forceSample && prev.val === val) {
+    //   this.trace = this.oldTrace;
+    //   return this.exit(null, this.oldVal);
+    // } else {
+      var choiceScore = erp.score(params, val);
+      this.trace.push({k: cont, name: name, erp: erp, params: params,
+        score: this.currScore, choiceScore: choiceScore,
+        val: val, reused: reuse, store: _.clone(s)});
+      this.currScore += choiceScore;
+      // Bail out early if score became -Infinity
+      if (this.currScore === -Infinity)
+        return this.exit();
+      else
+        return cont(s, val);
+    // }
+  };
+
+  MH.prototype.isInitialized = function() {
+    return this.iterations < this.totalIterations;
   };
 
   MH.prototype.exit = function(s, val) {
     if (this.iterations > 0) {
-      this.iterations -= 1;
+      // Initialization: Keep rejection sampling until we get a trace with
+      //    non-zero probability
+      if (!this.isInitialized() && this.currScore === -Infinity) {
+        return this.run();
+      } else {
+        this.iterations -= 1;
 
-      //did we like this proposal?
-      var acceptance = acceptProb(this.trace, this.oldTrace,
-          this.regenFrom, this.currScore, this.oldScore);
-      if (Math.random() >= acceptance) {
-        // if rejected, roll back trace, etc:
-        this.trace = this.oldTrace;
-        this.currScore = this.oldScore;
-        val = this.oldVal;
-      } else this.acceptedProps++;
+        //did we like this proposal?
+        var acceptance = acceptProb(this.trace, this.oldTrace,
+            this.regenFrom, this.currScore, this.oldScore);
+        if (Math.random() >= acceptance) {
+          // if rejected, roll back trace, etc:
+          this.trace = this.oldTrace;
+          this.currScore = this.oldScore;
+          val = this.oldVal;
+        } else this.acceptedProps++;
 
-      // now add val to hist:
-      var stringifiedVal = JSON.stringify(val);
-      if (this.returnHist[stringifiedVal] === undefined) {
-        this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        // now add val to hist:
+        var stringifiedVal = JSON.stringify(val);
+        if (this.returnHist[stringifiedVal] === undefined) {
+          this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        }
+        this.returnHist[stringifiedVal].prob += 1;
+
+        // make a new proposal:
+        this.regenFrom = Math.floor(Math.random() * this.trace.length);
+        var regen = this.trace[this.regenFrom];
+        this.oldTrace = this.trace;
+        this.trace = this.trace.slice(0, this.regenFrom);
+        this.oldScore = this.currScore;
+        this.currScore = regen.score;
+        this.oldVal = val;
+
+        return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
       }
-      this.returnHist[stringifiedVal].prob += 1;
-
-      // make a new proposal:
-      this.regenFrom = Math.floor(Math.random() * this.trace.length);
-      var regen = this.trace[this.regenFrom];
-      this.oldTrace = this.trace;
-      this.trace = this.trace.slice(0, this.regenFrom);
-      this.oldScore = this.currScore;
-      this.currScore = regen.score;
-      this.oldVal = val;
-
-      return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
     } else {
       var dist = erp.makeMarginalERP(this.returnHist);
 
