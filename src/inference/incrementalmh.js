@@ -70,7 +70,7 @@ module.exports = function(env) {
   ERPNode.prototype.execute = function() {
     tabbedlog(this.depth, "execute ERP");
     // Bail out early if we know the proposal will be rejected
-    if (this.score === -Infinity && this.coroutine.isInitialized()) {
+    if (this.score === -Infinity) {
       tabbedlog(this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
@@ -173,7 +173,7 @@ module.exports = function(env) {
   FactorNode.prototype.execute = function() {
     tabbedlog(this.depth, "execute factor");
     // Bail out early if we know proposal will be rejected
-    if (this.score === -Infinity && this.coroutine.isInitialized()) {
+    if (this.score === -Infinity) {
       tabbedlog(this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
@@ -386,6 +386,7 @@ module.exports = function(env) {
 
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
     if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
+    if (currTrace.score === -Infinity) return 0;  // auto-reject
     var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
     var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
     var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
