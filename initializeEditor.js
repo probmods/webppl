@@ -1,3 +1,5 @@
+// Set default code for editor
+
 var geometricCode = ['var geometric = function(){',
                      '  return flip(.5) ? 0 : geometric() + 1;',
                      '}',
