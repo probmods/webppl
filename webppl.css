@@ -83,6 +83,10 @@ h3.logo {
    font-style: italic
 }
 
+h3.logo a:hover, h3.logo a:active, h3.logo a:focus, h3.logo a:visited {
+   text-decoration: none;
+}
+
 div.citation {
   padding-left: 20px;
   font-style: italic;
