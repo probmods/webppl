@@ -1,13 +1,13 @@
 // Set default code for editor
 
 var geometricCode = ['var geometric = function(){',
-                     '  return flip(.5) ? 0 : geometric() + 1;',
+                     '  return flip(.5) ? 0 : geometric() + 1',
                      '}',
                      '',
                      'var conditionedGeometric = function(){',
-                     '  var x = geometric();',
-                     '  factor(x > 2 ? 0 : -Infinity);',
-                     '  return x;',
+                     '  var x = geometric()',
+                     '  factor(x > 2 ? 0 : -Infinity)',
+                     '  return x',
                      '}',
                      '',
                      'print(Enumerate(conditionedGeometric, 10))'].join('\n');
