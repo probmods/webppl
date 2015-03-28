@@ -1,0 +1,13 @@
+{
+  "name": "webppl.org",
+  "version": "0.0.0",
+  "main": "index.html",
+  "license": "MIT",
+  "homepage": "http://webppl.org",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "test",
+    "tests"
+  ]
+}
