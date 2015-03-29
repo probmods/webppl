@@ -264,8 +264,12 @@ module.exports = function(env) {
           //    because we clone the cache, producing different node objects).
           var that = coroutine.nodeStack.pop();
           tabbedlog(that.depth, "continue from function");
-          that.outStore = _.clone(s);
+          // If the return value hasn't changed, then we can bail early.
+          // TODO: Should we use deep (i.e. structural) equality tests here?
+          if (that.retval === retval)
+            return coroutine.exit();
           that.retval = retval;
+          that.outStore = _.clone(s);
           if (that.parent !== null)
             that.parent.notifyChildChanged(that);
           return that.kontinue();
@@ -278,11 +282,12 @@ module.exports = function(env) {
     }
   };
 
-  FunctionNode.prototype.registerInputChanges = function(s, k, args) {
+  FunctionNode.prototype.registerInputChanges = function(s, k, args) { 
     this.reachable = true;
     this.needsUpdate = false;
     this.continuation = k;
     // Check args for changes
+    // TODO: Should we use deep (i.e. structural) equality tests here?
     for (var i = 0; i < args.length; i++)
     {
       if (args[i] !== this.args[i]) {
@@ -292,6 +297,7 @@ module.exports = function(env) {
       }
     }
     // Check store for changes
+    // TODO: Should we use deep (i.e. structural) equality tests here?
     if (!this.needsUpdate) {
       for (var prop in s) {
         if (this.inStore[prop] !== s[prop]) {
