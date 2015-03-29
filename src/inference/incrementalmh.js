@@ -486,9 +486,17 @@ module.exports = function(env) {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(currNode.depth, "lookup " + NodeType.name + " " + a);
       // Look for cache node among the children of currNode
-      for (var i = currNode.nextChildIdx; i < currNode.children.length; i++) {
+      var nexti = currNode.nextChildIdx
+      for (var i = nexti; i < currNode.children.length; i++) {
         if (currNode.children[i].address === a) {
-          cacheNode = currNode.children[i];
+          // Keep children ordered according to execution order: if
+          // i !== currNode.nextChildIdx, then swap those two.
+          if (i !== nexti) {
+            var tmp = currNode.children[i];
+            currNode.children[i] = currNode.children[nexti];
+            currNode.children[nexti] = tmp;
+          }
+          cacheNode = currNode.children[nexti];
           break;
         }
       }
