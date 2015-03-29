@@ -237,9 +237,9 @@ module.exports = function(env) {
     n.retval = this.retval;
     n.outStore = this.outStore;
 
-    _.each(this.children, function(child) {
-      n.children.push(child.clone(n));
-    });
+    var nchildren = this.children.length;
+    for (var i = 0; i < nchildren; i++)
+      n.children.push(this.children[i].clone(n));
 
     return n;
   };
@@ -314,23 +314,28 @@ module.exports = function(env) {
   FunctionNode.prototype.markDead = function() {
     this.reachable = false;
     tabbedlog(this.depth, "kill function");
-    _.each(this.children, function(child) {
-      child.markDead();
-    });
+    var n = this.children.length;
+    while(n--)
+      this.children[n].markDead();
   };
 
   FunctionNode.prototype.kontinue = function() {
 
     // Clear out any children that have become unreachable
     //    before passing control back up to the parent
-    this.children = _.filter(this.children, function(child) {
+    var newchildren = [];
+    var nchildren = this.children.length;
+    for (var i = 0; i < nchildren; i++) {
+      var child = this.children[i];
       // If the child is unreachable, recursively set all of its
       //    descendants to unreachable, so that any ERPs get marked
       //    unreachable and we know to remove them from the master list.
       if (!child.reachable)
         child.markDead();
-      return child.reachable;
-    });
+      else
+        newchildren.push(child);
+    }
+    this.children = newchildren;
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     // Call continuation
@@ -347,7 +352,8 @@ module.exports = function(env) {
     // Children later in the execution order may become unreachable due
     //    to this change, so we mark them all as unreachable and see which
     //    ones we hit.
-    for (var i = idx + 1; i < this.children.length; i++)
+    var nchildren = this.children.length;
+    for (var i = idx + 1; i < nchildren; i++)
       this.children[i].reachable = false;
   };
 
@@ -493,20 +499,7 @@ module.exports = function(env) {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(currNode.depth, "lookup " + NodeType.name + " " + a);
       // Look for cache node among the children of currNode
-      var nexti = currNode.nextChildIdx
-      for (var i = nexti; i < currNode.children.length; i++) {
-        if (currNode.children[i].address === a) {
-          // Keep children ordered according to execution order: if
-          // i !== currNode.nextChildIdx, then swap those two.
-          if (i !== nexti) {
-            var tmp = currNode.children[i];
-            currNode.children[i] = currNode.children[nexti];
-            currNode.children[nexti] = tmp;
-          }
-          cacheNode = currNode.children[nexti];
-          break;
-        }
-      }
+      cacheNode = findNode(currNode.children, a, currNode.nextChildIdx);
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
         tabbedlog(currNode.depth, "found");
@@ -525,6 +518,22 @@ module.exports = function(env) {
     }
     return cacheNode;
   };
+
+  function findNode(nodes, address, nexti) {
+    for (var i = nexti; i < nodes.length; i++) {
+      if (nodes[i].address === address) {
+        // Keep nodes ordered according to execution order: if
+        // i !== nexti, then swap those two.
+        if (i !== nexti) {
+          var tmp = nodes[i];
+          nodes[i] = nodes[nexti];
+          nodes[nexti] = tmp;
+        }
+        return nodes[nexti];
+      }
+    }
+    return undefined;
+  }
 
   // Restore this.nodeStack up to the specified node
   IncrementalMH.prototype.restoreStackUpTo = function(node) {
