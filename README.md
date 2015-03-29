@@ -178,8 +178,9 @@ Sometimes, it is useful to define external functions that are able to access the
     git checkout master
     git merge dev
     grunt
-    npm version patch  // or minor, or major
+    npm version patch  // or minor, or major; prints new version number
     git add package.json
     git commit -m "Update npm version"
     git push origin master
+    git push origin v0.0.1  // use version printed by "npm version" command
     npm publish
