@@ -172,3 +172,14 @@ Sometimes, it is useful to define external functions that are able to access the
 3. Run your WebPPL file with `require-header` command line flag:
 
         webppl addressTest.wppl --require-header ./addressHeader.js
+
+## Updating the npm package
+
+    git checkout master
+    git merge dev
+    grunt
+    npm version patch  // or minor, or major
+    git add package.json
+    git commit -m "Update npm version"
+    git push origin master
+    npm publish
