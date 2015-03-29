@@ -266,8 +266,10 @@ module.exports = function(env) {
           tabbedlog(that.depth, "continue from function");
           // If the return value hasn't changed, then we can bail early.
           // TODO: Should we use deep (i.e. structural) equality tests here?
-          if (that.retval === retval)
+          if (that.retval === retval) {
+            tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
+          }
           that.retval = retval;
           that.outStore = _.clone(s);
           if (that.parent !== null)
