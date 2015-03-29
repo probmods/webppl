@@ -49,8 +49,8 @@ module.exports = function(env) {
     exit: function(s, r) {
       return r;
     },
-    incrementalize: function(s, cc, a, fn) {
-      var args = [s, cc, a].concat(Array.prototype.slice.call(arguments, 4));
+    incrementalize: function(s, cc, a, fn, args) {
+      var args = [s, cc, a].concat(args);
       return fn.apply(global, args);
     }
   };
@@ -84,8 +84,9 @@ module.exports = function(env) {
     return env.coroutine.exit(s, retval);
   };
 
-  env.incrementalize = function() {
-    return env.coroutine.incrementalize.apply(env.coroutine, arguments);
+  env.incrementalize = function(s, cc, a, fn, args) {
+    args = args || [];
+    return env.coroutine.incrementalize(s, cc, a, fn, args);
   }
 
 

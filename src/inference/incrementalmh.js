@@ -476,8 +476,7 @@ module.exports = function(env) {
     }
   };
 
-  IncrementalMH.prototype.incrementalize = function(s, k, a, fn) {
-    var args = Array.prototype.slice.call(arguments, 4);
+  IncrementalMH.prototype.incrementalize = function(s, k, a, fn, args) {
     return this.cachelookup(FunctionNode, s, k, a, fn, args).execute();
   };
 
