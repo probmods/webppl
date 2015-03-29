@@ -26,7 +26,7 @@ function sum(xs) {
   if (xs.length === 0) {
     return 0.0;
   } else {
-    var total = _(xs).reduce(
+    var total = _.reduce(xs,
         function(a, b) {
           return a + b;
         });
