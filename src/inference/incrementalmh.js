@@ -74,7 +74,6 @@ module.exports = function(env) {
       tabbedlog(this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
-      this.parent.notifyChildExecuted(this);
       if (this.needsUpdate) {
         tabbedlog(this.depth, "yes, ERP params changed");
         this.needsUpdate = false;
@@ -105,6 +104,7 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.kontinue = function() {
+    this.parent.notifyChildExecuted(this);
     // Call continuation
     return this.continuation(this.store, this.val);
   };
@@ -112,6 +112,7 @@ module.exports = function(env) {
   ERPNode.prototype.markDead = function() {
     this.reachable = false;
     this.coroutine.rvsPropLP += this.score;
+    this.coroutine.trace.score -= this.score;
     tabbedlog(this.depth, "kill ERP");
   };
 
@@ -177,7 +178,6 @@ module.exports = function(env) {
       tabbedlog(this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
-      this.parent.notifyChildExecuted(this);
       return this.kontinue();
     }
   };
@@ -190,11 +190,13 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.kontinue = function() {
+    this.parent.notifyChildExecuted(this);
     return this.continuation(this.store);
   };
 
   FactorNode.prototype.markDead = function() {
     this.reachable = false;
+    this.coroutine.trace.score -= this.score;
     tabbedlog(this.depth, "kill factor");
   }
 
@@ -216,7 +218,7 @@ module.exports = function(env) {
     this.parent = parent;
     this.depth = parent ? parent.depth + 1 : 0;
     this.children = [];
-    this.nextChildToExecIdx = 0;
+    this.nextChildIdx = 0;
 
     this.reachable = true;
     this.needsUpdate = true;
@@ -244,15 +246,13 @@ module.exports = function(env) {
 
   FunctionNode.prototype.execute = function() {
     tabbedlog(this.depth, "execute function");
-    if (this.parent !== null)
-      this.parent.notifyChildExecuted(this);
     if (this.needsUpdate) {
       tabbedlog(this.depth, "yes, function args changed; re-running");
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
-      // Reset nextChildToExecIdx
-      this.nextChildToExecIdx = 0;
+      // Reset nextChildIdx
+      this.nextChildIdx = 0;
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
@@ -323,13 +323,15 @@ module.exports = function(env) {
         child.markDead();
       return child.reachable;
     });
+    if (this.parent !== null)
+      this.parent.notifyChildExecuted(this);
     // Call continuation
     return this.continuation(this.outStore, this.retval);
   };
 
   FunctionNode.prototype.notifyChildExecuted = function(child) {
     var idx = this.children.indexOf(child);
-    this.nextChildToExecIdx = idx + 1;
+    this.nextChildIdx = idx + 1;
   };
 
   FunctionNode.prototype.notifyChildChanged = function(child) {
@@ -373,6 +375,8 @@ module.exports = function(env) {
     this.nodeStack = [];
     // Cache the top-level function, so that we always have a valid
     //    cache root.
+    debuglog("-------------------------------------");
+    debuglog("RUN FROM START");
     return this.incrementalize(this.s, env.exit, this.a, this.wpplFn);
   };
 
@@ -410,6 +414,8 @@ module.exports = function(env) {
         // Continue proposing as normal
         this.iterations--;
 
+        debuglog("Num vars: " + this.trace.erpNodes.length);
+
         // Remove any erpNodes that have become unreachable.
         this.trace.erpNodes = _.filter(this.trace.erpNodes, function(node) {
           return node.reachable;
@@ -446,6 +452,7 @@ module.exports = function(env) {
         this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
         debuglog("-------------------------------------");
+        debuglog("PROPOSAL");
         return propnode.propose();
       }
     } else {
@@ -479,9 +486,12 @@ module.exports = function(env) {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(currNode.depth, "lookup " + NodeType.name + " " + a);
       // Look for cache node among the children of currNode
-      cacheNode = _.find(currNode.children, function(node) {
-        return a == node.address;
-      });
+      for (var i = currNode.nextChildIdx; i < currNode.children.length; i++) {
+        if (currNode.children[i].address === a) {
+          cacheNode = currNode.children[i];
+          break;
+        }
+      }
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
         tabbedlog(currNode.depth, "found");
@@ -494,7 +504,7 @@ module.exports = function(env) {
           tabbedlog(currNode.depth, "*not* found; options were", addrs);
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
-        var insertidx = currNode.nextChildToExecIdx;
+        var insertidx = currNode.nextChildIdx;
         currNode.children.splice(insertidx, 0, cacheNode);
       }
     }
