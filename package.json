@@ -1,20 +1,20 @@
 {
   "name": "webppl",
-  "description": "Probabilistic programming for the web",  
-  "version": "0.0.1",
+  "description": "Probabilistic programming for the web",
+  "version": "0.0.2",
   "author": "webppl contributors",
   "main": "src/main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/probmods/webppl"
-  },  
+  },
   "license": "MIT",
   "directories": {
     "test": "tests"
   },
   "dependencies": {
     "amdefine": "^0.1.0",
-    "ast-types": "^0.7.0",
+    "ast-types": "^0.7.2",
     "escodegen": "^1.4.1",
     "esmangle": "^1.0.1",
     "esprima": "^1.2.2",
@@ -34,7 +34,7 @@
     "grunt-contrib-nodeunit": "^0.4.1",
     "grunt-gjslint": "^0.1.6",
     "nodeunit": "^0.9.0",
-    "brfs": "^1.2.0"    
+    "brfs": "^1.2.0"
   },
   "scripts": {
     "test": "nodeunit tests"
@@ -48,7 +48,7 @@
   },
   "engines": {
     "node": ">=0.10.0"
-  },  
+  },
   "keywords": [
     "probabilistic",
     "programming",
