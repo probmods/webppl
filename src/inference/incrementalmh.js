@@ -364,11 +364,7 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  // infopts contains:
-  //    * queryVars: names of variables to compute marginal over
-  //    * observedVars: name -> value mapping of observed variables
-  // (this is to mimic Venture's style of inference)
-  function IncrementalMH(s, k, a, wpplFn, numIterations, infopts) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations, queryVars) {
     this.returnHist = {};
     this.k = k;
     this.oldStore = s;
@@ -380,7 +376,7 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
-    this.infopts = infopts;
+    this.queryVars = queryVars;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -410,15 +406,9 @@ module.exports = function(env) {
   };
 
   IncrementalMH.prototype.sample = function(s, k, a, erp, params, name) {
-    // If this is an observed variable, then just put in a factor instead
-    if (this.infopts && this.infopts.observedVars.hasOwnProperty(name)) {
-      var score = erp.score(params, this.infopts.observedVars[name]);
-      return this.factor(s, k, a, score);
-    } else {
-      var n = this.cachelookup(ERPNode, s, k, a, erp, params);
-      n.name = name;
-      return n.execute();
-    }
+    var n = this.cachelookup(ERPNode, s, k, a, erp, params);
+    n.name = name;
+    return n.execute();
   };
 
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
@@ -464,10 +454,10 @@ module.exports = function(env) {
           this.acceptedProps++;
 
         // The value we compute the marginal over is the return value of the
-        //    program...unless this.infopts exists, in which case we use
-        //    this.infopts.queryVars
+        //    program...unless this.queryVars exists, in which case we use
+        //    the values of those named variables
         var val = this.trace.cacheRoot.retval;
-        if (this.infopts) {
+        if (this.queryVars) {
           var name2erp = {};
           var n = this.trace.erpNodes.length;
           while(n--) {
@@ -475,9 +465,9 @@ module.exports = function(env) {
             name2erp[erpnode.name] = erpnode;
           }
           val = [];
-          n = this.infopts.queryVars.length
+          n = this.queryVars.length
           for (var i = 0; i < n; i++) {
-            var name = this.infopts.queryVars[i];
+            var name = this.queryVars[i];
             val.push(name2erp[name].val);
           }
         }
@@ -585,8 +575,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, infopts) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, infopts).run();
+  function imh(s, cc, a, wpplFn, numIters, queryVars) {
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, queryVars).run();
   }
 
   return {
