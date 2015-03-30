@@ -40,7 +40,7 @@ module.exports = function(env) {
   // Inference interface
 
   env.coroutine = {
-    sample: function(s, cc, a, erp, params) {
+    sample: function(s, cc, a, erp, params, name) {
       return cc(s, erp.sample(params));
     },
     factor: function() {
@@ -57,8 +57,8 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, dist, params) {
-    return env.coroutine.sample(s, k, a, dist, params);
+  env.sample = function(s, k, a, dist, params, name) {
+    return env.coroutine.sample(s, k, a, dist, params, name);
   };
 
   env.factor = function(s, k, a, score) {

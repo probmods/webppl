@@ -62,9 +62,11 @@ module.exports = function(env) {
   //    of erpNodes should be copied and saved somewhere before this
   //    function gets invoked).
   ERPNode.prototype.clone = function(cloneparent) {
-    return new ERPNode(this.coroutine, cloneparent, this.store,
-                       this.continuation, this.address, this.erp,
-                       this.params, this.val, this.score);
+    var n = new ERPNode(this.coroutine, cloneparent, this.store,
+                        this.continuation, this.address, this.erp,
+                        this.params, this.val, this.score);
+    n.name = this.name;
+    return n;
   };
 
   ERPNode.prototype.execute = function() {
@@ -266,6 +268,7 @@ module.exports = function(env) {
           tabbedlog(that.depth, "continue from function");
           // If the return value hasn't changed, then we can bail early.
           // TODO: Should we use deep (i.e. structural) equality tests here?
+          // if (_.isEqual(that.retval, retval)) {
           if (that.retval === retval) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
@@ -292,6 +295,7 @@ module.exports = function(env) {
     // TODO: Should we use deep (i.e. structural) equality tests here?
     for (var i = 0; i < args.length; i++)
     {
+      // if (!_.isEqual(args[i], this.args[i])) {
       if (args[i] !== this.args[i]) {
         this.needsUpdate = true;
         this.args = args;
@@ -302,6 +306,7 @@ module.exports = function(env) {
     // TODO: Should we use deep (i.e. structural) equality tests here?
     if (!this.needsUpdate) {
       for (var prop in s) {
+        // if (!_.isEqual(this.inStore[prop], s[prop])) {
         if (this.inStore[prop] !== s[prop]) {
           this.needsUpdate = true;
           this.inStore = _.clone(s);
@@ -359,7 +364,11 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations) {
+  // infopts contains:
+  //    * queryVars: names of variables to compute marginal over
+  //    * observedVars: name -> value mapping of observed variables
+  // (this is to mimic Venture's style of inference)
+  function IncrementalMH(s, k, a, wpplFn, numIterations, infopts) {
     this.returnHist = {};
     this.k = k;
     this.oldStore = s;
@@ -370,6 +379,8 @@ module.exports = function(env) {
 
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
+
+    this.infopts = infopts;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -398,8 +409,16 @@ module.exports = function(env) {
     return this.cachelookup(FactorNode, s, k, a, null, [score]).execute();
   };
 
-  IncrementalMH.prototype.sample = function(s, cont, name, erp, params) {
-    return this.cachelookup(ERPNode, s, cont, name, erp, params).execute();
+  IncrementalMH.prototype.sample = function(s, k, a, erp, params, name) {
+    // If this is an observed variable, then just put in a factor instead
+    if (this.infopts && this.infopts.observedVars.hasOwnProperty(name)) {
+      var score = erp.score(params, this.infopts.observedVars[name]);
+      return this.factor(s, k, a, score);
+    } else {
+      var n = this.cachelookup(ERPNode, s, k, a, erp, params);
+      n.name = name;
+      return n.execute();
+    }
   };
 
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
@@ -444,10 +463,29 @@ module.exports = function(env) {
         else
           this.acceptedProps++;
 
+        // The value we compute the marginal over is the return value of the
+        //    program...unless this.infopts exists, in which case we use
+        //    this.infopts.queryVars
+        var val = this.trace.cacheRoot.retval;
+        if (this.infopts) {
+          var name2erp = {};
+          var n = this.trace.erpNodes.length;
+          while(n--) {
+            var erpnode = this.trace.erpNodes[n];
+            name2erp[erpnode.name] = erpnode;
+          }
+          val = [];
+          n = this.infopts.queryVars.length
+          for (var i = 0; i < n; i++) {
+            var name = this.infopts.queryVars[i];
+            val.push(name2erp[name].val);
+          }
+        }
+
         // Add return val to accumulated histogram
-        var stringifiedVal = JSON.stringify(this.trace.cacheRoot.retval);
+        var stringifiedVal = JSON.stringify(val);
         if (this.returnHist[stringifiedVal] === undefined) {
-          this.returnHist[stringifiedVal] = { prob: 0, val: this.trace.cacheRoot.retval };
+          this.returnHist[stringifiedVal] = { prob: 0, val: val };
         }
         this.returnHist[stringifiedVal].prob += 1;
 
@@ -547,8 +585,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters).run();
+  function imh(s, cc, a, wpplFn, numIters, infopts) {
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, infopts).run();
   }
 
   return {
