@@ -412,6 +412,9 @@ module.exports = function(env) {
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
     if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
     if (currTrace.score === -Infinity) return 0;  // auto-reject
+    // debuglog("currTrace.score: " + currTrace.score +
+    //          ", oldTrace.score: " + oldTrace.score +
+    //          ", rvsPropLP: " + rvsPropLP + ", fwdPropLP: " + fwdPropLP);
     var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
     var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
     var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
@@ -435,21 +438,30 @@ module.exports = function(env) {
         // Continue proposing as normal
         this.iterations--;
 
-        debuglog("Num vars: " + this.trace.erpNodes.length);
-
         // Remove any erpNodes that have become unreachable.
+        var nVarsOld = this.trace.erpNodes.length;
         this.trace.erpNodes = _.filter(this.trace.erpNodes, function(node) {
           return node.reachable;
         });
 
+        debuglog("Num vars: " + this.trace.erpNodes.length);
+        var nUnreachables = (nVarsOld - this.trace.erpNodes.length);
+        if (nUnreachables > 0)
+          debuglog("(Removed " + nUnreachables + " unreachable ERPs)");
+
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.trace, this.backupTrace,
                                     this.rvsPropLP, this.fwdPropLP);
+        debuglog("acceptance prob: " + acceptance);
         // Restore backup trace if rejected
-        if (Math.random() >= acceptance)
+        if (Math.random() >= acceptance) {
+          debuglog("REJECT");
           this.trace = this.backupTrace;
-        else
+        }
+        else {
+          debuglog("ACCEPT");
           this.acceptedProps++;
+        }
 
         var val = this.trace.cacheRoot.retval;
 
@@ -468,6 +480,8 @@ module.exports = function(env) {
           score: this.backupTrace.score
         };
         this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
+        this.fwdPropLP = 0;
+        this.rvsPropLP = 0;
         // Select ERP to change.
         var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
         var propnode = this.trace.erpNodes[idx];
