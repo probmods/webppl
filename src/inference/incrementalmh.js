@@ -364,7 +364,7 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, queryVars) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations) {
     this.returnHist = {};
     this.k = k;
     this.oldStore = s;
@@ -375,8 +375,6 @@ module.exports = function(env) {
 
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
-
-    this.queryVars = queryVars;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -453,24 +451,7 @@ module.exports = function(env) {
         else
           this.acceptedProps++;
 
-        // The value we compute the marginal over is the return value of the
-        //    program...unless this.queryVars exists, in which case we use
-        //    the values of those named variables
         var val = this.trace.cacheRoot.retval;
-        if (this.queryVars) {
-          var name2erp = {};
-          var n = this.trace.erpNodes.length;
-          while(n--) {
-            var erpnode = this.trace.erpNodes[n];
-            name2erp[erpnode.name] = erpnode;
-          }
-          val = [];
-          n = this.queryVars.length
-          for (var i = 0; i < n; i++) {
-            var name = this.queryVars[i];
-            val.push(name2erp[name].val);
-          }
-        }
 
         // Add return val to accumulated histogram
         var stringifiedVal = JSON.stringify(val);
@@ -575,8 +556,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, queryVars) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, queryVars).run();
+  function imh(s, cc, a, wpplFn, numIters) {
+    return new IncrementalMH(s, cc, a, wpplFn, numIters).run();
   }
 
   return {

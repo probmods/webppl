@@ -1,51 +1,51 @@
 // ERPs
 
-var flip = function(theta, name) {
-  return sample(bernoulliERP, [theta], name);
+var flip = function(theta) {
+  return sample(bernoulliERP, [theta]);
 };
 
-var randomInteger = function(n, name) {
-  return sample(randomIntegerERP, [n], name);
+var randomInteger = function(n) {
+  return sample(randomIntegerERP, [n]);
 };
 
-var discrete = function(n, name) {
-  return sample(discreteERP, [n], name);
+var discrete = function(n) {
+  return sample(discreteERP, [n]);
 };
 
-var gaussian = function(mu, sigma, name) {
-  return sample(gaussianERP, [mu, sigma], name);
+var gaussian = function(mu, sigma) {
+  return sample(gaussianERP, [mu, sigma]);
 };
 
-var uniform = function(a, b, name) {
-  return sample(uniformERP, [a, b], name);
+var uniform = function(a, b) {
+  return sample(uniformERP, [a, b]);
 };
 
-var uniformDraw = function(l, name) {
-  return l[sample(randomIntegerERP, [l.length], name)];
+var uniformDraw = function(l) {
+  return l[sample(randomIntegerERP, [l.length])];
 };
 
-var dirichlet = function(alpha, name) {
-  return sample(dirichletERP, alpha, name);
+var dirichlet = function(alpha) {
+  return sample(dirichletERP, alpha);
 };
 
 var poisson = function(mu, k) {
-  return sample(poissonERP, [mu, k], name);
+  return sample(poissonERP, [mu, k]);
 };
 
-var binomial = function(p, n, name) {
-  return sample(binomialERP, [p, n], name);
+var binomial = function(p, n) {
+  return sample(binomialERP, [p, n]);
 };
 
-var beta = function(a, b, name) {
-  return sample(betaERP, [a, b], name);
+var beta = function(a, b) {
+  return sample(betaERP, [a, b]);
 };
 
-var exponential = function(a, name) {
-  return sample(exponentialERP, [a], name);
+var exponential = function(a) {
+  return sample(exponentialERP, [a]);
 };
 
-var gamma = function(shape, scale, name) {
-  return sample(gammaERP, [shape, scale], name);
+var gamma = function(shape, scale) {
+  return sample(gammaERP, [shape, scale]);
 };
 
 
