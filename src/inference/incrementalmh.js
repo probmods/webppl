@@ -175,7 +175,7 @@ module.exports = function(env) {
   function FactorNode(coroutine, parent, s, k, a, unused, args) {
     this.coroutine = coroutine;
 
-    this.store = _.clone(s);
+    this.store = s;
     this.continuation = k;
     this.address = a;
 
@@ -204,7 +204,7 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.registerInputChanges = function(s, k, args) {
-    updateProperty(this, "store", _.clone(s));
+    updateProperty(this, "store", s);
     updateProperty(this, "continuation", k);
     this.reachable = true;
     if (this.score !== args[0])
