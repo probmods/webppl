@@ -88,7 +88,7 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    tabbedlog(this.depth, "ERPNode " + this.address);
+    tabbedlog(this.depth, "ERPNode", this.address);
   };
 
   ERPNode.prototype.execute = function() {
@@ -190,7 +190,7 @@ module.exports = function(env) {
   }
 
   FactorNode.prototype.print = function() {
-    tabbedlog(this.depth, "FactorNode " + this.address);
+    tabbedlog(this.depth, "FactorNode", this.address);
   };
 
   FactorNode.prototype.execute = function() {
@@ -268,7 +268,7 @@ module.exports = function(env) {
   }
 
   FunctionNode.prototype.print = function() {
-    tabbedlog(this.depth, "FunctionNode " + this.address);
+    tabbedlog(this.depth, "FunctionNode", this.address);
     for (var i = 0; i < this.children.length; i++)
       this.children[i].print();
   };
@@ -434,7 +434,6 @@ module.exports = function(env) {
 
   // A node should call this on itself if it makes some change to itself.
   IncrementalMH.prototype.touch = function(node) {
-    tabbedlog(node.depth, "touch");
     this.touchedNodes.push(node);
   };
 
@@ -560,7 +559,7 @@ module.exports = function(env) {
       this.trace.cacheRoot = cacheNode;
     } else {
       var currNode = this.nodeStack[this.nodeStack.length-1];
-      tabbedlog(currNode.depth, "lookup " + NodeType.name + " " + a);
+      tabbedlog(currNode.depth, "lookup", NodeType.name, a);
       // Look for cache node among the children of currNode
       cacheNode = findNode(currNode.children, a, currNode.nextChildIdx);
       if (cacheNode) {
