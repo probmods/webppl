@@ -440,9 +440,9 @@ module.exports = function(env) {
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
     if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
     if (currTrace.score === -Infinity) return 0;  // auto-reject
-    debuglog("currTrace.score: " + currTrace.score +
-             ", oldTrace.score: " + oldTrace.score);
-    debuglog("rvsPropLP: " + rvsPropLP + ", fwdPropLP: " + fwdPropLP);
+    debuglog("currTrace.score:", currTrace.score, 
+             "oldTrace.score:", oldTrace.score);
+    debuglog("rvsPropLP:", rvsPropLP, "fwdPropLP:", fwdPropLP);
     var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
     var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
     var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
@@ -472,16 +472,16 @@ module.exports = function(env) {
           return node.reachable;
         });
 
-        debuglog("Num vars: " + this.trace.erpNodes.length);
+        debuglog("Num vars:", this.trace.erpNodes.length);
         var nUnreachables = (nVarsOld - this.trace.erpNodes.length);
         if (nUnreachables > 0)
-          debuglog("(Removed " + nUnreachables + " unreachable ERPs)");
-        debuglog("(Touched " + this.touchedNodes.length + " nodes)");
+          debuglog("Unreachable ERPs removed:", nUnreachables);
+        debuglog("Touched nodes:", this.touchedNodes.length);
 
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.trace, this.backupTrace,
                                     this.rvsPropLP, this.fwdPropLP);
-        debuglog("acceptance prob: " + acceptance);
+        debuglog("acceptance prob:", acceptance);
         if (Math.random() >= acceptance) {
           debuglog("REJECT");
           // Restore score, erpNodes, and snapshotted states
@@ -498,7 +498,7 @@ module.exports = function(env) {
         }
 
         var val = this.trace.cacheRoot.retval;
-        debuglog("return val: " + val);
+        debuglog("return val:", val);
 
         // Add return val to accumulated histogram
         var stringifiedVal = JSON.stringify(val);
