@@ -53,11 +53,11 @@ module.exports = function(env) {
     for (var prop in node.__snapshot) {
       node[prop] = node.__snapshot[prop];
     }
-    delete node.__snapshot;
+    node.__snapshot = undefined;
   }
 
   function discardSnapshot(node) {
-    delete node.__snapshot;
+    node.__snapshot = undefined;
   }
 
   // ------------------------------------------------------------------
