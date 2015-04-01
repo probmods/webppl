@@ -27,8 +27,10 @@ module.exports = function(env) {
     }
   }
 
+  // ------------------------------------------------------------------
+
   // A cached ERP call
-  function ERPNode(coroutine, parent, s, k, a, erp, params, val, score) {
+  function ERPNode(coroutine, parent, s, k, a, erp, params) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -43,30 +45,44 @@ module.exports = function(env) {
     this.needsUpdate = false;
 
     this.params = params;
-    this.val = (val !== undefined) ? val : erp.sample(params);
-    if (score === undefined) {
-      this.score = 0;
-      this.rescore();
-    } else this.score = score;
+    this.val = erp.sample(params);
+    this.score = 0; this.rescore();
 
     // Add this to the master list of ERP nodes
     this.coroutine.trace.erpNodes.push(this);
-    var iscopy = val !== undefined;
-    if (!iscopy) {
-      this.coroutine.fwdPropLP += this.score;
-      tabbedlog(this.depth, "new ERP");
-    }
+    this.coroutine.fwdPropLP += this.score;
+    tabbedlog(this.depth, "new ERP");
   }
 
-  // Careful with how this adds to coroutine.trace.erpNodes (i.e. the contents
-  //    of erpNodes should be copied and saved somewhere before this
-  //    function gets invoked).
-  ERPNode.prototype.clone = function(cloneparent) {
-    var n = new ERPNode(this.coroutine, cloneparent, this.store,
-                        this.continuation, this.address, this.erp,
-                        this.params, this.val, this.score);
-    n.name = this.name;
-    return n;
+  ERPNode.prototype.touch = function() {
+    if (!this.__snapshot) {
+      this.coroutine.touch(this);
+      this.__snapshot = {};
+    }
+    this.__snapshot.reachable = true;
+  }
+
+  ERPNode.prototype.takeSnapshot = function() {
+    this.touch();
+    this.__snapshot.store = this.store;
+    this.__snapshot.continuation = this.continuation;
+    this.__snapshot.params = this.params;
+    this.__snapshot.val = this.val;
+    this.__snapshot.score = this.score;
+  };
+
+  ERPNode.prototype.restoreSnapshot = function() {
+    for (var prop in this.__snapshot)
+      this[prop] = this.__snapshot[prop];
+    delete this.__snapshot;
+  };
+
+  ERPNode.prototype.discardSnapshot = function() {
+    delete this.__snapshot;
+  };
+
+  ERPNode.prototype.print = function() {
+    tabbedlog(this.depth, "ERPNode " + this.address);
   };
 
   ERPNode.prototype.execute = function() {
@@ -90,6 +106,7 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, params) {
+    this.takeSnapshot();
     this.store = _.clone(s);
     this.continuation = k;
     this.reachable = true;
@@ -111,24 +128,27 @@ module.exports = function(env) {
     return this.continuation(this.store, this.val);
   };
 
-  ERPNode.prototype.markDead = function() {
+  ERPNode.prototype.killDescendantLeaves = function() {
+    tabbedlog(this.depth, "kill ERP");
+    this.touch();
     this.reachable = false;
     this.coroutine.rvsPropLP += this.score;
     this.coroutine.trace.score -= this.score;
-    tabbedlog(this.depth, "kill ERP");
   };
 
   ERPNode.prototype.propose = function() {
     tabbedlog(this.depth, "proposing change to ERP");
-    this.store = _.clone(this.store);
     var oldval = this.val;
-    this.val = this.erp.sample(this.params);
+    var newval = this.erp.sample(this.params);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
-    if (oldval === this.val) {
+    if (oldval === newval) {
       tabbedlog(this.depth, "proposal didn't change value; bailing out early");
       return this.coroutine.exit();
     } else {
+      this.takeSnapshot();
+      this.store = _.clone(this.store);
+      this.val = newval;
       var oldscore = this.score;
       this.rescore();
       this.coroutine.rvsPropLP = oldscore;
@@ -148,7 +168,7 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   // A cached factor call
-  function FactorNode(coroutine, parent, s, k, a, unused, args, iscopy) {
+  function FactorNode(coroutine, parent, s, k, a, unused, args) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -160,21 +180,41 @@ module.exports = function(env) {
 
     this.reachable = true;
 
-    this.score = args[0];
-    if (!iscopy)
-      this.rescore(0, args[0]);
-    else
-      this.score = args[0];
+    this.rescore(0, args[0]);
+
+    tabbedlog(this.depth, "new factor");
   }
 
-  FactorNode.prototype.clone = function(cloneparent) {
-    return new FactorNode(this.coroutine, cloneparent, this.store,
-                          this.continuation, this.address, null,
-                          [this.score], true);
+  FactorNode.prototype.touch = function() {
+    if (!this.__snapshot) {
+      this.coroutine.touch(this);
+      this.__snapshot = {};
+    }
+    this.__snapshot.reachable = true;
+  }
+
+  FactorNode.prototype.takeSnapshot = function() {
+    this.touch();
+    this.__snapshot.store = this.store;
+    this.__snapshot.continuation = this.continuation;
+    this.__snapshot.score = this.score;
+  };
+
+  FactorNode.prototype.restoreSnapshot = function() {
+    for (var prop in this.__snapshot)
+      this[prop] = this.__snapshot[prop];
+    delete this.__snapshot;
+  };
+
+  FactorNode.prototype.discardSnapshot = function() {
+    delete this.__snapshot;
+  };
+
+  FactorNode.prototype.print = function() {
+    tabbedlog(this.depth, "FactorNode " + this.address);
   };
 
   FactorNode.prototype.execute = function() {
-    tabbedlog(this.depth, "execute factor");
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
       tabbedlog(this.depth, "score became -Infinity; bailing out early");
@@ -185,6 +225,7 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.registerInputChanges = function(s, k, args) {
+    this.takeSnapshot();
     this.reachable = true;
     this.store = _.clone(s);
     this.continuation = k;
@@ -196,10 +237,11 @@ module.exports = function(env) {
     return this.continuation(this.store);
   };
 
-  FactorNode.prototype.markDead = function() {
+  FactorNode.prototype.killDescendantLeaves = function() {
+    tabbedlog(this.depth, "kill factor");
+    this.touch();
     this.reachable = false;
     this.coroutine.trace.score -= this.score;
-    tabbedlog(this.depth, "kill factor");
   }
 
   FactorNode.prototype.rescore = function(oldscore, score) {
@@ -228,22 +270,52 @@ module.exports = function(env) {
     this.inStore = _.clone(s);
     this.args = args;
 
+    this.initialized = false;
     this.retval = undefined;
     this.outStore = null;
   }
 
-  FunctionNode.prototype.clone = function(cloneparent) {
-    var n = new FunctionNode(this.coroutine, cloneparent, this.inStore,
-                             this.continuation, this.address, this.func,
-                             this.args);
-    n.retval = this.retval;
-    n.outStore = this.outStore;
+  FunctionNode.prototype.touch = function() {
+    if (!this.__snapshot) {
+      this.coroutine.touch(this);
+      this.__snapshot = {};
+    }
+    this.__snapshot.reachable = true;
+  }
 
-    var nchildren = this.children.length;
-    for (var i = 0; i < nchildren; i++)
-      n.children.push(this.children[i].clone(n));
+  FunctionNode.prototype.takeInputSnapshot = function() {
+    this.touch();
+    this.__snapshot.inStore = this.inStore;
+    this.__snapshot.continuation = this.continuation;
+    this.__snapshot.args = this.args;
+  };
 
-    return n;
+  FunctionNode.prototype.takeChildrenSnapshot = function() {
+    this.touch();
+    if (!this.__snapshot.children)
+      this.__snapshot.children = this.children.slice();
+  };
+
+  FunctionNode.prototype.takeOutputSnapshot = function() {
+    this.touch();
+    this.__snapshot.retval = this.retval;
+    this.__snapshot.outStore = this.outStore;
+  };
+
+  FunctionNode.prototype.restoreSnapshot = function() {
+    for (var prop in this.__snapshot)
+      this[prop] = this.__snapshot[prop];
+    delete this.__snapshot;
+  };
+
+  FunctionNode.prototype.discardSnapshot = function() {
+    delete this.__snapshot;
+  };
+
+  FunctionNode.prototype.print = function() {
+    tabbedlog(this.depth, "FunctionNode " + this.address);
+    for (var i = 0; i < this.children.length; i++)
+      this.children[i].print();
   };
 
   FunctionNode.prototype.execute = function() {
@@ -262,8 +334,6 @@ module.exports = function(env) {
         this.inStore,
         function(s, retval) {
           // Recover a reference to 'this'
-          // (This is not safe to do through closure (i.e. var that = this above)
-          //    because we clone the cache, producing different node objects).
           var that = coroutine.nodeStack.pop();
           tabbedlog(that.depth, "continue from function");
           // If the return value hasn't changed, then we can bail early.
@@ -273,8 +343,18 @@ module.exports = function(env) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
           }
+          tabbedlog(that.depth, "function return val has changed");
+          // Only snapshot if this function has already initialized (i.e.
+          //    has already run once, and this is a re-execution. Otherwise,
+          //    we'll snapshot uninitialized state, such as an undefined
+          //    return value).
+          if (that.initialized)
+            that.takeOutputSnapshot();
+          // Update output values
           that.retval = retval;
           that.outStore = _.clone(s);
+          that.initialized = true;
+          // Continue execution
           if (that.parent !== null)
             that.parent.notifyChildChanged(that);
           return that.kontinue();
@@ -288,6 +368,7 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.registerInputChanges = function(s, k, args) { 
+    this.takeInputSnapshot();
     this.reachable = true;
     this.needsUpdate = false;
     this.continuation = k;
@@ -316,18 +397,18 @@ module.exports = function(env) {
     }
   };
 
-  FunctionNode.prototype.markDead = function() {
-    this.reachable = false;
+  FunctionNode.prototype.killDescendantLeaves = function() {
     tabbedlog(this.depth, "kill function");
     var n = this.children.length;
     while(n--)
-      this.children[n].markDead();
+      this.children[n].killDescendantLeaves();
   };
 
   FunctionNode.prototype.kontinue = function() {
 
     // Clear out any children that have become unreachable
     //    before passing control back up to the parent
+    this.takeChildrenSnapshot();
     var newchildren = [];
     var nchildren = this.children.length;
     for (var i = 0; i < nchildren; i++) {
@@ -336,7 +417,7 @@ module.exports = function(env) {
       //    descendants to unreachable, so that any ERPs get marked
       //    unreachable and we know to remove them from the master list.
       if (!child.reachable)
-        child.markDead();
+        child.killDescendantLeaves();
       else
         newchildren.push(child);
     }
@@ -358,8 +439,10 @@ module.exports = function(env) {
     //    to this change, so we mark them all as unreachable and see which
     //    ones we hit.
     var nchildren = this.children.length;
-    for (var i = idx + 1; i < nchildren; i++)
+    for (var i = idx + 1; i < nchildren; i++) {
+      this.children[i].touch();
       this.children[i].reachable = false;
+    }
   };
 
   // ------------------------------------------------------------------
@@ -388,7 +471,7 @@ module.exports = function(env) {
       erpNodes: [],
       score: 0
     };
-    this.backupTrace = null;
+    this.touchedNodes = [];
     this.fwdPropLP = 0;
     this.rvsPropLP = 0;
     this.nodeStack = [];
@@ -409,12 +492,18 @@ module.exports = function(env) {
     return n.execute();
   };
 
+  // A node should call this on itself if it makes some change to itself.
+  IncrementalMH.prototype.touch = function(node) {
+    tabbedlog(node.depth, "touch");
+    this.touchedNodes.push(node);
+  };
+
   function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
     if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
     if (currTrace.score === -Infinity) return 0;  // auto-reject
-    // debuglog("currTrace.score: " + currTrace.score +
-    //          ", oldTrace.score: " + oldTrace.score +
-    //          ", rvsPropLP: " + rvsPropLP + ", fwdPropLP: " + fwdPropLP);
+    debuglog("currTrace.score: " + currTrace.score +
+             ", oldTrace.score: " + oldTrace.score);
+    debuglog("rvsPropLP: " + rvsPropLP + ", fwdPropLP: " + fwdPropLP);
     var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
     var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
     var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
@@ -448,22 +537,29 @@ module.exports = function(env) {
         var nUnreachables = (nVarsOld - this.trace.erpNodes.length);
         if (nUnreachables > 0)
           debuglog("(Removed " + nUnreachables + " unreachable ERPs)");
+        debuglog("(Touched " + this.touchedNodes.length + " nodes)");
 
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.trace, this.backupTrace,
                                     this.rvsPropLP, this.fwdPropLP);
         debuglog("acceptance prob: " + acceptance);
-        // Restore backup trace if rejected
         if (Math.random() >= acceptance) {
           debuglog("REJECT");
+          // Restore score, erpNodes, and snapshotted states
           this.trace = this.backupTrace;
+          var n = this.touchedNodes.length;
+          while(n--) this.touchedNodes[n].restoreSnapshot();
         }
         else {
           debuglog("ACCEPT");
+          // Discard snapshots
+          var n = this.touchedNodes.length;
+          while(n--) this.touchedNodes[n].discardSnapshot();
           this.acceptedProps++;
         }
 
         var val = this.trace.cacheRoot.retval;
+        debuglog("return val: " + val);
 
         // Add return val to accumulated histogram
         var stringifiedVal = JSON.stringify(val);
@@ -472,14 +568,18 @@ module.exports = function(env) {
         }
         this.returnHist[stringifiedVal].prob += 1;
 
+        if (DEBUG) {
+          debuglog("=== Cache status ===");
+          this.trace.cacheRoot.print();
+        }
+
         // Prepare to make a new proposal
-        // Copy trace
-        this.backupTrace = this.trace;
-        this.trace = {
-          erpNodes: [],
-          score: this.backupTrace.score
+        this.backupTrace = {
+          cacheRoot: this.trace.cacheRoot,
+          erpNodes: this.trace.erpNodes.slice(),
+          score: this.trace.score
         };
-        this.trace.cacheRoot = this.backupTrace.cacheRoot.clone(null);
+        this.touchedNodes = [];
         this.fwdPropLP = 0;
         this.rvsPropLP = 0;
         // Select ERP to change.
@@ -536,6 +636,7 @@ module.exports = function(env) {
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
+        currNode.takeChildrenSnapshot();
         currNode.children.splice(insertidx, 0, cacheNode);
       }
     }
