@@ -230,6 +230,20 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
+  // Comparing two stores for shallow equality
+  function storesEqual(s1, s2) {
+    var prop;
+    for (prop in s1) {
+      if (s1[prop] !== s2[prop])
+        return false;
+    }
+    for (prop in s2) {
+      if (s1[prop] !== s2[prop])
+        return false;
+    }
+    return true;
+  }
+
   // A cached, general WebPPL function call
   function FunctionNode(coroutine, parent, s, k, a, fn, args) {
     this.coroutine = coroutine;
@@ -277,10 +291,9 @@ module.exports = function(env) {
           // Recover a reference to 'this'
           var that = coroutine.nodeStack.pop();
           tabbedlog(that.depth, "continue from function");
-          // If the return value hasn't changed, then we can bail early.
+          // If the return value and output store haven't changed, then we can bail early.
           // TODO: Should we use deep (i.e. structural) equality tests here?
-          // if (_.isEqual(that.retval, retval)) {
-          if (that.retval === retval) {
+          if (that.retval === retval && storesEqual(that.outStore, s)) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
           }
@@ -309,7 +322,6 @@ module.exports = function(env) {
     // TODO: Should we use deep (i.e. structural) equality tests here?
     for (var i = 0; i < args.length; i++)
     {
-      // if (!_.isEqual(args[i], this.args[i])) {
       if (args[i] !== this.args[i]) {
         this.needsUpdate = true;
         updateProperty(this, "args", args);
@@ -319,13 +331,9 @@ module.exports = function(env) {
     // Check store for changes
     // TODO: Should we use deep (i.e. structural) equality tests here?
     if (!this.needsUpdate) {
-      for (var prop in s) {
-        // if (!_.isEqual(this.inStore[prop], s[prop])) {
-        if (this.inStore[prop] !== s[prop]) {
-          this.needsUpdate = true;
-          updateProperty(this, "inStore", _.clone(s));
-          break;
-        }
+      if (!storesEqual(this.store, s)) {
+        this.needsUpdate = true;
+        updateProperty(this, "inStore", _.clone(s));
       }
     }
   };
