@@ -10,6 +10,10 @@ var erp = require('../erp.js');
 
 module.exports = function(env) {
 
+  // ------------------------------------------------------------------
+
+  // Debugging output
+
   var DEBUG = false;
   // var DEBUG = true;
   function debuglog() {
@@ -25,6 +29,35 @@ module.exports = function(env) {
       pad += "["+depth+"] ";
       console.log.apply(global, [pad].concat(args));
     }
+  }
+
+  // ------------------------------------------------------------------
+
+  // A sort of 'copy on write' system for cache nodes
+
+  function touch(node) {
+    if (!node.__snapshot) {
+      node.coroutine.touch(node);
+      node.__snapshot = { reachable: true };
+    }
+  }
+
+  function updateProperty(node, prop, val) {
+    touch(node);
+    if (!node.__snapshot[prop])
+      node.__snapshot[prop] = node[prop];
+    node[prop] = val;
+  }
+
+  function restoreSnapshot(node) {
+    for (var prop in node.__snapshot) {
+      node[prop] = node.__snapshot[prop];
+    }
+    delete node.__snapshot;
+  }
+
+  function discardSnapshot(node) {
+    delete node.__snapshot;
   }
 
   // ------------------------------------------------------------------
@@ -54,33 +87,6 @@ module.exports = function(env) {
     tabbedlog(this.depth, "new ERP");
   }
 
-  ERPNode.prototype.touch = function() {
-    if (!this.__snapshot) {
-      this.coroutine.touch(this);
-      this.__snapshot = {};
-    }
-    this.__snapshot.reachable = true;
-  }
-
-  ERPNode.prototype.takeSnapshot = function() {
-    this.touch();
-    this.__snapshot.store = this.store;
-    this.__snapshot.continuation = this.continuation;
-    this.__snapshot.params = this.params;
-    this.__snapshot.val = this.val;
-    this.__snapshot.score = this.score;
-  };
-
-  ERPNode.prototype.restoreSnapshot = function() {
-    for (var prop in this.__snapshot)
-      this[prop] = this.__snapshot[prop];
-    delete this.__snapshot;
-  };
-
-  ERPNode.prototype.discardSnapshot = function() {
-    delete this.__snapshot;
-  };
-
   ERPNode.prototype.print = function() {
     tabbedlog(this.depth, "ERPNode " + this.address);
   };
@@ -106,9 +112,8 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, params) {
-    this.takeSnapshot();
-    this.store = _.clone(s);
-    this.continuation = k;
+    updateProperty(this, "store", _.clone(s));
+    updateProperty(this, "continuation", k);
     this.reachable = true;
     this.needsUpdate = false;
     // Check params for changes
@@ -116,7 +121,7 @@ module.exports = function(env) {
     {
       if (params[i] !== this.params[i]) {
         this.needsUpdate = true;
-        this.params = params;
+        updateProperty(this, "params", params);
         break;
       }
     }
@@ -130,7 +135,7 @@ module.exports = function(env) {
 
   ERPNode.prototype.killDescendantLeaves = function() {
     tabbedlog(this.depth, "kill ERP");
-    this.touch();
+    touch(this);
     this.reachable = false;
     this.coroutine.rvsPropLP += this.score;
     this.coroutine.trace.score -= this.score;
@@ -146,9 +151,8 @@ module.exports = function(env) {
       tabbedlog(this.depth, "proposal didn't change value; bailing out early");
       return this.coroutine.exit();
     } else {
-      this.takeSnapshot();
-      this.store = _.clone(this.store);
-      this.val = newval;
+      updateProperty(this, "store", _.clone(this.store));
+      updateProperty(this, "val", newval);
       var oldscore = this.score;
       this.rescore();
       this.coroutine.rvsPropLP = oldscore;
@@ -161,7 +165,7 @@ module.exports = function(env) {
 
   ERPNode.prototype.rescore = function() {
     var oldscore = this.score;
-    this.score = this.erp.score(this.params, this.val);
+    updateProperty(this, "score", this.erp.score(this.params, this.val));
     this.coroutine.trace.score += this.score - oldscore;
   };
 
@@ -185,31 +189,6 @@ module.exports = function(env) {
     tabbedlog(this.depth, "new factor");
   }
 
-  FactorNode.prototype.touch = function() {
-    if (!this.__snapshot) {
-      this.coroutine.touch(this);
-      this.__snapshot = {};
-    }
-    this.__snapshot.reachable = true;
-  }
-
-  FactorNode.prototype.takeSnapshot = function() {
-    this.touch();
-    this.__snapshot.store = this.store;
-    this.__snapshot.continuation = this.continuation;
-    this.__snapshot.score = this.score;
-  };
-
-  FactorNode.prototype.restoreSnapshot = function() {
-    for (var prop in this.__snapshot)
-      this[prop] = this.__snapshot[prop];
-    delete this.__snapshot;
-  };
-
-  FactorNode.prototype.discardSnapshot = function() {
-    delete this.__snapshot;
-  };
-
   FactorNode.prototype.print = function() {
     tabbedlog(this.depth, "FactorNode " + this.address);
   };
@@ -225,11 +204,11 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.registerInputChanges = function(s, k, args) {
-    this.takeSnapshot();
+    updateProperty(this, "store", _.clone(s));
+    updateProperty(this, "continuation", k);
     this.reachable = true;
-    this.store = _.clone(s);
-    this.continuation = k;
-    this.rescore(this.score, args[0]);
+    if (this.score !== args[0])
+      this.rescore(this.score, args[0]);
   };
 
   FactorNode.prototype.kontinue = function() {
@@ -239,13 +218,13 @@ module.exports = function(env) {
 
   FactorNode.prototype.killDescendantLeaves = function() {
     tabbedlog(this.depth, "kill factor");
-    this.touch();
+    touch(this);
     this.reachable = false;
     this.coroutine.trace.score -= this.score;
   }
 
   FactorNode.prototype.rescore = function(oldscore, score) {
-    this.score = score;
+    updateProperty(this, "score", score);
     this.coroutine.trace.score += score - oldscore;
   };
 
@@ -270,47 +249,9 @@ module.exports = function(env) {
     this.inStore = _.clone(s);
     this.args = args;
 
-    this.initialized = false;
     this.retval = undefined;
     this.outStore = null;
   }
-
-  FunctionNode.prototype.touch = function() {
-    if (!this.__snapshot) {
-      this.coroutine.touch(this);
-      this.__snapshot = {};
-    }
-    this.__snapshot.reachable = true;
-  }
-
-  FunctionNode.prototype.takeInputSnapshot = function() {
-    this.touch();
-    this.__snapshot.inStore = this.inStore;
-    this.__snapshot.continuation = this.continuation;
-    this.__snapshot.args = this.args;
-  };
-
-  FunctionNode.prototype.takeChildrenSnapshot = function() {
-    this.touch();
-    if (!this.__snapshot.children)
-      this.__snapshot.children = this.children.slice();
-  };
-
-  FunctionNode.prototype.takeOutputSnapshot = function() {
-    this.touch();
-    this.__snapshot.retval = this.retval;
-    this.__snapshot.outStore = this.outStore;
-  };
-
-  FunctionNode.prototype.restoreSnapshot = function() {
-    for (var prop in this.__snapshot)
-      this[prop] = this.__snapshot[prop];
-    delete this.__snapshot;
-  };
-
-  FunctionNode.prototype.discardSnapshot = function() {
-    delete this.__snapshot;
-  };
 
   FunctionNode.prototype.print = function() {
     tabbedlog(this.depth, "FunctionNode " + this.address);
@@ -344,16 +285,9 @@ module.exports = function(env) {
             return coroutine.exit();
           }
           tabbedlog(that.depth, "function return val has changed");
-          // Only snapshot if this function has already initialized (i.e.
-          //    has already run once, and this is a re-execution. Otherwise,
-          //    we'll snapshot uninitialized state, such as an undefined
-          //    return value).
-          if (that.initialized)
-            that.takeOutputSnapshot();
           // Update output values
-          that.retval = retval;
-          that.outStore = _.clone(s);
-          that.initialized = true;
+          updateProperty(that, "retval", retval);
+          updateProperty(that, "outStore", _.clone(s));
           // Continue execution
           if (that.parent !== null)
             that.parent.notifyChildChanged(that);
@@ -368,10 +302,9 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.registerInputChanges = function(s, k, args) { 
-    this.takeInputSnapshot();
+    updateProperty(this, "continuation", k);
     this.reachable = true;
     this.needsUpdate = false;
-    this.continuation = k;
     // Check args for changes
     // TODO: Should we use deep (i.e. structural) equality tests here?
     for (var i = 0; i < args.length; i++)
@@ -379,7 +312,7 @@ module.exports = function(env) {
       // if (!_.isEqual(args[i], this.args[i])) {
       if (args[i] !== this.args[i]) {
         this.needsUpdate = true;
-        this.args = args;
+        updateProperty(this, "args", args);
         break;
       }
     }
@@ -390,7 +323,7 @@ module.exports = function(env) {
         // if (!_.isEqual(this.inStore[prop], s[prop])) {
         if (this.inStore[prop] !== s[prop]) {
           this.needsUpdate = true;
-          this.inStore = _.clone(s);
+          updateProperty(this, "inStore", _.clone(s));
           break;
         }
       }
@@ -408,7 +341,6 @@ module.exports = function(env) {
 
     // Clear out any children that have become unreachable
     //    before passing control back up to the parent
-    this.takeChildrenSnapshot();
     var newchildren = [];
     var nchildren = this.children.length;
     for (var i = 0; i < nchildren; i++) {
@@ -421,7 +353,7 @@ module.exports = function(env) {
       else
         newchildren.push(child);
     }
-    this.children = newchildren;
+    updateProperty(this, "children", newchildren);
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     // Call continuation
@@ -440,7 +372,7 @@ module.exports = function(env) {
     //    ones we hit.
     var nchildren = this.children.length;
     for (var i = idx + 1; i < nchildren; i++) {
-      this.children[i].touch();
+      touch(this.children[i]);
       this.children[i].reachable = false;
     }
   };
@@ -548,13 +480,13 @@ module.exports = function(env) {
           // Restore score, erpNodes, and snapshotted states
           this.trace = this.backupTrace;
           var n = this.touchedNodes.length;
-          while(n--) this.touchedNodes[n].restoreSnapshot();
+          while(n--) restoreSnapshot(this.touchedNodes[n]);
         }
         else {
           debuglog("ACCEPT");
           // Discard snapshots
           var n = this.touchedNodes.length;
-          while(n--) this.touchedNodes[n].discardSnapshot();
+          while(n--) discardSnapshot(this.touchedNodes[n]);
           this.acceptedProps++;
         }
 
@@ -636,8 +568,9 @@ module.exports = function(env) {
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
-        currNode.takeChildrenSnapshot();
-        currNode.children.splice(insertidx, 0, cacheNode);
+        var newchildren = currNode.children.slice();
+        newchildren.splice(insertidx, 0, cacheNode);
+        updateProperty(currNode, "children", newchildren);
       }
     }
     return cacheNode;
