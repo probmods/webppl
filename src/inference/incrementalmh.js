@@ -7,6 +7,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
+var Hashtable = require("../hashtable.js").Hashtable
 
 module.exports = function(env) {
 
@@ -82,9 +83,7 @@ module.exports = function(env) {
     this.score = 0; this.rescore();
 
     // Add this to the master list of ERP nodes
-    this.coroutine.trace.erpNodes.push(this);
-    this.coroutine.fwdPropLP += this.score;
-    tabbedlog(this.depth, "new ERP");
+    this.coroutine.addERP(this);
   }
 
   ERPNode.prototype.print = function() {
@@ -134,11 +133,7 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(this.depth, "kill ERP");
-    touch(this);
-    this.reachable = false;
-    this.coroutine.rvsPropLP += this.score;
-    this.coroutine.trace.score -= this.score;
+    this.coroutine.removeERP(this);
   };
 
   ERPNode.prototype.propose = function() {
@@ -166,7 +161,7 @@ module.exports = function(env) {
   ERPNode.prototype.rescore = function() {
     var oldscore = this.score;
     updateProperty(this, "score", this.erp.score(this.params, this.val));
-    this.coroutine.trace.score += this.score - oldscore;
+    this.coroutine.score += this.score - oldscore;
   };
 
   // ------------------------------------------------------------------
@@ -218,14 +213,12 @@ module.exports = function(env) {
 
   FactorNode.prototype.killDescendantLeaves = function() {
     tabbedlog(this.depth, "kill factor");
-    touch(this);
-    this.reachable = false;
-    this.coroutine.trace.score -= this.score;
+    this.coroutine.score -= this.score;
   }
 
   FactorNode.prototype.rescore = function(oldscore, score) {
     updateProperty(this, "score", score);
-    this.coroutine.trace.score += score - oldscore;
+    this.coroutine.score += score - oldscore;
   };
 
   // ------------------------------------------------------------------
@@ -393,6 +386,93 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
+  // Abstraction representing a master list of ERPs
+  // (lets us abstract over whether we're using an array or a hash table)
+
+  function ArrayERPMasterList() {
+    this.erpNodes = [];
+  }
+
+  ArrayERPMasterList.prototype.size = function() { return this.erpNodes.length; }
+  ArrayERPMasterList.prototype.oldSize = function() {
+    return this.oldErpNodes === undefined ? undefined : this.oldErpNodes.length;
+  }
+
+  ArrayERPMasterList.prototype.addERP = function(node) {
+    this.erpNodes.push(node);
+  };
+
+  ArrayERPMasterList.prototype.removeERP = function(node) {
+    // Set it up to be removed as a post-process
+    touch(node);
+    node.reachable = false;
+  };
+
+  ArrayERPMasterList.prototype.preProposal = function() {
+    this.oldErpNodes = this.erpNodes.slice();
+  };
+
+  ArrayERPMasterList.prototype.postProposal = function() {
+    this.erpNodes = _.filter(this.erpNodes, function(node) {
+      return node.reachable;
+    });
+  };
+
+  ArrayERPMasterList.prototype.getRandom = function() {
+    var idx = Math.floor(Math.random()*this.erpNodes.length);
+    return this.erpNodes[idx];
+  };
+
+  ArrayERPMasterList.prototype.restoreOnReject = function() {
+    this.erpNodes = this.oldErpNodes;
+  };
+
+
+  function HastableERPMasterList() {
+    this.erpNodeMap = new Hashtable();
+    this.erpsAdded = [];
+    this.erpsRemoved = [];
+    this.numErps = 0;
+  }
+
+  HastableERPMasterList.prototype.size = function() { return this.numErps; }
+  HastableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
+
+  HastableERPMasterList.prototype.addERP = function(node) {
+    this.erpNodeMap.put(node.address, node);
+    this.erpsAdded.push(node);
+    this.numErps++;
+  };
+
+  HastableERPMasterList.prototype.removeERP = function(node) {
+    this.erpNodeMap.remove(node.address);
+    this.erpsRemoved.push(node);
+    this.numErps--;
+  };
+
+  HastableERPMasterList.prototype.preProposal = function() {
+    this.oldNumErps = this.numErps;
+    this.erpsAdded = [];
+    this.erpsRemoved = [];
+  };
+
+  HastableERPMasterList.prototype.postProposal = function() {};
+
+  HastableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
+
+  HastableERPMasterList.prototype.restoreOnReject = function() {
+    this.numErps = this.oldNumErps;
+    var n = this.erpsAdded.length;
+    while(n--) this.erpNodeMap.remove(this.erpsAdded[n].address);
+    n = this.erpsRemoved.length;
+    while(n--) {
+      var node = this.erpsRemoved[n];
+      this.erpNodeMap.put(node.address, node);
+    }
+  };
+
+  // ------------------------------------------------------------------
+
   function IncrementalMH(s, k, a, wpplFn, numIterations) {
     this.returnHist = {};
     this.k = k;
@@ -412,11 +492,10 @@ module.exports = function(env) {
   }
 
   IncrementalMH.prototype.run = function() {
-    this.trace = {
-      cacheRoot: null,
-      erpNodes: [],
-      score: 0
-    };
+    this.cacheRoot = null;
+    this.erpMasterList = new HastableERPMasterList();
+    // this.erpMasterList = new ArrayERPMasterList();
+    this.score = 0;
     this.touchedNodes = [];
     this.fwdPropLP = 0;
     this.rvsPropLP = 0;
@@ -443,15 +522,15 @@ module.exports = function(env) {
     this.touchedNodes.push(node);
   };
 
-  function acceptProb(currTrace, oldTrace, rvsPropLP, fwdPropLP) {
-    if (!oldTrace || oldTrace.score === -Infinity) { return 1; } // init
-    if (currTrace.score === -Infinity) return 0;  // auto-reject
-    debuglog("currTrace.score:", currTrace.score, 
-             "oldTrace.score:", oldTrace.score);
+  function acceptProb(currScore, oldScore, currN, oldN, rvsPropLP, fwdPropLP) {
+    if (oldScore === undefined) { return 1; } // init
+    if (currScore === -Infinity) return 0;  // auto-reject
+    debuglog("currScore:", currScore, 
+             "oldScore", oldScore);
     debuglog("rvsPropLP:", rvsPropLP, "fwdPropLP:", fwdPropLP);
-    var fw = -Math.log(oldTrace.erpNodes.length) + fwdPropLP;
-    var bw = -Math.log(currTrace.erpNodes.length) + rvsPropLP;
-    var p = Math.exp(currTrace.score - oldTrace.score + bw - fw);
+    var fw = -Math.log(oldN) + fwdPropLP;
+    var bw = -Math.log(currN) + rvsPropLP;
+    var p = Math.exp(currScore - oldScore + bw - fw);
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
@@ -466,44 +545,37 @@ module.exports = function(env) {
     if (this.iterations > 0) {
       // Initialization: Keep rejection sampling until we get a trace with
       //    non-zero probability
-      if (!this.isInitialized() && this.trace.score === -Infinity) {
+      if (!this.isInitialized() && this.score === -Infinity) {
         return this.run();
       } else {
         // Continue proposing as normal
         this.iterations--;
 
-        // Remove any erpNodes that have become unreachable.
-        var nVarsOld = this.trace.erpNodes.length;
-        this.trace.erpNodes = _.filter(this.trace.erpNodes, function(node) {
-          return node.reachable;
-        });
+        this.erpMasterList.postProposal();
 
-        debuglog("Num vars:", this.trace.erpNodes.length);
-        var nUnreachables = (nVarsOld - this.trace.erpNodes.length);
-        if (nUnreachables > 0)
-          debuglog("Unreachable ERPs removed:", nUnreachables);
+        debuglog("Num vars:", this.erpMasterList.size());
         debuglog("Touched nodes:", this.touchedNodes.length);
 
         // Accept/reject the current proposal
-        var acceptance = acceptProb(this.trace, this.backupTrace,
+        var acceptance = acceptProb(this.score, this.oldScore,
+                                    this.erpMasterList.size(), this.erpMasterList.oldSize(),
                                     this.rvsPropLP, this.fwdPropLP);
         debuglog("acceptance prob:", acceptance);
         if (Math.random() >= acceptance) {
           debuglog("REJECT");
-          // Restore score, erpNodes, and snapshotted states
-          this.trace = this.backupTrace;
+          this.score = this.oldScore;
+          this.erpMasterList.restoreOnReject();
           var n = this.touchedNodes.length;
           while(n--) restoreSnapshot(this.touchedNodes[n]);
         }
         else {
           debuglog("ACCEPT");
-          // Discard snapshots
           var n = this.touchedNodes.length;
           while(n--) discardSnapshot(this.touchedNodes[n]);
           this.acceptedProps++;
         }
 
-        var val = this.trace.cacheRoot.retval;
+        var val = this.cacheRoot.retval;
         debuglog("return val:", val);
 
         // Add return val to accumulated histogram
@@ -515,21 +587,17 @@ module.exports = function(env) {
 
         if (DEBUG) {
           debuglog("=== Cache status ===");
-          this.trace.cacheRoot.print();
+          this.cacheRoot.print();
         }
 
         // Prepare to make a new proposal
-        this.backupTrace = {
-          cacheRoot: this.trace.cacheRoot,
-          erpNodes: this.trace.erpNodes.slice(),
-          score: this.trace.score
-        };
+        this.oldScore = this.score;
+        this.erpMasterList.preProposal();
         this.touchedNodes = [];
         this.fwdPropLP = 0;
         this.rvsPropLP = 0;
         // Select ERP to change.
-        var idx = Math.floor(Math.random() * this.trace.erpNodes.length);
-        var propnode = this.trace.erpNodes[idx];
+        var propnode = this.erpMasterList.getRandom();
         // Restore node stack up to this point
         this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
@@ -560,9 +628,9 @@ module.exports = function(env) {
   IncrementalMH.prototype.cachelookup = function(NodeType, s, k, a, fn, args) {
     var cacheNode;
     // If the cache is empty, then initialize it.
-    if (this.trace.cacheRoot === null) {
+    if (this.cacheRoot === null) {
       cacheNode = new NodeType(this, null, s, k, a, fn, args);
-      this.trace.cacheRoot = cacheNode;
+      this.cacheRoot = cacheNode;
     } else {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(currNode.depth, "lookup", NodeType.name, a);
@@ -604,6 +672,19 @@ module.exports = function(env) {
     }
     return undefined;
   }
+
+  IncrementalMH.prototype.addERP = function(node) {
+    this.erpMasterList.addERP(node);
+    this.fwdPropLP += node.score;
+    tabbedlog(node.depth, "new ERP");
+  };
+
+  IncrementalMH.prototype.removeERP = function(node) {
+    this.erpMasterList.removeERP(node);
+    this.rvsPropLP += node.score;
+    this.score -= node.score;
+    tabbedlog(node.depth, "kill ERP");
+  };
 
   // Restore this.nodeStack up to the specified node
   IncrementalMH.prototype.restoreStackUpTo = function(node) {
