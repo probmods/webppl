@@ -339,10 +339,16 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(this.depth, "kill function");
-    var n = this.children.length;
-    while(n--)
-      this.children[n].killDescendantLeaves();
+    tabbedlog(this.depth, "kill function (and all descendant leaves)");
+    var stack = [this];
+    while (stack.length > 0) {
+      var node = stack.pop();
+      if (node.score !== undefined) node.killDescendantLeaves();
+      else {
+        var n = node.children.length;
+        while(n--) stack.push(node.children[n]);
+      }
+    }
   };
 
   FunctionNode.prototype.kontinue = function() {
