@@ -39,7 +39,6 @@ module.exports = function(env) {
 
   function MH(s, k, a, wpplFn, numIterations) {
 
-    this.returnHist = {};
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
@@ -53,6 +52,9 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+
+    this.returnHist = {};
+    this.MAP = { val: undefined, score: -Infinity };
 
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
@@ -130,6 +132,11 @@ module.exports = function(env) {
           this.returnHist[stringifiedVal] = { prob: 0, val: val };
         }
         this.returnHist[stringifiedVal].prob += 1;
+        // also update the MAP
+        if (this.currScore > this.MAP.score) {
+          this.MAP.score = this.currScore;
+          this.MAP.val = val;
+        }
 
         // make a new proposal:
         this.regenFrom = Math.floor(Math.random() * this.trace.length);
@@ -144,6 +151,7 @@ module.exports = function(env) {
       }
     } else {
       var dist = erp.makeMarginalERP(this.returnHist);
+      dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
       var k = this.k;

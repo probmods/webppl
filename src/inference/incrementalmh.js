@@ -256,6 +256,7 @@ module.exports = function(env) {
     this.inStore = _.clone(s);
     this.args = args;
 
+    this.initialized = false;
     this.retval = undefined;
     this.outStore = null;
   }
@@ -286,10 +287,11 @@ module.exports = function(env) {
           tabbedlog(that.depth, "continue from function");
           // If the return value and output store haven't changed, then we can bail early.
           // TODO: Should we use deep (i.e. structural) equality tests here?
-          if (that.retval === retval && storesEqual(that.outStore, s)) {
+          if (that.initialized && that.retval === retval && storesEqual(that.outStore, s)) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
           }
+          that.initialized = true;
           tabbedlog(that.depth, "function return val has changed");
           // Update output values
           updateProperty(that, "retval", retval);
@@ -474,7 +476,6 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   function IncrementalMH(s, k, a, wpplFn, numIterations) {
-    this.returnHist = {};
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
@@ -482,6 +483,8 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
+    this.returnHist = {};
+    this.MAP = { val: undefined, score: -Infinity };
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
@@ -584,11 +587,16 @@ module.exports = function(env) {
           this.returnHist[stringifiedVal] = { prob: 0, val: val };
         }
         this.returnHist[stringifiedVal].prob += 1;
-
-        if (DEBUG) {
-          debuglog("=== Cache status ===");
-          this.cacheRoot.print();
+         // also update the MAP
+        if (this.score > this.MAP.score) {
+          this.MAP.score = this.score;
+          this.MAP.val = val;
         }
+
+        // if (DEBUG) {
+        //   debuglog("=== Cache status ===");
+        //   this.cacheRoot.print();
+        // }
 
         // Prepare to make a new proposal
         this.oldScore = this.score;
@@ -608,6 +616,7 @@ module.exports = function(env) {
     } else {
       // Finalize returned histogram-based ERP
       var dist = erp.makeMarginalERP(this.returnHist);
+      dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
       var k = this.k;
