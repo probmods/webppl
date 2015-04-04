@@ -256,7 +256,6 @@ module.exports = function(env) {
     this.inStore = _.clone(s);
     this.args = args;
 
-    this.initialized = false;
     this.retval = undefined;
     this.outStore = null;
   }
@@ -279,6 +278,8 @@ module.exports = function(env) {
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
+      // Record the fact that we entered this function.
+      this.entered = true;
       return this.func.apply(global, [
         this.inStore,
         function(s, retval) {
@@ -286,12 +287,14 @@ module.exports = function(env) {
           var that = coroutine.nodeStack.pop();
           tabbedlog(that.depth, "continue from function");
           // If the return value and output store haven't changed, then we can bail early.
+          // We can only do this if this call is returning from a change somewhere below it
+          //    (i.e. that.entered == false). Otherwise, we need to keep running.
           // TODO: Should we use deep (i.e. structural) equality tests here?
-          if (that.initialized && that.retval === retval && storesEqual(that.outStore, s)) {
+          if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
           }
-          that.initialized = true;
+          that.entered = false;
           tabbedlog(that.depth, "function return val has changed");
           // Update output values
           updateProperty(that, "retval", retval);
