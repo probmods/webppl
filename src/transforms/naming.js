@@ -16,7 +16,7 @@ function makeGenlit() {
   var gensym = makeGensym();
   return function() {
     return build.literal(gensym('_'));
-  }
+  };
 }
 
 var genlit = null;
@@ -66,7 +66,7 @@ function namingMain(node) {
   genvar = makeGenvar();
 
   return inProgram(function(node) {
-    return replace(node, { enter: generating, leave: naming });
+    return replace(node, {enter: generating, leave: naming});
   })(node, fail('naming: inProgram', node));
 }
 

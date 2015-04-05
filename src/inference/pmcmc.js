@@ -46,7 +46,9 @@ module.exports = function(env) {
     var that = this;
     // Create initial particles
     this.particles = [];
-    var exitK = function(s) {return that.wpplFn(s, env.exit, that.address);};
+    var exitK = function(s) {
+      return that.wpplFn(s, env.exit, that.address);
+    };
     for (var i = 0; i < this.numParticles; i++) {
       var particle = {
         continuations: [exitK],
@@ -69,7 +71,9 @@ module.exports = function(env) {
   PMCMC.prototype.activeContinuationWithStore = function() {
     var k = last(this.activeParticle().continuations);
     var s = _.clone(last(this.activeParticle().stores)); // FIXME: why is cloning here necessary?
-    return function() { return k(s);};
+    return function() {
+      return k(s);
+    };
   };
 
   PMCMC.prototype.allParticlesAdvanced = function() {
@@ -108,7 +112,9 @@ module.exports = function(env) {
 
   PMCMC.prototype.resampleParticles = function(particles) {
     var weights = particles.map(
-        function(particle) {return Math.exp(last(particle.weights));});
+        function(particle) {
+          return Math.exp(last(particle.weights));
+        });
 
     var j;
     var newParticles = [];
@@ -164,7 +170,7 @@ module.exports = function(env) {
             function(particle) {
               var k = JSON.stringify(particle.value);
               if (this.returnHist[k] === undefined) {
-                this.returnHist[k] = { prob: 0, val: particle.value };
+                this.returnHist[k] = {prob: 0, val: particle.value};
               }
               this.returnHist[k].prob += 1;
             }.bind(this));

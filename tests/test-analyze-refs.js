@@ -50,7 +50,7 @@ var tests = {
 function makeTest(p) {
   return function(test) {
     test.done();
-  }
+  };
 }
 
 exports.test = (function(tests) {
