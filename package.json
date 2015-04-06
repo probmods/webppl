@@ -42,7 +42,7 @@
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"
   },
-  "homepage": "https://github.com/probmods/webppl",
+  "homepage": "http://webppl.org",
   "bin": {
     "webppl": "./webppl"
   },

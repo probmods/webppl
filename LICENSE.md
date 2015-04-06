@@ -4,7 +4,7 @@ Copyright © `2014` `WebPPL contributors`
 
 This software consists of voluntary contributions made by various
 individuals. For exact contribution history, see the revision history
-available at https://github.com/probmods/webppl.
+available at http://webppl.org.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
