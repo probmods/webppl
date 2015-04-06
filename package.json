@@ -14,27 +14,26 @@
   },
   "dependencies": {
     "amdefine": "^0.1.0",
-    "ast-types": "^0.7.0",
-    "escodegen": "^1.4.1",
+    "ast-types": "^0.7.2",
+    "escodegen": "^1.6.1",
     "esmangle": "^1.0.1",
-    "esprima": "^1.2.2",
+    "esprima": "^2.1.0",
     "estemplate": "^0.4.0",
-    "estraverse": "^1.8.0",
-    "esutils": "^1.1.6",
+    "estraverse": "^3.1.0",
+    "esutils": "^2.0.2",
     "git-rev-2": "^0.1.0",
-    "immutable": "^3.6.2",
-    "minimist": "^1.1.0",
+    "immutable": "^3.7.1",
+    "minimist": "^1.1.1",
     "priorityqueuejs": "~1.0.0",
-    "underscore": "^1.6.0"
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "closure-linter-wrapper": "^0.2.9",
     "grunt": "^0.4.5",
-    "grunt-contrib-jshint": "^0.11.0",
+    "grunt-contrib-jshint": "^0.11.1",
     "grunt-contrib-nodeunit": "^0.4.1",
     "grunt-gjslint": "^0.1.6",
-    "nodeunit": "^0.9.0",
-    "brfs": "^1.2.0"    
+    "nodeunit": "^0.9.1",
+    "brfs": "^1.4.0"
   },
   "scripts": {
     "test": "nodeunit tests"
