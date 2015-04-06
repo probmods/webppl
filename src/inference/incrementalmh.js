@@ -318,12 +318,18 @@ module.exports = function(env) {
     this.needsUpdate = false;
     // Check args for changes
     // TODO: Should we use deep (i.e. structural) equality tests here?
-    for (var i = 0; i < args.length; i++)
-    {
-      if (args[i] !== this.args[i]) {
-        this.needsUpdate = true;
-        updateProperty(this, "args", args);
-        break;
+    if (this.args.length !== args.length) {
+      this.needsUpdate = true;
+      updateProperty(this, "args", args);
+    }
+    if (!this.needsUpdate) {
+      for (var i = 0; i < args.length; i++)
+      {
+        if (args[i] !== this.args[i]) {
+          this.needsUpdate = true;
+          updateProperty(this, "args", args);
+          break;
+        }
       }
     }
     // Check store for changes
