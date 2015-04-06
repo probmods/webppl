@@ -14,6 +14,7 @@ var naming = require('./transforms/naming').naming;
 var store = require('./transforms/store').store;
 var varargs = require('./transforms/varargs').varargs;
 var trampoline = require('./transforms/trampoline').trampoline;
+var freevars = require('./transforms/freevars').freevars;
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/analyze').analyze;
 var util = require('./util');
@@ -41,6 +42,7 @@ function prepare(programCode, verbose) {
   }
 
   var _prepare = function(ast) {
+    ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
@@ -65,6 +67,7 @@ function compile(programCode, verbose) {
   }
 
   var _compile = function(ast) {
+    ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);

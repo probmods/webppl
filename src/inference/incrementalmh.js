@@ -110,7 +110,7 @@ module.exports = function(env) {
     }
   };
 
-  ERPNode.prototype.registerInputChanges = function(s, k, params) {
+  ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
     updateProperty(this, "store", _.clone(s));
     updateProperty(this, "continuation", k);
     this.reachable = true;
@@ -198,7 +198,7 @@ module.exports = function(env) {
     }
   };
 
-  FactorNode.prototype.registerInputChanges = function(s, k, args) {
+  FactorNode.prototype.registerInputChanges = function(s, k, unused, args) {
     updateProperty(this, "store", s);
     updateProperty(this, "continuation", k);
     this.reachable = true;
@@ -235,6 +235,34 @@ module.exports = function(env) {
         return false;
     }
     return true;
+  }
+
+  // Checks whether two function are equivalent
+  var fnEquivCache = {};
+  function fnsEqual(f1, f2) {
+    // If the two functions are literally the same closure, then of course
+    //    they are equivalent.
+    if (f1 === f2) return true;
+    // Otherwise, they're equivalent if they come from the same source location
+    //    and the values of the variables they close over are the same.
+    // We cache this check, because situations often arise where we're checking
+    //    the same pair of functions over and over again.
+    if (f1.__lexid === f2.__lexid) {
+      var key = JSON.stringify([f1.__lexid, f2.__lexid]);
+      var val = fnEquivCache[key];
+      if (val === undefined) {
+        val = true;
+        for (var i = 0; i < f1.__freeVarVals.length; i++) {
+          if (f1.__freeVarVals[i] !== f2.__freeVarVals[i]) {
+            val = false;
+            break;
+          }
+        }
+        fnEquivCache[key] = val;
+      }
+      return val;
+    }
+    return false;
   }
 
   // A cached, general WebPPL function call
@@ -289,7 +317,6 @@ module.exports = function(env) {
           // If the return value and output store haven't changed, then we can bail early.
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
-          // TODO: Should we use deep (i.e. structural) equality tests here?
           if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
             tabbedlog(that.depth, "function return val not changed; bailing");
             return coroutine.exit();
@@ -312,17 +339,21 @@ module.exports = function(env) {
     }
   };
 
-  FunctionNode.prototype.registerInputChanges = function(s, k, args) { 
+  FunctionNode.prototype.registerInputChanges = function(s, k, fn, args) { 
     updateProperty(this, "continuation", k);
     this.reachable = true;
     this.needsUpdate = false;
+    // Check fn for changes
+    if (!fnsEqual(fn, this.func)) {
+      this.needsUpdate = true;
+      updateProperty(this, "func", fn);
+    }
     // Check args for changes
-    // TODO: Should we use deep (i.e. structural) equality tests here?
     if (this.args.length !== args.length) {
       this.needsUpdate = true;
       updateProperty(this, "args", args);
-    }
-    if (!this.needsUpdate) {
+    } else {
+      var i = args.length;
       for (var i = 0; i < args.length; i++)
       {
         if (args[i] !== this.args[i]) {
@@ -333,12 +364,9 @@ module.exports = function(env) {
       }
     }
     // Check store for changes
-    // TODO: Should we use deep (i.e. structural) equality tests here?
-    if (!this.needsUpdate) {
-      if (!storesEqual(this.store, s)) {
-        this.needsUpdate = true;
-        updateProperty(this, "inStore", _.clone(s));
-      }
+    if (!storesEqual(this.store, s)) {
+      this.needsUpdate = true;
+      updateProperty(this, "inStore", _.clone(s));
     }
   };
 
@@ -657,7 +685,7 @@ module.exports = function(env) {
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
         tabbedlog(currNode.depth, "found");
-        cacheNode.registerInputChanges(s, k, args);
+        cacheNode.registerInputChanges(s, k, fn, args);
       } else {
         // Lookup failed; create new node and insert it into currNode.children
         if (DEBUG) {

@@ -58,11 +58,22 @@ module.exports = function(env) {
     return k(s, cf);
   }
 
+  // Annotating a function object with its lexical id and
+  //    a list of its free variable values.
+  var _Fn = {
+    tag: function(fn, lexid, freevarvals) {
+      fn.__lexid = lexid;
+      fn.__freeVarVals = freevarvals;
+      return fn;
+    }
+  };
+ 
   return {
     display: display,
     cache: cache,
     apply: apply,
-    mem: mem
+    mem: mem,
+    _Fn: _Fn
   };
 
 };
