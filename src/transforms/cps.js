@@ -89,7 +89,7 @@ function atomize(node, metaK) {
         });
       });
     }),
-    clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
+    clause(Syntax.FunctionExpression, function(id, params, body) {
       return metaK(cpsFunction(id, params, body));
     }),
     clause(Syntax.Identifier, function() {
@@ -316,7 +316,7 @@ function cpsMain(node) {
   genvar = makeGenvar();
 
   return inProgram(function(expression) {
-    return clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
+    return clause(Syntax.FunctionExpression, function(id, params, body) {
       return cpsFunction(id, params, body);
     })(expression, fail('cps: expected FunctionExpression', expression));
   })(node, fail('cps: inProgram', node));
