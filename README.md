@@ -182,5 +182,6 @@ Sometimes, it is useful to define external functions that are able to access the
     git add package.json
     git commit -m "Update npm version"
     git push origin master
-    git push origin v0.0.1  // use version printed by "npm version" command
+    git tag v0.0.1 // use version printed by "npm version" command above
+    git push origin v0.0.1  // again, use version printed by "npm version" command above
     npm publish
