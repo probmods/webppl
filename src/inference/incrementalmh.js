@@ -78,6 +78,7 @@ module.exports = function(env) {
 
     this.parent = parent;
     this.depth = parent.depth + 1;
+    this.index = parent.nextChildIdx;
 
     this.reachable = true;
     this.needsUpdate = false;
@@ -119,6 +120,7 @@ module.exports = function(env) {
     updateProperty(this, "continuation", k);
     this.reachable = true;
     this.needsUpdate = false;
+    this.index = this.parent.nextChildIdx;
     // Check params for changes
     for (var i = 0; i < params.length; i++)
     {
@@ -180,6 +182,7 @@ module.exports = function(env) {
 
     this.parent = parent;
     this.depth = parent.depth + 1;
+    this.index = parent.nextChildIdx;
 
     this.reachable = true;
 
@@ -206,6 +209,7 @@ module.exports = function(env) {
     updateProperty(this, "store", s);
     updateProperty(this, "continuation", k);
     this.reachable = true;
+    this.index = this.parent.nextChildIdx;
     if (this.score !== args[0])
       this.rescore(this.score, args[0]);
   };
@@ -279,6 +283,7 @@ module.exports = function(env) {
 
     this.parent = parent;
     this.depth = parent ? parent.depth + 1 : 0;
+    this.index = parent ? parent.nextChildIdx : undefined;
     this.children = [];
     this.nextChildIdx = 0;
 
@@ -361,6 +366,7 @@ module.exports = function(env) {
     updateProperty(this, "continuation", k);
     this.reachable = true;
     this.needsUpdate = false;
+    this.index = this.parent ? this.parent.nextChildIdx : undefined;
     // Check fn for changes
     if (!fnsEqual(fn, this.func)) {
       this.needsUpdate = true;
@@ -409,17 +415,15 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.notifyChildExecuted = function(child) {
-    var idx = this.children.indexOf(child);
-    this.nextChildIdx = idx + 1;
+    this.nextChildIdx = child.index + 1;
   };
 
   FunctionNode.prototype.notifyChildChanged = function(child) {
-    var idx = this.children.indexOf(child);
     // Children later in the execution order may become unreachable due
     //    to this change, so we mark them all as unreachable and see which
     //    ones we hit.
     var nchildren = this.children.length;
-    for (var i = idx + 1; i < nchildren; i++) {
+    for (var i = child.index + 1; i < nchildren; i++) {
       touch(this.children[i]);
       this.children[i].reachable = false;
     }
