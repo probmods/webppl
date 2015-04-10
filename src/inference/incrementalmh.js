@@ -318,6 +318,20 @@ module.exports = function(env) {
           // Recover a reference to 'this'
           var that = coroutine.nodeStack.pop();
           tabbedlog(that.depth, "continue from function");
+          // Clear out any children that have become unreachable
+          var newchildren = [];
+          var nchildren = that.children.length;
+          for (var i = 0; i < nchildren; i++) {
+            var child = that.children[i];
+            // If the child is unreachable, recursively set all of its
+            //    descendants to unreachable, so that any ERPs get marked
+            //    unreachable and we know to remove them from the master list.
+            if (!child.reachable)
+              child.killDescendantLeaves();
+            else
+              newchildren.push(child);
+          }
+          updateProperty(that, "children", newchildren);
           // If the return value and output store haven't changed, then we can bail early.
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
@@ -388,22 +402,6 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.kontinue = function() {
-
-    // Clear out any children that have become unreachable
-    //    before passing control back up to the parent
-    var newchildren = [];
-    var nchildren = this.children.length;
-    for (var i = 0; i < nchildren; i++) {
-      var child = this.children[i];
-      // If the child is unreachable, recursively set all of its
-      //    descendants to unreachable, so that any ERPs get marked
-      //    unreachable and we know to remove them from the master list.
-      if (!child.reachable)
-        child.killDescendantLeaves();
-      else
-        newchildren.push(child);
-    }
-    updateProperty(this, "children", newchildren);
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     // Call continuation
