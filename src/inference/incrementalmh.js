@@ -733,7 +733,7 @@ module.exports = function(env) {
       }
     }
     return undefined;
-  }
+  };
 
   IncrementalMH.prototype.addERP = function(node) {
     this.erpMasterList.addERP(node);

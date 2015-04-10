@@ -1,0 +1,193 @@
+////////////////////////////////////////////////////////////////////
+// Lightweight MH, storing choices in a hash table
+
+'use strict';
+
+var _ = require('underscore');
+var assert = require('assert');
+var util = require('../util.js');
+var erp = require('../erp.js');
+
+module.exports = function(env) {
+
+  function acceptProb(currScore, oldScore, currN, oldN, rvsLP, fwdLP) {
+    if (oldScore === -Infinity) { return 1; } // init
+    if (currScore === -Infinity) return 0;  // auto-reject
+    var fw = -Math.log(oldN) + fwdLP;
+    var bw = -Math.log(currN) + rvsLP;
+    var p = Math.exp(currScore - oldScore + bw - fw);
+    assert.ok(!isNaN(p));
+    var acceptance = Math.min(1, p);
+    return acceptance;
+  }
+
+  function HashMH(s, k, a, wpplFn, numIterations) {
+
+    this.k = k;
+    this.oldStore = s;
+    this.iterations = numIterations;
+
+    this.totalIterations = numIterations;
+    this.acceptedProps = 0;
+
+    // Move old coroutine out of the way and install this as the current
+    // handler.
+
+    this.wpplFn = wpplFn;
+    this.s = s;
+    this.a = a;
+
+    this.returnHist = {};
+    this.MAP = { val: undefined, score: -Infinity };
+
+    this.oldCoroutine = env.coroutine;
+    env.coroutine = this;
+  }
+
+  HashMH.prototype.run = function() {
+    this.vars = {};
+    this.varlist = [];
+    this.currScore = 0;
+    this.fwdLP = 0;
+    this.rvsLP = 0;
+    this.oldScore = -Infinity;
+    return this.wpplFn(this.s, env.exit, this.a);
+  };
+
+  HashMH.prototype.factor = function(s, k, a, score) {
+    this.currScore += score;
+    // Bail out early if score became -Infinity
+    if (this.currScore === -Infinity)
+      return this.exit();
+    else
+      return k(s);
+  };
+
+  HashMH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
+    var prev = this.vars[name];
+
+    var reuse = ! (prev === undefined || forceSample);
+    var val = reuse ? prev.val : erp.sample(params);
+    // On proposal: bail out early if the value didn't change
+    if (forceSample && prev.val === val) {
+      this.vars = this.oldVars;
+      this.varlist = this.oldvarlist;
+      this.currScore = this.oldScore;
+      return this.exit(null, this.oldVal);
+    } else {
+      var choiceScore = erp.score(params, val);
+      var newEntry = {k: cont, name: name, erp: erp, params: params,
+        score: this.currScore, choiceScore: choiceScore,
+        val: val, reused: reuse, store: _.clone(s)};
+      this.currScore += choiceScore;
+      this.vars[name] = newEntry;
+      this.varlist.push(newEntry);
+      // Case: we just created this choice for the first time
+      if (prev === undefined)
+        this.fwdLP += choiceScore;
+      // Case: we made a proposal to this choice
+      else if (forceSample) {
+        this.fwdLP += choiceScore;
+        this.rvsLP += prev.choiceScore;
+      }
+      // Bail out early if score became -Infinity
+      if (this.currScore === -Infinity)
+        return this.exit();
+      else
+        return cont(s, val);
+    }
+  };
+
+  HashMH.prototype.isInitialized = function() {
+    return this.iterations < this.totalIterations;
+  };
+
+  HashMH.prototype.exit = function(s, val) {
+    if (this.iterations > 0) {
+      // Initialization: Keep rejection sampling until we get a trace with
+      //    non-zero probability
+      if (!this.isInitialized() && this.currScore === -Infinity) {
+        return this.run();
+      } else {
+        this.iterations -= 1;
+
+        // Clean out any dead vars and calculate reverse LP
+        if (this.oldvarlist !== undefined && this.currScore !== -Infinity) {
+          var reached = {};
+          for (var i = this.propIdx; i < this.varlist.length; i++)
+            reached[this.varlist[i].name] = this.varlist[i];
+          for (var i = this.propIdx; i < this.oldvarlist.length; i++) {
+            var v = this.oldvarlist[i];
+            if (reached[v.name] === undefined) {
+              delete this.vars[v.name];
+              this.rvsLP += v.choiceScore;
+            }
+          }
+        }
+
+        // did we like this proposal?
+        var oldN = this.oldvarlist === undefined ? 0 : this.oldvarlist.length;
+        var acceptance = acceptProb(this.currScore, this.oldScore,
+                                    this.varlist.length, oldN,
+                                    this.rvsLP, this.fwdLP);
+        if (Math.random() >= acceptance) {
+          // if rejected, roll back trace, etc:
+          this.vars = this.oldVars;
+          this.varlist = this.oldvarlist;
+          this.currScore = this.oldScore;
+          val = this.oldVal;
+        } else this.acceptedProps++;
+
+        // now add val to hist:
+        var stringifiedVal = JSON.stringify(val);
+        if (this.returnHist[stringifiedVal] === undefined) {
+          this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        }
+        this.returnHist[stringifiedVal].prob += 1;
+        // also update the MAP
+        if (this.currScore > this.MAP.score) {
+          this.MAP.score = this.currScore;
+          this.MAP.val = val;
+        }
+
+        // make a new proposal:
+        this.propIdx = Math.floor(Math.random() * this.varlist.length);
+        var entry = this.varlist[this.propIdx];
+        this.oldVars = this.vars;
+        this.vars = _.clone(this.vars);
+        this.oldvarlist = this.varlist;
+        this.varlist = this.oldvarlist.slice(0, this.propIdx);
+        this.fwdLP = 0;
+        this.rvsLP = 0;
+        this.oldScore = this.currScore;
+        this.currScore = entry.score;
+        this.oldVal = val;
+
+        return this.sample(_.clone(entry.store), entry.k, entry.name, entry.erp, entry.params, true);
+      }
+    } else {
+      var dist = erp.makeMarginalERP(this.returnHist);
+      dist.MAP = this.MAP.val;
+
+      // Reinstate previous coroutine:
+      var k = this.k;
+      env.coroutine = this.oldCoroutine;
+
+      console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
+
+      // Return by calling original continuation:
+      return k(this.oldStore, dist);
+    }
+  };
+
+  HashMH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
+  function hashmh(s, cc, a, wpplFn, numParticles) {
+    return new HashMH(s, cc, a, wpplFn, numParticles).run();
+  }
+
+  return {
+    HashMH: hashmh
+  };
+
+};

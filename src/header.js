@@ -27,6 +27,7 @@ var erp = require('./erp.js');
 var enumerate = require('./inference/enumerate.js');
 var particlefilter = require('./inference/particlefilter.js');
 var mh = require('./inference/mh.js');
+var hashmh = require('./inference/hashmh.js');
 var pmcmc = require('./inference/pmcmc.js');
 var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
@@ -115,7 +116,7 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, particlefilter, mh, incrementalmh, pmcmc,
+    enumerate, particlefilter, mh, hashmh, incrementalmh, pmcmc,
     smc, variational, headerUtils
   ];
   headerModules.forEach(function(mod) {
