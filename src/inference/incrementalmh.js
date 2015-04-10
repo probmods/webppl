@@ -50,6 +50,11 @@ module.exports = function(env) {
     node[prop] = val;
   }
 
+  function hasSnapshotForProperty(node, prop) {
+    return node.__snapshot !== undefined &&
+           node.__snapshot[prop] !== undefined;
+  }
+
   function restoreSnapshot(node) {
     for (var prop in node.__snapshot) {
       node[prop] = node.__snapshot[prop];
@@ -681,7 +686,7 @@ module.exports = function(env) {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(currNode.depth, "lookup", NodeType.name, a);
       // Look for cache node among the children of currNode
-      cacheNode = findNode(currNode.children, a, currNode.nextChildIdx);
+      cacheNode = this.findNode(currNode, a);
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
         tabbedlog(currNode.depth, "found");
@@ -695,7 +700,10 @@ module.exports = function(env) {
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
-        var newchildren = currNode.children.slice();
+        // Copy the children array if we don't already have a snapshot for it
+        // Kind of annoying that this somewhat breaks the abstraction of snapshots, but
+        //    I think it's worth it.
+        var newchildren = hasSnapshotForProperty(currNode, "children") ? currNode.children : currNode.children.slice();
         newchildren.splice(insertidx, 0, cacheNode);
         updateProperty(currNode, "children", newchildren);
       }
@@ -703,7 +711,12 @@ module.exports = function(env) {
     return cacheNode;
   };
 
-  function findNode(nodes, address, nexti) {
+  IncrementalMH.prototype.findNode = function(parentNode, address) {
+    // If we haven't initialized yet (i.e. we're running the program for
+    //    the first time), then don't even bother looking.
+    if (!this.isInitialized()) return undefined;
+    var nodes = parentNode.children;
+    var nexti = parentNode.nextChildIdx;
     for (var i = nexti; i < nodes.length; i++) {
       if (nodes[i].address === address) {
         // Keep nodes ordered according to execution order: if
