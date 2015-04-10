@@ -16,7 +16,6 @@ module.exports = function(env) {
   // Debugging output
 
   var DEBUG = false;
-  // var DEBUG = true;
   function debuglog() {
     if (DEBUG)
       console.log.apply(global, arguments);
@@ -517,7 +516,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations, debug) {
+    DEBUG = debug;
+
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
@@ -757,8 +758,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters).run();
+  function imh(s, cc, a, wpplFn, numIters, debug) {
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, debug).run();
   }
 
   return {
