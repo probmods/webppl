@@ -177,7 +177,7 @@ function main() {
                   });});
       });
 
-  var requires = addModulePaths(asArray(argv.require));
+  // var requires = addModulePaths(asArray(argv.require));
   var headers = addModulePaths(asArray(argv.header));
 
   var processCode = argv.compile ? compile : run;
