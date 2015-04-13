@@ -89,7 +89,7 @@ function atomize(node, metaK) {
         });
       });
     }),
-    clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
+    clause(Syntax.FunctionExpression, function(id, params, body) {
       return metaK(cpsFunction(id, params, body));
     }),
     clause(Syntax.Identifier, function() {
@@ -125,7 +125,7 @@ function atomize(node, metaK) {
     clause(Syntax.ObjectExpression, function(properties) {
       return atomizeStar(properties, function(properties) {
         return metaK(build.objectExpression(properties));
-      })
+      });
     }),
     clause(Syntax.Property, function(key, value) {
       return atomize(value, function(value) {
@@ -137,7 +137,6 @@ function atomize(node, metaK) {
         return metaK(build.unaryExpression(node.operator, argument));
       });
     })
-
 
 
   ], fail('atomize: unrecognized node', node));
@@ -316,7 +315,7 @@ function cpsMain(node) {
   genvar = makeGenvar();
 
   return inProgram(function(expression) {
-    return clause(Syntax.FunctionExpression, function(id, params, defaults, rest, body) {
+    return clause(Syntax.FunctionExpression, function(id, params, body) {
       return cpsFunction(id, params, body);
     })(expression, fail('cps: expected FunctionExpression', expression));
   })(node, fail('cps: inProgram', node));

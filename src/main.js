@@ -92,7 +92,7 @@ function run(code, contFun, verbose) {
 }
 
 // Compile and run some webppl code in global scope:
-function webppl_eval(k, code, verbose) {
+function webpplEval(k, code, verbose) {
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode)({}, k, '');
 }
@@ -122,11 +122,11 @@ if (util.runningInBrowser()) {
   console.log('webppl loaded.');
 } else {
   // Put eval into global scope. browser version??
-  global.webppl_eval = webppl_eval;
+  global.webpplEval = webpplEval;
 }
 
 module.exports = {
-  webppl_eval: webppl_eval,
+  webpplEval: webpplEval,
   run: run,
   prepare: prepare,
   compile: compile,

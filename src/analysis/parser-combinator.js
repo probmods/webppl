@@ -7,8 +7,10 @@ function finish() {
     if (i === nodes.length) {
       return succeed.apply(this, vs);
     }
-    else return fail();
-  }
+    else {
+      return fail();
+    }
+  };
 }
 
 function zero(nodes, i, succeed, fail) {
@@ -29,7 +31,7 @@ function result() {
 
   return function(nodes, i, succeed, fail) {
     return succeed.apply(this, Array.prototype.concat.apply([nodes, i], vs));
-  }
+  };
 }
 
 function bind(p, f) {
@@ -37,7 +39,7 @@ function bind(p, f) {
     return p(nodes, i, function(nodes, i) {
       return f.apply(this, Array.prototype.slice.call(arguments, 2))(nodes, i, succeed, fail);
     }, fail);
-  }
+  };
 }
 
 function rep(p) {
@@ -67,7 +69,7 @@ function seq(ps) {
           }, fail);
         }, fail);
       }
-    }
+    };
   }
 
   return loop(0);
@@ -78,7 +80,7 @@ function maybe(p, x) {
     return p(nodes, i, succeed, function() {
       return succeed(nodes, i, x);
     });
-  }
+  };
 }
 
 function apply(p, f) {
@@ -86,7 +88,7 @@ function apply(p, f) {
     return p(nodes, i, function(nodes, i) {
       return succeed(nodes, i, f.apply(this, Array.prototype.slice.call(arguments, 2)));
     }, fail);
-  }
+  };
 }
 
 function or(ps) {
@@ -94,14 +96,14 @@ function or(ps) {
     if (j === ps.length) {
       return function(nodes, i, succeed, fail) {
         return fail();
-      }
+      };
     }
     else {
       return function(nodes, i, succeed, fail) {
         return ps[j](nodes, i, succeed, function() {
           return loop(j + 1)(nodes, i, succeed, fail);
         });
-      }
+      };
     }
   }
 
@@ -114,7 +116,7 @@ function single(p) {
         return succeed.apply(this, Array.prototype.concat.apply([nodes, i], arguments));
       }, fail);
     }, fail);
-  }
+  };
 }
 
 function not(p) {
@@ -124,7 +126,7 @@ function not(p) {
     }, function() {
       return succeed(42);
     });
-  }
+  };
 }
 
 module.exports = {

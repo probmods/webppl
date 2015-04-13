@@ -53,7 +53,9 @@ var global = new Map({ // FIXME: rename (global is protected name)
         else if (ts.get(0) === 0) {
           return D.add(false);
         }
-        else return Set.of(true, false);
+        else {
+          return Set.of(true, false);
+        }
       }, new Set());
     }
   })),
@@ -78,7 +80,7 @@ var global = new Map({ // FIXME: rename (global is protected name)
             argument: argument
           });
         });
-      }
+      };
     })({
       type: 'Identifier',
       name: 'sample-identifier',
@@ -102,7 +104,7 @@ function Ai(operator, left, right) {
 
 function Austar(store, environment, dependence, es) {
   function loop(i) {
-    if (i == es.length) {
+    if (i === es.length) {
       return new AValue({
         values: Set.of(new List()),
         states: new Set()
@@ -199,8 +201,8 @@ function makeCallb(destructor) {
       return destructor(node, function() {
         return succeed(f.apply(this, arguments));
       }, fail);
-    }
-  }
+    };
+  };
 }
 
 function destructFuncExp(node, succeed, fail) {
@@ -212,7 +214,9 @@ function destructFuncExp(node, succeed, fail) {
       return succeed(funcParams(node), node.body);
     }
   }
-  else return fail();
+  else {
+    return fail();
+  }
 }
 
 function destructCondExp(node, succeed, fail) {
@@ -220,7 +224,9 @@ function destructCondExp(node, succeed, fail) {
       types.ConditionalExpression.check(node.expression)) {
     return succeed(node.expression.test, node.expression.consequent, node.expression.alternate);
   }
-  else return fail();
+  else {
+    return fail();
+  }
 }
 
 var callbCondExp = makeCallb(destructCondExp);
@@ -231,7 +237,9 @@ function destructContCall(node, succeed, fail) {
       isContinuationCall(node.expression)) {
     return succeed(node.expression.callee, node.expression.arguments[0]);
   }
-  else return fail();
+  else {
+    return fail();
+  }
 }
 
 var callbContCall = makeCallb(destructContCall);
@@ -239,13 +247,15 @@ var callbContCall = makeCallb(destructContCall);
 function destructUserCall(node, succeed, fail) {
   if (types.ExpressionStatement.check(node) &&
       types.CallExpression.check(node.expression) &&
-      (! isContinuationCall(node.expression))) {
+      (!isContinuationCall(node.expression))) {
     return succeed(callSiteLabel(node.expression),
                    node.expression.callee,
                    node.expression.arguments.slice(2),
                    node.expression.arguments[0]);
   }
-  else return fail();
+  else {
+    return fail();
+  }
 }
 
 var callbUserCall = makeCallb(destructUserCall);
@@ -255,7 +265,7 @@ var callbUserCall = makeCallb(destructUserCall);
 function accessor(name) {
   return function(x) {
     return x[name];
-  }
+  };
 }
 
 function contParams(node) {
@@ -377,12 +387,12 @@ var BEval = new Record({
   alternate: null
 });
 
-function parse_single_or(p, q) {
+function parseSingleOr(p, q) {
   return function(node, succeed, fail) {
     return p(node, succeed, function() {
       return q(node, succeed, fail);
     });
-  }
+  };
 }
 
 BEval.prototype.succs = function() {
@@ -397,7 +407,7 @@ BEval.prototype.succs = function() {
     check_equal(vs.states.first(), vs.states.rest().first());
   }
 
-  var parse = parse_single_or(parseContCall(this.store, this.environment, this.dependence.union(vs.states)),
+  var parse = parseSingleOr(parseContCall(this.store, this.environment, this.dependence.union(vs.states)),
                               parseUserCall(this.store, this.environment, this.dependence.union(vs.states)));
 
   if (vs.values.has(true)) {
@@ -473,7 +483,7 @@ CApply.prototype.succs = function() {
   }, fail('expected a function expression', this.cont)));
 };
 
-function UEval_succs() {
+function UEvalSuccs() {
   var store = this.store, environment = this.environment, dependence = this.dependence;
 
   var Df = Au(store, environment, dependence, this.callee);
@@ -509,7 +519,7 @@ var UEvalCall = new Record({
   k: null
 });
 
-UEvalCall.prototype.succs = UEval_succs;
+UEvalCall.prototype.succs = UEvalSuccs;
 
 var UEvalExit = new Record({
   type: 'UEvalExit',
@@ -521,7 +531,7 @@ var UEvalExit = new Record({
   args: null
 });
 
-UEvalExit.prototype.succs = UEval_succs;
+UEvalExit.prototype.succs = UEvalSuccs;
 
 var UApplyEntry = new Record({
   type: 'UApplyEntry',
@@ -557,7 +567,9 @@ function parseDeclaration(node, succeed, fail) {
       node.declarations.length === 1) {
     return succeed(node.declarations[0]);
   }
-  else return fail();
+  else {
+    return fail();
+  }
 }
 
 function parseBody(store, environment, dependence, nodes) {
@@ -621,7 +633,7 @@ function analyzeMain(node) {
   }
 
   function successor(s0, s1) { // first successor, really only meaningful if there's only one
-    if (! succ.has(s0)) {
+    if (!succ.has(s0)) {
       succ = succ.set(s0, s1);
     }
   }
@@ -632,7 +644,7 @@ function analyzeMain(node) {
       cdr: s1
     });
 
-    if (! seen.has(ss)) {
+    if (!seen.has(ss)) {
       seen = seen.add(ss);
       work = work.add(ss);
     }
@@ -644,12 +656,12 @@ function analyzeMain(node) {
     assert(s3.type === 'UApplyEntry');
     assert(s4.type === 'CEvalExit');
 
-    var f_dependence = Au(s2.store, s2.environment, s2.dependence, s2.callee).states;
+    var fDependence = Au(s2.store, s2.environment, s2.dependence, s2.callee).states;
 
     var environment = s2.environment;
 
-    if (types.Identifier.check(s2.callee) && (! s2.callee.heapRef)) {
-      environment = envExtend(environment, s2.callee.name, s3.f, f_dependence);
+    if (types.Identifier.check(s2.callee) && (!s2.callee.heapRef)) {
+      environment = envExtend(environment, s2.callee.name, s3.f, fDependence);
     }
 
     var argument = s4.evaluatedArgument();
@@ -661,7 +673,7 @@ function analyzeMain(node) {
       cont: s2.k,
       argument: new AValue({
         values: argument.values,
-        states: argument.states.union(f_dependence)
+        states: argument.states.union(fDependence)
       })
     }));
   }

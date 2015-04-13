@@ -48,7 +48,9 @@ var bernoulliERP = new ERP(
       return val;
     },
     function flipScore(params, val) {
-      if (val != true && val != false) { return -Infinity; }
+      if (val != true && val != false) {
+        return -Infinity;
+      }
       var weight = params[0];
       return val ? Math.log(weight) : Math.log(1 - weight);
     },
@@ -113,14 +115,23 @@ var discreteERP = new ERP(
     }
     );
 
-var gammaCof = [76.18009172947146, -86.50532032941677, 24.01409824083091,
-                -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+var gammaCof = [
+  76.18009172947146,
+  -86.50532032941677,
+  24.01409824083091,
+  -1.231739572450155,
+  0.1208650973866179e-2,
+  -0.5395239384953e-5];
 
 function logGamma(xx) {
   var x = xx - 1.0;
-  var tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp);
+  var tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
   var ser = 1.000000000190015;
-  for (var j = 0; j <= 5; j++) { x++; ser += gammaCof[j] / x; }
+  for (var j = 0; j <= 5; j++) {
+    x++;
+    ser += gammaCof[j] / x;
+  }
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
@@ -134,7 +145,10 @@ function gammaSample(params) {
   var d = a - 1 / 3;
   var c = 1 / Math.sqrt(9 * d);
   while (true) {
-    do {x = gaussianSample([0, 1]); v = 1 + c * x;} while (v <= 0);
+    do {
+      x = gaussianSample([0, 1]);
+      v = 1 + c * x;
+    } while (v <= 0);
     v = v * v * v;
     u = Math.random();
     if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
@@ -190,8 +204,12 @@ var betaERP = new ERP(
     );
 
 function binomialG(x) {
-  if (x === 0) { return 1; }
-  if (x === 1) { return 0; }
+  if (x === 0) {
+    return 1;
+  }
+  if (x === 1) {
+    return 0;
+  }
   var d = 1 - x;
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
@@ -207,14 +225,21 @@ function binomialSample(params) {
     b = 1 + n - a;
     var x = betaSample([a, b]);
     if (x >= p) {
-      n = a - 1; p /= x;
+      n = a - 1;
+      p /= x;
     }
-    else { k += a; n = b - 1; p = (p - x) / (1 - x); }
+    else {
+      k += a;
+      n = b - 1;
+      p = (p - x) / (1 - x);
+    }
   }
   var u;
   for (var i = 0; i < n; i++) {
     u = Math.random();
-    if (u < p) { k++; }
+    if (u < p) {
+      k++;
+    }
   }
   return k || 0;
 }
@@ -230,7 +255,9 @@ var binomialERP = new ERP(
         var inv2 = 1 / 2;
         var inv3 = 1 / 3;
         var inv6 = 1 / 6;
-        if (s >= n) { return -Infinity; }
+        if (s >= n) {
+          return -Infinity;
+        }
         var q = 1 - p;
         var S = s + inv2;
         var T = n - s - inv2;
@@ -256,13 +283,19 @@ var binomialERP = new ERP(
 
 function fact(x) {
   var t = 1;
-  while (x > 1) { t *= x--; }
+  while (x > 1) {
+    t *= x--;
+  }
   return t;
 }
 
 function lnfact(x) {
-  if (x < 1) { x = 1; }
-  if (x < 12) { return Math.log(fact(Math.round(x))); }
+  if (x < 1) {
+    x = 1;
+  }
+  if (x < 12) {
+    return Math.log(fact(Math.round(x)));
+  }
   var invx = 1 / x;
   var invx2 = invx * invx;
   var invx3 = invx2 * invx;
@@ -291,7 +324,10 @@ var poissonERP = new ERP(
       }
       var emu = Math.exp(-mu);
       var p = 1;
-      do { p *= Math.random(); k++; } while (p > emu);
+      do {
+        p *= Math.random();
+        k++;
+      } while (p > emu);
       return (k - 1) || 0;
     },
     function poissonScore(params, val) {
@@ -354,11 +390,15 @@ function makeMarginalERP(marginal) {
   var norm = 0;
   var supp = [];
   for (var v in marginal) {
-    norm += marginal[v].prob;
-    supp.push(marginal[v].val);
+    if (marginal.hasOwnProperty(v)) {
+      norm += marginal[v].prob;
+      supp.push(marginal[v].val);
+    }
   }
   for (v in marginal) {
-    marginal[v].prob = marginal[v].prob / norm;
+    if (marginal.hasOwnProperty(v)) {
+      marginal[v].prob = marginal[v].prob / norm;
+    }
   }
 
   // console.log("Creating distribution: ");
@@ -370,10 +410,12 @@ function makeMarginalERP(marginal) {
         var x = Math.random();
         var probAccum = 0;
         for (var i in marginal) {
-          probAccum += marginal[i].prob;
-          if (probAccum >= x) {
-            return marginal[i].val;
-          } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+          if (marginal.hasOwnProperty(i)) {
+            probAccum += marginal[i].prob;
+            if (probAccum >= x) {
+              return marginal[i].val;
+            } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+          }
         }
         return marginal[i].val;
       },

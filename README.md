@@ -1,5 +1,4 @@
-webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl)
-======
+webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl) [![Dependency Status](https://david-dm.org/probmods/webppl.svg)](https://david-dm.org/probmods/webppl)
 
 Probabilistic programming for the web
 
@@ -64,7 +63,11 @@ To only run the linter:
 
     grunt gjslint
 
-If the linter complains about style errors (like indentation), you can fix many of them automatically using:
+For more semantic linting, try:
+
+    grunt hint
+
+If gjslint complains about style errors (like indentation), you can fix many of them automatically using:
 
     grunt fixjsstyle
 
@@ -175,11 +178,26 @@ Sometimes, it is useful to define external functions that are able to access the
 
 ## Updating the npm package
 
-    git checkout master
-    git merge dev
-    grunt
-    npm version patch  // or minor, or major
-    git add package.json
-    git commit -m "Update npm version"
-    git push origin master
-    npm publish
+1. Update version in dev:
+
+        git checkout dev
+        npm version patch  // or minor, or major; prints new version number
+        git add package.json
+        git commit -m "Update npm version"
+
+2. Merge into master
+
+        git checkout master
+        git merge dev
+        grunt
+    
+3. Create git tag for new version
+
+        git tag v0.0.1 // use version printed by "npm version" command above    
+    
+4. Push to remotes and npm
+
+        git push origin dev
+        git push origin master
+        git push origin v0.0.1  // again, use version printed by "npm version" command above
+        npm publish

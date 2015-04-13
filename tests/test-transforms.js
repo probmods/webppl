@@ -29,7 +29,7 @@ function compose() {
     return fs.reduceRight(function(x, f) {
       return f(x);
     }, x);
-  }
+  };
 }
 
 function runTest(test, code, expected, transformAst, run) {
@@ -51,7 +51,7 @@ function check(test, code, newCode, expected, actual) {
 
   test.ok(success);
 
-  if (! success) {
+  if (!success) {
     console.log(code);
     console.log(newCode);
     console.log('Expected:', expected);
@@ -93,29 +93,59 @@ var runTrampoline = runVarargs;
 
 var selectNamingPrimitives = function() {
   // Set global definitions
-  plus = function(a, x, y) {return (x + y);};
-  minus = function(a, x, y) {return (x - y);};
-  times = function(a, x, y) {return (x * y);};
-  and = function(a, x, y) {return (x && y);};
-  plusTwo = function(a, x, y) {return (x + 2);};
+  plus = function(a, x, y) {
+    return (x + y);
+  };
+  minus = function(a, x, y) {
+    return (x - y);
+  };
+  times = function(a, x, y) {
+    return (x * y);
+  };
+  and = function(a, x, y) {
+    return (x && y);
+  };
+  plusTwo = function(a, x, y) {
+    return (x + 2);
+  };
 };
 
 function selectCpsPrimitives() {
   // Set global definitions
-  plus = function(k, a, x, y) {return k(x + y);};
-  minus = function(k, a, x, y) {return k(x - y);};
-  times = function(k, a, x, y) {return k(x * y);};
-  and = function(k, a, x, y) {return k(x && y);};
-  plusTwo = function(k, a, x, y) {return k(x + 2);};
+  plus = function(k, a, x, y) {
+    return k(x + y);
+  };
+  minus = function(k, a, x, y) {
+    return k(x - y);
+  };
+  times = function(k, a, x, y) {
+    return k(x * y);
+  };
+  and = function(k, a, x, y) {
+    return k(x && y);
+  };
+  plusTwo = function(k, a, x, y) {
+    return k(x + 2);
+  };
 }
 
 function selectStorePrimitives() {
   // Set global definitions
-  plus = function(s, k, a, x, y) {return k(s, x + y);};
-  minus = function(s, k, a, x, y) {return k(s, x - y);};
-  times = function(s, k, a, x, y) {return k(s, x * y);};
-  and = function(s, k, a, x, y) {return k(s, x && y);};
-  plusTwo = function(s, k, a, x, y) {return k(s, x + 2);};
+  plus = function(s, k, a, x, y) {
+    return k(s, x + y);
+  };
+  minus = function(s, k, a, x, y) {
+    return k(s, x - y);
+  };
+  times = function(s, k, a, x, y) {
+    return k(s, x * y);
+  };
+  and = function(s, k, a, x, y) {
+    return k(s, x && y);
+  };
+  plusTwo = function(s, k, a, x, y) {
+    return k(s, x + 2);
+  };
 }
 
 var selectOptimizePrimitives = selectStorePrimitives;

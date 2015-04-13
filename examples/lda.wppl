@@ -1,0 +1,81 @@
+// Parameters
+
+var vocabulary = ['bear', 'wolf', 'python', 'prolog'];
+
+var topics = {
+  'topic1': null,
+  'topic2': null
+};
+
+var docs = {
+  'doc1': 'bear wolf bear wolf bear wolf python wolf bear wolf'.split(' '),
+  'doc2': 'python prolog python prolog python prolog python prolog python prolog'.split(' '),
+  'doc3': 'bear wolf bear wolf bear wolf bear wolf bear wolf'.split(' '),
+  'doc4': 'python prolog python prolog python prolog python prolog python prolog'.split(' '),
+  'doc5': 'bear wolf bear python bear wolf bear wolf bear wolf'.split(' ')
+};
+
+
+// Constants and helper functions
+
+var ones = function(n) {
+  return repeat(n, function() {return 1.0;});
+}
+
+var mapObject = function(fn, obj) {
+  return _.object(
+      map(
+      function(kv) {
+        return [kv[0], fn(kv[0], kv[1])]
+      },
+      _.pairs(obj))
+  );
+}
+
+
+// Model
+
+var makeWordDist = function() {
+  return dirichlet(ones(vocabulary.length));
+};
+
+var makeTopicDist = function() {
+  return dirichlet(ones(_.size(topics)));
+};
+
+var discreteFactor = function(vs, ps, v) {
+  var i = indexOf(v, vs);
+  factor(Math.log(ps[i]));
+}
+
+var model = function() {
+
+  var wordDistForTopic = mapObject(makeWordDist, topics);
+  var topicDistForDoc = mapObject(makeTopicDist, docs);
+  var makeTopicForWord = function(docName, word) {
+    var i = discrete(topicDistForDoc[docName]);
+    return _.keys(topics)[i];
+  };
+  var makeWordTopics = function(docName, words) {
+    return map(function(word) {return makeTopicForWord(docName, word);},
+               words);
+  };
+  var topicsForDoc = mapObject(makeWordTopics, docs);
+
+  mapObject(
+      function(docName, words) {
+        map2(
+            function(topic, word) {
+              discreteFactor(vocabulary, wordDistForTopic[topic], word);
+            },
+            topicsForDoc[docName],
+            words);
+      },
+      docs);
+
+  // console.log(wordDistForTopic);
+
+  return wordDistForTopic
+};
+
+MH(model, 10000)
