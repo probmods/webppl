@@ -88,7 +88,7 @@ function run(code, requires, headers, verbose) {
       function(req) {
         global[req.name] = require(req.path);
       });
-  webppl.webppl_eval(
+  webppl.webpplEval(
       function(s, x) {
         console.log('\n* Program return value:\n');
         printWebPPLValue(x);
