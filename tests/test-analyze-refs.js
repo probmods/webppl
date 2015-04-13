@@ -7,7 +7,6 @@ var naming = require('../src/transforms/naming.js').naming;
 var cps = require('../src/transforms/cps.js').cps;
 var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize.js').optimize;
-var analyze = require('../src/analysis/analyze.js').analyze;
 
 function compile(code, verbose) {
   if (verbose && console.time) {
