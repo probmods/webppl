@@ -1,4 +1,4 @@
-webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl) [![Dependency Status](https://david-dm.org/probmods/webppl.svg)](https://david-dm.org/probmods/webppl)
+# webppl [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=master)](https://travis-ci.org/probmods/webppl) [![Dependency Status](https://david-dm.org/probmods/webppl.svg)](https://david-dm.org/probmods/webppl)
 
 Probabilistic programming for the web
 
