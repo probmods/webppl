@@ -6,6 +6,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
+var diagnostics = require('./mh-diagnostics/diagnostics.js')
 
 module.exports = function(env) {
 
@@ -40,7 +41,7 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function MH(s, k, a, wpplFn, numIterations) {
+  function MH(s, k, a, wpplFn, numIterations, diagnostics) {
 
     this.trace = [];
     this.oldTrace = undefined;
@@ -52,6 +53,8 @@ module.exports = function(env) {
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
+    this.vals = [];
+    this.diagnostics = typeof diagnostics !== 'undefined' ? diagnostics : false;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -101,7 +104,9 @@ module.exports = function(env) {
         this.currScore = this.oldScore;
         val = this.oldVal;
       }
-
+      if (this.diagnostics) {
+        this.vals.push(val);
+      }
       // now add val to hist:
       var stringifiedVal = JSON.stringify(val);
       if (this.returnHist[stringifiedVal] === undefined) {
@@ -125,7 +130,9 @@ module.exports = function(env) {
       // Reinstate previous coroutine:
       var k = this.k;
       env.coroutine = this.oldCoroutine;
-
+      if (this.diagnostics) {
+        diagnostics.gweke(this.vals);
+      }
       // Return by calling original continuation:
       return k(this.oldStore, dist);
     }
