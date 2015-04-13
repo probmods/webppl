@@ -28,7 +28,13 @@ function result() {
   var vs = arguments;
 
   return function(nodes, i, succeed, fail) {
-    return succeed.apply(this, Array.prototype.concat.apply([nodes, i], vs));
+    var ws = [nodes, i];
+
+    for( var i = 0; i < vs.length; ++i ) {
+      ws.push( vs[i] );
+    }
+      
+    return succeed.apply(this, ws);
   }
 }
 
@@ -141,32 +147,3 @@ module.exports = {
   single: single,
   not: not
 };
-
-/*
-  function singleton( x) {
-  return function( y, succeed, fail) {
-  if( x === y) {
-  return succeed( y);
-  }
-  else {
-  return fail();
-  }
-  }
-  }
-
-  function id( v, nodes, i) {
-  return v;
-  }
-
-  function fail() {
-  return 42;
-  }
-
-  console.log( bind( item, result)( [1,2,3], 0, id, fail));
-  console.log( rep( item)( [1,2,3], 0, id, fail));
-  console.log( single( singleton( 12))( [12], 0, id, fail));
-  console.log( seq([])( [12], 0, id, fail));
-  console.log( seq([single(singleton( 12))])( [12], 0, id, fail));
-  console.log( seq( [single(singleton(12)),single(singleton(45))])( [12,45], 0, id, fail));
-  console.log( seq( [single(singleton(12)),single(singleton(45))])( [12,44], 0, id, fail));
-*/
