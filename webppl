@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-"use strict";
+'use strict';
 
 var fs = require('fs');
 var webppl = require('./src/main');
@@ -44,9 +44,15 @@ function printWebPPLValue(x) {
   if (isErpWithSupport(x)) {
     console.log('ERP:');
     var erpValues = x.support([])
-        .map(function(v) {return [JSON.stringify(v), Math.exp(x.score([], v))]})
-        .sort(function(a, b) {return b[1] - a[1]});
-    erpValues.forEach(function(val) {console.log('    ' + val[0] + ': ' + val[1]);});
+      .map(function(v) {
+          return [JSON.stringify(v), Math.exp(x.score([], v))]
+        })
+      .sort(function(a, b) {
+          return b[1] - a[1]
+        });
+    erpValues.forEach(function(val) {
+      console.log('    ' + val[0] + ': ' + val[1]);
+    });
   } else {
     console.log(x);
   }
@@ -82,7 +88,7 @@ function run(code, requires, headers, verbose) {
       function(req) {
         global[req.name] = require(req.path);
       });
-  webppl.webppl_eval(
+  webppl.webpplEval(
       function(s, x) {
         console.log('\n* Program return value:\n');
         printWebPPLValue(x);
@@ -171,10 +177,12 @@ function main() {
         asArray(argv[requireType]).forEach(
             function(id) {
               requires.push(
-                  {name: getRequireName(id),
+                  {
+                    name: getRequireName(id),
                     path: getRequirePath(id),
                     type: requireType
-                  });});
+                  });
+            });
       });
 
   var requires = addModulePaths(asArray(argv.require));

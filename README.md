@@ -64,7 +64,11 @@ To only run the linter:
 
     grunt gjslint
 
-If the linter complains about style errors (like indentation), you can fix many of them automatically using:
+For more semantic linting, try:
+
+    grunt hint
+
+If gjslint complains about style errors (like indentation), you can fix many of them automatically using:
 
     grunt fixjsstyle
 

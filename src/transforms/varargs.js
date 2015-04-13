@@ -9,7 +9,6 @@ var esprima = require('esprima');
 var build = types.builders;
 var Syntax = estraverse.Syntax;
 
-
 var argumentsIdCounter = 0;
 function makeArgumentsIdentifier() {
   argumentsIdCounter += 1;
@@ -44,8 +43,8 @@ function varargs(node) {
 
   switch (node.type) {
 
-  // assign 'arguments' as first statement in body, rename to make it
-  // survive subsequent trampoline closure introduction
+    // assign 'arguments' as first statement in body, rename to make it
+    // survive subsequent trampoline closure introduction
     case Syntax.Identifier:
       if (node.name !== 'arguments') {
         return node;
@@ -82,4 +81,3 @@ function varargsMain(node) {
 module.exports = {
   varargs: varargsMain
 };
-

@@ -188,7 +188,7 @@ var exampleNames = [
   'scalarImplicature',
   'semanticParsing',
   'pragmaticsWithSemanticParsing'
-]
+];
 
 var testDataDir = './tests/test-data/';
 var testsData = [];

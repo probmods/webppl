@@ -38,7 +38,7 @@ function store(node) {
 
 
 function storeMain(node) {
-  return estraverse.replace(node, { leave: store });
+  return estraverse.replace(node, {leave: store});
 }
 
 module.exports = {

@@ -37,13 +37,17 @@ function sum(xs) {
 function normalizeHist(hist) {
   var normHist = {};
   var Z = sum(_.values(hist));
-  _.each(hist, function(val, key) {normHist[key] = hist[key] / Z;});
+  _.each(hist, function(val, key) {
+    normHist[key] = hist[key] / Z;
+  });
   return normHist;
 }
 
 function normalizeArray(xs) {
   var Z = sum(xs);
-  return xs.map(function(x) {return x / Z;});
+  return xs.map(function(x) {
+    return x / Z;
+  });
 }
 
 function logsumexp(a) {
@@ -59,7 +63,9 @@ function logsumexp(a) {
 var indexOfPred = function(l, p, start) {
   var start = start || 0;
   for (var i = start; i < l.length; i++) {
-    if (p(l[i])) return i;
+    if (p(l[i])) {
+      return i;
+    }
   }
   return -1;
 };

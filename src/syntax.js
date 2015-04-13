@@ -10,7 +10,7 @@ function makeGenvar() {
   var gensym = require('./util').makeGensym();
   return function(name) {
     return build.identifier('_'.concat(gensym(name)));
-  }
+  };
 }
 
 function fail(message, node) {
@@ -18,7 +18,7 @@ function fail(message, node) {
     console.log(node);
     console.log(message);
     throw new Error(message);
-  }
+  };
 }
 
 // a clause matches a node type and calls a destructor with constituents
@@ -31,10 +31,14 @@ function clause(type, destructor) {
           return node[key];
         }));
       }
-      else return fail();
+      else {
+        return fail();
+      }
     }
-    else throw new Error('no type ' + type);
-  }
+    else {
+      throw new Error('no type ' + type);
+    }
+  };
 }
 
 function match(node, clauses, fail) {
@@ -42,16 +46,18 @@ function match(node, clauses, fail) {
     if (i === clauses.length) {
       return fail();
     }
-    else return clauses[i](node, function() {
-      return loop(i + 1);
-    });
+    else {
+      return clauses[i](node, function() {
+        return loop(i + 1);
+      });
+    }
   }
 
   return loop(0);
 }
 
 function failSafe(who, fail) {
-  if (typeof fail === 'Function') {
+  if (typeof fail === 'function') {
     return fail();
   }
   else {
@@ -68,8 +74,10 @@ function inProgram(f, fail) {
         build.expressionStatement(f(node.body[0].expression))
       ]);
     }
-    else return failSafe('inProgram', fail);
-  }
+    else {
+      return failSafe('inProgram', fail);
+    }
+  };
 }
 
 function inBody(f, fail) {
@@ -80,7 +88,9 @@ function inBody(f, fail) {
           node.params,
           build.blockStatement(f(build.program(node.body.body)).body));
     }
-    else return failSafe('inBody', fail);
+    else {
+      return failSafe('inBody', fail);
+    }
   }, fail);
 }
 
@@ -142,7 +152,9 @@ function thunkify(node, fail) {
       )
     ]);
   }
-  else return failSafe('thunkify', fail);
+  else {
+    return failSafe('thunkify', fail);
+  }
 }
 
 module.exports = {
@@ -155,4 +167,3 @@ module.exports = {
   inBody: inBody,
   isPrimitive: isPrimitive
 };
-
