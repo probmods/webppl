@@ -51,7 +51,9 @@ module.exports = function(env) {
   Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
 
     // Allows extra factors to be taken into account in making exploration decisions:
-    extraScoreFn = extraScoreFn || function(x) {return 0;};
+    extraScoreFn = extraScoreFn || function(x) {
+      return 0;
+    };
 
     // Find support of this erp:
     if (!dist.support) {
@@ -127,13 +129,17 @@ module.exports = function(env) {
 
   //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
   function enuPriority(s, cc, a, wpplFn, maxExecutions) {
-    var q = new PriorityQueue(function(a, b) {return a.score - b.score;});
+    var q = new PriorityQueue(function(a, b) {
+      return a.score - b.score;
+    });
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
   }
 
   function enuFilo(s, cc, a, wpplFn, maxExecutions) {
     var q = [];
-    q.size = function() {return q.length;};
+    q.size = function() {
+      return q.length;
+    };
     q.enq = q.push;
     q.deq = q.pop;
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
@@ -141,7 +147,9 @@ module.exports = function(env) {
 
   function enuFifo(s, cc, a, wpplFn, maxExecutions) {
     var q = [];
-    q.size = function() {return q.length;};
+    q.size = function() {
+      return q.length;
+    };
     q.enq = q.push;
     q.deq = q.shift;
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();

@@ -46,7 +46,9 @@ module.exports = function(env) {
     this.oldStore = s; // will be reinstated at the end
 
     // Create initial particles
-    var exitK = function(s) {return wpplFn(s, env.exit, a);};
+    var exitK = function(s) {
+      return wpplFn(s, env.exit, a);
+    };
     for (var i = 0; i < numParticles; i++) {
       var particle = {
         continuation: exitK,
@@ -71,11 +73,13 @@ module.exports = function(env) {
     var currScore = this.activeParticle().score;
     var choiceScore = erp.score(params, val);
     this.activeParticle().trace.push(
-        {k: cc, name: a, erp: erp, params: params,
+        {
+          k: cc, name: a, erp: erp, params: params,
           score: currScore,
           choiceScore: choiceScore,
           val: val, reused: false,
-          store: _.clone(s)});
+          store: _.clone(s)
+        });
     this.activeParticle().score += choiceScore;
     return cc(s, val);
   };
@@ -139,7 +143,9 @@ module.exports = function(env) {
 
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = this.particles.length;
-    var W = util.logsumexp(_.map(this.particles, function(p) {return p.weight;}));
+    var W = util.logsumexp(_.map(this.particles, function(p) {
+      return p.weight;
+    }));
     var avgW = W - Math.log(m);
 
     // Allow -Infinity case (for mh initialization, in particular with few particles)
@@ -159,7 +165,8 @@ module.exports = function(env) {
           newExpWeights.push(w - nRetained);
           for (var i = 0; i < nRetained; i++) {
             retainedParticles.push(copyPFRParticle(particle));
-          }});
+          }
+        });
 
     // Compute new particles
     var numNewParticles = m - retainedParticles.length;
@@ -174,7 +181,9 @@ module.exports = function(env) {
     this.particles = newParticles.concat(retainedParticles);
 
     // Reset all weights
-    _.each(this.particles, function(particle) {particle.weight = avgW;});
+    _.each(this.particles, function(particle) {
+      particle.weight = avgW;
+    });
   };
 
   ParticleFilterRejuv.prototype.exit = function(s, retval) {
@@ -267,9 +276,11 @@ module.exports = function(env) {
     var reuse = !(prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
     var choiceScore = erp.score(params, val);
-    this.trace.push({k: k, name: name, erp: erp, params: params,
+    this.trace.push({
+      k: k, name: name, erp: erp, params: params,
       score: this.currScore, choiceScore: choiceScore,
-      val: val, reused: reuse, store: _.clone(s)});
+      val: val, reused: reuse, store: _.clone(s)
+    });
     this.currScore += choiceScore;
     return k(s, val);
   };
@@ -315,7 +326,7 @@ module.exports = function(env) {
       // Compute marginal distribution from (unweighted) particles
       var k = JSON.stringify(this.val);
       if (this.hist[k] === undefined) {
-        this.hist[k] = { prob: 0, val: this.val };
+        this.hist[k] = {prob: 0, val: this.val};
       }
       this.hist[k].prob += 1;
     }

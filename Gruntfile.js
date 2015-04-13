@@ -2,35 +2,44 @@
 
 var jslintSettings = {
   options: {
-    flags: [
-      '--flagfile .gjslintrc'
-    ],
+    flags: ['--flagfile .gjslintrc'],
     reporter: {
       name: 'console'
     },
     force: false
   },
   lib: {
-    src: ['src/*.js', 'src/header.wppl', 'src/analysis/*.js', 'src/transforms/*.js',
-          'src/inference/*.js', 'Gruntfile.js']
+    src: [
+      'Gruntfile.js',
+      'src/header.wppl',
+      'src/**/*.js'
+    ]
   },
   test: {
-    src: ['tests/*.js']
+    src: ['tests/**/*.js']
   },
   wppl: {
-    src: ['tests/test-data/*.wppl', 'examples/*.wppl']
+    src: [
+      'tests/test-data/*.wppl',
+      'examples/*.wppl'
+    ]
   }
 };
-
 module.exports = function(grunt) {
   grunt.initConfig({
     nodeunit: {
       all: ['tests/*.js']
     },
     jshint: {
-      files: ['Gruntfile.js', 'src/*.js', 'src/header.wppl', 'tests/*.js', 'src/analysis/*.js',
-              'src/transforms/*.js', 'src/inference/*.js'],
+      files: [
+        'Gruntfile.js',
+        'src/header.wppl',
+        'src/**/*.js',
+        'tests/**/*.js'
+      ],
       options: {
+        maxerr: 500,
+        camelcase: true,
         nonew: true,
         curly: true,
         noarg: true,
@@ -39,12 +48,13 @@ module.exports = function(grunt) {
         noempty: true,
         node: true,
         eqeqeq: true,
-        strict: true,
+        strict: false,
         evil: true,
         undef: true,
         bitwise: true,
         browser: true,
-        gcl: true
+        gcl: true,
+        newcap: false
       }
     },
     gjslint: jslintSettings,
@@ -54,10 +64,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-gjslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
-
   grunt.registerTask('default', ['nodeunit', 'gjslint']);
   grunt.registerTask('test', ['nodeunit']);
   grunt.registerTask('lint', ['gjslint']);
-  grunt.registerTask('jshint', ['jshint']);
+  grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('fixstyle', ['fixjsstyle']);
 };

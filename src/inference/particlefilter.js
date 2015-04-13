@@ -28,7 +28,9 @@ module.exports = function(env) {
     this.particleIndex = 0;  // marks the active particle
 
     // Create initial particles
-    var exitK = function(s) {return wpplFn(s, env.exit, a);};
+    var exitK = function(s) {
+      return wpplFn(s, env.exit, a);
+    };
     for (var i = 0; i < numParticles; i++) {
       var particle = {
         continuation: exitK,
@@ -87,7 +89,9 @@ module.exports = function(env) {
   ParticleFilter.prototype.resampleParticles = function() {
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = this.particles.length;
-    var W = util.logsumexp(_.map(this.particles, function(p) {return p.weight;}));
+    var W = util.logsumexp(_.map(this.particles, function(p) {
+      return p.weight;
+    }));
     var avgW = W - Math.log(m);
 
     if (avgW == -Infinity) {      // debugging: check if NaN
@@ -106,7 +110,8 @@ module.exports = function(env) {
             newExpWeights.push(w - nRetained);
             for (var i = 0; i < nRetained; i++) {
               retainedParticles.push(copyParticle(particle));
-            }});
+            }
+          });
       // Compute new particles
       var numNewParticles = m - retainedParticles.length;
       var newParticles = [];
@@ -121,7 +126,9 @@ module.exports = function(env) {
     }
 
     // Reset all weights
-    _.each(this.particles, function(particle) {particle.weight = avgW;});
+    _.each(this.particles, function(particle) {
+      particle.weight = avgW;
+    });
   };
 
   ParticleFilter.prototype.exit = function(s, retval) {
@@ -142,7 +149,7 @@ module.exports = function(env) {
         function(particle) {
           var k = JSON.stringify(particle.value);
           if (hist[k] === undefined) {
-            hist[k] = { prob: 0, val: particle.value };
+            hist[k] = {prob: 0, val: particle.value};
           }
           hist[k].prob += 1;
         });

@@ -125,7 +125,7 @@ function atomize(node, metaK) {
     clause(Syntax.ObjectExpression, function(properties) {
       return atomizeStar(properties, function(properties) {
         return metaK(build.objectExpression(properties));
-      })
+      });
     }),
     clause(Syntax.Property, function(key, value) {
       return atomize(value, function(value) {
@@ -137,7 +137,6 @@ function atomize(node, metaK) {
         return metaK(build.unaryExpression(node.operator, argument));
       });
     })
-
 
 
   ], fail('atomize: unrecognized node', node));

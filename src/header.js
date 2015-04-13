@@ -66,9 +66,12 @@ module.exports = function(env) {
       var sampleK = function(s, v) {
         var scoreK = function(s, sc) {
           var factorK = function(s) {
-            return k(s, v); };
-          return env.factor(s, factorK, a + 'swf2', sc);};
-        return scoreFn(s, scoreK, a + 'swf1', v);};
+            return k(s, v);
+          };
+          return env.factor(s, factorK, a + 'swf2', sc);
+        };
+        return scoreFn(s, scoreK, a + 'swf1', v);
+      };
       return env.sample(s, sampleK, a, dist, params);
     }
   };
@@ -84,7 +87,7 @@ module.exports = function(env) {
 
   function addExports(obj) {
     _.extend(exports, obj);
-  };
+  }
 
   // Inference interface
   addExports({
