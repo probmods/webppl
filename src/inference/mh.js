@@ -131,7 +131,7 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
       if (this.diagnostics) {
-        diagnostics.gweke(this.vals);
+        diagnostics.run(this.vals);
       }
       // Return by calling original continuation:
       return k(this.oldStore, dist);
