@@ -53,6 +53,8 @@ module.exports = function(env) {
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
+    this.acceptedProposals = 0;
+    this.rejectedProposals = 0;
     this.vals = [];
     this.diagnostics = typeof diagnostics !== 'undefined' ? diagnostics : false;
 
@@ -100,9 +102,12 @@ module.exports = function(env) {
           this.regenFrom, this.currScore, this.oldScore);
       if (Math.random() >= acceptance) {
         // if rejected, roll back trace, etc:
+        this.rejectedProposals += 1;
         this.trace = this.oldTrace;
         this.currScore = this.oldScore;
         val = this.oldVal;
+      } else {
+        this.acceptedProposals += 1;
       }
       if (this.diagnostics) {
         this.vals.push(val);
@@ -131,6 +136,8 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
       if (this.diagnostics) {
+        var acceptanceRate = this.acceptedProposals / (this.acceptedProposals + this.rejectedProposals);
+        console.log('Acceptance rate: ' + acceptanceRate);
         diagnostics.run(this.vals);
       }
       // Return by calling original continuation:
