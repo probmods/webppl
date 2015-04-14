@@ -256,18 +256,67 @@ function inject(node) {
 function analyzeMain( program ) {
     isHeapVar = analyzeRefs( program );
     
-    var seen = new Set(), work = new Stack(), calls = new Map(), summaries = new Map(), finals = new Set();
+    var seen = new Set(), work = new Stack(), calls = new Map(), retrs = new Map(), preds = new Map(), summaries = new Map(), finals = new Set();
 
+    // state1 is reachable from the context of state0
     function propagate( state0, state1 ) {
 	work = work.unshift( new Pair({
 	    car: state0,
 	    cdr: state1
 	}));
     }
+
+    // state2 is the successor of state1 in the context of state0
+    function successor( state0, state1, state2 ) {
+	preds = preds.update( new Pair({
+	    car: state0,
+	    cdr: state2
+	}), new Set(), Set_add( new Pair({
+	    car: state0,
+	    cdr: state1
+	}) ) );
+    }
+
+    // state1 is an exit reachable from the context of state0
+    function summary( state0, state1 ) {
+	summaries = summaries.update( state0, new Set(), Set_add( state1 ) );
+    }
+
+    function summary_get0( state0, f ) {
+	summaries.get( state0, new Set() ).forEach( f );
+    }
     
+    // state2 is called from state1 in the context of state0
+    function call_add( state0, state1, state2 ) {
+	calls = calls.update( state2, new Set(), Set_add( new Pair({
+	    car: state0,
+	    cdr: state1
+	}) ) );
+    }
+
+    function call_get2( state2, f ) {
+	calls.get( state2, new Set() ).forEach( function( states01 ) {
+	    f( states01.car, states01.cdr );
+	});
+    }
+
+    // state2 is returned from the context of state1 to the context of state0
+    function retr_add( state2, state1, state0 ) {
+	retrs = retrs.update( new Pair({
+	    car: state0,
+	    cdr: state2
+	}), new Set(), Set_add( new Pair({
+	    car: state1,
+	    cdr: state2
+	}) ) );
+    }
+
+    // state3 is an exit in the context of state2 which returns to state1 in the context of state0
     function update( state0, state1, state2, state3 ) {
+	retr_add( state3, state2, state0 );
+	successor( state0, state1, state3 );
+
 	if( types.Identifier.check( state1.kont ) ) {
-	    summaries = summaries.update( state0, new Set(), Set_add( state3 ) );
 	    propagate( state0, state3 );
 	}
 	else {
@@ -280,35 +329,27 @@ function analyzeMain( program ) {
 	    destruct.contExp( state1.kont, function( param, expr ) {
 		environment = environmentExtend( environment, param, state3.value );
 		store = storeExtend( store, param, state3.value );
-		    
+		
 		aeval( store, environment, expr ).forEach( function( state4 ) {
 		    propagate( state0, state4 );
 		});
 	    }, fail( "continuation not a function expression", state1.kont ) );
 	}
     }
-    
-    function call( states01, state2 ) {
-	calls = calls.update( state2, new Set(), Set_add( states01 ) );
 
-	var exits = summaries.get( state2, new Set() );
-
-	if( exits.size > 0 ) {
-	    var state0 = states01.car, state1 = states01.cdr;
-	
-	    exits.forEach( function( state3 ) {
-		update( state0, state1, state2, state3 );
-	    });
-	}
-	else {
-	    propagate( state2, state2 );
-	}
+    // state1 calls state2 in the context of state0
+    function call( state0, state1, state2 ) {
+	call_add( state0, state1, state2 );
+	propagate( state2, state2 );
+	summary_get0( state2, function( state3 ) {
+	    update( state0, state1, state2, state3 );
+	});
     }
 
+    // state3 is a reachable exit in the context of state2
     function retr( state2, state3 ) {
-	calls.get( state2, new Set() ).forEach( function( states01 ) {
-	    var state0 = states01.car, state1 = states01.cdr;
-
+	summary( state2, state3 );
+	call_get2( state2, function( state0, state1 ) {
 	    update( state0, state1, state2, state3 );
 	});
     }
@@ -329,20 +370,16 @@ function analyzeMain( program ) {
 	    if( state1 instanceof Entr ) {
 		state1.succs().forEach( function( state2 ) {
 		    propagate( state0, state2 );
+		    successor( state0, state1, state2 );
 		});
 	    }
 	    else if( state1 instanceof Call ) {
 		state1.succs().forEach( function( state2 ) {
-		    call( states01, state2 );
+		    call( state0, state1, state2 );
 		});
 	    }
 	    else if( state1 instanceof Exit ) {
-		if( state0.equals( init ) ) {
-		    finals = finals.add( state1 );
-		}
-		else {
-		    retr( state0, state1 );
-		}
+		retr( state0, state1 );
 	    }
 	    else throw new Error( "analyze: unhandled state " + state1 );
 	}
@@ -350,8 +387,10 @@ function analyzeMain( program ) {
 
     return {
 	calls: calls,
+	retrs: retrs,
+	preds: preds,
 	summaries: summaries,
-	finals: finals
+	finals: summaries.get( init, new Set() )
     }
 }
 
