@@ -119,7 +119,8 @@ Entr.prototype.succs = function() {
     if( this.fun instanceof Function ) {
 	return Set.of( new Exit({
 	    store: store,
-	    value: this.fun.apply( this.fun, args.toArray() )
+	    value: this.fun.apply( this.fun, args.toArray() ),
+	    omega: "random"
 	}));
     }
     else {
@@ -182,7 +183,8 @@ Call.prototype.succs = function() {
 var Exit = new Record({
     type: "Exit",
     store: null,
-    value: null
+    value: null,
+    omega: null
 });
 
 
@@ -214,7 +216,8 @@ function aeval( store, environment, expr ) {
 	    if( types.Identifier.check( kont ) ) {
 		return Set.of( new Exit({
 		    store: store,
-		    value: value
+		    value: value,
+		    omega: e
 		}));
 	    }
 	    else {
@@ -268,13 +271,13 @@ function analyzeMain( program ) {
 
     // state2 is the successor of state1 in the context of state0
     function successor( state0, state1, state2 ) {
-	preds = preds.update( new Pair({
+	preds = preds.set( new Pair({
 	    car: state0,
 	    cdr: state2
-	}), new Set(), Set_add( new Pair({
+	}), new Pair({
 	    car: state0,
 	    cdr: state1
-	}) ) );
+	}) );
     }
 
     // state1 is an exit reachable from the context of state0
@@ -288,50 +291,68 @@ function analyzeMain( program ) {
     
     // state2 is called from state1 in the context of state0
     function call_add( state0, state1, state2 ) {
-	calls = calls.update( state2, new Set(), Set_add( new Pair({
+	calls = calls.update( new Pair({
+	    car: state2,
+	    cdr: state2
+	}), new Set(), Set_add( new Pair({
 	    car: state0,
 	    cdr: state1
 	}) ) );
     }
 
     function call_get2( state2, f ) {
-	calls.get( state2, new Set() ).forEach( function( states01 ) {
+	calls.get( new Pair({
+	    car: state2,
+	    cdr: state2
+	}), new Set() ).forEach( function( states01 ) {
 	    f( states01.car, states01.cdr );
 	});
     }
 
-    // state2 is returned from the context of state1 to the context of state0
-    function retr_add( state2, state1, state0 ) {
+    // state3 is returned from the context of state2 to state1 in the context of state0
+    function retr_add( state3, state2, state1, state0 ) {
 	retrs = retrs.update( new Pair({
 	    car: state0,
-	    cdr: state2
+	    cdr: state1
 	}), new Set(), Set_add( new Pair({
-	    car: state1,
-	    cdr: state2
+	    car: state2,
+	    cdr: state3
 	}) ) );
     }
 
     // state3 is an exit in the context of state2 which returns to state1 in the context of state0
     function update( state0, state1, state2, state3 ) {
-	retr_add( state3, state2, state0 );
-	successor( state0, state1, state3 );
+	var state4 = new Exit({
+	    store: state3.store,
+	    value: state3.value,
+	    omega: state1.label
+	});
+	
+	retr_add( state3, state2, state4, state0 );
+	successor( state0, state1, state4 );
 
 	if( types.Identifier.check( state1.kont ) ) {
-	    propagate( state0, state3 );
+	    propagate( state0, state4 );
 	}
 	else {
-	    var store = state3.store, environment = state1.environment;
+	    seen = seen.add( new Pair({
+		car: state0,
+		cdr: state4
+	    }) );
+	    
+	    var store = state4.store, environment = state1.environment;
 
 	    if( types.Identifier.check( state1.callee ) && isHeapVar( state1.callee.name ) ) {
 		environment = environment.set( state1.callee.name, Set.of( state2.fun ) );
 	    }
 
 	    destruct.contExp( state1.kont, function( param, expr ) {
-		environment = environmentExtend( environment, param, state3.value );
-		store = storeExtend( store, param, state3.value );
+		environment = environmentExtend( environment, param, state4.value );
+		store = storeExtend( store, param, state4.value );
 		
-		aeval( store, environment, expr ).forEach( function( state4 ) {
-		    propagate( state0, state4 );
+		aeval( store, environment, expr ).forEach( function( state5 ) {
+		    successor( state0, state4, state5 );
+		    propagate( state0, state5 );
 		});
 	    }, fail( "continuation not a function expression", state1.kont ) );
 	}
@@ -369,8 +390,8 @@ function analyzeMain( program ) {
 	    
 	    if( state1 instanceof Entr ) {
 		state1.succs().forEach( function( state2 ) {
-		    propagate( state0, state2 );
 		    successor( state0, state1, state2 );
+		    propagate( state0, state2 );
 		});
 	    }
 	    else if( state1 instanceof Call ) {
@@ -386,6 +407,7 @@ function analyzeMain( program ) {
     }
 
     return {
+	seen: seen,
 	calls: calls,
 	retrs: retrs,
 	preds: preds,
