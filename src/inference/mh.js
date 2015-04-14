@@ -54,6 +54,11 @@ module.exports = function(env) {
     this.iterations = numIterations;
     this.acceptedProposals = 0;
     this.rejectedProposals = 0;
+    this.acceptedProposalsSinceTune = 0;
+    this.tune = typeof tune !== 'undefined' ? tune : false;
+    this.scaling = 1.0;
+    this.tuneInterval = 100;
+    this.stepsUntilTune = 0;
     this.vals = [];
     this.diagnostics = typeof diagnostics !== 'undefined' ? diagnostics : false;
     this.burn = typeof burn !== 'undefined' ? burn : Math.min(500, Math.floor(numIterations / 2));
@@ -81,8 +86,24 @@ module.exports = function(env) {
     var prev = findChoice(this.oldTrace, name);
 
     var reuse = !(prev === undefined || forceSample);
-    var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
+
+    var prpposedParams = params;
+    if (this.tune && this.stepsUntilTune >= this.tuneInterval) {
+      // Tune scaling parameter
+      this.scaling = this.tunedScale(
+        this.scaling,
+        this.acceptedProposalsSinceTune / this.tuneInterval);
+      this.stepsUntilTune = 0;
+      this.acceptedProposalsSinceTune = 0;
+      if (typeof erp.proposalParams === 'function') {
+        var prevVal = prev ? prev.val : null;
+        prpposedParams = erp.proposalParams(params, prevVal, this.scaling);
+      }
+    }
+    this.stepsUntilTune += 1;
+
+    var val = reuse ? prev.val : erp.sample(prpposedParams);
+    var choiceScore = erp.score(prpposedParams, val);
     this.trace.push({
       k: cont, name: name, erp: erp, params: params,
       score: this.currScore, choiceScore: choiceScore,
@@ -90,6 +111,43 @@ module.exports = function(env) {
     });
     this.currScore += choiceScore;
     return cont(s, val);
+  };
+
+  MH.prototype.tunedScale = function (scale, acc_rate) {
+    /*
+     Borrowed from pymc (https://github.com/pymc-devs/pymc)
+     Tunes the scaling parameter for the proposal distribution
+     according to the acceptance rate over the last tune_interval:
+     Rate    Variance adaptation
+     ----    -------------------
+     <0.001        x 0.1
+     <0.05         x 0.5
+     <0.2          x 0.9
+     >0.5          x 1.1
+     >0.75         x 2
+     >0.95         x 10
+     */
+    //console.error(scale, acc_rate);
+    if (acc_rate < 0.001) {
+      // reduce by 90 percent
+      scale *= 0.1;
+    } else if (acc_rate < 0.05) {
+      //reduce by 50 percent
+      scale *= 0.5;
+    } else if (acc_rate < 0.2) {
+      // reduce by ten percent
+      scale *= 0.9;
+    } else if (acc_rate > 0.95) {
+      //increase by factor of ten
+      scale *= 10.0;
+    } else if (acc_rate > 0.75) {
+      // increase by double
+      scale *= 2.0;
+    } else if (acc_rate > 0.5) {
+      // increase by ten percent
+      scale *= 1.1;
+    }
+    return scale;
   };
 
   MH.prototype.exit = function(s, val) {
@@ -107,6 +165,7 @@ module.exports = function(env) {
         val = this.oldVal;
       } else {
         this.acceptedProposals += 1;
+        this.acceptedProposalsSinceTune += 1;
       }
       // now add val to hist:
       if (this.burn < this.rejectedProposals + this.acceptedProposals) {
