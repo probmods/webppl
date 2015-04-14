@@ -41,8 +41,7 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function MH(s, k, a, wpplFn, numIterations, diagnostics) {
-
+  function MH(s, k, a, wpplFn, numIterations, burn, diagnostics) {
     this.trace = [];
     this.oldTrace = undefined;
     this.currScore = 0;
@@ -57,7 +56,7 @@ module.exports = function(env) {
     this.rejectedProposals = 0;
     this.vals = [];
     this.diagnostics = typeof diagnostics !== 'undefined' ? diagnostics : false;
-
+    this.burn = typeof burn !== 'undefined' ? burn : Math.min(500, Math.floor(numIterations / 2));
     // Move old coroutine out of the way and install this as the current
     // handler.
 
@@ -109,16 +108,17 @@ module.exports = function(env) {
       } else {
         this.acceptedProposals += 1;
       }
-      if (this.diagnostics) {
-        this.vals.push(val);
-      }
       // now add val to hist:
-      var stringifiedVal = JSON.stringify(val);
-      if (this.returnHist[stringifiedVal] === undefined) {
-        this.returnHist[stringifiedVal] = {prob: 0, val: val};
+      if (this.burn < this.rejectedProposals + this.acceptedProposals) {
+        if (this.diagnostics) {
+          this.vals.push(val);
+        }
+        var stringifiedVal = JSON.stringify(val);
+        if (this.returnHist[stringifiedVal] === undefined) {
+          this.returnHist[stringifiedVal] = {prob: 0, val: val};
+        }
+        this.returnHist[stringifiedVal].prob += 1;
       }
-      this.returnHist[stringifiedVal].prob += 1;
-
       // make a new proposal:
       this.regenFrom = Math.floor(Math.random() * this.trace.length);
       var regen = this.trace[this.regenFrom];
@@ -138,6 +138,7 @@ module.exports = function(env) {
       if (this.diagnostics) {
         var acceptanceRate = this.acceptedProposals / (this.acceptedProposals + this.rejectedProposals);
         console.log('Acceptance rate: ' + acceptanceRate);
+        console.log('Number of samples: ' + this.vals.length);
         diagnostics.run(this.vals);
       }
       // Return by calling original continuation:
@@ -145,8 +146,8 @@ module.exports = function(env) {
     }
   };
 
-  function mh(s, cc, a, wpplFn, numParticles) {
-    return new MH(s, cc, a, wpplFn, numParticles).run();
+  function mh(s, cc, a, wpplFn, numParticles, burn, diagnostics) {
+    return new MH(s, cc, a, wpplFn, numParticles, burn, diagnostics).run();
   }
 
   return {
