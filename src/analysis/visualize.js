@@ -5,14 +5,7 @@ function id( ss01 ) {
 }
 
 function desc( s ) {
-    switch( s.type ) {
-    case "Entr":
-	return s.fun.params.toString();
-    case "Exit":
-	return s.value.toString();
-    default:
-	return s.type;
-    }
+    return s.type;
 }
 
 function node( ss01 ) {
