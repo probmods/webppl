@@ -35,8 +35,11 @@ var Num = new Record({
 });
 
 var primitives = {
-    bernoulliERP: function( p ) {
+    bernoulliERP: function bernoulli( p ) {
 	return Set.of( true, false );
+    },
+    uniformERP: function uniform( a, b ) {
+	return Set.of( new Num({}) );
     }
 }
 
@@ -65,14 +68,35 @@ function environmentExtend( environment, x, v ) {
 
 function Au( store, environment, expr ) {
     switch( expr.type ) {
+    case Syntax.ArrayExpression:
+	return Set.of( new List( expr.elements.map( function( element ) {
+	    return Au( store, environment, element );
+	}) ) );
     case Syntax.BinaryExpression:
-	if( expr.operator === "+" ) {
+	if( expr.operator === "+" ||
+	    expr.operator === "-" ) {
 	    return Set.of( new Num({}) );
+	}
+	else if( expr.operator === "==" ) {
+	    return Set.of( true, false );
 	}
 	else {
 	    console.log( Au( store, environment, expr.left ) );
 	    console.log( Au( store, environment, expr.right ) );
 	    throw new Error( "Au: unhandled binary operator " + expr.operator );
+	}
+    case Syntax.CallExpression:
+	if( types.MemberExpression.check( expr.callee ) &&
+	    ! expr.callee.computed &&
+	    expr.callee.property.name === "concat" ) {
+	    console.log( Au( store, environment, expr.callee.object ) );
+	    console.log( Au( store, environment, expr.callee.object ) );
+	    throw 23;
+	}
+	else {
+	    console.log( expr );
+	    console.log( require("escodegen").generate( expr ) );
+	    throw 12;
 	}
     case Syntax.FunctionExpression:
 	return Set.of( expr );
@@ -83,7 +107,11 @@ function Au( store, environment, expr ) {
 	    if( primitives.hasOwnProperty( expr.name ) ) {
 		value = Set.of( primitives[ expr.name ] );
 	    }
-	    else throw new Error( "Au: unbound variable: " + expr.name );
+	    else {
+		console.log( store );
+		console.log( environment );
+		throw new Error( "Au: unbound variable: " + expr.name );
+	    }
 	}
 
 	return value;
@@ -91,7 +119,7 @@ function Au( store, environment, expr ) {
 	return Set.of( expr.value );
     default:
 	console.log( expr );
-	throw new Error( "Au: unimplemented type" );
+	throw new Error( "Au: unimplemented type: " + expr.type );
     }
 }
 
@@ -190,12 +218,22 @@ var Exit = new Record({
 
 function aeval( store, environment, expr ) {
     return match( expr, [
-	clause( destruct.sampExp, function( label, erp, params, kont ) {
+	clause( destruct.sampleExp, function( label, erp, params, kont ) {
 	    return Set.of( new Call({
 		store: store,
 		environment: environment,
 		f: erp,
 		es: params,
+		kont: kont,
+		label: label
+	    }));
+	}),
+	clause( destruct.enumerateExp, function( label, f, n, kont ) {
+	    return Set.of( new Call({
+		store: store,
+		environment: environment,
+		f: f,
+		es: [],
 		kont: kont,
 		label: label
 	    }));
@@ -349,7 +387,7 @@ function analyzeMain( program ) {
 	    destruct.contExp( state1.kont, function( param, expr ) {
 		environment = environmentExtend( environment, param, state4.value );
 		store = storeExtend( store, param, state4.value );
-		
+
 		aeval( store, environment, expr ).forEach( function( state5 ) {
 		    successor( state0, state4, state5 );
 		    propagate( state0, state5 );

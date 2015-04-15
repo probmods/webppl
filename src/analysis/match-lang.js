@@ -69,7 +69,7 @@ function destructUserCall(node, succeed, fail) {
   else return fail();
 }
 
-function destructSampExp(node, succeed, fail) {
+function destructSampleExp(node, succeed, fail) {
   if (types.CallExpression.check(node) &&
       (! isContinuationCall(node)) &&
       types.Identifier.check(node.callee) &&
@@ -82,11 +82,28 @@ function destructSampExp(node, succeed, fail) {
   else return fail();
 }
 
+// the inferencers, like Enumerate, probably aren't special forms
+// but I'm going to treat them as such.
+function destructEnumerateExp(node, succeed, fail) {
+  if (types.CallExpression.check(node) &&
+      (! isContinuationCall(node)) &&
+      types.Identifier.check(node.callee) &&
+      node.callee.name === "Enumerate") {
+    return succeed(callSiteLabel(node),
+                   node.arguments[2],
+                   node.arguments[3],
+                   node.arguments[0]);
+  }
+  else return fail();
+}
+
+
 module.exports = {
     condExp: destructCondExp,
     contCall: destructContCall,
     contExp: destructContExp,
     funcExp: destructFuncExp,
-    sampExp: destructSampExp,
+    sampleExp: destructSampleExp,
+    enumerateExp: destructEnumerateExp,
     userCall: destructUserCall
 }
