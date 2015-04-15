@@ -28,9 +28,11 @@ function ERP(sampler, scorer, auxParams) {
   auxParams = typeof auxParams === 'undefined' ? {} : auxParams;
   this.sample = sampler;
   this.score = scorer;
-  this.support = auxParams.support;
-  this.grad = auxParams.grad;
-  this.proposalParams = auxParams.proposalParams;
+  for (var param in auxParams) {
+    if (auxParams.hasOwnProperty(param)) {
+      this[param] = auxParams[param];
+    }
+  }
 }
 
 var uniformERP = new ERP(
