@@ -141,6 +141,21 @@ function parseDeclaration(node, succeed, fail) {
   else return fail();
 }
 
+function shadowDeclarations( decls ) {
+    decls = decls.reverse();
+    
+    var newDecls = [], seen = {};
+
+    for( var i = 0; i < decls.length; ++i ) {
+	if( ! seen[ decls[i].id ] ) {
+	    newDecls.push( decls[i] );
+	    seen[ decls[i].id ] = true;
+	}
+    }
+
+    return newDecls.reverse();
+}
+
 Entr.prototype.succs = function() {
     var store = this.store, args = this.args;
 
@@ -161,18 +176,22 @@ Entr.prototype.succs = function() {
 	    }
     
 	    return parse.bind( parse.apply( parse.seq([ parse.rep( parse.single(parseDeclaration) ), parse.item ]), function( declarations_stmt ) {
-		declarations_stmt[0].forEach(function(declaration) {
+		var declarations = declarations_stmt[0], stmt = declarations_stmt[1];
+
+		declarations = shadowDeclarations( declarations );
+		
+		declarations.forEach(function(declaration) {
 		    var v = Au( store, environment, declaration.init );
 
 		    environment = environmentExtend( environment, declaration.id, v );
 		    store = storeExtend( store, declaration.id, v );
 		});
 
-		if( types.ExpressionStatement.check( declarations_stmt[1] ) ) {
-		    return declarations_stmt[1].expression;
+		if( types.ExpressionStatement.check( stmt ) ) {
+		    return stmt.expression;
 		}
 		else {
-		    return fail( "not an expression statement", declarations_stmt[1] )();
+		    return fail( "not an expression statement", stmt )();
 		}
 	    }), parse.finish )( body.body, 0, function( expr ) {
 		return aeval( store, environment, expr );
