@@ -91,8 +91,8 @@ module.exports = function(env) {
     if (this.tune && this.stepsUntilTune >= this.tuneInterval) {
       // Tune scaling parameter
       this.scaling = this.tunedScale(
-        this.scaling,
-        this.acceptedProposalsSinceTune / this.tuneInterval);
+          this.scaling,
+          this.acceptedProposalsSinceTune / this.tuneInterval);
       this.stepsUntilTune = 0;
       this.acceptedProposalsSinceTune = 0;
       if (typeof erp.proposalParams === 'function') {
@@ -113,7 +113,7 @@ module.exports = function(env) {
     return cont(s, val);
   };
 
-  MH.prototype.tunedScale = function (scale, acc_rate) {
+  MH.prototype.tunedScale = function(scale, acc_rate) {
     /*
      Borrowed from pymc (https://github.com/pymc-devs/pymc)
      Tunes the scaling parameter for the proposal distribution

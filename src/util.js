@@ -117,7 +117,7 @@ function expectation(hist, func) {
   if (_.isArray(hist)) {
     return sum(xs) / xs.length;
   } else {
-    var expectedValue = sum(_.mapObject(hist, function (v, x) {
+    var expectedValue = sum(_.mapObject(hist, function(v, x) {
       return f(x) * v;
     }));
     return expectedValue;
@@ -127,11 +127,11 @@ function expectation(hist, func) {
 function std(hist) {
   var mu = expectation(hist);
   if (_.isArray(hist)) {
-    var variance = expectation(hist.map(function (x) {
+    var variance = expectation(hist.map(function(x) {
       return Math.pow(x - mu, 2);
     }));
   } else {
-    var variance = sum(_.mapObject(hist, function (v, x) {
+    var variance = sum(_.mapObject(hist, function(v, x) {
       return v * Math.pow(mu - x, 2);
     }));
   }
