@@ -11,26 +11,26 @@ function isContinuationFunc(f) {
 
 function destructContExp(node, succeed, fail) {
   if (types.FunctionExpression.check(node) &&
-	isContinuationFunc(node) &&
-	types.BlockStatement.check(node.body) &&
-	types.ExpressionStatement.check(node.body.body[0])) {
-	    return succeed(contParam(node), node.body.body[0].expression);
+      isContinuationFunc(node) &&
+      types.BlockStatement.check(node.body) &&
+      types.ExpressionStatement.check(node.body.body[0])) {
+    return succeed(contParam(node), node.body.body[0].expression);
   }
   else return fail();
 }
 
 function funcParams(node) {
-  return node.params.slice(2).map(function(param ) {
-	return param.name;
+  return node.params.slice(2).map(function(param) {
+    return param.name;
   });
 }
 
 function destructFuncExp(node, succeed, fail) {
   if (types.FunctionExpression.check(node)) {
-	if (! isContinuationFunc(node)) {
-	    return succeed(funcParams(node), node.body);
-	}
-	else return fail();
+    if (! isContinuationFunc(node)) {
+      return succeed(funcParams(node), node.body);
+    }
+    else return fail();
   }
   else return fail();
 }

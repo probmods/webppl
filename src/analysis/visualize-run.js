@@ -8,7 +8,7 @@ process.stdin.setEncoding('utf8');
 
 var program = '';
 
-process.stdin.on('data', function(data ) {
+process.stdin.on('data', function(data) {
   program += data;
 });
 
