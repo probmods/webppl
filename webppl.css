@@ -118,6 +118,15 @@ div.main-lead {
 }
 
 div.editor-panel-body {
-  margin-left: 30px;
-  margin-top: -70px;
+   margin-left: 30px;
+   margin-top: -70px;
+}
+
+#bibtex {
+   display: none;
+   overflow: auto;
+   word-wrap: normal;
+   white-space: pre;
+   padding-left: 20px;
+   font-size: 10px;
 }
