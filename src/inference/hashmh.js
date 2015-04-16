@@ -21,7 +21,9 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function HashMH(s, k, a, wpplFn, numIterations) {
+  function HashMH(s, k, a, wpplFn, numIterations, doFullRerun) {
+
+    this.doFullRerun = doFullRerun;
 
     this.k = k;
     this.oldStore = s;
@@ -79,9 +81,7 @@ module.exports = function(env) {
       var newEntry = {k: cont, name: name, erp: erp, params: params,
         score: this.currScore, choiceScore: choiceScore,
         val: val, reused: reuse, store: _.clone(s)};
-      this.currScore += choiceScore;
       this.vars[name] = newEntry;
-      this.varlist.push(newEntry);
       // Case: we just created this choice for the first time
       if (prev === undefined)
         this.fwdLP += choiceScore;
@@ -91,10 +91,18 @@ module.exports = function(env) {
         this.rvsLP += prev.choiceScore;
       }
       // Bail out early if score became -Infinity
-      if (this.currScore === -Infinity)
+      if (choiceScore === -Infinity)
         return this.exit();
-      else
+      // Re-run from the start, if this was a proposal and we're
+      //    doing full re-runs
+      else if (forceSample && this.doFullRerun)
+        return this.wpplFn(this.s, env.exit, this.a);
+      // Otherwise, move on by invoking current continuation
+      else {
+        this.currScore += choiceScore;
+        this.varlist.push(newEntry);
         return cont(s, val);
+      }
     }
   };
 
@@ -156,13 +164,20 @@ module.exports = function(env) {
         this.oldVars = this.vars;
         this.vars = _.clone(this.vars);
         this.oldvarlist = this.varlist;
-        this.varlist = this.oldvarlist.slice(0, this.propIdx);
         this.fwdLP = 0;
         this.rvsLP = 0;
         this.oldScore = this.currScore;
-        this.currScore = entry.score;
         this.oldVal = val;
 
+        // Do we re-run from the beginning of the program, or use the continuation
+        //    at this random choice?
+        if (this.doFullRerun) {
+          this.varlist = [];
+          this.currScore = 0;
+        } else {
+          this.varlist = this.oldvarlist.slice(0, this.propIdx);
+          this.currScore = entry.score;
+        }
         return this.sample(_.clone(entry.store), entry.k, entry.name, entry.erp, entry.params, true);
       }
     } else {
@@ -182,8 +197,8 @@ module.exports = function(env) {
 
   HashMH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function hashmh(s, cc, a, wpplFn, numParticles) {
-    return new HashMH(s, cc, a, wpplFn, numParticles).run();
+  function hashmh(s, cc, a, wpplFn, numParticles, doFullRerun) {
+    return new HashMH(s, cc, a, wpplFn, numParticles, doFullRerun).run();
   }
 
   return {
