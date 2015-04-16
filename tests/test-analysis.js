@@ -1,7 +1,7 @@
 'use strict';
 
 var prepare = require('../src/main').prepare;
-var analyze = require('../src/analysis/analyze').analyze;
+var analyze = require('../src/analysis/main').analyze;
 
 var Set = require('immutable').Set;
 
@@ -29,8 +29,8 @@ function makeTest(t) {
   return function(test) {
     var results = analyze(prepare(t.program));
 
-    var values = results.reduce(function(values, result) {
-      return values.union(result.values);
+    var values = results.finals.reduce(function(values, result) {
+      return values.union(result.value);
     }, new Set());
 
     if (t.values.isSubset(values)) {

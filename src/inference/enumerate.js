@@ -8,7 +8,6 @@
 
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
-var util = require('../util.js');
 var erp = require('../erp.js');
 
 

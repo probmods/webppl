@@ -3,7 +3,6 @@
 var Syntax = require('estraverse').Syntax;
 var replace = require('estraverse').replace;
 var build = require('ast-types').builders;
-var types = require('ast-types').types;
 
 var makeGensym = require('../util').makeGensym;
 var makeGenvar = require('../syntax').makeGenvar;

@@ -152,7 +152,7 @@ Sometimes, it is useful to define external functions that are able to access the
         // addressHeader.js
         
         function myGetAddress(store, k, address){
-          k(store, address);
+          return k(store, address);
         };
         
         module.exports = {
