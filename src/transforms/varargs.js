@@ -3,10 +3,8 @@
 var assert = require('assert');
 var estraverse = require('estraverse');
 var types = require('ast-types');
-var escodegen = require('escodegen');
 var esprima = require('esprima');
 
-var build = types.builders;
 var Syntax = estraverse.Syntax;
 
 var argumentsIdCounter = 0;
