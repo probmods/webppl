@@ -10,12 +10,6 @@ function hrtimeToSeconds(t) {
 	return t[0] + t[1]/1e9;
 }
 
-
-function argslice(args) {
-	return Array.prototype.slice.call(args);
-}
-
-
 // Inclusive
 function makeRange(start, end, incr) {
 	var arr = [];
@@ -30,14 +24,15 @@ function makeRange(start, end, incr) {
 //   - code: webppl code containing a main function called 'program'
 //   - file: File to load code from, if 'code' is undefined.
 //   - requires: list of {name:, path: } for any external js modules needed
+//        (can be undefined).
 //   - params: object containing name->value mapping of constant params
 //        to be inserted at the head of the file
-//   - inference: {name:, args: } object for the inference method
+//   - inference: string of code to be inserted at the end of the file which
+//        calls an inference routine
 // calls 'callback' on the time returned
 function time(config, callback) {
 	var code = config.code || fs.readFileSync(config.file);
 
-	// Parameter prefix
 	var paramPrefix = '';
 	if (config.params !== undefined) {
 		for (var param in config.params) {
@@ -47,22 +42,18 @@ function time(config, callback) {
 		}
 	}
 
-	// Inference suffix
-	var infSuffix = util.format('%s(program, %s);\n',
-								config.inference.name,
-								// slice to remove array brackets
-								JSON.stringify(config.inference.args).slice(1, -1));
-
-	code = paramPrefix + code + infSuffix;
+	code = paramPrefix + code + '\n' + config.inference + '\n';
+	// console.log(code);
 
 	// Compile code and turn it into executable function
+	// TODO: Deal with requires
 	var progfn = eval(webppl.compile(code));
 
 	// Run with top continuation that times it.
 	var t0 = process.hrtime();
 	function topK() {
 		var tdiff = process.hrtime(t0);
-		callback(hrtimeToSeconds(tdiff));
+		callback([hrtimeToSeconds(tdiff)]);
 	}
 	progfn({}, topK, '');
 }
@@ -77,7 +68,8 @@ function varying(varyingName, varyingValues, config, callback, fn) {
 		config.params = _.clone(config.params);
 		config.params[varyingName] = value;
 		fn(config, function() {
-			callback([value].concat(argslice(arguments)));
+			var args = arguments[0];
+			callback([value].concat(args));
 		});
 	}
 	config.params = origparams;
@@ -89,13 +81,15 @@ function makeVarying(varyingName, varyingValues, fn) {
 }
 
 // Run something over different inference methods
+// infSettings is a list of {name:, code: } objects
 function infCompare(infSettings, config, callback, fn) {
 	var originf = config.inference;
 	for (var i = 0; i < infSettings.length; i++) {
-		config.inference = infSettings[i];
-		var infname = config.inference.name + JSON.stringify(config.inference.args);
+		config.inference = infSettings[i].code;
+		var infname = infSettings[i].name;
 		fn(config, function() {
-			callback([infname].concat(argslice(arguments)));
+			var args = arguments[0]
+			callback([infname].concat(args));
 		})
 	}
 	config.inference = originf;
@@ -112,7 +106,8 @@ function csv(file, headerLabels, config, fn) {
 	var f = fs.openSync(file, 'w');
 	fs.writeSync(f, headerLabels.toString() + '\n');
 	fn(config, function() {
-		var row = argslice(args).map(function(x) { return JSON.stringify(x); });
+		var args = arguments[0];
+		var row = args.map(function(x) { return x.toString(); });
 		fs.writeSync(f, row.toString() + '\n');
 	})
 	fs.closeSync(f);

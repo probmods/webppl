@@ -2,36 +2,49 @@
 var harness = require('./harness.js');
 
 
-// We compare HashMH against IncrementalMH
+// We compare HashMH, CPS HashMH, and IncrementalMH
 var infSettings = [
-	{name: 'HashMH', args: ['nIters']},
-	{name: 'IncrementalMH', args: ['nIters']}
+	{name: 'Lightweight_MH', code: 'HashMH(program, nIters, true);'},
+	{name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters, false);'},
+	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters);'}
 ];
 
 
-// LDA --------------------------------
+// HMM --------------------------------
 
 var config = {
-	file: 'lda.wppl',
-	requires: ['lda.js'],
+	file: 'hmm.wppl',
 	params: {
-		// defaults
-		nTopics: 10,
-		nDocs: 20,
-		nWords: 100,
-		nWordsPerDoc: 50
-		nIters: 1000
+		// Defaults
+		nObservations: 10,
+		nIters: 10000
 	}
 };
 
-// Vary nDocs
-harness.csv('lda_nDocs.csv', ['infMethod', 'nDocs', 'time'], config,
+// Vary nObservations
+harness.csv('hmm_nObservations.csv', ['infMethod', 'nObservations', 'time'], config,
 	harness.infCompare(infSettings,
-		harness.varying('nDocs', harness.range(5, 50, 5),
+		harness.varying('nObservations', harness.range(5, 200, 5),
 			harness.time)));
 
-// Vary nIters
-harness.csv('lda_nIters.csv', ['infMethod', 'nIters', 'time'], config,
-	harness.infCompare(infSettings,
-		harness.varying('nIters', harness.range(100, 1000, 100),
-			harness.time)));
+
+// // LDA --------------------------------
+
+// var config = {
+// 	file: 'lda.wppl',
+// 	requires: ['lda.js'],
+// 	params: {
+// 		// defaults
+// 		nTopics: 10,
+// 		nDocs: 20,
+// 		nWords: 100,
+// 		nWordsPerDoc: 50
+// 		nIters: 1000
+// 	}
+// };
+
+// // Vary nDocs
+// harness.csv('lda_nDocs.csv', ['infMethod', 'nDocs', 'time'], config,
+// 	harness.infCompare(infSettings,
+// 		harness.varying('nDocs', harness.range(5, 50, 5),
+// 			harness.time)));

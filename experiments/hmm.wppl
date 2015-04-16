@@ -1,0 +1,36 @@
+// params: nObservations
+
+var hmm = function(n, observations) {
+	if (n === 0) {
+		return true;
+	} else {
+		// var prevState = hmm(n-1, observations);
+		var prevState = incrementalize(hmm, [n - 1, observations]);
+		var state = transition(prevState, n);
+		var obs = observations[n];
+		observation(state, obs);
+		return state;
+	}
+}
+
+var transition = function(prevState, n) {
+	var p = prevState ? 0.7 : 0.3;
+	return flip(p)
+}
+
+var observation = function(state, obs) {
+	var p = state ? 0.9 : 0.1;
+	factor(obs ? Math.log(p) : Math.log(1 - p));
+}
+
+var makeObservations = function(n) {
+	if (n === 0) return [];
+	else return makeObservations(n-1).concat([false]);
+}
+
+var observations = makeObservations(nObservations);
+
+var program = function() {
+	// return hmm(nObservations, observations);
+	return incrementalize(hmm, [nObservations, observations]);
+}
