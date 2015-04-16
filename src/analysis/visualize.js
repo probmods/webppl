@@ -74,15 +74,15 @@ function node( ss01 ) {
 }
 
 function internal_edge( ss01, ss02 ) {
-    return "  " + id( ss01 ) + " -> " + id( ss02 ) + "\n";
+    return "  " + id( ss01 ) + " -> " + id( ss02 ) + " [style=dotted]\n";
 }
 
 function call_retr_edge( ss01, ss23 ) {
     if( ss01.cdr.label ) {
-	return "  " + id( ss01 ) + " -> " + id( ss23 ) + " [style=dotted, label=\"" +ss01.cdr.label + "\"]\n";
+	return "  " + id( ss01 ) + " -> " + id( ss23 ) + " [label=\"call" +ss01.cdr.label + "\"]\n";
     }
     else {
-	return "  " + id( ss01 ) + " -> " + id( ss23 ) + " [style=dotted]\n";
+	return "  " + id( ss01 ) + " -> " + id( ss23 ) + " [label=\"return\"]\n";
     }
 }
 
