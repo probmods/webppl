@@ -1,17 +1,17 @@
-"use strict";
+'use strict';
 
-var prepare = require("../main").prepare;
-var analyze = require("../main").analyze;
-var vizualize = require("./visualize").vizualize;
+var prepare = require('../main').prepare;
+var analyze = require('../main').analyze;
+var vizualize = require('./visualize').vizualize;
 
-process.stdin.setEncoding("utf8");
+process.stdin.setEncoding('utf8');
 
-var program = "";
+var program = '';
 
-process.stdin.on( "data", function( data ) {
-    program += data;
+process.stdin.on('data', function(data ) {
+  program += data;
 });
 
-process.stdin.on( "end", function() {
-    vizualize( analyze( prepare( program ) ), process.stdout );
+process.stdin.on('end', function() {
+  vizualize(analyze(prepare(program)), process.stdout);
 });

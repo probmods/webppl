@@ -65,6 +65,6 @@ function analyzeRefs(node) {
 }
 
 exports.analyzeRefs = analyzeRefs;
-exports.isHeapRef = function( node ) {
-    return node.heapRef || false;
+exports.isHeapRef = function(node ) {
+  return node.heapRef || false;
 }

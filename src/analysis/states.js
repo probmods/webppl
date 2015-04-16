@@ -1,21 +1,21 @@
 var Entr = new Record({
-    store: ...,
-    fun: ...,
-    args: ...
+  store: ...,
+  fun: ...,
+  args: ...
 });
 
 
 var Call = new Record({
-    store: ...,
-    env: ...,
-    f: ...,
-    es: ...,
-    kont: ...,
-    label: ...
+  store: ...,
+  env: ...,
+  f: ...,
+  es: ...,
+  kont: ...,
+  label: ...
 });
 
 
 var Exit = new Record({
-    store: ...,
-    value: ...
+  store: ...,
+  value: ...
 });

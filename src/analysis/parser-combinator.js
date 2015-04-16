@@ -32,10 +32,10 @@ function result() {
   return function(nodes, i, succeed, fail) {
     var ws = [nodes, i];
 
-    for( var i = 0; i < vs.length; ++i ) {
-      ws.push( vs[i] );
+    for (var i = 0; i < vs.length; ++i) {
+      ws.push(vs[i]);
     }
-      
+
     return succeed.apply(this, ws);
   }
 }

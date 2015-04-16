@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 var types = require('ast-types').namedTypes;
 
 function contParam(node) {
-    return node.params[0].name;
+  return node.params[0].name;
 }
 
 function isContinuationFunc(f) {
@@ -10,29 +10,29 @@ function isContinuationFunc(f) {
 }
 
 function destructContExp(node, succeed, fail) {
-    if (types.FunctionExpression.check(node) &&
+  if (types.FunctionExpression.check(node) &&
 	isContinuationFunc(node) &&
 	types.BlockStatement.check(node.body) &&
 	types.ExpressionStatement.check(node.body.body[0])) {
 	    return succeed(contParam(node), node.body.body[0].expression);
-    }
-    else return fail();
+  }
+  else return fail();
 }
 
 function funcParams(node) {
-    return node.params.slice(2).map( function( param ) {
+  return node.params.slice(2).map(function(param ) {
 	return param.name;
-    });
+  });
 }
 
 function destructFuncExp(node, succeed, fail) {
-    if (types.FunctionExpression.check(node)) {
-	if ( ! isContinuationFunc(node)) {
+  if (types.FunctionExpression.check(node)) {
+	if (! isContinuationFunc(node)) {
 	    return succeed(funcParams(node), node.body);
 	}
 	else return fail();
-    }
-    else return fail();
+  }
+  else return fail();
 }
 
 function destructCondExp(node, succeed, fail) {
@@ -73,7 +73,7 @@ function destructSampleExp(node, succeed, fail) {
   if (types.CallExpression.check(node) &&
       (! isContinuationCall(node)) &&
       types.Identifier.check(node.callee) &&
-      node.callee.name === "sample") {
+      node.callee.name === 'sample') {
     return succeed(callSiteLabel(node),
                    node.arguments[2],
                    node.arguments[3].elements,
@@ -88,7 +88,7 @@ function destructEnumerateExp(node, succeed, fail) {
   if (types.CallExpression.check(node) &&
       (! isContinuationCall(node)) &&
       types.Identifier.check(node.callee) &&
-      node.callee.name === "Enumerate") {
+      node.callee.name === 'Enumerate') {
     return succeed(callSiteLabel(node),
                    node.arguments[2],
                    node.arguments[3],
@@ -99,11 +99,11 @@ function destructEnumerateExp(node, succeed, fail) {
 
 
 module.exports = {
-    condExp: destructCondExp,
-    contCall: destructContCall,
-    contExp: destructContExp,
-    funcExp: destructFuncExp,
-    sampleExp: destructSampleExp,
-    enumerateExp: destructEnumerateExp,
-    userCall: destructUserCall
+  condExp: destructCondExp,
+  contCall: destructContCall,
+  contExp: destructContExp,
+  funcExp: destructFuncExp,
+  sampleExp: destructSampleExp,
+  enumerateExp: destructEnumerateExp,
+  userCall: destructUserCall
 }
