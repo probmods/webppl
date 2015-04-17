@@ -10,6 +10,68 @@ var diagnostics = require('./mh-diagnostics/diagnostics.js')
 
 module.exports = function(env) {
 
+  // TODO: choose the right parameters.
+  function gaussianDriftScaling(scale, acceptanceRate) {
+    if (acceptanceRate < 0.1) {
+      scale = 0.1; // reset
+    } else if (acceptanceRate < 0.15) {
+      scale *= 0.7;
+    } else if (acceptanceRate < 0.2) {
+      scale *= 0.8;
+    } else if (acceptanceRate > 0.4) {
+      scale *= 2.0;
+    }
+    return scale;
+  };
+
+  function gaussianProposalParams(params, prevVal) {
+    if (this.stepsUntilTune >= this.tuneInterval) {
+      var acceptanceRate = this.acceptedProposalsSinceTune / this.tuneInterval;
+      this.scaling = gaussianDriftScaling(this.scaling, acceptanceRate);
+      this.stepsUntilTune = 0;
+      this.acceptedProposalsSinceTune = 0;
+    }
+    this.scaling = .2; // Not using the adaptive scaling yet.
+    this.stepsUntilTune += 1;
+    var mu = prevVal || params[0];
+    var sigma = params[1] * this.scaling;
+    return [mu, sigma];
+  }
+
+  function initializeDriftingERP(erp) {
+    erp.scaling = 1;
+    erp.tuneInterval = 500;
+    erp.stepsUntilTune = 0;
+    erp.acceptedProposalsSinceTune = 0;
+    return erp;
+  }
+
+  function makeGaussianDriftingERP() {
+    var gaussianDriftingERP = new erp.ERP(
+        erp.gaussianSample,
+        erp.gaussianScore,
+        {proposalParams: gaussianProposalParams});
+    initializeDriftingERP(gaussianDriftingERP);
+    return gaussianDriftingERP;
+  }
+
+  var gaussianDriftingERP = makeGaussianDriftingERP();
+
+  function dirichletProposalParams(params, prevVal) {
+    var concentration = 0.01; // TODO: choose the right parameters.
+    var driftParams = params.map(function(x) {return concentration * x});
+    return driftParams;
+  }
+
+  function makeDirichletDriftingERP() {
+    var dirichletDriftingERP = new erp.ERP(
+        erp.dirichletSample,
+        erp.dirichletScore,
+        {proposalParams: dirichletProposalParams});
+    initializeDriftingERP(dirichletDriftingERP);
+    return dirichletDriftingERP;
+  }
+
   function findChoice(trace, name) {
     if (trace === undefined) {
       return undefined;
@@ -33,12 +95,20 @@ module.exports = function(env) {
     var bw = -Math.log(trace.length);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      bw += (!nc || !nc.reused) ? s.choiceScore : 0;
+      if (nc.reverseChoiceScore) {
+        bw += (!nc || !nc.reused) ? s.reverseChoiceScore : 0;
+      } else {
+        bw += (!nc || !nc.reused) ? s.choiceScore : 0;
+      }
     });
     var p = Math.exp(currScore - oldScore + bw - fw);
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
+  }
+
+  function isDriftingERP(erp) {
+    return typeof erp.proposalParams === 'function';
   }
 
   function MH(s, k, a, wpplFn, numIterations, burn, diagnostics) {
@@ -54,11 +124,6 @@ module.exports = function(env) {
     this.iterations = numIterations;
     this.acceptedProposals = 0;
     this.rejectedProposals = 0;
-    this.acceptedProposalsSinceTune = 0;
-    this.tune = typeof tune !== 'undefined' ? tune : false;
-    this.scaling = 1.0;
-    this.tuneInterval = 100;
-    this.stepsUntilTune = 0;
     this.vals = [];
     this.diagnostics = typeof diagnostics !== 'undefined' ? diagnostics : false;
     this.burn = typeof burn !== 'undefined' ? burn : Math.min(500, Math.floor(numIterations / 2));
@@ -87,68 +152,28 @@ module.exports = function(env) {
 
     var reuse = !(prev === undefined || forceSample);
 
-    var prpposedParams = params;
-    if (this.tune && this.stepsUntilTune >= this.tuneInterval) {
-      // Tune scaling parameter
-      this.scaling = this.tunedScale(
-          this.scaling,
-          this.acceptedProposalsSinceTune / this.tuneInterval);
-      this.stepsUntilTune = 0;
-      this.acceptedProposalsSinceTune = 0;
-      if (typeof erp.proposalParams === 'function') {
-        var prevVal = prev ? prev.val : null;
-        prpposedParams = erp.proposalParams(params, prevVal, this.scaling);
-      }
-    }
-    this.stepsUntilTune += 1;
+    var proposedParams = params;
 
-    var val = reuse ? prev.val : erp.sample(prpposedParams);
-    var choiceScore = erp.score(prpposedParams, val);
+    if (isDriftingERP(erp)) {
+      var prevVal = prev ? prev.val : null;
+      proposedParams = erp.proposalParams(params, prevVal);
+      var nextProposalParams = erp.proposalParams(params, erp.sample(proposedParams));
+      var reverseChoiceScore = erp.score(nextProposalParams, prevVal);
+    }
+
+    var val = reuse ? prev.val : erp.sample(proposedParams);
+    var choiceScore = erp.score(proposedParams, val);
+
     this.trace.push({
       k: cont, name: name, erp: erp, params: params,
       score: this.currScore, choiceScore: choiceScore,
-      val: val, reused: reuse, store: _.clone(s)
+      reverseChoiceScore: reverseChoiceScore, val: val,
+      reused: reuse, store: _.clone(s)
     });
-    this.currScore += choiceScore;
+    this.currScore += erp.score(params, val);
     return cont(s, val);
   };
 
-  MH.prototype.tunedScale = function(scale, acc_rate) {
-    /*
-     Borrowed from pymc (https://github.com/pymc-devs/pymc)
-     Tunes the scaling parameter for the proposal distribution
-     according to the acceptance rate over the last tune_interval:
-     Rate    Variance adaptation
-     ----    -------------------
-     <0.001        x 0.1
-     <0.05         x 0.5
-     <0.2          x 0.9
-     >0.5          x 1.1
-     >0.75         x 2
-     >0.95         x 10
-     */
-    //console.error(scale, acc_rate);
-    if (acc_rate < 0.001) {
-      // reduce by 90 percent
-      scale *= 0.1;
-    } else if (acc_rate < 0.05) {
-      //reduce by 50 percent
-      scale *= 0.5;
-    } else if (acc_rate < 0.2) {
-      // reduce by ten percent
-      scale *= 0.9;
-    } else if (acc_rate > 0.95) {
-      //increase by factor of ten
-      scale *= 10.0;
-    } else if (acc_rate > 0.75) {
-      // increase by double
-      scale *= 2.0;
-    } else if (acc_rate > 0.5) {
-      // increase by ten percent
-      scale *= 1.1;
-    }
-    return scale;
-  };
 
   MH.prototype.exit = function(s, val) {
     if (this.iterations > 0) {
@@ -165,7 +190,9 @@ module.exports = function(env) {
         val = this.oldVal;
       } else {
         this.acceptedProposals += 1;
-        this.acceptedProposalsSinceTune += 1;
+        if (isDriftingERP(this.trace[this.regenFrom].erp)) {
+          this.trace[this.regenFrom].erp.acceptedProposalsSinceTune += 1;
+        }
       }
       // now add val to hist:
       if (this.burn < this.rejectedProposals + this.acceptedProposals) {
@@ -212,7 +239,9 @@ module.exports = function(env) {
   return {
     MH: mh,
     findChoice: findChoice,
-    acceptProb: acceptProb
+    acceptProb: acceptProb,
+    makeGaussianDriftingERP: makeGaussianDriftingERP,
+    makeDirichletDriftingERP: makeDirichletDriftingERP,
+    gaussianDriftingERP: gaussianDriftingERP
   };
-
 };
