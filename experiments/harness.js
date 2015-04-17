@@ -45,15 +45,26 @@ function time(config, callback) {
 	code = paramPrefix + code + '\n' + config.inference + '\n';
 	// console.log(code);
 
+	// Set up requires
+	var prevreqs = {};
+	for (var i = 0; i < config.requires.length; i++) {
+		var r = config.requires[i];
+		prevreqs[r.name] = global[r.name];
+		global[r.name] = require(r.path);
+	}
+
 	// Compile code and turn it into executable function
-	// TODO: Deal with requires
 	var progfn = eval(webppl.compile(code));
 
 	// Run with top continuation that times it.
 	var t0 = process.hrtime();
 	function topK() {
 		var tdiff = process.hrtime(t0);
-		callback([hrtimeToSeconds(tdiff)]);
+		// Restore requires before 'returning'
+		for (var name in prevreqs)
+			global[name] = prevreqs[name];
+		if (callback !== undefined)
+			callback([hrtimeToSeconds(tdiff)]);
 	}
 	progfn({}, topK, '');
 }
@@ -67,8 +78,7 @@ function varying(varyingName, varyingValues, config, callback, fn) {
 		var value = varyingValues[i];
 		config.params = _.clone(config.params);
 		config.params[varyingName] = value;
-		fn(config, function() {
-			var args = arguments[0];
+		fn(config, function(args) {
 			callback([value].concat(args));
 		});
 	}
@@ -87,8 +97,7 @@ function infCompare(infSettings, config, callback, fn) {
 	for (var i = 0; i < infSettings.length; i++) {
 		config.inference = infSettings[i].code;
 		var infname = infSettings[i].name;
-		fn(config, function() {
-			var args = arguments[0]
+		fn(config, function(args) {
 			callback([infname].concat(args));
 		})
 	}
@@ -105,8 +114,7 @@ function makeInfCompare(infSettings, fn) {
 function csv(file, headerLabels, config, fn) {
 	var f = fs.openSync(file, 'w');
 	fs.writeSync(f, headerLabels.toString() + '\n');
-	fn(config, function() {
-		var args = arguments[0];
+	fn(config, function(args) {
 		var row = args.map(function(x) { return x.toString(); });
 		fs.writeSync(f, row.toString() + '\n');
 	})
