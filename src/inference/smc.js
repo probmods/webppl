@@ -125,7 +125,7 @@ module.exports = function(env) {
   };
 
   ParticleFilterRejuv.prototype.allParticlesAdvanced = function() {
-    return ((this.particleIndex + 1) == this.particles.length);
+    return ((this.particleIndex + 1) === this.particles.length);
   };
 
   function copyPFRParticle(particle) {
@@ -149,7 +149,7 @@ module.exports = function(env) {
     var avgW = W - Math.log(m);
 
     // Allow -Infinity case (for mh initialization, in particular with few particles)
-    if (avgW == -Infinity) {
+    if (avgW === -Infinity) {
       console.warn('ParticleFilterRejuv: resampleParticles: all ' + m + ' particles have weight -Inf');
       return;
     }
@@ -264,7 +264,7 @@ module.exports = function(env) {
 
   MHP.prototype.factor = function(s, k, a, sc) {
     this.currScore += sc;
-    if (a == this.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
+    if (a === this.limitAddress) { //we need to exit if we've reached the fathest point of this particle...
       return env.exit(s);
     } else {
       return k(s);

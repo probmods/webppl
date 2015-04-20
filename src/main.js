@@ -1,7 +1,5 @@
 'use strict';
 
-var _ = require('underscore');
-var assert = require('assert');
 var fs = require('fs');
 var types = require('ast-types');
 var build = types.builders;

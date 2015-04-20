@@ -1,6 +1,5 @@
 'use strict';
 
-var assert = require('assert');
 var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;

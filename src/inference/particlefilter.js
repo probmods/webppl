@@ -94,7 +94,7 @@ module.exports = function(env) {
     }));
     var avgW = W - Math.log(m);
 
-    if (avgW == -Infinity) {      // debugging: check if NaN
+    if (avgW === -Infinity) {      // debugging: check if NaN
       if (this.strict) {
         throw 'Error! All particles -Infinity';
       }
