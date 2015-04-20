@@ -1,0 +1,94 @@
+HOW TO USE IT
+
+The top level of the control-flow analysis is the 'analyze' function in the 'analysis/main' module. This function takes a named, CPS'd AST (which 'prepare' of the 'main' module produces given a literal program) and produces a relation over abstract program states along with some information about the relation itself. All this is encoded as a JS object naming this information. These parts are
+
+- 'seen': the set of abstract states over which the relation is defined
+- 'calls': a map from an abstract entry point to a set of abstract call points
+- 'retrs': a map from an abstract return point to a set of abstract exit points
+- 'preds': a map from an abstract state to its same-procedure predecessor
+- 'summaries': a map from an abstract entry point to a set of abstract exit points
+- 'finals': a set of abstract exit points of the program
+
+An abstract state is a pair of machine states: the first component of the pair is an entry state; the second component is an entry, call, or exit state.
+
+Here's a brief example of this analysis. Consider the program
+
+var beta = function(a,b) { return sample(betaERP,[a,b]); }
+var flip = function(p) { return sample(bernoulliERP,[p]); }
+flip(beta(1,1));
+
+The program starts in an entry state with an empty store and environment.
+
+σ0 = {}
+ρ0 = {}
+
+m0 = Entr(σ0,<main>,())
+s0 = (m0,m0)
+
+The procedures 'beta' and 'flip' are bound, and the call to 'beta' is interpreted.
+
+ρ1 = {beta -> function(a,b) { ... }, flip -> function(p) { ... }}
+m1 = Call(σ0,ρ1,beta(1,1))
+s1 = (m0,m1)
+
+For each target of the call, an entry state is created.
+
+m2 = Entr(σ0,function(a,b) { ... },(1,1))
+s2 = (m2,m2)
+
+The sample operation is interpreted...
+
+ρ2 = {a=1,b=1}
+m3 = Call(σ0,ρ2,sample(betaERP,[a,b]))
+s3 = (m2,m3)
+
+...as a call to betaERP.
+
+m4 = Entr(σ0,<betaERP>,(1,1))
+s4 = (m4,m4)
+
+Primitives execute in one abstract step. The result of the betaERP is 'beta', an abstract value denoting the support of the Beta family.
+
+m5 = Exit(σ0,<beta>)
+s5 = (m4,m5)
+
+The exit state provokes a return to the caller (and callers, in general).
+
+s6 = (m2,m5)
+
+The return to the sample operation represents an exit from its procedure.
+
+s7 = (m0,m5)
+
+This beta result is used as the argument for the 'flip' call.
+
+m6 = Call(σ0,ρ1,flip(<beta>))
+s8 = (m0,m6)
+
+m7 = Entr(σ0,function(p) { ... },(<beta>))
+s9 = (m7,m7)
+
+The interpretation of the body of flip is extremely similar to that of the body of beta.
+
+ρ3 = {p=<beta>}
+m8 = Call(σ0,ρ3,sample(bernoulliERP,[p]))
+s10 = (m7,m8)
+
+m9 = Entr(σ0,<bernoulliERP>,(<beta>))
+s11 = (m9,m9)
+
+m10 = Exit(σ0,<bernoulli>)
+s12 = (m9,m10)
+
+s13 = (m7,m10)
+s14 = (m0,m10)
+
+The results of the analysis then are
+seen: {s0,...,s14}
+calls: {(s2,s1),(s4,s3),(s9,s8),(s11,s10)}
+retrs: {(s6,s5),(s7,s6),(s13,s12),(s14,s13)}
+preds: {(s14,s8,s7,s1,s0),(s6,s2,s3),(s5,s4),(s13,s10,s9),(s12,s11)}
+summaries: {(s0,s14),(s3,s6),(s4,s5),(s9,s13),(s11,s12)}
+finals: {s14}
+
+The approximation of the control-flow for this particular program is perfect since there is no recursion and all values follow a stack discipline.
