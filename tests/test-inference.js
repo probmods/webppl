@@ -173,6 +173,8 @@ var testNames = [
   'testMHStore',
   'testPMCMC',
   'testPMCMCStore',
+  'testPFVarFactors',
+  'testPFVarFactors2',
   'testPFRj',
   'testPFRjStore',
   'testPFRjAsMH'
