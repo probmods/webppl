@@ -169,6 +169,8 @@ var testNames = [
   'testEnumerationCached',
   'testParticleFilter',
   'testParticleFilterStore',
+  'testAsyncPF',
+  'testAsyncPFStore',
   'testMH',
   'testMHStore',
   'testPMCMC',

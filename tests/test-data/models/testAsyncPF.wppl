@@ -1,0 +1,9 @@
+AsyncPF(
+  function() {
+    var x = flip(0.5);
+    var y = flip(0.5);
+    factor((x | y) ? 0 : -Infinity);
+    return x;
+  },
+  1000, // particles
+  1000) // buffer
