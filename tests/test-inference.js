@@ -43,19 +43,44 @@ function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance
   }
 }
 
-function runDistributionTest(test, code, expectedHist, tolerance) {
+function getHist(erp) {
   var hist = {};
+  erp.support().forEach(
+      function(value) {
+        hist[value] = Math.exp(erp.score([], value));
+      });
+  return util.normalizeHist(hist);
+}
+
+function runDistributionTest(test, testData) {
   var k = function(s, erp) {
-    erp.support().forEach(
-        function(value) {
-          hist[value] = Math.exp(erp.score([], value));
-        });
-    var normHist = util.normalizeHist(hist);
-    test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
+    var normHist = getHist(erp);
+    var expected = testData.expected;
+    test.ok(util.histsApproximatelyEqual(normHist, expected.hist, expected.tolerance));
     test.done();
   };
 
-  webppl.run(code, k);
+  webppl.run(testData.code, k);
+}
+
+function runDistributionStatisticsTest(test, testData) {
+  var k = function(s, erp) {
+    var normHist = getHist(erp);
+    var testMean = util.expectation(normHist);
+    var testStd = util.std(normHist);
+    var expected = testData.expected;
+    var allOk = true;
+    if (testMean - testStd < expected.mean - expected.std ||
+        testMean + testStd > expected.mean + expected.std) {
+      allOk = false;
+      console.log('Expected mean/std:', expected.mean, expected.std);
+      console.log('Actual mean/std:', testMean, testStd);
+    }
+    test.ok(allOk);
+    test.done();
+  };
+
+  webppl.run(testData.code, k);
 }
 
 exports.testDeterministic = {
@@ -139,69 +164,86 @@ exports.testForwardSampling = {
   }
 };
 
-function getTestCases(testDir, dataDir, testNames) {
+function getTestCases(tests) {
   var testCases = [];
-  for (var i = 0; i < testNames.length; i++) {
-    var codeFileName = testDir + testNames[i] + '.wppl';
-    var resultFileName = dataDir + testNames[i] + '.json';
-    var codeFile = fs.readFileSync(codeFileName, 'utf-8');
-    var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
-    testCases.push({
-      code: codeFile,
-      expectedHist: expectedResult.expectedHist,
-      tolerance: expectedResult.tolerance,
-      name: testNames[i]
-    });
+  for (var key in tests) {
+    if (tests.hasOwnProperty(key)) {
+      var testNames = tests[key].names;
+      for (var i = 0; i < testNames.length; i++) {
+        var codeFileName = tests[key].directory + testNames[i] + '.wppl';
+        var resultFileName = tests[key].resultDirectory + testNames[i] + '.json';
+        var codeFile = fs.readFileSync(codeFileName, 'utf-8');
+        var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
+        testCases.push({
+          code: codeFile,
+          expected: expectedResult,
+          name: testNames[i],
+          testFn: tests[key].testToRun
+        });
+      }
+    }
   }
   return testCases;
 }
 
-function makeTest(testData) {
-  function _makeTest(test) {
-    runDistributionTest(test, testData.code, testData.expectedHist, testData.tolerance);
-  }
-  return _makeTest;
-}
-
-var testNames = [
-  'testEnumeration',
-  'testEnumerationStore',
-  'testEnumerationCached',
-  'testParticleFilter',
-  'testParticleFilterStore',
-  'testAsyncPF',
-  'testAsyncPFStore',
-  'testMH',
-  'testMHStore',
-  'testPMCMC',
-  'testPMCMCStore',
-  'testPFVarFactors',
-  'testPFVarFactors2',
-  'testPFRj',
-  'testPFRjStore',
-  'testPFRjAsMH'
-];
-
-var exampleNames = [
-  'binomial',
-  'geometric',
-  'hmm',
-  'hmmIncremental',
-  'pcfg',
-  'pcfgIncremental',
-  'scalarImplicature',
-  'semanticParsing',
-  'pragmaticsWithSemanticParsing'
-];
-
 var testDataDir = './tests/test-data/';
-var testsData = [];
-testsData = testsData.concat(getTestCases(testDataDir + 'models/', testDataDir + 'expected/', testNames));
-testsData = testsData.concat(getTestCases('./examples/', testDataDir + 'expected/', exampleNames));
+
+var tests = {
+  models: {
+    names: [
+      'testEnumeration',
+      'testEnumerationStore',
+      'testEnumerationCached',
+      'testParticleFilter',
+      'testParticleFilterStore',
+      'testAsyncPF',
+      'testAsyncPFStore',
+      'testMH',
+      'testMHStore',
+      'testPMCMC',
+      'testPMCMCStore',
+      'testPFVarFactors',
+      'testPFVarFactors2',
+      'testPFRj',
+      'testPFRjStore',
+      'testPFRjAsMH'
+    ],
+    directory: testDataDir + 'models/',
+    resultDirectory: testDataDir + 'expected/',
+    testToRun: runDistributionTest
+  },
+  examples: {
+    names: [
+      'binomial',
+      'geometric',
+      'hmm',
+      'hmmIncremental',
+      'pcfg',
+      'pcfgIncremental',
+      'scalarImplicature',
+      'semanticParsing',
+      'pragmaticsWithSemanticParsing'
+    ],
+    directory: './examples/',
+    resultDirectory: testDataDir + 'expected/',
+    testToRun: runDistributionTest
+  },
+  mhExamples: {
+    names: [
+      'linearRegression',
+      'logisticRegression'
+    ],
+    directory: './examples/',
+    resultDirectory: testDataDir + 'expected/',
+    testToRun: runDistributionStatisticsTest
+  }
+};
+
+var testsData = getTestCases(tests);
 
 testsData.forEach(function(testData) {
   var description = testData.desc ? testData.desc : 'test';
   var testCaseArgs = {};
-  testCaseArgs[description] = makeTest(testData);
+  testCaseArgs[description] = function(test) {testData.testFn(test, testData)};
   exports[testData.name] = testCase(testCaseArgs);
 });
