@@ -16,7 +16,7 @@ var hmmRecur = function(n, states, observations) {
   var newObservations = observations.concat([newObs])
   return ((n == 1) ?
           {states: newStates, observations: newObservations} :
-          hmmRecur(n - 1, states, observations));
+          hmmRecur(n - 1, newStates, newObservations));
 }
 
 var hmm = function(n) {
