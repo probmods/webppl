@@ -47,14 +47,17 @@ module.exports = function(env) {
     return nextState.continuation(nextState.store, nextState.value);
   };
 
-  Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
-
-    // Allows extra factors to be taken into account in making
-    // exploration decisions:
-    extraScoreFn = extraScoreFn || function(store, k, a, value) {
-      return k(store, 0);
+  Enumerate.prototype.queueContinuation = function(continuation, value, score, store) {
+    var state = {
+      continuation: continuation,
+      value: value,
+      score: score,
+      store: _.clone(store)
     };
+    this.queue.enq(state);
+  };
 
+  var getSupport = function(dist, params) {
     // Find support of this erp:
     if (!dist.support) {
       console.error(dist, params);
@@ -68,25 +71,21 @@ module.exports = function(env) {
       throw 'Enumerate encountered ERP with empty support!';
     }
 
-    var coroutine = this;
+    return supp;
+  };
+
+  Enumerate.prototype.sample = function(store, cc, a, dist, params) {
+    var support = getSupport(dist, params);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
-    return util.cpsForEach(function(value, i, supp, nextK) {
-      return extraScoreFn(store, function(store, extraScore) {
-        var state = {
-          continuation: cc,
-          value: value,
-          score: coroutine.score + dist.score(params, value) + extraScore,
-          store: _.clone(store)
-        };
-        coroutine.queue.enq(state);
-        return nextK();
-      }, a, value);
-    },
+    _.each(support, function(value) {
+      this.queueContinuation(
+          cc, value, this.score + dist.score(params, value), store);
+    }, this);
+
     // Call the next state on the queue
-    function() { return coroutine.nextInQueue(); },
-    supp);
+    return this.nextInQueue();
   };
 
   Enumerate.prototype.factor = function(s, cc, a, score) {
@@ -95,8 +94,26 @@ module.exports = function(env) {
     return cc(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(s, cc, a, dist, params, scoreFn) {
-    return this.sample(s, cc, a, dist, params, scoreFn);
+  Enumerate.prototype.sampleWithFactor = function(store, cc, a, dist, params, scoreFn) {
+    var support = getSupport(dist, params),
+        coroutine = this;
+
+    // Allows extra factors to be taken into account in making
+    // exploration decisions:
+
+    return util.cpsForEach(
+        function(value, i, support, nextK) {
+          return scoreFn(store, function(store, extraScore) {
+            var score = coroutine.score + dist.score(params, value) + extraScore;
+            coroutine.queueContinuation(cc, value, score, store);
+            return nextK();
+          }, a, value);
+        },
+        function() {
+          // Call the next state on the queue
+          return coroutine.nextInQueue();
+        },
+        support);
   };
 
   Enumerate.prototype.exit = function(s, retval) {
