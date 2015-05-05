@@ -70,8 +70,8 @@ function runDistributionStatisticsTest(test, testData) {
     var testStd = util.std(normHist);
     var expected = testData.expected;
     var allOk = true;
-    if (testMean - testStd < expected.mean - expected.std ||
-        testMean + testStd > expected.mean + expected.std) {
+    if (Math.abs(testMean - expected.mean) > expected.tolerance ||
+        Math.abs(testStd - expected.std) > expected.tolerance) {
       allOk = false;
       console.log('Expected mean/std:', expected.mean, expected.std);
       console.log('Actual mean/std:', testMean, testStd);

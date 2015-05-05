@@ -23,4 +23,4 @@ var model = function() {
   return sigmoid(8)
 }
 
-MH(model, 10000)
+MH(model, 100000)
