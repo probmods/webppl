@@ -47,7 +47,7 @@ module.exports = function(env) {
     return nextState.continuation(nextState.store, nextState.value);
   };
 
-  Enumerate.prototype.queueContinuation = function(continuation, value, score, store) {
+  Enumerate.prototype.enqueueContinuation = function(continuation, value, score, store) {
     var state = {
       continuation: continuation,
       value: value,
@@ -80,7 +80,7 @@ module.exports = function(env) {
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
-      this.queueContinuation(
+      this.enqueueContinuation(
           cc, value, this.score + dist.score(params, value), store);
     }, this);
 
@@ -95,8 +95,7 @@ module.exports = function(env) {
   };
 
   Enumerate.prototype.sampleWithFactor = function(store, cc, a, dist, params, scoreFn) {
-    var support = getSupport(dist, params),
-        coroutine = this;
+    var support = getSupport(dist, params);
 
     // Allows extra factors to be taken into account in making
     // exploration decisions:
@@ -104,14 +103,14 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = coroutine.score + dist.score(params, value) + extraScore;
-            coroutine.queueContinuation(cc, value, score, store);
+            var score = env.coroutine.score + dist.score(params, value) + extraScore;
+            env.coroutine.enqueueContinuation(cc, value, score, store);
             return nextK();
           }, a, value);
         },
         function() {
           // Call the next state on the queue
-          return coroutine.nextInQueue();
+          return env.coroutine.nextInQueue();
         },
         support);
   };
