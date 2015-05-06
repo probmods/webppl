@@ -177,7 +177,9 @@ var testNames = [
   'testPFVarFactors2',
   'testPFRj',
   'testPFRjStore',
-  'testPFRjAsMH'
+  'testPFRjAsMH',
+  'testRejection',
+  'testIncrementalRejection'
 ];
 
 var exampleNames = [
