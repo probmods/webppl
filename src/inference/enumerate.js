@@ -9,7 +9,7 @@
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var erp = require('../erp.js');
-
+var util = require('../util.js');
 
 module.exports = function(env) {
 
@@ -47,13 +47,17 @@ module.exports = function(env) {
     return nextState.continuation(nextState.store, nextState.value);
   };
 
-  Enumerate.prototype.sample = function(store, cc, a, dist, params, extraScoreFn) {
-
-    // Allows extra factors to be taken into account in making exploration decisions:
-    extraScoreFn = extraScoreFn || function(x) {
-      return 0;
+  Enumerate.prototype.enqueueContinuation = function(continuation, value, score, store) {
+    var state = {
+      continuation: continuation,
+      value: value,
+      score: score,
+      store: _.clone(store)
     };
+    this.queue.enq(state);
+  };
 
+  var getSupport = function(dist, params) {
     // Find support of this erp:
     if (!dist.support) {
       console.error(dist, params);
@@ -67,19 +71,19 @@ module.exports = function(env) {
       throw 'Enumerate encountered ERP with empty support!';
     }
 
+    return supp;
+  };
+
+  Enumerate.prototype.sample = function(store, cc, a, dist, params) {
+    var support = getSupport(dist, params);
+
     // For each value in support, add the continuation paired with
     // support value and score to queue:
-    for (var s in supp) {
-      if (supp.hasOwnProperty(s)) {
-        var state = {
-          continuation: cc,
-          value: supp[s],
-          score: this.score + dist.score(params, supp[s]) + extraScoreFn(supp[s]),
-          store: _.clone(store)
-        };
-        this.queue.enq(state);
-      }
-    }
+    _.each(support, function(value) {
+      this.enqueueContinuation(
+          cc, value, this.score + dist.score(params, value), store);
+    }, this);
+
     // Call the next state on the queue
     return this.nextInQueue();
   };
@@ -90,15 +94,26 @@ module.exports = function(env) {
     return cc(s);
   };
 
-  // FIXME: can only call scoreFn in tail position!
-  // Enumerate.prototype.sampleWithFactor = function(s,cc,a,dist,params,scoreFn) {
-  //   coroutine.sample(s,cc,a,dist,params,
-  //                    function(v){
-  //                      var ret;
-  //                      scoreFn(s, function(s, x){ret = x;}, a+"swf", v);
-  //                      return ret;});
-  // };
+  Enumerate.prototype.sampleWithFactor = function(store, cc, a, dist, params, scoreFn) {
+    var support = getSupport(dist, params);
 
+    // Allows extra factors to be taken into account in making
+    // exploration decisions:
+
+    return util.cpsForEach(
+        function(value, i, support, nextK) {
+          return scoreFn(store, function(store, extraScore) {
+            var score = env.coroutine.score + dist.score(params, value) + extraScore;
+            env.coroutine.enqueueContinuation(cc, value, score, store);
+            return nextK();
+          }, a, value);
+        },
+        function() {
+          // Call the next state on the queue
+          return env.coroutine.nextInQueue();
+        },
+        support);
+  };
 
   Enumerate.prototype.exit = function(s, retval) {
     // We have reached an exit of the computation. Accumulate probability into retval bin.
