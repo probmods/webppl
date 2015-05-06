@@ -1,0 +1,14 @@
+AsyncPF(
+  function() {
+    globalStore.foo = (globalStore.foo || 0) + 1;
+    var x = flip(0.5);
+    var y = flip(0.5);
+    factor((x | y) ? 0 : -Infinity);
+    globalStore.foo = globalStore.foo + 1;
+    var z = flip(0.5);
+    factor((y | z) ? 0 : -Infinity);
+    globalStore.foo = globalStore.foo + 1;
+    return globalStore.foo;
+  },
+  100,
+  100)

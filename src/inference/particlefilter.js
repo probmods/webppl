@@ -10,6 +10,9 @@ var _ = require('underscore');
 var util = require('../util.js');
 var erp = require('../erp.js');
 
+function isActive(particle) {
+  return particle.active;
+}
 
 module.exports = function(env) {
 
@@ -18,7 +21,8 @@ module.exports = function(env) {
       continuation: particle.continuation,
       weight: particle.weight,
       value: particle.value,
-      store: _.clone(particle.store)
+      store: _.clone(particle.store),
+      active: particle.active
     };
   }
 
@@ -36,12 +40,14 @@ module.exports = function(env) {
         continuation: exitK,
         weight: 0,
         value: undefined,
-        store: _.clone(s)
+        store: _.clone(s),
+        active: true
       };
       this.particles.push(particle);
     }
 
     this.strict = strict;
+
     // Move old coroutine out of the way and install this as the current
     // handler.
     this.k = k;
@@ -53,7 +59,7 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.run = function() {
     // Run first particle
-    return this.activeParticle().continuation(this.activeParticle().store);
+    return this.currentParticle().continuation(this.currentParticle().store);
   };
 
   ParticleFilter.prototype.sample = function(s, cc, a, erp, params) {
@@ -62,28 +68,57 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.factor = function(s, cc, a, score) {
     // Update particle weight
-    this.activeParticle().weight += score;
-    this.activeParticle().continuation = cc;
-    this.activeParticle().store = s;
+    this.currentParticle().weight += score;
+    this.currentParticle().continuation = cc;
+    this.currentParticle().store = s;
 
     if (this.allParticlesAdvanced()) {
       // Resample in proportion to weights
       this.resampleParticles();
-      this.particleIndex = 0;
+      // Resampling can kill all continuing particles
+      var i = this.firstActiveParticleIndex();
+      if (i === -1) {
+        // All particles completed, no more computation to do
+        return this.finish();
+      } else {
+        this.particleIndex = i;
+      }
     } else {
       // Advance to the next particle
-      this.particleIndex += 1;
+      this.particleIndex = this.nextActiveParticleIndex();
     }
 
-    return this.activeParticle().continuation(this.activeParticle().store);
+    return this.currentParticle().continuation(this.currentParticle().store);
   };
 
-  ParticleFilter.prototype.activeParticle = function() {
+
+  // The three functions below return -1 if there is no active particle
+
+  ParticleFilter.prototype.firstActiveParticleIndex = function() {
+    return util.indexOfPred(this.particles, isActive);
+  };
+
+  ParticleFilter.prototype.lastActiveParticleIndex = function() {
+    return util.lastIndexOfPred(this.particles, isActive);
+  };
+
+  ParticleFilter.prototype.nextActiveParticleIndex = function() {
+    var successorIndex = this.particleIndex + 1;
+    var nextActiveIndex = util.indexOfPred(this.particles, isActive, successorIndex);
+    if (nextActiveIndex === -1) {
+      return this.firstActiveParticleIndex();  // wrap around
+    } else {
+      return nextActiveIndex;
+    }
+  };
+
+
+  ParticleFilter.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];
   };
 
   ParticleFilter.prototype.allParticlesAdvanced = function() {
-    return ((this.particleIndex + 1) === this.particles.length);
+    return this.particleIndex === this.lastActiveParticleIndex();
   };
 
   ParticleFilter.prototype.resampleParticles = function() {
@@ -132,16 +167,25 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.exit = function(s, retval) {
-
-    this.activeParticle().value = retval;
-
+    this.currentParticle().value = retval;
+    this.currentParticle().active = false;
     // Wait for all particles to reach exit before computing
     // marginal distribution from particles
-    if (!this.allParticlesAdvanced()) {
-      this.particleIndex += 1;
-      return this.activeParticle().continuation(this.activeParticle().store);
+    var i = this.nextActiveParticleIndex();
+    if (i === -1) {
+      // All particles completed
+      return this.finish();
+    } else {
+      if (i < this.particleIndex) {
+        // We have updated all particles and will now wrap around
+        this.resampleParticles();
+      }
+      this.particleIndex = i;
+      return this.currentParticle().continuation(this.currentParticle().store);
     }
+  };
 
+  ParticleFilter.prototype.finish = function() {
     // Compute marginal distribution from (unweighted) particles
     var hist = {};
     _.each(

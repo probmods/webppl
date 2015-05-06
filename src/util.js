@@ -79,6 +79,10 @@ var lastIndexOfPred = function(l, p, start) {
   return -1;
 };
 
+var deleteIndex = function(arr, i) {
+  return arr.slice(0, i).concat(arr.slice(i + 1))
+}
+
 // func(x, i, xs, nextK)
 // nextK()
 function cpsForEach(func, nextK, xs, i) {
@@ -114,6 +118,7 @@ module.exports = {
   logsumexp: logsumexp,
   indexOfPred: indexOfPred,
   lastIndexOfPred: lastIndexOfPred,
+  deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
   normalizeHist: normalizeHist,
