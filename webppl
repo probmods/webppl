@@ -73,7 +73,7 @@ function getRequirePath(req) {
   }
 }
 
-function run(code, requires, headers, verbose) {
+function run(code, requires, headers, verbose, programFile) {
   headers.forEach(
       function(header) {
         requireAsGlobal(header.path);
@@ -88,10 +88,11 @@ function run(code, requires, headers, verbose) {
         printWebPPLValue(x);
       },
       code,
-      verbose);
+      verbose,
+      programFile);
 }
 
-function compile(code, requires, headers, verbose, outputFile) {
+function compile(code, requires, headers, verbose, programFile, outputFile) {
   var compiledCode = '';
   requires.push({
     name: 'webppl', // this makes header.js exports globally available
@@ -118,7 +119,7 @@ function compile(code, requires, headers, verbose, outputFile) {
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +
       ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + webppl.compile(code, verbose) + '\n\n';
+  compiledCode += 'var main = ' + getSourceMappedStacktrace(code, verbose, programFile).compiledCode + '\n\n';
   compiledCode += "main({}, topK, '');";
   // Write Javascript code to file
   fs.writeFile(
@@ -183,7 +184,7 @@ function main() {
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : 'tmp.js';
 
-  processCode(code, requires, headers, argv.verbose, outputFile);
+  processCode(code, requires, headers, argv.verbose, programFile, outputFile);
 }
 
 main();

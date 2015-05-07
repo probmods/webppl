@@ -17,6 +17,8 @@ var trampoline = require('./transforms/trampoline').trampoline;
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/analyze').analyze;
 var util = require('./util');
+var SourceMap = require('source-map');
+var stacktraceParser = require('./stacktraceParser');
 
 
 // Container for coroutine object and shared top-level
@@ -59,7 +61,7 @@ function prepare(programCode, verbose) {
   return out;
 }
 
-function compile(programCode, verbose) {
+function compile(programCode, verbose, programFile) {
   if (verbose && console.time) {
     console.time('compile');
   }
@@ -77,24 +79,56 @@ function compile(programCode, verbose) {
 
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
-  var programAST = esprima.parse(programCode);
-  var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
+  var programAST = esprima.parse(programCode, {loc: true, source: programFile});
+  var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)), {
+    sourceMap: true,
+    sourceMapWithCode: true
+  });
 
   if (verbose && console.timeEnd) {
     console.timeEnd('compile');
   }
-  return out;
+  return {
+    compiledCode: out.code,
+    sourceMap: out.map.toString()
+  };
+}
+
+function printStacktrace(code, compiledSourceMap, exception) {
+  if (!exception.stack) {
+    var webpplStack = exception;
+    var jsStack = exception;
+  } else {
+    var webpplStack = stacktraceParser.getSourceMappedStacktrace(exception, compiledSourceMap, code);
+    var jsStack = exception.stack;
+  }
+  console.log('  ------ Compiled JS Stack Trace ------');
+  console.log(jsStack);
+  console.log('\n  ------ Webppl Stack Trace ------');
+  console.log(webpplStack);
 }
 
 function run(code, contFun, verbose) {
-  var compiledCode = compile(code, verbose);
-  eval(compiledCode)({}, contFun, '');
+  var compiledResult = compile(code, verbose);
+  var compiledCode = compiledResult.compiledCode;
+  try {
+    eval(compiledCode)({}, contFun, '');
+  } catch (exception) {
+    var compiledSourceMap = compiledResult.sourceMap;
+    printStacktrace(code, compiledSourceMap, exception);
+  }
 }
 
 // Compile and run some webppl code in global scope:
 function webppl_eval(k, code, verbose) {
-  var compiledCode = compile(code, verbose);
-  eval.call(global, compiledCode)({}, k, '');
+  var compiledResult = compile(code, verbose);
+  var compiledCode = compiledResult.compiledCode;
+  try {
+    eval.call(global, compiledCode)({}, k, '');
+  } catch (exception) {
+    var compiledSourceMap = compiledResult.sourceMap;
+    printStacktrace(code, compiledSourceMap, exception);
+  }
 }
 
 // For use in browser

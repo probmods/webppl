@@ -25,6 +25,7 @@
     "immutable": "^3.7.1",
     "minimist": "^1.1.1",
     "priorityqueuejs": "~1.0.0",
+    "source-map": "^0.4.2",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
