@@ -15,21 +15,53 @@ var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
 
-
 module.exports = function(env) {
 
   var mh = require('./mh.js')(env);
 
-  var deepCopyTrace = function(trace) {
-    return trace.map(function(obj) {
-      var objCopy = _.clone(obj);
-      objCopy.store = _.clone(obj.store);
-      return objCopy;
+  function findChoice(trace, name) {
+    if (trace === undefined) {
+      return undefined;
+    }
+    for (var i = 0; i < trace.length; i++) {
+      if (trace[i].name === name) {
+        return trace[i];
+      }
+    }
+    return undefined;
+  }
+
+  function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore) {
+    if ((oldTrace === undefined) || oldScore === -Infinity) {
+      return 1;
+    } // init
+    var fw = -Math.log(oldTrace.length);
+    trace.slice(regenFrom).map(function(s) {
+      fw += s.reused ? 0 : s.choiceScore;
     });
-  };
+    var bw = -Math.log(trace.length);
+    oldTrace.slice(regenFrom).map(function(s) {
+      var nc = findChoice(trace, s.name);
+      bw += (!nc || !nc.reused) ? s.choiceScore : 0;
+    });
+    var p = Math.exp(currScore - oldScore + bw - fw);
+    assert.ok(!isNaN(p));
+    var acceptance = Math.min(1, p);
+    return acceptance;
+  }
+
+  function copyPFRParticle(particle) {
+    return {
+      continuation: particle.continuation,
+      weight: particle.weight,
+      value: particle.value,
+      score: particle.score,
+      store: _.clone(particle.store),
+      trace: mh.deepCopyTrace(particle.trace)
+    };
+  }
 
   function ParticleFilterRejuv(s, k, a, wpplFn, numParticles, rejuvSteps) {
-
     this.particles = [];
     this.particleIndex = 0;  // marks the active particle
     this.rejuvSteps = rejuvSteps;
@@ -127,17 +159,6 @@ module.exports = function(env) {
   ParticleFilterRejuv.prototype.allParticlesAdvanced = function() {
     return ((this.particleIndex + 1) === this.particles.length);
   };
-
-  function copyPFRParticle(particle) {
-    return {
-      continuation: particle.continuation,
-      weight: particle.weight,
-      value: particle.value,
-      score: particle.score,
-      store: _.clone(particle.store),
-      trace: deepCopyTrace(particle.trace)
-    };
-  }
 
   ParticleFilterRejuv.prototype.resampleParticles = function() {
 
@@ -272,7 +293,7 @@ module.exports = function(env) {
   };
 
   MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {
-    var prev = mh.findChoice(this.oldTrace, name);
+    var prev = findChoice(this.oldTrace, name);
     var reuse = !(prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
     var choiceScore = erp.score(params, val);
@@ -290,7 +311,7 @@ module.exports = function(env) {
     //make a new proposal:
     this.regenFrom = Math.floor(Math.random() * this.trace.length);
     var regen = this.trace[this.regenFrom];
-    this.oldTrace = deepCopyTrace(this.trace);
+    this.oldTrace = mh.deepCopyTrace(this.trace);
     this.trace = this.trace.slice(0, this.regenFrom);
     this.oldScore = this.currScore;
     this.currScore = regen.score;
@@ -305,9 +326,11 @@ module.exports = function(env) {
     this.val = val;
 
     // Did we like this proposal?
-    var acceptance = mh.acceptProb(this.trace, this.oldTrace,
-                                   this.regenFrom,
-                                   this.currScore, this.oldScore);
+    var acceptance = acceptProb(this.trace,
+                                this.oldTrace,
+                                this.regenFrom,
+                                this.currScore,
+                                this.oldScore);
 
     var accepted = Math.random() < acceptance;
 
