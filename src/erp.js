@@ -390,16 +390,16 @@ function makeMarginalERP(marginal) {
   var norm = 0;
   var supp = [];
   for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
-      var d = marginal[v]
-      norm += d.prob;
-      supp.push(d.val);
+    var d = marginal[v]
+    norm += d.prob;
+    supp.push(d.val);
   }}
   var mapEst = {val: undefined, prob: 0};
   for (v in marginal) {if (marginal.hasOwnProperty(v)) {
-      var dd = marginal[v]
-      var nprob = dd.prob / norm;
-      if (nprob > mapEst.prob) mapEst = {val: dd.val, prob: nprob};
-      marginal[v].prob = nprob;
+    var dd = marginal[v]
+    var nprob = dd.prob / norm;
+    if (nprob > mapEst.prob) mapEst = {val: dd.val, prob: nprob};
+    marginal[v].prob = nprob;
   }}
 
   // Make an ERP from marginal:
@@ -408,9 +408,9 @@ function makeMarginalERP(marginal) {
         var x = Math.random();
         var probAccum = 0;
         for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
-            probAccum += marginal[i].prob;
-            // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-            if (probAccum >= x) return marginal[i].val;
+          probAccum += marginal[i].prob;
+          // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+          if (probAccum >= x) return marginal[i].val;
         }}
         return marginal[i].val;
       },
