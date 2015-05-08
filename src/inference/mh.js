@@ -31,7 +31,7 @@ module.exports = function(env) {
       this.stepsUntilTune = 0;
       this.acceptedProposalsSinceTune = 0;
     }
-    this.scaling = .2; // Not using the adaptive scaling yet.
+    this.scaling = 0.2; // TODO: Not using the adaptive scaling (gaussianDriftScaling) yet. Enable after testing.
     this.stepsUntilTune += 1;
     var mu = prevVal || params[0];
     var sigma = params[1] * this.scaling;
@@ -48,7 +48,7 @@ module.exports = function(env) {
 
 
   var makeGaussianDriftERP = initializeDriftERP(
-    new erp.ERP(
+      new erp.ERP(
       erp.gaussianSample,
       erp.gaussianScore,
       {proposalParams: gaussianProposalParams}));
@@ -60,10 +60,10 @@ module.exports = function(env) {
   }
 
   var makeDirichletDriftERP = initializeDriftERP(
-    new erp.ERP(
-        erp.dirichletSample,
-        erp.dirichletScore,
-        {proposalParams: dirichletProposalParams}));
+      new erp.ERP(
+      erp.dirichletSample,
+      erp.dirichletScore,
+      {proposalParams: dirichletProposalParams}));
 
   function findChoice(trace, name) {
     if (trace === undefined) {
@@ -234,6 +234,6 @@ module.exports = function(env) {
     findChoice: findChoice,
     acceptProb: acceptProb,
     makeGaussianDriftERP: makeGaussianDriftERP,
-    makeDirichletDriftERP: makeDirichletDriftERP,
+    makeDirichletDriftERP: makeDirichletDriftERP
   };
 };
