@@ -10,20 +10,6 @@ var diagnostics = require('./mh-diagnostics/diagnostics.js')
 
 module.exports = function(env) {
 
-  // TODO: choose the right parameters.
-  function gaussianDriftScaling(scale, acceptanceRate) {
-    if (acceptanceRate < 0.1) {
-      scale = 0.1; // reset
-    } else if (acceptanceRate < 0.15) {
-      scale *= 0.7;
-    } else if (acceptanceRate < 0.2) {
-      scale *= 0.8;
-    } else if (acceptanceRate > 0.4) {
-      scale *= 2.0;
-    }
-    return scale;
-  };
-
   function gaussianProposalParams(params, prevVal) {
     if (this.stepsUntilTune >= this.tuneInterval) {
       var acceptanceRate = this.acceptedProposalsSinceTune / this.tuneInterval;
@@ -31,7 +17,7 @@ module.exports = function(env) {
       this.stepsUntilTune = 0;
       this.acceptedProposalsSinceTune = 0;
     }
-    this.scaling = 0.2; // TODO: Not using the adaptive scaling (gaussianDriftScaling) yet. Enable after testing.
+    this.scaling = 0.2; // TODO: Not using the adaptive scaling yet, enable after testing.
     this.stepsUntilTune += 1;
     var mu = prevVal || params[0];
     var sigma = params[1] * this.scaling;
