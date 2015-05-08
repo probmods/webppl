@@ -95,7 +95,7 @@ module.exports = function(env) {
     var bw = -Math.log(trace.length);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      if (nc.reverseChoiceScore) {
+      if (nc.reverseChoiceScore !== undefined) {
         bw += (!nc || !nc.reused) ? s.reverseChoiceScore : 0;
       } else {
         bw += (!nc || !nc.reused) ? s.choiceScore : 0;
