@@ -1,6 +1,7 @@
 var util = require('../../util.js');
 var PythonShell = require('python-shell');
 var fs = require('fs');
+var os = require('os');
 
 // Geweke convergence test
 function geweke(traces, first, last, intervals) {
@@ -29,25 +30,10 @@ function run(traces) {
   //  console.log(scores[i]);
   //}
 
-  var scriptPath = './src/inference/mh-diagnostics';
-
-  PythonShell.defaultOptions = {
-    scriptPath: scriptPath,
-    mode: 'text'
-  };
-
-  fs.writeFile(scriptPath + '/temp/trace.json', JSON.stringify(traces), function(err) {
+  fs.writeFile(os.tmpdir() + 'trace.json', JSON.stringify(traces), function(err) {
     if (err) {
       return console.log(err);
     }
-    var pyshell = new PythonShell('graph.py');
-
-    pyshell.on('message', function(message) {
-      console.log(message);
-    }).end(function(err) {
-      if (err) throw err;
-      console.log('Finished running diagnostics');
-    });
   });
 }
 

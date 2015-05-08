@@ -2,6 +2,7 @@ import json
 import pymc
 import numpy as np
 import matplotlib.pyplot as plt
+import tempfile
 
 def get_traces(temp_path):
     with open(temp_path + '/trace.json', 'r') as data_file:
@@ -26,7 +27,7 @@ def plot(temp_path, traces):
             print 'Failed to create Geweke plot.'
 
 if __name__ == '__main__':
-    temp_path = './src/inference/mh-diagnostics/temp'
+    temp_path = tempfile.gettempdir()
     traces = get_traces(temp_path)
     plot(temp_path, traces)
     plt.show()
