@@ -37,7 +37,7 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function MH(s, k, a, wpplFn, numIterations) {
+  function MH(s, k, a, wpplFn, numIterations, verbose, justSample) {
 
     this.k = k;
     this.oldStore = s;
@@ -46,6 +46,8 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
+    this.verbose = verbose;
+
     // Move old coroutine out of the way and install this as the current
     // handler.
 
@@ -53,7 +55,10 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.returnHist = {};
+    if (justSample)
+      this.returnSamps = [];
+    else
+      this.returnHist = {};
     this.MAP = { val: undefined, score: -Infinity };
 
     this.oldCoroutine = env.coroutine;
@@ -115,6 +120,9 @@ module.exports = function(env) {
         return this.run();
       } else {
         this.iterations -= 1;
+        if (this.verbose)
+          console.log("MH iteration " + (this.totalIterations - this.iterations) +
+            " / " + this.totalIterations);
 
         //did we like this proposal?
         var acceptance = acceptProb(this.trace, this.oldTrace,
@@ -127,11 +135,15 @@ module.exports = function(env) {
         } else this.acceptedProps++;
 
         // now add val to hist:
-        var stringifiedVal = JSON.stringify(val);
-        if (this.returnHist[stringifiedVal] === undefined) {
-          this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        if (this.returnSamps)
+          this.returnSamps.push({score: this.currScore, value: val})
+        else {
+          var stringifiedVal = JSON.stringify(val);
+          if (this.returnHist[stringifiedVal] === undefined) {
+            this.returnHist[stringifiedVal] = { prob: 0, val: val };
+          }
+          this.returnHist[stringifiedVal].prob += 1;
         }
-        this.returnHist[stringifiedVal].prob += 1;
         // also update the MAP
         if (this.currScore > this.MAP.score) {
           this.MAP.score = this.currScore;
@@ -150,7 +162,13 @@ module.exports = function(env) {
         return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
       }
     } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist;
+      if (this.returnHist)
+        dist = erp.makeMarginalERP(this.returnHist);
+      else
+        dist = erp.makeMarginalERP({});
+      if (this.returnSamps)
+        dist.samples = this.returnSamps;
       dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
@@ -166,8 +184,8 @@ module.exports = function(env) {
 
   MH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function mh(s, cc, a, wpplFn, numParticles) {
-    return new MH(s, cc, a, wpplFn, numParticles).run();
+  function mh(s, cc, a, wpplFn, numParticles, verbose, justSample) {
+    return new MH(s, cc, a, wpplFn, numParticles, verbose, justSample).run();
   }
 
   return {

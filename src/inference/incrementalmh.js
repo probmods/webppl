@@ -518,8 +518,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, debug) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations, debug, verbose, justSample) {
     DEBUG = debug;
+    this.verbose = verbose;
 
     this.k = k;
     this.oldStore = s;
@@ -528,7 +529,10 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.returnHist = {};
+    if (justSample)
+      this.returnSamps = [];
+    else
+      this.returnHist = {};
     this.MAP = { val: undefined, score: -Infinity };
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
@@ -598,6 +602,9 @@ module.exports = function(env) {
       } else {
         // Continue proposing as normal
         this.iterations--;
+        if (this.verbose)
+          console.log("IncrementalMH iteration " + (this.totalIterations - this.iterations) +
+            " / " + this.totalIterations);
 
         this.erpMasterList.postProposal();
 
@@ -626,12 +633,16 @@ module.exports = function(env) {
         var val = this.cacheRoot.retval;
         debuglog("return val:", val);
 
-        // Add return val to accumulated histogram
-        var stringifiedVal = JSON.stringify(val);
-        if (this.returnHist[stringifiedVal] === undefined) {
-          this.returnHist[stringifiedVal] = { prob: 0, val: val };
+         // now add val to hist:
+        if (this.returnSamps)
+          this.returnSamps.push({score: this.currScore, value: val})
+        else {
+          var stringifiedVal = JSON.stringify(val);
+          if (this.returnHist[stringifiedVal] === undefined) {
+            this.returnHist[stringifiedVal] = { prob: 0, val: val };
+          }
+          this.returnHist[stringifiedVal].prob += 1;
         }
-        this.returnHist[stringifiedVal].prob += 1;
          // also update the MAP
         if (this.score > this.MAP.score) {
           this.MAP.score = this.score;
@@ -659,8 +670,13 @@ module.exports = function(env) {
         return propnode.propose();
       }
     } else {
-      // Finalize returned histogram-based ERP
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist;
+      if (this.returnHist)
+        dist = erp.makeMarginalERP(this.returnHist);
+      else
+        dist = erp.makeMarginalERP({});
+      if (this.returnSamps)
+        dist.samples = this.returnSamps;
       dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
@@ -760,8 +776,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, debug) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, debug).run();
+  function imh(s, cc, a, wpplFn, numIters, debug, verbose, justSample) {
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, debug, verbose, justSample).run();
   }
 
   return {

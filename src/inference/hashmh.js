@@ -21,9 +21,10 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function HashMH(s, k, a, wpplFn, numIterations, doFullRerun) {
+  function HashMH(s, k, a, wpplFn, numIterations, doFullRerun, verbose, justSample) {
 
     this.doFullRerun = doFullRerun;
+    this.verbose = verbose;
 
     this.k = k;
     this.oldStore = s;
@@ -39,7 +40,10 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.returnHist = {};
+    if (justSample)
+      this.returnSamps = [];
+    else
+      this.returnHist = {};
     this.MAP = { val: undefined, score: -Infinity };
 
     this.oldCoroutine = env.coroutine;
@@ -118,6 +122,9 @@ module.exports = function(env) {
         return this.run();
       } else {
         this.iterations -= 1;
+        if (this.verbose)
+          console.log("HashMH iteration " + (this.totalIterations - this.iterations) +
+            " / " + this.totalIterations);
 
         // Clean out any dead vars and calculate reverse LP
         if (this.oldvarlist !== undefined && this.currScore !== -Infinity) {
@@ -147,11 +154,15 @@ module.exports = function(env) {
         } else this.acceptedProps++;
 
         // now add val to hist:
-        var stringifiedVal = JSON.stringify(val);
-        if (this.returnHist[stringifiedVal] === undefined) {
-          this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        if (this.returnSamps)
+          this.returnSamps.push({score: this.currScore, value: val})
+        else {
+          var stringifiedVal = JSON.stringify(val);
+          if (this.returnHist[stringifiedVal] === undefined) {
+            this.returnHist[stringifiedVal] = { prob: 0, val: val };
+          }
+          this.returnHist[stringifiedVal].prob += 1;
         }
-        this.returnHist[stringifiedVal].prob += 1;
         // also update the MAP
         if (this.currScore > this.MAP.score) {
           this.MAP.score = this.currScore;
@@ -181,7 +192,13 @@ module.exports = function(env) {
         return this.sample(_.clone(entry.store), entry.k, entry.name, entry.erp, entry.params, true);
       }
     } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist;
+      if (this.returnHist)
+        dist = erp.makeMarginalERP(this.returnHist);
+      else
+        dist = erp.makeMarginalERP({});
+      if (this.returnSamps)
+        dist.samples = this.returnSamps;
       dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
@@ -197,8 +214,8 @@ module.exports = function(env) {
 
   HashMH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function hashmh(s, cc, a, wpplFn, numParticles, doFullRerun) {
-    return new HashMH(s, cc, a, wpplFn, numParticles, doFullRerun).run();
+  function hashmh(s, cc, a, wpplFn, numParticles, doFullRerun, verbose, justSample) {
+    return new HashMH(s, cc, a, wpplFn, numParticles, doFullRerun, verbose, justSample).run();
   }
 
   return {
