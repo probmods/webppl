@@ -22,13 +22,13 @@
 
 var FUNCTION = "function", STRING = "string", UNDEFINED = undefined;
 
-// Require Array.prototype.splice, Object.prototype.hasOwnProperty and encodeURIComponent. In environments not
-// having these (e.g. IE <= 5), we bail out now and leave Hashtable null.
-if (typeof encodeURIComponent == UNDEFINED ||
-        Array.prototype.splice === UNDEFINED ||
-        Object.prototype.hasOwnProperty === UNDEFINED) {
-    return null;
-}
+// // Require Array.prototype.splice, Object.prototype.hasOwnProperty and encodeURIComponent. In environments not
+// // having these (e.g. IE <= 5), we bail out now and leave Hashtable null.
+// if (typeof encodeURIComponent == UNDEFINED ||
+//         Array.prototype.splice === UNDEFINED ||
+//         Object.prototype.hasOwnProperty === UNDEFINED) {
+//     return null;
+// }
 
 function toStr(obj) {
     return (typeof obj == STRING) ? obj : "" + obj;
