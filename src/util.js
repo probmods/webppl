@@ -55,6 +55,14 @@ function logsumexp(a) {
   return m + Math.log(sum);
 }
 
+function copyObj(obj) {
+  var newobj = {};
+  for (var k in obj) {
+    if (obj.hasOwnProperty(k)) {newobj[k] = obj[k];}
+  }
+  return newobj;
+}
+
 // More efficient version of (indexOf o map p)
 var indexOfPred = function(l, p, start) {
   var start = start || 0;
@@ -103,6 +111,7 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
 }
 
 module.exports = {
+  copyObj: copyObj,
   cpsForEach: cpsForEach,
   gensym: gensym,
   logsumexp: logsumexp,
