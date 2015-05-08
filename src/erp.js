@@ -14,7 +14,7 @@
 // erp.score(params, val) returns the log-probability of val under the distribution.
 // erp.support(params) gives an array of support elements.
 // erp.grad(params, val) gives the gradient of score at val wrt params.
-// erp.proposalParams(params, val) returns the new parameters to be used for drifting MH proposal distributions.
+// erp.proposalParams(params, val) returns the new parameters to be used for MH drift proposal distributions.
 
 'use strict';
 

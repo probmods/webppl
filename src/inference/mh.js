@@ -38,7 +38,7 @@ module.exports = function(env) {
     return [mu, sigma];
   }
 
-  function initializeDriftingERP(erp) {
+  function initializeDriftERP(erp) {
     erp.scaling = 1;
     erp.tuneInterval = 500;
     erp.stepsUntilTune = 0;
@@ -46,16 +46,16 @@ module.exports = function(env) {
     return erp;
   }
 
-  function makeGaussianDriftingERP() {
-    var gaussianDriftingERP = new erp.ERP(
+  function makeGaussianDriftERP() {
+    var gaussianDriftERP = new erp.ERP(
         erp.gaussianSample,
         erp.gaussianScore,
         {proposalParams: gaussianProposalParams});
-    initializeDriftingERP(gaussianDriftingERP);
-    return gaussianDriftingERP;
+    initializeDriftERP(gaussianDriftERP);
+    return gaussianDriftERP;
   }
 
-  var gaussianDriftingERP = makeGaussianDriftingERP();
+  var gaussianDriftERP = makeGaussianDriftERP();
 
   function dirichletProposalParams(params, prevVal) {
     var concentration = 0.01; // TODO: choose the right parameters.
@@ -63,13 +63,13 @@ module.exports = function(env) {
     return driftParams;
   }
 
-  function makeDirichletDriftingERP() {
-    var dirichletDriftingERP = new erp.ERP(
+  function makeDirichletDriftERP() {
+    var dirichletDriftERP = new erp.ERP(
         erp.dirichletSample,
         erp.dirichletScore,
         {proposalParams: dirichletProposalParams});
-    initializeDriftingERP(dirichletDriftingERP);
-    return dirichletDriftingERP;
+    initializeDriftERP(dirichletDriftERP);
+    return dirichletDriftERP;
   }
 
   function findChoice(trace, name) {
@@ -107,7 +107,7 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function isDriftingERP(erp) {
+  function isDriftERP(erp) {
     return typeof erp.proposalParams === 'function';
   }
 
@@ -154,7 +154,7 @@ module.exports = function(env) {
 
     var proposedParams = params;
 
-    if (isDriftingERP(erp)) {
+    if (isDriftERP(erp)) {
       var prevVal = prev ? prev.val : null;
       proposedParams = erp.proposalParams(params, prevVal);
       var nextProposalParams = erp.proposalParams(params, erp.sample(proposedParams));
@@ -190,7 +190,7 @@ module.exports = function(env) {
         val = this.oldVal;
       } else {
         this.acceptedProposals += 1;
-        if (isDriftingERP(this.trace[this.regenFrom].erp)) {
+        if (isDriftERP(this.trace[this.regenFrom].erp)) {
           this.trace[this.regenFrom].erp.acceptedProposalsSinceTune += 1;
         }
       }
@@ -240,8 +240,8 @@ module.exports = function(env) {
     MH: mh,
     findChoice: findChoice,
     acceptProb: acceptProb,
-    makeGaussianDriftingERP: makeGaussianDriftingERP,
-    makeDirichletDriftingERP: makeDirichletDriftingERP,
-    gaussianDriftingERP: gaussianDriftingERP
+    makeGaussianDriftERP: makeGaussianDriftERP,
+    makeDirichletDriftERP: makeDirichletDriftERP,
+    gaussianDriftERP: gaussianDriftERP
   };
 };

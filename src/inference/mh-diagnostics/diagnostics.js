@@ -2,8 +2,8 @@ var util = require('../../util.js');
 var PythonShell = require('python-shell');
 var fs = require('fs');
 
-// Gweke convergence test
-function gweke(traces, first, last, intervals) {
+// Geweke convergence test
+function geweke(traces, first, last, intervals) {
   var first = typeof first !== 'undefined' ? first : 0.1;
   var last = typeof last !== 'undefined' ? last : 0.5;
   var intervals = typeof intervals !== 'undefined' ? intervals : 20;
@@ -23,8 +23,8 @@ function gweke(traces, first, last, intervals) {
 }
 
 function run(traces) {
-  //var scores = gweke(traces);
-  //console.log('Gweke Zscores:');
+  //var scores = geweke(traces);
+  //console.log('Geweke Zscores:');
   //for (var i = 0; i < scores.length; i++) {
   //  console.log(scores[i]);
   //}
