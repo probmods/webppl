@@ -46,16 +46,12 @@ module.exports = function(env) {
     return erp;
   }
 
-  function makeGaussianDriftERP() {
-    var gaussianDriftERP = new erp.ERP(
-        erp.gaussianSample,
-        erp.gaussianScore,
-        {proposalParams: gaussianProposalParams});
-    initializeDriftERP(gaussianDriftERP);
-    return gaussianDriftERP;
-  }
 
-  var gaussianDriftERP = makeGaussianDriftERP();
+  var makeGaussianDriftERP = initializeDriftERP(
+    new erp.ERP(
+      erp.gaussianSample,
+      erp.gaussianScore,
+      {proposalParams: gaussianProposalParams}));
 
   function dirichletProposalParams(params, prevVal) {
     var concentration = 0.01; // TODO: choose the right parameters.
@@ -63,14 +59,11 @@ module.exports = function(env) {
     return driftParams;
   }
 
-  function makeDirichletDriftERP() {
-    var dirichletDriftERP = new erp.ERP(
+  var makeDirichletDriftERP = initializeDriftERP(
+    new erp.ERP(
         erp.dirichletSample,
         erp.dirichletScore,
-        {proposalParams: dirichletProposalParams});
-    initializeDriftERP(dirichletDriftERP);
-    return dirichletDriftERP;
-  }
+        {proposalParams: dirichletProposalParams}));
 
   function findChoice(trace, name) {
     if (trace === undefined) {
@@ -242,6 +235,5 @@ module.exports = function(env) {
     acceptProb: acceptProb,
     makeGaussianDriftERP: makeGaussianDriftERP,
     makeDirichletDriftERP: makeDirichletDriftERP,
-    gaussianDriftERP: gaussianDriftERP
   };
 };
