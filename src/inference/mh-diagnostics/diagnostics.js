@@ -1,5 +1,4 @@
 var util = require('../../util.js');
-var PythonShell = require('python-shell');
 var fs = require('fs');
 var os = require('os');
 

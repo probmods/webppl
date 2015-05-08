@@ -35,7 +35,6 @@
     "grunt-contrib-nodeunit": "^0.4.1",
     "grunt-gjslint": "^0.1.6",
     "nodeunit": "^0.9.1",
-    "python-shell": "^0.0.3",
     "brfs": "^1.4.0"
   },
   "scripts": {
