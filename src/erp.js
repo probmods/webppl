@@ -434,6 +434,25 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
+var makeDeltaERP = function(v){
+  var stringifiedValue = JSON.stringify(v);
+  return new ERP(
+    function deltaSample(params){
+      return v;
+    },
+    function deltaScore(params, val){
+      if (JSON.stringify(val) === stringifiedValue){
+        return 0;
+      } else {
+        return -Infinity;
+      }
+    },
+    function deltaSupport(params){
+      return [v];
+    }
+  );
+};
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -448,5 +467,6 @@ module.exports = {
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
-  makeMarginalERP: makeMarginalERP
+  makeMarginalERP: makeMarginalERP,
+  makeDeltaERP: makeDeltaERP
 };

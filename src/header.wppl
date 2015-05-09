@@ -48,6 +48,10 @@ var gamma = function(shape, scale) {
   return sample(gammaERP, [shape, scale]);
 };
 
+var deltaERP = function(v) {
+  return global.makeDeltaERP(v);
+}
+
 
 // XRPs
 
