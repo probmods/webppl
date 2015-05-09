@@ -389,48 +389,40 @@ function makeMarginalERP(marginal) {
   // Normalize distribution:
   var norm = 0;
   var supp = [];
-  for (var v in marginal) {
-    if (marginal.hasOwnProperty(v)) {
-      norm += marginal[v].prob;
-      supp.push(marginal[v].val);
-    }
-  }
-  for (v in marginal) {
-    if (marginal.hasOwnProperty(v)) {
-      marginal[v].prob = marginal[v].prob / norm;
-    }
-  }
-
-  // console.log("Creating distribution: ");
-  // console.log(marginal);
+  for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
+    var d = marginal[v]
+    norm += d.prob;
+    supp.push(d.val);
+  }}
+  var mapEst = {val: undefined, prob: 0};
+  for (v in marginal) {if (marginal.hasOwnProperty(v)) {
+    var dd = marginal[v]
+    var nprob = dd.prob / norm;
+    if (nprob > mapEst.prob) mapEst = {val: dd.val, prob: nprob};
+    marginal[v].prob = nprob;
+  }}
 
   // Make an ERP from marginal:
   var dist = new ERP(
       function(params) {
         var x = Math.random();
         var probAccum = 0;
-        for (var i in marginal) {
-          if (marginal.hasOwnProperty(i)) {
-            probAccum += marginal[i].prob;
-            if (probAccum >= x) {
-              return marginal[i].val;
-            } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-          }
-        }
+        for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
+          probAccum += marginal[i].prob;
+          // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+          if (probAccum >= x) return marginal[i].val;
+        }}
         return marginal[i].val;
       },
       function(params, val) {
-        var valString = JSON.stringify(val);
-
-        if (valString in marginal) {
-          return Math.log(marginal[valString].prob);
-        }
-
-        return -Infinity;
+        var lk = marginal[JSON.stringify(val)];
+        return lk ? Math.log(lk.prob) : -Infinity;
       },
       function(params) {
         return supp;
       });
+
+  dist.MAP = mapEst;
   return dist;
 }
 
