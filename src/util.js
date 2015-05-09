@@ -112,11 +112,29 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
   return allOk;
 }
 
+function expectation(hist, func) {
+  var f = func == undefined ? function(x) {return x;} : func;
+  var expectedValue = sum(_.mapObject(hist, function(num, key) {
+    return f(key) * num;
+  }));
+  return expectedValue;
+}
+
+function std(hist) {
+  var mean = expectation(hist);
+  var variance = sum(_.mapObject(hist, function(num, key) {
+    return num * Math.pow(mean - key, 2);
+  }));
+  return Math.pow(variance, 0.5);
+}
+
 module.exports = {
   cpsForEach: cpsForEach,
+  expectation: expectation,
   gensym: gensym,
-  logsumexp: logsumexp,
+  histsApproximatelyEqual: histsApproximatelyEqual,
   indexOfPred: indexOfPred,
+  logsumexp: logsumexp,
   lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
@@ -124,6 +142,6 @@ module.exports = {
   normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  sum: sum,
-  histsApproximatelyEqual: histsApproximatelyEqual
+  std: std,
+  sum: sum
 };
