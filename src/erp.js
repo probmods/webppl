@@ -434,22 +434,22 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-var makeDeltaERP = function(v){
+var makeDeltaERP = function(v) {
   var stringifiedValue = JSON.stringify(v);
   return new ERP(
-    function deltaSample(params){
-      return v;
-    },
-    function deltaScore(params, val){
-      if (JSON.stringify(val) === stringifiedValue){
-        return 0;
-      } else {
-        return -Infinity;
+      function deltaSample(params) {
+        return v;
+      },
+      function deltaScore(params, val) {
+        if (JSON.stringify(val) === stringifiedValue) {
+          return 0;
+        } else {
+          return -Infinity;
+        }
+      },
+      function deltaSupport(params) {
+        return [v];
       }
-    },
-    function deltaSupport(params){
-      return [v];
-    }
   );
 };
 
