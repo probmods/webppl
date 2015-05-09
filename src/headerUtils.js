@@ -21,6 +21,15 @@ module.exports = function(env) {
         return k(s, c[stringedArgs]);
       } else {
         var newk = function(s, r) {
+          if (stringedArgs in c) {
+            // This can happen when cache is used on recursive functions
+            console.log('Already in cache:', stringedArgs);
+            if (JSON.stringify(c[stringedArgs]) !== JSON.stringify(r)) {
+              console.log('OLD AND NEW CACHE VALUE DIFFER!');
+              console.log('Old value:', c[stringedArgs]);
+              console.log('New value:', r);
+            }
+          }
           c[stringedArgs] = r;
           return k(s, r);
         };
