@@ -228,6 +228,14 @@ var tests = {
     resultDirectory: testDataDir + 'expected/',
     testToRun: runDistributionTest
   },
+  mhModels: {
+    names: [
+      'testDriftLinearRegression'
+    ],
+    directory: testDataDir + 'models/',
+    resultDirectory: testDataDir + 'expected/',
+    testToRun: runDistributionStatisticsTest
+  },
   mhExamples: {
     names: [
       'linearRegression',

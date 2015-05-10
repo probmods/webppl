@@ -17,9 +17,19 @@ def get_traces(temp_path):
             traces[j][i] = vals[i][j]
     return traces
 
+def summary(trace, trace_name):
+    md = np.median(trace)
+    mean = np.mean(trace)
+    mn = np.min(trace)
+    mx = np.max(trace)
+    std = np.std(trace)
+    print '{0}\n\t mean: {1},\t std: {2},\t median: {3},\t min: {4},\t max: {5}, '.format(trace_name, mean, std, md, mn, mx)
+
 def plot(temp_path, traces):
     for i in range(len(traces)):
-        pymc.Matplot.plot(traces[i], name='trace_' + str(i), path=temp_path, verbose=0)
+        trace_name = 'trace_' + str(i)
+        pymc.Matplot.plot(traces[i], name=trace_name, path=temp_path, verbose=0)
+        summary(traces[i], trace_name)
         try:
             scores = pymc.geweke(traces[i])
             pymc.Matplot.geweke_plot(scores, name='gweke_' + str(i), path=temp_path)
