@@ -18,7 +18,7 @@ module.exports = function(env) {
   var DEBUG = false;
   function debuglog() {
     if (DEBUG)
-      console.log.apply(global, arguments);
+      console.log.apply(console, arguments);
   }
 
   function tabbedlog(depth) {
@@ -27,7 +27,7 @@ module.exports = function(env) {
       var pad = "";
       for (var i = 0; i < depth; i++) pad += "  ";
       pad += "["+depth+"] ";
-      console.log.apply(global, [pad].concat(args));
+      console.log.apply(console, [pad].concat(args));
     }
   }
 
@@ -635,7 +635,7 @@ module.exports = function(env) {
 
          // now add val to hist:
         if (this.returnSamps)
-          this.returnSamps.push({score: this.currScore, value: val})
+          this.returnSamps.push({score: this.score, value: val})
         else {
           var stringifiedVal = JSON.stringify(val);
           if (this.returnHist[stringifiedVal] === undefined) {
