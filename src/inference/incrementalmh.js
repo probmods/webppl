@@ -135,7 +135,8 @@ module.exports = function(env) {
   ERPNode.prototype.kontinue = function() {
     this.parent.notifyChildExecuted(this);
     // Call continuation
-    return this.continuation(this.store, this.val);
+    // Copies store, so that we maintain a pristine copy of this.store
+    return this.continuation(_.clone(this.store), this.val);
   };
 
   ERPNode.prototype.killDescendantLeaves = function() {
@@ -411,7 +412,8 @@ module.exports = function(env) {
     if (this.parent !== null)
       this.parent.notifyChildExecuted(this);
     // Call continuation
-    return this.continuation(this.outStore, this.retval);
+    // Copies outStore, so we maintain a pristine record of it.
+    return this.continuation(_.clone(this.outStore), this.retval);
   };
 
   FunctionNode.prototype.notifyChildExecuted = function(child) {
