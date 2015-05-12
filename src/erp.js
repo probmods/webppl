@@ -17,9 +17,11 @@
 
 'use strict';
 
+var numeric = require('numeric');
 var _ = require('underscore');
 var util = require('./util.js');
 
+var LOG_2PI = 1.8378770664093453;
 
 function ERP(sampler, scorer, supporter, grad) {
   this.sample = sampler;
@@ -95,10 +97,32 @@ function gaussianSample(params) {
 function gaussianScore(params, x) {
   var mu = params[0];
   var sigma = params[1];
-  return -0.5 * (1.8378770664093453 + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
+  return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
+
+function multivariateGaussianSample(params) {
+  var mu = params[0];
+  var cov = params[1];
+  var xs = mu.map(function() {return gaussianSample([0, 1])});
+  var svd = numeric.svd(cov);
+  var scaledV = numeric.transpose(svd.V).map(function(x) {return numeric.mul(numeric.sqrt(svd.S), x)});
+  xs = numeric.dot(xs, numeric.transpose(scaledV));
+  return numeric.add(xs, mu);
+}
+
+function multivariateGaussianScore(params, x) {
+  var mu = params[0];
+  var cov = params[1];
+  var n = mu.length;
+  var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
+  var xSubMu = numeric.sub(x, mu);
+  var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
+  return -0.5 * (coeffs + exponents);
+}
+
+var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
 
 var discreteERP = new ERP(
     function discreteSample(params) {
@@ -456,6 +480,7 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   multinomialSample: multinomialSample,
+  multivariateGaussianERP: multivariateGaussianERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,

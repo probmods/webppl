@@ -16,6 +16,10 @@ var gaussian = function(mu, sigma) {
   return sample(gaussianERP, [mu, sigma]);
 };
 
+var multivariateGaussian = function(mu, cov) {
+  return sample(multivariateGaussianERP, [mu, cov]);
+};
+
 var uniform = function(a, b) {
   return sample(uniformERP, [a, b]);
 };
