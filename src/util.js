@@ -97,7 +97,7 @@ function cpsForEach(func, nextK, xs, i) {
 }
 
 function histsApproximatelyEqual(hist, expectedHist, tolerance) {
-  var allOk = true;
+  var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,
       function(expectedValue, key) {
