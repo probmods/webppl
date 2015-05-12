@@ -15,15 +15,17 @@ module.exports = function(env) {
 
   // Debugging output
 
-  var DEBUG = false;
-  function debuglog() {
-    if (DEBUG)
-      console.log.apply(console, arguments);
+  var DEBUG = 0;
+  function debuglog(debuglevel) {
+    if (DEBUG >= debuglevel) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      console.log.apply(console, args);
+    }
   }
 
-  function tabbedlog(depth) {
-    if (DEBUG) {
-      var args = Array.prototype.slice.call(arguments, 1);
+  function tabbedlog(debuglevel, depth) {
+    if (DEBUG >= debuglevel) {
+      var args = Array.prototype.slice.call(arguments, 2);
       var pad = "";
       for (var i = 0; i < depth; i++) pad += "  ";
       pad += "["+depth+"] ";
@@ -92,24 +94,24 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    tabbedlog(this.depth, "ERPNode", this.address);
+    tabbedlog(0, this.depth, "ERPNode", this.address);
   };
 
   ERPNode.prototype.execute = function() {
-    tabbedlog(this.depth, "execute ERP");
+    tabbedlog(4, this.depth, "execute ERP");
     // Bail out early if we know the proposal will be rejected
     if (this.score === -Infinity) {
-      tabbedlog(this.depth, "score became -Infinity; bailing out early");
+      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
       if (this.needsUpdate) {
-        tabbedlog(this.depth, "yes, ERP params changed");
+        tabbedlog(4, this.depth, "yes, ERP params changed");
         this.needsUpdate = false;
         this.rescore();
         this.parent.notifyChildChanged(this);
       }
       else {
-        tabbedlog(this.depth, "no, ERP params have not changed");
+        tabbedlog(4, this.depth, "no, ERP params have not changed");
       }
       return this.kontinue();
     }
@@ -118,9 +120,9 @@ module.exports = function(env) {
   ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
     updateProperty(this, "store", _.clone(s));
     updateProperty(this, "continuation", k);
+    updateProperty(this, "index", this.parent.nextChildIdx);
     this.reachable = true;
     this.needsUpdate = false;
-    this.index = this.parent.nextChildIdx;
     // Check params for changes
     for (var i = 0; i < params.length; i++)
     {
@@ -144,13 +146,13 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.propose = function() {
-    tabbedlog(this.depth, "proposing change to ERP");
+    tabbedlog(4, this.depth, "proposing change to ERP");
     var oldval = this.val;
     var newval = this.erp.sample(this.params);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
     if (oldval === newval) {
-      tabbedlog(this.depth, "proposal didn't change value; bailing out early");
+      tabbedlog(4, this.depth, "proposal didn't change value; bailing out early");
       return this.coroutine.exit();
     } else {
       updateProperty(this, "store", _.clone(this.store));
@@ -159,6 +161,7 @@ module.exports = function(env) {
       this.rescore();
       this.coroutine.rvsPropLP = oldscore;
       this.coroutine.fwdPropLP = this.score;
+      debuglog(1, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
       this.parent.notifyChildChanged(this);
       this.needsUpdate = false;
       return this.execute();
@@ -189,17 +192,17 @@ module.exports = function(env) {
 
     this.rescore(0, args[0]);
 
-    tabbedlog(this.depth, "new factor");
+    tabbedlog(3, this.depth, "new factor");
   }
 
   FactorNode.prototype.print = function() {
-    tabbedlog(this.depth, "FactorNode", this.address);
+    tabbedlog(0, this.depth, "FactorNode", this.address);
   };
 
   FactorNode.prototype.execute = function() {
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
-      tabbedlog(this.depth, "score became -Infinity; bailing out early");
+      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
       return this.coroutine.exit();
     } else {
       return this.kontinue();
@@ -209,8 +212,8 @@ module.exports = function(env) {
   FactorNode.prototype.registerInputChanges = function(s, k, unused, args) {
     updateProperty(this, "store", s);
     updateProperty(this, "continuation", k);
+    updateProperty(this, "index", this.parent.nextChildIdx);
     this.reachable = true;
-    this.index = this.parent.nextChildIdx;
     if (this.score !== args[0])
       this.rescore(this.score, args[0]);
   };
@@ -221,7 +224,7 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(this.depth, "kill factor");
+    tabbedlog(3, this.depth, "kill factor");
     this.coroutine.score -= this.score;
   }
 
@@ -299,15 +302,15 @@ module.exports = function(env) {
   }
 
   FunctionNode.prototype.print = function() {
-    tabbedlog(this.depth, "FunctionNode", this.address);
+    tabbedlog(0, this.depth, "FunctionNode", this.address);
     for (var i = 0; i < this.children.length; i++)
       this.children[i].print();
   };
 
   FunctionNode.prototype.execute = function() {
-    tabbedlog(this.depth, "execute function");
+    tabbedlog(4, this.depth, "execute function");
     if (this.needsUpdate) {
-      tabbedlog(this.depth, "yes, function args changed; re-running");
+      tabbedlog(4, this.depth, "yes, function args changed; re-running");
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
@@ -323,15 +326,12 @@ module.exports = function(env) {
         function(s, retval) {
           // Recover a reference to 'this'
           var that = coroutine.nodeStack.pop();
-          tabbedlog(that.depth, "continue from function");
+          tabbedlog(4, that.depth, "continue from function");
           // Clear out any children that have become unreachable
           var newchildren = [];
           var nchildren = that.children.length;
           for (var i = 0; i < nchildren; i++) {
             var child = that.children[i];
-            // If the child is unreachable, recursively set all of its
-            //    descendants to unreachable, so that any ERPs get marked
-            //    unreachable and we know to remove them from the master list.
             if (!child.reachable)
               child.killDescendantLeaves();
             else
@@ -342,11 +342,11 @@ module.exports = function(env) {
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
           if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
-            tabbedlog(that.depth, "function return val not changed; bailing");
+            tabbedlog(4, that.depth, "function return val not changed; bailing");
             return coroutine.exit();
           }
           that.entered = false;
-          tabbedlog(that.depth, "function return val has changed");
+          tabbedlog(4, that.depth, "function return val has changed");
           // Update output values
           updateProperty(that, "retval", retval);
           updateProperty(that, "outStore", _.clone(s));
@@ -358,16 +358,16 @@ module.exports = function(env) {
         this.address
       ].concat(this.args));
     } else {
-      tabbedlog(this.depth, "no, function args have not changed; continuing");
+      tabbedlog(4, this.depth, "no, function args have not changed; continuing");
       return this.kontinue();
     }
   };
 
   FunctionNode.prototype.registerInputChanges = function(s, k, fn, args) { 
     updateProperty(this, "continuation", k);
+    if (this.parent) updateProperty(this, "index", this.parent.nextChildIdx);
     this.reachable = true;
     this.needsUpdate = false;
-    this.index = this.parent ? this.parent.nextChildIdx : undefined;
     // Check fn for changes
     if (!fnsEqual(fn, this.func)) {
       this.needsUpdate = true;
@@ -396,7 +396,7 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(this.depth, "kill function (and all descendant leaves)");
+    tabbedlog(3, this.depth, "kill function (and all descendant leaves)");
     var stack = [this];
     while (stack.length > 0) {
       var node = stack.pop();
@@ -425,10 +425,13 @@ module.exports = function(env) {
     //    to this change, so we mark them all as unreachable and see which
     //    ones we hit.
     var nchildren = this.children.length;
+    var totalmarked = 0;
     for (var i = child.index + 1; i < nchildren; i++) {
       touch(this.children[i]);
       this.children[i].reachable = false;
+      totalmarked++;
     }
+    tabbedlog(4, "Marked " + totalmarked + " children unreachable");
   };
 
   // ------------------------------------------------------------------
@@ -520,8 +523,8 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, debug, verbose, justSample) {
-    DEBUG = debug;
+  function IncrementalMH(s, k, a, wpplFn, numIterations, debuglevel, verbose, justSample) {
+    DEBUG = debuglevel;
     this.verbose = verbose;
 
     this.k = k;
@@ -556,8 +559,8 @@ module.exports = function(env) {
     this.nodeStack = [];
     // Cache the top-level function, so that we always have a valid
     //    cache root.
-    debuglog("-------------------------------------");
-    debuglog("RUN FROM START");
+    debuglog(1, "-------------------------------------");
+    debuglog(1, "RUN FROM START");
     return this.incrementalize(this.s, env.exit, this.a, this.wpplFn);
   };
 
@@ -579,9 +582,8 @@ module.exports = function(env) {
   function acceptProb(currScore, oldScore, currN, oldN, rvsPropLP, fwdPropLP) {
     if (oldScore === undefined) { return 1; } // init
     if (currScore === -Infinity) return 0;  // auto-reject
-    debuglog("currScore:", currScore, 
-             "oldScore", oldScore);
-    debuglog("rvsPropLP:", rvsPropLP, "fwdPropLP:", fwdPropLP);
+    debuglog(1, "currScore:", currScore, "oldScore", oldScore);
+    debuglog(1, "rvsPropLP:", rvsPropLP, "fwdPropLP:", fwdPropLP);
     var fw = -Math.log(oldN) + fwdPropLP;
     var bw = -Math.log(currN) + rvsPropLP;
     var p = Math.exp(currScore - oldScore + bw - fw);
@@ -602,6 +604,7 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.score === -Infinity) {
         return this.run();
       } else {
+        debuglog(1, "iteration " + (this.totalIterations - this.iterations));
         // Continue proposing as normal
         this.iterations--;
         if (this.verbose)
@@ -610,30 +613,30 @@ module.exports = function(env) {
 
         this.erpMasterList.postProposal();
 
-        debuglog("Num vars:", this.erpMasterList.size());
-        debuglog("Touched nodes:", this.touchedNodes.length);
+        debuglog(2, "Num vars:", this.erpMasterList.size());
+        debuglog(2, "Touched nodes:", this.touchedNodes.length);
 
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.score, this.oldScore,
                                     this.erpMasterList.size(), this.erpMasterList.oldSize(),
                                     this.rvsPropLP, this.fwdPropLP);
-        debuglog("acceptance prob:", acceptance);
+        debuglog(1, "acceptance prob:", acceptance);
         if (Math.random() >= acceptance) {
-          debuglog("REJECT");
+          debuglog(1, "REJECT");
           this.score = this.oldScore;
           this.erpMasterList.restoreOnReject();
           var n = this.touchedNodes.length;
           while(n--) restoreSnapshot(this.touchedNodes[n]);
         }
         else {
-          debuglog("ACCEPT");
+          debuglog(1, "ACCEPT");
           var n = this.touchedNodes.length;
           while(n--) discardSnapshot(this.touchedNodes[n]);
           this.acceptedProps++;
         }
 
         var val = this.cacheRoot.retval;
-        debuglog("return val:", val);
+        debuglog(1, "return val:", val);
 
          // now add val to hist:
         if (this.returnSamps)
@@ -651,10 +654,10 @@ module.exports = function(env) {
           this.MAP.val = val;
         }
 
-        // if (DEBUG) {
-        //   debuglog("=== Cache status ===");
-        //   this.cacheRoot.print();
-        // }
+        if (DEBUG >= 5) {
+          debuglog(5, "=== Cache status ===");
+          this.cacheRoot.print();
+        }
 
         // Prepare to make a new proposal
         this.oldScore = this.score;
@@ -667,8 +670,8 @@ module.exports = function(env) {
         // Restore node stack up to this point
         this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
-        debuglog("-------------------------------------");
-        debuglog("PROPOSAL");
+        debuglog(1, "-------------------------------------");
+        debuglog(1, "PROPOSAL" + " (type = " + typeof(propnode.val) + ")");
         return propnode.propose();
       }
     } else {
@@ -705,19 +708,19 @@ module.exports = function(env) {
       this.cacheRoot = cacheNode;
     } else {
       var currNode = this.nodeStack[this.nodeStack.length-1];
-      tabbedlog(currNode.depth, "lookup", NodeType.name, a);
+      tabbedlog(3, currNode.depth, "lookup", NodeType.name, a);
       // Look for cache node among the children of currNode
       cacheNode = this.findNode(currNode, a);
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
-        tabbedlog(currNode.depth, "found");
+        tabbedlog(3, currNode.depth, "found");
         cacheNode.registerInputChanges(s, k, fn, args);
       } else {
         // Lookup failed; create new node and insert it into currNode.children
         if (DEBUG) {
           var addrs = _.map(_.filter(currNode.children, function(node) { return node instanceof NodeType; }),
             function(node) { return node.address; });
-          tabbedlog(currNode.depth, "*not* found; options were", addrs);
+          tabbedlog(3, currNode.depth, "*not* found; options were", addrs);
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
@@ -736,8 +739,11 @@ module.exports = function(env) {
     // If we haven't initialized yet (i.e. we're running the program for
     //    the first time), then don't even bother looking.
     if (!this.isInitialized()) return undefined;
-    var nodes = parentNode.children;
+    // Need to snapshot the children array, since we perform swaps on it to keep nodes
+    //    in execution order.
+    var nodes = hasSnapshotForProperty(parentNode, "children") ? parentNode.children : parentNode.children.slice();
     var nexti = parentNode.nextChildIdx;
+    var retNode = undefined;
     for (var i = nexti; i < nodes.length; i++) {
       if (nodes[i].address === address) {
         // Keep nodes ordered according to execution order: if
@@ -747,23 +753,26 @@ module.exports = function(env) {
           nodes[i] = nodes[nexti];
           nodes[nexti] = tmp;
         }
-        return nodes[nexti];
+        retNode = nodes[nexti];
+        break;
       }
     }
-    return undefined;
+    // return undefined;
+    updateProperty(parentNode, "children", nodes);
+    return retNode;
   };
 
   IncrementalMH.prototype.addERP = function(node) {
     this.erpMasterList.addERP(node);
     this.fwdPropLP += node.score;
-    tabbedlog(node.depth, "new ERP");
+    tabbedlog(3, node.depth, "new ERP");
   };
 
   IncrementalMH.prototype.removeERP = function(node) {
     this.erpMasterList.removeERP(node);
     this.rvsPropLP += node.score;
     this.score -= node.score;
-    tabbedlog(node.depth, "kill ERP");
+    tabbedlog(3, node.depth, "kill ERP");
   };
 
   // Restore this.nodeStack up to the specified node
@@ -778,8 +787,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, debug, verbose, justSample) {
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, debug, verbose, justSample).run();
+  function imh(s, cc, a, wpplFn, numIters, debuglevel, verbose, justSample) {
+    if (debuglevel === undefined) debuglevel = 0;
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, debuglevel, verbose, justSample).run();
   }
 
   return {
