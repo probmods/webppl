@@ -17,9 +17,11 @@
 
 'use strict';
 
+var numeric = require('numeric');
 var _ = require('underscore');
 var util = require('./util.js');
 
+var LOG_2PI = 1.8378770664093453;
 
 function ERP(sampler, scorer, supporter, grad) {
   this.sample = sampler;
@@ -95,10 +97,32 @@ function gaussianSample(params) {
 function gaussianScore(params, x) {
   var mu = params[0];
   var sigma = params[1];
-  return -0.5 * (1.8378770664093453 + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
+  return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
+
+function multivariateGaussianSample(params) {
+  var mu = params[0];
+  var cov = params[1];
+  var xs = mu.map(function() {return gaussianSample([0, 1])});
+  var svd = numeric.svd(cov);
+  var scaledV = numeric.transpose(svd.V).map(function(x) {return numeric.mul(numeric.sqrt(svd.S), x)});
+  xs = numeric.dot(xs, numeric.transpose(scaledV));
+  return numeric.add(xs, mu);
+}
+
+function multivariateGaussianScore(params, x) {
+  var mu = params[0];
+  var cov = params[1];
+  var n = mu.length;
+  var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
+  var xSubMu = numeric.sub(x, mu);
+  var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
+  return -0.5 * (coeffs + exponents);
+}
+
+var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
 
 var discreteERP = new ERP(
     function discreteSample(params) {
@@ -389,50 +413,61 @@ function makeMarginalERP(marginal) {
   // Normalize distribution:
   var norm = 0;
   var supp = [];
-  for (var v in marginal) {
-    if (marginal.hasOwnProperty(v)) {
-      norm += marginal[v].prob;
-      supp.push(marginal[v].val);
-    }
-  }
-  for (v in marginal) {
-    if (marginal.hasOwnProperty(v)) {
-      marginal[v].prob = marginal[v].prob / norm;
-    }
-  }
-
-  // console.log("Creating distribution: ");
-  // console.log(marginal);
+  for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
+    var d = marginal[v]
+    norm += d.prob;
+    supp.push(d.val);
+  }}
+  var mapEst = {val: undefined, prob: 0};
+  for (v in marginal) {if (marginal.hasOwnProperty(v)) {
+    var dd = marginal[v]
+    var nprob = dd.prob / norm;
+    if (nprob > mapEst.prob) mapEst = {val: dd.val, prob: nprob};
+    marginal[v].prob = nprob;
+  }}
 
   // Make an ERP from marginal:
   var dist = new ERP(
       function(params) {
         var x = Math.random();
         var probAccum = 0;
-        for (var i in marginal) {
-          if (marginal.hasOwnProperty(i)) {
-            probAccum += marginal[i].prob;
-            if (probAccum >= x) {
-              return marginal[i].val;
-            } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-          }
-        }
+        for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
+          probAccum += marginal[i].prob;
+          // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+          if (probAccum >= x) return marginal[i].val;
+        }}
         return marginal[i].val;
       },
       function(params, val) {
-        var valString = JSON.stringify(val);
-
-        if (valString in marginal) {
-          return Math.log(marginal[valString].prob);
-        }
-
-        return -Infinity;
+        var lk = marginal[JSON.stringify(val)];
+        return lk ? Math.log(lk.prob) : -Infinity;
       },
       function(params) {
         return supp;
       });
+
+  dist.MAP = mapEst;
   return dist;
 }
+
+var makeDeltaERP = function(v) {
+  var stringifiedValue = JSON.stringify(v);
+  return new ERP(
+      function deltaSample(params) {
+        return v;
+      },
+      function deltaScore(params, val) {
+        if (JSON.stringify(val) === stringifiedValue) {
+          return 0;
+        } else {
+          return -Infinity;
+        }
+      },
+      function deltaSupport(params) {
+        return [v];
+      }
+  );
+};
 
 module.exports = {
   ERP: ERP,
@@ -445,8 +480,10 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   multinomialSample: multinomialSample,
+  multivariateGaussianERP: multivariateGaussianERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
-  makeMarginalERP: makeMarginalERP
+  makeMarginalERP: makeMarginalERP,
+  makeDeltaERP: makeDeltaERP
 };

@@ -1,7 +1,7 @@
 {
   "name": "webppl",
   "description": "Probabilistic programming for the web",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "author": "webppl contributors",
   "main": "src/main.js",
   "repository": {
@@ -25,6 +25,7 @@
     "immutable": "^3.7.1",
     "minimist": "^1.1.1",
     "priorityqueuejs": "~1.0.0",
+    "numeric": "~1.2.6",
     "underscore": "^1.8.3"
   },
   "devDependencies": {

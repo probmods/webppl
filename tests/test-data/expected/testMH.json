@@ -1,5 +1,5 @@
 {
-  "expectedHist": {
+  "hist": {
     "true": 0.66666,
     "false": 0.33333
   },

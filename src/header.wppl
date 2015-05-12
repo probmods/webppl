@@ -16,6 +16,10 @@ var gaussian = function(mu, sigma) {
   return sample(gaussianERP, [mu, sigma]);
 };
 
+var multivariateGaussian = function(mu, cov) {
+  return sample(multivariateGaussianERP, [mu, cov]);
+};
+
 var uniform = function(a, b) {
   return sample(uniformERP, [a, b]);
 };
@@ -47,6 +51,10 @@ var exponential = function(a) {
 var gamma = function(shape, scale) {
   return sample(gammaERP, [shape, scale]);
 };
+
+var deltaERP = function(v) {
+  return global.makeDeltaERP(v);
+}
 
 
 // XRPs
