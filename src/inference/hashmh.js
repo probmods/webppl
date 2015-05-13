@@ -121,10 +121,10 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.currScore === -Infinity) {
         return this.run();
       } else {
-        this.iterations -= 1;
         if (this.verbose)
           console.log("HashMH iteration " + (this.totalIterations - this.iterations) +
             " / " + this.totalIterations);
+        this.iterations -= 1;
 
         // Clean out any dead vars and calculate reverse LP
         if (this.oldvarlist !== undefined && this.currScore !== -Infinity) {

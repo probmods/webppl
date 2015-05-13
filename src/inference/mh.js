@@ -119,10 +119,10 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.currScore === -Infinity) {
         return this.run();
       } else {
-        this.iterations -= 1;
         if (this.verbose)
           console.log("MH iteration " + (this.totalIterations - this.iterations) +
             " / " + this.totalIterations);
+        this.iterations -= 1;
 
         //did we like this proposal?
         var acceptance = acceptProb(this.trace, this.oldTrace,

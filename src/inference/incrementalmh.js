@@ -106,12 +106,14 @@ module.exports = function(env) {
     } else {
       if (this.needsUpdate) {
         tabbedlog(4, this.depth, "yes, ERP params changed");
+        tabbedlog(5, this.depth, "old params:", this.__snapshot ? this.__snapshot.params : undefined, "new params:", this.params);
         this.needsUpdate = false;
         this.rescore();
-        this.parent.notifyChildChanged(this);
+        // this.parent.notifyChildChanged(this);
       }
       else {
         tabbedlog(4, this.depth, "no, ERP params have not changed");
+        tabbedlog(5, this.depth, "params:", this.params);
       }
       return this.kontinue();
     }
@@ -153,6 +155,7 @@ module.exports = function(env) {
     //    the proposal will be accepted)
     if (oldval === newval) {
       tabbedlog(4, this.depth, "proposal didn't change value; bailing out early");
+      tabbedlog(5, this.depth, "value:", this.val);
       return this.coroutine.exit();
     } else {
       updateProperty(this, "store", _.clone(this.store));
@@ -161,7 +164,7 @@ module.exports = function(env) {
       this.rescore();
       this.coroutine.rvsPropLP = oldscore;
       this.coroutine.fwdPropLP = this.score;
-      debuglog(1, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
+      tabbedlog(1, this.depth, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
       this.parent.notifyChildChanged(this);
       this.needsUpdate = false;
       return this.execute();
@@ -311,11 +314,17 @@ module.exports = function(env) {
     tabbedlog(4, this.depth, "execute function");
     if (this.needsUpdate) {
       tabbedlog(4, this.depth, "yes, function args changed; re-running");
+      tabbedlog(5, this.depth, "old args:", this.__snapshot ? this.__snapshot.args : undefined, "new args:", this.args);
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
       // Reset nextChildIdx
       this.nextChildIdx = 0;
+      // Mark all children as unreachable; execution will then determine which
+      //    ones are actually reachable
+      var nchildren = this.children.length;
+      for (var i = 0; i < nchildren; i++)
+        this.children[i].reachable = false;
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
@@ -330,35 +339,42 @@ module.exports = function(env) {
           // Clear out any children that have become unreachable
           var newchildren = [];
           var nchildren = that.children.length;
+          var ii = 0;
           for (var i = 0; i < nchildren; i++) {
             var child = that.children[i];
             if (!child.reachable)
               child.killDescendantLeaves();
-            else
+            else {
+              child.index = ii++;
               newchildren.push(child);
+            }
           }
           updateProperty(that, "children", newchildren);
+
           // If the return value and output store haven't changed, then we can bail early.
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
           if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
-            tabbedlog(4, that.depth, "function return val not changed; bailing");
+            tabbedlog(4, that.depth, "bailing b/c function return val not changed");
+            tabbedlog(5, that.depth, "return val:", retval);
             return coroutine.exit();
           }
+          if (!that.entered && that.parent !== null)
+            that.parent.notifyChildChanged(that);
           that.entered = false;
-          tabbedlog(4, that.depth, "function return val has changed");
+          tabbedlog(4, that.depth, "function return val has changed, or cannot bail");
+          tabbedlog(5, that.depth, "old ret val:", that.retval, "new ret val:", retval);
           // Update output values
           updateProperty(that, "retval", retval);
           updateProperty(that, "outStore", _.clone(s));
           // Continue execution
-          if (that.parent !== null)
-            that.parent.notifyChildChanged(that);
           return that.kontinue();
         },
         this.address
       ].concat(this.args));
     } else {
       tabbedlog(4, this.depth, "no, function args have not changed; continuing");
+      tabbedlog(5, this.depth, "args:", this.args);
       return this.kontinue();
     }
   };
@@ -431,7 +447,7 @@ module.exports = function(env) {
       this.children[i].reachable = false;
       totalmarked++;
     }
-    tabbedlog(4, "Marked " + totalmarked + " children unreachable");
+    tabbedlog(4, this.depth, "Marked " + totalmarked + " children unreachable");
   };
 
   // ------------------------------------------------------------------
@@ -605,11 +621,11 @@ module.exports = function(env) {
         return this.run();
       } else {
         debuglog(1, "iteration " + (this.totalIterations - this.iterations));
-        // Continue proposing as normal
-        this.iterations--;
         if (this.verbose)
           console.log("IncrementalMH iteration " + (this.totalIterations - this.iterations) +
             " / " + this.totalIterations);
+        // Continue proposing as normal
+        this.iterations--;
 
         this.erpMasterList.postProposal();
 
@@ -620,6 +636,7 @@ module.exports = function(env) {
         var acceptance = acceptProb(this.score, this.oldScore,
                                     this.erpMasterList.size(), this.erpMasterList.oldSize(),
                                     this.rvsPropLP, this.fwdPropLP);
+        debuglog(1, "num vars:", this.erpMasterList.size(), "old num vars:", this.erpMasterList.oldSize());
         debuglog(1, "acceptance prob:", acceptance);
         if (Math.random() >= acceptance) {
           debuglog(1, "REJECT");
@@ -654,8 +671,8 @@ module.exports = function(env) {
           this.MAP.val = val;
         }
 
-        if (DEBUG >= 5) {
-          debuglog(5, "=== Cache status ===");
+        if (DEBUG >= 6) {
+          debuglog(6, "=== Cache status ===");
           this.cacheRoot.print();
         }
 
@@ -667,11 +684,13 @@ module.exports = function(env) {
         this.rvsPropLP = 0;
         // Select ERP to change.
         var propnode = this.erpMasterList.getRandom();
+        // TEST
+        this.propnode = propnode;
         // Restore node stack up to this point
         this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
         debuglog(1, "-------------------------------------");
-        debuglog(1, "PROPOSAL" + " (type = " + typeof(propnode.val) + ")");
+        debuglog(1, "PROPOSAL" + " (type = " + typeof(propnode.val) + ", address = " + propnode.address + ")");
         return propnode.propose();
       }
     } else {
@@ -720,16 +739,17 @@ module.exports = function(env) {
         if (DEBUG) {
           var addrs = _.map(_.filter(currNode.children, function(node) { return node instanceof NodeType; }),
             function(node) { return node.address; });
-          tabbedlog(3, currNode.depth, "*not* found; options were", addrs);
+          tabbedlog(3, currNode.depth, "*not* found");
+          tabbedlog(4, currNode.depth, "options were", addrs);
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
         // Copy the children array if we don't already have a snapshot for it
         // Kind of annoying that this somewhat breaks the abstraction of snapshots, but
         //    I think it's worth it.
-        var newchildren = hasSnapshotForProperty(currNode, "children") ? currNode.children : currNode.children.slice();
-        newchildren.splice(insertidx, 0, cacheNode);
-        updateProperty(currNode, "children", newchildren);
+        if (!hasSnapshotForProperty(currNode, "children"))
+          updateProperty(currNode, "children", currNode.children.slice());
+        currNode.children.splice(insertidx, 0, cacheNode);
       }
     }
     return cacheNode;
@@ -741,25 +761,26 @@ module.exports = function(env) {
     if (!this.isInitialized()) return undefined;
     // Need to snapshot the children array, since we perform swaps on it to keep nodes
     //    in execution order.
-    var nodes = hasSnapshotForProperty(parentNode, "children") ? parentNode.children : parentNode.children.slice();
+    var nodes = parentNode.children;
     var nexti = parentNode.nextChildIdx;
-    var retNode = undefined;
     for (var i = nexti; i < nodes.length; i++) {
+    // for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].address === address) {
         // Keep nodes ordered according to execution order: if
         // i !== nexti, then swap those two.
         if (i !== nexti) {
+          // if (i < nexti) throw "WTF - cache node found *before* first possible location";
+          if (!hasSnapshotForProperty(parentNode, "children")) {
+            nodes = nodes.slice();
+            updateProperty(parentNode, "children", nodes);
+          }
           var tmp = nodes[i];
           nodes[i] = nodes[nexti];
           nodes[nexti] = tmp;
         }
-        retNode = nodes[nexti];
-        break;
+        return nodes[nexti];
       }
     }
-    // return undefined;
-    updateProperty(parentNode, "children", nodes);
-    return retNode;
   };
 
   IncrementalMH.prototype.addERP = function(node) {
