@@ -345,7 +345,7 @@ module.exports = function(env) {
             if (!child.reachable)
               child.killDescendantLeaves();
             else {
-              child.index = ii++;
+              updateProperty(child, "index", ii++);
               newchildren.push(child);
             }
           }
