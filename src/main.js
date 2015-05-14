@@ -15,6 +15,7 @@ var store = require('./transforms/store').store;
 var varargs = require('./transforms/varargs').varargs;
 var trampoline = require('./transforms/trampoline').trampoline;
 var freevars = require('./transforms/freevars').freevars;
+var caching = require('./transforms/caching').caching;
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/analyze').analyze;
 var util = require('./util');
@@ -53,6 +54,7 @@ function prepare(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
+  programAST = caching(programAST);
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
@@ -81,6 +83,7 @@ function compile(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
+  programAST = caching(programAST);
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
