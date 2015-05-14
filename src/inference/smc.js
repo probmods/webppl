@@ -47,7 +47,7 @@ module.exports = function(env) {
     var acceptance = Math.min(1, p);
     return acceptance;
   }
-  
+
   function ParticleFilterRejuv(s, k, a, wpplFn, numParticles, rejuvSteps) {
 
     this.particles = [];

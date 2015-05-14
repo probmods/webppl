@@ -20,17 +20,38 @@ module.exports = function(env) {
     var concentration = 0.1; // TODO: choose the right parameters.
     var driftParams = params.map(function(x) {return concentration * x});
     return driftParams;
-  }  
+  }
+
+  function buildProposer(baseERP, getProposalParams) {
+    return new erp.ERP(
+        function sample(params) {
+          var baseParams = params[0];
+          var prevVal = params[1];
+          var proposalParams = getProposalParams(baseParams, prevVal);
+          return baseERP.sample(proposalParams);
+        },
+        function score(params, val) {
+          var baseParams = params[0];
+          var prevVal = params[1];
+          var proposalParams = getProposalParams(baseParams, prevVal);
+          return baseERP.score(proposalParams, val);
+        }
+    );
+  }
+
+  var gaussianProposer = buildProposer(erp.gaussianERP, gaussianProposalParams);
+
+  var dirichletProposer = buildProposer(erp.dirichletERP, dirichletProposalParams);
 
   var gaussianDriftERP = new erp.ERP(
-    erp.gaussianERP.sample,
-    erp.gaussianERP.score,
-    {proposalParams: gaussianProposalParams});
+      erp.gaussianERP.sample,
+      erp.gaussianERP.score,
+      {proposer: gaussianProposer});
 
   var dirichletDriftERP = new erp.ERP(
-    erp.dirichletERP.sample,
-    erp.dirichletERP.score,
-    {proposalParams: dirichletProposalParams});
+      erp.dirichletERP.sample,
+      erp.dirichletERP.score,
+      {proposer: dirichletProposer});
 
   function findChoice(trace, name) {
     if (trace === undefined) {
@@ -55,7 +76,7 @@ module.exports = function(env) {
     var bw = -Math.log(trace.length);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      if (nc){
+      if (nc) {
         bw += s.reverseChoiceScore;
       }
     });
@@ -63,10 +84,6 @@ module.exports = function(env) {
     assert.ok(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
-  }
-
-  function isDriftERP(erp) {
-    return typeof erp.proposalParams === 'function';
   }
 
   function MH(s, k, a, wpplFn, numIterations, burn, diagnostics) {
@@ -117,19 +134,17 @@ module.exports = function(env) {
 
     } else if (forceSample) {
       // sample from mh proposal distribution
-      if (isDriftERP(erp)){
+      if (erp.proposer) {
         // custom proposal distribution
-        var proposalParams = erp.proposalParams(params, prev.val);
-        val = erp.sample(proposalParams);
-        forwardChoiceScore = erp.score(proposalParams, val);
-        var nextProposalParams = erp.proposalParams(params, val);
-        reverseChoiceScore = erp.score(nextProposalParams, prev.val);
+        val = erp.proposer.sample([params, prev.val]);
+        forwardChoiceScore = erp.proposer.score([params, prev.val], val);
+        reverseChoiceScore = erp.proposer.score([params, val], prev.val);
 
       } else {
         // proposal distribution is prior
         val = erp.sample(params);
         forwardChoiceScore = erp.score(params, val);
-        reverseChoiceScore = erp.score(params, prev.val)
+        reverseChoiceScore = erp.score(params, prev.val);
       }
 
     } else {
@@ -200,6 +215,7 @@ module.exports = function(env) {
         diagnostics.run(this.vals);
       }
       // Return by calling original continuation:
+      // console.log(this.acceptedProposals, this.rejectedProposals);
       return k(this.oldStore, dist);
     }
   };
