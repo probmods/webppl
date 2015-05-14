@@ -94,7 +94,8 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "ERPNode", this.address);
+    tabbedlog(0, this.depth, "ERPNode", this.address, this.erp.sample.name.slice(0, -6),
+              this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
   };
 
   ERPNode.prototype.execute = function() {
@@ -109,7 +110,6 @@ module.exports = function(env) {
         tabbedlog(5, this.depth, "old params:", this.__snapshot ? this.__snapshot.params : undefined, "new params:", this.params);
         this.needsUpdate = false;
         this.rescore();
-        // this.parent.notifyChildChanged(this);
       }
       else {
         tabbedlog(4, this.depth, "no, ERP params have not changed");
@@ -148,9 +148,9 @@ module.exports = function(env) {
   };
 
   ERPNode.prototype.propose = function() {
-    tabbedlog(4, this.depth, "proposing change to ERP");
     var oldval = this.val;
     var newval = this.erp.sample(this.params);
+    tabbedlog(4, this.depth, "proposing change to ERP.", "oldval:", oldval, "newval:", newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
     if (oldval === newval) {
@@ -199,7 +199,7 @@ module.exports = function(env) {
   }
 
   FactorNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "FactorNode", this.address);
+    tabbedlog(0, this.depth, "FactorNode", this.address, this.reachable ? "" : "!!UNREACHABLE!!");
   };
 
   FactorNode.prototype.execute = function() {
@@ -227,7 +227,7 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(3, this.depth, "kill factor");
+    tabbedlog(3, this.depth, "kill factor", this.address);
     this.coroutine.score -= this.score;
   }
 
@@ -305,7 +305,8 @@ module.exports = function(env) {
   }
 
   FunctionNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "FunctionNode", this.address);
+    tabbedlog(0, this.depth, "FunctionNode", this.address, this.args, this.retval,
+              this.reachable ? "" : "!!UNREACHABLE!!");
     for (var i = 0; i < this.children.length; i++)
       this.children[i].print();
   };
@@ -323,8 +324,11 @@ module.exports = function(env) {
       // Mark all children as unreachable; execution will then determine which
       //    ones are actually reachable
       var nchildren = this.children.length;
-      for (var i = 0; i < nchildren; i++)
+      for (var i = 0; i < nchildren; i++) {
+        touch(this.children[i]);
         this.children[i].reachable = false;
+      }
+      tabbedlog(4, this.depth, "Children marked unreachable on execute:", nchildren);
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
@@ -412,7 +416,7 @@ module.exports = function(env) {
   };
 
   FunctionNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(3, this.depth, "kill function (and all descendant leaves)");
+    tabbedlog(3, this.depth, "kill function (and all descendant leaves)", this.address);
     var stack = [this];
     while (stack.length > 0) {
       var node = stack.pop();
@@ -447,7 +451,7 @@ module.exports = function(env) {
       this.children[i].reachable = false;
       totalmarked++;
     }
-    tabbedlog(4, this.depth, "Marked " + totalmarked + " children unreachable");
+    tabbedlog(4, this.depth, "Children marked unreachable on child change:", totalmarked);
   };
 
   // ------------------------------------------------------------------
@@ -494,46 +498,66 @@ module.exports = function(env) {
   };
 
 
-  function HastableERPMasterList() {
+  function HashtableERPMasterList() {
     this.erpNodeMap = new Hashtable();
     this.erpsAdded = [];
     this.erpsRemoved = [];
     this.numErps = 0;
   }
 
-  HastableERPMasterList.prototype.size = function() { return this.numErps; }
-  HastableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
+  HashtableERPMasterList.prototype.size = function() { return this.numErps; }
+  HashtableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
 
-  HastableERPMasterList.prototype.addERP = function(node) {
+  HashtableERPMasterList.prototype.addERP = function(node) {
     this.erpNodeMap.put(node.address, node);
     this.erpsAdded.push(node);
     this.numErps++;
+    // this.checkConsistency("addERP");
   };
 
-  HastableERPMasterList.prototype.removeERP = function(node) {
+  HashtableERPMasterList.prototype.removeERP = function(node) {
     this.erpNodeMap.remove(node.address);
     this.erpsRemoved.push(node);
     this.numErps--;
+    // this.checkConsistency("removeERP");
   };
 
-  HastableERPMasterList.prototype.preProposal = function() {
+  HashtableERPMasterList.prototype.preProposal = function() {
     this.oldNumErps = this.numErps;
     this.erpsAdded = [];
     this.erpsRemoved = [];
   };
 
-  HastableERPMasterList.prototype.postProposal = function() {};
+  HashtableERPMasterList.prototype.postProposal = function() {};
 
-  HastableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
+  HashtableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
 
-  HastableERPMasterList.prototype.restoreOnReject = function() {
+  HashtableERPMasterList.prototype.restoreOnReject = function() {
+    // this.checkConsistency("restoreOnReject");
     this.numErps = this.oldNumErps;
     var n = this.erpsAdded.length;
-    while(n--) this.erpNodeMap.remove(this.erpsAdded[n].address);
+    while(n--) {
+      var node = this.erpsAdded[n];
+      this.erpNodeMap.remove(node.address);
+    }
     n = this.erpsRemoved.length;
     while(n--) {
       var node = this.erpsRemoved[n];
       this.erpNodeMap.put(node.address, node);
+    }
+  };
+
+  // For debugging
+  HashtableERPMasterList.prototype.checkConsistency = function(tag) {
+    for (var i = 0; i < this.erpsAdded.length; i++) {
+      var addr = this.erpsAdded[i].address;
+      if (!this.erpNodeMap.get(addr))
+        throw "WTF - hash table doesn't contain node " + addr + " that we added (" + tag + ")";
+    }
+    for (var i = 0; i < this.erpsRemoved.length; i++) {
+      var addr = this.erpsRemoved[i].address;
+      if (this.erpNodeMap.get(addr))
+        throw "WTF - hash table contains node " + addr + " that we removed (" + tag + ")";
     }
   };
 
@@ -566,7 +590,7 @@ module.exports = function(env) {
 
   IncrementalMH.prototype.run = function() {
     this.cacheRoot = null;
-    this.erpMasterList = new HastableERPMasterList();
+    this.erpMasterList = new HashtableERPMasterList();
     // this.erpMasterList = new ArrayERPMasterList();
     this.score = 0;
     this.touchedNodes = [];
@@ -620,7 +644,7 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.score === -Infinity) {
         return this.run();
       } else {
-        debuglog(1, "iteration " + (this.totalIterations - this.iterations));
+        debuglog(1, "iteration", (this.totalIterations - this.iterations));
         if (this.verbose)
           console.log("IncrementalMH iteration " + (this.totalIterations - this.iterations) +
             " / " + this.totalIterations);
@@ -641,9 +665,9 @@ module.exports = function(env) {
         if (Math.random() >= acceptance) {
           debuglog(1, "REJECT");
           this.score = this.oldScore;
-          this.erpMasterList.restoreOnReject();
           var n = this.touchedNodes.length;
           while(n--) restoreSnapshot(this.touchedNodes[n]);
+          this.erpMasterList.restoreOnReject();
         }
         else {
           debuglog(1, "ACCEPT");
@@ -676,6 +700,8 @@ module.exports = function(env) {
           this.cacheRoot.print();
         }
 
+        // this.checkReachabilityConsistency();
+
         // Prepare to make a new proposal
         this.oldScore = this.score;
         this.erpMasterList.preProposal();
@@ -684,13 +710,11 @@ module.exports = function(env) {
         this.rvsPropLP = 0;
         // Select ERP to change.
         var propnode = this.erpMasterList.getRandom();
-        // TEST
-        this.propnode = propnode;
         // Restore node stack up to this point
         this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
-        debuglog(1, "-------------------------------------");
-        debuglog(1, "PROPOSAL" + " (type = " + typeof(propnode.val) + ", address = " + propnode.address + ")");
+        debuglog(1, "----------------------------------------------------------------------");
+        debuglog(1, "PROPOSAL",  "type:", propnode.erp.sample.name, "address:", propnode.address);
         return propnode.propose();
       }
     } else {
@@ -784,16 +808,16 @@ module.exports = function(env) {
   };
 
   IncrementalMH.prototype.addERP = function(node) {
+    tabbedlog(3, node.depth, "new ERP");
     this.erpMasterList.addERP(node);
     this.fwdPropLP += node.score;
-    tabbedlog(3, node.depth, "new ERP");
   };
 
   IncrementalMH.prototype.removeERP = function(node) {
+    tabbedlog(3, node.depth, "kill ERP", node.address);
     this.erpMasterList.removeERP(node);
     this.rvsPropLP += node.score;
     this.score -= node.score;
-    tabbedlog(3, node.depth, "kill ERP");
   };
 
   // Restore this.nodeStack up to the specified node
@@ -804,6 +828,33 @@ module.exports = function(env) {
       node = node.parent;
     }
     this.nodeStack.reverse();
+  };
+
+  // For debugging purposes, mostly
+  IncrementalMH.prototype.addressInCache = function(addr) {
+    var stack = [this.cacheRoot];
+    while (stack.length > 0) {
+      var node = stack.pop();
+      if (node.address === addr)
+        return true;
+      if (node.children !== undefined)
+        for (var i = 0; i < node.children.length; i++)
+          stack.push(node.children[i]);
+    }
+    return false;
+  };
+
+  // Also for debugging
+  IncrementalMH.prototype.checkReachabilityConsistency = function() {
+    var stack = [this.cacheRoot];
+    while (stack.length > 0) {
+      var node = stack.pop();
+      if (!node.reachable) throw "WTF - found unreachable node in cache.";
+      if (node.children !== undefined)
+        for (var i = 0; i < node.children.length; i++)
+          stack.push(node.children[i]);
+    }
+    return false;
   };
 
   // ------------------------------------------------------------------

@@ -335,17 +335,17 @@ function Hashtable() {
                     buckets.splice(bucketIndex, 1);
                     delete bucketsByHash[hash];
                 }
-            }
-            size--;
-            if (biggestBucket === bucket) {
-                if (buckets.length === 0)
-                    biggestBucket = null;
-                else {
-                    biggestBucket = buckets[0];
-                    var i = buckets.length;
-                    while(i--) {
-                        if (buckets[i].entries.length > biggestBucket.entries[length])
-                            biggestBucket = buckets[i];
+                size--;
+                if (biggestBucket === bucket) {
+                    if (buckets.length === 0)
+                        biggestBucket = null;
+                    else {
+                        biggestBucket = buckets[0];
+                        var i = buckets.length;
+                        while(i--) {
+                            if (buckets[i].entries.length > biggestBucket.entries[length])
+                                biggestBucket = buckets[i];
+                        }
                     }
                 }
             }
