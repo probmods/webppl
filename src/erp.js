@@ -509,12 +509,5 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP,
-  gaussianSample: gaussianSample,
-  gaussianScore: gaussianScore,
-  dirichletSample: dirichletSample,
-  dirichletScore: dirichletScore
+  makeDeltaERP: makeDeltaERP
 };
-
-
-// mh
