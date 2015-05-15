@@ -37,7 +37,7 @@ function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
 }
 
-function prepare(programCode, verbose) {
+function prepare(programCode, verbose, doCaching) {
   if (verbose && console.time) {
     console.time('prepare');
   }
@@ -54,7 +54,8 @@ function prepare(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  programAST = caching(programAST);
+  if (doCaching)
+    programAST = caching(programAST);
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
@@ -63,7 +64,7 @@ function prepare(programCode, verbose) {
   return out;
 }
 
-function compile(programCode, verbose) {
+function compile(programCode, verbose, doCaching) {
   if (verbose && console.time) {
     console.time('compile');
   }
@@ -83,7 +84,8 @@ function compile(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  programAST = caching(programAST);
+  if (doCaching)
+    programAST = caching(programAST);
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
