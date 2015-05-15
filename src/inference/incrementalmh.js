@@ -314,6 +314,7 @@ module.exports = function(env) {
   FunctionNode.prototype.execute = function() {
     tabbedlog(4, this.depth, "execute function");
     if (this.needsUpdate) {
+      this.coroutine.cacheAdapter.registerMiss(this);
       tabbedlog(4, this.depth, "yes, function args changed; re-running");
       tabbedlog(5, this.depth, "old args:", this.__snapshot ? this.__snapshot.args : undefined, "new args:", this.args);
       this.needsUpdate = false;
@@ -377,6 +378,7 @@ module.exports = function(env) {
         this.address
       ].concat(this.args));
     } else {
+      this.coroutine.cacheAdapter.registerHit(this);
       tabbedlog(4, this.depth, "no, function args have not changed; continuing");
       tabbedlog(5, this.depth, "args:", this.args);
       return this.kontinue();
@@ -453,6 +455,32 @@ module.exports = function(env) {
     }
     tabbedlog(4, this.depth, "Children marked unreachable on child change:", totalmarked);
   };
+
+  // Called by the cache adapter when it determines that this node isn't giving
+  //    good enough cache efficiency and should be removed from the cache.
+  FunctionNode.prototype.removeFromCache = function() {
+    // First, verify that this node actually *is* in the cache (i.e. hasn't
+    //    already been removed via rejection), otherwise the subsequent ops
+    //    ops we perform will screw things up.
+    if (this.parent.children[this.index] === this) {
+      // Correct the various metadata on the children of this node.
+      var n = this.children.length;
+      for (var i = 0; i < n; i++) {
+        var child = this.children[i];
+        child.parent = this.parent;
+        child.depth--;
+        child.index = this.index + i;
+      }
+      // Correct the indices of the subsequent siblings of this node, to
+      //    account for the children that are about to be moved up.
+      for (var i = this.index + 1; i < this.parent.children.length; i++) {
+        this.parent.children[i] = i + n - 1;
+      }
+      // Move up this.children into this.parent.children
+      this.children.unshift(this.index, 0);
+      Array.prototype.splice.apply(this.parent.children, this.children);
+    }
+  }
 
   // ------------------------------------------------------------------
 
@@ -563,6 +591,60 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
+  // Tracks statistics on how the cache is performing, so we can make
+  //    decisions about when to stop caching certain functions
+  function CacheAdapter(minHitRate, fuseLength) {
+    this.minHitRate = minHitRate;
+    this.fuseLength = fuseLength;
+    this.stats = {};
+    this.nodesToRemove = [];
+  }
+
+  CacheAdapter.prototype.shouldCache = function(addr) {
+    var stats = this.stats[addr];
+    return (stats === undefined) || stats.shouldCache;
+  };
+
+  CacheAdapter.prototype.registerHit = function(node) {
+    var addr = node.address;
+    var stats = this.stats[addr];
+    if (stats === undefined) {
+      stats = {shouldCache: true, hits: 1, total: 1};
+      this.stats[addr] = stats;
+    } else {
+      stats.hits++;
+      stats.total++;
+    }
+    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate)
+      this.nodesToRemove.push(node);
+  };
+
+  CacheAdapter.prototype.registerMiss = function(node) {
+    var addr = node.address;
+    var stats = this.stats[addr];
+    if (stats === undefined) {
+      stats = {shouldCache: true, hits: 0, total: 1};
+      this.stats[addr] = stats;
+    } else stats.total++;
+    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate)
+      this.nodesToRemove.push(node);
+  }
+
+  CacheAdapter.prototype.adapt = function(cacheRoot) {
+    var n = this.nodesToRemove.length;
+    if (n > 0) {
+      while (n--) {
+        var node = this.nodesToRemove[n];
+        tabbedlog(5, node.depth, "Cache adapater removing node", node.address);
+        this.stats[node.address].shouldCache = false;
+        node.removeFromCache();
+      }
+      this.nodesToRemove = [];
+    }
+  };
+
+  // ------------------------------------------------------------------
+
   function IncrementalMH(s, k, a, wpplFn, numIterations, debuglevel, verbose, justSample) {
     DEBUG = debuglevel;
     this.verbose = verbose;
@@ -581,6 +663,8 @@ module.exports = function(env) {
     this.MAP = { val: undefined, score: -Infinity };
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
+
+    this.cacheAdapter = new CacheAdapter(0.5, 50);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -702,6 +786,8 @@ module.exports = function(env) {
 
         // this.checkReachabilityConsistency();
 
+        this.cacheAdapter.adapt();
+
         // Prepare to make a new proposal
         this.oldScore = this.score;
         this.erpMasterList.preProposal();
@@ -739,7 +825,10 @@ module.exports = function(env) {
   };
 
   IncrementalMH.prototype.incrementalize = function(s, k, a, fn, args) {
-    return this.cachelookup(FunctionNode, s, k, a, fn, args).execute();
+    if (this.cacheAdapter.shouldCache(a))
+      return this.cachelookup(FunctionNode, s, k, a, fn, args).execute();
+    else
+      return env.defaultCoroutine.incrementalize(s, k, a, fn, args);
   };
 
   // Returns a cache node
