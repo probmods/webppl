@@ -6,7 +6,7 @@ var harness = require('./harness.js');
 var infSettings = [
 	{name: 'Lightweight_MH', code: 'HashMH(program, nIters, true);'},
 	{name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters, false);'},
-	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters);'}
+	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters);', doCaching: true}
 ];
 
 

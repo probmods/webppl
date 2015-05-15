@@ -4,8 +4,8 @@ var hmm = function(n, observations) {
 	if (n === 0) {
 		return true;
 	} else {
-		// var prevState = hmm(n-1, observations);
-		var prevState = incrementalize(hmm, [n - 1, observations]);
+		var prevState = hmm(n-1, observations);
+		// var prevState = incrementalize(hmm, [n - 1, observations]);
 		var state = transition(prevState, n);
 		var obs = observations[n];
 		observation(state, obs);
@@ -31,6 +31,6 @@ var makeObservations = function(n) {
 var observations = makeObservations(nObservations);
 
 var program = function() {
-	// return hmm(nObservations, observations);
-	return incrementalize(hmm, [nObservations, observations]);
+	return hmm(nObservations, observations);
+	// return incrementalize(hmm, [nObservations, observations]);
 }

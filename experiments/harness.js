@@ -29,6 +29,7 @@ function makeRange(start, end, incr) {
 //        to be inserted at the head of the file
 //   - inference: string of code to be inserted at the end of the file which
 //        calls an inference routine
+//   - doCaching: whether the incrementalization transform should be enabled
 // calls 'callback' on the time returned
 function time(config, callback) {
 	var code = config.code || fs.readFileSync(config.file);
@@ -46,15 +47,17 @@ function time(config, callback) {
 	// console.log(code);
 
 	// Set up requires
-	var prevreqs = {};
-	for (var i = 0; i < config.requires.length; i++) {
-		var r = config.requires[i];
-		prevreqs[r.name] = global[r.name];
-		global[r.name] = require(r.path);
+	if (config.requires !== undefined) {
+		var prevreqs = {};
+		for (var i = 0; i < config.requires.length; i++) {
+			var r = config.requires[i];
+			prevreqs[r.name] = global[r.name];
+			global[r.name] = require(r.path);
+		}
 	}
 
 	// Compile code and turn it into executable function
-	var progfn = eval(webppl.compile(code));
+	var progfn = eval(webppl.compile(code, false, config.doCaching));
 
 	// Run with top continuation that times it.
 	var t0 = process.hrtime();
@@ -96,6 +99,7 @@ function infCompare(infSettings, config, callback, fn) {
 	var originf = config.inference;
 	for (var i = 0; i < infSettings.length; i++) {
 		config.inference = infSettings[i].code;
+		config.doCaching = infSettings[i].doCaching;
 		var infname = infSettings[i].name;
 		fn(config, function(args) {
 			callback([infname].concat(args));

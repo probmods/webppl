@@ -8,45 +8,45 @@ var documents = dataset.documents;
 var topicDistribPrior = repeat(nTopics, function() { return 1; });
 var wordDistribPrior = repeat(vocabulary.length, function() { return .1; });
 
-// var foreach = function(lst, fn) {
-// 	var foreach_ = function(i) {
-// 		if (i < lst.length) {
-// 			fn(lst[i]);
-// 			foreach_(i + 1);
-// 		}
-// 	}
-// 	foreach_(0);
-// }
-
-// var fori = function(istart, iend, fn) {
-// 	var fori_ = function(i) {
-// 		if (i < iend) {
-// 			fn(i);
-// 			fori_(i + 1);
-// 		}
-// 	}
-// 	fori_(istart);
-// }
-
 var foreach = function(lst, fn) {
 	var foreach_ = function(i) {
 		if (i < lst.length) {
 			fn(lst[i]);
-			incrementalize(foreach_, [i + 1]);
+			foreach_(i + 1);
 		}
 	}
-	incrementalize(foreach_, [0]);
+	foreach_(0);
 }
 
 var fori = function(istart, iend, fn) {
 	var fori_ = function(i) {
 		if (i < iend) {
 			fn(i);
-			incrementalize(fori_, [i + 1]);
+			fori_(i + 1);
 		}
 	}
-	incrementalize(fori_, [istart]);
+	fori_(istart);
 }
+
+// var foreach = function(lst, fn) {
+// 	var foreach_ = function(i) {
+// 		if (i < lst.length) {
+// 			fn(lst[i]);
+// 			incrementalize(foreach_, [i + 1]);
+// 		}
+// 	}
+// 	incrementalize(foreach_, [0]);
+// }
+
+// var fori = function(istart, iend, fn) {
+// 	var fori_ = function(i) {
+// 		if (i < iend) {
+// 			fn(i);
+// 			incrementalize(fori_, [i + 1]);
+// 		}
+// 	}
+// 	incrementalize(fori_, [istart]);
+// }
 
 var program = function() {
 	var wordDistribs = repeat(nTopics, function() {
