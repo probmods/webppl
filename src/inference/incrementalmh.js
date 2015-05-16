@@ -300,6 +300,7 @@ module.exports = function(env) {
     this.inStore = _.clone(s);
     this.args = args;
 
+    this.initialized = false;
     this.retval = undefined;
     this.outStore = null;
   }
@@ -314,8 +315,9 @@ module.exports = function(env) {
   FunctionNode.prototype.execute = function() {
     tabbedlog(4, this.depth, "execute function");
     if (this.needsUpdate) {
-      this.coroutine.cacheAdapter.registerMiss(this);
-      tabbedlog(4, this.depth, "yes, function args changed; re-running");
+      if (this.initialized)
+        this.coroutine.cacheAdapter.registerMiss(this);
+      tabbedlog(4, this.depth, "yes, function args changed; executing");
       tabbedlog(5, this.depth, "old args:", this.__snapshot ? this.__snapshot.args : undefined, "new args:", this.args);
       this.needsUpdate = false;
       // Keep track of program stack
@@ -333,14 +335,23 @@ module.exports = function(env) {
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
+      // Also preserve references to this node's continuation and address.
+      // We need these to bypass the cache 'on-exit' processing stuff and just
+      //    invoke the original continuation if and when nodes with this address
+      //    stop being cached (by the cache adapter).
+      var continuation = this.continuation;
+      var address = this.address;
       // Record the fact that we entered this function.
       this.entered = true;
       return this.func.apply(global, [
         this.inStore,
         function(s, retval) {
+          // If we've stopped caching nodes with this address, just immediately continue
+          if (!coroutine.cacheAdapter.shouldCache(address)) return continuation(s, retval);
           // Recover a reference to 'this'
           var that = coroutine.nodeStack.pop();
           tabbedlog(4, that.depth, "continue from function");
+          that.initialized = true;
           // Clear out any children that have become unreachable
           var newchildren = [];
           var nchildren = that.children.length;
@@ -355,7 +366,6 @@ module.exports = function(env) {
             }
           }
           updateProperty(that, "children", newchildren);
-
           // If the return value and output store haven't changed, then we can bail early.
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
@@ -468,16 +478,25 @@ module.exports = function(env) {
       for (var i = 0; i < n; i++) {
         var child = this.children[i];
         child.parent = this.parent;
-        child.depth--;
         child.index = this.index + i;
+        // Recursively adjust depth of all descendants
+        var stack = [child];
+        while (stack.length > 0) {
+          var node = stack.pop();
+          node.depth--;
+          if (node.children) {
+            var nn = node.children.length;
+            while (nn--) stack.push(node.children[nn]);
+          }
+        }
       }
       // Correct the indices of the subsequent siblings of this node, to
       //    account for the children that are about to be moved up.
       for (var i = this.index + 1; i < this.parent.children.length; i++) {
-        this.parent.children[i] = i + n - 1;
+        this.parent.children[i].index = i + n - 1;
       }
-      // Move up this.children into this.parent.children
-      this.children.unshift(this.index, 0);
+      // Remove this and move up this.children into this.parent.children
+      this.children.unshift(this.index, 1);
       Array.prototype.splice.apply(this.parent.children, this.children);
     }
   }
@@ -596,50 +615,79 @@ module.exports = function(env) {
   function CacheAdapter(minHitRate, fuseLength) {
     this.minHitRate = minHitRate;
     this.fuseLength = fuseLength;
+    this.addrToId = {};
     this.stats = {};
-    this.nodesToRemove = [];
+    this.idsToRemove = {};
+    this.hasIdsToRemove = false;
+  }
+
+  CacheAdapter.prototype.id = function(addr) {
+    var id = this.addrToId[addr];
+    if (id === undefined) {
+      var arr = addr.split('_');
+      id = arr[arr.length-1];
+      this.addrToId[addr] = id;
+    }
+    return id;
+  }
+
+  CacheAdapter.prototype.getStats = function(addr) {
+    var id = this.id(addr);
+    var stats = this.stats[id];
+    if (stats === undefined) {
+      stats = {shouldCache: true, hits: 0, total: 0};
+      this.stats[id] = stats;
+    }
+    return stats;
   }
 
   CacheAdapter.prototype.shouldCache = function(addr) {
-    var stats = this.stats[addr];
-    return (stats === undefined) || stats.shouldCache;
+    return this.getStats(addr).shouldCache;
   };
 
   CacheAdapter.prototype.registerHit = function(node) {
-    var addr = node.address;
-    var stats = this.stats[addr];
-    if (stats === undefined) {
-      stats = {shouldCache: true, hits: 1, total: 1};
-      this.stats[addr] = stats;
-    } else {
-      stats.hits++;
-      stats.total++;
+    var stats = this.getStats(node.address);
+    stats.hits++;
+    stats.total++;
+    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+      this.idsToRemove[this.id(node.address)] = true;
+      this.hasIdsToRemove = true;
     }
-    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate)
-      this.nodesToRemove.push(node);
   };
 
   CacheAdapter.prototype.registerMiss = function(node) {
-    var addr = node.address;
-    var stats = this.stats[addr];
-    if (stats === undefined) {
-      stats = {shouldCache: true, hits: 0, total: 1};
-      this.stats[addr] = stats;
-    } else stats.total++;
-    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate)
-      this.nodesToRemove.push(node);
+    var stats = this.getStats(node.address);
+    stats.total++;
+    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+      this.idsToRemove[this.id(node.address)] = true;
+      this.hasIdsToRemove = true;
+    }
   }
 
   CacheAdapter.prototype.adapt = function(cacheRoot) {
-    var n = this.nodesToRemove.length;
-    if (n > 0) {
-      while (n--) {
-        var node = this.nodesToRemove[n];
-        tabbedlog(5, node.depth, "Cache adapater removing node", node.address);
-        this.stats[node.address].shouldCache = false;
-        node.removeFromCache();
+    if (this.hasIdsToRemove) {
+      for (var id in this.idsToRemove) {
+        var s = this.stats[id];
+        debuglog(5, "Cache adapter removing nodes w/ id", id, "hit rate:", s.hits/s.total);
+        this.stats[id].shouldCache = false;
       }
-      this.nodesToRemove = [];
+      // Traverse cache and remove all nodes with this id
+      var stack = [cacheRoot];
+      while (stack.length > 0) {
+        var node = stack.pop();
+        if (node.children !== undefined) {
+          var n = node.children.length;
+          while (n--) stack.push(node.children[n]);
+        }
+        if (this.idsToRemove[this.id(node.address)])
+          node.removeFromCache();
+      }
+      this.idsToRemove = {};
+      this.hasIdsToRemove = false;
+      if (DEBUG >= 6) {
+        debuglog(6, "=== Post-adaptation cache status ===");
+        cacheRoot.print();
+      }
     }
   };
 
@@ -664,7 +712,7 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
-    this.cacheAdapter = new CacheAdapter(0.5, 50);
+    this.cacheAdapter = new CacheAdapter(0.0001, 50);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -786,7 +834,7 @@ module.exports = function(env) {
 
         // this.checkReachabilityConsistency();
 
-        this.cacheAdapter.adapt();
+        this.cacheAdapter.adapt(this.cacheRoot);
 
         // Prepare to make a new proposal
         this.oldScore = this.score;
