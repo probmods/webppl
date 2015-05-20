@@ -11,10 +11,12 @@ function hrtimeToSeconds(t) {
 }
 
 // Inclusive
-function makeRange(start, end, incr) {
+function makeRange(start, end, incr, reps) {
+	reps = reps || 1;
 	var arr = [];
 	for (var i = start; i <= end; i += incr)
-		arr.push(i);
+		for (var j = 0; j < reps; j++)
+			arr.push(i);
 	return arr;
 }
 
@@ -44,7 +46,6 @@ function time(config, callback) {
 	}
 
 	code = paramPrefix + code + '\n' + config.inference + '\n';
-	// console.log(code);
 
 	// Set up requires
 	if (config.requires !== undefined) {
@@ -60,7 +61,7 @@ function time(config, callback) {
 	var progfn = eval(webppl.compile(code, false, config.doCaching));
 
 	// Run with top continuation that times it.
-	var t0 = process.hrtime();
+	var t0;
 	function topK() {
 		var tdiff = process.hrtime(t0);
 		// Restore requires before 'returning'
@@ -69,6 +70,7 @@ function time(config, callback) {
 		if (callback !== undefined)
 			callback([hrtimeToSeconds(tdiff)]);
 	}
+	t0 = process.hrtime();
 	progfn({}, topK, '');
 }
 
@@ -97,6 +99,7 @@ function makeVarying(varyingName, varyingValues, fn) {
 // infSettings is a list of {name:, code: } objects
 function infCompare(infSettings, config, callback, fn) {
 	var originf = config.inference;
+	var origdocache = config.doCaching;
 	for (var i = 0; i < infSettings.length; i++) {
 		config.inference = infSettings[i].code;
 		config.doCaching = infSettings[i].doCaching;
@@ -106,6 +109,7 @@ function infCompare(infSettings, config, callback, fn) {
 		})
 	}
 	config.inference = originf;
+	config.doCaching = origdocache;
 }
 function makeInfCompare(infSettings, fn) {
 	return function(config, callback) {

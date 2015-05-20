@@ -693,7 +693,7 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, debuglevel, verbose, justSample) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations, dontAdapt, debuglevel, verbose, justSample) {
     DEBUG = debuglevel;
     this.verbose = verbose;
 
@@ -712,7 +712,8 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
-    this.cacheAdapter = new CacheAdapter(0.0001, 50);
+    this.doAdapt = !dontAdapt;
+    this.cacheAdapter = new CacheAdapter(0.5, 50);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -834,7 +835,8 @@ module.exports = function(env) {
 
         // this.checkReachabilityConsistency();
 
-        this.cacheAdapter.adapt(this.cacheRoot);
+        if (this.doAdapt)
+          this.cacheAdapter.adapt(this.cacheRoot);
 
         // Prepare to make a new proposal
         this.oldScore = this.score;
@@ -996,9 +998,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, debuglevel, verbose, justSample) {
+  function imh(s, cc, a, wpplFn, numIters, dontAdapt, debuglevel, verbose, justSample) {
     if (debuglevel === undefined) debuglevel = 0;
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, debuglevel, verbose, justSample).run();
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, dontAdapt, debuglevel, verbose, justSample).run();
   }
 
   return {
