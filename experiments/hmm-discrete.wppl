@@ -1,0 +1,30 @@
+// requires: hmm-discrete.js
+// params: nObservations, nLatentStates, nObsStates
+
+var model = hmm.genSynthModel(nLatentStates, nObsStates);
+var data = hmm.genSynthData(nObservations, nObsStates);
+
+var hmmfn = function(n) {
+	if (n === 0) {
+		return 0;
+	} else {
+		var prevState = hmmfn(n-1);
+		var state = transition(prevState, n);
+		var obs = data[n-1];	// b/c of offset
+		observation(state, obs);
+		return state;
+	}
+}
+
+var transition = function(prevState) {
+	return discrete(model.transition[prevState]);
+}
+
+var observation = function(state, obs) {
+	var p = model.observation[state][obs];
+	return factor(Math.log(p));
+}
+
+var program = function() {
+	return hmmfn(nObservations);
+}
