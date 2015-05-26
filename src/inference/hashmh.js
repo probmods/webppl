@@ -21,7 +21,11 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function HashMH(s, k, a, wpplFn, numIterations, doFullRerun, verbose, justSample) {
+  function HashMH(s, k, a, wpplFn, numIterations, opts) {
+    // Extract opts
+    var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
+    var verbose = opts.verbose === undefined ? false : opts.verbose;
+    var justSample = opts.justSample === undefined ? false : opts.justSample;
 
     this.doFullRerun = doFullRerun;
     this.verbose = verbose;
@@ -214,8 +218,9 @@ module.exports = function(env) {
 
   HashMH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function hashmh(s, cc, a, wpplFn, numParticles, doFullRerun, verbose, justSample) {
-    return new HashMH(s, cc, a, wpplFn, numParticles, doFullRerun, verbose, justSample).run();
+  function hashmh(s, cc, a, wpplFn, numParticles, opts) {
+    opts = opts || {};
+    return new HashMH(s, cc, a, wpplFn, numParticles, opts).run();
   }
 
   return {

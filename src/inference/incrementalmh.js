@@ -167,6 +167,8 @@ module.exports = function(env) {
       tabbedlog(1, this.depth, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
       this.parent.notifyChildChanged(this);
       this.needsUpdate = false;
+      // Restore node stack up to this point
+      this.coroutine.restoreStackUpTo(this.parent);
       return this.execute();
     }
   };
@@ -693,7 +695,13 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, dontAdapt, debuglevel, verbose, justSample) {
+  function IncrementalMH(s, k, a, wpplFn, numIterations, opts) {
+    // Extract options
+    var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
+    var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
+    var verbose = opts.verbose === undefined ? false : opts.verbose;
+    var justSample = opts.justSample === undefined ? false : opts.justSample;
+
     DEBUG = debuglevel;
     this.verbose = verbose;
 
@@ -846,8 +854,6 @@ module.exports = function(env) {
         this.rvsPropLP = 0;
         // Select ERP to change.
         var propnode = this.erpMasterList.getRandom();
-        // Restore node stack up to this point
-        this.restoreStackUpTo(propnode.parent);
         // Propose change and resume execution
         debuglog(1, "----------------------------------------------------------------------");
         debuglog(1, "PROPOSAL",  "type:", propnode.erp.sample.name, "address:", propnode.address);
@@ -998,9 +1004,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, dontAdapt, debuglevel, verbose, justSample) {
-    if (debuglevel === undefined) debuglevel = 0;
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, dontAdapt, debuglevel, verbose, justSample).run();
+  function imh(s, cc, a, wpplFn, numIters, opts) {
+    opts = opts || {};
+    return new IncrementalMH(s, cc, a, wpplFn, numIters, opts).run();
   }
 
   return {
