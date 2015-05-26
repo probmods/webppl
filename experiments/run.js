@@ -54,7 +54,7 @@ var config = {
 // Vary nObservations
 harness.csv('results/hmm_nObservations.csv', ['infMethod', 'nObservations', 'time'], config,
 	harness.infCompare(infSettings,
-		harness.varying('nObservations', harness.range(10, 200, 10, 10),
+		harness.varying('nObservations', harness.range(10, 100, 10, 10),
 			harness.time)));
 
 
