@@ -71,14 +71,13 @@ module.exports = function(env) {
     } // init
     var fw = -Math.log(oldTrace.length);
     trace.slice(regenFrom).map(function(s) {
-      fw += s.forwardChoiceScore;
+      fw += s.reused ? 0 : s.forwardChoiceScore;
     });
     var bw = -Math.log(trace.length);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      if (nc) {
-        bw += s.reverseChoiceScore;
-      }
+      var reverseChoiceScore = (s.reverseChoiceScore !== undefined) ? s.reverseChoiceScore : s.forwardChoiceScore;
+      bw += (!nc || !nc.reused) ? reverseChoiceScore : 0;
     });
     var p = Math.exp(currScore - oldScore + bw - fw);
     assert.ok(!isNaN(p));
@@ -125,40 +124,22 @@ module.exports = function(env) {
   MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
     var prev = findChoice(this.oldTrace, name);
     var val, forwardChoiceScore, reverseChoiceScore;
+    var reuse = !(prev === undefined || forceSample);
 
-    if (prev === undefined) {
-      // no previous value; sample from prior
-      val = erp.sample(params);
-      forwardChoiceScore = erp.score(params, val);
-      reverseChoiceScore = 0;
-
-    } else if (forceSample) {
-      // sample from mh proposal distribution
-      if (erp.proposer) {
-        // custom proposal distribution
-        val = erp.proposer.sample([params, prev.val]);
-        forwardChoiceScore = erp.proposer.score([params, prev.val], val);
-        reverseChoiceScore = erp.proposer.score([params, val], prev.val);
-
-      } else {
-        // proposal distribution is prior
-        val = erp.sample(params);
-        forwardChoiceScore = erp.score(params, val);
-        reverseChoiceScore = erp.score(params, prev.val);
-      }
-
+    if (erp.proposer && prev !== undefined) {
+      val = reuse ? prev.val : erp.proposer.sample([params, prev.val]);
+      forwardChoiceScore = erp.proposer.score([params, prev.val], val);
+      reverseChoiceScore = erp.proposer.score([params, val], prev.val);
     } else {
-      // reuse previous value
-      val = prev.val;
-      forwardChoiceScore = 0;
-      reverseChoiceScore = 0;
+      val = reuse ? prev.val : erp.sample(params);
+      forwardChoiceScore = erp.score(params, val);
     }
 
     this.trace.push({
       k: cont, name: name, erp: erp, params: params,
       score: this.currScore, forwardChoiceScore: forwardChoiceScore,
       reverseChoiceScore: reverseChoiceScore, val: val,
-      store: _.clone(s)
+      reused: reuse, store: _.clone(s)
     });
     this.currScore += erp.score(params, val);
     return cont(s, val);
