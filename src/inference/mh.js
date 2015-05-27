@@ -147,7 +147,7 @@ module.exports = function(env) {
         // also update the MAP
         if (this.currScore > this.MAP.score) {
           this.MAP.score = this.currScore;
-          this.MAP.val = val;
+          this.MAP.value = val;
         }
 
         // make a new proposal:

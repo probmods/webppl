@@ -26,6 +26,7 @@ module.exports = function(env) {
     var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
     var justSample = opts.justSample === undefined ? false : opts.justSample;
+    var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
 
     this.doFullRerun = doFullRerun;
     this.verbose = verbose;
@@ -44,6 +45,7 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
+    this.onlyMAP = onlyMAP;
     if (justSample)
       this.returnSamps = [];
     else
@@ -158,19 +160,21 @@ module.exports = function(env) {
         } else this.acceptedProps++;
 
         // now add val to hist:
-        if (this.returnSamps)
-          this.returnSamps.push({score: this.currScore, value: val})
-        else {
-          var stringifiedVal = JSON.stringify(val);
-          if (this.returnHist[stringifiedVal] === undefined) {
-            this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        if (!this.onlyMAP) {
+          if (this.returnSamps)
+            this.returnSamps.push({score: this.currScore, value: val})
+          else {
+            var stringifiedVal = JSON.stringify(val);
+            if (this.returnHist[stringifiedVal] === undefined) {
+              this.returnHist[stringifiedVal] = { prob: 0, val: val };
+            }
+            this.returnHist[stringifiedVal].prob += 1;
           }
-          this.returnHist[stringifiedVal].prob += 1;
         }
         // also update the MAP
         if (this.currScore > this.MAP.score) {
           this.MAP.score = this.currScore;
-          this.MAP.val = val;
+          this.MAP.value = val;
         }
 
         // make a new proposal:
@@ -201,8 +205,11 @@ module.exports = function(env) {
         dist = erp.makeMarginalERP(this.returnHist);
       else
         dist = erp.makeMarginalERP({});
-      if (this.returnSamps)
+      if (this.returnSamps) {
+        if (this.onlyMAP)
+          this.returnSamps.push(this.MAP);
         dist.samples = this.returnSamps;
+      }
       dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:

@@ -701,6 +701,9 @@ module.exports = function(env) {
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
     var justSample = opts.justSample === undefined ? false : opts.justSample;
+    var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
+    var minHitRate = opts.cacheMinHitRate === undefined ? 0.00001 : opts.cacheMinHitRate;
+    var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
 
     DEBUG = debuglevel;
     this.verbose = verbose;
@@ -712,6 +715,7 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
+    this.onlyMAP = onlyMAP;
     if (justSample)
       this.returnSamps = [];
     else
@@ -721,7 +725,7 @@ module.exports = function(env) {
     this.acceptedProps = 0;
 
     this.doAdapt = !dontAdapt;
-    this.cacheAdapter = new CacheAdapter(0.5, 50);
+    this.cacheAdapter = new CacheAdapter(minHitRate, fuseLength);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -821,19 +825,21 @@ module.exports = function(env) {
         debuglog(1, "return val:", val);
 
          // now add val to hist:
-        if (this.returnSamps)
-          this.returnSamps.push({score: this.score, value: val})
-        else {
-          var stringifiedVal = JSON.stringify(val);
-          if (this.returnHist[stringifiedVal] === undefined) {
-            this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        if (!this.onlyMAP) {
+          if (this.returnSamps)
+            this.returnSamps.push({score: this.score, value: val})
+          else {
+            var stringifiedVal = JSON.stringify(val);
+            if (this.returnHist[stringifiedVal] === undefined) {
+              this.returnHist[stringifiedVal] = { prob: 0, val: val };
+            }
+            this.returnHist[stringifiedVal].prob += 1;
           }
-          this.returnHist[stringifiedVal].prob += 1;
         }
          // also update the MAP
         if (this.score > this.MAP.score) {
           this.MAP.score = this.score;
-          this.MAP.val = val;
+          this.MAP.value = val;
         }
 
         if (DEBUG >= 6) {
@@ -865,8 +871,11 @@ module.exports = function(env) {
         dist = erp.makeMarginalERP(this.returnHist);
       else
         dist = erp.makeMarginalERP({});
-      if (this.returnSamps)
+      if (this.returnSamps) {
+        if (this.onlyMAP)
+          this.returnSamps.push(this.MAP);
         dist.samples = this.returnSamps;
+      }
       dist.MAP = this.MAP.val;
 
       // Reinstate previous coroutine:
