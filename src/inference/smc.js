@@ -28,26 +28,6 @@ module.exports = function(env) {
     });
   };
 
-  function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore) {
-    // FIXME: refactor to use version from mh.js
-    if ((oldTrace === undefined) || oldScore === -Infinity) {
-      return 1;
-    } // init
-    var fw = -Math.log(oldTrace.length);
-    trace.slice(regenFrom).map(function(s) {
-      fw += s.reused ? 0 : s.choiceScore;
-    });
-    var bw = -Math.log(trace.length);
-    oldTrace.slice(regenFrom).map(function(s) {
-      var nc = findChoice(trace, s.name);
-      bw += (!nc || !nc.reused) ? s.choiceScore : 0;
-    });
-    var p = Math.exp(currScore - oldScore + bw - fw);
-    assert.ok(!isNaN(p));
-    var acceptance = Math.min(1, p);
-    return acceptance;
-  }
-
   function ParticleFilterRejuv(s, k, a, wpplFn, numParticles, rejuvSteps) {
 
     this.particles = [];
@@ -96,7 +76,7 @@ module.exports = function(env) {
         {
           k: cc, name: a, erp: erp, params: params,
           score: currScore,
-          choiceScore: choiceScore,
+          forwardChoiceScore: choiceScore,
           val: val, reused: false,
           store: _.clone(s)
         });
@@ -291,20 +271,9 @@ module.exports = function(env) {
     }
   };
 
-  MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {
-    var prev = mh.findChoice(this.oldTrace, name);
-    var reuse = !(prev === undefined || forceSample);
-    var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
-    this.trace.push({
-      k: k, name: name, erp: erp, params: params,
-      score: this.currScore, choiceScore: choiceScore,
-      val: val, reused: reuse, store: _.clone(s)
-    });
-    this.currScore += choiceScore;
-    return k(s, val);
+  MHP.prototype.sample = function(s, cont, name, erp, params, forceSample) {
+    return mh.mhSample(this, arguments);
   };
-
 
   MHP.prototype.propose = function() {
     //make a new proposal:
@@ -325,9 +294,12 @@ module.exports = function(env) {
     this.val = val;
 
     // Did we like this proposal?
-    var acceptance = acceptProb(this.trace, this.oldTrace,
-                                this.regenFrom,
-                                this.currScore, this.oldScore);
+    var acceptance = mh.acceptProb(
+        this.trace,
+        this.oldTrace,
+        this.regenFrom,
+        this.currScore,
+        this.oldScore);
 
     var accepted = Math.random() < acceptance;
 

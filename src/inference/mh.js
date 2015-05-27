@@ -206,10 +206,13 @@ module.exports = function(env) {
   }
 
   return {
-    MH: mh,
-    findChoice: findChoice,
     acceptProb: acceptProb,
+    dirichletDriftERP: dirichletDriftERP,
+    findChoice: findChoice,
     gaussianDriftERP: gaussianDriftERP,
-    dirichletDriftERP: dirichletDriftERP
+    MH: mh,
+    mhSample: function(context, args) {
+      return MH.prototype.sample.apply(context, args);
+    }
   };
 };
