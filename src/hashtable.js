@@ -336,6 +336,7 @@ function Hashtable() {
                     delete bucketsByHash[hash];
                 }
                 size--;
+                // console.log("size--");
                 if (biggestBucket === bucket) {
                     if (buckets.length === 0)
                         biggestBucket = null;
@@ -343,7 +344,7 @@ function Hashtable() {
                         biggestBucket = buckets[0];
                         var i = buckets.length;
                         while(i--) {
-                            if (buckets[i].entries.length > biggestBucket.entries[length])
+                            if (buckets[i].entries.length > biggestBucket.entries.length)
                                 biggestBucket = buckets[i];
                         }
                     }
@@ -372,6 +373,7 @@ function Hashtable() {
     // Simple rejection sampling approach, expected constant time
     // http://stackoverflow.com/questions/8629447/efficiently-picking-a-random-element-from-a-chained-hash-table
     this.getRandom = function() {
+        // console.log("SIZE: " + size);
         var L = biggestBucket.entries.length;
         while(true) {
             var bi = Math.floor(Math.random()*buckets.length);
