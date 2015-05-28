@@ -349,11 +349,11 @@ var insertAt = function(ar, i, x) {
 }
 
 var removeAt = function(ar, i) {
-  return ar.slice(0, i).concat(ar.slice(i+1));
+  return ar.slice(0, i).concat(ar.slice(i + 1));
 }
 
 var replaceAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i+1));
+  return ar.slice(0, i).concat([x]).concat(ar.slice(i + 1));
 }
 
 var drop = function(n, ar) {
