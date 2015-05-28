@@ -10,11 +10,14 @@
 // "sample" primitive to get a sample. At top level we will also have
 // some "inspection" functions to visualize them?
 //
-// erp.sample(params) returns a value sampled from the distribution.
-// erp.score(params, val) returns the log-probability of val under the distribution.
-// erp.support(params) gives an array of support elements.
-// erp.grad(params, val) gives the gradient of score at val wrt params.
-// erp.proposalParams(params, val) returns the new parameters to be used for MH drift proposal distributions.
+// required:
+// - erp.sample(params) returns a value sampled from the distribution.
+// - erp.score(params, val) returns the log-probability of val under the distribution.
+//
+// optional:
+// - erp.support(params) gives an array of support elements.
+// - erp.grad(params, val) gives the gradient of score at val wrt params.
+// - erp.proposer is an erp for making mh proposals conditioned on the previous value
 
 'use strict';
 
