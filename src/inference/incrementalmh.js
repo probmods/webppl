@@ -277,7 +277,11 @@ module.exports = function(env) {
       if (val === undefined) {
         val = true;
         for (var i = 0; i < f1.__freeVarVals.length; i++) {
-          if (f1.__freeVarVals[i] !== f2.__freeVarVals[i]) {
+          var v1 = f1.__freeVarVals[i];
+          var v2 = f2.__freeVarVals[i];
+          // If they're both functions, recursively apply this check
+          var eq = (_.isFunction(v1) && _.isFunction(v2)) ? fnsEqual(v1, v2) : v1 === v2;
+          if (!eq) {
             val = false;
             break;
           }
