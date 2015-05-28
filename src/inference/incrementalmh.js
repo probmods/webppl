@@ -124,7 +124,6 @@ module.exports = function(env) {
     updateProperty(this, "continuation", k);
     updateProperty(this, "index", this.parent.nextChildIdx);
     this.reachable = true;
-    this.needsUpdate = false;
     // Check params for changes
     for (var i = 0; i < params.length; i++)
     {
@@ -165,11 +164,19 @@ module.exports = function(env) {
       this.coroutine.rvsPropLP = oldscore;
       this.coroutine.fwdPropLP = this.score;
       tabbedlog(1, this.depth, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
-      this.parent.notifyChildChanged(this);
       this.needsUpdate = false;
-      // Restore node stack up to this point
-      this.coroutine.restoreStackUpTo(this.parent);
-      return this.execute();
+      if (this.coroutine.doFullRerun) {
+        // Mark every node above this one as needing update, then re-run
+        //    the program from the start
+        for (var node = this.parent; node !== null; node = node.parent)
+          node.needsUpdate = true;
+        return this.coroutine.runFromStart();
+      } else {
+        this.parent.notifyChildChanged(this);
+        // Restore node stack up to this point
+        this.coroutine.restoreStackUpTo(this.parent);
+        return this.execute();
+      }
     }
   };
 
@@ -401,7 +408,6 @@ module.exports = function(env) {
     updateProperty(this, "continuation", k);
     if (this.parent) updateProperty(this, "index", this.parent.nextChildIdx);
     this.reachable = true;
-    this.needsUpdate = false;
     // Check fn for changes
     if (!fnsEqual(fn, this.func)) {
       this.needsUpdate = true;
@@ -651,7 +657,8 @@ module.exports = function(env) {
     var stats = this.getStats(node.address);
     stats.hits++;
     stats.total++;
-    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+    if (node.parent !== null &&   // Can't remove the cache root
+        stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
     }
@@ -660,7 +667,8 @@ module.exports = function(env) {
   CacheAdapter.prototype.registerMiss = function(node) {
     var stats = this.getStats(node.address);
     stats.total++;
-    if (stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+    if (node.parent !== null &&   // Can't remove the cache root
+        stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
     }
@@ -693,6 +701,12 @@ module.exports = function(env) {
     }
   };
 
+  CacheAdapter.prototype.report = function() {
+    for (var id in this.stats) {
+      console.log(id, ":", this.stats[id]);
+    }
+  };
+
   // ------------------------------------------------------------------
 
   function IncrementalMH(s, k, a, wpplFn, numIterations, opts) {
@@ -701,9 +715,15 @@ module.exports = function(env) {
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
     var justSample = opts.justSample === undefined ? false : opts.justSample;
+    var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
     var minHitRate = opts.cacheMinHitRate === undefined ? 0.00001 : opts.cacheMinHitRate;
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
+
+    // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
+    //    caching, so disable adaptation in this case.
+    if (doFullRerun)
+      dontAdapt = true;
 
     DEBUG = debuglevel;
     this.verbose = verbose;
@@ -724,6 +744,8 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
+    this.doFullRerun = doFullRerun;
+
     this.doAdapt = !dontAdapt;
     this.cacheAdapter = new CacheAdapter(minHitRate, fuseLength);
 
@@ -737,16 +759,20 @@ module.exports = function(env) {
     this.cacheRoot = null;
     this.erpMasterList = new HashtableERPMasterList();
     // this.erpMasterList = new ArrayERPMasterList();
-    this.score = 0;
     this.touchedNodes = [];
+    this.score = 0;
     this.fwdPropLP = 0;
     this.rvsPropLP = 0;
+    debuglog(1, "-------------------------------------");
+    debuglog(1, "RUN FROM START");
+    return this.runFromStart();
+  };
+
+  IncrementalMH.prototype.runFromStart = function() {
     this.nodeStack = [];
     // Cache the top-level function, so that we always have a valid
     //    cache root.
-    debuglog(1, "-------------------------------------");
-    debuglog(1, "RUN FROM START");
-    return this.incrementalize(this.s, env.exit, this.a, this.wpplFn);
+    return this.incrementalize(this.s, env.exit, this.a, this.wpplFn, []);
   };
 
   IncrementalMH.prototype.factor = function(s, k, a, score) {
@@ -884,6 +910,11 @@ module.exports = function(env) {
 
       console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
 
+      if (DEBUG >= 5) {
+      // if (DEBUG >= 0) {
+        this.cacheAdapter.report();
+      }
+
       // Return by calling original continuation:
       return k(this.oldStore, dist);
     }
@@ -903,6 +934,13 @@ module.exports = function(env) {
     if (this.cacheRoot === null) {
       cacheNode = new NodeType(this, null, s, k, a, fn, args);
       this.cacheRoot = cacheNode;
+    // If the node stack is empty, then we must be looking up the root on a
+    //    re-run from start
+    } else if (this.nodeStack.length === 0) {
+      if (a !== this.cacheRoot.address) throw "Wrong address for cache root lookup";
+      cacheNode = this.cacheRoot;
+      cacheNode.registerInputChanges(s, k, fn, args);
+    // Otherwise, do the general thing.
     } else {
       var currNode = this.nodeStack[this.nodeStack.length-1];
       tabbedlog(3, currNode.depth, "lookup", NodeType.name, a);
