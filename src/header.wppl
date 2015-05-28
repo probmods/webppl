@@ -12,6 +12,10 @@ var discrete = function(n) {
   return sample(discreteERP, [n]);
 };
 
+var categorical = function(ps, vs) {
+  return vs[discrete(ps)];
+}
+
 var gaussian = function(mu, sigma) {
   return sample(gaussianERP, [mu, sigma]);
 };
@@ -56,11 +60,10 @@ var deltaERP = function(v) {
   return global.makeDeltaERP(v);
 }
 
-
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {
-  globalStore.BBindex = 1 + (globalStore.BBindex == undefined ? 0 : globalStore.BBindex);
+  globalStore.BBindex = 1 + (globalStore.BBindex || 0);
   var bbname = 'BB' + globalStore.BBindex;
   globalStore[bbname] = pseudocounts;
   return function() {
@@ -73,14 +76,14 @@ var makeBetaBernoulli = function(pseudocounts) {
 
 var makeDirichletDiscrete = function(pseudocounts) {
   var addCount = function(a, i, j) {
-    var j = j == undefined ? 0 : j;
-    if (a.length == 0) {
+    var j = j || 0;
+    if (a.length === 0) {
       return [];
     } else {
-      return [a[0] + (i == j)].concat(addCount(a.slice(1), i, j + 1));
+      return [a[0] + (i === j)].concat(addCount(a.slice(1), i, j + 1));
     }
   };
-  globalStore.DDindex = 1 + (globalStore.DDindex == undefined ? 0 : globalStore.DDindex);
+  globalStore.DDindex = 1 + (globalStore.DDindex || 0);
   var ddname = 'DD' + globalStore.DDindex;
   globalStore[ddname] = pseudocounts;
   return function() {
@@ -107,7 +110,7 @@ var div = function(a, b) {
 };
 
 var eq = function(a, b) {
-  return a == b;
+  return a === b;
 };
 var neq = function(a, b) {
   return a != b;
@@ -126,7 +129,7 @@ var geq = function(a, b) {
 };
 
 var isEven = function(v) {
-  return v % 2 == 0;
+  return v % 2 === 0;
 };
 var isOdd = function(v) {
   return v % 2 != 0;
@@ -151,7 +154,7 @@ var trueF = function() {
 // Probability computations & calculations
 
 var expectation = function(erp, func) {
-  var f = func == undefined ? idF : func;
+  var f = func || idF;
   var supp = erp.support([]);
   return mapReduce1(plus,
                     function(s) {
@@ -201,27 +204,44 @@ var secondLast = function(xs) {
 var last = function(xs) {
   return xs[xs.length - 1];
 };
+var rest = function(xs) {
+  return xs.slice(1);
+};
 
 var map = function(fn, ar) {
-  return ar.length == 0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
+  return ar.length === 0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
 };
 
 var map2 = function(f, l1, l2) {
-  return (l1.length == 0 || l2.length == 0 ?
+  return (l1.length === 0 || l2.length === 0 ?
           [] :
           [f(l1[0], l2[0])].concat(map2(f, l1.slice(1), l2.slice(1))));
 };
+
+var mapN = function(f, n) {
+  var fn = function(i, _acc) {return i === n ? _acc : fn(i + 1, snoc(_acc, f(i)))};
+  return fn(0, []);
+}
+
+var mapIndexed = function(f, l) {
+  var fn = function(ls, i, _acc) {
+    return ls.length === 0 ?
+        _acc :
+        fn(rest(ls), i + 1, snoc(_acc, f(i, first(ls))))
+  };
+  return fn(l, 0, []);
+}
 
 var _ringAround = function(l, n) {
   return l.slice(n).concat(l.slice(0, n));
 };
 
 var ringForward = function(l, n) {
-  return _ringAround(l, n == undefined ? -1 : -n);
+  return _ringAround(l, n === undefined ? -1 : -n);
 };
 
 var ringBackward = function(l, n) {
-  return _ringAround(l, n == undefined ? 1 : n);
+  return _ringAround(l, n || 1);
 };
 
 var mapPairs2 = function(f, l1, l2) {
@@ -232,9 +252,10 @@ var mapPairs2 = function(f, l1, l2) {
   }, l1);
   return [].concat.apply([], res); // flatten
 };
+
 var mapPairsC = function(f, l) {
   var fn = function(l1, l2, acc) {
-    return (l2.length == 0 ? acc :
+    return (l2.length === 0 ? acc :
             fn(l1.slice(1),
                l2.slice(1),
                acc.concat(map(function(b) {
@@ -249,25 +270,25 @@ var mapPairsNC = function(f, l) {
   var res = mapPairs2(function(a, b) {
     return a === b ? undefined : f(a, b);
   }, l, l);
-  return remove(undefined, [].concat.apply([], res)); // flatten
+  return remove(undefined, res);
 };
 
 var reduce = function(fn, init, ar) {
-  return ar.length == 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
+  return ar.length === 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
 };
 
 var mapReduce = function(f, init, g, ar) {
   // specialized to above reduce
-  return reduce(function(a, b) {
-    return f(g(a), b);
-  }, g(init), ar);
+  return reduce(function(a, b) {return f(g(a), b);},
+                g(init),
+                ar);
 };
 
 var mapReduce1 = function(f, g, ar) {
   // specialized to above reduce
-  return reduce(function(a, b) {
-    return f(g(a), b);
-  }, g(ar[ar.length - 1]), ar.slice(0, -1));
+  return reduce(function(a, b) {return f(g(a), b);},
+                g(ar[ar.length - 1]),
+                ar.slice(0, -1));
 };
 
 var sum = function(l) {
@@ -281,7 +302,7 @@ var listMean = function(l) {
   return reduce(plus, 0, l) / l.length;
 };
 var listVar = function(l, mu) {
-  var mu = mu == undefined ? listMean(l) : mu;
+  var mu = mu || listMean(l);
   return mapReduce1(plus, function(a) {
     return (a - mu) * (a - mu);
   }, l) / l.length;
@@ -302,19 +323,19 @@ var any = function(p, l) {
 };
 
 var zip = function(xs, ys) {
-  return xs.length == 0 ?
+  return xs.length === 0 ?
       [] :
       [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
 };
 
 var filter = function(fn, ar) {
-  return ar.length == 0 ?
+  return ar.length === 0 ?
       [] :
       append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
 };
 
 var find = function(f, ar) {
-  return ar.length == 0 ? undefined : (f(ar[0]) ? ar[0] : find(f, ar.slice(1)));
+  return ar.length === 0 ? undefined : (f(ar[0]) ? ar[0] : find(f, ar.slice(1)));
 };
 
 var remove = function(a, ar) {
@@ -322,6 +343,18 @@ var remove = function(a, ar) {
     return a != e;
   }, ar);
 };
+
+var insertAt = function(ar, i, x) {
+  return ar.slice(0, i).concat([x]).concat(ar.slice(i));
+}
+
+var removeAt = function(ar, i) {
+  return ar.slice(0, i).concat(ar.slice(i + 1));
+}
+
+var replaceAt = function(ar, i, x) {
+  return ar.slice(0, i).concat([x]).concat(ar.slice(i + 1));
+}
 
 var drop = function(n, ar) {
   return n > ar.length ? [] : ar.slice(n);
@@ -337,15 +370,14 @@ var takeWhile = function(p, ar) {
 };
 
 var indexOf = function(x, xs) {
-  var fn = function(xs, i) {
-    return (xs.length == 0) ? undefined : x == xs[0] ? i : fn(xs.slice(1), i + 1);
-  };
-  return fn(xs, 0);
+  // prototype method doesn't return falsy value if not found
+  var i = xs.indexOf(x);
+  return i < 0 ? undefined : i
 };
 
 var minWith = function(f, ar) {
   var fn = function(_ar, _best) {
-    if (_ar.length == 0) {
+    if (_ar.length === 0) {
       return _best;
     } else if (_ar[0][1] < _best[1]) {
       return fn(_ar.slice(1), _ar[0]);
@@ -358,7 +390,7 @@ var minWith = function(f, ar) {
 
 var maxWith = function(f, ar) {
   var fn = function(_ar, _best) {
-    if (_ar.length == 0) {
+    if (_ar.length === 0) {
       return _best;
     } else if (_ar[0][1] > _best[1]) {
       return fn(_ar.slice(1), _ar[0]);
@@ -371,7 +403,7 @@ var maxWith = function(f, ar) {
 
 var span = function(p, ar) {
   var fn = function(ar, _ts, _fs) {
-    return (ar.length == 0 ?
+    return (ar.length === 0 ?
             [_ts, _fs] :
             (p(ar[0]) ?
              fn(ar.slice(1), snoc(_ts, ar[0]), _fs) :
@@ -381,7 +413,7 @@ var span = function(p, ar) {
 };
 
 var groupBy = function(cmp, ar) {
-  if (ar.length == 0) {
+  if (ar.length === 0) {
     return [];
   } else {
     var x = ar[0];
@@ -391,7 +423,7 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n == 0 ? [] : append(repeat(n - 1, fn), [fn()]);
+  return n === 0 ? [] : append(repeat(n - 1, fn), [fn(n - 1)]);
 };
 
 var push = function(xs, x) {
@@ -409,9 +441,9 @@ var everyOther = function(l) {
 };
 
 var _merge = function(l1, l2, pred, key) {
-  return (l1.length == 0 ?
+  return (l1.length === 0 ?
           l2 :
-          (l2.length == 0 ?
+          (l2.length === 0 ?
            l1 :
            (pred(key(l1[0]), key(l2[0])) ?
             [l1[0]].concat(_merge(l1.slice(1), l2, pred, key)) :
@@ -428,13 +460,9 @@ var _sort = function(l, pred, key) {
 };
 
 var sort = function(l, pred, key) {
-  return _sort(l,
-               (pred == undefined ? lt : pred),
-               (key == undefined ? idF : key));
+  return _sort(l, (pred || lt), (key || idF));
 };
 
 var sortOn = function(l, key, pred) {
-  return _sort(l, (pred == undefined ? lt : pred), key);
+  return _sort(l, (pred || lt), key);
 };
-
-
