@@ -423,7 +423,7 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
+  return n === 0 ? [] : append(repeat(n - 1, fn), [fn(n - 1)]);
 };
 
 var push = function(xs, x) {
