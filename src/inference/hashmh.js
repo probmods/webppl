@@ -7,6 +7,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
+var Query = require('../query.js').Query;
 
 module.exports = function(env) {
 
@@ -27,6 +28,7 @@ module.exports = function(env) {
     var verbose = opts.verbose === undefined ? false : opts.verbose;
     var justSample = opts.justSample === undefined ? false : opts.justSample;
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
+    var lag = opts.lag === undefined ? 1 : opts.lag;
 
     this.doFullRerun = doFullRerun;
     this.verbose = verbose;
@@ -38,8 +40,7 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
 
-    // Move old coroutine out of the way and install this as the current
-    // handler.
+    this.lag = lag;
 
     this.wpplFn = wpplFn;
     this.s = s;
@@ -52,6 +53,8 @@ module.exports = function(env) {
       this.returnHist = {};
     this.MAP = { val: undefined, score: -Infinity };
 
+    // Move old coroutine out of the way and install this as the current
+    // handler.
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -63,6 +66,8 @@ module.exports = function(env) {
     this.fwdLP = 0;
     this.rvsLP = 0;
     this.oldScore = -Infinity;
+    this.query = new Query();
+    env.query.clear();
     return this.wpplFn(this.s, env.exit, this.a);
   };
 
@@ -157,24 +162,35 @@ module.exports = function(env) {
           this.varlist = this.oldvarlist;
           this.currScore = this.oldScore;
           val = this.oldVal;
-        } else this.acceptedProps++;
-
-        // now add val to hist:
-        if (!this.onlyMAP) {
-          if (this.returnSamps)
-            this.returnSamps.push({score: this.currScore, value: val})
-          else {
-            var stringifiedVal = JSON.stringify(val);
-            if (this.returnHist[stringifiedVal] === undefined) {
-              this.returnHist[stringifiedVal] = { prob: 0, val: val };
-            }
-            this.returnHist[stringifiedVal].prob += 1;
-          }
+        } else {
+          this.acceptedProps++;
+          this.query.addAll(env.query);
         }
-        // also update the MAP
-        if (this.currScore > this.MAP.score) {
-          this.MAP.score = this.currScore;
-          this.MAP.value = val;
+        env.query.clear();
+
+        // Record this sample, if lag allows for it
+        var iternum = this.totalIterations - this.iterations;
+        if (iternum % this.lag === 0) {
+          // Replace val with accumulated query, if need be.
+          if (val === env.query)
+            val = this.query.getTable();
+          // add val to hist:
+          if (!this.onlyMAP) {
+            if (this.returnSamps)
+              this.returnSamps.push({score: this.score, value: val})
+            else {
+              var stringifiedVal = JSON.stringify(val);
+              if (this.returnHist[stringifiedVal] === undefined) {
+                this.returnHist[stringifiedVal] = { prob: 0, val: val };
+              }
+              this.returnHist[stringifiedVal].prob += 1;
+            }
+          }
+           // also update the MAP
+          if (this.currScore > this.MAP.score) {
+            this.MAP.score = this.currScore;
+            this.MAP.value = val;
+          }
         }
 
         // make a new proposal:
@@ -210,7 +226,7 @@ module.exports = function(env) {
           this.returnSamps.push(this.MAP);
         dist.samples = this.returnSamps;
       }
-      dist.MAP = this.MAP.val;
+      dist.MAP = this.MAP.value;
 
       // Reinstate previous coroutine:
       var k = this.k;

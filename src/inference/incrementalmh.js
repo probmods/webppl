@@ -7,7 +7,8 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
-var Hashtable = require("../hashtable.js").Hashtable
+var Hashtable = require('../hashtable.js').Hashtable
+var Query = require('../query.js').Query;
 
 module.exports = function(env) {
 
@@ -723,6 +724,7 @@ module.exports = function(env) {
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
     var minHitRate = opts.cacheMinHitRate === undefined ? 0.00001 : opts.cacheMinHitRate;
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
+    var lag = opts.lag === undefined ? 1 : opts.lag;
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
     //    caching, so disable adaptation in this case.
@@ -747,6 +749,7 @@ module.exports = function(env) {
     this.MAP = { val: undefined, score: -Infinity };
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
+    this.lag = lag;
 
     this.doFullRerun = doFullRerun;
 
@@ -767,6 +770,8 @@ module.exports = function(env) {
     this.score = 0;
     this.fwdPropLP = 0;
     this.rvsPropLP = 0;
+    this.query = new Query();
+    env.query.clear();
     debuglog(1, "-------------------------------------");
     debuglog(1, "RUN FROM START");
     return this.runFromStart();
@@ -849,27 +854,36 @@ module.exports = function(env) {
           var n = this.touchedNodes.length;
           while(n--) discardSnapshot(this.touchedNodes[n]);
           this.acceptedProps++;
+          this.query.addAll(env.query);
         }
+        env.query.clear();
 
         var val = this.cacheRoot.retval;
         debuglog(1, "return val:", val);
 
-         // now add val to hist:
-        if (!this.onlyMAP) {
-          if (this.returnSamps)
-            this.returnSamps.push({score: this.score, value: val})
-          else {
-            var stringifiedVal = JSON.stringify(val);
-            if (this.returnHist[stringifiedVal] === undefined) {
-              this.returnHist[stringifiedVal] = { prob: 0, val: val };
+        // Record this sample, if lag allows for it
+        var iternum = this.totalIterations - this.iterations;
+        if (iternum % this.lag === 0) {
+          // Replace val with accumulated query, if need be.
+          if (val === env.query)
+            val = this.query.getTable();
+          // add val to hist:
+          if (!this.onlyMAP) {
+            if (this.returnSamps)
+              this.returnSamps.push({score: this.score, value: val})
+            else {
+              var stringifiedVal = JSON.stringify(val);
+              if (this.returnHist[stringifiedVal] === undefined) {
+                this.returnHist[stringifiedVal] = { prob: 0, val: val };
+              }
+              this.returnHist[stringifiedVal].prob += 1;
             }
-            this.returnHist[stringifiedVal].prob += 1;
           }
-        }
-         // also update the MAP
-        if (this.score > this.MAP.score) {
-          this.MAP.score = this.score;
-          this.MAP.value = val;
+           // also update the MAP
+          if (this.score > this.MAP.score) {
+            this.MAP.score = this.score;
+            this.MAP.value = val;
+          }
         }
 
         if (DEBUG >= 6) {
@@ -906,7 +920,7 @@ module.exports = function(env) {
           this.returnSamps.push(this.MAP);
         dist.samples = this.returnSamps;
       }
-      dist.MAP = this.MAP.val;
+      dist.MAP = this.MAP.value;
 
       // Reinstate previous coroutine:
       var k = this.k;

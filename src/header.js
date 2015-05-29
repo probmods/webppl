@@ -33,6 +33,7 @@ var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
 var incrementalmh = require('./inference/incrementalmh.js');
 var headerUtils = require('./headerUtils.js');
+var Query = require('./query.js').Query;
 
 
 module.exports = function(env) {
@@ -90,6 +91,9 @@ module.exports = function(env) {
     return env.coroutine.incrementalize(s, cc, a, fn, args);
   }
 
+  // Inference coroutines are responsible for managing this correctly.
+  env.query = new Query();
+
 
   // Exports
 
@@ -104,7 +108,8 @@ module.exports = function(env) {
     factor: env.factor,
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
-    incrementalize: env.incrementalize
+    incrementalize: env.incrementalize,
+    query: env.query
   });
 
   // Modules we want to use from webppl

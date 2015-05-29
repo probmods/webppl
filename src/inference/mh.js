@@ -169,7 +169,7 @@ module.exports = function(env) {
         dist = erp.makeMarginalERP({});
       if (this.returnSamps)
         dist.samples = this.returnSamps;
-      dist.MAP = this.MAP.val;
+      dist.MAP = this.MAP.value;
 
       // Reinstate previous coroutine:
       var k = this.k;
