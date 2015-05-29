@@ -60,6 +60,10 @@ var deltaERP = function(v) {
   return global.makeDeltaERP(v);
 }
 
+var multiplexERP = function(vs, erps) {
+  return global.makeMultiplexERP(vs, erps);
+}
+
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {

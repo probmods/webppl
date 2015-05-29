@@ -474,6 +474,7 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
+// Make an ERP that assigns probability 1 to a single value, probability 0 to everything else
 var makeDeltaERP = function(v) {
   var stringifiedValue = JSON.stringify(v);
   return new ERP(
@@ -496,6 +497,41 @@ var makeDeltaERP = function(v) {
   );
 };
 
+// Make a parameterized ERP that selects among multiple (unparameterized) ERPs
+var makeMultiplexERP = function(vs, erps) {
+  var stringifiedVals = vs.map(JSON.stringify);
+  var selectERP = function(params) {
+    var stringifiedV = JSON.stringify(params[0]);
+    var i = _.indexOf(stringifiedVals, stringifiedV);
+    if (i === -1) {
+      return undefined;
+    } else {
+      return erps[i];
+    }
+  };
+  return new ERP(
+      function multiplexSample(params) {
+        var erp = selectERP(params);
+        assert.notEqual(erp, undefined);
+        return erp.sample();
+      },
+      function multiplexScore(params, val) {
+        var erp = selectERP(params);
+        if (erp === undefined) {
+          return -Infinity;
+        } else {
+          return erp.score([], val);
+        }
+      },
+      {
+        support: function multiplexSupport(params) {
+          var erp = selectERP(params);
+          return erp.support();
+        }
+      }
+  );
+};
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -512,5 +548,6 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP
+  makeDeltaERP: makeDeltaERP,
+  makeMultiplexERP: makeMultiplexERP
 };
