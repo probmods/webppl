@@ -57,11 +57,11 @@ var gamma = function(shape, scale) {
 };
 
 var deltaERP = function(v) {
-  return global.makeDeltaERP(v);
+  return top.makeDeltaERP(v);
 }
 
 var multiplexERP = function(vs, erps) {
-  return global.makeMultiplexERP(vs, erps);
+  return top.makeMultiplexERP(vs, erps);
 }
 
 // XRPs
