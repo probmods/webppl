@@ -386,10 +386,13 @@ module.exports = function(env) {
           if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
             tabbedlog(4, that.depth, "bailing b/c function return val not changed");
             tabbedlog(5, that.depth, "return val:", retval);
+            coroutine.cacheAdapter.registerHit(that);
             return coroutine.exit();
           }
           if (!that.entered && that.parent !== null)
-            that.parent.notifyChildChanged(that);
+            that.parent.notifyChildChanged(that); 
+          if (!that.entered)
+            coroutine.cacheAdapter.registerMiss(that);
           that.entered = false;
           tabbedlog(4, that.depth, "function return val has changed, or cannot bail");
           tabbedlog(5, that.depth, "old ret val:", that.retval, "new ret val:", retval);
