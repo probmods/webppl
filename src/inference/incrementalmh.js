@@ -101,23 +101,17 @@ module.exports = function(env) {
 
   ERPNode.prototype.execute = function() {
     tabbedlog(4, this.depth, "execute ERP");
-    // Bail out early if we know the proposal will be rejected
-    if (this.score === -Infinity) {
-      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
-      return this.coroutine.exit();
-    } else {
-      if (this.needsUpdate) {
-        tabbedlog(4, this.depth, "yes, ERP params changed");
-        tabbedlog(5, this.depth, "old params:", this.__snapshot ? this.__snapshot.params : undefined, "new params:", this.params);
-        this.needsUpdate = false;
-        this.rescore();
-      }
-      else {
-        tabbedlog(4, this.depth, "no, ERP params have not changed");
-        tabbedlog(5, this.depth, "params:", this.params);
-      }
-      return this.kontinue();
+    if (this.needsUpdate) {
+      tabbedlog(4, this.depth, "yes, ERP params changed");
+      tabbedlog(5, this.depth, "old params:", this.__snapshot ? this.__snapshot.params : undefined, "new params:", this.params);
+      this.needsUpdate = false;
+      this.rescore();
     }
+    else {
+      tabbedlog(4, this.depth, "no, ERP params have not changed");
+      tabbedlog(5, this.depth, "params:", this.params);
+    }
+    return this.kontinue();
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
@@ -185,6 +179,10 @@ module.exports = function(env) {
     var oldscore = this.score;
     updateProperty(this, "score", this.erp.score(this.params, this.val));
     this.coroutine.score += this.score - oldscore;
+    if (this.score === -Infinity) {
+      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
+      return this.coroutine.exit();
+    }
   };
 
   // ------------------------------------------------------------------
