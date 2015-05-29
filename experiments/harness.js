@@ -58,7 +58,8 @@ function time(config, callback) {
 	}
 
 	// Compile code and turn it into executable function
-	var progfn = eval(webppl.compile(code, false, config.doCaching));
+	var compiledCode = webppl.compile(code, false, config.doCaching);
+	var progfn = eval(compiledCode);
 
 	// Run with top continuation that times it.
 	var t0;
@@ -97,23 +98,25 @@ function makeVarying(varyingName, varyingValues, fn) {
 
 // Run something over different inference methods
 // infSettings is a list of {name:, code: } objects
-function infCompare(infSettings, config, callback, fn) {
+function infCompare(infSettings, reps, config, callback, fn) {
 	var originf = config.inference;
 	var origdocache = config.doCaching;
 	for (var i = 0; i < infSettings.length; i++) {
 		config.inference = infSettings[i].code;
 		config.doCaching = infSettings[i].doCaching;
 		var infname = infSettings[i].name;
-		fn(config, function(args) {
-			callback([infname].concat(args));
-		})
+		for (var j = 0; j < reps; j++) {
+			fn(config, function(args) {
+				callback([infname].concat(args));
+			});
+		}
 	}
 	config.inference = originf;
 	config.doCaching = origdocache;
 }
-function makeInfCompare(infSettings, fn) {
+function makeInfCompare(infSettings, reps, fn) {
 	return function(config, callback) {
-		infCompare(infSettings, config, callback, fn);
+		infCompare(infSettings, reps, config, callback, fn);
 	}
 }
 

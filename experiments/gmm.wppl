@@ -1,0 +1,30 @@
+// requires: gmm.js
+// params: nComponents, nDataPoints
+
+var gaussFactor = function(x, params) {
+	factor(gaussianERP.score(params, x));
+};
+
+var foreach = function(lst, fn) {
+	var foreach_ = function(i) {
+		if (i < lst.length) {
+			fn(lst[i]);
+			foreach_(i + 1);
+		}
+	}
+	foreach_(0);
+};
+
+var data = gmm.genSynthData(nComponents, nDataPoints);
+
+var program = function() {
+	var params = repeat(nComponents, function() {
+		return [gaussian(0, 10), uniform(0, 5)];
+	});
+	foreach(data, function(x) {
+		var compi = randomInteger(nComponents);
+		var p = params[compi];
+		gaussFactor(x, p);
+	});
+	return params;
+};

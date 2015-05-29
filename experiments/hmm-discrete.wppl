@@ -10,6 +10,7 @@ var hmmfn = function(n) {
 	} else {
 		var prevState = hmmfn(n-1);
 		var state = transition(prevState, n);
+		query.add(n, state);
 		var obs = data[n-1];	// b/c of offset
 		observation(state, obs);
 		return state;
@@ -26,5 +27,6 @@ var observation = function(state, obs) {
 }
 
 var program = function() {
-	return hmmfn(nObservations);
+	hmmfn(nObservations);
+	return query;
 }
