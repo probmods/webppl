@@ -106,7 +106,7 @@ function varying(varyingName, varyingValues, config, callback, fn, convertValue)
 		config.params[varyingName] = value;
 		fn(config, function(args) {
 			var convVal = (convertValue === undefined) ? value : convertValue(value);
-			callback([value].concat(args));
+			callback([convVal].concat(args));
 		});
 	}
 	config.params = origparams;
