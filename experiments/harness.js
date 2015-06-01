@@ -71,8 +71,26 @@ function time(config, callback) {
 		if (callback !== undefined)
 			callback([hrtimeToSeconds(tdiff)]);
 	}
-	t0 = process.hrtime();
-	progfn({}, topK, '');
+
+	// Wrap in a loop that tries this until it succeeds, in case the
+	//    progfn throws an exception
+	function go() {
+		var success = true;
+		try {
+			t0 = process.hrtime();
+			progfn({}, topK, '');
+		} catch (e) {
+			success = false;
+		} finally {
+			return success;
+		}
+	}
+	do {
+		var success = go();
+	} while(!success);
+
+	// t0 = process.hrtime();
+	// progfn({}, topK, '');
 }
 
 

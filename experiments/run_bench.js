@@ -13,24 +13,44 @@ var infSettings = [
 var nReps = 10;
 
 
-// GMM --------------------------------
+// // GMM --------------------------------
 
-var gmm_config = {
-	file: 'gmm.wppl',
-	requires: [{name: 'gmm', path: 'gmm.js'}],
+// var gmm_config = {
+// 	file: 'gmm.wppl',
+// 	requires: [{name: 'gmm', path: 'gmm.js'}],
+// 	params: {
+// 		// Defaults
+// 		nComponents: 3,
+// 		nDataPoints: 500,
+// 		nIters: 1000
+// 	},
+// 	// doCaching: true,
+// 	// inference: 'IncrementalMH(program, nIters, {lag: 1, debuglevel: 0, dontAdapt: false});',
+// 	// inference: 'HashMH(program, nIters, {doFullRerun: true});',
+// };
+
+// // harness.time(gmm_config, function(args) { console.log(args[0]); });
+
+// harness.csv('results/gmm.csv', ['infMethod', 'time'], gmm_config,
+// 	harness.infCompare(infSettings, nReps,
+// 			harness.time));
+
+
+// Hierarchical Linear Regression --------------------------------
+
+var hlr_config = {
+	file: 'hierlinreg.wppl',
+	requires: [{name: 'hlr', path: 'hierlinreg.js'}],
 	params: {
-		// Defaults
-		nComponents: 3,
-		nDataPoints: 500,
-		nIters: 1000
+		nIters: 1000,
+		xStart: 8,
+		xIncr: 7,
+		datumSize: 5,
+		numData: 100
 	},
-	// doCaching: true,
-	// inference: 'IncrementalMH(program, nIters, {lag: 1, debuglevel: 0, dontAdapt: false});',
+	doCaching: true,
+	inference: 'IncrementalMH(program, nIters, {lag: 1, debuglevel: 0, dontAdapt: false});',
 	// inference: 'HashMH(program, nIters, {doFullRerun: true});',
 };
 
-// harness.time(gmm_config, function(args) { console.log(args[0]); });
-
-harness.csv('results/gmm.csv', ['infMethod', 'time'], gmm_config,
-	harness.infCompare(infSettings, nReps,
-			harness.time));
+harness.time(hlr_config, function(args) { console.log(args[0]); });
