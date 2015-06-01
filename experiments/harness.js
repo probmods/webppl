@@ -45,7 +45,11 @@ function time(config, callback) {
 		}
 	}
 
-	code = paramPrefix + code + '\n' + config.inference + '\n';
+	// Also add code to time how long inference takes
+	code = paramPrefix + code + '\n' + 
+		   "var t0 = process.hrtime();\n" +
+		   config.inference + '\n' +
+		   "var tdiff = process.hrtime(t0);\ntdiff;\n";
 
 	// Set up requires
 	if (config.requires !== undefined) {
@@ -61,10 +65,8 @@ function time(config, callback) {
 	var compiledCode = webppl.compile(code, false, config.doCaching);
 	var progfn = eval(compiledCode);
 
-	// Run with top continuation that times it.
-	var t0;
-	function topK() {
-		var tdiff = process.hrtime(t0);
+	// Run with top continuation
+	function topK(s, tdiff) {
 		// Restore requires before 'returning'
 		for (var name in prevreqs)
 			global[name] = prevreqs[name];
@@ -72,69 +74,68 @@ function time(config, callback) {
 			callback([hrtimeToSeconds(tdiff)]);
 	}
 
-	// Wrap in a loop that tries this until it succeeds, in case the
-	//    progfn throws an exception
-	function go() {
-		var success = true;
-		try {
-			t0 = process.hrtime();
-			progfn({}, topK, '');
-		} catch (e) {
-			success = false;
-		} finally {
-			return success;
+	if (config.catchExceptions) {
+		// Wrap in a loop that tries this until it succeeds, in case the
+		//    progfn throws an exception
+		function go() {
+			var success = true;
+			try {
+				progfn({}, topK, '');
+			} catch (e) {
+				success = false;
+			} finally {
+				return success;
+			}
 		}
+		do {
+			var success = go();
+		} while(!success);
+	} else {
+		progfn({}, topK, '');
 	}
-	do {
-		var success = go();
-	} while(!success);
-
-	// t0 = process.hrtime();
-	// progfn({}, topK, '');
 }
 
 
 // Run something multiple times, varying the value of some parameter
 // Invoke 'callback' on each return value
-function varying(varyingName, varyingValues, config, callback, fn) {
+function varying(varyingName, varyingValues, config, callback, fn, convertValue) {
 	var origparams = config.params;
 	for (var i = 0; i < varyingValues.length; i++) {
 		var value = varyingValues[i];
 		config.params = _.clone(config.params);
 		config.params[varyingName] = value;
 		fn(config, function(args) {
+			var convVal = (convertValue === undefined) ? value : convertValue(value);
 			callback([value].concat(args));
 		});
 	}
 	config.params = origparams;
 }
-function makeVarying(varyingName, varyingValues, fn) {
+function makeVarying(varyingName, varyingValues, fn, convertValue) {
 	return function(config, callback) {
-		varying(varyingName, varyingValues, config, callback, fn);
+		varying(varyingName, varyingValues, config, callback, fn, convertValue);
 	}
 }
 
 // Run something over different inference methods
 // infSettings is a list of {name:, code: } objects
-function infCompare(infSettings, reps, config, callback, fn) {
+function infCompare(infSettings, config, callback, fn) {
 	var originf = config.inference;
 	var origdocache = config.doCaching;
 	for (var i = 0; i < infSettings.length; i++) {
 		config.inference = infSettings[i].code;
 		config.doCaching = infSettings[i].doCaching;
 		var infname = infSettings[i].name;
-		for (var j = 0; j < reps; j++) {
-			fn(config, function(args) {
-				callback([infname].concat(args));
-			});
-		}
+		fn(config, function(args) {
+			callback([infname].concat(args));
+		});
 	}
 	config.inference = originf;
 	config.doCaching = origdocache;
 }
-function makeInfCompare(infSettings, reps, fn) {
+function makeInfCompare(infSettings, fn) {
 	return function(config, callback) {
-		infCompare(infSettings, reps, config, callback, fn);
+		infCompare(infSettings, config, callback, fn);
 	}
 }
 

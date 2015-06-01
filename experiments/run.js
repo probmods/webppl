@@ -33,7 +33,7 @@ var nReps = 10;
 
 // // Vary nObservations
 // harness.csv('results/hmm_nObservations.csv', ['infMethod', 'nObservations', 'time'], config,
-// 	harness.infCompare(infSettings, 1,
+// 	harness.infCompare(infSettings,
 // 		harness.varying('nObservations', harness.range(10, 100, 10, nReps),
 // 			harness.time)));
 
@@ -67,7 +67,7 @@ var infSettings = [
 
 // Vary nDocs
 harness.csv('results/lda_nDocs.csv', ['infMethod', 'nDocs', 'time'], config,
-	harness.infCompare(infSettings, 1,
+	harness.infCompare(infSettings,
 		harness.varying('nDocs', harness.range(5, 50, 5, nReps),
 			harness.time)));
 

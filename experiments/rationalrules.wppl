@@ -1,0 +1,68 @@
+// requires: rationalrules.js
+// params: nFeatures, nExamples, tau
+
+var noise = Math.exp(-1.5);
+
+// var nFeatures = 4;
+// var aObjects = [[0, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]];
+// var bObjects = [[0, 0, 1, 1], [1, 0, 0, 1], [1, 1, 1, 0], [1, 1, 1, 1]];
+
+var data = rr.genSynthData(nFeatures, nExamples, tau);
+var aObjects = data.a;
+var bObjects = data.b;
+
+var getFormula = function() {
+	if (flip(tau)) {
+		var c = conj();
+		var f = getFormula();
+		return function (x) { return c(x) || f(x); };
+	} else
+		return conj();
+};
+
+var conj = function() {
+	if (flip(tau)) {
+		var p = pred();
+		var c = conj();
+		return function (x) { return p(x) && c(x); };
+	} else
+		return pred();
+};
+
+var pred = function() {
+	var index = randomInteger(nFeatures);
+	var value = randomInteger(2);
+	return function (x) { return x[index] === value };
+};
+
+var foreach = function(lst, fn) {
+    var foreach_ = function(i) {
+        if (i < lst.length) {
+            fn(lst[i]);
+            foreach_(i + 1);
+        }
+    };
+    foreach_(0);
+};
+
+var noisyEqual = function(a, b) {
+	return flip(a === b ? 0.999999999 : noise);
+};
+
+var condition = function(x) {
+	if (!x) factor(-Infinity);
+};
+
+var conditionOn = function(objects, formula, targetval) {
+	foreach(objects, function (x) {
+		// condition(noisyEqual(formula(x), targetval));
+		if (formula(x) !== targetval) factor(-1);
+	});
+};
+
+var program = function() {
+	var formula = getFormula();
+	conditionOn(aObjects, formula, true);
+	conditionOn(bObjects, formula, false);
+	return formula;
+};
