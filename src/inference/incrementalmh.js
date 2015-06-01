@@ -271,7 +271,7 @@ module.exports = function(env) {
     // We cache this check, because situations often arise where we're checking
     //    the same pair of functions over and over again.
     if (f1.__lexid === f2.__lexid) {
-      var key = JSON.stringify([f1.__lexid, f2.__lexid]);
+      var key = JSON.stringify([f1.__uniqueid, f2.__uniqueid]);
       var val = fnEquivCache[key];
       if (val === undefined) {
         val = true;
