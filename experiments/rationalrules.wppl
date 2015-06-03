@@ -1,13 +1,14 @@
 // requires: rationalrules.js
-// params: nFeatures, nExamples, tau
+// params: nFeatures, nExamples, tau, nClauses, clauseSize
 
-var noise = Math.exp(-1.5);
 
 // var nFeatures = 4;
+// var tau = 0.5;
 // var aObjects = [[0, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]];
 // var bObjects = [[0, 0, 1, 1], [1, 0, 0, 1], [1, 1, 1, 0], [1, 1, 1, 1]];
 
-var data = rr.genSynthData(nFeatures, nExamples, tau);
+// var data = rr.genSynthData(nFeatures, nExamples, tau);
+var data = rr.genSynthData(nFeatures, nExamples, nClauses, clauseSize);
 var aObjects = data.a;
 var bObjects = data.b;
 
@@ -45,24 +46,18 @@ var foreach = function(lst, fn) {
     foreach_(0);
 };
 
-var noisyEqual = function(a, b) {
-	return flip(a === b ? 0.999999999 : noise);
-};
-
-var condition = function(x) {
-	if (!x) factor(-Infinity);
-};
-
 var conditionOn = function(objects, formula, targetval) {
 	foreach(objects, function (x) {
-		// condition(noisyEqual(formula(x), targetval));
-		if (formula(x) !== targetval) factor(-1);
+		if (formula(x) !== targetval) factor(-10);
 	});
 };
 
 var program = function() {
 	var formula = getFormula();
+	// console.log('1');
 	conditionOn(aObjects, formula, true);
+	// console.log('2');
 	conditionOn(bObjects, formula, false);
+	// console.log('3');
 	return formula;
 };

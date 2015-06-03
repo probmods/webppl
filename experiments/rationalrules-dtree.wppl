@@ -1,0 +1,63 @@
+// requires: rationalrules.js
+// params: nFeatures, nExamples, tau, nClauses, clauseSize, depth, sleepAmt
+
+
+// var nFeatures = 4;
+// var tau = 0.5;
+// var aObjects = [[0, 0, 0, 1], [0, 1, 0, 1], [0, 1, 0, 0], [1, 0, 0, 0]];
+// var bObjects = [[0, 0, 1, 1], [1, 0, 0, 1], [1, 1, 1, 0], [1, 1, 1, 1]];
+
+// var data = rr.genSynthData(nFeatures, nExamples, tau);
+// var data = rr.genSynthData(nFeatures, nExamples, nClauses, clauseSize);
+var data = rr.genSynthData(nFeatures, nExamples, depth);
+var aObjects = data.a;
+var bObjects = data.b;
+
+var getFormula = function(freeindices) {
+	if (freeindices.length > 0 && flip(tau)) {
+		var i = randomInteger(freeindices.length);
+		var index = freeindices[i];
+		var newfreeindices = freeindices.slice(0, i).concat(freeindices.slice(i+1));
+		var truebranch = getFormula(newfreeindices);
+		var falsebranch = getFormula(newfreeindices);
+		return function (x) { rr.sleep(sleepAmt); return (x[index] === 1) ? truebranch(x) : falsebranch(x); }
+	} else {
+		var boolliteral = flip(0.5);
+		return function (x) { return boolliteral; }
+	}
+};
+
+var foreach = function(lst, fn) {
+    var foreach_ = function(i) {
+        if (i < lst.length) {
+            fn(lst[i]);
+            foreach_(i + 1);
+        }
+    };
+    foreach_(0);
+};
+
+var conditionOn = function(objects, formula, targetval) {
+	foreach(objects, function (x) {
+		if (formula(x) !== targetval) factor(-10);
+	});
+};
+
+var range = function(n) {
+	if (n === 0)
+		return [];
+	else
+		return range(n-1).concat([n-1]);
+}
+
+var freeindices = range(nFeatures);
+
+var program = function() {
+	var formula = getFormula(freeindices);
+	// console.log('1');
+	conditionOn(aObjects, formula, true);
+	// console.log('2');
+	conditionOn(bObjects, formula, false);
+	// console.log('3');
+	return formula;
+};
