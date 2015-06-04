@@ -2,7 +2,8 @@
 var harness = require('./harness.js');
 
 
-var nReps = 10;
+// var nReps = 10;
+var nReps = 20;
 
 
 // // HMM w/ discrete states --------------------------------
@@ -27,7 +28,7 @@ var nReps = 10;
 // 	{name: 'Lightweight_MH', code: 'HashMH(program, nIters, {doFullRerun: true, lag: 10});'},
 // 	{name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters, {lag: 10});'},
 // 	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters, {lag: 10});', doCaching: true},
-// 	{name: 'Incremental_MH_noAdapt', code: 'IncrementalMH(program, nIters, {dontAdapt: true, lag: 10});', doCaching: true},
+// 	// {name: 'Incremental_MH_noAdapt', code: 'IncrementalMH(program, nIters, {dontAdapt: true, lag: 10});', doCaching: true},
 // 	{name: 'Incremental_MH_noCPS', code: 'IncrementalMH(program, nIters, {dontAdapt: true, doFullRerun: true, lag: 10});', doCaching: true}
 // ];
 
@@ -61,7 +62,7 @@ var infSettings = [
 	{name: 'Lightweight_MH', code: 'HashMH(program, nIters, {doFullRerun: true});'},
 	{name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters);'},
 	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters);', doCaching: true},
-	{name: 'Incremental_MH_noAdapt', code: 'IncrementalMH(program, nIters, {dontAdapt: true});', doCaching: true},
+	// {name: 'Incremental_MH_noAdapt', code: 'IncrementalMH(program, nIters, {dontAdapt: true});', doCaching: true},
 	{name: 'Incremental_MH_noCPS', code: 'IncrementalMH(program, nIters, {dontAdapt: true, doFullRerun: true});', doCaching: true}
 ];
 
