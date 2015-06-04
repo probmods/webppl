@@ -95,7 +95,9 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "ERPNode", this.address, this.erp.sample.name.slice(0, -6),
+    // tabbedlog(0, this.depth, "ERPNode", this.address, this.erp.sample.name.slice(0, -6),
+    //           this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, "ERPNode", this.erp.sample.name.slice(0, -6),
               this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
   };
 
@@ -207,7 +209,8 @@ module.exports = function(env) {
   }
 
   FactorNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "FactorNode", this.address, this.reachable ? "" : "!!UNREACHABLE!!");
+    // tabbedlog(0, this.depth, "FactorNode", this.address, this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, "FactorNode", this.reachable ? "" : "!!UNREACHABLE!!");
   };
 
   FactorNode.prototype.execute = function() {
@@ -318,7 +321,9 @@ module.exports = function(env) {
   }
 
   FunctionNode.prototype.print = function() {
-    tabbedlog(0, this.depth, "FunctionNode", this.address, this.args, this.retval,
+    // tabbedlog(0, this.depth, "FunctionNode", this.address, this.args, this.retval,
+    //           this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, "FunctionNode", this.args, this.retval,
               this.reachable ? "" : "!!UNREACHABLE!!");
     for (var i = 0; i < this.children.length; i++)
       this.children[i].print();
@@ -626,9 +631,10 @@ module.exports = function(env) {
 
   // Tracks statistics on how the cache is performing, so we can make
   //    decisions about when to stop caching certain functions
-  function CacheAdapter(minHitRate, fuseLength) {
+  function CacheAdapter(minHitRate, fuseLength, iterFuseLength) {
     this.minHitRate = minHitRate;
     this.fuseLength = fuseLength;
+    this.iterFuseLength = iterFuseLength;
     this.addrToId = {};
     this.stats = {};
     this.idsToRemove = {};
@@ -664,6 +670,7 @@ module.exports = function(env) {
     stats.hits++;
     stats.total++;
     if (node.parent !== null &&   // Can't remove the cache root
+        (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&  // Give chance to see multiple proposals
         stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
@@ -674,6 +681,7 @@ module.exports = function(env) {
     var stats = this.getStats(node.address);
     stats.total++;
     if (node.parent !== null &&   // Can't remove the cache root
+      (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&  // Give chance to see multiple proposals
         stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
@@ -723,9 +731,10 @@ module.exports = function(env) {
     var justSample = opts.justSample === undefined ? false : opts.justSample;
     var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
-    var minHitRate = opts.cacheMinHitRate === undefined ? 0.00001 : opts.cacheMinHitRate;
+    var minHitRate = opts.cacheMinHitRate === undefined ? 0.00000001 : opts.cacheMinHitRate;
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
     var lag = opts.lag === undefined ? 1 : opts.lag;
+    var iterFuseLength = opts.cacheIterFuseLength === undefined ? 10 : opts.cacheIterFuseLength;
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
     //    caching, so disable adaptation in this case.
@@ -755,7 +764,7 @@ module.exports = function(env) {
     this.doFullRerun = doFullRerun;
 
     this.doAdapt = !dontAdapt;
-    this.cacheAdapter = new CacheAdapter(minHitRate, fuseLength);
+    this.cacheAdapter = new CacheAdapter(minHitRate, fuseLength, iterFuseLength);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -930,7 +939,6 @@ module.exports = function(env) {
       console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
 
       if (DEBUG >= 5) {
-      // if (DEBUG >= 0) {
         this.cacheAdapter.report();
       }
 
