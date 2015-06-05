@@ -222,11 +222,21 @@ var tests = {
       'pcfgIncremental',
       'scalarImplicature',
       'semanticParsing',
-      'pragmaticsWithSemanticParsing'
+      'pragmaticsWithSemanticParsing',
+      'multiplex'
     ],
     directory: './examples/',
     resultDirectory: testDataDir + 'expected/',
     testToRun: runDistributionTest
+  },
+  regressions: {
+    names: [
+      'testDriftLinearRegression',
+      'testDriftPFRj'
+    ],
+    directory: testDataDir + 'models/',
+    resultDirectory: testDataDir + 'expected/',
+    testToRun: runDistributionStatisticsTest
   },
   mhExamples: {
     names: [

@@ -83,7 +83,9 @@ module.exports = function(env) {
 
   // Exports
 
-  var exports = {};
+  var exports = {
+    top: util.runningInBrowser() ? window : global
+  };
 
   function addExports(obj) {
     _.extend(exports, obj);

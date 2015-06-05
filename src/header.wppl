@@ -57,8 +57,16 @@ var gamma = function(shape, scale) {
 };
 
 var deltaERP = function(v) {
-  return global.makeDeltaERP(v);
-}
+  return top.makeDeltaERP(v);
+};
+
+var categoricalERP = function(ps, vs) {
+  return top.makeCategoricalERP(ps, vs);
+};
+
+var multiplexERP = function(vs, erps) {
+  return top.makeMultiplexERP(vs, erps);
+};
 
 // XRPs
 
@@ -423,7 +431,7 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
+  return n === 0 ? [] : append(repeat(n - 1, fn), [fn(n - 1)]);
 };
 
 var push = function(xs, x) {
