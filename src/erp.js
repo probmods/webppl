@@ -30,6 +30,33 @@ function ERP(sampler, scorer, supporter, grad) {
   this.grad = grad;
 }
 
+ERP.prototype.MAP = function() {
+  if (this.support === undefined)
+    throw "Cannot compute entropy for ERP without support!"
+  var supp = this.support([]);
+  var mapEst = {val: undefined, prob: 0};
+  for(var i = 0, l = supp.length; i < l; i++) {
+    var sp = supp[i];
+    var sc = Math.exp(this.score([], sp))
+    if (sc > mapEst.prob) mapEst = {val: sp, prob: sc};
+  }
+  this.MAP = function() {return mapEst};
+  return mapEst;
+};
+
+ERP.prototype.entropy = function() {
+  if (this.support === undefined)
+    throw "Cannot compute entropy for ERP without support!"
+  var supp = this.support([]);
+  var e = 0;
+  for(var i = 0, l = supp.length; i < l; i++) {
+    var lp = this.score([], supp[i]);
+    e -= Math.exp(lp) * lp;
+  }
+  this.entropy = function() {return e};
+  return e;
+}
+
 var uniformERP = new ERP(
     function uniformSample(params) {
       var u = Math.random();
@@ -446,7 +473,7 @@ function makeMarginalERP(marginal) {
         return supp;
       });
 
-  dist.MAP = mapEst;
+  dist.MAP = function() {return mapEst};
   return dist;
 }
 
@@ -469,6 +496,21 @@ var makeDeltaERP = function(v) {
   );
 };
 
+var makeCategoricalERP = function(ps, vs) {
+  return new ERP(
+    function categoricalSample(params) {
+      return vs[multinomialSample(ps)]
+    },
+    function categoricalScore(params, val) {
+      var i = vs.indexOf(val);
+      return i < 0 ? -Infinity : ps[i];
+    },
+    function categoricalSupport(params) {
+      return vs
+    }
+  );
+};
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -485,5 +527,6 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP
+  makeDeltaERP: makeDeltaERP,
+  makeCategoricalERP: makeCategoricalERP
 };
