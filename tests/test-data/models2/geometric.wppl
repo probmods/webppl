@@ -1,0 +1,7 @@
+var geometric = function(p) {
+  return flip(p) ? 1 + geometric(p) : 1;
+};
+
+var model = function() {
+  return geometric(0.5);
+};
