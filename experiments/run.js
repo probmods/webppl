@@ -59,8 +59,8 @@ var config = {
 // harness.time(config, function(args) { console.log(args[0]); });
 
 var infSettings = [
-	{name: 'Lightweight_MH', code: 'HashMH(program, nIters, {doFullRerun: true});'},
-	{name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters);'},
+	// {name: 'Lightweight_MH', code: 'HashMH(program, nIters, {doFullRerun: true});'},
+	// {name: 'Lightweight_MH_CPS', code: 'HashMH(program, nIters);'},
 	{name: 'Incremental_MH', code: 'IncrementalMH(program, nIters);', doCaching: true},
 	// {name: 'Incremental_MH_noAdapt', code: 'IncrementalMH(program, nIters, {dontAdapt: true});', doCaching: true},
 	{name: 'Incremental_MH_noCPS', code: 'IncrementalMH(program, nIters, {dontAdapt: true, doFullRerun: true});', doCaching: true}
