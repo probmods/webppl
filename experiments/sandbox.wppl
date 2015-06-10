@@ -1,0 +1,394 @@
+
+// ------------------------------------------------------------------
+
+// // Most basic possible test
+
+// var program = function() {
+// 	var f = flip(0.5);
+// 	return f;
+
+// 	// var f0 = flip(0.5);
+// 	// var f1 = flip(0.5);
+// 	// return f0 && f1;
+// };
+
+// ------------------------------------------------------------------
+
+// // Basic test using globalStore
+
+// var program = function() {
+//   globalStore.f0 = flip(0.5);
+//   var f0tmp = globalStore.f0;
+//   globalStore.f0 = false;
+//   globalStore.f1 = flip(0.5);
+//   globalStore.f0 = f0tmp;
+//   return globalStore.f0 && globalStore.f1;
+// };
+
+// ------------------------------------------------------------------
+
+// // Simple test with multiple nested function calls
+
+// var dostuff = function() {
+// 	return flip(0.5);
+// };
+
+// var dodostuff = function() {
+// 	var f0 = dostuff();
+// 	// var f0 = incrementalize(dostuff);
+// 	return f0;
+// };
+
+// var program = function() {
+// 	var s = dodostuff();
+// 	// var s = incrementalize(dodostuff);
+// 	return s
+// };
+
+// ------------------------------------------------------------------
+
+// // Simple geometric test
+
+// var geometric = function(p) {
+// 	// return flip(p) ? 1 + geometric(p) : 1;
+//   	return flip(p) ? 1 + incrementalize(geometric, [p]) : 1;
+// };
+
+// var program = function() {
+// 	// return geometric(0.5);
+// 	return incrementalize(geometric, [0.5]);
+// };
+
+// ------------------------------------------------------------------
+
+// // Basic WebPPL HMM
+
+// var transition = function(s) {
+//   // return s ? flip(0.7) : flip(0.3)
+//   var p = s ? 0.7 : 0.3;
+//   return flip(p);
+// }
+
+// var observe = function(s) {
+//   // return s ? flip(0.9) : flip(0.1)
+//   var p = s ? 0.9 : 0.1;
+//   return flip(p);
+// }
+
+// var hmm = function(n) {
+//   // var prev = (n == 1) ? {states: [true], observations: []} : hmm(n - 1);
+//   var prev = (n == 1) ? {states: [true], observations: []} : incrementalize(hmm, [n - 1]);
+//   var newState = transition(prev.states[prev.states.length - 1]);
+//   var newObs = observe(newState);
+//   return {
+//     states: prev.states.concat([newState]),
+//     observations: prev.observations.concat([newObs])
+//   };
+// }
+
+// var arrayEq = function(a, b) {
+//   return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
+// }
+
+// var genObservations = function(n) {
+// 	if (n == 0)
+// 		return [];
+// 	return genObservations(n-1).concat([false]);
+// };
+
+// // var N = 20;
+// var N = 3;
+// var trueObservations = genObservations(N);
+
+// var program = function() {
+// 	// var r = hmm(N);
+//   var r = incrementalize(hmm, [N]);
+//   factor(arrayEq(r.observations, trueObservations) ? 0 : -Infinity);
+//   return r.states;
+// };
+
+// ------------------------------------------------------------------
+
+// Venture-style HMM
+
+var hmm = function(n, observations) {
+	if (n === 0) {
+		return true;
+	} else {
+		// var prevState = hmm(n-1, observations);
+		var prevState = incrementalize(hmm, [n - 1, observations]);
+		var state = transition(prevState, n);
+    query.add(n, state);
+		var obs = observations[n];
+		observation(state, obs);
+		return state;
+	}
+}
+
+var transition = function(prevState, n) {
+	var p = prevState ? 0.7 : 0.3;
+	return flip(p)
+}
+
+var observation = function(state, obs) {
+	var p = state ? 0.9 : 0.1;
+	factor(obs ? Math.log(p) : Math.log(1 - p));
+}
+
+var makeObservations = function(n) {
+	if (n === 0) return [];
+	else return makeObservations(n-1).concat([false]);
+}
+
+var N = 200;
+// var N = 3;
+
+var observations = makeObservations(N);
+
+var program = function() {
+	// return hmm(N, observations);
+	// return incrementalize(hmm, [N, observations]);
+  incrementalize(hmm, [N, observations]);
+  return query;
+}
+
+// ------------------------------------------------------------------
+
+// // PCFG
+
+// var pcfgTransition = function(symbol) {
+//   var rules = {
+//     'start': {rhs: [['NP', 'V', 'NP'], ['NP', 'V']], probs: [0.4, 0.6]},
+//     'NP': {rhs: [['A', 'NP'], ['N']], probs: [0.4, 0.6]}
+//   };
+//   return rules[symbol].rhs[discrete(rules[symbol].probs)]
+// }
+
+// var preTerminal = function(symbol) {
+//   return symbol == 'N' || symbol == 'V' || symbol == 'A'
+// }
+
+// var terminal = function(symbol) {
+//   var rules = {
+//     'N': {words: ['John', 'soup'], probs: [0.6, 0.4]},
+//     'V': {words: ['loves', 'hates', 'runs'], probs: [0.3, 0.3, 0.4]},
+//     'A': {words: ['tall', 'salty'], probs: [0.6, 0.4]} }
+//   return rules[symbol].words[discrete(rules[symbol].probs)]
+// }
+
+// var pcfg = function(symbol) {
+//   preTerminal(symbol) ? [terminal(symbol)] : expand(pcfgTransition(symbol))
+// }
+
+// var expand = function(symbols) {
+//   if (symbols.length == 0) {
+//     return []
+//   } else {
+//     var f = pcfg(symbols[0])
+//     // var f = incrementalize(pcfg, [symbols[0]]);
+//     return f.concat(expand(symbols.slice(1)))
+//   }
+// }
+
+// var arrayEq = function(a, b) {
+//   return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
+// }
+
+// var program = function() {
+//   var y = pcfg('start')
+//   // var y = incrementalize(pcfg, ['start']);
+//   factor(arrayEq(y.slice(0, 2), ['tall', 'John']) ? 0 : -Infinity) //yield starts with "tall John"
+//   return y[2] ? y[2] : '' //distribution on next word?
+// };
+
+// ------------------------------------------------------------------
+
+// // LDA
+
+// // var documents = [
+// // 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// // 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// // 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// // 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// // 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c']
+// // ];
+
+// var documents = [
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'b', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'c', 'a', 'c', 'a', 'c', 'a', 'c'],
+// 	['b', 'd', 'b', 'd', 'b', 'd', 'b', 'd', 'b', 'd'],
+// 	['a', 'c', 'a', 'b', 'a', 'c', 'a', 'c', 'a', 'c']
+// ];
+
+// var nTopics = 2;
+// var vocabulary = ['a', 'b', 'c', 'd'];
+// var topicDistribPrior = repeat(nTopics, function() { return 1; });
+// var wordDistribPrior = repeat(vocabulary.length, function() { return .1; });
+
+// var foreach = function(lst, fn) {
+// 	var foreach_ = function(i) {
+// 		if (i < lst.length) {
+// 			fn(lst[i]);
+// 			// foreach_(i + 1);
+// 			incrementalize(foreach_, [i + 1]);
+// 		}
+// 	}
+// 	// foreach_(0);
+// 	incrementalize(foreach_, [0]);
+// }
+
+// var program = function() {
+// 	var wordDistribs = repeat(nTopics, function() {
+// 		return dirichlet(wordDistribPrior);
+// 	});
+// 	foreach(documents, function(doc) {
+// 		var topicDistrib = dirichlet(topicDistribPrior);
+// 		foreach(doc, function(word) {
+// 			var idx = vocabulary.indexOf(word);
+// 			var topic = discrete(topicDistrib);
+// 			factor(Math.log(wordDistribs[topic][idx]));
+// 		});
+// 	});
+// 	return wordDistribs;
+// };
+
+// ------------------------------------------------------------------
+
+// // LDA with real data set
+// // --require-js lda.js
+
+// var nSubsample = 20;
+// var dataset = lda.loadData('nips', 'data', nSubsample);
+// console.log('Dataset loaded');
+// var vocabulary = dataset.vocab;
+// var documents = dataset.documents;
+
+// var nTopics = 10;
+// var topicDistribPrior = repeat(nTopics, function() { return 1; });
+// var wordDistribPrior = repeat(vocabulary.length, function() { return .1; });
+
+// // var foreach = function(lst, fn) {
+// // 	var foreach_ = function(i) {
+// // 		if (i < lst.length) {
+// // 			fn(lst[i]);
+// // 			foreach_(i + 1);
+// // 		}
+// // 	}
+// // 	foreach_(0);
+// // }
+
+// // var fori = function(istart, iend, fn) {
+// // 	var fori_ = function(i) {
+// // 		if (i < iend) {
+// // 			fn(i);
+// // 			fori_(i + 1);
+// // 		}
+// // 	}
+// // 	fori_(istart);
+// // }
+
+// var foreach = function(lst, fn) {
+// 	var foreach_ = function(i) {
+// 		if (i < lst.length) {
+// 			fn(lst[i]);
+// 			incrementalize(foreach_, [i + 1]);
+// 		}
+// 	}
+// 	incrementalize(foreach_, [0]);
+// }
+
+// var fori = function(istart, iend, fn) {
+// 	var fori_ = function(i) {
+// 		if (i < iend) {
+// 			fn(i);
+// 			incrementalize(fori_, [i + 1]);
+// 		}
+// 	}
+// 	incrementalize(fori_, [istart]);
+// }
+
+// var program = function() {
+// 	var wordDistribs = repeat(nTopics, function() {
+// 		return dirichlet(wordDistribPrior);
+// 	});
+// 	foreach(documents, function(doc) {
+// 		// console.time('document');
+// 		var topicDistrib = dirichlet(topicDistribPrior);
+// 		foreach(doc, function(wordEntry) {
+// 			var wordIdx = wordEntry[0];
+// 			var numOccurences = wordEntry[1];
+// 			fori(0, numOccurences, function(i) {
+// 				var topic = discrete(topicDistrib);
+// 				factor(Math.log(wordDistribs[topic][wordIdx]));
+// 			});
+// 		});
+// 		// console.timeEnd('document');
+// 	});
+// 	return wordDistribs;
+// };
+
+// ------------------------------------------------------------------
+
+console.time("inference");
+var ret =
+// IncrementalMH(
+HashMH(
+// MH(
+// Enumerate(
+    program,
+    10000, {lag: 10});
+console.timeEnd("inference");
+ret;
+// ret.MAP;
+
+
+
+
+
+

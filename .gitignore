@@ -5,6 +5,3 @@ node_modules
 npm-debug.log
 compiled/webppl.js
 compiled/webppl.min.js
-experiments/data
-experiments/results
-sandbox.wppl
