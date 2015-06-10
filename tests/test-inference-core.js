@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 var fs = require('fs');
+var assert = require('assert');
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
 
@@ -9,27 +10,75 @@ var testDataDir = './tests/test-data/';
 
 var modelNames = [
   'binomial',
-  'geometric'
+  'geometric',
+  'drift'
 ];
 
 var inferenceProcs = [
-  { name: 'MH',        proc: 'MH(model, 5000);',      tol: 0.1 },
-  { name: 'Enumerate', proc: 'Enumerate(model, 10);', tol: 0.01 }
+  {
+    name: 'Enumerate',
+    proc: 'Enumerate(model, 10);',
+    skip: ['drift']
+  },
+  {
+    name: 'MH',
+    proc: 'MH(model, 5000);',
+    tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+  },
+  {
+    name: 'PFRj',
+    proc: 'ParticleFilterRejuv(model, 1000, 15)',
+    tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+  }
 ];
 
-var performTest = function (modelName, inferenceProc, test) {
-  var modelText = loadModel(modelName);
-  var inferenceText = inferenceProc.proc;
-  var progText = modelText + inferenceText;
-  var expected = loadExpected(modelName);
+var performTests = function (modelName, inferenceProc, test) {
+  var progText = loadModel(modelName) + inferenceProc.proc;
+  var allExpected = loadExpected(modelName);
+
+  // The tests to run for a particular model are determined by the contents of
+  // the expected results JSON file.
 
   webppl.run(progText, function (s, erp) {
-
     var hist = getHist(erp);
-    test.ok(util.histsApproximatelyEqual(hist, expected.hist, inferenceProc.tol));
-    test.done();
-
+    _.each(allExpected, function (expected, testName) {
+      assert(tests[testName], 'Unexpected key "' + testName + '"');
+      var tolerance = getTolerance(inferenceProc, modelName, testName);
+      tests[testName](hist, expected, test, tolerance);
+    });
   });
+
+  test.done();
+};
+
+var getTolerance = function (proc, model, test) {
+  // The tolerance used for a particular test is determined by taking the first
+  // truthy value from the following.
+  //
+  // 1. infProc.tol[model][test]
+  // 2. infProc.tol[test]
+  // 3. defaultTol
+
+  var t = proc.tol;
+  var defaultTol = 0.0001;
+  var val = (t && t[model] && t[model][test]) || (t && t[test]) || defaultTol;
+  //console.log([proc.name, model, test, val]);
+  return val;
+};
+
+var testStatistic = function (statistic, name, hist, expected, test, tolerance) {
+  var actual = statistic(hist);
+  test.ok(
+    Math.abs(actual - expected) < tolerance,
+    ['Expected ', name, ': ', expected, ', actual: ', actual].join(''));
+};
+
+var tests = {
+  hist: function (hist, expected, test, tolerance) {
+    test.ok(util.histsApproximatelyEqual(hist, expected, tolerance));
+  },
+  mean: _.partial(testStatistic, util.expectation, 'mean'),
+  std: _.partial(testStatistic, util.std, 'std')
 };
 
 var getHist = function (erp) {
@@ -53,8 +102,10 @@ var loadExpected = function (modelName) {
 var generateTestCases = function () {
   _.each(modelNames, function (modelName) {
     _.each(inferenceProcs, function (inferenceProc) {
-      var testName = modelName +  inferenceProc.name;
-      exports[testName] = _.partial(performTest, modelName, inferenceProc);
+      if (!_.includes(inferenceProc.skip, modelName)) {
+        var testName = modelName + inferenceProc.name;
+        exports[testName] = _.partial(performTests, modelName, inferenceProc);
+      }
     });
   });
 };
