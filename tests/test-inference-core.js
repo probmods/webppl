@@ -9,58 +9,81 @@ var webppl = require('../src/main.js');
 var testDataDir = './tests/test-data/';
 
 var modelNames = [
+  'simple',
+  'store',
   'binomial',
   'geometric',
   'drift',
-  'store'
+  'cache',
+  'varFactors1',
+  'varFactors2'
 ];
 
 var inferenceProcs = [
   {
     name: 'Enumerate',
     args: [10],
-    skip: ['drift'],
+    skip: ['drift', 'varFactors1', 'varFactors2'],
     store: { tol: { hist: 0 } }
   },
   {
     name: 'MH',
     args: [5000],
-    store: { tol: { hist: 0 } },
-    tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+    skip: ['cache', 'varFactors1', 'varFactors2'],
+    tol: { hist: 0.1 },
+    store: { tol: { hist: 0 }, args: [100] },
+    drift: { tol: { mean: 0.3, std: 0.3 }, args: [100000, 20000] }
   },
   {
     name: 'PMCMC',
-    args: [30, 30],
-    skip: ['binomial', 'geometric', 'drift'],
-    store: { tol: { hist: 0 } }
+    args: [1000, 5],
+    tol: { hist: 0.1 },
+    skip: ['binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    store: { tol: { hist: 0 }, args: [30, 30] }
   },
   {
-    name: 'ParticleFilterRejuv',
-    args: [1000, 15],
-    store: { tol: { hist: 0 } },
-    tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+    name: 'PFRj',
+    func: 'ParticleFilterRejuv',
+    skip: ['cache', 'varFactors1', 'varFactors2'],
+    args: [1000, 10],
+    tol: { hist: 0.1 },
+    store: { tol: { hist: 0 }, args: [30, 30] },
+    drift: { tol: { mean: 0.3, std: 0.3 }, args: [1000, 15] }
+  },
+  {
+    name: 'PFRjAsMH',
+    func: 'ParticleFilterRejuv',
+    args: [1, 10000],
+    skip: ['store', 'binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    tol: { hist: 0.1 },
   },
   {
     name: 'AsyncPF',
-    args: [100, 100],
-    skip: ['binomial', 'geometric', 'drift'],
-    store: { tol: { hist: 0 } }
+    args: [1000, 1000],
+    tol: { hist: 0.1 },
+    skip: ['binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    store: { tol: { hist: 0 }, args: [100, 100] }
   },
   {
     name: 'ParticleFilter',
-    args: [100],
-    skip: ['binomial', 'geometric', 'drift'],
-    store: { tol: { hist: 0 } }
+    args: [1000],
+    tol: { hist: 0.1 },
+    skip: ['binomial', 'geometric', 'drift', 'cache'],
+    store: { tol: { hist: 0 }, args: [100] },
+    varFactors1: { args: [5000] }
   }
 ];
 
-var performTests = function (modelName, inferenceProc, test) {
-  var inferenceArgs = getArgs(inferenceProc, modelName);
+var performTests = function (modelName, proc, test) {
+
   var allExpected = loadExpected(modelName);
+
+  var inferenceFunc = proc.func || proc.name;
+  var inferenceArgs = getArgs(proc, modelName);
 
   var progText = [
     loadModel(modelName),
-    inferenceProc.name, '(model,', inferenceArgs, ');'
+    inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
 
   //console.log([inferenceProc.name, modelName, inferenceArgs]);
@@ -71,7 +94,7 @@ var performTests = function (modelName, inferenceProc, test) {
       // The tests to run for a particular model are determined by the contents
       // of the expected results JSON file.
       assert(tests[testName], 'Unexpected key "' + testName + '"');
-      var tolerance = getTolerance(inferenceProc, modelName, testName);
+      var tolerance = getTolerance(proc, modelName, testName);
       tests[testName](hist, expected, test, tolerance);
     });
   });
