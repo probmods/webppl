@@ -8,17 +8,6 @@ var webppl = require('../src/main.js');
 
 var testDataDir = './tests/test-data/';
 
-var modelNames = [
-  'simple',
-  'store',
-  'binomial',
-  'geometric',
-  'drift',
-  'cache',
-  'varFactors1',
-  'varFactors2'
-];
-
 var inferenceProcs = [
   {
     name: 'Enumerate',
@@ -148,6 +137,11 @@ var getHist = function (erp) {
   return util.normalizeHist(hist);
 };
 
+var getModelNames = function () {
+  var filenames = fs.readdirSync(testDataDir + 'models2/');
+  return _.map(filenames, function (fn) { return fn.split('.')[0]; });
+};
+
 var loadModel = function (modelName) {
   var filename = testDataDir + 'models2/' + modelName + '.wppl';
   return fs.readFileSync(filename, 'utf-8');
@@ -159,7 +153,7 @@ var loadExpected = function (modelName) {
 };
 
 var generateTestCases = function () {
-  _.each(modelNames, function (modelName) {
+  _.each(getModelNames(), function (modelName) {
     _.each(inferenceProcs, function (proc) {
       if (_.isUndefined(proc.only) || _.includes(proc.only, modelName)) {
         var testName = modelName + proc.name;
