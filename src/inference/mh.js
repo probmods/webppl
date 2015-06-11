@@ -36,7 +36,14 @@ module.exports = function(env) {
     return acceptance;
   }
 
-  function MH(s, k, a, wpplFn, numIterations, verbose, justSample) {
+  function getopt(opt, defaultval) {
+    return opt === undefined ? defaultval : opt;
+  }
+
+  function MH(s, k, a, wpplFn, numIterations, opts) {
+    // Extract options
+    var verbose = getopt(opts.verbose, false);
+    var justSample = getopt(opts.justSample, false);
 
     this.trace = [];
     this.oldTrace = undefined;
@@ -142,8 +149,9 @@ module.exports = function(env) {
     }
   };
 
-  function mh(s, cc, a, wpplFn, numParticles, verbose, justSample) {
-    return new MH(s, cc, a, wpplFn, numParticles, verbose, justSample).run();
+  function mh(s, cc, a, wpplFn, numParticles, opts) {
+    opts = opts || {};
+    return new MH(s, cc, a, wpplFn, numParticles, opts).run();
   }
 
   return {

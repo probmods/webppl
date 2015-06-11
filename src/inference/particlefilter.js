@@ -29,8 +29,16 @@ module.exports = function(env) {
     });
   }
 
+  function getopt(opt, defaultval) {
+    return opt === undefined ? defaultval : opt;
+  }
 
-  function ParticleFilter(s, k, a, wpplFn, numParticles, strict, justSample, saveHistory) {
+  function ParticleFilter(s, k, a, wpplFn, numParticles, opts) {
+    // Extract options
+    var strict = getopt(opts.strict, true);
+    var justSample = getopt(opts.justSample, false);
+    var saveHistory = getopt(opts.saveHistory, true);
+    var verbose = getopt(opts.verbose, false);
 
     this.particles = [];
     this.particleIndex = 0;  // marks the active particle
@@ -219,8 +227,9 @@ module.exports = function(env) {
   }
 
 
-  function pf(s, cc, a, wpplFn, numParticles, strict, justSample, saveHistory) {
-    return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict, justSample, saveHistory).run();
+  function pf(s, cc, a, wpplFn, numParticles, opts) {
+    opts = opts || {};
+    return new ParticleFilter(s, cc, a, wpplFn, numParticles, opts).run();
   }
 
   return {
