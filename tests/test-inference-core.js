@@ -23,13 +23,13 @@ var inferenceProcs = [
   {
     name: 'Enumerate',
     args: [10],
-    skip: ['drift', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store', 'binomial', 'geometric', 'cache'],
     store: { tol: { hist: 0 } }
   },
   {
     name: 'MH',
     args: [5000],
-    skip: ['cache', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
     tol: { hist: 0.1 },
     store: { tol: { hist: 0 }, args: [100] },
     drift: { tol: { mean: 0.3, std: 0.3 }, args: [100000, 20000] }
@@ -38,13 +38,13 @@ var inferenceProcs = [
     name: 'PMCMC',
     args: [1000, 5],
     tol: { hist: 0.1 },
-    skip: ['binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store'],
     store: { tol: { hist: 0 }, args: [30, 30] }
   },
   {
     name: 'PFRj',
     func: 'ParticleFilterRejuv',
-    skip: ['cache', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
     args: [1000, 10],
     tol: { hist: 0.1 },
     store: { tol: { hist: 0 }, args: [30, 30] },
@@ -54,21 +54,21 @@ var inferenceProcs = [
     name: 'PFRjAsMH',
     func: 'ParticleFilterRejuv',
     args: [1, 10000],
-    skip: ['store', 'binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    only: ['simple'],
     tol: { hist: 0.1 },
   },
   {
     name: 'AsyncPF',
     args: [1000, 1000],
     tol: { hist: 0.1 },
-    skip: ['binomial', 'geometric', 'drift', 'cache', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store'],
     store: { tol: { hist: 0 }, args: [100, 100] }
   },
   {
     name: 'ParticleFilter',
     args: [1000],
     tol: { hist: 0.1 },
-    skip: ['binomial', 'geometric', 'drift', 'cache'],
+    only: ['simple', 'store', 'varFactors1', 'varFactors2'],
     store: { tol: { hist: 0 }, args: [100] },
     varFactors1: { args: [5000] }
   }
@@ -160,10 +160,10 @@ var loadExpected = function (modelName) {
 
 var generateTestCases = function () {
   _.each(modelNames, function (modelName) {
-    _.each(inferenceProcs, function (inferenceProc) {
-      if (!_.includes(inferenceProc.skip, modelName)) {
-        var testName = modelName + inferenceProc.name;
-        exports[testName] = _.partial(performTests, modelName, inferenceProc);
+    _.each(inferenceProcs, function (proc) {
+      if (_.isUndefined(proc.only) || _.includes(proc.only, modelName)) {
+        var testName = modelName + proc.name;
+        exports[testName] = _.partial(performTests, modelName, proc);
       }
     });
   });
