@@ -18,52 +18,58 @@ var modelNames = [
 var inferenceProcs = [
   {
     name: 'Enumerate',
-    proc: 'Enumerate(model, 10);',
+    args: [10],
     skip: ['drift'],
     store: { tol: { hist: 0 } }
   },
   {
     name: 'MH',
-    proc: 'MH(model, 5000);',
+    args: [5000],
     store: { tol: { hist: 0 } },
     tol: { hist: 0.1, mean: 0.3, std: 0.3 }
   },
   {
     name: 'PMCMC',
-    proc: 'PMCMC(model, 30, 30)',
+    args: [30, 30],
     skip: ['binomial', 'geometric', 'drift'],
     store: { tol: { hist: 0 } }
   },
   {
-    name: 'PFRj',
-    proc: 'ParticleFilterRejuv(model, 1000, 15)',
+    name: 'ParticleFilterRejuv',
+    args: [1000, 15],
     store: { tol: { hist: 0 } },
     tol: { hist: 0.1, mean: 0.3, std: 0.3 }
   },
   {
     name: 'AsyncPF',
-    proc: 'AsyncPF(model, 100, 100)',
+    args: [100, 100],
     skip: ['binomial', 'geometric', 'drift'],
     store: { tol: { hist: 0 } }
   },
   {
     name: 'ParticleFilter',
-    proc: 'ParticleFilter(model, 100)',
+    args: [100],
     skip: ['binomial', 'geometric', 'drift'],
     store: { tol: { hist: 0 } }
   }
 ];
 
 var performTests = function (modelName, inferenceProc, test) {
-  var progText = loadModel(modelName) + inferenceProc.proc;
+  var inferenceArgs = getArgs(inferenceProc, modelName);
   var allExpected = loadExpected(modelName);
 
-  // The tests to run for a particular model are determined by the contents of
-  // the expected results JSON file.
+  var progText = [
+    loadModel(modelName),
+    inferenceProc.name, '(model,', inferenceArgs, ');'
+  ].join('');
+
+  //console.log([inferenceProc.name, modelName, inferenceArgs]);
 
   webppl.run(progText, function (s, erp) {
     var hist = getHist(erp);
     _.each(allExpected, function (expected, testName) {
+      // The tests to run for a particular model are determined by the contents
+      // of the expected results JSON file.
       assert(tests[testName], 'Unexpected key "' + testName + '"');
       var tolerance = getTolerance(inferenceProc, modelName, testName);
       tests[testName](hist, expected, test, tolerance);
@@ -71,6 +77,11 @@ var performTests = function (modelName, inferenceProc, test) {
   });
 
   test.done();
+};
+
+var getArgs = function (proc, model) {
+  var args = (proc[model] && proc[model].args) || proc.args;
+  return JSON.stringify(args).slice(1, -1);
 };
 
 var getTolerance = function (proc, model, test) {
