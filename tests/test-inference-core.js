@@ -74,17 +74,23 @@ var performTest = function(modelName, testDef, test) {
 
   //console.log([testDef.name, modelName, inferenceArgs]);
 
-  webppl.run(progText, function(s, erp) {
-    var hist = getHist(erp);
-    _.each(expectedResults, function(expected, testName) {
-      // The tests to run for a particular model are determined by the contents
-      // of the expected results JSON file.
-      assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
-      var tolerance = getTolerance(testDef, modelName, testName);
-      //console.log('\t', [testName, tolerance]);
-      testFunctions[testName](test, hist, expected, tolerance);
+
+  try {
+    webppl.run(progText, function(s, erp) {
+      var hist = getHist(erp);
+      _.each(expectedResults, function(expected, testName) {
+        // The tests to run for a particular model are determined by the contents
+        // of the expected results JSON file.
+        assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
+        var tolerance = getTolerance(testDef, modelName, testName);
+        //console.log('\t', [testName, tolerance]);
+        testFunctions[testName](test, hist, expected, tolerance);
+      });
     });
-  });
+  } catch (e) {
+    console.error('Exception: ' + e);
+    throw e;
+  }
 
   test.done();
 };
