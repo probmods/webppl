@@ -11,24 +11,46 @@ var testDataDir = './tests/test-data/';
 var modelNames = [
   'binomial',
   'geometric',
-  'drift'
+  'drift',
+  'store'
 ];
 
 var inferenceProcs = [
   {
     name: 'Enumerate',
     proc: 'Enumerate(model, 10);',
-    skip: ['drift']
+    skip: ['drift'],
+    store: { tol: { hist: 0 } }
   },
   {
     name: 'MH',
     proc: 'MH(model, 5000);',
+    store: { tol: { hist: 0 } },
     tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+  },
+  {
+    name: 'PMCMC',
+    proc: 'PMCMC(model, 30, 30)',
+    skip: ['binomial', 'geometric', 'drift'],
+    store: { tol: { hist: 0 } }
   },
   {
     name: 'PFRj',
     proc: 'ParticleFilterRejuv(model, 1000, 15)',
+    store: { tol: { hist: 0 } },
     tol: { hist: 0.1, mean: 0.3, std: 0.3 }
+  },
+  {
+    name: 'AsyncPF',
+    proc: 'AsyncPF(model, 100, 100)',
+    skip: ['binomial', 'geometric', 'drift'],
+    store: { tol: { hist: 0 } }
+  },
+  {
+    name: 'ParticleFilter',
+    proc: 'ParticleFilter(model, 100)',
+    skip: ['binomial', 'geometric', 'drift'],
+    store: { tol: { hist: 0 } }
   }
 ];
 
@@ -53,15 +75,18 @@ var performTests = function (modelName, inferenceProc, test) {
 
 var getTolerance = function (proc, model, test) {
   // The tolerance used for a particular test is determined by taking the first
-  // truthy value from the following.
+  // defined value from the following.
   //
-  // 1. infProc.tol[model][test]
+  // 1. infProc[model].tol[test]
   // 2. infProc.tol[test]
   // 3. defaultTol
 
-  var t = proc.tol;
   var defaultTol = 0.0001;
-  var val = (t && t[model] && t[model][test]) || (t && t[test]) || defaultTol;
+  var val = _.chain([
+    proc[model] && proc[model].tol && proc[model].tol[test],
+    proc.tol && proc.tol[test],
+    defaultTol
+  ]).reject(_.isUndefined).first().value();
   //console.log([proc.name, model, test, val]);
   return val;
 };
