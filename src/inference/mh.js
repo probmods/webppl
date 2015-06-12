@@ -51,6 +51,7 @@ module.exports = function(env) {
     this.oldScore = -Infinity;
     this.oldVal = undefined;
     this.regenFrom = 0;
+    this.verbose = verbose;
     if (justSample)
       this.returnSamps = [];
     else
@@ -58,6 +59,7 @@ module.exports = function(env) {
     this.k = k;
     this.oldStore = s;
     this.iterations = numIterations;
+    this.totalIterations = numIterations;
 
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -91,11 +93,8 @@ module.exports = function(env) {
     this.currScore += choiceScore;
     return cont(s, val);
   };
-
   MH.prototype.exit = function(s, val) {
     if (this.iterations > 0) {
-      if (this.verbose)
-        console.log('MH iteration');
 
       this.iterations -= 1;
 
@@ -129,8 +128,16 @@ module.exports = function(env) {
       this.oldScore = this.currScore;
       this.currScore = regen.score;
       this.oldVal = val;
-
-      return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
+      var that = this;
+      var cont = function() {
+        return that.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
+      }
+      // Invoke proposal continuation *after* invoking verbose callback
+      if (this.verbose) {
+        return this.verbose(this.totalIterations - this.iterations, this.totalIterations, cont);
+      }
+      // Just invoke it directly
+      else return cont();
     } else {
       var dist;
       if (this.returnHist)
