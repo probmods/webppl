@@ -19,7 +19,8 @@ module.exports = function(env) {
       weight: particle.weight,
       score: particle.score,
       value: particle.value,
-      store: util.copyObj(particle.store)
+      store: util.copyObj(particle.store),
+      completed: particle.completed
     };
   }
 
@@ -61,6 +62,9 @@ module.exports = function(env) {
       this.particles.push(particle);
     }
 
+    this.verbose = verbose;
+    this.generation = 0;
+
     this.strict = strict;
     // Move old coroutine out of the way and install this as the current
     // handler.
@@ -90,14 +94,24 @@ module.exports = function(env) {
     this.activeParticle().store = s;
 
     if (this.allParticlesAdvanced()) {
+      this.generation++;
       // Resample in proportion to weights
       this.resampleParticles();
       this.particleIndex = this.firstRunningParticleIndex();
       // variable #factors: resampling can kill all continuing particles
       if (this.particleIndex < 0)
-        this.finish();
-      else
-        return this.activeParticle().continuation(this.activeParticle().store);
+        return this.finish();
+      else {
+        var that = this;
+        var cont = function() {
+          return that.activeParticle().continuation(that.activeParticle().store);
+        }
+        // Invoke continuation *after* verbose callback
+        if (this.verbose)
+          return this.verbose(this.generation, this.numFinishedParticles(), this.particles.length, cont);
+        // Just inoke it directly
+        else return cont();
+      }
     } else {
       // Advance to the next particle
       this.particleIndex = this.nextRunningParticleIndex();
@@ -126,6 +140,14 @@ module.exports = function(env) {
   ParticleFilter.prototype.allParticlesAdvanced = function() {
     return this.particleIndex === this.lastRunningParticleIndex();
   };
+
+  ParticleFilter.prototype.numFinishedParticles = function() {
+    var n = 0;
+    for (var i = 0; i < this.particles.length; i++) {
+      n += (this.particles[i].completed ? 1 : 0);
+    }
+    return n;
+  }
 
   ParticleFilter.prototype.resampleParticles = function() {
 
@@ -194,8 +216,7 @@ module.exports = function(env) {
     return this.finish();
   }
 
-  ParticleFilter.prototype.finish = function()
-      {
+  ParticleFilter.prototype.finish = function() {
     // Compute marginal distribution from (unweighted) particles
     var hist = {};
     if (!this.justSample)
@@ -222,8 +243,13 @@ module.exports = function(env) {
     // Reinstate previous coroutine:
     env.coroutine = this.oldCoroutine;
 
+    var that = this;
     // Return from particle filter by calling original continuation:
-    return this.k(this.oldStore, dist);
+    var cont = function() { return that.k(that.oldStore, dist); }
+    // Invoke directly, or via verbose callback?
+    if (this.verbose)
+      return this.verbose(this.generation, this.particles.length, this.particles.length, cont);
+    else return cont();
   }
 
 
