@@ -13,52 +13,52 @@ var testDefinitions = [
     name: 'Enumerate',
     args: [10],
     only: ['simple', 'store', 'binomial', 'geometric', 'cache'],
-    store: { tol: { hist: 0 } }
+    store: { hist: { tol: 0 } }
   },
   {
     name: 'MH',
     args: [5000],
     only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
-    tol: { hist: 0.1 },
-    store: { tol: { hist: 0 }, args: [100] },
-    drift: { tol: { mean: 0.3, std: 0.3 }, args: [100000, 20000] }
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [100] },
+    drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
   },
   {
     name: 'PMCMC',
     args: [1000, 5],
-    tol: { hist: 0.1 },
     only: ['simple', 'store'],
-    store: { tol: { hist: 0 }, args: [30, 30] }
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [30, 30] }
   },
   {
     name: 'PFRj',
     func: 'ParticleFilterRejuv',
-    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
     args: [1000, 10],
-    tol: { hist: 0.1 },
-    store: { tol: { hist: 0 }, args: [30, 30] },
-    drift: { tol: { mean: 0.3, std: 0.3 }, args: [1000, 15] }
+    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [30, 30] },
+    drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] }
   },
   {
     name: 'PFRjAsMH',
     func: 'ParticleFilterRejuv',
     args: [1, 10000],
     only: ['simple'],
-    tol: { hist: 0.1 }
+    hist: { tol: 0.1 }
   },
   {
     name: 'AsyncPF',
     args: [1000, 1000],
-    tol: { hist: 0.1 },
     only: ['simple', 'store'],
-    store: { tol: { hist: 0 }, args: [100, 100] }
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [100, 100] }
   },
   {
     name: 'ParticleFilter',
     args: [1000],
-    tol: { hist: 0.1 },
     only: ['simple', 'store', 'varFactors1', 'varFactors2'],
-    store: { tol: { hist: 0 }, args: [100] },
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [100] },
     varFactors1: { args: [5000] }
   }
 ];
@@ -66,14 +66,13 @@ var testDefinitions = [
 var performTest = function(modelName, testDef, test) {
   var expectedResults = loadExpected(modelName);
   var inferenceFunc = testDef.func || testDef.name;
-  var inferenceArgs = getArgs(testDef, modelName);
+  var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     loadModel(modelName),
     inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
 
   //console.log([testDef.name, modelName, inferenceArgs]);
-
 
   try {
     webppl.run(progText, function(s, erp) {
@@ -82,9 +81,14 @@ var performTest = function(modelName, testDef, test) {
         // The tests to run for a particular model are determined by the contents
         // of the expected results JSON file.
         assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
-        var tolerance = getTolerance(testDef, modelName, testName);
-        //console.log('\t', [testName, tolerance]);
-        testFunctions[testName](test, hist, expected, tolerance);
+        var testArgs = _.extendOwn.apply(null, _.filter([
+          { tol: 0.0001 }, // Defaults.
+          testDef[testName],
+          testDef[modelName] && testDef[modelName][testName] // Most specific.
+        ]));
+        //console.log('\t' + testName);
+        //console.log('\t' + JSON.stringify(testArgs));
+        testFunctions[testName](test, erp, hist, expected, testArgs);
       });
     });
   } catch (e) {
@@ -95,40 +99,27 @@ var performTest = function(modelName, testDef, test) {
   test.done();
 };
 
-var getArgs = function(testDef, model) {
+var getInferenceArgs = function(testDef, model) {
   var args = (testDef[model] && testDef[model].args) || testDef.args;
   return JSON.stringify(args).slice(1, -1);
 };
 
-var getTolerance = function(testDef, model, test) {
-  // The tolerance used for a particular test is determined by taking the first
-  // (defined) value from the following.
-
-  // 1. testDef[model].tol[test]
-  // 2. testDef.tol[test]
-  // 3. defaultTol
-
-  var defaultTol = 0.0001;
-  return _.chain([
-    testDef[model] && testDef[model].tol && testDef[model].tol[test],
-    testDef.tol && testDef.tol[test],
-    defaultTol
-  ]).reject(_.isUndefined).first().value();
-};
-
-var testStatistic = function(test, statistic, name, hist, expected, tolerance) {
-  var actual = statistic(hist);
-  test.ok(
-      Math.abs(actual - expected) < tolerance,
-      ['Expected ', name, ': ', expected, ', actual: ', actual].join(''));
+var testWithinTolerance = function(test, actual, expected, tolerance, name) {
+  var absDiff = Math.abs(actual - expected);
+  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
+  test.ok(absDiff < tolerance, msg);
 };
 
 var testFunctions = {
-  hist: function(test, hist, expected, tolerance) {
-    test.ok(util.histsApproximatelyEqual(hist, expected, tolerance));
+  hist: function(test, erp, hist, expected, args) {
+    test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
   },
-  mean: _.partial(testStatistic, _, util.expectation, 'mean'),
-  std: _.partial(testStatistic, _, util.std, 'std')
+  mean: function(test, erp, hist, expected, args) {
+    testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+  },
+  std: function(test, erp, hist, expected, args) {
+    testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+  }
 };
 
 var getHist = function(erp) {
