@@ -36,6 +36,7 @@ var testDefinitions = [
     args: [1000, 10],
     only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
     hist: { tol: 0.1 },
+    logZ: { check: true, tol: 0.05 },
     store: { hist: { tol: 0 }, args: [30, 30] },
     drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] }
   },
@@ -51,6 +52,7 @@ var testDefinitions = [
     args: [1000, 1000],
     only: ['simple', 'store'],
     hist: { tol: 0.1 },
+    logZ: { check: true, tol: 0.05 },
     store: { hist: { tol: 0 }, args: [100, 100] }
   },
   {
@@ -58,6 +60,7 @@ var testDefinitions = [
     args: [1000],
     only: ['simple', 'store', 'varFactors1', 'varFactors2'],
     hist: { tol: 0.1 },
+    logZ: { check: true, tol: 0.05 },
     store: { hist: { tol: 0 }, args: [100] },
     varFactors1: { args: [5000] }
   }
@@ -119,6 +122,11 @@ var testFunctions = {
   },
   std: function(test, erp, hist, expected, args) {
     testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+  },
+  logZ: function(test, erp, hist, expected, args) {
+    if (args.check) {
+      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol);
+    }
   }
 };
 
