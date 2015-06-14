@@ -68,7 +68,8 @@ function compile(programCode, verbose, doCaching) {
   }
 
   var _compile = function(ast) {
-    ast = freevars(ast);
+    if (doCaching)
+      ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
