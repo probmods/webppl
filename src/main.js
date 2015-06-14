@@ -41,7 +41,7 @@ function prepare(programCode, verbose, doCaching) {
   }
 
   var _prepare = function(ast) {
-    ast = freevars(ast);
+    // ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
@@ -52,8 +52,8 @@ function prepare(programCode, verbose, doCaching) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  if (doCaching)
-    programAST = caching(programAST);
+  // if (doCaching)
+  //   programAST = caching(programAST);
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
