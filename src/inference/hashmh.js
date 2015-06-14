@@ -133,8 +133,8 @@ module.exports = function(env) {
         return this.run();
       } else {
         if (this.verbose)
-          console.log("HashMH iteration " + (this.totalIterations - this.iterations) +
-            " / " + this.totalIterations);
+          console.log('HashMH iteration ' + (this.totalIterations - this.iterations) +
+              ' / ' + this.totalIterations);
         this.iterations -= 1;
 
         // Clean out any dead vars and calculate reverse LP
@@ -186,7 +186,7 @@ module.exports = function(env) {
               this.returnHist[stringifiedVal].prob += 1;
             }
           }
-           // also update the MAP
+          // also update the MAP
           if (this.currScore > this.MAP.score) {
             this.MAP.score = this.currScore;
             this.MAP.value = val;
@@ -232,7 +232,7 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
 
-      console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
+      console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
 
       // Return by calling original continuation:
       return k(this.oldStore, dist);

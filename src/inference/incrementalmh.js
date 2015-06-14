@@ -27,9 +27,9 @@ module.exports = function(env) {
   function tabbedlog(debuglevel, depth) {
     if (DEBUG >= debuglevel) {
       var args = Array.prototype.slice.call(arguments, 2);
-      var pad = "";
-      for (var i = 0; i < depth; i++) pad += "  ";
-      pad += "["+depth+"] ";
+      var pad = '';
+      for (var i = 0; i < depth; i++) pad += '  ';
+      pad += '[' + depth + '] ';
       console.log.apply(console, [pad].concat(args));
     }
   }
@@ -97,36 +97,38 @@ module.exports = function(env) {
   ERPNode.prototype.print = function() {
     // tabbedlog(0, this.depth, "ERPNode", this.address, this.erp.sample.name.slice(0, -6),
     //           this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
-    tabbedlog(0, this.depth, "ERPNode", this.erp.sample.name.slice(0, -6),
-              this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, 'ERPNode', this.erp.sample.name.slice(0, -6),
+              this.params, this.val, this.reachable ? '' : '!!UNREACHABLE!!');
   };
 
   ERPNode.prototype.execute = function() {
-    tabbedlog(4, this.depth, "execute ERP");
+    tabbedlog(4, this.depth, 'execute ERP');
     if (this.needsUpdate) {
-      tabbedlog(4, this.depth, "yes, ERP params changed");
-      tabbedlog(5, this.depth, "old params:", this.__snapshot ? this.__snapshot.params : undefined, "new params:", this.params);
+      tabbedlog(4, this.depth, 'yes, ERP params changed');
+      tabbedlog(5, this.depth, 'old params:',
+          this.__snapshot ? this.__snapshot.params : undefined,
+          'new params:', this.params);
       this.needsUpdate = false;
       this.rescore();
     }
     else {
-      tabbedlog(4, this.depth, "no, ERP params have not changed");
-      tabbedlog(5, this.depth, "params:", this.params);
+      tabbedlog(4, this.depth, 'no, ERP params have not changed');
+      tabbedlog(5, this.depth, 'params:', this.params);
     }
     return this.kontinue();
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
-    updateProperty(this, "store", _.clone(s));
-    updateProperty(this, "continuation", k);
-    updateProperty(this, "index", this.parent.nextChildIdx);
+    updateProperty(this, 'store', _.clone(s));
+    updateProperty(this, 'continuation', k);
+    updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
     // Check params for changes
     for (var i = 0; i < params.length; i++)
     {
       if (params[i] !== this.params[i]) {
         this.needsUpdate = true;
-        updateProperty(this, "params", params);
+        updateProperty(this, 'params', params);
         break;
       }
     }
@@ -146,21 +148,22 @@ module.exports = function(env) {
   ERPNode.prototype.propose = function() {
     var oldval = this.val;
     var newval = this.erp.sample(this.params);
-    tabbedlog(4, this.depth, "proposing change to ERP.", "oldval:", oldval, "newval:", newval);
+    tabbedlog(4, this.depth, 'proposing change to ERP.', 'oldval:', oldval, 'newval:', newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
     if (oldval === newval) {
       tabbedlog(4, this.depth, "proposal didn't change value; bailing out early");
-      tabbedlog(5, this.depth, "value:", this.val);
+      tabbedlog(5, this.depth, 'value:', this.val);
       return this.coroutine.exit();
     } else {
-      updateProperty(this, "store", _.clone(this.store));
-      updateProperty(this, "val", newval);
+      updateProperty(this, 'store', _.clone(this.store));
+      updateProperty(this, 'val', newval);
       var oldscore = this.score;
       this.rescore();
       this.coroutine.rvsPropLP = oldscore;
       this.coroutine.fwdPropLP = this.score;
-      tabbedlog(1, this.depth, "initial rvsPropLP:", this.coroutine.rvsPropLP, "initial fwdPropLP:", this.coroutine.fwdPropLP);
+      tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
+          'initial fwdPropLP:', this.coroutine.fwdPropLP);
       this.needsUpdate = false;
       if (this.coroutine.doFullRerun) {
         // Mark every node above this one as needing update, then re-run
@@ -179,10 +182,10 @@ module.exports = function(env) {
 
   ERPNode.prototype.rescore = function() {
     var oldscore = this.score;
-    updateProperty(this, "score", this.erp.score(this.params, this.val));
+    updateProperty(this, 'score', this.erp.score(this.params, this.val));
     this.coroutine.score += this.score - oldscore;
     if (this.score === -Infinity) {
-      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
+      tabbedlog(4, this.depth, 'score became -Infinity; bailing out early');
       return this.coroutine.exit();
     }
   };
@@ -205,18 +208,18 @@ module.exports = function(env) {
 
     this.rescore(0, args[0]);
 
-    tabbedlog(3, this.depth, "new factor");
+    tabbedlog(3, this.depth, 'new factor');
   }
 
   FactorNode.prototype.print = function() {
     // tabbedlog(0, this.depth, "FactorNode", this.address, this.reachable ? "" : "!!UNREACHABLE!!");
-    tabbedlog(0, this.depth, "FactorNode", this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, 'FactorNode', this.reachable ? '' : '!!UNREACHABLE!!');
   };
 
   FactorNode.prototype.execute = function() {
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
-      tabbedlog(4, this.depth, "score became -Infinity; bailing out early");
+      tabbedlog(4, this.depth, 'score became -Infinity; bailing out early');
       return this.coroutine.exit();
     } else {
       return this.kontinue();
@@ -224,9 +227,9 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.registerInputChanges = function(s, k, unused, args) {
-    updateProperty(this, "store", s);
-    updateProperty(this, "continuation", k);
-    updateProperty(this, "index", this.parent.nextChildIdx);
+    updateProperty(this, 'store', s);
+    updateProperty(this, 'continuation', k);
+    updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
     if (this.score !== args[0])
       this.rescore(this.score, args[0]);
@@ -238,12 +241,12 @@ module.exports = function(env) {
   };
 
   FactorNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(3, this.depth, "kill factor", this.address);
+    tabbedlog(3, this.depth, 'kill factor', this.address);
     this.coroutine.score -= this.score;
   }
 
   FactorNode.prototype.rescore = function(oldscore, score) {
-    updateProperty(this, "score", score);
+    updateProperty(this, 'score', score);
     this.coroutine.score += score - oldscore;
   };
 
@@ -323,19 +326,19 @@ module.exports = function(env) {
   FunctionNode.prototype.print = function() {
     // tabbedlog(0, this.depth, "FunctionNode", this.address, this.args, this.retval,
     //           this.reachable ? "" : "!!UNREACHABLE!!");
-    tabbedlog(0, this.depth, "FunctionNode", this.args, this.retval,
-              this.reachable ? "" : "!!UNREACHABLE!!");
+    tabbedlog(0, this.depth, 'FunctionNode', this.args, this.retval,
+              this.reachable ? '' : '!!UNREACHABLE!!');
     for (var i = 0; i < this.children.length; i++)
       this.children[i].print();
   };
 
   FunctionNode.prototype.execute = function() {
-    tabbedlog(4, this.depth, "execute function");
+    tabbedlog(4, this.depth, 'execute function');
     if (this.needsUpdate) {
       if (this.initialized)
         this.coroutine.cacheAdapter.registerMiss(this);
-      tabbedlog(4, this.depth, "yes, function args changed; executing");
-      tabbedlog(5, this.depth, "old args:", this.__snapshot ? this.__snapshot.args : undefined, "new args:", this.args);
+      tabbedlog(4, this.depth, 'yes, function args changed; executing');
+      tabbedlog(5, this.depth, 'old args:', this.__snapshot ? this.__snapshot.args : undefined, 'new args:', this.args);
       this.needsUpdate = false;
       // Keep track of program stack
       this.coroutine.nodeStack.push(this);
@@ -348,7 +351,7 @@ module.exports = function(env) {
         touch(this.children[i]);
         this.children[i].reachable = false;
       }
-      tabbedlog(4, this.depth, "Children marked unreachable on execute:", nchildren);
+      tabbedlog(4, this.depth, 'Children marked unreachable on execute:', nchildren);
       // Preserve reference to coroutine object so
       //    continuation can refer to it.
       var coroutine = this.coroutine;
@@ -367,7 +370,7 @@ module.exports = function(env) {
           if (!coroutine.cacheAdapter.shouldCache(address)) return continuation(s, retval);
           // Recover a reference to 'this'
           var that = coroutine.nodeStack.pop();
-          tabbedlog(4, that.depth, "continue from function");
+          tabbedlog(4, that.depth, 'continue from function');
           that.initialized = true;
           // Clear out any children that have become unreachable
           var newchildren = [];
@@ -378,30 +381,30 @@ module.exports = function(env) {
             if (!child.reachable)
               child.killDescendantLeaves();
             else {
-              updateProperty(child, "index", ii++);
+              updateProperty(child, 'index', ii++);
               newchildren.push(child);
             }
           }
-          updateProperty(that, "children", newchildren);
+          updateProperty(that, 'children', newchildren);
           // If the return value and output store haven't changed, then we can bail early.
           // We can only do this if this call is returning from a change somewhere below it
           //    (i.e. that.entered == false). Otherwise, we need to keep running.
           if (!that.entered && that.retval === retval && storesEqual(that.outStore, s)) {
-            tabbedlog(4, that.depth, "bailing b/c function return val not changed");
-            tabbedlog(5, that.depth, "return val:", retval);
+            tabbedlog(4, that.depth, 'bailing b/c function return val not changed');
+            tabbedlog(5, that.depth, 'return val:', retval);
             coroutine.cacheAdapter.registerHit(that);
             return coroutine.exit();
           }
           if (!that.entered && that.parent !== null)
-            that.parent.notifyChildChanged(that); 
+            that.parent.notifyChildChanged(that);
           if (!that.entered)
             coroutine.cacheAdapter.registerMiss(that);
           that.entered = false;
-          tabbedlog(4, that.depth, "function return val has changed, or cannot bail");
-          tabbedlog(5, that.depth, "old ret val:", that.retval, "new ret val:", retval);
+          tabbedlog(4, that.depth, 'function return val has changed, or cannot bail');
+          tabbedlog(5, that.depth, 'old ret val:', that.retval, 'new ret val:', retval);
           // Update output values
-          updateProperty(that, "retval", retval);
-          updateProperty(that, "outStore", _.clone(s));
+          updateProperty(that, 'retval', retval);
+          updateProperty(that, 'outStore', _.clone(s));
           // Continue execution
           return that.kontinue();
         },
@@ -409,32 +412,32 @@ module.exports = function(env) {
       ].concat(this.args));
     } else {
       this.coroutine.cacheAdapter.registerHit(this);
-      tabbedlog(4, this.depth, "no, function args have not changed; continuing");
-      tabbedlog(5, this.depth, "args:", this.args);
+      tabbedlog(4, this.depth, 'no, function args have not changed; continuing');
+      tabbedlog(5, this.depth, 'args:', this.args);
       return this.kontinue();
     }
   };
 
-  FunctionNode.prototype.registerInputChanges = function(s, k, fn, args) { 
-    updateProperty(this, "continuation", k);
-    if (this.parent) updateProperty(this, "index", this.parent.nextChildIdx);
+  FunctionNode.prototype.registerInputChanges = function(s, k, fn, args) {
+    updateProperty(this, 'continuation', k);
+    if (this.parent) updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
     // Check fn for changes
     if (!fnsEqual(fn, this.func)) {
       this.needsUpdate = true;
-      updateProperty(this, "func", fn);
+      updateProperty(this, 'func', fn);
     }
     // Check args for changes
     if (this.args.length !== args.length) {
       this.needsUpdate = true;
-      updateProperty(this, "args", args);
+      updateProperty(this, 'args', args);
     } else {
       var i = args.length;
       for (var i = 0; i < args.length; i++)
       {
         if (args[i] !== this.args[i]) {
           this.needsUpdate = true;
-          updateProperty(this, "args", args);
+          updateProperty(this, 'args', args);
           break;
         }
       }
@@ -442,19 +445,19 @@ module.exports = function(env) {
     // Check store for changes
     if (!storesEqual(this.store, s)) {
       this.needsUpdate = true;
-      updateProperty(this, "inStore", _.clone(s));
+      updateProperty(this, 'inStore', _.clone(s));
     }
   };
 
   FunctionNode.prototype.killDescendantLeaves = function() {
-    tabbedlog(3, this.depth, "kill function (and all descendant leaves)", this.address);
+    tabbedlog(3, this.depth, 'kill function (and all descendant leaves)', this.address);
     var stack = [this];
     while (stack.length > 0) {
       var node = stack.pop();
       if (node.score !== undefined) node.killDescendantLeaves();
       else {
         var n = node.children.length;
-        while(n--) stack.push(node.children[n]);
+        while (n--) stack.push(node.children[n]);
       }
     }
   };
@@ -482,7 +485,7 @@ module.exports = function(env) {
       this.children[i].reachable = false;
       totalmarked++;
     }
-    tabbedlog(4, this.depth, "Children marked unreachable on child change:", totalmarked);
+    tabbedlog(4, this.depth, 'Children marked unreachable on child change:', totalmarked);
   };
 
   // Called by the cache adapter when it determines that this node isn't giving
@@ -530,7 +533,7 @@ module.exports = function(env) {
   }
 
   ArrayERPMasterList.prototype.size = function() { return this.erpNodes.length; }
-  ArrayERPMasterList.prototype.oldSize = function() {
+      ArrayERPMasterList.prototype.oldSize = function() {
     return this.oldErpNodes === undefined ? undefined : this.oldErpNodes.length;
   }
 
@@ -555,7 +558,7 @@ module.exports = function(env) {
   };
 
   ArrayERPMasterList.prototype.getRandom = function() {
-    var idx = Math.floor(Math.random()*this.erpNodes.length);
+    var idx = Math.floor(Math.random() * this.erpNodes.length);
     return this.erpNodes[idx];
   };
 
@@ -572,9 +575,9 @@ module.exports = function(env) {
   }
 
   HashtableERPMasterList.prototype.size = function() { return this.numErps; }
-  HashtableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
+      HashtableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
 
-  HashtableERPMasterList.prototype.addERP = function(node) {
+      HashtableERPMasterList.prototype.addERP = function(node) {
     this.erpNodeMap.put(node.address, node);
     this.erpsAdded.push(node);
     this.numErps++;
@@ -598,16 +601,16 @@ module.exports = function(env) {
 
   HashtableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
 
-  HashtableERPMasterList.prototype.restoreOnReject = function() {
+      HashtableERPMasterList.prototype.restoreOnReject = function() {
     // this.checkConsistency("restoreOnReject");
     this.numErps = this.oldNumErps;
     var n = this.erpsAdded.length;
-    while(n--) {
+    while (n--) {
       var node = this.erpsAdded[n];
       this.erpNodeMap.remove(node.address);
     }
     n = this.erpsRemoved.length;
-    while(n--) {
+    while (n--) {
       var node = this.erpsRemoved[n];
       this.erpNodeMap.put(node.address, node);
     }
@@ -618,12 +621,12 @@ module.exports = function(env) {
     for (var i = 0; i < this.erpsAdded.length; i++) {
       var addr = this.erpsAdded[i].address;
       if (!this.erpNodeMap.get(addr))
-        throw "WTF - hash table doesn't contain node " + addr + " that we added (" + tag + ")";
+        throw "WTF - hash table doesn't contain node " + addr + ' that we added (' + tag + ')';
     }
     for (var i = 0; i < this.erpsRemoved.length; i++) {
       var addr = this.erpsRemoved[i].address;
       if (this.erpNodeMap.get(addr))
-        throw "WTF - hash table contains node " + addr + " that we removed (" + tag + ")";
+        throw 'WTF - hash table contains node ' + addr + ' that we removed (' + tag + ')';
     }
   };
 
@@ -645,7 +648,7 @@ module.exports = function(env) {
     var id = this.addrToId[addr];
     if (id === undefined) {
       var arr = addr.split('_');
-      id = arr[arr.length-1];
+      id = arr[arr.length - 1];
       this.addrToId[addr] = id;
     }
     return id;
@@ -670,8 +673,8 @@ module.exports = function(env) {
     stats.hits++;
     stats.total++;
     if (node.parent !== null &&   // Can't remove the cache root
-        (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&  // Give chance to see multiple proposals
-        stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+        (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&
+        stats.total >= this.fuseLength && stats.hits / stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
     }
@@ -681,8 +684,8 @@ module.exports = function(env) {
     var stats = this.getStats(node.address);
     stats.total++;
     if (node.parent !== null &&   // Can't remove the cache root
-      (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&  // Give chance to see multiple proposals
-        stats.total >= this.fuseLength && stats.hits/stats.total < this.minHitRate) {
+        (node.coroutine.totalIterations - node.coroutine.iterations) > this.iterFuseLength &&
+        stats.total >= this.fuseLength && stats.hits / stats.total < this.minHitRate) {
       this.idsToRemove[this.id(node.address)] = true;
       this.hasIdsToRemove = true;
     }
@@ -692,7 +695,7 @@ module.exports = function(env) {
     if (this.hasIdsToRemove) {
       for (var id in this.idsToRemove) {
         var s = this.stats[id];
-        debuglog(5, "Cache adapter removing nodes w/ id", id, "hit rate:", s.hits/s.total);
+        debuglog(5, 'Cache adapter removing nodes w/ id', id, 'hit rate:', s.hits / s.total);
         this.stats[id].shouldCache = false;
       }
       // Traverse cache and remove all nodes with this id
@@ -709,7 +712,7 @@ module.exports = function(env) {
       this.idsToRemove = {};
       this.hasIdsToRemove = false;
       if (DEBUG >= 6) {
-        debuglog(6, "=== Post-adaptation cache status ===");
+        debuglog(6, '=== Post-adaptation cache status ===');
         cacheRoot.print();
       }
     }
@@ -717,7 +720,7 @@ module.exports = function(env) {
 
   CacheAdapter.prototype.report = function() {
     for (var id in this.stats) {
-      console.log(id, ":", this.stats[id]);
+      console.log(id, ':', this.stats[id]);
     }
   };
 
@@ -782,8 +785,8 @@ module.exports = function(env) {
     this.rvsPropLP = 0;
     this.query = new Query();
     env.query.clear();
-    debuglog(1, "-------------------------------------");
-    debuglog(1, "RUN FROM START");
+    debuglog(1, '-------------------------------------');
+    debuglog(1, 'RUN FROM START');
     return this.runFromStart();
   };
 
@@ -812,8 +815,8 @@ module.exports = function(env) {
   function acceptProb(currScore, oldScore, currN, oldN, rvsPropLP, fwdPropLP) {
     if (oldScore === undefined) { return 1; } // init
     if (currScore === -Infinity) return 0;  // auto-reject
-    debuglog(1, "currScore:", currScore, "oldScore", oldScore);
-    debuglog(1, "rvsPropLP:", rvsPropLP, "fwdPropLP:", fwdPropLP);
+    debuglog(1, 'currScore:', currScore, 'oldScore', oldScore);
+    debuglog(1, 'rvsPropLP:', rvsPropLP, 'fwdPropLP:', fwdPropLP);
     var fw = -Math.log(oldN) + fwdPropLP;
     var bw = -Math.log(currN) + rvsPropLP;
     var p = Math.exp(currScore - oldScore + bw - fw);
@@ -834,42 +837,42 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.score === -Infinity) {
         return this.run();
       } else {
-        debuglog(1, "iteration", (this.totalIterations - this.iterations));
+        debuglog(1, 'iteration', (this.totalIterations - this.iterations));
         if (this.verbose)
-          console.log("IncrementalMH iteration " + (this.totalIterations - this.iterations) +
-            " / " + this.totalIterations);
+          console.log('IncrementalMH iteration ' + (this.totalIterations - this.iterations) +
+              ' / ' + this.totalIterations);
         // Continue proposing as normal
         this.iterations--;
 
         this.erpMasterList.postProposal();
 
-        debuglog(2, "Num vars:", this.erpMasterList.size());
-        debuglog(2, "Touched nodes:", this.touchedNodes.length);
+        debuglog(2, 'Num vars:', this.erpMasterList.size());
+        debuglog(2, 'Touched nodes:', this.touchedNodes.length);
 
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.score, this.oldScore,
                                     this.erpMasterList.size(), this.erpMasterList.oldSize(),
                                     this.rvsPropLP, this.fwdPropLP);
-        debuglog(1, "num vars:", this.erpMasterList.size(), "old num vars:", this.erpMasterList.oldSize());
-        debuglog(1, "acceptance prob:", acceptance);
+        debuglog(1, 'num vars:', this.erpMasterList.size(), 'old num vars:', this.erpMasterList.oldSize());
+        debuglog(1, 'acceptance prob:', acceptance);
         if (Math.random() >= acceptance) {
-          debuglog(1, "REJECT");
+          debuglog(1, 'REJECT');
           this.score = this.oldScore;
           var n = this.touchedNodes.length;
-          while(n--) restoreSnapshot(this.touchedNodes[n]);
+          while (n--) restoreSnapshot(this.touchedNodes[n]);
           this.erpMasterList.restoreOnReject();
         }
         else {
-          debuglog(1, "ACCEPT");
+          debuglog(1, 'ACCEPT');
           var n = this.touchedNodes.length;
-          while(n--) discardSnapshot(this.touchedNodes[n]);
+          while (n--) discardSnapshot(this.touchedNodes[n]);
           this.acceptedProps++;
           this.query.addAll(env.query);
         }
         env.query.clear();
 
         var val = this.cacheRoot.retval;
-        debuglog(1, "return val:", val);
+        debuglog(1, 'return val:', val);
 
         // Record this sample, if lag allows for it
         var iternum = this.totalIterations - this.iterations;
@@ -889,7 +892,7 @@ module.exports = function(env) {
               this.returnHist[stringifiedVal].prob += 1;
             }
           }
-           // also update the MAP
+          // also update the MAP
           if (this.score > this.MAP.score) {
             this.MAP.score = this.score;
             this.MAP.value = val;
@@ -897,7 +900,7 @@ module.exports = function(env) {
         }
 
         if (DEBUG >= 6) {
-          debuglog(6, "=== Cache status ===");
+          debuglog(6, '=== Cache status ===');
           this.cacheRoot.print();
         }
 
@@ -915,8 +918,8 @@ module.exports = function(env) {
         // Select ERP to change.
         var propnode = this.erpMasterList.getRandom();
         // Propose change and resume execution
-        debuglog(1, "----------------------------------------------------------------------");
-        debuglog(1, "PROPOSAL",  "type:", propnode.erp.sample.name, "address:", propnode.address);
+        debuglog(1, '----------------------------------------------------------------------');
+        debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
         return propnode.propose();
       }
     } else {
@@ -936,7 +939,7 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
 
-      console.log("Acceptance ratio: " + this.acceptedProps / this.totalIterations);
+      console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
 
       if (DEBUG >= 5) {
         this.cacheAdapter.report();
@@ -964,34 +967,34 @@ module.exports = function(env) {
     // If the node stack is empty, then we must be looking up the root on a
     //    re-run from start
     } else if (this.nodeStack.length === 0) {
-      if (a !== this.cacheRoot.address) throw "Wrong address for cache root lookup";
+      if (a !== this.cacheRoot.address) throw 'Wrong address for cache root lookup';
       cacheNode = this.cacheRoot;
       cacheNode.registerInputChanges(s, k, fn, args);
     // Otherwise, do the general thing.
     } else {
-      var currNode = this.nodeStack[this.nodeStack.length-1];
-      tabbedlog(3, currNode.depth, "lookup", NodeType.name, a);
+      var currNode = this.nodeStack[this.nodeStack.length - 1];
+      tabbedlog(3, currNode.depth, 'lookup', NodeType.name, a);
       // Look for cache node among the children of currNode
       cacheNode = this.findNode(currNode, a);
       if (cacheNode) {
         // Lookup successful; check for changes to store/args and move on.
-        tabbedlog(3, currNode.depth, "found");
+        tabbedlog(3, currNode.depth, 'found');
         cacheNode.registerInputChanges(s, k, fn, args);
       } else {
         // Lookup failed; create new node and insert it into currNode.children
         if (DEBUG) {
           var addrs = _.map(_.filter(currNode.children, function(node) { return node instanceof NodeType; }),
-            function(node) { return node.address; });
-          tabbedlog(3, currNode.depth, "*not* found");
-          tabbedlog(4, currNode.depth, "options were", addrs);
+              function(node) { return node.address; });
+          tabbedlog(3, currNode.depth, '*not* found');
+          tabbedlog(4, currNode.depth, 'options were', addrs);
         }
         cacheNode = new NodeType(this, currNode, s, k, a, fn, args);
         var insertidx = currNode.nextChildIdx;
         // Copy the children array if we don't already have a snapshot for it
         // Kind of annoying that this somewhat breaks the abstraction of snapshots, but
         //    I think it's worth it.
-        if (!hasSnapshotForProperty(currNode, "children"))
-          updateProperty(currNode, "children", currNode.children.slice());
+        if (!hasSnapshotForProperty(currNode, 'children'))
+          updateProperty(currNode, 'children', currNode.children.slice());
         currNode.children.splice(insertidx, 0, cacheNode);
       }
     }
@@ -1007,15 +1010,15 @@ module.exports = function(env) {
     var nodes = parentNode.children;
     var nexti = parentNode.nextChildIdx;
     for (var i = nexti; i < nodes.length; i++) {
-    // for (var i = 0; i < nodes.length; i++) {
+      // for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].address === address) {
         // Keep nodes ordered according to execution order: if
         // i !== nexti, then swap those two.
         if (i !== nexti) {
           // if (i < nexti) throw "WTF - cache node found *before* first possible location";
-          if (!hasSnapshotForProperty(parentNode, "children")) {
+          if (!hasSnapshotForProperty(parentNode, 'children')) {
             nodes = nodes.slice();
-            updateProperty(parentNode, "children", nodes);
+            updateProperty(parentNode, 'children', nodes);
           }
           var tmp = nodes[i];
           nodes[i] = nodes[nexti];
@@ -1027,13 +1030,13 @@ module.exports = function(env) {
   };
 
   IncrementalMH.prototype.addERP = function(node) {
-    tabbedlog(3, node.depth, "new ERP");
+    tabbedlog(3, node.depth, 'new ERP');
     this.erpMasterList.addERP(node);
     this.fwdPropLP += node.score;
   };
 
   IncrementalMH.prototype.removeERP = function(node) {
-    tabbedlog(3, node.depth, "kill ERP", node.address);
+    tabbedlog(3, node.depth, 'kill ERP', node.address);
     this.erpMasterList.removeERP(node);
     this.rvsPropLP += node.score;
     this.score -= node.score;
@@ -1068,7 +1071,7 @@ module.exports = function(env) {
     var stack = [this.cacheRoot];
     while (stack.length > 0) {
       var node = stack.pop();
-      if (!node.reachable) throw "WTF - found unreachable node in cache.";
+      if (!node.reachable) throw 'WTF - found unreachable node in cache.';
       if (node.children !== undefined)
         for (var i = 0; i < node.children.length; i++)
           stack.push(node.children[i]);

@@ -54,7 +54,7 @@ module.exports = function(env) {
       return fn;
     }
   };
- 
+
   return {
     display: display,
     cache: cache,

@@ -78,9 +78,9 @@ function exit(node) {
       }
       boundVarsStack.pop();
       return build.callExpression(
-        build.memberExpression(build.identifier("_Fn"),
-          build.identifier("tag"), false),
-        [node, build.literal(genid(0)), build.arrayExpression(freeVarNodes)]
+          build.memberExpression(build.identifier('_Fn'),
+          build.identifier('tag'), false),
+          [node, build.literal(genid(0)), build.arrayExpression(freeVarNodes)]
       );
     default:
   }

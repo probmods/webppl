@@ -11,19 +11,19 @@ var isPrimitive = require('../syntax').isPrimitive;
 
 // TODO: Auto-extract this list, somehow?
 var knownERPs = [
-  "flip",
-  "randomInteger",
-  "discrete",
-  "gaussian",
-  "uniform",
-  "uniformDraw",
-  "dirichlet",
-  "poisson",
-  "binomial",
-  "beta",
-  "exponential",
-  "gamma",
-  "factor"
+  'flip',
+  'randomInteger',
+  'discrete',
+  'gaussian',
+  'uniform',
+  'uniformDraw',
+  'dirichlet',
+  'poisson',
+  'binomial',
+  'beta',
+  'exponential',
+  'gamma',
+  'factor'
 ];
 var knownERPtable = {};
 _.each(knownERPs, function(erpname) {
@@ -50,8 +50,8 @@ function exit(node) {
     case Syntax.CallExpression:
       if (shouldCache(node.callee)) {
         return build.callExpression(
-          build.identifier("incrementalize"),
-          [node.callee, build.arrayExpression(node.arguments)]
+            build.identifier('incrementalize'),
+            [node.callee, build.arrayExpression(node.arguments)]
         );
       }
     default:
