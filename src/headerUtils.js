@@ -43,10 +43,23 @@ module.exports = function(env) {
     return wpplFn.apply(global, [s, k, a].concat(args));
   }
 
+  // Annotating a function object with its lexical id and
+  //    a list of its free variable values.
+  var __uniqueid = 0;
+  var _Fn = {
+    tag: function(fn, lexid, freevarvals) {
+      fn.__lexid = lexid;
+      fn.__uniqueid = __uniqueid++;
+      fn.__freeVarVals = freevarvals;
+      return fn;
+    }
+  };
+
   return {
     display: display,
     cache: cache,
-    apply: apply
+    apply: apply,
+    _Fn: _Fn
   };
 
 };

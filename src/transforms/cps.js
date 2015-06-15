@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var build = require('ast-types').builders;
 var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;
@@ -54,6 +55,9 @@ function atomize(node, metaK) {
       });
     }),
     clause(Syntax.AssignmentExpression, function(left, right) {
+      assert(left.type === Syntax.MemberExpression &&
+             left.object.name === 'globalStore',
+             'Assignment is allowed only to fields of globalStore.');
       return atomize(left, function(left) {
         return atomize(right, function(right) {
           return metaK(build.assignmentExpression(node.operator, left, right));
