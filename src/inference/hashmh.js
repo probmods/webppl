@@ -68,7 +68,7 @@ module.exports = function(env) {
     this.oldScore = -Infinity;
     this.query = new Query();
     env.query.clear();
-    return this.wpplFn(this.s, env.exit, this.a);
+    return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
   HashMH.prototype.factor = function(s, k, a, score) {
