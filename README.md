@@ -23,7 +23,7 @@ webppl is released under the [MIT License](LICENSE.md).
 
 ## Contributions
 
-We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md) and join the [webppl-dev](https://groups.google.com/forum/#!forum/webppl-dev) mailing list.
 
 ## Installation from GitHub
 
