@@ -1,6 +1,0 @@
-var model = function () {
-  var a = sample(bernoulliERP, [0.5])
-  var b = sample(bernoulliERP, [0.5])
-  var c = sample(bernoulliERP, [0.5])
-  return a + b + c;
-};

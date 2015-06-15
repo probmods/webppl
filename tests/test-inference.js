@@ -12,13 +12,13 @@ var testDefinitions = [
   {
     name: 'Enumerate',
     args: [10],
-    only: ['simple', 'store', 'binomial', 'geometric', 'cache'],
+    only: ['simple', 'store', 'geometric', 'cache'],
     store: { hist: { tol: 0 } }
   },
   {
     name: 'MH',
     args: [5000],
-    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
+    only: ['simple', 'store', 'geometric', 'drift'],
     hist: { tol: 0.1 },
     store: { hist: { tol: 0 }, args: [100] },
     drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
@@ -26,14 +26,14 @@ var testDefinitions = [
   {
     name: 'HashMH',
     args: [5000],
-    only: ['simple', 'store', 'binomial', 'geometric'],
+    only: ['simple', 'store', 'geometric'],
     hist: { tol: 0.1 },
     store: { hist: { tol: 0 }, args: [100] }
   },
   {
     name: 'IncrementalMH',
     args: [5000],
-    only: ['simple', 'store', 'binomial', 'geometric'],
+    only: ['simple', 'store', 'geometric'],
     hist: { tol: 0.1 },
     store: { hist: { tol: 0 }, args: [100] }
   },
@@ -48,7 +48,7 @@ var testDefinitions = [
     name: 'PFRj',
     func: 'ParticleFilterRejuv',
     args: [1000, 10],
-    only: ['simple', 'store', 'binomial', 'geometric', 'drift'],
+    only: ['simple', 'store', 'geometric', 'drift'],
     hist: { tol: 0.1 },
     logZ: { check: true, tol: 0.05 },
     store: { hist: { tol: 0 }, args: [30, 30] },
@@ -153,17 +153,17 @@ var getHist = function(erp) {
 };
 
 var getModelNames = function() {
-  var filenames = fs.readdirSync(testDataDir + 'models2/');
+  var filenames = fs.readdirSync(testDataDir + 'models/');
   return _.map(filenames, function(fn) { return fn.split('.')[0]; });
 };
 
 var loadModel = function(modelName) {
-  var filename = testDataDir + 'models2/' + modelName + '.wppl';
+  var filename = testDataDir + 'models/' + modelName + '.wppl';
   return fs.readFileSync(filename, 'utf-8');
 };
 
 var loadExpected = function(modelName) {
-  var filename = testDataDir + 'expected2/' + modelName + '.json';
+  var filename = testDataDir + 'expected/' + modelName + '.json';
   return JSON.parse(fs.readFileSync(filename, 'utf-8'));
 };
 
