@@ -24,6 +24,20 @@ var testDefinitions = [
     drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
   },
   {
+    name: 'HashMH',
+    args: [5000],
+    only: ['simple', 'store', 'binomial', 'geometric'],
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [100] }
+  },
+  {
+    name: 'IncrementalMH',
+    args: [5000],
+    only: ['simple', 'store', 'binomial', 'geometric'],
+    hist: { tol: 0.1 },
+    store: { hist: { tol: 0 }, args: [100] }
+  },
+  {
     name: 'PMCMC',
     args: [1000, 5],
     only: ['simple', 'store'],
