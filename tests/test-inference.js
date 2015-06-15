@@ -222,7 +222,8 @@ var tests = {
       'pcfgIncremental',
       'scalarImplicature',
       'semanticParsing',
-      'pragmaticsWithSemanticParsing'
+      'pragmaticsWithSemanticParsing',
+      'multiplex'
     ],
     directory: './examples/',
     resultDirectory: testDataDir + 'expected/',
