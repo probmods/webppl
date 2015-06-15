@@ -183,8 +183,6 @@ Sometimes, it is useful to define external functions that are able to access the
 
         git checkout dev
         npm version patch  // or minor, or major; prints new version number
-        git add package.json
-        git commit -m "Update npm version"
 
 2. Merge into master
 
@@ -192,11 +190,7 @@ Sometimes, it is useful to define external functions that are able to access the
         git merge dev
         grunt
     
-3. Create git tag for new version
-
-        git tag v0.0.1 // use version printed by "npm version" command above    
-    
-4. Push to remotes and npm
+3. Push to remotes and npm
 
         git push origin dev
         git push origin master
