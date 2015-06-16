@@ -26,23 +26,26 @@ var testDefinitions = [
   {
     name: 'HashMH',
     args: [5000],
-    only: ['simple', 'store', 'geometric'],
+    only: ['simple', 'store', 'geometric', 'gaussianMean'],
     hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [100] }
+    store: { hist: { tol: 0 }, args: [100] },
+    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
   },
   {
     name: 'IncrementalMH',
     args: [5000],
-    only: ['simple', 'store', 'geometric'],
+    only: ['simple', 'store', 'geometric', 'gaussianMean'],
     hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [100] }
+    store: { hist: { tol: 0 }, args: [100] },
+    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
   },
   {
     name: 'PMCMC',
     args: [1000, 5],
-    only: ['simple', 'store'],
+    only: ['simple', 'store', 'gaussianMean'],
     hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [30, 30] }
+    store: { hist: { tol: 0 }, args: [30, 30] },
+    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
   },
   {
     name: 'PFRj',
@@ -64,18 +67,20 @@ var testDefinitions = [
   {
     name: 'AsyncPF',
     args: [1000, 1000],
-    only: ['simple', 'store'],
+    only: ['simple', 'store', 'gaussianMean'],
     hist: { tol: 0.1 },
     logZ: { check: true, tol: 0.05 },
-    store: { hist: { tol: 0 }, args: [100, 100] }
+    store: { hist: { tol: 0 }, args: [100, 100] },
+    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
   },
   {
     name: 'ParticleFilter',
     args: [1000],
-    only: ['simple', 'store', 'varFactors1', 'varFactors2'],
+    only: ['simple', 'store', 'gaussianMean', 'varFactors1', 'varFactors2'],
     hist: { tol: 0.1 },
     logZ: { check: true, tol: 0.05 },
     store: { hist: { tol: 0 }, args: [100] },
+    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
     varFactors1: { args: [5000] }
   }
 ];
