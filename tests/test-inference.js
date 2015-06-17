@@ -11,77 +11,118 @@ var testDataDir = './tests/test-data/';
 var testDefinitions = [
   {
     name: 'Enumerate',
-    args: [10],
-    only: ['simple', 'store', 'geometric', 'cache'],
-    store: { hist: { tol: 0 } }
+    settings: { args: [10] },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      cache: true
+    }
   },
   {
     name: 'MH',
-    args: [5000],
-    only: ['simple', 'store', 'geometric', 'drift'],
-    hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [100] },
-    drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
   },
   {
     name: 'HashMH',
-    args: [5000],
-    only: ['simple', 'store', 'geometric', 'gaussianMean'],
-    hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [100] },
-    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
   },
   {
     name: 'IncrementalMH',
-    args: [5000],
-    only: ['simple', 'store', 'geometric', 'gaussianMean'],
-    hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [100] },
-    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
   },
   {
     name: 'PMCMC',
-    args: [1000, 5],
-    only: ['simple', 'store', 'gaussianMean'],
-    hist: { tol: 0.1 },
-    store: { hist: { tol: 0 }, args: [30, 30] },
-    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
+    settings: {
+      args: [1000, 5],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [30, 30] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
+    }
   },
   {
     name: 'PFRj',
     func: 'ParticleFilterRejuv',
-    args: [1000, 10],
-    only: ['simple', 'store', 'geometric', 'drift'],
-    hist: { tol: 0.1 },
-    logZ: { check: true, tol: 0.05 },
-    store: { hist: { tol: 0 }, args: [30, 30] },
-    drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] }
+    settings: {
+      args: [1000, 10],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [30, 30] },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] }
+    }
   },
   {
     name: 'PFRjAsMH',
     func: 'ParticleFilterRejuv',
-    args: [1, 10000],
-    only: ['simple'],
-    hist: { tol: 0.1 }
+    settings: {
+      args: [1, 10000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true
+    }
   },
   {
     name: 'AsyncPF',
-    args: [1000, 1000],
-    only: ['simple', 'store', 'gaussianMean'],
-    hist: { tol: 0.1 },
-    logZ: { check: true, tol: 0.05 },
-    store: { hist: { tol: 0 }, args: [100, 100] },
-    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
+    settings: {
+      args: [1000, 1000],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100, 100] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
+    }
   },
   {
     name: 'ParticleFilter',
-    args: [1000],
-    only: ['simple', 'store', 'gaussianMean', 'varFactors1', 'varFactors2'],
-    hist: { tol: 0.1 },
-    logZ: { check: true, tol: 0.05 },
-    store: { hist: { tol: 0 }, args: [100] },
-    gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
-    varFactors1: { args: [5000] }
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
+      varFactors1: { args: [5000] },
+      varFactors2: true
+    }
   }
 ];
 
@@ -105,8 +146,8 @@ var performTest = function(modelName, testDef, test) {
         assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
         var testArgs = _.extendOwn.apply(null, _.filter([
           { tol: 0.0001 }, // Defaults.
-          testDef[testName],
-          testDef[modelName] && testDef[modelName][testName] // Most specific.
+          testDef.settings[testName],
+          testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
         ]));
         //console.log('\t' + testName);
         //console.log('\t' + JSON.stringify(testArgs));
@@ -122,7 +163,7 @@ var performTest = function(modelName, testDef, test) {
 };
 
 var getInferenceArgs = function(testDef, model) {
-  var args = (testDef[model] && testDef[model].args) || testDef.args;
+  var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
   return JSON.stringify(args).slice(1, -1);
 };
 
@@ -175,7 +216,7 @@ var loadExpected = function(modelName) {
 var generateTestCases = function() {
   _.each(getModelNames(), function(modelName) {
     _.each(testDefinitions, function(testDef) {
-      if (_.isUndefined(testDef.only) || _.includes(testDef.only, modelName)) {
+      if (testDef.models[modelName]) {
         var testName = modelName + testDef.name;
         exports[testName] = _.partial(performTest, modelName, testDef);
       }
