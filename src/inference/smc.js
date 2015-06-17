@@ -197,9 +197,17 @@ module.exports = function(env) {
       return this.activeParticle().continuation(this.activeParticle().store);
     }
 
-    // Final rejuvenation:
-    var oldStore = this.oldStore;
+    // Initialize histogram with particle values
     var hist = {};
+    this.particles.forEach(function(particle) {
+      if (hist[particle.value] === undefined) {
+        hist[particle.value] = {prob: 0, val: particle.value};
+      }
+      hist[particle.value].prob += 1;
+    });
+
+    // Final rejuvenation (will add values for each MH step to histogram)
+    var oldStore = this.oldStore;
     return util.cpsForEach(
         function(particle, i, particles, nextK) {
           // make sure mhp coroutine doesn't escape:
