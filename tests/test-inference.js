@@ -5,10 +5,29 @@ var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
+var erp = require('../src/erp.js');
 
 var testDataDir = './tests/test-data/';
 
-var testDefinitions = [
+var samplingTests = {
+  name: 'Sampling',
+  settings: {
+    numSamples: 1000,
+    hist: { tol: 0.05 },
+    mean: { tol: 0.2 },
+    std: { tol: 0.2 }
+  },
+  models: {
+    deterministic: { numSamples: 10, hist: { tol: 0 } },
+    flips: true,
+    geometric: true,
+    randomInteger: true,
+    gaussian: { numSamples: 10000 },
+    uniform: { numSamples: 10000 }
+  }
+};
+
+var inferenceTests = [
   {
     name: 'Enumerate',
     settings: { args: [10] },
@@ -126,38 +145,57 @@ var testDefinitions = [
   }
 ];
 
-var performTest = function(modelName, testDef, test) {
-  var expectedResults = loadExpected(modelName);
+var wpplRunSampling = function(modelName, testDef) {
+  var progText = [loadModel(modelName), 'model();'].join('');
+  var program = eval(webppl.compile(progText));
+  var numSamples = getNumSamples(testDef, modelName);
+
+  var hist = {};
+  for (var i = 0; i < numSamples; i++) {
+    program({}, function(s, val) {
+      var r = JSON.stringify(val);
+      if (hist[r] === undefined) {
+        hist[r] = { prob: 0, val: val }
+      }
+      hist[r].prob += 1;
+    }, '');
+  }
+  return makeMarginalERP(hist);
+};
+
+var wpplRunInference = function(modelName, testDef) {
   var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     loadModel(modelName),
     inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
-
-  //console.log([testDef.name, modelName, inferenceArgs]);
-
+  var erp;
   try {
-    webppl.run(progText, function(s, erp) {
-      var hist = getHist(erp);
-      _.each(expectedResults, function(expected, testName) {
-        // The tests to run for a particular model are determined by the contents
-        // of the expected results JSON file.
-        assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
-        var testArgs = _.extendOwn.apply(null, _.filter([
-          { tol: 0.0001 }, // Defaults.
-          testDef.settings[testName],
-          testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
-        ]));
-        //console.log('\t' + testName);
-        //console.log('\t' + JSON.stringify(testArgs));
-        testFunctions[testName](test, erp, hist, expected, testArgs);
-      });
-    });
+    webppl.run(progText, function(s, val) { erp = val; });
   } catch (e) {
-    console.error('Exception: ' + e);
+    console.log('Exception:' + e);
     throw e;
   }
+  return erp;
+};
+
+var performTest = function(wpplRunner, modelName, testDef, test) {
+  var erp = wpplRunner(modelName, testDef);
+  var hist = getHist(erp);
+  var expectedResults = loadExpected(modelName);
+
+  _.each(expectedResults, function(expected, testName) {
+    // The tests to run for a particular model are determined by the contents
+    // of the expected results JSON file.
+    assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
+    var testArgs = _.extendOwn.apply(null, _.filter([
+      { tol: 0.0001 }, // Defaults.
+      testDef.settings[testName],
+      testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
+    ]));
+    testFunctions[testName](test, erp, hist, expected, testArgs);
+  });
 
   test.done();
 };
@@ -165,6 +203,11 @@ var performTest = function(modelName, testDef, test) {
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
   return JSON.stringify(args).slice(1, -1);
+};
+
+var getNumSamples = function(testDef, model) {
+  return (testDef.models[model] &&
+          testDef.models[model].numSamples) || testDef.settings.numSamples;
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {
@@ -213,15 +256,16 @@ var loadExpected = function(modelName) {
   return JSON.parse(fs.readFileSync(filename, 'utf-8'));
 };
 
-var generateTestCases = function() {
+var generateTestCases = function(definitions, wpplRunner) {
   _.each(getModelNames(), function(modelName) {
-    _.each(testDefinitions, function(testDef) {
+    _.each(definitions, function(testDef) {
       if (testDef.models[modelName]) {
         var testName = modelName + testDef.name;
-        exports[testName] = _.partial(performTest, modelName, testDef);
+        exports[testName] = _.partial(performTest, wpplRunner, modelName, testDef);
       }
     });
   });
 };
 
-generateTestCases();
+generateTestCases(inferenceTests, wpplRunInference);
+generateTestCases([samplingTests], wpplRunSampling);
