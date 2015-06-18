@@ -9,25 +9,24 @@ var erp = require('../src/erp.js');
 
 var testDataDir = './tests/test-data/';
 
-var samplingTests = {
-  name: 'Sampling',
-  settings: {
-    numSamples: 1000,
-    hist: { tol: 0.05 },
-    mean: { tol: 0.2 },
-    std: { tol: 0.2 }
+var tests = [
+  {
+    name: 'ForwardSample',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.05 },
+      mean: { tol: 0.2 },
+      std: { tol: 0.2 }
+    },
+    models: {
+      deterministic: { args: [10], hist: { tol: 0 } },
+      flips: true,
+      geometric: true,
+      randomInteger: true,
+      gaussian: { args: [10000] },
+      uniform: { args: [10000] }
+    }
   },
-  models: {
-    deterministic: { numSamples: 10, hist: { tol: 0 } },
-    flips: true,
-    geometric: true,
-    randomInteger: true,
-    gaussian: { numSamples: 10000 },
-    uniform: { numSamples: 10000 }
-  }
-};
-
-var inferenceTests = [
   {
     name: 'Enumerate',
     settings: { args: [10] },
@@ -145,24 +144,6 @@ var inferenceTests = [
   }
 ];
 
-var wpplRunSampling = function(modelName, testDef) {
-  var progText = [loadModel(modelName), 'model();'].join('');
-  var program = eval(webppl.compile(progText));
-  var numSamples = getNumSamples(testDef, modelName);
-
-  var hist = {};
-  for (var i = 0; i < numSamples; i++) {
-    program({}, function(s, val) {
-      var r = JSON.stringify(val);
-      if (hist[r] === undefined) {
-        hist[r] = { prob: 0, val: val }
-      }
-      hist[r].prob += 1;
-    }, '');
-  }
-  return makeMarginalERP(hist);
-};
-
 var wpplRunInference = function(modelName, testDef) {
   var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
@@ -180,8 +161,8 @@ var wpplRunInference = function(modelName, testDef) {
   return erp;
 };
 
-var performTest = function(wpplRunner, modelName, testDef, test) {
-  var erp = wpplRunner(modelName, testDef);
+var performTest = function(modelName, testDef, test) {
+  var erp = wpplRunInference(modelName, testDef);
   var hist = getHist(erp);
   var expectedResults = loadExpected(modelName);
 
@@ -203,11 +184,6 @@ var performTest = function(wpplRunner, modelName, testDef, test) {
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
   return JSON.stringify(args).slice(1, -1);
-};
-
-var getNumSamples = function(testDef, model) {
-  return (testDef.models[model] &&
-          testDef.models[model].numSamples) || testDef.settings.numSamples;
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {
@@ -256,16 +232,15 @@ var loadExpected = function(modelName) {
   return JSON.parse(fs.readFileSync(filename, 'utf-8'));
 };
 
-var generateTestCases = function(definitions, wpplRunner) {
+var generateTestCases = function() {
   _.each(getModelNames(), function(modelName) {
-    _.each(definitions, function(testDef) {
+    _.each(tests, function(testDef) {
       if (testDef.models[modelName]) {
         var testName = modelName + testDef.name;
-        exports[testName] = _.partial(performTest, wpplRunner, modelName, testDef);
+        exports[testName] = _.partial(performTest, modelName, testDef);
       }
     });
   });
 };
 
-generateTestCases(inferenceTests, wpplRunInference);
-generateTestCases([samplingTests], wpplRunSampling);
+generateTestCases();
