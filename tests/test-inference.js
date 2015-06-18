@@ -204,7 +204,7 @@ var testFunctions = {
   },
   logZ: function(test, erp, hist, expected, args) {
     if (args.check) {
-      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol);
+      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   }
 };
