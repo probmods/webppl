@@ -233,11 +233,12 @@ var loadExpected = function(modelName) {
 };
 
 var generateTestCases = function() {
-  _.each(getModelNames(), function(modelName) {
-    _.each(tests, function(testDef) {
+  var modelNames = getModelNames();
+  _.each(tests, function(testDef) {
+    exports[testDef.name] = {};
+    _.each(modelNames, function(modelName) {
       if (testDef.models[modelName]) {
-        var testName = modelName + testDef.name;
-        exports[testName] = _.partial(performTest, modelName, testDef);
+        exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
       }
     });
   });
