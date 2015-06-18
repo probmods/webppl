@@ -1,0 +1,22 @@
+var xs = [0, 1, 2, 3];
+var ys = [0, 1, 4, 6];
+
+var model = function() {
+  var m = sample(gaussianDriftERP, [0, 2]);
+  var b = sample(gaussianDriftERP, [0, 2]);
+
+  var sigmaSquared = gamma(1, 1);
+
+  var f = function(x) {
+    return m * x + b;
+  };
+
+  map2(
+      function(x, y) {
+        factor(gaussianERP.score([f(x), sigmaSquared], y));
+      },
+      xs,
+      ys);
+
+  return m;
+};

@@ -1,259 +1,247 @@
 'use strict';
 
+var _ = require('underscore');
 var fs = require('fs');
-var testCase = require('nodeunit').testCase;
+var assert = require('assert');
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
-
-
-function runContinuousSamplingTest(test, code, checkSamples, numSamples) {
-  var samples = [];
-  var k = function(s, value) {
-    samples.push(value);
-    if (samples.length === numSamples) {
-      test.ok(checkSamples(samples));
-      test.done();
-    }
-  };
-
-  var program = eval(webppl.compile(code));
-
-  for (var i = 0; i < numSamples; i++) {
-    program({}, k, '');
-  }
-}
-
-function runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance) {
-  var hist = {};
-  var numFinishedSamples = 0;
-  var k = function(s, value) {
-    hist[value] = hist[value] || 0;
-    hist[value] += 1;
-    numFinishedSamples += 1;
-    if (numFinishedSamples === numSamples) {
-      var normHist = util.normalizeHist(hist);
-      test.ok(util.histsApproximatelyEqual(normHist, expectedHist, tolerance));
-      test.done();
-    }
-  };
-
-  var program = eval(webppl.compile(code));
-  for (var i = 0; i < numSamples; i++) {
-    program({}, k, '');
-  }
-}
-
-function getHist(erp) {
-  var hist = {};
-  erp.support().forEach(
-      function(value) {
-        hist[value] = Math.exp(erp.score([], value));
-      });
-  return util.normalizeHist(hist);
-}
-
-function runDistributionTest(test, testData) {
-  var k = function(s, erp) {
-    var normHist = getHist(erp);
-    var expected = testData.expected;
-    test.ok(util.histsApproximatelyEqual(normHist, expected.hist, expected.tolerance));
-    test.done();
-  };
-
-  webppl.run(testData.code, k);
-}
-
-function runDistributionStatisticsTest(test, testData) {
-  var k = function(s, erp) {
-    var normHist = getHist(erp);
-    var testMean = util.expectation(normHist);
-    var testStd = util.std(normHist);
-    var expected = testData.expected;
-    var allOk = true;
-    if (Math.abs(testMean - expected.mean) > expected.tolerance ||
-        Math.abs(testStd - expected.std) > expected.tolerance) {
-      allOk = false;
-      console.log('Expected mean/std:', expected.mean, expected.std);
-      console.log('Actual mean/std:', testMean, testStd);
-    }
-    test.ok(allOk);
-    test.done();
-  };
-
-  webppl.run(testData.code, k);
-}
-
-exports.testDeterministic = {
-
-  testApplication: function(test) {
-    var code = '3 + 4';
-    var expectedHist = {7: 1};
-    var tolerance = 0;
-    return runDiscreteSamplingTest(test, code, expectedHist, 1, tolerance);
-  }
-};
-
-exports.testForwardSampling = {
-
-  testApplication: function(test) {
-    var code = 'flip(.5) & flip(.5)';
-    var expectedHist = {
-      1: 0.25,
-      0: 0.75
-    };
-    var tolerance = 0.05;
-    var numSamples = 1000;
-    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
-  },
-
-  testGeometric: function(test) {
-    var code = 'var geom = function() { return flip(.8) ? 0 : 1 + geom() }; geom()';
-    var expectedHist = {
-      0: 0.8,
-      1: 0.16,
-      2: 0.032,
-      3: 0.0064,
-      4: 0.00128
-    };
-    var tolerance = 0.05;
-    var numSamples = 1000;
-    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
-  },
-
-  testRandomInteger: function(test) {
-    var code = 'randomInteger(5)';
-    var expectedHist = {
-      0: 0.2,
-      1: 0.2,
-      2: 0.2,
-      3: 0.2,
-      4: 0.2
-    };
-    var tolerance = 0.05;
-    var numSamples = 1000;
-    return runDiscreteSamplingTest(test, code, expectedHist, numSamples, tolerance);
-  },
-
-  testGaussian: function(test) {
-    var code = 'gaussian(3, 2)';
-    var numSamples = 10000;
-    var check = function(samples) {
-      var empiricalMean = util.sum(samples) / samples.length;
-      var empiricalVariance = util.sum(
-          samples.map(function(x) {return Math.pow(x - empiricalMean, 2);})) / samples.length;
-      var empiricalStd = Math.sqrt(empiricalVariance);
-      return ((empiricalMean > 2.8) && (empiricalMean < 3.2) &&
-              (empiricalStd > 1.8) && (empiricalStd < 2.2));
-    };
-    return runContinuousSamplingTest(test, code, check, numSamples);
-  },
-
-  testUniform: function(test) {
-    var code = 'uniform(3, 5)';
-    var numSamples = 10000;
-    var check = function(samples) {
-      var empiricalMean = util.sum(samples) / samples.length;
-      var empiricalVariance = util.sum(
-          samples.map(function(x) {return Math.pow(x - empiricalMean, 2);})) / samples.length;
-      var expectedVariance = 1 / 12 * Math.pow(5 - 3, 2);
-      var expectedMean = 4;
-      return ((Math.abs(empiricalVariance - expectedVariance) < 0.2) &&
-              (Math.abs(empiricalMean - expectedMean) < 0.2));
-    };
-    return runContinuousSamplingTest(test, code, check, numSamples);
-  }
-};
-
-function getTestCases(tests) {
-  var testCases = [];
-  for (var key in tests) {
-    if (tests.hasOwnProperty(key)) {
-      var testNames = tests[key].names;
-      for (var i = 0; i < testNames.length; i++) {
-        var codeFileName = tests[key].directory + testNames[i] + '.wppl';
-        var resultFileName = tests[key].resultDirectory + testNames[i] + '.json';
-        var codeFile = fs.readFileSync(codeFileName, 'utf-8');
-        var expectedResult = JSON.parse(fs.readFileSync(resultFileName, 'utf-8'));
-        testCases.push({
-          code: codeFile,
-          expected: expectedResult,
-          name: testNames[i],
-          testFn: tests[key].testToRun
-        });
-      }
-    }
-  }
-  return testCases;
-}
+var erp = require('../src/erp.js');
 
 var testDataDir = './tests/test-data/';
 
-var tests = {
-  models: {
-    names: [
-      'testEnumeration',
-      'testEnumerationStore',
-      'testEnumerationCached',
-      'testParticleFilter',
-      'testParticleFilterStore',
-      'testAsyncPF',
-      'testAsyncPFStore',
-      'testMH',
-      'testMHStore',
-      'testPMCMC',
-      'testPMCMCStore',
-      'testPFVarFactors',
-      'testPFVarFactors2',
-      'testPFRj',
-      'testPFRjStore',
-      'testPFRjAsMH'
-    ],
-    directory: testDataDir + 'models/',
-    resultDirectory: testDataDir + 'expected/',
-    testToRun: runDistributionTest
+var tests = [
+  {
+    name: 'ForwardSample',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.05 },
+      mean: { tol: 0.2 },
+      std: { tol: 0.2 }
+    },
+    models: {
+      deterministic: { args: [10], hist: { tol: 0 } },
+      flips: true,
+      geometric: true,
+      randomInteger: true,
+      gaussian: { args: [10000] },
+      uniform: { args: [10000] }
+    }
   },
-  examples: {
-    names: [
-      'binomial',
-      'geometric',
-      'hmm',
-      'hmmIncremental',
-      'pcfg',
-      'pcfgIncremental',
-      'scalarImplicature',
-      'semanticParsing',
-      'pragmaticsWithSemanticParsing',
-      'multiplex'
-    ],
-    directory: './examples/',
-    resultDirectory: testDataDir + 'expected/',
-    testToRun: runDistributionTest
+  {
+    name: 'Enumerate',
+    settings: { args: [10] },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      cache: true
+    }
   },
-  regressions: {
-    names: [
-      'testDriftLinearRegression',
-      'testDriftPFRj'
-    ],
-    directory: testDataDir + 'models/',
-    resultDirectory: testDataDir + 'expected/',
-    testToRun: runDistributionStatisticsTest
+  {
+    name: 'MH',
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
   },
-  mhExamples: {
-    names: [
-      'linearRegression',
-      'logisticRegression'
-    ],
-    directory: './examples/',
-    resultDirectory: testDataDir + 'expected/',
-    testToRun: runDistributionStatisticsTest
+  {
+    name: 'HashMH',
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
+  },
+  {
+    name: 'IncrementalMH',
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+    }
+  },
+  {
+    name: 'PMCMC',
+    settings: {
+      args: [1000, 5],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [30, 30] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
+    }
+  },
+  {
+    name: 'PFRj',
+    func: 'ParticleFilterRejuv',
+    settings: {
+      args: [1000, 10],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [30, 30] },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] }
+    }
+  },
+  {
+    name: 'PFRjAsMH',
+    func: 'ParticleFilterRejuv',
+    settings: {
+      args: [1, 10000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true
+    }
+  },
+  {
+    name: 'AsyncPF',
+    settings: {
+      args: [1000, 1000],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100, 100] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
+    }
+  },
+  {
+    name: 'ParticleFilter',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.05 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
+      varFactors1: { args: [5000] },
+      varFactors2: true
+    }
+  }
+];
+
+var wpplRunInference = function(modelName, testDef) {
+  var inferenceFunc = testDef.func || testDef.name;
+  var inferenceArgs = getInferenceArgs(testDef, modelName);
+  var progText = [
+    loadModel(modelName),
+    inferenceFunc, '(model,', inferenceArgs, ');'
+  ].join('');
+  var erp;
+  try {
+    webppl.run(progText, function(s, val) { erp = val; });
+  } catch (e) {
+    console.log('Exception:' + e);
+    throw e;
+  }
+  return erp;
+};
+
+var performTest = function(modelName, testDef, test) {
+  var erp = wpplRunInference(modelName, testDef);
+  var hist = getHist(erp);
+  var expectedResults = loadExpected(modelName);
+
+  _.each(expectedResults, function(expected, testName) {
+    // The tests to run for a particular model are determined by the contents
+    // of the expected results JSON file.
+    assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
+    var testArgs = _.extendOwn.apply(null, _.filter([
+      { tol: 0.0001 }, // Defaults.
+      testDef.settings[testName],
+      testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
+    ]));
+    testFunctions[testName](test, erp, hist, expected, testArgs);
+  });
+
+  test.done();
+};
+
+var getInferenceArgs = function(testDef, model) {
+  var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
+  return JSON.stringify(args).slice(1, -1);
+};
+
+var testWithinTolerance = function(test, actual, expected, tolerance, name) {
+  var absDiff = Math.abs(actual - expected);
+  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
+  test.ok(absDiff < tolerance, msg);
+};
+
+var testFunctions = {
+  hist: function(test, erp, hist, expected, args) {
+    test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
+  },
+  mean: function(test, erp, hist, expected, args) {
+    testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+  },
+  std: function(test, erp, hist, expected, args) {
+    testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+  },
+  logZ: function(test, erp, hist, expected, args) {
+    if (args.check) {
+      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol);
+    }
   }
 };
 
-var testsData = getTestCases(tests);
+var getHist = function(erp) {
+  var hist = {};
+  erp.support().forEach(function(value) {
+    hist[value] = Math.exp(erp.score([], value));
+  });
+  return util.normalizeHist(hist);
+};
 
-testsData.forEach(function(testData) {
-  var description = testData.desc ? testData.desc : 'test';
-  var testCaseArgs = {};
-  testCaseArgs[description] = function(test) {testData.testFn(test, testData)};
-  exports[testData.name] = testCase(testCaseArgs);
-});
+var getModelNames = function() {
+  var filenames = fs.readdirSync(testDataDir + 'models/');
+  return _.map(filenames, function(fn) { return fn.split('.')[0]; });
+};
+
+var loadModel = function(modelName) {
+  var filename = testDataDir + 'models/' + modelName + '.wppl';
+  return fs.readFileSync(filename, 'utf-8');
+};
+
+var loadExpected = function(modelName) {
+  var filename = testDataDir + 'expected/' + modelName + '.json';
+  return JSON.parse(fs.readFileSync(filename, 'utf-8'));
+};
+
+var generateTestCases = function() {
+  var modelNames = getModelNames();
+  _.each(tests, function(testDef) {
+    exports[testDef.name] = {};
+    _.each(modelNames, function(modelName) {
+      if (testDef.models[modelName]) {
+        exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
+      }
+    });
+  });
+};
+
+generateTestCases();

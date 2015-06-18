@@ -1,0 +1,3 @@
+var model = function() {
+  return 3 + 4;
+};

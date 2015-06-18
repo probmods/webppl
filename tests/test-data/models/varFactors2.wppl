@@ -1,0 +1,8 @@
+var model = function() {
+  if (flip(.5)) {
+    factor(Math.log(.5));
+    return 1;
+  } else {
+    return 2;
+  }
+};
