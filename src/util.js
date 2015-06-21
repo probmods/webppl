@@ -99,7 +99,7 @@ function cpsForEach(func, nextK, xs, i) {
     return nextK();
   } else {
     return func(xs[i], i, xs, function() {
-      return function(){ // insert trampoline step
+      return function() { // insert trampoline step
         return cpsForEach(func, nextK, xs, i + 1);
       }
     });

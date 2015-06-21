@@ -937,10 +937,10 @@ module.exports = function(env) {
 
       // Reinstate previous coroutine:
       var k = this.k;
-      env.coroutine = this.oldCoroutine;      
+      env.coroutine = this.oldCoroutine;
 
       if (DEBUG >= 5) {
-        console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);        
+        console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
         this.cacheAdapter.report();
       }
 
