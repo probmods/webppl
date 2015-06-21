@@ -200,10 +200,11 @@ module.exports = function(env) {
     // Initialize histogram with particle values
     var hist = {};
     this.particles.forEach(function(particle) {
-      if (hist[particle.value] === undefined) {
-        hist[particle.value] = {prob: 0, val: particle.value};
+      var s = JSON.stringify(particle.value);
+      if (hist[s] === undefined) {
+        hist[s] = {prob: 0, val: particle.value};
       }
-      hist[particle.value].prob += 1;
+      hist[s].prob += 1;
     });
 
     // Final rejuvenation (will add values for each MH step to histogram)
