@@ -94,7 +94,7 @@ var tests = [
     settings: {
       args: [1000, 10],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.05 }
+      logZ: { check: true, tol: 0.1 }
     },
     models: {
       simple: true,
@@ -142,7 +142,7 @@ var tests = [
     settings: {
       args: [1000, 1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.05 }
+      logZ: { check: true, tol: 0.1 }
     },
     models: {
       simple: true,
@@ -155,7 +155,7 @@ var tests = [
     settings: {
       args: [1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.05 }
+      logZ: { check: true, tol: 0.1 }
     },
     models: {
       simple: true,
