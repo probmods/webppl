@@ -20,13 +20,13 @@ module.exports = function(env) {
 
   var mh = require('./mh.js')(env);
 
-  var deepCopyTrace = function(trace) {
+  function deepCopyTrace(trace) {
     return trace.map(function(obj) {
       var objCopy = _.clone(obj);
       objCopy.store = _.clone(obj.store);
       return objCopy;
     });
-  };
+  }
 
   function ParticleFilterRejuv(s, k, a, wpplFn, numParticles, rejuvSteps) {
 
