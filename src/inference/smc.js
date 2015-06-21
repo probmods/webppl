@@ -68,19 +68,21 @@ module.exports = function(env) {
   };
 
   ParticleFilterRejuv.prototype.sample = function(s, cc, a, erp, params) {
-
-    var val = erp.sample(params);
-    var currScore = this.activeParticle().score;
+    var importanceERP = erp.importanceERP || erp;
+    var val = importanceERP.sample(params);
+    var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
+    var currScore = this.activeParticle().score;
     this.activeParticle().trace.push(
         {
           k: cc, name: a, erp: erp, params: params,
           score: currScore,
-          forwardChoiceScore: choiceScore,
+          forwardChoiceScore: importanceScore,
           val: val, reused: false,
           store: _.clone(s)
         });
     this.activeParticle().score += choiceScore;
+    this.activeParticle().weight += choiceScore - importanceScore;
     return cc(s, val);
   };
 
