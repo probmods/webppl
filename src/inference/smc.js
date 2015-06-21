@@ -5,7 +5,7 @@
 // the synchronization / intermediate distribution points.
 // After each factor particles are rejuvenated via lightweight MH.
 //
-// If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
+// If numParticles==1 this amounts to MH with an (expensive) annealed init
 // if rejuvSteps==0 this is a plain PF without any MH.
 
 'use strict';
