@@ -111,9 +111,26 @@ var tests = [
       hist: { tol: 0.1 }
     },
     models: {
-      simple: true
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true,      
     }
   },
+  {
+    name: 'PFRjAsParticleFilter',
+    func: 'ParticleFilterRejuv',
+    settings: {
+      args: [1000, 0],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] }
+      // varFactors1: { args: [5000] },
+      // varFactors2: true
+    }
+  },  
   {
     name: 'AsyncPF',
     settings: {
