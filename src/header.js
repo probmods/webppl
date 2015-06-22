@@ -25,12 +25,17 @@ var util = require('./util.js');
 var erp = require('./erp.js');
 var enumerate = require('./inference/enumerate.js');
 var particlefilter = require('./inference/particlefilter.js');
+var asyncpf = require('./inference/asyncpf.js');
 var mh = require('./inference/mh.js');
+var hashmh = require('./inference/hashmh.js');
 var pmcmc = require('./inference/pmcmc.js');
 var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
 var rejection = require('./inference/rejection.js');
+var incrementalmh = require('./inference/incrementalmh.js');
+var forwardsample = require('./inference/forwardsample.js');
 var headerUtils = require('./headerUtils.js');
+var Query = require('./query.js').Query;
 
 
 module.exports = function(env) {
@@ -47,8 +52,14 @@ module.exports = function(env) {
     },
     exit: function(s, r) {
       return r;
+    },
+    incrementalize: function(s, cc, a, fn, args) {
+      var args = [s, cc, a].concat(args);
+      return fn.apply(global, args);
     }
   };
+
+  env.defaultCoroutine = env.coroutine;
 
   env.sample = function(s, k, a, dist, params) {
     return env.coroutine.sample(s, k, a, dist, params);
@@ -80,10 +91,20 @@ module.exports = function(env) {
     return env.coroutine.exit(s, retval);
   };
 
+  env.incrementalize = function(s, cc, a, fn, args) {
+    args = args || [];
+    return env.coroutine.incrementalize(s, cc, a, fn, args);
+  }
+
+  // Inference coroutines are responsible for managing this correctly.
+  env.query = new Query();
+
 
   // Exports
 
-  var exports = {};
+  var exports = {
+    top: util.runningInBrowser() ? window : global
+  };
 
   function addExports(obj) {
     _.extend(exports, obj);
@@ -93,7 +114,9 @@ module.exports = function(env) {
   addExports({
     factor: env.factor,
     sample: env.sample,
-    sampleWithFactor: env.sampleWithFactor
+    sampleWithFactor: env.sampleWithFactor,
+    incrementalize: env.incrementalize,
+    query: env.query
   });
 
   // Modules we want to use from webppl
@@ -105,8 +128,8 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, particlefilter, mh, pmcmc,
-    smc, variational, rejection, headerUtils
+    enumerate, particlefilter, asyncpf, mh, hashmh, incrementalmh, pmcmc,
+    smc, variational, forwardsample, rejection, headerUtils
   ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));

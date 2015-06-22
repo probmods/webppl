@@ -12,6 +12,8 @@ var naming = require('./transforms/naming').naming;
 var store = require('./transforms/store').store;
 var varargs = require('./transforms/varargs').varargs;
 var trampoline = require('./transforms/trampoline').trampoline;
+var freevars = require('./transforms/freevars').freevars;
+var caching = require('./transforms/caching').caching;
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
@@ -33,12 +35,13 @@ function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
 }
 
-function prepare(programCode, verbose) {
+function prepare(programCode, verbose, doCaching) {
   if (verbose && console.time) {
     console.time('prepare');
   }
 
   var _prepare = function(ast) {
+    // ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
@@ -49,6 +52,8 @@ function prepare(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
+  // if (doCaching)
+  //   programAST = caching(programAST);
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
@@ -57,12 +62,14 @@ function prepare(programCode, verbose) {
   return out;
 }
 
-function compile(programCode, verbose) {
+function compile(programCode, verbose, doCaching) {
   if (verbose && console.time) {
     console.time('compile');
   }
 
   var _compile = function(ast) {
+    if (doCaching)
+      ast = freevars(ast);
     ast = thunkify(ast);
     ast = naming(ast);
     ast = cps(ast);
@@ -76,6 +83,8 @@ function compile(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
+  if (doCaching)
+    programAST = caching(programAST);
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {

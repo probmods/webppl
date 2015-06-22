@@ -199,6 +199,8 @@ module.exports = function(env) {
     }
   };
 
+  PMCMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
     return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();
   }

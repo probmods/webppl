@@ -5,7 +5,7 @@
 // the synchronization / intermediate distribution points.
 // After each factor particles are rejuvenated via lightweight MH.
 //
-// If numParticles==1 this amounts to MH with an (expensive) annealed init (but only returning one sample),
+// If numParticles==1 this amounts to MH with an (expensive) annealed init
 // if rejuvSteps==0 this is a plain PF without any MH.
 
 'use strict';
@@ -20,13 +20,13 @@ module.exports = function(env) {
 
   var mh = require('./mh.js')(env);
 
-  var deepCopyTrace = function(trace) {
+  function deepCopyTrace(trace) {
     return trace.map(function(obj) {
       var objCopy = _.clone(obj);
       objCopy.store = _.clone(obj.store);
       return objCopy;
     });
-  };
+  }
 
   function ParticleFilterRejuv(s, k, a, wpplFn, numParticles, rejuvSteps) {
 
@@ -68,19 +68,21 @@ module.exports = function(env) {
   };
 
   ParticleFilterRejuv.prototype.sample = function(s, cc, a, erp, params) {
-
-    var val = erp.sample(params);
-    var currScore = this.activeParticle().score;
+    var importanceERP = erp.importanceERP || erp;
+    var val = importanceERP.sample(params);
+    var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
+    var currScore = this.activeParticle().score;
     this.activeParticle().trace.push(
         {
           k: cc, name: a, erp: erp, params: params,
           score: currScore,
-          choiceScore: choiceScore,
+          forwardChoiceScore: importanceScore,
           val: val, reused: false,
           store: _.clone(s)
         });
     this.activeParticle().score += choiceScore;
+    this.activeParticle().weight += choiceScore - importanceScore;
     return cc(s, val);
   };
 
@@ -197,9 +199,18 @@ module.exports = function(env) {
       return this.activeParticle().continuation(this.activeParticle().store);
     }
 
-    // Final rejuvenation:
-    var oldStore = this.oldStore;
+    // Initialize histogram with particle values
     var hist = {};
+    this.particles.forEach(function(particle) {
+      var s = JSON.stringify(particle.value);
+      if (hist[s] === undefined) {
+        hist[s] = {prob: 0, val: particle.value};
+      }
+      hist[s].prob += 1;
+    });
+
+    // Final rejuvenation (will add values for each MH step to histogram)
+    var oldStore = this.oldStore;
     return util.cpsForEach(
         function(particle, i, particles, nextK) {
           // make sure mhp coroutine doesn't escape:
@@ -229,6 +240,8 @@ module.exports = function(env) {
     );
 
   };
+
+  ParticleFilterRejuv.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
 
   ////// Lightweight MH on a particle
@@ -271,20 +284,9 @@ module.exports = function(env) {
     }
   };
 
-  MHP.prototype.sample = function(s, k, name, erp, params, forceSample) {
-    var prev = mh.findChoice(this.oldTrace, name);
-    var reuse = !(prev === undefined || forceSample);
-    var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
-    this.trace.push({
-      k: k, name: name, erp: erp, params: params,
-      score: this.currScore, choiceScore: choiceScore,
-      val: val, reused: reuse, store: _.clone(s)
-    });
-    this.currScore += choiceScore;
-    return k(s, val);
+  MHP.prototype.sample = function(s, cont, name, erp, params, forceSample) {
+    return mh.mhSample(this, arguments);
   };
-
 
   MHP.prototype.propose = function() {
     //make a new proposal:
@@ -305,9 +307,12 @@ module.exports = function(env) {
     this.val = val;
 
     // Did we like this proposal?
-    var acceptance = mh.acceptProb(this.trace, this.oldTrace,
-                                   this.regenFrom,
-                                   this.currScore, this.oldScore);
+    var acceptance = mh.acceptProb(
+        this.trace,
+        this.oldTrace,
+        this.regenFrom,
+        this.currScore,
+        this.oldScore);
 
     var accepted = Math.random() < acceptance;
 
@@ -350,6 +355,9 @@ module.exports = function(env) {
       return this.backToPF(newParticle);
     }
   };
+
+  // TODO: Incrementalized version?
+  MHP.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
 
   function pfr(s, cc, a, wpplFn, numParticles, rejuvSteps) {

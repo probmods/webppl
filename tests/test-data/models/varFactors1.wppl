@@ -1,0 +1,21 @@
+var scalingWt = 0.1;
+
+var foo = function(x) {
+  var fn = function(os, acc, pf) {
+    if (os.length == 0) {
+      factor(-pf);
+      return acc;
+    } else {
+      var nf = -scalingWt * uniformDraw(os);
+      factor(nf - pf);
+      return fn(os.slice(1), acc.concat(os[0]), nf);
+    }
+  };
+  return fn(x, [], 0);
+};
+
+var model = function() {
+  var x = uniformDraw([[10], [20, 10, 5]]);
+  var e = foo(x);
+  return e;
+};
