@@ -470,3 +470,7 @@ var sort = function(l, pred, key) {
 var sortOn = function(l, key, pred) {
   return _sort(l, (pred || lt), key);
 };
+
+var condition = function(bool) {
+  factor(bool ? 0 : -Infinity);
+}
