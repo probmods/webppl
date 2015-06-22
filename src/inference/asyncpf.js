@@ -121,7 +121,7 @@ module.exports = function(env) {
       var numChildrenAndWeight = [];
 
       // compute number of children and their weights
-      if (logRatio < 0) {
+      if (isNaN(logRatio) || logRatio < 0) {
         numChildrenAndWeight = Math.log(Math.random()) < logRatio ?
             [1, wbar] :
             [0, -Infinity];
@@ -172,7 +172,8 @@ module.exports = function(env) {
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];
-      dist.normalizationConstant = Math.log(olk.length) - // K_n
+      var Kn = _.reduce(olk, function(a, b) {return a + b.mnk;}, 0)
+      dist.normalizationConstant = Math.log(Kn) -         // K_n
           Math.log(this.numParticles) +                   // K_0
           olk[olk.length - 1].wbar;                       // Wbar^k_n
 
