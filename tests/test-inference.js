@@ -166,6 +166,34 @@ var tests = [
       importance: true,
       importance2: { args: [3000] }
     }
+  },
+  {
+    name: 'Rejection',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors1: true,
+      varFactors2: true
+    }
+  },
+  {
+    name: 'IncrementalRejection',
+    func: 'Rejection',
+    settings: {
+      args: [1000, 0, true],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors2: true
+    }
   }
 ];
 

@@ -1,56 +1,75 @@
 // Rejection sampling
 //
-// Rejection sampling requires an upper bound on the total factor
-// score per execution (easiest is 0, with restriction to negative
-// factor values).
+// maxScore: An upper bound on the total factor score per-execution.
+//
+// incremental: When true, improves efficiency by rejecting samples at factor
+// statements where possible. Requires score <= 0 for all factors across all
+// possible executions.
 
 'use strict';
 
 var erp = require('../erp.js');
-
+var assert = require('assert');
 
 module.exports = function(env) {
 
-  function Rejection(s, k, a, wpplFn, numSamples, maxScore) {
+  function Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental) {
     this.s = s;
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxScore = maxScore;
+    this.maxScore = maxScore === undefined ? 0 : maxScore
+    this.incremental = incremental;
     this.hist = {};
     this.numSamples = numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
+
+    if (this.incremental) {
+      assert(this.maxScore <= 0);
+    }
   }
 
   Rejection.prototype.run = function() {
-    this.logUniform = Math.log(Math.random());
     this.scoreSoFar = 0;
+    this.threshold = this.maxScore + Math.log(Math.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   }
 
   Rejection.prototype.sample = function(s, k, a, erp, params) {
     return k(s, erp.sample(params));
-  };
+  }
 
   Rejection.prototype.factor = function(s, k, a, score) {
+    if (this.incremental) {
+      assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
+    }
     this.scoreSoFar += score;
-    if ((this.scoreSoFar - this.maxScore) <= this.logUniform) {
-      // reject
-      console.log('reject');
+    // In incremental mode we can reject as soon as scoreSoFar falls below
+    // threshold. (As all future scores are assumed to be <= 0 therefore
+    // scoreSoFar can not increase.)
+    if ((this.incremental && (this.scoreSoFar <= this.threshold)) ||
+        (score === -Infinity)) {
+      // Reject.
       return this.run();
     } else {
-      // continue
       return k(s);
     }
   }
 
   Rejection.prototype.exit = function(s, retval) {
-    if (this.hist[retval] === undefined) {
-      this.hist[retval] = {prob: 0, val: retval};
+    assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
+
+    if (this.scoreSoFar > this.threshold) {
+      // Accept.
+      var r = JSON.stringify(retval);
+      if (this.hist[r] === undefined) {
+        this.hist[r] = { prob: 0, val: retval };
+      }
+      this.hist[r].prob += 1;
+      this.numSamples -= 1;
     }
-    this.hist[retval].prob += 1;
-    this.numSamples -= 1;
+
     if (this.numSamples === 0) {
       var dist = erp.makeMarginalERP(this.hist);
       env.coroutine = this.oldCoroutine;
@@ -60,8 +79,8 @@ module.exports = function(env) {
     }
   }
 
-  function rej(s, k, a, wpplFn, numSamples, maxScore) {
-    return new Rejection(s, k, a, wpplFn, numSamples, maxScore).run();
+  function rej(s, k, a, wpplFn, numSamples, maxScore, incremental) {
+    return new Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental).run();
   }
 
   return {
