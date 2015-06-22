@@ -477,4 +477,4 @@ var sortOn = function(l, key, pred) {
 
 var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
-}
+};
