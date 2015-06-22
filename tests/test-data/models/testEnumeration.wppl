@@ -1,8 +1,0 @@
-Enumerate(
-    function() {
-      var x = flip(0.5);
-      var y = flip(0.5);
-      factor((x | y) ? 0 : -Infinity);
-      return x;
-    },
-    300) // particles"

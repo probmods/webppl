@@ -939,9 +939,8 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
 
-      console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
-
       if (DEBUG >= 5) {
+        console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
         this.cacheAdapter.report();
       }
 

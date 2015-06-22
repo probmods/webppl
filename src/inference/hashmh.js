@@ -232,7 +232,7 @@ module.exports = function(env) {
       var k = this.k;
       env.coroutine = this.oldCoroutine;
 
-      console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
+      // console.log('Acceptance ratio: ' + this.acceptedProps / this.totalIterations);
 
       // Return by calling original continuation:
       return k(this.oldStore, dist);
