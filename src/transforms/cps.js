@@ -139,8 +139,11 @@ function atomize(node, metaK) {
       return atomize(argument, function(argument) {
         return metaK(build.unaryExpression(node.operator, argument));
       });
+    }),
+    clause(Syntax.DebuggerStatement, function() {
+      var body = build.blockStatement([node]);
+      return metaK(buildCall(build.functionExpression(null, [], body), []));
     })
-
 
   ], fail('atomize: unrecognized node', node));
 }
@@ -174,6 +177,7 @@ function cps(node, k) {
     case Syntax.MemberExpression:
     case Syntax.ObjectExpression:
     case Syntax.UnaryExpression:
+    case Syntax.DebuggerStatement:
       return atomize(node, function(node) {
         return buildContinuationCall(k, node);
       });
@@ -277,6 +281,9 @@ function cpsInnerStatement(node, e, fk) {
       return cpsDeclarations(declarations, 0, function(id) {
         return buildContinuation(id, e);
       });
+    }),
+    clause(Syntax.DebuggerStatement, function() {
+      return cps(node, buildContinuation(genvar('dummy'), e));
     })], fail('cpsInnerStatement', node));
 }
 
@@ -311,6 +318,9 @@ function cpsFinalStatement(node, k, fk) {
       return cpsDeclarations(declarations, 0, function(id) {
         return buildContinuation(id, cps(build.identifier('undefined'), k));
       });
+    }),
+    clause(Syntax.DebuggerStatement, function() {
+      return cps(node, k);
     })], fail('cpsFinalStatement', node));
 }
 
