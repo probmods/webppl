@@ -12,6 +12,7 @@ var testDataDir = './tests/test-data/';
 var tests = [
   {
     name: 'ForwardSample',
+    func: 'Rejection',
     settings: {
       args: [1000],
       hist: { tol: 0.05 },
