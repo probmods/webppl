@@ -51,6 +51,18 @@ var tests = [
     }
   },
   {
+    name: 'MH2',
+    settings: {
+      args: [5000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true
+    }
+  },
+  {
     name: 'HashMH',
     settings: {
       args: [5000],
@@ -165,6 +177,18 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000] }
+    }
+  },
+  {
+    name: 'ParticleFilter2',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      store: { hist: { tol: 0 }, args: [100] },
+      geometric: true
     }
   }
 ];
