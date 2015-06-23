@@ -4,138 +4,46 @@ var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
 
+
 module.exports = function(env) {
 
-  function findChoice(trace, name) {
-    if (trace === undefined) {
-      return undefined;
-    }
-    for (var i = 0; i < trace.length; i++) {
-      if (trace[i].name === name) {
-        return trace[i];
-      }
-    }
-    return undefined;
-  }
+  var Rejection = require('./rejection')(env).Rejection;
+  var MHKernel = require('./mhkernel')(env).MHKernel;
 
-  function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore) {
-    if ((oldTrace === undefined) || oldScore === -Infinity) {
-      return 1;
-    } // init
-    var fw = -Math.log(oldTrace.length);
-    trace.slice(regenFrom).map(function(s) {
-      fw += s.reused ? 0 : s.choiceScore;
+  // TODO: Could this be written in webppl?
+
+  function MCMC(s, k, a, wpplFn, numIterations) {
+    // Coroutine used to initialize trace. (Partially applied to make later
+    // code a little easy to read.)
+    var initialize = _.partial(Rejection, s, _, a, wpplFn);
+    // The standard MH transition kernel.
+    var transition = _.partial(MHKernel, s, _, a, wpplFn);
+
+    return initialize(function(s, initialTrace) {
+      var trace = initialTrace;
+      var hist = {};
+
+      console.log('Initialized');
+
+      return util.cpsLoop(numIterations,
+        function(i, next) {
+          console.log('Iteration: ' + i);
+          return transition(function(s, newTrace) {
+            trace = newTrace;
+
+            // Update histogram.
+            var r = JSON.stringify(trace.val);
+            if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.val };
+            hist[r].prob += 1;
+
+            return next();
+          }, trace);
+        },
+        function() { return k(s, erp.makeMarginalERP(hist)) }
+      );
     });
-    var bw = -Math.log(trace.length);
-    oldTrace.slice(regenFrom).map(function(s) {
-      var nc = findChoice(trace, s.name);
-      bw += (!nc || !nc.reused) ? s.choiceScore : 0;
-    });
-    var p = Math.exp(currScore - oldScore + bw - fw);
-    assert.ok(!isNaN(p));
-    var acceptance = Math.min(1, p);
-    return acceptance;
-  }
-
-  function MH(s, k, a, wpplFn, numIterations) {
-    this.trace = [];
-    this.oldTrace = undefined;
-    this.currScore = 0;
-    this.oldScore = -Infinity;
-    this.oldVal = undefined;
-    this.regenFrom = 0;
-
-    this.returnHist = {};
-    this.k = k;
-    this.iterations = numIterations;
-
-    this.wpplFn = wpplFn;
-    this.s = s;
-    this.a = a;
-
-    this.oldStore = s;
-    this.oldCoroutine = env.coroutine;
-    env.coroutine = this;
-  }
-
-  MH.prototype.run = function() {
-    return this.wpplFn(this.s, env.exit, this.a);
   };
 
-  MH.prototype.factor = function(s, k, a, score) {
-    this.currScore += score;
-    return k(s);
-  };
+  return { MCMC: MCMC };
 
-  MH.prototype.sample = function(s, cont, name, erp, params, forceSample) {
-    var prev = findChoice(this.oldTrace, name);
-    var reuse = !(prev === undefined || forceSample);
-    var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
-
-    this.trace.push({
-      k: cont,
-      name: name,
-      erp: erp,
-      params: params,
-      score: this.currScore,
-      choiceScore: choiceScore,
-      val: val,
-      reused: reuse, store: _.clone(s)
-    });
-
-    this.currScore += choiceScore;
-    return cont(s, val);
-  };
-
-
-  MH.prototype.exit = function(s, val) {
-    if (this.iterations > 0) {
-      this.iterations -= 1;
-
-      //did we like this proposal?
-      var acceptance = acceptProb(this.trace, this.oldTrace,
-          this.regenFrom, this.currScore, this.oldScore);
-      if (Math.random() >= acceptance) {
-        // if rejected, roll back trace, etc:
-        this.trace = this.oldTrace;
-        this.currScore = this.oldScore;
-        val = this.oldVal;
-      }
-
-
-      var stringifiedVal = JSON.stringify(val);
-      if (this.returnHist[stringifiedVal] === undefined) {
-        this.returnHist[stringifiedVal] = { prob: 0, val: val };
-      }
-      this.returnHist[stringifiedVal].prob += 1;
-
-      // make a new proposal:
-      this.regenFrom = Math.floor(Math.random() * this.trace.length);
-      var regen = this.trace[this.regenFrom];
-      this.oldTrace = this.trace;
-      this.trace = this.trace.slice(0, this.regenFrom);
-      this.oldScore = this.currScore;
-      this.currScore = regen.score;
-      this.oldVal = val;
-
-      return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
-    } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
-
-      // Reinstate previous coroutine:
-      var k = this.k;
-      env.coroutine = this.oldCoroutine;
-
-      // Return by calling original continuation:
-      // console.log(this.acceptedProposals, this.rejectedProposals);
-      return k(this.oldStore, dist);
-    }
-  };
-
-  return {
-    MH2: function(s, cc, a, wpplFn, numIterations) {
-      return new MH(s, cc, a, wpplFn, numIterations).run();
-    }
-  };
 };

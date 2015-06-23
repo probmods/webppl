@@ -51,15 +51,15 @@ var tests = [
     }
   },
   {
-    name: 'MH2',
+    name: 'MCMC',
     settings: {
-      args: [5000],
-      hist: { tol: 0.1 }
+      args: [10],
+      //hist: { tol: 0.1 }
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true
+      //store: { hist: { tol: 0 }, args: [100] },
+      //geometric: true
     }
   },
   {

@@ -106,6 +106,19 @@ function cpsForEach(func, nextK, xs, i) {
   }
 }
 
+function cpsLoop(n, func, nextK, i) {
+  i = (i === undefined) ? 0 : i;
+  if (i === n) {
+    return nextK();
+  } else {
+    return func(i, function() {
+      return function() { // insert trampoline step
+        return cpsLoop(n, func, nextK, i + 1);
+      }
+    });
+  }
+}
+
 function histsApproximatelyEqual(hist, expectedHist, tolerance) {
   var allOk = (expectedHist !== undefined);
   _.each(
@@ -151,6 +164,7 @@ function std(hist) {
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
+  cpsLoop: cpsLoop,
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,
