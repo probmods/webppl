@@ -33,14 +33,14 @@ module.exports = function(env) {
     var val = erp.sample(params);
     var choiceScore = erp.score(params, val);
     this.trace.push({
+      k: k,
+      name: a,
       erp: erp,
       params: params,
-      k: k,
-      s: _.clone(s),
-      name: a,
       score: this.score,
       choiceScore: choiceScore,
-      val: val
+      val: val,
+      s: _.clone(s)
     });
     this.score += choiceScore;
     return k(s, val);

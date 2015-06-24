@@ -44,7 +44,7 @@ module.exports = function(env) {
 
     // Takes a wpplFn and a trace, and generates a new trace.
 
-    function MHKernel(s, k, a, wpplFn, oldTrace) {
+    function MHKernel(s, k, a, wpplFn, oldTrace, exitAddress) {
 
       this.wpplFn = wpplFn;
       this.k = k;
@@ -52,6 +52,7 @@ module.exports = function(env) {
       this.a = a;
 
       this.oldTrace = oldTrace;
+      this.exitAddress = exitAddress;
 
       // These are set properly in run.
       this.trace = makeTrace();
@@ -73,6 +74,10 @@ module.exports = function(env) {
 
     MHKernel.prototype.factor = function(s, k, a, score) {
       this.score += score;
+      if (this.exitAddress === a) {
+        this.trace.k = k;
+        return env.exit(s);
+      }
       return k(s);
     };
 
@@ -90,8 +95,8 @@ module.exports = function(env) {
         score: this.score,
         choiceScore: choiceScore,
         val: val,
-        reused: reuse,
-        store: _.clone(s)
+        s: _.clone(s),
+        reused: reuse // TODO: MH specific. OK, or store elsewhere?
       });
 
       this.score += choiceScore;
@@ -99,8 +104,11 @@ module.exports = function(env) {
     };
 
     MHKernel.prototype.exit = function(s, val) {
+
+      if (this.exitAddress !== undefined) assert(this.trace.k !== undefined);
       this.trace.val = val;
       this.trace.score = this.score;
+
       // TODO: The score is part of the trace so there's no need to pass them separately here.
       var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.score, this.oldTrace.score);
       var returnTrace = Math.random() < acceptance ? this.trace : this.oldTrace
@@ -109,8 +117,8 @@ module.exports = function(env) {
     };
 
     return {
-      MHKernel: function (s, k, a, wpplFn, oldTrace) {
-        return new MHKernel(s, k, a, wpplFn, oldTrace).run();
+      MHKernel: function (s, k, a, wpplFn, oldTrace, exitAddress) {
+        return new MHKernel(s, k, a, wpplFn, oldTrace, exitAddress).run();
       }
     };
 

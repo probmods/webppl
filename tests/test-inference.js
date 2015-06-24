@@ -53,12 +53,12 @@ var tests = [
   {
     name: 'MCMC',
     settings: {
-      args: [10],
-      //hist: { tol: 0.1 }
+      args: [1000],
+      hist: { tol: 0.1 }
     },
     models: {
       simple: true,
-      //store: { hist: { tol: 0 }, args: [100] },
+      store: { hist: { tol: 0 }, args: [10] },
       //geometric: true
     }
   },
@@ -182,13 +182,12 @@ var tests = [
   {
     name: 'ParticleFilter2',
     settings: {
-      args: [1000],
+      args: [1000, 10],
       hist: { tol: 0.1 }
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true
+      store: { hist: { tol: 0 }, args: [10, 2] }
     }
   }
 ];

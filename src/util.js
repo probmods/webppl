@@ -107,6 +107,7 @@ function cpsForEach(func, nextK, xs, i) {
 }
 
 function cpsLoop(n, func, nextK, i) {
+  assert(_.isNumber(n), 'Number expected.');
   i = (i === undefined) ? 0 : i;
   if (i === n) {
     return nextK();
