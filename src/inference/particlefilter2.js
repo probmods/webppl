@@ -161,11 +161,11 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
     return util.cpsForEach(
-      function(p, i, ps, next) {
-        return this.rejuvenateParticle(next, i, exitAddress);
-      }.bind(this),
-      cont,
-      this.particles
+        function(p, i, ps, next) {
+          return this.rejuvenateParticle(next, i, exitAddress);
+        }.bind(this),
+        cont,
+        this.particles
     );
   };
 
@@ -187,20 +187,20 @@ module.exports = function(env) {
     // TODO: This is similar to MCMC. Extract?
 
     return util.cpsLoop(this.rejuvSteps,
-      function(j, next) {
-        //console.log('Step: ' + j);
-        return transition(function(s, newTrace) {
-          trace = newTrace;
-          return next();
-        }, trace);
-      },
-      function() {
-        // TODO: Investigate whether these can be kept on the trace only.
-        particle.trace = trace;
-        particle.score = trace.score;
-        particle.continuation = trace.k;
-        return cont();
-      }
+        function(j, next) {
+          //console.log('Step: ' + j);
+          return transition(function(s, newTrace) {
+            trace = newTrace;
+            return next();
+          }, trace);
+        },
+        function() {
+          // TODO: Investigate whether these can be kept on the trace only.
+          particle.trace = trace;
+          particle.score = trace.score;
+          particle.continuation = trace.k;
+          return cont();
+        }
     );
   };
 

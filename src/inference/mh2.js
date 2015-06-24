@@ -26,20 +26,20 @@ module.exports = function(env) {
       console.log('Initialized');
 
       return util.cpsLoop(numIterations,
-        function(i, next) {
-          console.log('Iteration: ' + i);
-          return transition(function(s, newTrace) {
-            trace = newTrace;
+          function(i, next) {
+            console.log('Iteration: ' + i);
+            return transition(function(s, newTrace) {
+              trace = newTrace;
 
-            // Update histogram.
-            var r = JSON.stringify(trace.val);
-            if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.val };
-            hist[r].prob += 1;
+              // Update histogram.
+              var r = JSON.stringify(trace.val);
+              if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.val };
+              hist[r].prob += 1;
 
-            return next();
-          }, trace);
-        },
-        function() { return k(s, erp.makeMarginalERP(hist)) }
+              return next();
+            }, trace);
+          },
+          function() { return k(s, erp.makeMarginalERP(hist)) }
       );
     });
   };

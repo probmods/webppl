@@ -58,7 +58,7 @@ var tests = [
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [10] },
+      store: { hist: { tol: 0 }, args: [10] }
       //geometric: true
     }
   },
