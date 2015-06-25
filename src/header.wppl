@@ -58,11 +58,15 @@ var gamma = function(shape, scale) {
 
 var deltaERP = function(v) {
   return top.makeDeltaERP(v);
-}
+};
+
+var categoricalERP = function(ps, vs) {
+  return top.makeCategoricalERP(ps, vs);
+};
 
 var multiplexERP = function(vs, erps) {
   return top.makeMultiplexERP(vs, erps);
-}
+};
 
 // XRPs
 
@@ -113,6 +117,13 @@ var div = function(a, b) {
   return a / b;
 };
 
+var and = function(a, b) {
+  return a && b
+}
+var or = function(a, b) {
+  return a || b
+}
+
 var eq = function(a, b) {
   return a === b;
 };
@@ -157,6 +168,10 @@ var trueF = function() {
 
 // Probability computations & calculations
 
+var MAP = function(erp) {
+  return erp.MAP();
+};
+
 var expectation = function(erp, func) {
   var f = func || idF;
   var supp = erp.support([]);
@@ -168,15 +183,8 @@ var expectation = function(erp, func) {
 };
 
 var entropy = function(erp) {
-  var supp = erp.support([]);
-  return -mapReduce1(plus,
-                     function(s) {
-                       var lp = erp.score([], s);
-                       return Math.exp(lp) * lp;
-                     },
-                     supp);
+  return erp.entropy();
 };
-
 
 // Data structures & higher-order functions
 
@@ -245,7 +253,7 @@ var ringForward = function(l, n) {
 };
 
 var ringBackward = function(l, n) {
-  return _ringAround(l, n || 1);
+  return _ringAround(l, n === undefined ? 1 : n);
 };
 
 var mapPairs2 = function(f, l1, l2) {
@@ -306,7 +314,7 @@ var listMean = function(l) {
   return reduce(plus, 0, l) / l.length;
 };
 var listVar = function(l, mu) {
-  var mu = mu || listMean(l);
+  var mu = mu === undefined ? listMean(l) : mu;
   return mapReduce1(plus, function(a) {
     return (a - mu) * (a - mu);
   }, l) / l.length;
@@ -316,14 +324,10 @@ var listStdev = function(l, mu) {
 };
 
 var all = function(p, l) {
-  return mapReduce1(function(a, b) {
-    return a && b;
-  }, p, l);
+  return mapReduce1(and, p, l);
 };
 var any = function(p, l) {
-  return mapReduce1(function(a, b) {
-    return a || b;
-  }, p, l);
+  return mapReduce1(or, p, l);
 };
 
 var zip = function(xs, ys) {
@@ -469,4 +473,8 @@ var sort = function(l, pred, key) {
 
 var sortOn = function(l, key, pred) {
   return _sort(l, (pred || lt), key);
+};
+
+var condition = function(bool) {
+  factor(bool ? 0 : -Infinity);
 };

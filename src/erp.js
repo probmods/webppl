@@ -24,6 +24,7 @@
 var numeric = require('numeric');
 var _ = require('underscore');
 var util = require('./util.js');
+var assert = require('assert');
 
 var LOG_2PI = 1.8378770664093453;
 
@@ -36,6 +37,33 @@ function ERP(sampler, scorer, auxParams) {
       this[key] = auxParams[key];
     }
   }
+}
+
+ERP.prototype.MAP = function() {
+  if (this.support === undefined)
+    throw 'Cannot compute entropy for ERP without support!'
+  var supp = this.support([]);
+  var mapEst = {val: undefined, prob: 0};
+  for (var i = 0, l = supp.length; i < l; i++) {
+    var sp = supp[i];
+    var sc = Math.exp(this.score([], sp))
+    if (sc > mapEst.prob) mapEst = {val: sp, prob: sc};
+  }
+  this.MAP = function() {return mapEst};
+  return mapEst;
+};
+
+ERP.prototype.entropy = function() {
+  if (this.support === undefined)
+    throw 'Cannot compute entropy for ERP without support!'
+  var supp = this.support([]);
+  var e = 0;
+  for (var i = 0, l = supp.length; i < l; i++) {
+    var lp = this.score([], supp[i]);
+    e -= Math.exp(lp) * lp;
+  }
+  this.entropy = function() {return e};
+  return e;
 }
 
 var uniformERP = new ERP(
@@ -58,7 +86,7 @@ var bernoulliERP = new ERP(
       return val;
     },
     function flipScore(params, val) {
-      if (val != true && val != false) {
+      if (val !== true && val !== false) {
         return -Infinity;
       }
       var weight = params[0];
@@ -83,7 +111,7 @@ var randomIntegerERP = new ERP(
     },
     function randomIntegerScore(params, val) {
       var stop = params[0];
-      var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
+      var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
       return inSupport ? -Math.log(stop) : -Infinity;
     },
     {
@@ -118,9 +146,11 @@ var gaussianERP = new ERP(gaussianSample, gaussianScore);
 function multivariateGaussianSample(params) {
   var mu = params[0];
   var cov = params[1];
-  var xs = mu.map(function() {return gaussianSample([0, 1])});
+  var xs = mu.map(function() {return gaussianSample([0, 1]);});
   var svd = numeric.svd(cov);
-  var scaledV = numeric.transpose(svd.V).map(function(x) {return numeric.mul(numeric.sqrt(svd.S), x)});
+  var scaledV = numeric.transpose(svd.V).map(function(x) {
+    return numeric.mul(numeric.sqrt(svd.S), x);
+  });
   xs = numeric.dot(xs, numeric.transpose(scaledV));
   return numeric.add(xs, mu);
 }
@@ -144,7 +174,7 @@ var discreteERP = new ERP(
     function discreteScore(params, val) {
       var probs = util.normalizeArray(params[0]);
       var stop = probs.length;
-      var inSupport = (val == Math.floor(val)) && (0 <= val) && (val < stop);
+      var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
       return inSupport ? Math.log(probs[val]) : -Infinity;
     },
     {
@@ -434,15 +464,16 @@ function makeMarginalERP(marginal) {
   var norm = 0;
   var supp = [];
   for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
-    var d = marginal[v]
+    var d = marginal[v];
     norm += d.prob;
     supp.push(d.val);
   }}
   var mapEst = {val: undefined, prob: 0};
   for (v in marginal) {if (marginal.hasOwnProperty(v)) {
-    var dd = marginal[v]
+    var dd = marginal[v];
     var nprob = dd.prob / norm;
-    if (nprob > mapEst.prob) mapEst = {val: dd.val, prob: nprob};
+    if (nprob > mapEst.prob)
+      mapEst = {val: dd.val, prob: nprob};
     marginal[v].prob = nprob;
   }}
 
@@ -454,7 +485,8 @@ function makeMarginalERP(marginal) {
         for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
           probAccum += marginal[i].prob;
           // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-          if (probAccum >= x) return marginal[i].val;
+          if (probAccum >= x)
+            return marginal[i].val;
         }}
         return marginal[i].val;
       },
@@ -463,14 +495,13 @@ function makeMarginalERP(marginal) {
         return lk ? Math.log(lk.prob) : -Infinity;
       },
       {
-        support:
-            function(params) {
-              return supp;
-            }
+        support: function(params) {
+          return supp;
+        }
       }
       );
 
-  dist.MAP = mapEst;
+  dist.MAP = function() {return mapEst};
   return dist;
 }
 
@@ -489,10 +520,26 @@ var makeDeltaERP = function(v) {
         }
       },
       {
-        support:
-            function deltaSupport(params) {
-              return [v];
-            }
+        support: function deltaSupport(params) {
+          return [v];
+        }
+      }
+  );
+};
+
+var makeCategoricalERP = function(ps, vs) {
+  return new ERP(
+      function categoricalSample(params) {
+        return vs[multinomialSample(ps)];
+      },
+      function categoricalScore(params, val) {
+        var i = vs.indexOf(val);
+        return i < 0 ? -Infinity : Math.log(ps[i]);
+      },
+      {
+        support: function categoricalSupport(params) {
+          return vs
+        }
       }
   );
 };
@@ -549,5 +596,6 @@ module.exports = {
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
   makeDeltaERP: makeDeltaERP,
+  makeCategoricalERP: makeCategoricalERP,
   makeMultiplexERP: makeMultiplexERP
 };
