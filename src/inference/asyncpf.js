@@ -121,7 +121,7 @@ module.exports = function(env) {
       var numChildrenAndWeight = [];
 
       // compute number of children and their weights
-      if (isNaN(logRatio) || logRatio < 0) {
+      if (logRatio < 0) {
         numChildrenAndWeight = Math.log(Math.random()) < logRatio ?
             [1, wbar] :
             [0, -Infinity];
@@ -129,7 +129,9 @@ module.exports = function(env) {
         var totalChildren = 0;
         for (var v = 0; v < lk.length; v++) totalChildren += lk[v].mnk; // \sum M^k_n
         var minK = Math.min(this.numParticles, lk.length); // min(K_0, k-1)
-        var rnk = Math.exp(logRatio);
+        // if all previous particles have -Infinity *and* current weight is -Infinity
+        // rnk = lim(x->0) x/x = 1 => [1, wbar] = [1, -Infinity]
+        var rnk = isNaN(logRatio) ? 1 : Math.exp(logRatio);
         var clampedRnk = totalChildren <= minK ? Math.ceil(rnk) : Math.floor(rnk);
         numChildrenAndWeight = [clampedRnk, currWeight - Math.log(clampedRnk)];
       }
