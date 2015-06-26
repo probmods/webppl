@@ -18,6 +18,8 @@ var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
 
+var sweet = require('sweet.js')
+var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -30,6 +32,8 @@ for (var prop in header) {
     global[prop] = header[prop];
   }
 }
+
+var headerWppl = __dirname + '/header.wppl';
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
@@ -50,7 +54,7 @@ function prepare(programCode, verbose, doCaching) {
   };
 
   // Parse header and program, combine, compile, and generate program
-  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
+  var headerAST = esprima.parse(fs.readFileSync(headerWppl));
   var programAST = esprima.parse(programCode);
   // if (doCaching)
   //   programAST = caching(programAST);
@@ -80,9 +84,14 @@ function compile(programCode, verbose, doCaching) {
     return ast;
   };
 
+  var sweetOptions = {modules: adMacros,
+                      ast: true,
+                      readableNames: true,
+                      maxExpands: 0};
+
   // Parse header and program, combine, compile, and generate program
-  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
-  var programAST = esprima.parse(programCode);
+  var headerAST = sweet.compile(fs.readFileSync(headerWppl), sweetOptions);
+  var programAST = sweet.compile(programCode, sweetOptions);
   if (doCaching)
     programAST = caching(programAST);
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));

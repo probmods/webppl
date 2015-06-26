@@ -18,8 +18,24 @@
 
 'use strict';
 
+var path = require('path');
 var assert = require('assert');
 var _ = require('underscore');
+
+var sweet = require('sweet.js')
+var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
+var sweetOptions = {modules: adMacros, readableNames: true};
+var adLoadString = "var ad = require('ad.js');\n";
+var adTransformFiles = ['util.js', 'erp.js'];
+
+var adTransform = function() {return undefined};
+adTransform.prototype.transform = function(content, filename) {
+  return adLoadString + sweet.compile(content, sweetOptions).code;
+}
+var requireTransform = require("require-transform");
+requireTransform(new adTransform(), function(filename) {
+  return adTransformFiles.indexOf(path.basename(filename)) >= 0
+});
 
 var util = require('./util.js');
 var erp = require('./erp.js');
@@ -35,10 +51,9 @@ var incrementalmh = require('./inference/incrementalmh.js');
 var forwardsample = require('./inference/forwardsample.js');
 var headerUtils = require('./headerUtils.js');
 var Query = require('./query.js').Query;
-
+var ad = require('ad.js');
 
 module.exports = function(env) {
-
 
   // Inference interface
 
@@ -122,7 +137,8 @@ module.exports = function(env) {
   addExports({
     _: _,
     util: util,
-    assert: assert
+    assert: assert,
+    ad: ad
   });
 
   // Inference functions and header utils
