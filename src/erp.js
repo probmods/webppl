@@ -21,10 +21,10 @@
 
 'use strict';
 
-var numeric = require('numeric');
+// var numeric = require('numeric');
 var _ = require('underscore');
 var util = require('./util.js');
-var assert = require('assert');
+// var assert = require('assert');
 
 var LOG_2PI = 1.8378770664093453;
 
@@ -104,7 +104,6 @@ var bernoulliERP = new ERP(
     }
     );
 
-
 var randomIntegerERP = new ERP(
     function randomIntegerSample(params) {
       return Math.floor(Math.random() * params[0]);
@@ -143,29 +142,29 @@ function gaussianScore(params, x) {
 
 var gaussianERP = new ERP(gaussianSample, gaussianScore);
 
-function multivariateGaussianSample(params) {
-  var mu = params[0];
-  var cov = params[1];
-  var xs = mu.map(function() {return gaussianSample([0, 1]);});
-  var svd = numeric.svd(cov);
-  var scaledV = numeric.transpose(svd.V).map(function(x) {
-    return numeric.mul(numeric.sqrt(svd.S), x);
-  });
-  xs = numeric.dot(xs, numeric.transpose(scaledV));
-  return numeric.add(xs, mu);
-}
+// function multivariateGaussianSample(params) {
+//   var mu = params[0];
+//   var cov = params[1];
+//   var xs = mu.map(function() {return gaussianSample([0, 1]);});
+//   var svd = numeric.svd(cov);
+//   var scaledV = numeric.transpose(svd.V).map(function(x) {
+//     return numeric.mul(numeric.sqrt(svd.S), x);
+//   });
+//   xs = numeric.dot(xs, numeric.transpose(scaledV));
+//   return numeric.add(xs, mu);
+// }
 
-function multivariateGaussianScore(params, x) {
-  var mu = params[0];
-  var cov = params[1];
-  var n = mu.length;
-  var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
-  var xSubMu = numeric.sub(x, mu);
-  var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
-  return -0.5 * (coeffs + exponents);
-}
+// function multivariateGaussianScore(params, x) {
+//   var mu = params[0];
+//   var cov = params[1];
+//   var n = mu.length;
+//   var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
+//   var xSubMu = numeric.sub(x, mu);
+//   var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
+//   return -0.5 * (coeffs + exponents);
+// }
 
-var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
+// var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
 
 var discreteERP = new ERP(
     function discreteSample(params) {
@@ -199,7 +198,7 @@ function logGamma(xx) {
   tmp -= (x + 0.5) * Math.log(tmp);
   var ser = 1.000000000190015;
   for (var j = 0; j <= 5; j++) {
-    x++;
+    (x++);
     ser += gammaCof[j] / x;
   }
   return -tmp + Math.log(2.5066282746310005 * ser);
@@ -308,7 +307,7 @@ function binomialSample(params) {
   for (var i = 0; i < n; i++) {
     u = Math.random();
     if (u < p) {
-      k++;
+      (k++);
     }
   }
   return k || 0;
@@ -357,7 +356,8 @@ var binomialERP = new ERP(
 function fact(x) {
   var t = 1;
   while (x > 1) {
-    t *= x--;
+    t *= x;
+    (x--);
   }
   return t;
 }
@@ -399,7 +399,7 @@ var poissonERP = new ERP(
       var p = 1;
       do {
         p *= Math.random();
-        k++;
+        (k++);
       } while (p > emu);
       return (k - 1) || 0;
     },
@@ -559,7 +559,8 @@ var makeMultiplexERP = function(vs, erps) {
   return new ERP(
       function multiplexSample(params) {
         var erp = selectERP(params);
-        assert.notEqual(erp, undefined);
+        if (erp === undefined)
+          throw "multiplexSample: ERP undefined!"
         return erp.sample();
       },
       function multiplexScore(params, val) {
@@ -590,7 +591,7 @@ module.exports = {
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
   multinomialSample: multinomialSample,
-  multivariateGaussianERP: multivariateGaussianERP,
+  // multivariateGaussianERP: multivariateGaussianERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
