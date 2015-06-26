@@ -43,6 +43,13 @@ function normalizeHist(hist) {
   return normHist;
 }
 
+var logHist = function(hist) {
+  return _.mapObject(hist, function(x) {
+    return {prob: Math.log(x.prob), val: x.val}
+  });
+};
+
+
 function normalizeArray(xs) {
   var Z = sum(xs);
   return xs.map(function(x) {
@@ -156,6 +163,7 @@ module.exports = {
   histsApproximatelyEqual: histsApproximatelyEqual,
   indexOfPred: indexOfPred,
   logsumexp: logsumexp,
+  logHist: logHist,
   lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,

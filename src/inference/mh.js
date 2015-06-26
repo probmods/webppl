@@ -185,7 +185,7 @@ module.exports = function(env) {
 
       return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
     } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
 
       // Reinstate previous coroutine:
       var k = this.k;

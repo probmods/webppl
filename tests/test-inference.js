@@ -13,7 +13,7 @@ var tests = [
   {
     name: 'ForwardSample',
     settings: {
-      args: [1000],
+      args: [3000],
       hist: { tol: 0.05 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 }

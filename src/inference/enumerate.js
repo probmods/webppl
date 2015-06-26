@@ -120,9 +120,9 @@ module.exports = function(env) {
     var r = JSON.stringify(retval);
     if (this.score !== -Infinity) {
       if (this.marginal[r] === undefined) {
-        this.marginal[r] = {prob: 0, val: retval};
+        this.marginal[r] = {val: retval, prob: -Infinity};
       }
-      this.marginal[r].prob += Math.exp(this.score);
+      this.marginal[r].prob = util.logsumexp([this.marginal[r].prob, this.score])
     }
 
     // Increment the completed execution counter

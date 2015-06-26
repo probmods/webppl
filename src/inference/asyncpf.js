@@ -170,7 +170,7 @@ module.exports = function(env) {
     if (this.exitedParticles < this.numParticles) {
       return this.run();
     } else {
-      var dist = erp.makeMarginalERP(this.hist);
+      var dist = erp.makeMarginalERP(util.logHist(this.hist));
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];

@@ -40,7 +40,7 @@ module.exports = function(env) {
       return this.run();
     }
 
-    var dist = erp.makeMarginalERP(this.returnHist);
+    var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
     env.coroutine = this.coroutine;
     return this.k(this.store, dist);
   };
