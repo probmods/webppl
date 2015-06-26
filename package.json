@@ -13,6 +13,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "ad.js": "^0.2.0",
     "amdefine": "^0.1.0",
     "ast-types": "^0.7.2",
     "escodegen": "^1.6.1",
@@ -24,8 +25,10 @@
     "git-rev-2": "^0.1.0",
     "immutable": "^3.7.1",
     "minimist": "^1.1.1",
-    "priorityqueuejs": "~1.0.0",
     "numeric": "~1.2.6",
+    "priorityqueuejs": "~1.0.0",
+    "require-transform": "^1.0.0",
+    "sweet.js": "^0.7.4",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
