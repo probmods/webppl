@@ -560,16 +560,12 @@ var makeMultiplexERP = function(vs, erps) {
       function multiplexSample(params) {
         var erp = selectERP(params);
         if (erp === undefined)
-          throw "multiplexSample: ERP undefined!"
+          throw 'multiplexSample: ERP undefined!'
         return erp.sample();
       },
       function multiplexScore(params, val) {
         var erp = selectERP(params);
-        if (erp === undefined) {
-          return -Infinity;
-        } else {
-          return erp.score([], val);
-        }
+        return (typeof erp === 'undefined') ? -Infinity : erp.score([], val);
       },
       {
         support: function multiplexSupport(params) {

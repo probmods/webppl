@@ -32,7 +32,7 @@ var adTransform = function() {return undefined};
 adTransform.prototype.transform = function(content, filename) {
   return adLoadString + sweet.compile(content, sweetOptions).code;
 }
-var requireTransform = require("require-transform");
+var requireTransform = require('require-transform');
 requireTransform(new adTransform(), function(filename) {
   return adTransformFiles.indexOf(path.basename(filename)) >= 0
 });

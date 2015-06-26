@@ -84,11 +84,8 @@ function compile(programCode, verbose, doCaching) {
     return ast;
   };
 
-  var sweetOptions = {modules: adMacros,
-                      ast: true,
-                      readableNames: true,
-                      maxExpands: 0};
-
+  var sweetOptions = {modules: adMacros, ast: true, readableNames: true};
+  // maxExpands: 0
   // Parse header and program, combine, compile, and generate program
   var headerAST = sweet.compile(fs.readFileSync(headerWppl), sweetOptions);
   var programAST = sweet.compile(programCode, sweetOptions);
