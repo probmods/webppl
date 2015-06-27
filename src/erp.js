@@ -25,8 +25,7 @@
 var _ = require('underscore');
 var util = require('./util.js');
 // var assert = require('assert');
-
-var LOG_2PI = 1.8378770664093453;
+var erpScorers = require('./erpScorers.js');
 
 function ERP(sampler, scorer, auxParams) {
   auxParams = typeof auxParams === 'undefined' ? {} : auxParams;
@@ -40,85 +39,51 @@ function ERP(sampler, scorer, auxParams) {
 }
 
 ERP.prototype.MAP = function() {
-  if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
-  var supp = this.support([]);
-  var mapEst = {val: undefined, prob: 0};
-  for (var i = 0, l = supp.length; i < l; i++) {
-    var sp = supp[i];
-    var sc = Math.exp(this.score([], sp))
-    if (sc > mapEst.prob) mapEst = {val: sp, prob: sc};
-  }
-  this.MAP = function() {return mapEst};
-  return mapEst;
-};
+  return erpScorers.MAP.apply(this);
+}
 
 ERP.prototype.entropy = function() {
-  if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
-  var supp = this.support([]);
-  var e = 0;
-  for (var i = 0, l = supp.length; i < l; i++) {
-    var lp = this.score([], supp[i]);
-    e -= Math.exp(lp) * lp;
-  }
-  this.entropy = function() {return e};
-  return e;
+  return erpScorers.entropy.apply(this);
 }
 
 var uniformERP = new ERP(
-    function uniformSample(params) {
-      var u = Math.random();
-      return (1 - u) * params[0] + u * params[1];
-    },
-    function uniformScore(params, val) {
-      if (val < params[0] || val > params[1]) {
-        return -Infinity;
-      }
-      return -Math.log(params[1] - params[0]);
-    }
-    );
+  function uniformSample(params) {
+    var u = Math.random();
+    return (1 - u) * params[0] + u * params[1];
+  },
+  erpScorers.uniformScore
+);
 
 var bernoulliERP = new ERP(
-    function flipSample(params) {
-      var weight = params[0];
-      var val = Math.random() < weight;
-      return val;
+  function flipSample(params) {
+    var weight = params[0];
+    var val = Math.random() < weight;
+    return val;
+  },
+  erpScorers.flipScore,
+  {
+    support: function flipSupport(params) {
+      return [true, false];
     },
-    function flipScore(params, val) {
-      if (val !== true && val !== false) {
-        return -Infinity;
-      }
+    grad: function flipGrad(params, val) {
+      //FIXME: check domain
       var weight = params[0];
-      return val ? Math.log(weight) : Math.log(1 - weight);
-    },
-    {
-      support: function flipSupport(params) {
-        return [true, false];
-      },
-      grad: function flipGrad(params, val) {
-        //FIXME: check domain
-        var weight = params[0];
-        return val ? [1 / weight] : [-1 / weight];
-      }
+      return val ? [1 / weight] : [-1 / weight];
     }
-    );
+  }
+);
 
 var randomIntegerERP = new ERP(
-    function randomIntegerSample(params) {
-      return Math.floor(Math.random() * params[0]);
-    },
-    function randomIntegerScore(params, val) {
-      var stop = params[0];
-      var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-      return inSupport ? -Math.log(stop) : -Infinity;
-    },
-    {
-      support: function randomIntegerSupport(params) {
-        return _.range(params[0]);
-      }
+  function randomIntegerSample(params) {
+    return Math.floor(Math.random() * params[0]);
+  },
+  erpScorers.randomIntegerScore,
+  {
+    support: function randomIntegerSupport(params) {
+      return _.range(params[0]);
     }
-    );
+  }
+);
 
 function gaussianSample(params) {
   var mu = params[0];
@@ -131,16 +96,11 @@ function gaussianSample(params) {
     y = Math.abs(v) + 0.386595;
     q = x * x + y * (0.196 * y - 0.25472 * x);
   } while (q >= 0.27597 && (q > 0.27846 || v * v > -4 * u * u * Math.log(u)));
+  console.log(mu)
   return mu + sigma * v / u;
 }
 
-function gaussianScore(params, x) {
-  var mu = params[0];
-  var sigma = params[1];
-  return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
-}
-
-var gaussianERP = new ERP(gaussianSample, gaussianScore);
+var gaussianERP = new ERP(gaussianSample, erpScorers.gaussianScore);
 
 // function multivariateGaussianSample(params) {
 //   var mu = params[0];
@@ -167,42 +127,17 @@ var gaussianERP = new ERP(gaussianSample, gaussianScore);
 // var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
 
 var discreteERP = new ERP(
-    function discreteSample(params) {
-      return multinomialSample(params[0]);
-    },
-    function discreteScore(params, val) {
-      var probs = util.normalizeArray(params[0]);
-      var stop = probs.length;
-      var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-      return inSupport ? Math.log(probs[val]) : -Infinity;
-    },
-    {
-      support:
-          function discreteSupport(params) {
-            return _.range(params[0].length);
-          }
+  function discreteSample(params) {
+    return multinomialSample(params[0]);
+  },
+  erpScorers.discreteScore,
+  {
+    support:
+    function discreteSupport(params) {
+      return _.range(params[0].length);
     }
-    );
-
-var gammaCof = [
-  76.18009172947146,
-  -86.50532032941677,
-  24.01409824083091,
-  -1.231739572450155,
-  0.1208650973866179e-2,
-  -0.5395239384953e-5];
-
-function logGamma(xx) {
-  var x = xx - 1.0;
-  var tmp = x + 5.5;
-  tmp -= (x + 0.5) * Math.log(tmp);
-  var ser = 1.000000000190015;
-  for (var j = 0; j <= 5; j++) {
-    (x++);
-    ser += gammaCof[j] / x;
   }
-  return -tmp + Math.log(2.5066282746310005 * ser);
-}
+);
 
 function gammaSample(params) {
   var a = params[0];
@@ -228,30 +163,18 @@ function gammaSample(params) {
 
 // params are shape and scale
 var gammaERP = new ERP(
-    gammaSample,
-    function gammaScore(params, val) {
-      var a = params[0];
-      var b = params[1];
-      var x = val;
-      return (a - 1) * Math.log(x) - x / b - logGamma(a) - a * Math.log(b);
-    }
-    );
+  gammaSample,
+  erpScorers.gammaScore
+);
 
 var exponentialERP = new ERP(
-    function exponentialSample(params) {
-      var a = params[0];
-      var u = Math.random();
-      return Math.log(u) / (-1 * a);
-    },
-    function exponentialScore(params, val) {
-      var a = params[0];
-      return Math.log(a) - a * val;
-    }
-    );
-
-function logBeta(a, b) {
-  return logGamma(a) + logGamma(b) - logGamma(a + b);
-}
+  function exponentialSample(params) {
+    var a = params[0];
+    var u = Math.random();
+    return Math.log(u) / (-1 * a);
+  },
+  erpScorers.exponentialScore
+);
 
 function betaSample(params) {
   var a = params[0];
@@ -261,27 +184,9 @@ function betaSample(params) {
 }
 
 var betaERP = new ERP(
-    betaSample,
-    function betaScore(params, val) {
-      var a = params[0];
-      var b = params[1];
-      var x = val;
-      return ((x > 0 && x < 1) ?
-          (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
-          -Infinity);
-    }
-    );
-
-function binomialG(x) {
-  if (x === 0) {
-    return 1;
-  }
-  if (x === 1) {
-    return 0;
-  }
-  var d = 1 - x;
-  return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
-}
+  betaSample,
+  erpScorers.betaScore
+);
 
 function binomialSample(params) {
   var p = params[0];
@@ -314,105 +219,44 @@ function binomialSample(params) {
 }
 
 var binomialERP = new ERP(
-    binomialSample,
-    function binomialScore(params, val) {
-      var p = params[0];
-      var n = params[1];
-      if (n > 20 && n * p > 5 && n * (1 - p) > 5) {
-        // large n, reasonable p approximation
-        var s = val;
-        var inv2 = 1 / 2;
-        var inv3 = 1 / 3;
-        var inv6 = 1 / 6;
-        if (s >= n) {
-          return -Infinity;
-        }
-        var q = 1 - p;
-        var S = s + inv2;
-        var T = n - s - inv2;
-        var d1 = s + inv6 - (n + inv3) * p;
-        var d2 = q / (s + inv2) - p / (T + inv2) + (q - inv2) / (n + 1);
-        d2 = d1 + 0.02 * d2;
-        var num = 1 + q * binomialG(S / (n * p)) + p * binomialG(T / (n * q));
-        var den = (n + inv6) * p * q;
-        var z = num / den;
-        var invsd = Math.sqrt(z);
-        z = d2 * invsd;
-        return gaussianScore([0, 1], z) + Math.log(invsd);
-      } else {
-        // exact formula
-        return (lnfact(n) - lnfact(n - val) - lnfact(val) +
-            val * Math.log(p) + (n - val) * Math.log(1 - p));
-      }
-    },
-    {
-      support:
-          function binomialSupport(params) {
-            return _.range(params[1]).concat([params[1]]);
-          }
+  binomialSample,
+  erpScorers.binomialScore,
+  {
+    support:
+    function binomialSupport(params) {
+      return _.range(params[1]).concat([params[1]]);
     }
-    );
-
-function fact(x) {
-  var t = 1;
-  while (x > 1) {
-    t *= x;
-    (x--);
   }
-  return t;
-}
-
-function lnfact(x) {
-  if (x < 1) {
-    x = 1;
-  }
-  if (x < 12) {
-    return Math.log(fact(Math.round(x)));
-  }
-  var invx = 1 / x;
-  var invx2 = invx * invx;
-  var invx3 = invx2 * invx;
-  var invx5 = invx3 * invx2;
-  var invx7 = invx5 * invx2;
-  var sum = ((x + 0.5) * Math.log(x)) - x;
-  sum += Math.log(2 * Math.PI) / 2;
-  sum += (invx / 12) - (invx3 / 360);
-  sum += (invx5 / 1260) - (invx7 / 1680);
-  return sum;
-}
+);
 
 var poissonERP = new ERP(
-    function poissonSample(params) {
-      var mu = params[0];
-      var k = 0;
-      while (mu > 10) {
-        var m = 7 / 8 * mu;
-        var x = gammaSample([m, 1]);
-        if (x > mu) {
-          return (k + binomialSample([mu / x, m - 1])) || 0;
-        } else {
-          mu -= x;
-          k += m;
-        }
+  function poissonSample(params) {
+    var mu = params[0];
+    var k = 0;
+    while (mu > 10) {
+      var m = 7 / 8 * mu;
+      var x = gammaSample([m, 1]);
+      if (x > mu) {
+        return (k + binomialSample([mu / x, m - 1])) || 0;
+      } else {
+        mu -= x;
+        k += m;
       }
-      var emu = Math.exp(-mu);
-      var p = 1;
-      do {
-        p *= Math.random();
-        (k++);
-      } while (p > emu);
-      return (k - 1) || 0;
-    },
-    function poissonScore(params, val) {
-      var mu = params[0];
-      var k = val;
-      return k * Math.log(mu) - mu - lnfact(k);
     }
-    );
+    var emu = Math.exp(-mu);
+    var p = 1;
+    do {
+      p *= Math.random();
+      (k++);
+    } while (p > emu);
+    return (k - 1) || 0;
+  },
+  erpScorers.poissonScore
+);
 
 function dirichletSample(params) {
   var alpha = params;
-  var ssum = 0;
+    var ssum = 0;
   var theta = [];
   var t;
   for (var i = 0; i < alpha.length; i++) {
@@ -426,22 +270,7 @@ function dirichletSample(params) {
   return theta;
 }
 
-function dirichletScore(params, val) {
-  var alpha = params;
-  var theta = val;
-  var asum = 0;
-  for (var i = 0; i < alpha.length; i++) {
-    asum += alpha[i];
-  }
-  var logp = logGamma(asum);
-  for (var j = 0; j < alpha.length; j++) {
-    logp += (alpha[j] - 1) * Math.log(theta[j]);
-    logp -= logGamma(alpha[j]);
-  }
-  return logp;
-}
-
-var dirichletERP = new ERP(dirichletSample, dirichletScore);
+var dirichletERP = new ERP(dirichletSample, erpScorers.dirichletScore);
 
 function multinomialSample(theta) {
   var thetaSum = util.sum(theta);
@@ -479,27 +308,24 @@ function makeMarginalERP(marginal) {
 
   // Make an ERP from marginal:
   var dist = new ERP(
-      function(params) {
-        var x = Math.random();
-        var probAccum = 0;
-        for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
-          probAccum += marginal[i].prob;
-          // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-          if (probAccum >= x)
-            return marginal[i].val;
-        }}
-        return marginal[i].val;
-      },
-      function(params, val) {
-        var lk = marginal[JSON.stringify(val)];
-        return lk ? Math.log(lk.prob) : -Infinity;
-      },
-      {
-        support: function(params) {
-          return supp;
-        }
+    function(params) {
+      var x = Math.random();
+      var probAccum = 0;
+      for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
+        probAccum += marginal[i].prob;
+        // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+        if (probAccum >= x)
+          return marginal[i].val;
+      }}
+      return marginal[i].val;
+    },
+    erpScorers.buildSimpleScorer(marginal),
+    {
+      support: function(params) {
+        return supp;
       }
-      );
+    }
+  );
 
   dist.MAP = function() {return mapEst};
   return dist;
@@ -507,40 +333,34 @@ function makeMarginalERP(marginal) {
 
 // Make an ERP that assigns probability 1 to a single value, probability 0 to everything else
 var makeDeltaERP = function(v) {
-  var stringifiedValue = JSON.stringify(v);
+  var dist = {};
+    dist[JSON.stringify(v)] = {val: v, prob: 1}
   return new ERP(
-      function deltaSample(params) {
-        return v;
-      },
-      function deltaScore(params, val) {
-        if (JSON.stringify(val) === stringifiedValue) {
-          return 0;
-        } else {
-          return -Infinity;
-        }
-      },
-      {
-        support: function deltaSupport(params) {
-          return [v];
-        }
+    function deltaSample(params) {
+      return v;
+    },
+    erpScorers.buildSimpleScorer(dist),
+    {
+      support: function deltaSupport(params) {
+        return [v];
       }
+    }
   );
 };
 
 var makeCategoricalERP = function(ps, vs) {
+  var dist = {};
+    vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
   return new ERP(
-      function categoricalSample(params) {
-        return vs[multinomialSample(ps)];
-      },
-      function categoricalScore(params, val) {
-        var i = vs.indexOf(val);
-        return i < 0 ? -Infinity : Math.log(ps[i]);
-      },
-      {
-        support: function categoricalSupport(params) {
-          return vs
-        }
+    function categoricalSample(params) {
+      return vs[multinomialSample(ps)];
+    },
+    erpScorers.buildSimpleScorer(dist),
+    {
+      support: function categoricalSupport(params) {
+        return vs
       }
+    }
   );
 };
 
@@ -557,22 +377,19 @@ var makeMultiplexERP = function(vs, erps) {
     }
   };
   return new ERP(
-      function multiplexSample(params) {
+    function multiplexSample(params) {
+      var erp = selectERP(params);
+      if (erp === undefined)
+        throw 'multiplexSample: ERP undefined!'
+      return erp.sample();
+    },
+    erpScorers.buildMultiplexScorer(selectERP),
+    {
+      support: function multiplexSupport(params) {
         var erp = selectERP(params);
-        if (erp === undefined)
-          throw 'multiplexSample: ERP undefined!'
-        return erp.sample();
-      },
-      function multiplexScore(params, val) {
-        var erp = selectERP(params);
-        return (typeof erp === 'undefined') ? -Infinity : erp.score([], val);
-      },
-      {
-        support: function multiplexSupport(params) {
-          var erp = selectERP(params);
-          return erp.support();
-        }
+        return erp.support();
       }
+    }
   );
 };
 
