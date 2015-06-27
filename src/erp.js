@@ -96,7 +96,6 @@ function gaussianSample(params) {
     y = Math.abs(v) + 0.386595;
     q = x * x + y * (0.196 * y - 0.25472 * x);
   } while (q >= 0.27597 && (q > 0.27846 || v * v > -4 * u * u * Math.log(u)));
-  console.log(mu)
   return mu + sigma * v / u;
 }
 
