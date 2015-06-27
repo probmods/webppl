@@ -76,7 +76,10 @@ module.exports = function(env) {
   env.defaultCoroutine = env.coroutine;
 
   env.sample = function(s, k, a, dist, params) {
-    return env.coroutine.sample(s, k, a, dist, params);
+    var newK = function(s, val) {
+      return k(s, ad.tapify(ad.untapify(val)));
+    }
+    return env.coroutine.sample(s, newK, a, dist, params);
   };
 
   env.factor = function(s, k, a, score) {
