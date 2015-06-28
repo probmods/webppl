@@ -51,7 +51,7 @@ var incrementalmh = require('./inference/incrementalmh.js');
 var forwardsample = require('./inference/forwardsample.js');
 var headerUtils = require('./headerUtils.js');
 var Query = require('./query.js').Query;
-var ad = require('ad.js');
+var ad = require('ad.js')({mode: 'r'});
 
 module.exports = function(env) {
 
