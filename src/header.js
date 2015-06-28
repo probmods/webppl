@@ -25,7 +25,7 @@ var _ = require('underscore');
 var sweet = require('sweet.js')
 var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
 var sweetOptions = {modules: adMacros, readableNames: true};
-var adLoadString = "var ad = require('ad.js');\n";
+var adLoadString = "var ad = require('ad.js')({mode: 'r'});\n";
 var adTransformFiles = ['util.js', 'erpScorers.js'];
 
 var adTransform = function() {return undefined};
