@@ -1,0 +1,9 @@
+var model = function() {
+  var m = gaussian(0, 10);
+  var genData = repeat(3, function() {return gaussian(m, 0.1)});
+  var score = mapReduce1(plus,
+                         function(g) {return gaussianERP.score([4.0, 0.04], g)},
+                         genData);
+  factor(score)
+  return m
+}

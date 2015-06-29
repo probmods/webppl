@@ -166,6 +166,18 @@ var tests = [
       importance: true,
       importance2: { args: [3000] }
     }
+  },
+  {
+    name: 'GradientAscent',
+    settings: {
+      args: [0.1, 1000]
+    },
+    models: {
+      gaussian: { mean: { tol: 0.1 }, std: { tol: Infinity }, args: [0.1, 1000] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [0.1, 1000] },
+      gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [0.1, 1000] },
+      reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [0.1, 1000] }
+    }
   }
 ];
 
