@@ -38,6 +38,10 @@ function ERP(sampler, scorer, auxParams) {
   }
 }
 
+ERP.prototype.isContinuous = function() {
+  return !this.support
+}
+
 ERP.prototype.MAP = function() {
   return erpScorers.MAP.apply(this);
 }

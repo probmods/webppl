@@ -13,8 +13,6 @@ module.exports = function(env) {
 
   function sigmoid(x) { return (1 / (1 + Math.exp(-x))) - 0.5; }
 
-  function isContinuousERP(erp) { return !erp.support; }
-
   function makeTraceEntry(s, k, a, erp, params, type, currScore, choiceScore, val) {
     return {store: s, k: k, addr: a, erp: erp, params: params, type: type,
             score: currScore, choiceScore: choiceScore, val: val};
@@ -74,13 +72,13 @@ module.exports = function(env) {
       val = this.liftedSampler(erp, params);
 
     var choiceScore = erp.score(params, val);
-    var newEntry = makeTraceEntry(_.clone(s), k, a, erp, params, isContinuousERP(erp),
+    var newEntry = makeTraceEntry(_.clone(s), k, a, erp, params, erp.isContinuousERP(),
                                   this.currScore, choiceScore, val)
     this.sites[a] = newEntry;
     this.updateScore(choiceScore)
     if (this.isScoreInf())
       return this.exit(s);
-    if (isContinuousERP(erp) && !this.startRecompAddress)
+    if (erp.isContinuousERP() && !this.startRecompAddress)
       this.startRecompAddress = a;
 
     return k(s, val);
