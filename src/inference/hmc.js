@@ -9,7 +9,6 @@
 var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
-var ld = require('lodash');
 
 var ad = require('ad.js')({mode: 'r'})
 
