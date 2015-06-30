@@ -283,7 +283,7 @@ function cpsInnerStatement(node, e, fk) {
       });
     }),
     clause(Syntax.DebuggerStatement, function() {
-      return cps(node, buildContinuation(genvar('dummy'), e));
+      return cps(node, buildContinuation(genvar('debugger'), e));
     })], fail('cpsInnerStatement', node));
 }
 
