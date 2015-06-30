@@ -14,7 +14,7 @@ module.exports = function(env) {
 
   function MCMC(s, k, a, wpplFn, numIterations) {
     // Coroutine used to initialize trace. (Partially applied to make later
-    // code a little easy to read.)
+    // code a little easier to read.)
     var initialize = _.partial(Rejection, s, _, a, wpplFn);
     // The standard MH transition kernel.
     var transition = _.partial(MHKernel, s, _, a, wpplFn);
