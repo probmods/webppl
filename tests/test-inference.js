@@ -33,6 +33,7 @@ var tests = [
     settings: { args: [10] },
     models: {
       simple: true,
+      upweight: true,
       store: { hist: { tol: 0 } },
       geometric: true,
       cache: true
@@ -176,6 +177,7 @@ var tests = [
     },
     models: {
       simple: true,
+      upweight: { args: [1000, 10] },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
