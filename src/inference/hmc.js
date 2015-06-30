@@ -28,8 +28,6 @@ module.exports = function(env) {
     this.iterations = iterations;
     this.iteration = iterations;
 
-    this.acceptedProps = 0;
-
     this.val = undefined;
     this.currScore = 0;
     this.sites = {};
@@ -85,23 +83,31 @@ module.exports = function(env) {
   HMC.prototype.sample = function(s, k, a, erp, params) {
     var val;
 
-    if (this.counterfactualUpdate && this.sites[a]) {
+    if (this.counterfactualUpdate) { // update old value instead of sampling
       var lk = this.sites[a];
-      lk.currScore = this.currScore;
-      lk.val = ad.tapify(lk.val.primal + (this.stepSize * lk.moment));
-      val = lk.val;
-      lk.choiceScore = erp.score(params, lk.val);
-      this.updateScore(lk.choiceScore)
-      // console.log("cf update val = ", ad.untapify(lk.val), lk.moment);
-    } else {
+      if (lk) {                  // continuous erp with gradient
+        val = ad.tapify(lk.val.primal + (this.stepSize * lk.moment))
+        // console.log("cf update val = ", ad.untapify(val), lk.moment);
+      }
+      else {
+        // fixme: there needs to be some test here to make sure that
+        // bad structure change does not happen when the erp is continuous
+        // if discrete, no issues.
+        val = this.liftedSampler(erp, params);
+      }
+    } else
       val = this.liftedSampler(erp, params);
-      var choiceScore = erp.score(params, val);
-      var newEntry = makeTraceEntry(_.clone(s), k, a, erp, params, erp.isContinuous(),
-                                    this.currScore, choiceScore, val)
-      this.sites[a] = newEntry;
-      this.updateScore(choiceScore)
-    }
 
+    // console.log("sampler val = ", val);
+    var choiceScore = erp.score(params, val);
+    var newEntry = makeTraceEntry(_.clone(s), k, a, erp, params, erp.isContinuous(),
+                                  this.currScore, choiceScore, val)
+
+    // if counterfactual updating and at a continuous erp, keep momentum
+    if(lk) newEntry.moment = lk.moment;
+
+    this.sites[a] = newEntry;
+    this.updateScore(choiceScore)
     if (this.isScoreInf())
       return this.exit(s);
 
@@ -226,8 +232,7 @@ module.exports = function(env) {
       this.val = this.oldval;
       this.currScore = this.oldScore;
       this.sites = this.oldSites;
-    } else
-      this.acceptedProps += 1;
+    }
 
     // console.log("this.val = ", this.val);
     this.updateHist(this.val);
@@ -246,7 +251,6 @@ module.exports = function(env) {
   HMC.prototype.finish = function(val) {
     var dist = erp.makeMarginalERP(this.hist);
     var k = this.k;
-    console.log(this.acceptedProps / this.iterations)
     // Reinstate previous coroutine
     env.coroutine = this.oldCoroutine;
     // Return by calling original continuation
