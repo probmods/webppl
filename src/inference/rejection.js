@@ -71,7 +71,7 @@ module.exports = function(env) {
     }
 
     if (this.numSamples === 0) {
-      var dist = erp.makeMarginalERP(this.hist);
+      var dist = erp.makeMarginalERP(util.logHist(this.hist));
       env.coroutine = this.oldCoroutine;
       return this.k(this.s, dist);
     } else {

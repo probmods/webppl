@@ -65,15 +65,16 @@ module.exports = function(env) {
     return undefined;
   }
 
-  function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore) {
+  function acceptProb(trace, oldTrace, regenFrom, currScore, oldScore, proposalBoundary) {
+    proposalBoundary = proposalBoundary || 0;
     if ((oldTrace === undefined) || oldScore === -Infinity) {
       return 1;
     } // init
-    var fw = -Math.log(oldTrace.length);
+    var fw = -Math.log(oldTrace.length - proposalBoundary);
     trace.slice(regenFrom).map(function(s) {
       fw += s.reused ? 0 : s.forwardChoiceScore;
     });
-    var bw = -Math.log(trace.length);
+    var bw = -Math.log(trace.length - proposalBoundary);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
       var reverseChoiceScore = (s.reverseChoiceScore !== undefined) ? s.reverseChoiceScore : s.forwardChoiceScore;
@@ -184,7 +185,7 @@ module.exports = function(env) {
 
       return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
     } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
 
       // Reinstate previous coroutine:
       var k = this.k;

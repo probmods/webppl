@@ -56,7 +56,8 @@ module.exports = function(env) {
         score: 0,
         value: undefined,
         trace: [],
-        store: _.clone(s)
+        store: _.clone(s),
+        proposalBoundary: 0 // index of first erp to consider for mh proposals
       };
       this.particles.push(particle);
     }
@@ -137,7 +138,8 @@ module.exports = function(env) {
       value: particle.value,
       score: particle.score,
       store: _.clone(particle.store),
-      trace: deepCopyTrace(particle.trace)
+      trace: deepCopyTrace(particle.trace),
+      proposalBoundary: particle.proposalBoundary
     };
   }
 
@@ -224,7 +226,7 @@ module.exports = function(env) {
               this.wpplFn, this.rejuvSteps, hist).run();
         }.bind(this),
         function() {
-          var dist = erp.makeMarginalERP(hist);
+          var dist = erp.makeMarginalERP(util.logHist(hist));
 
           // Save estimated normalization constant in erp (average particle weight)
           dist.normalizationConstant = this.particles[0].weight;
@@ -259,6 +261,7 @@ module.exports = function(env) {
     this.limitAddress = limitAddress;
     this.originalParticle = particle;
     this.hist = hist;
+    this.proposalBoundary = particle.proposalBoundary;
 
     // Move PF coroutine out of the way and install this as the current
     // handler.
@@ -290,7 +293,7 @@ module.exports = function(env) {
 
   MHP.prototype.propose = function() {
     //make a new proposal:
-    this.regenFrom = Math.floor(Math.random() * this.trace.length);
+    this.regenFrom = this.proposalBoundary + Math.floor(Math.random() * (this.trace.length - this.proposalBoundary));
     var regen = this.trace[this.regenFrom];
     this.oldTrace = deepCopyTrace(this.trace);
     this.trace = this.trace.slice(0, this.regenFrom);
@@ -312,7 +315,8 @@ module.exports = function(env) {
         this.oldTrace,
         this.regenFrom,
         this.currScore,
-        this.oldScore);
+        this.oldScore,
+        this.proposalBoundary);
 
     var accepted = Math.random() < acceptance;
 
@@ -347,7 +351,8 @@ module.exports = function(env) {
         value: this.val,
         score: this.currScore,
         store: this.oldStore, // use store from latest accepted proposal
-        trace: this.trace
+        trace: this.trace,
+        proposalBoundary: this.originalParticle.proposalBoundary
       };
 
       // Reinstate previous coroutine and return by calling original continuation:
@@ -359,13 +364,22 @@ module.exports = function(env) {
   // TODO: Incrementalized version?
   MHP.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
+  // Restrict rejuvenation to erps that come after proposal boundary
+  function setProposalBoundary(s, k, a) {
+    if (env.coroutine.isParticleFilterRejuvCoroutine) {
+      var particle = env.coroutine.activeParticle();
+      particle.proposalBoundary = particle.trace.length;
+    }
+    return k(s);
+  }
 
   function pfr(s, cc, a, wpplFn, numParticles, rejuvSteps) {
     return new ParticleFilterRejuv(s, cc, a, wpplFn, numParticles, rejuvSteps).run();
   }
 
   return {
-    ParticleFilterRejuv: pfr
+    ParticleFilterRejuv: pfr,
+    setProposalBoundary: setProposalBoundary
   };
 
 };

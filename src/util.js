@@ -43,6 +43,13 @@ function normalizeHist(hist) {
   return normHist;
 }
 
+var logHist = function(hist) {
+  return _.mapObject(hist, function(x) {
+    return {prob: Math.log(x.prob), val: x.val}
+  });
+};
+
+
 function normalizeArray(xs) {
   var Z = sum(xs);
   return xs.map(function(x) {
@@ -125,7 +132,7 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
 function expectation(hist, func) {
   var f = func == undefined ? function(x) {return x;} : func;
   if (_.isArray(hist)) {
-    return sum(xs) / xs.length;
+    return sum(hist) / hist.length;
   } else {
     var expectedValue = sum(_.mapObject(hist, function(v, x) {
       return f(x) * v;
@@ -156,6 +163,7 @@ module.exports = {
   histsApproximatelyEqual: histsApproximatelyEqual,
   indexOfPred: indexOfPred,
   logsumexp: logsumexp,
+  logHist: logHist,
   lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
