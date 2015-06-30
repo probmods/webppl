@@ -50,6 +50,7 @@ var variational = require('./inference/variational.js');
 var incrementalmh = require('./inference/incrementalmh.js');
 var forwardsample = require('./inference/forwardsample.js');
 var gradientAscent = require('./inference/gradientAscent.js')
+var hmc = require('./inference/hmc.js')
 var headerUtils = require('./headerUtils.js');
 var Query = require('./query.js').Query;
 var ad = require('ad.js')({mode: 'r'});
@@ -145,7 +146,7 @@ module.exports = function(env) {
   // Inference functions and header utils
   var headerModules = [
     enumerate, particlefilter, asyncpf, mh, hashmh, incrementalmh, pmcmc,
-    smc, variational, forwardsample, gradientAscent, headerUtils
+    smc, variational, forwardsample, gradientAscent, hmc, headerUtils
   ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));
