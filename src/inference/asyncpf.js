@@ -129,7 +129,9 @@ module.exports = function(env) {
         var totalChildren = 0;
         for (var v = 0; v < lk.length; v++) totalChildren += lk[v].mnk; // \sum M^k_n
         var minK = Math.min(this.numParticles, lk.length); // min(K_0, k-1)
-        var rnk = Math.exp(logRatio);
+        // if all previous particles have -Infinity *and* current weight is -Infinity
+        // rnk = lim(x->0) x/x = 1 => [1, wbar] = [1, -Infinity]
+        var rnk = isNaN(logRatio) ? 1 : Math.exp(logRatio);
         var clampedRnk = totalChildren <= minK ? Math.ceil(rnk) : Math.floor(rnk);
         numChildrenAndWeight = [clampedRnk, currWeight - Math.log(clampedRnk)];
       }
@@ -168,11 +170,12 @@ module.exports = function(env) {
     if (this.exitedParticles < this.numParticles) {
       return this.run();
     } else {
-      var dist = erp.makeMarginalERP(this.hist);
+      var dist = erp.makeMarginalERP(util.logHist(this.hist));
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];
-      dist.normalizationConstant = Math.log(olk.length) - // K_n
+      var Kn = _.reduce(olk, function(a, b) {return a + b.mnk;}, 0)
+      dist.normalizationConstant = Math.log(Kn) -         // K_n
           Math.log(this.numParticles) +                   // K_0
           olk[olk.length - 1].wbar;                       // Wbar^k_n
 

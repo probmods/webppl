@@ -208,7 +208,7 @@ module.exports = function(env) {
           }
           hist[k].prob += 1;
         });
-    var dist = erp.makeMarginalERP(hist);
+    var dist = erp.makeMarginalERP(util.logHist(hist));
 
     // Save estimated normalization constant in erp (average particle weight)
     dist.normalizationConstant = this.particles[0].weight;

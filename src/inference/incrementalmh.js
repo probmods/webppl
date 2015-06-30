@@ -925,7 +925,7 @@ module.exports = function(env) {
     } else {
       var dist;
       if (this.returnHist)
-        dist = erp.makeMarginalERP(this.returnHist);
+        dist = erp.makeMarginalERP(util.logHist(this.returnHist));
       else
         dist = erp.makeMarginalERP({});
       if (this.returnSamps) {
