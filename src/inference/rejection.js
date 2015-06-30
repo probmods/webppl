@@ -26,7 +26,7 @@ module.exports = function(env) {
     env.coroutine = this;
 
     if (this.incremental) {
-      assert(this.maxScore <= 0);
+      assert(this.maxScore <= 0, 'maxScore cannot be positive for incremental rejection.');
     }
   }
 
