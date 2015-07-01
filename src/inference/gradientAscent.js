@@ -15,7 +15,7 @@ module.exports = function(env) {
 
   function makeTraceEntry(s, k, a, erp, params, type, currScore, choiceScore, val) {
     return {store: s, k: k, addr: a, erp: erp, params: params, type: type,
-            score: currScore, choiceScore: choiceScore, val: val};
+      score: currScore, choiceScore: choiceScore, val: val};
   }
 
   function Grad(s, k, a, wpplFn, stepSize, steps) {

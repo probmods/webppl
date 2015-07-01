@@ -63,12 +63,12 @@ function discreteScore(params, val) {
   return inSupport ? Math.log(probs[val]) : -Infinity;
 }
 
-var gammaCof = [ 76.18009172947146,
-                 -86.50532032941677,
-                 24.01409824083091,
-                 -1.231739572450155,
-                 0.1208650973866179e-2,
-                 -0.5395239384953e-5 ];
+var gammaCof = [76.18009172947146,
+                -86.50532032941677,
+                24.01409824083091,
+                -1.231739572450155,
+                0.1208650973866179e-2,
+                -0.5395239384953e-5];
 
 function logGamma(xx) {
   var x = xx - 1.0;
@@ -181,7 +181,7 @@ function lnfact(x) {
 function poissonScore(params, val) {
   var mu = params[0];
   var k = val;
-    return k * Math.log(mu) - mu - lnfact(k);
+  return k * Math.log(mu) - mu - lnfact(k);
 }
 
 function dirichletScore(params, val) {
@@ -216,17 +216,17 @@ function buildMultiplexScorer(selector) {
 module.exports = {
   MAP: MAP,
   entropy: entropy,
-  uniformScore:  uniformScore,
-  flipScore:  flipScore,
-  randomIntegerScore:  randomIntegerScore,
-  gaussianScore:  gaussianScore,
-  discreteScore:  discreteScore,
-  gammaScore:  gammaScore,
-  exponentialScore:  exponentialScore,
-  betaScore:  betaScore,
-  binomialScore:  binomialScore,
-  poissonScore:  poissonScore,
-  dirichletScore:  dirichletScore,
-  buildSimpleScorer:  buildSimpleScorer,
-  buildMultiplexScorer:  buildMultiplexScorer
+  uniformScore: uniformScore,
+  flipScore: flipScore,
+  randomIntegerScore: randomIntegerScore,
+  gaussianScore: gaussianScore,
+  discreteScore: discreteScore,
+  gammaScore: gammaScore,
+  exponentialScore: exponentialScore,
+  betaScore: betaScore,
+  binomialScore: binomialScore,
+  poissonScore: poissonScore,
+  dirichletScore: dirichletScore,
+  buildSimpleScorer: buildSimpleScorer,
+  buildMultiplexScorer: buildMultiplexScorer
 }
