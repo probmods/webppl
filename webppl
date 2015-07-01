@@ -69,8 +69,25 @@ function run(code, requires, verbose) {
         var reqCode = fs.readFileSync(req.path, 'utf8');
         code = reqCode + ';' + code;
       } else if (req.type === 'require') {
-	var packageSpec = require(req.path);
-	console.log(packageSpec);
+	var packageSpec = require(req.path).webppl;
+	var packagePath = req.path.split('/').slice(0, -1).join('/') + '/'
+	if(packageSpec.hasOwnProperty('headers')) {
+	  packageSpec.headers.forEach(function(header) {
+	    webppl.requireHeader(packagePath + header);
+	  })
+	}
+	if(packageSpec.hasOwnProperty('external')) {
+	  packageSpec.external.forEach(function(ext) {
+	    var extName = getRequireName(ext);
+	    global[extName] = require(packagePath + ext);
+	  })
+	}
+	if (packageSpec.hasOwnProperty('wppl')) {
+	  packageSpec.wppl.forEach(function(w) {
+	    var reqCode = fs.readFileSync(packagePath + w, 'utf8');
+	    code = reqCode + ';' + code;
+	  })
+	}
       } else {
         throw 'unknown require type: ' + req.type;
       }
