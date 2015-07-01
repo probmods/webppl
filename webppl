@@ -68,6 +68,9 @@ function run(code, requires, verbose) {
       } else if (req.type === 'require-wppl') {
         var reqCode = fs.readFileSync(req.path, 'utf8');
         code = reqCode + ';' + code;
+      } else if (req.type === 'require') {
+	var packageSpec = require(req.path);
+	console.log(packageSpec);
       } else {
         throw 'unknown require type: ' + req.type;
       }
@@ -157,7 +160,7 @@ function main() {
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile, 'utf8');
 
-  var requireTypes = ['require-js', 'require-wppl', 'require-header'];
+  var requireTypes = ['require-js', 'require-wppl', 'require-header', 'require'];
   var requires = [];
   requireTypes.forEach(
       function(requireType) {
