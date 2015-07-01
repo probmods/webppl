@@ -11,15 +11,6 @@ function asArray(xs) {
   return (xs ? ((xs instanceof Array) ? xs : [xs]) : []);
 }
 
-function requireAsGlobal(modulePath) {
-  var runtime = require(modulePath);
-  for (var prop in runtime) {
-    if (runtime.hasOwnProperty(prop)) {
-      global[prop] = runtime[prop];
-    }
-  }
-}
-
 function isErp(x) {
   return (x && (x.score != undefined) && (x.sample != undefined));
 }
@@ -71,12 +62,12 @@ function run(code, requires, verbose) {
   requires.forEach(
     function(req) {
       if (req.type === 'require-header'){
-        requireAsGlobal(req.path);
+        webppl.requireHeader(req.path);
       } else if (req.type === 'require-js'){
         global[req.name] = require(req.path);
       } else if (req.type === 'require-wppl') {
         var reqCode = fs.readFileSync(req.path, 'utf8');
-        code = reqCode + ';' + code;        
+        code = reqCode + ';' + code;
       } else {
         throw 'unknown require type: ' + req.type;
       }
@@ -92,7 +83,7 @@ function run(code, requires, verbose) {
 
 function compile(code, requires, verbose, outputFile) {
   var compiledCode = '';
-  requires.push({
+  requires.unshift({
     name: 'webppl', // this makes header.js exports globally available
     path: require.resolve('./src/main'),
     type: 'require-js'
@@ -102,7 +93,7 @@ function compile(code, requires, verbose, outputFile) {
         if (req.type === 'require-js') {
           compiledCode += 'var ' + req.name + " = require('" + req.path + "');\n";
         } else if (req.type === 'require-header') {
-          compiledCode += "requireAsGlobal('" + req.path + "');\n";
+          compiledCode += "webppl.requireHeader('" + req.path + "');\n";
         } else if (req.type === 'require-wppl') {
           var reqCode = fs.readFileSync(req.path, 'utf8');
           code = reqCode + ';' + code;
@@ -114,7 +105,6 @@ function compile(code, requires, verbose, outputFile) {
       isErp.toString() + '\n' +
       isErpWithSupport.toString() + '\n' +
       printWebPPLValue.toString() + '\n' +
-      requireAsGlobal.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +
       ' printWebPPLValue(x); \n};\n\n');
@@ -181,7 +171,7 @@ function main() {
                   });
             });
       });
-  
+
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : 'tmp.js';
 

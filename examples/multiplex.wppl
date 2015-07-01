@@ -1,0 +1,9 @@
+var model = function() {
+  var erp1 = Enumerate(function() {return flip(.4);});
+  var erp2 = Enumerate(function() {return flip(.8);});
+  var erpX = multiplexERP([true, false], [erp1, erp2]);
+  var toss = flip(.5);
+  return sample(erpX, [toss]);
+}
+
+Enumerate(model);

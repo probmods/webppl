@@ -1,0 +1,6 @@
+var model = function() {
+  var mu = gaussian(0, 2);
+  factor(gaussianERP.score([mu, 1], 5.5));
+  factor(gaussianERP.score([mu, 1], 6.5));
+  return mu;
+};

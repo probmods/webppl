@@ -22,7 +22,7 @@ webppl is released under the [MIT License](LICENSE.md).
 
 ## Contributions
 
-We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md).
+We encourage you to contribute to webppl! Check out our [guidelines for contributors](CONTRIBUTING.md) and join the [webppl-dev](https://groups.google.com/forum/#!forum/webppl-dev) mailing list.
 
 ## Installation from GitHub
 
@@ -145,18 +145,25 @@ Using the example of reading and writing CSV files:
 
 ### Additional header files
 
-Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
+Sometimes, it is useful to define external functions that are able to access WebPPL internals not usually exposed to the user. Header files have access to the following:
 
-1. Write a Javascript file that exports the functions you want to use:
+* The store, continuation, and address arguments that are present at any point in a WebPPL program.
+* The `env` container which allows access to `env.coroutine` among other things.
+
+Let's use the example of a function that makes the current address available in WebPPL:
+
+1. Write a Javascript file that exports a function. The function will be called with the `env` container and should return an object containing the functions you want to use:
 
         // addressHeader.js
-        
-        function myGetAddress(store, k, address){
-          return k(store, address);
-        };
-        
-        module.exports = {
-          myGetAddress: myGetAddress
+
+        module.exports = function(env) {
+
+          function myGetAddress(store, k, address){
+            return k(store, address);
+          };
+
+          return { myGetAddress: myGetAddress };
+
         };
 
 2. Write a WebPPL file that uses your new functions (without module qualifier):
@@ -182,8 +189,6 @@ Sometimes, it is useful to define external functions that are able to access the
 
         git checkout dev
         npm version patch  // or minor, or major; prints new version number
-        git add package.json
-        git commit -m "Update npm version"
 
 2. Merge into master
 
@@ -191,11 +196,7 @@ Sometimes, it is useful to define external functions that are able to access the
         git merge dev
         grunt
     
-3. Create git tag for new version
-
-        git tag v0.0.1 // use version printed by "npm version" command above    
-    
-4. Push to remotes and npm
+3. Push to remotes and npm
 
         git push origin dev
         git push origin master

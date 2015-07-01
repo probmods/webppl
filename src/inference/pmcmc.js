@@ -187,7 +187,7 @@ module.exports = function(env) {
         return this.activeContinuationWithStore();
 
       } else {
-        var dist = erp.makeMarginalERP(this.returnHist);
+        var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
 
         // Reinstate previous coroutine:
         env.coroutine = this.oldCoroutine;
@@ -198,6 +198,8 @@ module.exports = function(env) {
       }
     }
   };
+
+  PMCMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
     return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();

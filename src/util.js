@@ -26,7 +26,7 @@ function sum(xs) {
   if (xs.length === 0) {
     return 0.0;
   } else {
-    var total = _(xs).reduce(
+    var total = _.reduce(xs,
         function(a, b) {
           return a + b;
         });
@@ -43,6 +43,13 @@ function normalizeHist(hist) {
   return normHist;
 }
 
+var logHist = function(hist) {
+  return _.mapObject(hist, function(x) {
+    return {prob: Math.log(x.prob), val: x.val}
+  });
+};
+
+
 function normalizeArray(xs) {
   var Z = sum(xs);
   return xs.map(function(x) {
@@ -57,6 +64,14 @@ function logsumexp(a) {
     sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
   }
   return m + Math.log(sum);
+}
+
+function copyObj(obj) {
+  var newobj = {};
+  for (var k in obj) {
+    if (obj.hasOwnProperty(k)) {newobj[k] = obj[k];}
+  }
+  return newobj;
 }
 
 // More efficient version of (indexOf o map p)
@@ -91,7 +106,9 @@ function cpsForEach(func, nextK, xs, i) {
     return nextK();
   } else {
     return func(xs[i], i, xs, function() {
-      return cpsForEach(func, nextK, xs, i + 1);
+      return function() { // insert trampoline step
+        return cpsForEach(func, nextK, xs, i + 1);
+      }
     });
   }
 }
@@ -115,7 +132,7 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
 function expectation(hist, func) {
   var f = func == undefined ? function(x) {return x;} : func;
   if (_.isArray(hist)) {
-    return sum(xs) / xs.length;
+    return sum(hist) / hist.length;
   } else {
     var expectedValue = sum(_.mapObject(hist, function(v, x) {
       return f(x) * v;
@@ -139,12 +156,14 @@ function std(hist) {
 }
 
 module.exports = {
+  copyObj: copyObj,
   cpsForEach: cpsForEach,
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,
   indexOfPred: indexOfPred,
   logsumexp: logsumexp,
+  logHist: logHist,
   lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,

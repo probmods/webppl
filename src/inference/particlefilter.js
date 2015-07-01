@@ -16,6 +16,12 @@ function isActive(particle) {
 
 module.exports = function(env) {
 
+  function withImportanceDist(s, k, a, erp, importanceERP) {
+    var newERP = _.clone(erp);
+    newERP.importanceERP = importanceERP;
+    return k(s, newERP);
+  }
+
   function copyParticle(particle) {
     return {
       continuation: particle.continuation,
@@ -63,7 +69,12 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+    var importanceERP = erp.importanceERP || erp;
+    var val = importanceERP.sample(params);
+    var importanceScore = importanceERP.score(params, val);
+    var choiceScore = erp.score(params, val);
+    this.currentParticle().weight += choiceScore - importanceScore;
+    return cc(s, val);
   };
 
   ParticleFilter.prototype.factor = function(s, cc, a, score) {
@@ -197,7 +208,7 @@ module.exports = function(env) {
           }
           hist[k].prob += 1;
         });
-    var dist = erp.makeMarginalERP(hist);
+    var dist = erp.makeMarginalERP(util.logHist(hist));
 
     // Save estimated normalization constant in erp (average particle weight)
     dist.normalizationConstant = this.particles[0].weight;
@@ -214,7 +225,8 @@ module.exports = function(env) {
   }
 
   return {
-    ParticleFilter: pf
+    ParticleFilter: pf,
+    withImportanceDist: withImportanceDist
   };
 
 };
