@@ -14,11 +14,17 @@ var ad = require('ad.js')({mode: 'r'})
 
 module.exports = function(env) {
 
-  function sigmoid(x) { return (1 / (1 + Math.exp(-x))) - 0.5; }
+  function viewGradMom() {
+    _.each(this.sites, function(entry, addr) {
+      if (entry.type) {         // continuous erp
+        console.log(entry.moment, entry.val.sensitivity);
+      }
+    });
+  }
 
   function makeTraceEntry(s, k, a, erp, params, type, currScore, choiceScore, val) {
     return {store: s, k: k, addr: a, erp: erp, params: params, type: type,
-            score: currScore, choiceScore: choiceScore, val: val};
+      score: currScore, choiceScore: choiceScore, val: val};
   }
 
   function HMC(s, k, a, wpplFn, stepSize, steps, iterations) {
@@ -39,6 +45,8 @@ module.exports = function(env) {
     this.currentK = undefined;
     this.proposedU = undefined;
     this.proposedK = undefined;
+
+    this.acceptedProps = 0;
 
     this.hist = {};
     this.wpplFn = wpplFn;
@@ -64,6 +72,22 @@ module.exports = function(env) {
     return ad.untapify(this.currScore) === -Infinity
   }
 
+  // these machinations are required primarily because AD mutates
+  // state behind your back; so if you want to undo the effect of
+  // having previously run ad, then the cloning and saving,
+  // particularly after having computed the gradient, is necessary in
+  // to be able to reject proposals and recover.
+  HMC.prototype.saveState = function() {
+    this.oldval = this.val;
+    this.oldScore = _.clone(this.currScore);
+    this.oldSites = _.clone(this.sites);
+  }
+  HMC.prototype.restoreState = function() {
+    this.val = this.oldval;
+    this.currScore = _.clone(this.oldScore);
+    this.sites = _.clone(this.oldSites);
+  }
+
   HMC.prototype.run = function(counterfactualUpdate) {
     if (counterfactualUpdate)
       this.counterfactualUpdate = true;
@@ -87,7 +111,7 @@ module.exports = function(env) {
       var lk = this.sites[a];
       if (lk) {                  // continuous erp with gradient
         val = ad.tapify(lk.val.primal + (this.stepSize * lk.moment))
-        // console.log("cf update val = ", ad.untapify(val), lk.moment);
+        console.log("moment: " + a, lk.moment);
       }
       else {
         // fixme: there needs to be some test here to make sure that
@@ -98,13 +122,12 @@ module.exports = function(env) {
     } else
       val = this.liftedSampler(erp, params);
 
-    // console.log("sampler val = ", val);
     var choiceScore = erp.score(params, val);
     var newEntry = makeTraceEntry(_.clone(s), k, a, erp, params, erp.isContinuous(),
                                   this.currScore, choiceScore, val)
 
     // if counterfactual updating and at a continuous erp, keep momentum
-    if(lk) newEntry.moment = lk.moment;
+    if (lk) newEntry.moment = lk.moment;
 
     this.sites[a] = newEntry;
     this.updateScore(choiceScore)
@@ -115,15 +138,12 @@ module.exports = function(env) {
   };
 
   HMC.prototype.propose = function() {
-    // console.log("Proposing ================================")
-    // if rejected, don't need to compute gradient or save state again
+    // if prev poposal was accepted, compute gradient and save state
+    // before making new proposal
     if (!this.proposalRejected) {
       // compute gradients -- updates the trace-entries in `sites`
       ad.yGradientR(this.currScore)
-      // save necessary state
-      this.oldval = this.val;
-      this.oldScore = _.clone(this.currScore);
-      this.oldSites = _.clone(this.sites);
+      this.saveState();
     }
 
     // fixme: cycling proposals with mh
@@ -133,8 +153,8 @@ module.exports = function(env) {
   HMC.prototype.leapfrogInit = function() {
     this.leapfrogging = true;
 
-    // compute gradients
-    this.currentU = ad.untapify(this.currScore);
+    this.currentU = this.currScore.primal;
+    // fixme -- untapify didn't work here; why?
 
     var currentK = 0;
     var stepSize = this.stepSize;
@@ -149,10 +169,9 @@ module.exports = function(env) {
     });
     this.currentK = currentK / 2;         // K(p) = \sum(p^2) / 2
 
-    // set starting step at one off from total steps because we go
-    // p/2, q, [p, q], [p, q]...[p, q], p/2, -p     with n-1 instead of
-    // p/2, [q, p], [q, p]...[q, p], [q], p/2, -p   with n
+    // set starting count
     this.step = this.steps - 1;
+
     // counterfactual update to get new state
     // q = q + e*p
     return this.run(true)
@@ -160,7 +179,6 @@ module.exports = function(env) {
 
   HMC.prototype.leapfrogStep = function(s, val) {
     this.step -= 1;
-    // console.log("this.step = ", this.step);
     if (this.step === 0)
       return this.leapfrogExit(s, val);
 
@@ -171,10 +189,8 @@ module.exports = function(env) {
     // update momenta full step with gradient
     // p = p + e * (-dq)
     _.each(this.sites, function(entry, addr) {
-      if (entry.type) {         // continuous erp
+      if (entry.type)         // continuous erp
         entry.moment += (stepSize * entry.val.sensitivity);
-        // console.log("moment = ", entry.moment, stepSize, entry.val.sensitivity);
-      }
     });
 
     // counterfactual update to get new state
@@ -193,7 +209,7 @@ module.exports = function(env) {
     // p = p + (e/2 * (-dq))
     _.each(this.sites, function(entry, addr) {
       if (entry.type) {         // continuous erp
-        entry.moment += stepSize * entry.val.sensitivity / 2;
+        entry.moment += (stepSize * entry.val.sensitivity / 2);
         proposedK += Math.pow(entry.moment, 2);
       }
     });
@@ -211,35 +227,34 @@ module.exports = function(env) {
     }
 
     // if leapfrogging, go no further until done
-    if (this.leapfrogging) {
-      // console.log("lf step val = ", val);
+    if (this.leapfrogging)
       return this.leapfrogStep(s, val);
-    }
 
-    // console.log("Iteration - " + this.iteration);
+    console.log("Iteration - " + this.iteration);
     this.iteration -= 1;
 
     // compute acceptance prob
-    var acceptance = Math.exp(this.currentU - this.proposedU +
+    var acceptance = Math.exp(this.proposedU - this.currentU +
                               this.currentK - this.proposedK);
+    // console.log("acceptance = ", acceptance);
+    // console.log("this.proposedU = ", this.proposedU);
+    // console.log("this.currentU = ", this.currentU);
+    // console.log("this.currentK = ", this.currentK);
+    // console.log("this.proposedK = ", this.proposedK);
 
     this.val = val;
     this.proposalRejected = false;
-    if (Math.random() >= acceptance) {
-      // if rejected, restore old state
+    if (Math.random() >= acceptance) { // rejected: restore old state
       this.proposalRejected = true;
-      // console.log("rejected", this.val, this.oldval);
-      this.val = this.oldval;
-      this.currScore = this.oldScore;
-      this.sites = this.oldSites;
-    }
+      this.restoreState();
+    } else
+      this.acceptedProps += 1;
 
-    // console.log("this.val = ", this.val);
     this.updateHist(this.val);
 
     return (this.iteration > 0) ?
-      this.propose() :          // make a new proposal
-      this.finish();            // finish up
+        this.propose() :          // make a new proposal
+        this.finish();            // finish up
   };
 
   HMC.prototype.updateHist = function(val) {
@@ -251,6 +266,7 @@ module.exports = function(env) {
   HMC.prototype.finish = function(val) {
     var dist = erp.makeMarginalERP(this.hist);
     var k = this.k;
+    console.log("AR:", this.acceptedProps / this.iterations);
     // Reinstate previous coroutine
     env.coroutine = this.oldCoroutine;
     // Return by calling original continuation
