@@ -9,8 +9,7 @@ READANDAPPENDWEBPPLHEADERS
 
 READANDAPPENDEXTERNALMODULES
 
-module.exports = {webpplHeader : webpplHeader,
-		  jsRequirements : jsRequirements};
+module.exports = {webpplHeader: webpplHeader, jsRequirements: jsRequirements};
 
 
 

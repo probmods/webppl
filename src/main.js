@@ -106,14 +106,13 @@ function compile(programCode, verbose, doCaching) {
   var programAST = esprima.parse(programCode);
   if (additionalReqs) {
     if (additionalReqs.hasOwnProperty('webpplHeader')) {
-      headerAST = concatPrograms(headerAST,
-				 esprima.parse(additionalReqs.webpplHeader));
+      headerAST = concatPrograms(headerAST, esprima.parse(additionalReqs.webpplHeader));
     }
   }
 
   if (doCaching)
     programAST = caching(programAST);
-  
+
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
