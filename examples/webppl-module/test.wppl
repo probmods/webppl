@@ -6,10 +6,10 @@
 // * mySum comes from myLibrary.wppl
 // * TFCartesianProd comes from the external module cartesianProduct.js
 //
-// we bundle these requirements up as a module in package.json.
+// We bundle these requirements up as a module in package.json.
 
-// To run this webppl function with the testModule, call
-// webppl test.wppl --require /path/to/package.json
+// To run this webppl function with the test module, call
+// webppl test.wppl --require ./package.json
 
 var foo = function(){
     var bar = function(){

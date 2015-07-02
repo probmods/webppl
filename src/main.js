@@ -37,14 +37,14 @@ if(additionalReqs) {
 var env = {};
 
 // Make header functions globally available:
-// function requireHeader(path) {
-//   var header = require(path)(env);
-//   for (var prop in header) {
-//     if (header.hasOwnProperty(prop)) {
-//       global[prop] = header[prop];
-//     }
-//   }
-// }
+function requireHeader(path) {
+  var header = require(path)(env);
+  for (var prop in header) {
+    if (header.hasOwnProperty(prop)) {
+      global[prop] = header[prop];
+    }
+  }
+}
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
