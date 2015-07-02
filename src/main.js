@@ -19,16 +19,15 @@ var analyze = require('./analysis/main').analyze;
 var util = require('./util');
 
 try {
-    var additionalReqs = require('./additionalReqs');
-} catch(e) {
-    console.log("error including additional requirements");
-    console.log(e);
+  var additionalReqs = require('./additionalReqs');
+} catch (e) {
+  console.log('no additional requirements to include');
 }
-if(additionalReqs) {
-    console.log(additionalReqs.jsRequirements);
-    additionalReqs.jsRequirements.forEach(function(req) {
-	global[req.name] = req.mod;
-    });
+if (additionalReqs) {
+  console.log(additionalReqs.jsRequirements);
+  additionalReqs.jsRequirements.forEach(function(req) {
+    global[req.name] = req.mod;
+  });
 }
 
 // Container for coroutine object and shared top-level
@@ -69,19 +68,19 @@ function prepare(programCode, verbose, doCaching) {
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
   // if (doCaching)
-    //   programAST = caching(programAST);
-    if(additionalReqs) {
-	if(additionalReqs.hasOwnProperty('webpplHeader')) {
-	    headerAST = concatPrograms(headerAST,
-				       esprima.parse(additionalReqs.webpplHeader));
-	}
+  //   programAST = caching(programAST);
+  if (additionalReqs) {
+    if (additionalReqs.hasOwnProperty('webpplHeader')) {
+      headerAST = concatPrograms(headerAST,
+                                 esprima.parse(additionalReqs.webpplHeader));
     }
-    var out = _prepare(concatPrograms(headerAST, programAST));
+  }
+  var out = _prepare(concatPrograms(headerAST, programAST));
 
-    if (verbose && console.timeEnd) {
-	console.timeEnd('prepare');
-    }
-    return out;
+  if (verbose && console.timeEnd) {
+    console.timeEnd('prepare');
+  }
+  return out;
 }
 
 function compile(programCode, verbose, doCaching) {
@@ -104,17 +103,17 @@ function compile(programCode, verbose, doCaching) {
 
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
-    var programAST = esprima.parse(programCode);
-    if(additionalReqs) {
-	if(additionalReqs.hasOwnProperty('webpplHeader')) {
-	    headerAST = concatPrograms(headerAST,
-				       esprima.parse(additionalReqs.webpplHeader));
-	}
+  var programAST = esprima.parse(programCode);
+  if (additionalReqs) {
+    if (additionalReqs.hasOwnProperty('webpplHeader')) {
+      headerAST = concatPrograms(headerAST,
+				 esprima.parse(additionalReqs.webpplHeader));
     }
+  }
 
   if (doCaching)
-      programAST = caching(programAST);
-    
+    programAST = caching(programAST);
+  
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
