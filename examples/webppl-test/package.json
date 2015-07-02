@@ -1,0 +1,16 @@
+{
+  "name": "webppl-test",
+  "description": "test for webppl module importing system",
+  "version": "0.2.0",
+  "author": "Robert Hawkins",
+  "dependencies": {
+    "fs" : "*",
+    "underscore" : "1.8.3",
+    "babyparse" : "0.4.*"
+  },
+  "webppl": {
+    "headers": ["addressHeader.js"],
+    "external": ["cartesianProduct.js"],
+    "wppl": ["myLibrary.wppl"]
+  }
+}

@@ -1,0 +1,12 @@
+// test.wppl
+
+var foo = function(){
+    var bar = function(){
+	console.log(myGetAddress());
+	console.log(mySum([1,2,3,4]));
+	console.log(TFCartesianProd(3));
+    };
+    bar();
+};
+
+foo();
