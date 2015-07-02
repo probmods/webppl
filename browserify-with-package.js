@@ -1,8 +1,9 @@
 // At the command-line, call
 
-// node browserify-with-package.js path/to/package/directory
+// node browserify-with-package.js examples/webppl-module
 
 // This will generate a browserified file, webppl.js, and an uglified version, webppl.min.js
+// using the specified module
 
 var path = require('path');
 var fs = require('fs');
