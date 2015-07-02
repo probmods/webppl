@@ -1,0 +1,23 @@
+// test.wppl
+
+// Note that
+// * myGetAddress comes from addressHeader.js, which uses the
+//   store and continuation
+// * mySum comes from myLibrary.wppl
+// * TFCartesianProd comes from the external module cartesianProduct.js
+//
+// we bundle these requirements up as a module in package.json.
+
+// To run this webppl function with the testModule, call
+// webppl test.wppl --require /path/to/package.json
+
+var foo = function(){
+    var bar = function(){
+	console.log(myGetAddress());
+	console.log(mySum([1,2,3,4]));
+	console.log(cartesianProduct.TFCartesianProd(3));
+    };
+    bar();
+};
+
+foo();
