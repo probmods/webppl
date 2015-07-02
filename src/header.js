@@ -102,7 +102,7 @@ module.exports = function(env) {
   // Exports
 
   var exports = {
-    top: util.runningInBrowser() ? window : global
+    _top: util.runningInBrowser() ? window : global
   };
 
   function addExports(obj) {
