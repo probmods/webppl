@@ -17,7 +17,6 @@ var caching = require('./transforms/caching').caching;
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
-var header = require('./header.js');
 
 try {
     var additionalReqs = require('./additionalReqs');
@@ -45,6 +44,8 @@ function requireHeader(path) {
     }
   }
 }
+
+requireHeader('./header.js');
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
