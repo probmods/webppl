@@ -58,7 +58,7 @@ var tests = [
     name: 'HashMH',
     settings: {
       args: [5000],
-      hist: { tol: 0.1 },
+      hist: { tol: 0.1 }
       //MAP: { tol: 0.1, check: true }
     },
     models: {
@@ -72,7 +72,7 @@ var tests = [
     name: 'IncrementalMH',
     settings: {
       args: [5000],
-      hist: { tol: 0.1 },
+      hist: { tol: 0.1 }
       //MAP: { tol: 0.1, check: true }
     },
     models: {
@@ -229,7 +229,7 @@ var testWithinTolerance = function(test, actual, expected, tolerance, name) {
   test.ok(absDiff < tolerance, msg);
 };
 
-var testEqual = function (test, actual, expected, name) {
+var testEqual = function(test, actual, expected, name) {
   var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
   test.ok(actual === expected, msg);
 };
@@ -249,7 +249,7 @@ var testFunctions = {
       testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
-  MAP: function (test, erp, hist, expected, args) {
+  MAP: function(test, erp, hist, expected, args) {
     if (args.check) {
       var map = erp.MAP();
       testEqual(test, map.val, expected.val, 'MAP value');
