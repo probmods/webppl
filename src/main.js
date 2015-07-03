@@ -46,7 +46,7 @@ function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
 }
 
-function cachingRequired(programAST, verbose) {
+function cachingRequired(programAST) {
   var flag = false;
   estraverse.traverse(programAST, {
     enter: function(node) {
@@ -56,7 +56,6 @@ function cachingRequired(programAST, verbose) {
       }
     }
   });
-  if (verbose && flag) console.log('Program requires caching transforms.');
   return flag;
 }
 
@@ -108,9 +107,13 @@ function compile(programCode, verbose) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  var doCaching = cachingRequired(programAST, verbose);
-  if (doCaching)
+  var doCaching = cachingRequired(programAST);
+
+  if (doCaching) {
+    if (verbose) console.log('Caching transforms will be applied.');
     programAST = caching(programAST);
+  }
+
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
