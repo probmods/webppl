@@ -99,6 +99,15 @@ function optimize(node) {
         return node;
       }
 
+    case Syntax.VariableDeclaration:
+      // Un-wrap debugger statements.
+      if (node.declarations.length === 1 &&
+          node.declarations[0].id.name.slice(0, 9) === '_debugger') {
+        return build.debuggerStatement();
+      } else {
+        return node;
+      }
+
     default:
       return node;
   }
