@@ -29,7 +29,10 @@ var tests = [
   },
   {
     name: 'Enumerate',
-    settings: { args: [10] },
+    settings: {
+      args: [10],
+      MAP: { check: true }
+    },
     models: {
       simple: true,
       store: { hist: { tol: 0 } },
@@ -41,7 +44,8 @@ var tests = [
     name: 'MH',
     settings: {
       args: [5000],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -55,6 +59,7 @@ var tests = [
     settings: {
       args: [5000],
       hist: { tol: 0.1 }
+      //MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -68,6 +73,7 @@ var tests = [
     settings: {
       args: [5000],
       hist: { tol: 0.1 }
+      //MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -80,7 +86,8 @@ var tests = [
     name: 'PMCMC',
     settings: {
       args: [1000, 5],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -94,7 +101,8 @@ var tests = [
     settings: {
       args: [1000, 10],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -110,7 +118,8 @@ var tests = [
     func: 'ParticleFilterRejuv',
     settings: {
       args: [1, 10000],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -125,7 +134,8 @@ var tests = [
     func: 'ParticleFilterRejuv',
     settings: {
       args: [1000, 0],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -142,7 +152,8 @@ var tests = [
     settings: {
       args: [1000, 1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -155,7 +166,8 @@ var tests = [
     settings: {
       args: [1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
@@ -217,6 +229,11 @@ var testWithinTolerance = function(test, actual, expected, tolerance, name) {
   test.ok(absDiff < tolerance, msg);
 };
 
+var testEqual = function(test, actual, expected, name) {
+  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
+  test.ok(actual === expected, msg);
+};
+
 var testFunctions = {
   hist: function(test, erp, hist, expected, args) {
     test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
@@ -230,6 +247,13 @@ var testFunctions = {
   logZ: function(test, erp, hist, expected, args) {
     if (args.check) {
       testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
+    }
+  },
+  MAP: function(test, erp, hist, expected, args) {
+    if (args.check) {
+      var map = erp.MAP();
+      testEqual(test, map.val, expected.val, 'MAP value');
+      testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
   }
 };
