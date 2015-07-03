@@ -16,14 +16,14 @@ module.exports = function(env) {
 
   function viewGradMom() {
     _.each(this.sites, function(entry, addr) {
-      if (entry.type) {         // continuous erp
+      if (entry.continuous) {         // continuous erp
         console.log(entry.moment, entry.val.sensitivity);
       }
     });
   }
 
-  function makeTraceEntry(s, k, a, erp, params, type, currScore, choiceScore, val) {
-    return {store: s, k: k, addr: a, erp: erp, params: params, type: type,
+  function makeTraceEntry(s, k, a, erp, params, continuous, currScore, choiceScore, val) {
+    return {store: s, k: k, addr: a, erp: erp, params: params, continuous: continuous,
       score: currScore, choiceScore: choiceScore, val: val};
   }
 
@@ -161,7 +161,7 @@ module.exports = function(env) {
     // sample momenta & update half step with gradient
     // p = p - (e/2 * (-dq))
     _.each(this.sites, function(entry, addr) {
-      if (entry.type) {         // continuous erp
+      if (entry.continuous) {         // continuous erp
         var moment = erp.gaussianERP.sample([0.0, 1.0]);
         entry.moment = moment + (stepSize * entry.val.sensitivity / 2);
         currentK += Math.pow(moment, 2);
@@ -189,7 +189,7 @@ module.exports = function(env) {
     // update momenta full step with gradient
     // p = p + e * (-dq)
     _.each(this.sites, function(entry, addr) {
-      if (entry.type)         // continuous erp
+      if (entry.continuous)         // continuous erp
         entry.moment += (stepSize * entry.val.sensitivity);
     });
 
@@ -208,7 +208,7 @@ module.exports = function(env) {
     // update momenta half step with gradient
     // p = p + (e/2 * (-dq))
     _.each(this.sites, function(entry, addr) {
-      if (entry.type) {         // continuous erp
+      if (entry.continuous) {         // continuous erp
         entry.moment += (stepSize * entry.val.sensitivity / 2);
         proposedK += Math.pow(entry.moment, 2);
       }
