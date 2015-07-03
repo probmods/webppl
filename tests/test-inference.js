@@ -12,6 +12,7 @@ var testDataDir = './tests/test-data/';
 var tests = [
   {
     name: 'ForwardSample',
+    func: 'Rejection',
     settings: {
       args: [3000],
       hist: { tol: 0.05 },
@@ -35,6 +36,8 @@ var tests = [
     },
     models: {
       simple: true,
+      upweight: true,
+      incrementalBinomial: true,
       store: { hist: { tol: 0 } },
       geometric: true,
       cache: true
@@ -177,6 +180,37 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000] }
+    }
+  },
+  {
+    name: 'Rejection',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      upweight: { args: [1000, 10] },
+      incrementalBinomial: { args: [1000, -2] },
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors1: true,
+      varFactors2: true
+    }
+  },
+  {
+    name: 'IncrementalRejection',
+    func: 'Rejection',
+    settings: {
+      args: [1000, 0, true],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      incrementalBinomial: { args: [1000, -2, true] },
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors2: true
     }
   }
 ];
