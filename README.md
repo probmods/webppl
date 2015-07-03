@@ -146,18 +146,25 @@ Using the example of reading and writing CSV files:
 
 ### Additional header files
 
-Sometimes, it is useful to define external functions that are able to access the store, continuation, and address arguments that are present at any point in a webppl program but usually not exposed to the user. Let's use the example of a function that makes the current address available in WebPPL:
+Sometimes, it is useful to define external functions that are able to access WebPPL internals not usually exposed to the user. Header files have access to the following:
 
-1. Write a Javascript file that exports the functions you want to use:
+* The store, continuation, and address arguments that are present at any point in a WebPPL program.
+* The `env` container which allows access to `env.coroutine` among other things.
+
+Let's use the example of a function that makes the current address available in WebPPL:
+
+1. Write a Javascript file that exports a function. The function will be called with the `env` container and should return an object containing the functions you want to use:
 
         // addressHeader.js
-        
-        function myGetAddress(store, k, address){
-          return k(store, address);
-        };
-        
-        module.exports = {
-          myGetAddress: myGetAddress
+
+        module.exports = function(env) {
+
+          function myGetAddress(store, k, address){
+            return k(store, address);
+          };
+
+          return { myGetAddress: myGetAddress };
+
         };
 
 2. Write a WebPPL file that uses your new functions (without module qualifier):
