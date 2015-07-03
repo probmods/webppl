@@ -202,6 +202,8 @@ module.exports = function(env) {
     }
   };
 
+  MH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function mh(s, cc, a, wpplFn, numIterations, burn, diagnostics) {
     return new MH(s, cc, a, wpplFn, numIterations, burn, diagnostics).run();
   }
