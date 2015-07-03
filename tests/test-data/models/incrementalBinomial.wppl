@@ -1,0 +1,9 @@
+var model = function() {
+  var a = flip(0.5);
+  factor(a ? -1 : -2);
+  var b = flip(0.5);
+  factor(b ? 0 : -2);
+  var c = flip(0.5);
+  factor(b || c ? -1 : -2);
+  return a + b + c;
+};

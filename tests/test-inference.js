@@ -34,6 +34,7 @@ var tests = [
     models: {
       simple: true,
       upweight: true,
+      incrementalBinomial: true,
       store: { hist: { tol: 0 } },
       geometric: true,
       cache: true
@@ -178,6 +179,7 @@ var tests = [
     models: {
       simple: true,
       upweight: { args: [1000, 10] },
+      incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
@@ -193,6 +195,7 @@ var tests = [
     },
     models: {
       simple: true,
+      incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors2: true
