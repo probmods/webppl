@@ -24,12 +24,22 @@ var util = require('./util');
 var env = {};
 
 // Make header functions globally available:
-var header = require('./header.js')(env);
-for (var prop in header) {
-  if (header.hasOwnProperty(prop)) {
-    global[prop] = header[prop];
+function requireHeader(path) {
+  var header = require(path)(env);
+  makePropertiesGlobal(header);
+}
+
+function makePropertiesGlobal(obj) {
+  for (var prop in obj) {
+    if (obj.hasOwnProperty(prop)) {
+      global[prop] = obj[prop];
+    }
   }
 }
+
+// Explicitly call require here to ensure that browserify notices that the
+// header should be bundled.
+makePropertiesGlobal(require('./header.js')(env));
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
@@ -137,5 +147,6 @@ module.exports = {
   run: run,
   prepare: prepare,
   compile: compile,
-  analyze: analyze
+  analyze: analyze,
+  requireHeader: requireHeader
 };

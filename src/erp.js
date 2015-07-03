@@ -477,7 +477,7 @@ function makeMarginalERP(marginal) {
     var dd = marginal[v];
     var nprob = dd.prob - norm;
     var nprobS = Math.exp(nprob)
-    if (nprob > mapEst.prob)
+    if (nprobS > mapEst.prob)
       mapEst = {val: dd.val, prob: nprobS};
     marginal[v].prob = nprobS;
   }}
