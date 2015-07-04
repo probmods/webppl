@@ -57,10 +57,11 @@ function gaussianScore(params, x) {
 }
 
 function discreteScore(params, val) {
-  var probs = util.normalizeArray(params[0]);
+  var probs = params[0];
   var stop = probs.length;
   var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-  return inSupport ? Math.log(probs[val]) : -Infinity;
+  var sum = 0; while (stop--) sum += probs[stop];
+  return inSupport ? Math.log(probs[val] / sum) : -Infinity;
 }
 
 var gammaCof = [76.18009172947146,
