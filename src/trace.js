@@ -67,10 +67,8 @@ Proposal.prototype.moment = undefined;
 
 function makeProposal(value, gradient, moment) {
   var p = new Proposal(value)
-  if (gradient !== undefined && moment !== undefined) {
-    p.gradient = gradient;
-    p.moment = moment;
-  }
+  if (gradient !== undefined) p.gradient = gradient;
+  if (moment !== undefined) p.moment = moment;
   return p;
 }
 
