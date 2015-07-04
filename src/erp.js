@@ -24,7 +24,6 @@
 // var numeric = require('numeric');
 var _ = require('underscore');
 var util = require('./util.js');
-// var assert = require('assert');
 var erpScorers = require('./erpScorers.js');
 
 function ERP(sampler, scorer, auxParams) {

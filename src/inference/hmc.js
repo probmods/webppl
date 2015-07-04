@@ -7,14 +7,12 @@
 'use strict';
 
 var _ = require('underscore');
-var assert = require('assert');
 var erp = require('../erp.js');
 var ad = require('ad.js')({mode: 'r'})
 
 var T = require('../trace');
 var makeTrace = T.makeTrace
 var makeProposal = T.makeProposal
-var makeProposalsList = T.makeProposalsList
 
 module.exports = function(env) {
 
@@ -33,7 +31,7 @@ module.exports = function(env) {
     this.acceptedProposals = 0;
     this.trace             = undefined;
     this.oldTrace          = undefined;
-    this.proposals         = {}; // makeProposalsList();
+    this.proposals         = {};
     this.oldValue          = undefined;
     this.oldExit           = undefined;
 
@@ -88,7 +86,7 @@ module.exports = function(env) {
 
   HMC.prototype.propose = function() {
     // (re)initialize proposals
-    this.proposals = {}; //makeProposalsList();
+    this.proposals = {};
 
     // pick a proposer from a list of proposers and run
     this.proposerIndex = (this.proposerIndex + 1) % this.proposers.length;
