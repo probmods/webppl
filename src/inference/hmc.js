@@ -231,17 +231,6 @@ module.exports = function(env) {
       console.log('Iteration - ' + this.iteration);
     }
 
-    // console.log('showing current gradient');
-    // this.computeGradient();
-    // console.log('showing old gradient');
-    // ad.yGradientR(this.oldTrace.score());
-    // if (this.verbosity > 2)
-    //   this.oldTrace.forEach(function(te) {
-    //     if (te.isContinuous())
-    //       console.log(te.address + ': ' + te.erpValue.sensitivity);
-    //   })
-    // throw "done"
-
     return (this.iteration > 0) ?
       this.propose() :          // make a new proposal
       this.finish();            // finish up
