@@ -48,7 +48,6 @@ module.exports = function(env) {
   };
 
   HMC.prototype.run = function() {
-    // this.trace = makeTrace(ad.add);
     this.trace = makeTrace();
     this.trace.scoreUpdaterF = ad.add;
     return this.wpplFn(this.s, env.exit, this.a);
