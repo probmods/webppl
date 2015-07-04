@@ -32,6 +32,7 @@ module.exports = function(env) {
     this.trace             = undefined;
     this.oldTrace          = undefined;
     this.proposals         = {};
+    this.oldProposals      = undefined;
     this.oldValue          = undefined;
     this.oldExit           = undefined;
 
