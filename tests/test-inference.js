@@ -173,10 +173,10 @@ var tests = [
       args: [0.1, 1000]
     },
     models: {
-      gaussian: { mean: { tol: 0.1 }, std: { tol: Infinity }, args: [0.1, 1000] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [0.1, 1000] },
-      gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [0.1, 1000] },
-      reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [0.1, 1000] }
+      gaussian: { mean: { tol: 0.1 }, std: { tol: Infinity }, args: [{stepSize: 0.2, steps:4000}] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [{stepSize: 0.2, steps:4000}] },
+      gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.2, steps:4000}] },
+      reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.2, steps:4000}] }
     }
   }
 ];
