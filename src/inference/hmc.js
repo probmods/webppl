@@ -61,12 +61,11 @@ module.exports = function(env) {
 
   HMC.prototype.sample = function(s, k, a, erp, params) {
     var proposal = this.proposals[a]; // has a proposal been made for this address?
-    var value = ad.tapify(proposal ?
-                          valueUpdater.call(this, proposal) :
-                          erp.sample(ad.untapify(params)));
-    var score = erp.score(ad.untapify(params), value);
+    var _value = proposal ? valueUpdater.call(this, proposal) : erp.sample(ad.untapify(params))
+    var value = erp.isContinuous() ? ad.tapify(_value) : _value;
+    var score = erp.score(params, value);
     if (this.verbosity > 3)
-      console.log('Sampling:', erp.sample.name, params, value.primal, score.primal)
+      console.log('Sampling:', erp.sample.name, params, ad.untapify(value), ad.untapify(score))
     this.trace.append(s, k, a, erp, params, score, value);
     return ad.untapify(score) === -Infinity ? this.exit(s) : k(s, value);
   };
@@ -225,7 +224,7 @@ module.exports = function(env) {
     this.updateHist(currentValue);
 
     if (this.verbosity > 1) {
-      console.log('Value: ' + currentValue.primal);
+      console.log('Value: ' + ad.untapify(currentValue));
       console.log('Iteration - ' + this.iteration);
     }
 
@@ -236,7 +235,7 @@ module.exports = function(env) {
 
   // histogram should really be a class with it's own methods
   HMC.prototype.updateHist = function(val) {
-    var v = ad.untapify(val);
+    var v = ad.untapify(val);   // fixme: this is a hack
     var l = JSON.stringify(v);
     if (this.hist[l] === undefined) this.hist[l] = {prob: 0, val: v};
     this.hist[l].prob += 1;
