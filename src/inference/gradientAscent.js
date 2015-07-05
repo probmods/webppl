@@ -20,23 +20,23 @@ module.exports = function(env) {
   function sigmoid(x) { return (1 / (1 + Math.exp(-x))) - 0.5; }
 
   function Grad(s, k, a, wpplFn, opts) {
-    this.stepSize     = getOpt(opts.stepSize, 0.1);
-    this.step         = getOpt(opts.steps, 3000);
-    this.steps        = getOpt(opts.steps, 3000);
-    this.verbosity    = getOpt(opts.verbosity, 0);
+    this.stepSize = getOpt(opts.stepSize, 0.1);
+    this.step = getOpt(opts.steps, 3000);
+    this.steps = getOpt(opts.steps, 3000);
+    this.verbosity = getOpt(opts.verbosity, 0);
 
-    this.trace        = undefined;
-    this.proposals    = {};
+    this.trace = undefined;
+    this.proposals = {};
 
-    this.hist         = {};
-    this.wpplFn       = wpplFn;
-    this.s            = s;
-    this.k            = k;
-    this.a            = a;
+    this.hist = {};
+    this.wpplFn = wpplFn;
+    this.s = s;
+    this.k = k;
+    this.a = a;
 
     // Move old coroutine out of the way and install this as current handler.
-    this.oldCoroutine = env.coroutine;
-    env.coroutine     = this;
+    this.oldCoroutin = env.coroutine;
+    env.coroutine = this;
   }
 
   Grad.prototype.run = function() {

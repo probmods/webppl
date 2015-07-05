@@ -20,32 +20,32 @@ module.exports = function(env) {
   function getOpt(value, defaultValue) { return value === undefined ? defaultValue : value; };
 
   function HMC(s, k, a, wpplFn, opts) {
-    this.stepSize          = getOpt(opts.stepSize, 0.1);
-    this.step              = getOpt(opts.steps, 10);
-    this.steps             = getOpt(opts.steps, 10);
-    this.iteration         = getOpt(opts.iterations, 100);
-    this.iterations        = getOpt(opts.iterations, 100);
-    this.proposers         = getOpt(opts.proposers, ['leapfrog']);
-    this.verbosity         = getOpt(opts.verbosity, 0);
+    this.stepSize = getOpt(opts.stepSize, 0.1);
+    this.step = getOpt(opts.steps, 10);
+    this.steps = getOpt(opts.steps, 10);
+    this.iteration = getOpt(opts.iterations, 100);
+    this.iterations = getOpt(opts.iterations, 100);
+    this.proposers = getOpt(opts.proposers, ['leapfrog']);
+    this.verbosity = getOpt(opts.verbosity, 0);
 
-    this.proposerIndex     = 0;
+    this.proposerIndex = 0;
     this.acceptedProposals = 0;
-    this.trace             = undefined;
-    this.oldTrace          = undefined;
-    this.proposals         = {};
-    this.oldProposals      = undefined;
-    this.oldValue          = undefined;
-    this.oldExit           = undefined;
+    this.trace = undefined;
+    this.oldTrace = undefined;
+    this.proposals = {};
+    this.oldProposals = undefined;
+    this.oldValue = undefined;
+    this.oldExit = undefined;
 
-    this.hist              = {};
-    this.wpplFn            = wpplFn;
-    this.s                 = s;
-    this.k                 = k;
-    this.a                 = a;
+    this.hist = {};
+    this.wpplFn = wpplFn;
+    this.s = s;
+    this.k = k;
+    this.a = a;
 
     // Move old coroutine out of the way and install `this` as current handler
-    this.oldCoroutine      = env.coroutine;
-    env.coroutine          = this;
+    this.oldCoroutine = env.coroutine;
+    env.coroutine = this;
   };
 
   HMC.prototype.run = function() {
@@ -92,15 +92,15 @@ module.exports = function(env) {
     this.proposerIndex = (this.proposerIndex + 1) % this.proposers.length;
 
     switch (this.proposers[this.proposerIndex]) {
-    case 'leapfrog':
-      // replace the `computeAcceptance` and `exit` methods (save exit)
-      this.computeAcceptance = leapfrogAcceptance.bind(this);
-      this.oldExit = this.exit;
-      this.exit = leapfrogExit.bind(this);
-      return this.leapfrogPropose()
-      break;
-    default:
-      throw 'Only leafprog handled currently';
+      case 'leapfrog':
+        // replace the `computeAcceptance` and `exit` methods (save exit)
+        this.computeAcceptance = leapfrogAcceptance.bind(this);
+        this.oldExit = this.exit;
+        this.exit = leapfrogExit.bind(this);
+        return this.leapfrogPropose()
+        break;
+      default:
+        throw 'Only leafprog handled currently';
     }
   };
 
@@ -164,17 +164,19 @@ module.exports = function(env) {
   }
 
   function leapfrogAcceptance() {
-    if (this.oldProposals.U)
-      return Math.exp(this.proposals.U - this.oldProposals.U +
-                      this.oldProposals.K - this.proposals.K)
-    else
-      return 1.0
+    if (this.proposals.U === -Infinity) return 0.0; // reject outright
+    if (!this.oldProposals.U) return 1.0;          // accept if no previous accepted
+    return Math.exp(this.proposals.U - this.oldProposals.U +
+                    this.oldProposals.K - this.proposals.K)
   }
 
   function leapfrogExit(s, value) {
-    if (this.step > 0)
+    if (this.step > 0) {
+      // if (value === undefined || value === null)
+      //   console.log("undefined when leapfrogging", value, ad.untapify(this.trace.score()))
       // just go back to making the next leafprog step
       return this.leapfrogStep();
+    }
 
     this.computeGradient();
     // update last half-step for momentum
@@ -227,13 +229,14 @@ module.exports = function(env) {
     this.updateHist(currentValue);
 
     if (this.verbosity > 1) {
-      console.log('Value: ' + ad.untapify(currentValue));
+      console.log('Value: ' + ad.untapify(currentValue) +
+                  '\n  Score: ' + ad.untapify(this.trace.score()));
       console.log('Iteration - ' + this.iteration);
     }
 
     return (this.iteration > 0) ?
-      this.propose() :          // make a new proposal
-      this.finish();            // finish up
+        this.propose() :          // make a new proposal
+        this.finish();            // finish up
   };
 
   // histogram should really be a class with it's own methods
