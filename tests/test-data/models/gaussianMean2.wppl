@@ -1,9 +1,8 @@
 var model = function() {
-  var m = gaussian(0, 10);
-  var genData = repeat(3, function() {return gaussian(m, 0.1)});
-  var score = mapReduce1(plus,
-                         function(g) {return gaussianERP.score([4.0, 0.04], g)},
-                         genData);
-  factor(score)
+  var m = uniform(-5, 5);
+  var gen_data = repeat(3, function() {return gaussian(m, 0.3162);});
+  factor(noisyEq(gen_data[0], 3.9, 0.1) +
+         noisyEq(gen_data[1], 4.0, 0.1) +
+         noisyEq(gen_data[2], 4.1, 0.1))
   return m
-}
+};

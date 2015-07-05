@@ -1,7 +1,7 @@
 var model = function() {
-  var reflectance = gaussian(1, 1);
-  var illuminance = gaussian(3, 0.5);
+  var reflectance = gaussian(1.0, 1.0);
+  var illuminance = gaussian(3.0, 0.7071);
   var lightness = reflectance * illuminance;
-  factor(gaussianERP.score([5, 0.1], lightness))
+  factor(noisyEq(lightness, 5.0, 0.3162))
   return reflectance
 };
