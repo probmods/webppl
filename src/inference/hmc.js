@@ -1,6 +1,7 @@
 ////////////////////////////////////////////////////////////////////
 // HMC: Hamiltonian/Hybrid Monte Carlo
 // TODO:
+// - early exit leapfrog if score becomes -Infinity
 // - cycle kernels
 // - mass term for momenta - currently 1.0
 
@@ -64,7 +65,7 @@ module.exports = function(env) {
     var _value = proposal ? valueUpdater.call(this, proposal) : erp.sample(ad.untapify(params))
     var value = erp.isContinuous() ? ad.tapify(_value) : _value;
     var score = erp.score(params, value);
-    if (this.verbosity > 3)
+    if (this.verbosity > 2)
       console.log('Sampling:', erp.sample.name, params, ad.untapify(value), ad.untapify(score))
     this.trace.append(s, k, a, erp, params, score, value);
     return ad.untapify(score) === -Infinity ? this.exit(s) : k(s, value);
@@ -202,7 +203,7 @@ module.exports = function(env) {
     // rejection initializer
     if (this.iteration === this.iterations &&
         ad.untapify(this.trace.score()) === -Infinity) {
-      if (this.verbosity > 1) console.log('Rejecting first trace! Rerunning...');
+      if (this.verbosity > 0) console.log('Rejecting first trace! Rerunning...');
       return this.run();
     }
 
@@ -211,6 +212,8 @@ module.exports = function(env) {
     var currentValue = value;
     var acceptance = this.computeAcceptance();
     if (this.verbosity > 1) console.log('Acceptance: ' + acceptance);
+    if (isNaN(acceptance)) throw "HMC: Acceptance is NaN!"
+
     if (Math.random() < acceptance) { // accept
       this.oldValue = value;
       this.oldTrace = this.trace.clone(ad.add);
@@ -243,7 +246,8 @@ module.exports = function(env) {
 
   HMC.prototype.finish = function() {
     if (this.verbosity > 0)
-      console.log('Acceptance Ratio:', this.acceptedProposals / this.iterations);
+      console.log('Acceptance Ratio:',
+                  this.acceptedProposals, this.iterations, this.acceptedProposals / this.iterations);
     // make return ERP
     var dist = erp.makeMarginalERP(this.hist);
     var k = this.k;
