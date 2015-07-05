@@ -97,7 +97,7 @@ module.exports = function(env) {
         this.computeAcceptance = leapfrogAcceptance.bind(this);
         this.oldExit = this.exit;
         this.exit = leapfrogExit.bind(this);
-        return this.leapfrogPropose()
+      return leapfrogPropose.bind(this)();
         break;
       default:
         throw 'Only leafprog handled currently';
@@ -106,7 +106,18 @@ module.exports = function(env) {
 
   // Leapfrog section --------------------------------------------------
 
-  HMC.prototype.leapfrogPropose = function() {
+  function valueUpdater(proposal) {
+    return proposal.value + (this.stepSize * proposal.moment);
+  }
+
+  function leapfrogAcceptance() {
+    if (this.proposals.U === -Infinity) return 0.0; // reject outright
+    if (!this.oldProposals.U) return 1.0;          // accept if no previous accepted
+    return Math.exp(this.proposals.U - this.oldProposals.U +
+                    this.oldProposals.K - this.proposals.K)
+  }
+
+  function leapfrogPropose() {
     this.computeGradient();
     // p = p - (e/2 * (-dq))
     var cc = this;
@@ -131,9 +142,9 @@ module.exports = function(env) {
     // counterfactual update to get new state
     // q = q + e*p
     return this.run()
-  };
+  }
 
-  HMC.prototype.leapfrogStep = function() {
+  function leapfrogStep() {
     this.step -= 1;
 
     this.computeGradient();
@@ -157,26 +168,11 @@ module.exports = function(env) {
     // counterfactual update to get new state
     // q = q + e*p
     return this.run()
-  };
-
-  function valueUpdater(proposal) {
-    return proposal.value + (this.stepSize * proposal.moment);
-  }
-
-  function leapfrogAcceptance() {
-    if (this.proposals.U === -Infinity) return 0.0; // reject outright
-    if (!this.oldProposals.U) return 1.0;          // accept if no previous accepted
-    return Math.exp(this.proposals.U - this.oldProposals.U +
-                    this.oldProposals.K - this.proposals.K)
   }
 
   function leapfrogExit(s, value) {
-    if (this.step > 0) {
-      // if (value === undefined || value === null)
-      //   console.log("undefined when leapfrogging", value, ad.untapify(this.trace.score()))
-      // just go back to making the next leafprog step
-      return this.leapfrogStep();
-    }
+    if (this.step > 0)
+      return leapfrogStep.bind(this)(); // make the next leafprog step
 
     this.computeGradient();
     // update last half-step for momentum
