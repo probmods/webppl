@@ -173,9 +173,9 @@ var tests = [
       args: [{stepSize: 0.1, steps: 5000}]
     },
     models: {
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] },
-      gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] },
-      reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity } },
+      gaussianMean2: { mean: { tol: 0.3 }, std: { tol: Infinity } },
+      reflectance: { mean: { tol: 0.3 }, std: { tol: Infinity } }
     }
   },
   {
