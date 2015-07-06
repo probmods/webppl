@@ -11,7 +11,7 @@ var ad = require('ad.js')({mode: 'r'})
 
 var T = require('../trace');
 var makeTrace = T.makeTrace
-var makeProposal = T.makeProposal
+var makeGradProposal = T.makeGradProposal
 
 module.exports = function(env) {
 
@@ -51,9 +51,10 @@ module.exports = function(env) {
     return ad.untapify(score) === -Infinity ? this.exit(s) : k(s);
   };
 
+  // needswork
   Grad.prototype.sample = function(s, k, a, erp, params) {
     var proposal = this.proposals[a]; // has a proposal been made for this address?
-    var _value = proposal ? valueUpdater.call(this, proposal) : erp.sample(ad.untapify(params))
+    var _value = proposal ? proposal.update(sigmoid, this.stepSize) : erp.sample(ad.untapify(params))
     var value = erp.isContinuous() ? ad.tapify(_value) : _value;
     var score = erp.score(params, value);
     if (this.verbosity > 3)
@@ -81,16 +82,12 @@ module.exports = function(env) {
     var cc = this;
     this.trace.forEach(function(entry) {
       if (entry.isContinuous())
-        cc.proposals[entry.address] = makeProposal(ad.untapify(entry.erpValue),
-                                                   entry.erpValue.sensitivity);
+        cc.proposals[entry.address] = makeGradProposal(ad.untapify(entry.erpValue),
+                                                       entry.erpValue.sensitivity);
     })
     // recompute score from the start of the trace
     return this.run()
   };
-
-  function valueUpdater(proposal) {
-    return proposal.value + (this.stepSize * sigmoid(proposal.gradient));
-  }
 
   Grad.prototype.exit = function(s, val) {
     // rejection initializer
@@ -103,6 +100,7 @@ module.exports = function(env) {
       return this.finish();
     this.step -= 1;
 
+    if (this.verbosity > 1) console.log('Value:', ad.untapify(val));
     this.updateHist(val)
 
     // make a new proposal
@@ -113,7 +111,8 @@ module.exports = function(env) {
     var v = ad.untapify(val);   // fixme: this is a hack
     var l = JSON.stringify(v);
     if (this.hist[l] === undefined) this.hist[l] = {prob: 0, val: v};
-    this.hist[l].prob += 1;
+    this.hist[l].prob += Math.exp(ad.untapify(this.trace.score()));
+    // this.hist[l].prob += 1;
   }
 
   Grad.prototype.finish = function() {
