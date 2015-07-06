@@ -185,7 +185,7 @@ var tests = [
     models: {
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 1 } },
       gaussianMean2: { mean: { tol: 0.2 } },
-      mixed: { mean: { tol: 0.06 } },
+      mixed: { mean: { tol: 0.06 }, args: [{stepSize: 0.2, steps: 20, iterations: 2000, proposers: ['leapfrog', 'mh']}] },
       reflectance: { mean: { tol: 0.2 } }
     }
   }
