@@ -36,12 +36,14 @@ function uniformScore(params, val) {
   return -Math.log(params[1] - params[0]);
 }
 
+// note: if you flip based on some erpScore, if that erp is a density,
+// weight can be greater than 1.0
 function flipScore(params, val) {
-  if (val !== true && val !== false) {
-    return -Infinity;
-  }
+  if (val !== true && val !== false) return -Infinity;
   var weight = params[0];
-  return val ? Math.log(weight) : Math.log(1 - weight);
+  return (val ?
+          (weight > 1.0 ? 0.0 : Math.log(weight)) :
+          (weight > 1.0 ? -Infinity : Math.log(1 - weight)));
 }
 
 function randomIntegerScore(params, val) {
