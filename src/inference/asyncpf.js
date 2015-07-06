@@ -196,6 +196,8 @@ module.exports = function(env) {
     }
   };
 
+  AsyncPF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function asyncPF(s, cc, a, wpplFn, numParticles, bufferSize) {
     return new AsyncPF(s, cc, a, wpplFn, numParticles, bufferSize).run(numParticles);
   }

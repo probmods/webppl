@@ -40,7 +40,8 @@ var tests = [
       incrementalBinomial: true,
       store: { hist: { tol: 0 } },
       geometric: true,
-      cache: true
+      cache: true,
+      withCaching: true
     }
   },
   {
@@ -54,7 +55,8 @@ var tests = [
       simple: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true
     }
   },
   {
@@ -68,7 +70,8 @@ var tests = [
       simple: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true
     }
   },
   {
@@ -82,7 +85,8 @@ var tests = [
       simple: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true
     }
   },
   {
@@ -95,7 +99,8 @@ var tests = [
     models: {
       simple: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
+      withCaching: true
     }
   },
   {
@@ -113,7 +118,8 @@ var tests = [
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
       importance: true,
-      importance2: { args: [3000, 10] }
+      importance2: { args: [3000, 10] },
+      withCaching: true
     }
   },
   {
@@ -129,7 +135,8 @@ var tests = [
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       importance: true,
-      importance2: true
+      importance2: true,
+      withCaching: true
     }
   },
   {
@@ -145,7 +152,8 @@ var tests = [
       importance: true,
       importance2: { args: [3000] },
       store: { hist: { tol: 0 }, args: [100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
+      withCaching: true
       // varFactors1: { args: [5000] },
       // varFactors2: true
     }
@@ -161,7 +169,8 @@ var tests = [
     models: {
       simple: true,
       store: { hist: { tol: 0 }, args: [100, 100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] },
+      withCaching: true
     }
   },
   {
@@ -179,7 +188,8 @@ var tests = [
       varFactors1: { args: [5000] },
       varFactors2: true,
       importance: true,
-      importance2: { args: [3000] }
+      importance2: { args: [3000] },
+      withCaching: true
     }
   },
   {
