@@ -174,8 +174,7 @@ var tests = [
     },
     models: {
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity } },
-      gaussianMean2: { mean: { tol: 0.3 }, std: { tol: Infinity } },
-      reflectance: { mean: { tol: 0.3 }, std: { tol: Infinity } }
+      reflectance: { mean: { tol: 0.3 } }
     }
   },
   {
