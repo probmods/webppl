@@ -173,7 +173,6 @@ var tests = [
       args: [{stepSize: 0.1, steps: 5000}]
     },
     models: {
-      gaussian: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] },
       gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] },
       reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5000}] }
@@ -182,13 +181,13 @@ var tests = [
   {
     name: 'HMC',
     settings: {
-      args: [{stepSize: 0.1, steps: 5, iterations: 1000}]
+      args: [{stepSize: 0.1, steps: 5, iterations: 2000, proposers: ['leapfrog', 'mh']}]
     },
     models: {
-      gaussian: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5, iterations: 1000}] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5, iterations: 1000}] },
-      gaussianMean2: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5, iterations: 1000}] },
-      reflectance: { mean: { tol: 0.4 }, std: { tol: Infinity }, args: [{stepSize: 0.1, steps: 5, iterations: 1000}] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 1 } },
+      gaussianMean2: { mean: { tol: 0.2 } },
+      mixed: { mean: { tol: 0.06 } },
+      reflectance: { mean: { tol: 0.2 } }
     }
   }
 ];

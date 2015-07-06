@@ -1,0 +1,7 @@
+var model = function() {
+  var a = gaussian(0.0, 1.0);
+  var b = (a < 0.0) ? uniformDraw([-2.0, -3.0]) : 1.0;
+  var c = a * b;
+  factor(noisyEq(c, 0.5, 0.3162))
+  return a
+};
