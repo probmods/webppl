@@ -10,6 +10,7 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var erp = require('../erp.js');
 var util = require('../util.js');
+var ad = require('ad.js')({mode: 'r'})
 
 module.exports = function(env) {
 
@@ -81,7 +82,7 @@ module.exports = function(env) {
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          cc, value, this.score + dist.score(params, value), store);
+        cc, value, ad.add(this.score, dist.score(params, value)), store);
     }, this);
 
     // Call the next state on the queue
@@ -90,7 +91,7 @@ module.exports = function(env) {
 
   Enumerate.prototype.factor = function(s, cc, a, score) {
     // Update score and continue
-    this.score += score;
+    this.score = ad.add(this.score, score);
     return cc(s);
   };
 
@@ -103,7 +104,8 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + dist.score(params, value) + extraScore;
+            var score = ad.add(ad.add(env.coroutine.score, dist.score(params, value)),
+                               extraScore);
             env.coroutine.enqueueContinuation(cc, value, score, store);
             return nextK();
           }, a, value);
@@ -118,11 +120,11 @@ module.exports = function(env) {
   Enumerate.prototype.exit = function(s, retval) {
     // We have reached an exit of the computation. Accumulate probability into retval bin.
     var r = JSON.stringify(retval);
-    if (this.score !== -Infinity) {
+    if (ad.untapify(this.score) !== -Infinity) {
       if (this.marginal[r] === undefined) {
         this.marginal[r] = {prob: 0, val: retval};
       }
-      this.marginal[r].prob += Math.exp(this.score);
+      this.marginal[r].prob += Math.exp(ad.untapify(this.score));
     }
 
     // Increment the completed execution counter
@@ -146,7 +148,7 @@ module.exports = function(env) {
   //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
   function enuPriority(s, cc, a, wpplFn, maxExecutions) {
     var q = new PriorityQueue(function(a, b) {
-      return a.score - b.score;
+      return ad.untapify(a.score) - ad.untapify(b.score);
     });
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
   }
