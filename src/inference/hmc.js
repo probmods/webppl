@@ -54,6 +54,7 @@ module.exports = function(env) {
   HMC.prototype.run = function() {
     this.trace = makeTrace();
     this.trace.scoreUpdaterF = ad.add;
+    this.trace.addressIndices = {};
     return this.wpplFn(this.s, env.exit, this.a);
   };
 
@@ -304,7 +305,7 @@ module.exports = function(env) {
     var acceptance = this.computeAcceptance();
     if (this.verbosity > 1) console.log('Acceptance: ' + acceptance);
     if (isNaN(acceptance))
-      throw "HMC: Acceptance is NaN!"
+      throw 'HMC: Acceptance is NaN!'
 
     if (Math.random() < acceptance) { // accept
       if (this.verbosity > 1) console.log('Accepted!');

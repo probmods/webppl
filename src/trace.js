@@ -27,7 +27,7 @@ function makeTraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceSco
 function Trace() {
   this.trace = [];
 }
-Trace.prototype.addressIndices = {} // only for erps, not factors
+Trace.prototype.addressIndices = undefined; // only for erps, not factors
 Trace.prototype.scoreUpdaterF = function(a, b) { return a + b };
 Trace.prototype.score = function() {
   var len = this.trace.length;
@@ -51,9 +51,15 @@ Trace.prototype.clone = function(scorer) {
 Trace.prototype.startFrom = 0;
 Trace.prototype.fwdLP = 0;
 Trace.prototype.rvsLP = 0;
-Trace.prototype.length = function() { return this.trace.length; };
-Trace.prototype.indexOf = function(address) {return this.addressIndices[address];}
-Trace.prototype.lookupAt = function(index) {return this.trace[index];}
+Trace.prototype.length = function() {
+  return this.trace.length;
+};
+Trace.prototype.indexOf = function(address) {
+  return this.addressIndices[address];
+}
+Trace.prototype.lookupAt = function(index) {
+  return this.trace[index];
+}
 Trace.prototype.lookup = function(address) {
   var index = this.addressIndices[address];
   return index ? this.trace[index] : undefined;
@@ -68,12 +74,16 @@ function makeTrace() {
 function Proposal(value) {
   this.value = value;
 }
-Proposal.prototype.update = function() {return this.value;} // dummy
+Proposal.prototype.update = function() { // dummy
+  return this.value;
+};
 
 function makeGradProposal(value, gradient) {
   var p = new Proposal(value)
   p.gradient = gradient;
-  p.update = function(f, stepSize) {return this.value + (stepSize * f(this.gradient));}
+  p.update = function(f, stepSize) {
+    return this.value + (stepSize * f(this.gradient));
+  }
   return p;
 }
 
@@ -81,7 +91,9 @@ function makeHMCProposal(value, gradient, moment) {
   var p = new Proposal(value)
   p.gradient = gradient;
   p.moment = moment;
-  p.update = function(stepSize) {return this.value + (stepSize * this.moment);}
+  p.update = function(stepSize) {
+    return this.value + (stepSize * this.moment);
+  }
   return p;
 }
 
