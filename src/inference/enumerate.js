@@ -82,7 +82,7 @@ module.exports = function(env) {
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-        cc, value, ad.add(this.score, dist.score(params, value)), store);
+          cc, value, ad.add(this.score, dist.score(params, value)), store);
     }, this);
 
     // Call the next state on the queue
