@@ -23,17 +23,17 @@ module.exports = function(env) {
       var trace = initialTrace;
       var hist = {};
 
-      console.log('Initialized');
+      //console.log('Initialized');
 
       return util.cpsLoop(numIterations,
           function(i, next) {
-            console.log('Iteration: ' + i);
+            //console.log('Iteration: ' + i);
             return transition(function(s, newTrace) {
               trace = newTrace;
 
               // Update histogram.
-              var r = JSON.stringify(trace.val);
-              if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.val };
+              var r = JSON.stringify(trace.value);
+              if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.value };
               hist[r].prob += 1;
 
               return next();

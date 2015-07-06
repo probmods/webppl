@@ -3,12 +3,9 @@
 var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
+var Trace = require('../trace.js').Trace;
 
 module.exports = function(env) {
-
-  function makeTrace() {
-    return [];
-  };
 
   // This takes a wpplFn and returns a trace which has a non-zero probability.
 
@@ -19,46 +16,33 @@ module.exports = function(env) {
     this.s = s;
     this.k = k;
     this.a = a;
-    this.score = 0;
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
   Rejection.prototype.run = function() {
-    this.trace = makeTrace();
+    this.trace = new Trace();
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
   Rejection.prototype.sample = function(s, k, a, erp, params) {
     var val = erp.sample(params);
     var choiceScore = erp.score(params, val);
-    this.trace.push({
-      k: k,
-      name: a,
-      erp: erp,
-      params: params,
-      score: this.score,
-      choiceScore: choiceScore,
-      val: val,
-      s: _.clone(s)
-    });
-    this.score += choiceScore;
+    this.trace.addChoice(erp, params, val, choiceScore, a, s, k);
     return k(s, val);
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {
-    this.score += score;
+    this.trace.score += score;
     return k(s);
   };
 
   Rejection.prototype.exit = function(s, val) {
-    if (this.score === -Infinity) {
+    if (this.trace.score === -Infinity) {
       console.log('Reject!');
-      this.score = 0;
       return this.run();
     }
-    this.trace.val = val;
-    this.trace.score = this.score;
+    this.trace.complete(val);
     env.coroutine = this.coroutine;
     return this.k(this.s, this.trace);
   };

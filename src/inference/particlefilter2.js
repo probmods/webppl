@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var util = require('../util.js');
 var erp = require('../erp.js');
+var Trace = require('../trace.js').Trace;
 
 // This is a stripped down particle filer. Is doesn't handle variable numbers of
 // factors and uses a basic resampling strategy.
@@ -20,27 +21,24 @@ module.exports = function(env) {
 
     this.hist = {};
 
-    // Create initial particles/
     var exitK = function(s) {
       return wpplFn(s, env.exit, a);
     };
 
+    // Create initial particles.
+    // Particles are partial/incomplete traces.
     for (var i = 0; i < numParticles; i++) {
-      var particle = {
-        continuation: exitK,
-        weight: 0,
-        store: _.clone(s),
-        trace: [],
-        score: 0
-      };
-      this.particles.push(particle);
+      var p = new Trace();
+      p.saveContinuation(exitK, _.clone(s));
+      this.particles.push(p);
     }
-    this.a = a;
+
     this.k = k;
-    this.oldCoroutine = env.coroutine;
+    this.s = s;
+    this.a = a;
+    this.coroutine = env.coroutine;
     env.coroutine = this;
 
-    this.oldStore = s;
   }
 
   ParticleFilter.prototype.run = function() {
@@ -51,32 +49,16 @@ module.exports = function(env) {
     var val = erp.sample(params);
     var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
-    particle.trace.push({
-      k: k,
-      name: a,
-      erp: erp,
-      params: params,
-      score: particle.score,
-      choiceScore: choiceScore,
-      val: val,
-      s: _.clone(s)
-    });
-    particle.score += choiceScore;
+    particle.addChoice(erp, params, val, choiceScore, a, s, k);
     return k(s, val);
   };
 
   ParticleFilter.prototype.factor = function(s, cc, a, score) {
     // Update particle.
-    var p = this.currentParticle();
-    p.continuation = cc;
-    p.weight = score;
-    p.store = s;
-    p.score += score;
-
-    // We're maintaining partial traces, for which score and continuation are
-    // expected to be present.
-    p.trace.score = p.score;
-    p.trace.k = p.continuation;
+    var particle = this.currentParticle();
+    particle.saveContinuation(cc, s);
+    particle.score += score;
+    particle.weight = score; // Importance weights for resampling.
 
     var cont = function() {
       this.nextParticle();
@@ -105,7 +87,7 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.runCurrentParticle = function() {
-    return this.currentParticle().continuation(this.currentParticle().store);
+    return this.currentParticle().k(this.currentParticle().store);
   };
 
   var choose = function(ps) {
@@ -119,24 +101,6 @@ module.exports = function(env) {
     throw 'unreachable';
   };
 
-  function copyParticle(particle) {
-    // TODO: Extract copy trace function.
-    // TODO: Is a shallow copy sufficient? (What happens in smc.js?)
-    var t = _.clone(particle.trace);
-    t.score = particle.trace.score;
-    t.val = particle.trace.val;
-    t.k = particle.trace.k;
-
-    return {
-      continuation: particle.continuation,
-      weight: 0,
-      value: particle.value,
-      store: _.clone(particle.store),
-      trace: t,
-      score: particle.score
-    };
-  }
-
   ParticleFilter.prototype.resampleParticles = function() {
     var ws = _.map(this.particles, function(p) { return Math.exp(p.weight); });
     var wsum = util.sum(ws);
@@ -149,7 +113,7 @@ module.exports = function(env) {
       .map(function() {
           var ix = choose(wsnorm);
           assert(ix >= 0 && ix < this.numParticles);
-          return copyParticle(this.particles[ix]);
+          return this.particles[ix].copy();
         }.bind(this)).value()
   };
 
@@ -182,35 +146,25 @@ module.exports = function(env) {
     var transition = _.partial(MHKernel, this.s, _, this.a, this.wpplFn, _, exitAddress);
 
     var particle = this.particles[i];
-    var trace = particle.trace;
 
-    // TODO: This is similar to MCMC. Extract?
+    // TODO: This is similar to MCMC with initialization. Extract?
 
     return util.cpsLoop(this.rejuvSteps,
         function(j, next) {
           //console.log('Step: ' + j);
-          return transition(function(s, newTrace) {
-            trace = newTrace;
+          return transition(function(s, newParticle) {
+            particle = newParticle;
             return next();
-          }, trace);
+          }, particle);
         },
-        function() {
-          // TODO: Investigate whether these can be kept on the trace only.
-          particle.trace = trace;
-          particle.score = trace.score;
-          particle.continuation = trace.k;
-          return cont();
-        }
+        cont
     );
   };
 
   ParticleFilter.prototype.exit = function(s, val) {
     // Complete the trace.
     var particle = this.currentParticle();
-    particle.trace.val = val;
-    particle.trace.score = particle.score;
-
-    //console.log(particle.trace);
+    particle.complete(val);
 
     // Update histogram.
     var k = JSON.stringify(val);
@@ -225,8 +179,8 @@ module.exports = function(env) {
 
     // Finished, call original continuation.
     var dist = erp.makeMarginalERP(this.hist);
-    env.coroutine = this.oldCoroutine;
-    return this.k(this.oldStore, dist);
+    env.coroutine = this.coroutine;
+    return this.k(this.s, dist);
   };
 
 
