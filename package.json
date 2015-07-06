@@ -13,7 +13,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "ad.js": "^1.4.0",
+    "ad.js": "^1.4.1",
     "amdefine": "^0.1.0",
     "ast-types": "^0.7.2",
     "escodegen": "^1.6.1",
