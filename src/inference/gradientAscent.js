@@ -42,6 +42,7 @@ module.exports = function(env) {
   Grad.prototype.run = function() {
     this.trace = makeTrace();
     this.trace.scoreUpdaterF = ad.add;
+    this.trace.addressIndices = {};
     return this.wpplFn(this.s, env.exit, this.a);
   };
 
