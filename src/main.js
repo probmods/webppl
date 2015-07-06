@@ -5,6 +5,7 @@ var types = require('ast-types');
 var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
+var estraverse = require('estraverse');
 
 var cps = require('./transforms/cps').cps;
 var optimize = require('./transforms/optimize').optimize;
@@ -26,17 +27,38 @@ var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
 var env = {};
 
 // Make header functions globally available:
-var header = require('./header.js')(env);
-for (var prop in header) {
-  if (header.hasOwnProperty(prop)) {
-    global[prop] = header[prop];
+function requireHeader(path) {
+  var header = require(path)(env);
+  makePropertiesGlobal(header);
+}
+
+function makePropertiesGlobal(obj) {
+  for (var prop in obj) {
+    if (obj.hasOwnProperty(prop)) {
+      global[prop] = obj[prop];
+    }
   }
 }
 
-var headerWppl = __dirname + '/header.wppl';
+// Explicitly call require here to ensure that browserify notices that the
+// header should be bundled.
+makePropertiesGlobal(require('./header.js')(env));
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
+}
+
+function cachingRequired(programAST) {
+  var flag = false;
+  estraverse.traverse(programAST, {
+    enter: function(node) {
+      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+        flag = true;
+        this.break();
+      }
+    }
+  });
+  return flag;
 }
 
 function prepare(programCode, verbose, doCaching) {
@@ -54,7 +76,7 @@ function prepare(programCode, verbose, doCaching) {
   };
 
   // Parse header and program, combine, compile, and generate program
-  var headerAST = esprima.parse(fs.readFileSync(headerWppl));
+  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
   // if (doCaching)
   //   programAST = caching(programAST);
@@ -66,7 +88,7 @@ function prepare(programCode, verbose, doCaching) {
   return out;
 }
 
-function compile(programCode, verbose, doCaching) {
+function compile(programCode, verbose) {
   if (verbose && console.time) {
     console.time('compile');
   }
@@ -87,10 +109,16 @@ function compile(programCode, verbose, doCaching) {
   var sweetOptions = {modules: adMacros, ast: true, readableNames: true};
   // maxExpands: 0
   // Parse header and program, combine, compile, and generate program
-  var headerAST = sweet.compile(fs.readFileSync(headerWppl), sweetOptions);
+  var headerAST = sweet.compile(fs.readFileSync(__dirname + '/header.wppl'),
+                                sweetOptions);
   var programAST = sweet.compile(programCode, sweetOptions);
-  if (doCaching)
+  var doCaching = cachingRequired(programAST);
+
+  if (doCaching) {
+    if (verbose) console.log('Caching transforms will be applied.');
     programAST = caching(programAST);
+  }
+
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
@@ -143,5 +171,6 @@ module.exports = {
   run: run,
   prepare: prepare,
   compile: compile,
-  analyze: analyze
+  analyze: analyze,
+  requireHeader: requireHeader
 };

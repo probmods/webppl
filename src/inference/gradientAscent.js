@@ -8,6 +8,7 @@
 var _ = require('underscore');
 var erp = require('../erp.js');
 var ad = require('ad.js')({mode: 'r'})
+var logsumexp = require('../util.js').logsumexp
 
 var T = require('../trace');
 var makeTrace = T.makeTrace
@@ -112,8 +113,8 @@ module.exports = function(env) {
     var v = ad.untapify(val);   // fixme: this is a hack
     var l = JSON.stringify(v);
     if (this.hist[l] === undefined) this.hist[l] = {prob: 0, val: v};
-    this.hist[l].prob += Math.exp(ad.untapify(this.trace.score()));
-    // this.hist[l].prob += 1;
+    this.hist[l].prob = logsumexp([this.hist[l].prob,
+                                   ad.untapify(this.trace.score())]);
   }
 
   Grad.prototype.finish = function() {

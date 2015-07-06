@@ -226,7 +226,7 @@ module.exports = function(env) {
               this.wpplFn, this.rejuvSteps, hist).run();
         }.bind(this),
         function() {
-          var dist = erp.makeMarginalERP(hist);
+          var dist = erp.makeMarginalERP(util.logHist(hist));
 
           // Save estimated normalization constant in erp (average particle weight)
           dist.normalizationConstant = this.particles[0].weight;

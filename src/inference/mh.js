@@ -185,7 +185,7 @@ module.exports = function(env) {
 
       return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
     } else {
-      var dist = erp.makeMarginalERP(this.returnHist);
+      var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
 
       // Reinstate previous coroutine:
       var k = this.k;
@@ -201,6 +201,8 @@ module.exports = function(env) {
       return k(this.oldStore, dist);
     }
   };
+
+  MH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function mh(s, cc, a, wpplFn, numIterations, burn, diagnostics) {
     return new MH(s, cc, a, wpplFn, numIterations, burn, diagnostics).run();
