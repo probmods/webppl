@@ -18,27 +18,13 @@ var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
 
-try {
-  var additionalReqs = require('./additionalReqs');
-} catch (e) {
-  console.log('no additional requirements to include');
-}
-if (additionalReqs) {
-  console.log(additionalReqs.jsRequirements);
-  additionalReqs.jsRequirements.forEach(function(req) {
-    global[req.name] = req.mod;
-  });
-}
-
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
 var env = {};
 
 // Make header functions globally available:
-function requireHeader(path) {
-  var header = require(path)(env);
-  makePropertiesGlobal(header);
-}
+function requireHeader(path) { requireHeaderWrapper(require(path)); }
+function requireHeaderWrapper(wrapper) { makePropertiesGlobal(wrapper(env)); }
 
 function makePropertiesGlobal(obj) {
   for (var prop in obj) {
@@ -50,7 +36,7 @@ function makePropertiesGlobal(obj) {
 
 // Explicitly call require here to ensure that browserify notices that the
 // header should be bundled.
-makePropertiesGlobal(require('./header.js')(env));
+requireHeaderWrapper(require('./header'));
 
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
@@ -75,12 +61,7 @@ function prepare(programCode, verbose, doCaching) {
   var programAST = esprima.parse(programCode);
   // if (doCaching)
   //   programAST = caching(programAST);
-  if (additionalReqs) {
-    if (additionalReqs.hasOwnProperty('webpplHeader')) {
-      headerAST = concatPrograms(headerAST,
-                                 esprima.parse(additionalReqs.webpplHeader));
-    }
-  }
+
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
@@ -110,11 +91,6 @@ function compile(programCode, verbose, doCaching) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  if (additionalReqs) {
-    if (additionalReqs.hasOwnProperty('webpplHeader')) {
-      headerAST = concatPrograms(headerAST, esprima.parse(additionalReqs.webpplHeader));
-    }
-  }
 
   if (doCaching)
     programAST = caching(programAST);
@@ -127,6 +103,8 @@ function compile(programCode, verbose, doCaching) {
   return out;
 }
 
+// TODO: One of these is called by webppl, the other by browser.js. Correct?
+
 function run(code, contFun, verbose) {
   var compiledCode = compile(code, verbose);
   eval(compiledCode)({}, contFun, '');
@@ -138,39 +116,19 @@ function webpplEval(k, code, verbose) {
   eval.call(global, compiledCode)({}, k, '');
 }
 
-// For use in browser
-function webpplCPS(code) {
-  var programAst = esprima.parse(code);
-  var newProgramAst = optimize(cps(programAst));
-  return escodegen.generate(newProgramAst);
-}
+// TODO: Add eval to global for browser too? (This note was previously in main.js)
 
-function webpplNaming(code) {
-  var programAst = esprima.parse(code);
-  var newProgramAst = naming(programAst);
-  return escodegen.generate(newProgramAst);
-}
-
-// For use in browser using browserify
-if (util.runningInBrowser()) {
-  window.webppl = {
-    run: run,
-    compile: compile,
-    cps: webpplCPS,
-    naming: webpplNaming,
-    analyze: analyze
-  };
-  console.log('webppl loaded.');
-} else {
-  // Put eval into global scope. browser version??
+// TODO: Where is this used?
+if (!util.runningInBrowser()) {
   global.webpplEval = webpplEval;
 }
 
 module.exports = {
+  requireHeader: requireHeader,
+  requireHeaderWrapper: requireHeaderWrapper,
   webpplEval: webpplEval,
   run: run,
   prepare: prepare,
   compile: compile,
-  analyze: analyze,
-  requireHeader: requireHeader
+  analyze: analyze
 };

@@ -3,13 +3,10 @@
 
 var fs = require('fs');
 var webppl = require('./src/main');
+var pkg = require('./src/pkg');
 var parseArgs = require('minimist');
-var path = require('path');
 var git = require('git-rev-2');
-
-function asArray(xs) {
-  return (xs ? ((xs instanceof Array) ? xs : [xs]) : []);
-}
+var _ = require('underscore');
 
 function isErp(x) {
   return (x && (x.score != undefined) && (x.sample != undefined));
@@ -37,61 +34,16 @@ function printWebPPLValue(x) {
   }
 }
 
-function getRequireName(req) {
-  var name, xs;
-  xs = req.split('/');
-  name = xs[xs.length - 1];
-  xs = name.split('.');
-  name = xs[0];
-  return name;
-}
-
-function getRequirePath(req) {
-  if (req.indexOf('/') != -1) {
-    try {
-      return require.resolve(path.join(process.cwd(), req));
-    } catch (e) {
-      return require.resolve(req);
-    }
-  } else {
-    return req;
-  }
-}
-
-function run(code, requires, verbose) {
-  requires.forEach(
-    function(req) {
-      if (req.type === 'require-header'){
-        webppl.requireHeader(req.path);
-      } else if (req.type === 'require-js'){
-        global[req.name] = require(req.path);
-      } else if (req.type === 'require-wppl') {
-        var reqCode = fs.readFileSync(req.path, 'utf8');
-        code = reqCode + ';' + code;
-      } else if (req.type === 'require') {
-	var packageSpec = require(req.path).webppl;
-	var packagePath = req.path.split('/').slice(0, -1).join('/') + '/'
-	if(packageSpec.hasOwnProperty('headers')) {
-	  packageSpec.headers.forEach(function(header) {
-	    webppl.requireHeader(packagePath + header);
-	  })
-	}
-	if(packageSpec.hasOwnProperty('external')) {
-	  packageSpec.external.forEach(function(ext) {
-	    var extName = getRequireName(ext);
-	    global[extName] = require(packagePath + ext);
-	  })
-	}
-	if (packageSpec.hasOwnProperty('wppl')) {
-	  packageSpec.wppl.forEach(function(w) {
-	    var reqCode = fs.readFileSync(packagePath + w, 'utf8');
-	    code = reqCode + ';' + code;
-	  })
-	}
-      } else {
-        throw 'unknown require type: ' + req.type;
-      }
+function run(code, packages, verbose) {
+  packages.forEach(function(pkg) {
+    if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
+    pkg.headers.forEach(webppl.requireHeader);
+    pkg.wppl.forEach(function(fn) {
+      var wppl = fs.readFileSync(fn, 'utf8');
+      code = wppl + ';' + code;
     });
+  });
+
   webppl.webpplEval(
       function(s, x) {
         console.log('\n* Program return value:\n');
@@ -101,26 +53,19 @@ function run(code, requires, verbose) {
       verbose);
 }
 
-function compile(code, requires, verbose, outputFile) {
-  var compiledCode = '';
-  requires.unshift({
-    name: 'webppl', // this makes header.js exports globally available
-    path: require.resolve('./src/main'),
-    type: 'require-js'
+function compile(code, packages, verbose, outputFile) {
+  var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
+  packages.forEach(function(pkg) {
+    if (pkg.js) { compiledCode += 'var ' + pkg.js.identifier + ' = require("' + pkg.js.path + '");\n'; }
+    pkg.headers.forEach(function(header) {
+      compiledCode += 'webppl.requireHeader("' + header + '");\n';
+    });
+    pkg.wppl.forEach(function(fn) {
+      var wppl = fs.readFileSync(fn, 'utf8');
+      code = wppl + ';' + code;
+    });
   });
-  requires.forEach(
-      function(req) {
-        if (req.type === 'require-js') {
-          compiledCode += 'var ' + req.name + " = require('" + req.path + "');\n";
-        } else if (req.type === 'require-header') {
-          compiledCode += "webppl.requireHeader('" + req.path + "');\n";
-        } else if (req.type === 'require-wppl') {
-          var reqCode = fs.readFileSync(req.path, 'utf8');
-          code = reqCode + ';' + code;
-        } else {
-          throw 'unknown require type: ' + req.type;
-        }
-      });
+
   compiledCode += (
       isErp.toString() + '\n' +
       isErpWithSupport.toString() + '\n' +
@@ -165,10 +110,7 @@ function main() {
   // Return if no file argument given
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
-    console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
-                '[--require-wppl file.wppl] ' +
-                '[--require-js file.js] ' +
-                '[--require-header file.js]');
+    console.log('webppl program.wppl [--compile] [--out compiled.js] [--require path]');
     return;
   }
 
@@ -177,25 +119,13 @@ function main() {
   console.log('Processing', programFile);
   var code = fs.readFileSync(programFile, 'utf8');
 
-  var requireTypes = ['require-js', 'require-wppl', 'require-header', 'require'];
-  var requires = [];
-  requireTypes.forEach(
-      function(requireType) {
-        asArray(argv[requireType]).forEach(
-            function(id) {
-              requires.push(
-                  {
-                    name: getRequireName(id),
-                    path: getRequirePath(id),
-                    type: requireType
-                  });
-            });
-      });
+  var asArray = function(arg) { return arg ? [].concat(arg) : []; };
 
+  var packages = asArray(argv.require).map(pkg.read);
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : 'tmp.js';
 
-  processCode(code, requires, argv.verbose, outputFile);
+  processCode(code, packages, argv.verbose, outputFile);
 }
 
 main();
