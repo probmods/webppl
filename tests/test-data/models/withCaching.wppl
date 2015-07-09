@@ -1,0 +1,10 @@
+var _ = IncrementalMH; // Trigger caching transforms.
+var f = function() {};
+
+var model = function() {
+  var x = flip(0.5);
+  var y = flip(0.5);
+  f(); // Ensure incrementalize is exercised.
+  factor((x | y) ? 0 : -Infinity);
+  return x;
+};
