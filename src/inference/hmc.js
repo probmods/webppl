@@ -210,9 +210,6 @@ module.exports = function(env) {
     var newK = computeK(this.proposals);
     // fixme: this is redoing a computation we don't need to redo
     var oldK = computeK(this.oldProposals);
-    // if previous accepted proposal was an mh proposal,
-    // then set it's momentum term to 0
-    if (isNaN(oldK)) oldK = 0;
     return Math.exp(newU - oldU + oldK - newK);
   }
 
