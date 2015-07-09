@@ -208,10 +208,11 @@ module.exports = function(env) {
     if (newU === -Infinity) return 0.0;
     var oldU = ad.untapify(this.oldTrace.score());
     var newK = computeK(this.proposals);
-    // fixme: this is redoing a computation we don't need to do
+    // fixme: this is redoing a computation we don't need to redo
     var oldK = computeK(this.oldProposals);
-    if (isNaN(oldK)) oldK = 0;  // previous accepted proposal was an mh proposal
-    // console.log(newU, oldU, oldK, newK)
+    // if previous accepted proposal was an mh proposal,
+    // then set it's momentum term to 0
+    if (isNaN(oldK)) oldK = 0;
     return Math.exp(newU - oldU + oldK - newK);
   }
 
