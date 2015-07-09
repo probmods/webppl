@@ -219,16 +219,21 @@ module.exports = function(env) {
   function leapfrogPropose() {
     // cleanup the trace references for the new trace
     this.trace.addressIndices = {};
+    this.oldProposals = {};     // this is to save the momenta at randomization
 
     this.computeGradient();
     // p = p - (e/2 * (-dq))
     var cc = this;
     this.trace.forEach(function(entry) {
       if (entry.isContinuous()) {
+        var gradient = entry.erpValue.sensitivity;
+        var moment = erp.gaussianERP.sample([0.0, 1.0]);
+        cc.oldProposals[entry.address] = makeHMCProposal(ad.untapify(entry.erpValue),
+                                                         gradient,
+                                                         moment);
         cc.proposals[entry.address] = makeHMCProposal(ad.untapify(entry.erpValue),
-                                                      entry.erpValue.sensitivity,
-                                                      (erp.gaussianERP.sample([0.0, 1.0]) +
-                                                       (cc.stepSize * entry.erpValue.sensitivity / 2)));
+                                                      gradient,
+                                                      (moment + (cc.stepSize * gradient / 2)));
       }
     })
 
@@ -314,7 +319,6 @@ module.exports = function(env) {
       currentValue = value;
       this.oldValue = value;
       this.oldTrace = this.trace.clone(ad.add);
-      this.oldProposals = _.clone(this.proposals);
       this.acceptedProposals += 1;
     } else {                          // reject
       if (this.verbosity > 1) console.log('Rejected!');
