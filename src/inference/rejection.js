@@ -27,8 +27,7 @@ module.exports = function(env) {
 
   Rejection.prototype.sample = function(s, k, a, erp, params) {
     var val = erp.sample(params);
-    var choiceScore = erp.score(params, val);
-    this.trace.addChoice(erp, params, val, choiceScore, a, s, k);
+    this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
 

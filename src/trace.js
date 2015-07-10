@@ -7,14 +7,7 @@ var ERP = require('./erp.js').ERP;
 var Trace = function(continuation, store) {
   this.choices = [];
   this.length = 0;
-
-  // Running score. Updated at both factor and sample.
   this.score = 0;
-
-  // TODO: Perhaps extract a method for this an only call where required.
-  // Used to suspend/resume (partial) traces. (Used by particle methods?)
-  this.k = continuation;
-  this.store = store;
 };
 
 Trace.prototype.choiceAtIndex = function(index) {
@@ -34,34 +27,40 @@ Trace.prototype.saveContinuation = function(continuation, store) {
   this.store = store;
 };
 
-Trace.prototype.addChoice = function(erp, params, value, score, address, store, continuation, reuse) {
+Trace.prototype.addChoice = function(erp, params, value, address, store, continuation, reuse) {
   // Called at sample statements.
-  // Adds the choice to the DB and update current score.
-  // score == erp.score(params, value)
+  // Adds the choice to the DB and updates current score.
 
   assert(erp instanceof ERP);
   assert(_.isArray(params));
-  assert(_.isNumber(score));
   assert(_.isString(address));
   assert(_.isObject(store));
   assert(_.isFunction(continuation));
+
+  // Record the score before adding the choiceScore. This is the score we'll
+  // need if we regen from this choice.
+
+  var choiceScore = erp.score(params, value);
 
   this.choices.push({
     k: continuation,
     name: address,
     erp: erp,
     params: params,
-    score: this.score, // Record the score before adding the score for value.
-    choiceScore: score,
+    score: this.score,
+    choiceScore: choiceScore,
     val: value,
     s: _.clone(store),
     reused: reuse // TODO: MH specific. OK, or store elsewhere?
   });
+
   this.length += 1;
-  this.score += score;
+  this.score += choiceScore;
 };
 
 Trace.prototype.complete = function(value) {
+  // Called at coroutine exit.
+  // value: The final value of the program.
   this.value = value;
   // TODO: Maybe reset k & store to prevents attempts to continue a complete trace.
 };
@@ -71,15 +70,12 @@ Trace.prototype.map = function(f) {
 };
 
 Trace.prototype.upto = function(i) {
-  // Taking *all* choices would require setting the score from trace.score (I
-  // think) as there are no subsequent choices. But I'll not allow it for now as
-  // I don't think we need it.
+  // We never take all choices as we don't include the choice we're regenerating
+  // from.
   assert(i < this.length);
 
   var t = new Trace();
   t.choices = this.choices.slice(0, i);
-
-  // Set additonal properties to consistent state.
   t.length = t.choices.length;
   t.score = this.choices[i].score;
 
@@ -96,7 +92,6 @@ Trace.prototype.copy = function() {
   t.value = this.value;
   return t;
 },
-
 
 module.exports = {
   Trace: Trace

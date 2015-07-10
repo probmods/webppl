@@ -47,9 +47,8 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.sample = function(s, k, a, erp, params) {
     var val = erp.sample(params);
-    var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
-    particle.addChoice(erp, params, val, choiceScore, a, s, k);
+    particle.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
 

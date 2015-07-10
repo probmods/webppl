@@ -46,8 +46,7 @@ module.exports = function(env) {
     var prev = this.oldTrace.findChoice(name);
     var reuse = !(prev === undefined || forceSample);
     var val = reuse ? prev.val : erp.sample(params);
-    var choiceScore = erp.score(params, val);
-    this.trace.addChoice(erp, params, val, choiceScore, name, s, cont, reuse);
+    this.trace.addChoice(erp, params, val, name, s, cont, reuse);
     return cont(s, val);
   };
 
