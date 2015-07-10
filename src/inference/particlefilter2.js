@@ -89,31 +89,16 @@ module.exports = function(env) {
     return this.currentParticle().k(this.currentParticle().store);
   };
 
-  var choose = function(ps) {
-    // ps is expected to be normalized.
-    var x = Math.random();
-    var acc = 0;
-    for (var i = 0; i < ps.length; i++) {
-      acc += ps[i];
-      if (x < acc) return i;
-    }
-    throw 'unreachable';
-  };
-
   ParticleFilter.prototype.resampleParticles = function() {
     var ws = _.map(this.particles, function(p) { return Math.exp(p.weight); });
-    var wsum = util.sum(ws);
-    var wsnorm = _.map(ws, function(w) { return w / wsum; });
 
-    assert(_.some(wsnorm, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
-    assert(_.every(wsnorm, function(w) { return w >= 0; }));
+    assert(_.some(ws, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
+    assert(_.every(ws, function(w) { return w >= 0; }));
 
-    this.particles = _.chain(_.range(this.numParticles))
-      .map(function() {
-          var ix = choose(wsnorm);
-          assert(ix >= 0 && ix < this.numParticles);
-          return this.particles[ix].copy();
-        }.bind(this)).value()
+    this.particles = _.times(this.numParticles, function(i) {
+      var ix = erp.multinomialSample(ws);
+      return this.particles[ix].copy();
+    }, this);
   };
 
   // TODO: How can this be written in a more straight-foward way.
