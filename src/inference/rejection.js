@@ -38,7 +38,7 @@ module.exports = function(env) {
 
   Rejection.prototype.exit = function(s, val) {
     if (this.trace.score === -Infinity) {
-      console.log('Reject!');
+      //console.log('Reject!');
       return this.run();
     }
     this.trace.complete(val);

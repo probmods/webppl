@@ -51,18 +51,6 @@ var tests = [
     }
   },
   {
-    name: 'MCMC',
-    settings: {
-      args: [1000],
-      hist: { tol: 0.1 }
-    },
-    models: {
-      simple: true,
-      store: { hist: { tol: 0 }, args: [10] }
-      //geometric: true
-    }
-  },
-  {
     name: 'HashMH',
     settings: {
       args: [5000],
@@ -181,13 +169,37 @@ var tests = [
   },
   {
     name: 'ParticleFilter2',
+    func: 'Infer',
     settings: {
-      args: [1000, 10],
       hist: { tol: 0.1 }
     },
     models: {
-      simple: true,
-      store: { hist: { tol: 0 }, args: [10, 2] }
+      simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' }
+    }
+  },
+  {
+    name: 'MCMC',
+    func: 'Infer',
+    settings: {
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: { args: '{ method: MCMC, iterations: 1000, init: Rejection, kernel: MHKernel }' },
+      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: Rejection, kernel: MHKernel }' }
+      //geometric: true
+    }
+  },
+  {
+    name: 'MCMC_PFInit',
+    func: 'Infer',
+    settings: {
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: { args: '{ method: MCMC, iterations: 1000, init: PFInit, kernel: MHKernel }' },
+      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: PFInit, kernel: MHKernel }' }
+      //geometric: true
     }
   }
 ];
@@ -231,7 +243,8 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return JSON.stringify(args).slice(1, -1);
+  // HACK: To make it possible to pass args to Infer.
+  return _.isString(args) ? args : JSON.stringify(args).slice(1, -1);
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {

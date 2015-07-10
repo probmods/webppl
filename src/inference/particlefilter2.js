@@ -13,16 +13,15 @@ var Trace = require('../trace.js').Trace;
 
 module.exports = function(env) {
 
-  var MHKernel = require('./mhkernel')(env).MHKernel;
+  function ParticleFilter(s, k, a, wpplFn, options) {
 
-  function ParticleFilter(s, k, a, wpplFn, numParticles, rejuvSteps) {
+    // TODO: Set defaults.
+    this.rejuvSteps = options.rejuvSteps;
+    this.rejuvKernel = options.rejuvKernel;
+    this.numParticles = options.numParticles;
 
     this.particles = [];
     this.particleIndex = 0;
-    this.numParticles = numParticles;
-    this.rejuvSteps = rejuvSteps;
-
-    this.hist = {};
 
     var exitK = function(s) {
       return wpplFn(s, env.exit, a);
@@ -30,7 +29,7 @@ module.exports = function(env) {
 
     // Create initial particles.
     // Particles are partial/incomplete traces.
-    for (var i = 0; i < numParticles; i++) {
+    for (var i = 0; i < this.numParticles; i++) {
       var p = new Trace();
       p.saveContinuation(exitK, _.clone(s));
       this.particles.push(p);
@@ -130,7 +129,7 @@ module.exports = function(env) {
     // the address of an entry in the trace.
 
     // transition :: wpplFn x trace -> trace
-    var transition = _.partial(MHKernel, this.s, _, this.a, this.wpplFn, _, exitAddress);
+    var transition = _.partial(this.rejuvKernel, this.s, _, this.a, this.wpplFn, _, exitAddress);
 
     var particle = this.particles[i];
 
@@ -153,13 +152,7 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.exit = function(s, val) {
     // Complete the trace.
-    var particle = this.currentParticle();
-    particle.complete(val);
-
-    // Update histogram.
-    var k = JSON.stringify(val);
-    if (this.hist[k] === undefined) this.hist[k] = { prob: 0, val: val };
-    this.hist[k].prob += 1;
+    this.currentParticle().complete(val);
 
     // Run any remaining particles.
     if (!this.lastParticle()) {
@@ -168,15 +161,21 @@ module.exports = function(env) {
     }
 
     // Finished, call original continuation.
-    var dist = erp.makeMarginalERP(this.hist);
     env.coroutine = this.coroutine;
-    return this.k(this.s, dist);
+    return this.k(this.s, this.particles);
   };
 
-
   return {
-    ParticleFilter2: function(s, cc, a, wpplFn, numParticles, rejuvSteps) {
-      return new ParticleFilter(s, cc, a, wpplFn, numParticles, rejuvSteps).run();
+    // TODO: Better names.
+    ParticleFilterCore: function(s, k, a, wpplFn, options) {
+      return new ParticleFilter(s, k, a, wpplFn, options).run();
+    },
+    // This exists so I have an init method other than rejection to demo.
+    // TODO: Don't hard-code these options.
+    PFInit: function(s, k, a, wpplFn, options) {
+      return ParticleFilterCore(s, function(s, particles) {
+        return k(s, particles[0]);
+      }, a, wpplFn, { numParticles: 10, rejuvSteps: 0 });
     }
   };
 
