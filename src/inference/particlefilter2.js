@@ -5,8 +5,11 @@ var util = require('../util.js');
 var erp = require('../erp.js');
 var Trace = require('../trace.js').Trace;
 
-// This is a stripped down particle filer. Is doesn't handle variable numbers of
-// factors and uses a basic resampling strategy.
+// This is a stripped down particle filter.
+// 1. Is doesn't handle variable numbers of factors.
+// 2. Multinomial resampling strategy.
+// 3. No final rejevenation at exit.
+// 4. No support for importance ERPs.
 
 module.exports = function(env) {
 
