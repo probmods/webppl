@@ -34,9 +34,7 @@ module.exports = function(env) {
   MHKernel.prototype.factor = function(s, k, a, score) {
     this.trace.score += score;
     if (this.exitAddress === a) {
-      // TODO: Don't we need to save the store as well as the continuation. (Does smc.js do this?)
-      // TODO: Set via trace.saveContinuation()
-      this.trace.k = k;
+      this.trace.saveContinuation(k, s);
       return env.exit(s);
     }
     return k(s);

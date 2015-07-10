@@ -141,7 +141,10 @@ module.exports = function(env) {
             return next();
           }, particle);
         },
-        cont
+        function() {
+          this.particles[i] = particle;
+          return cont();
+        }.bind(this)
     );
   };
 
