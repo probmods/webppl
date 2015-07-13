@@ -132,7 +132,7 @@ var tests = [
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100] },
+      store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
       importance: true,
       importance2: true,
@@ -150,11 +150,11 @@ var tests = [
     models: {
       simple: true,
       importance: true,
-      importance2: { args: [3000] },
-      store: { hist: { tol: 0 }, args: [100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
+      importance2: { args: [3000, 0] },
+      store: { hist: { tol: 0 }, args: [100, 0] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
       withCaching: true
-      // varFactors1: { args: [5000] },
+      // varFactors1: { args: [5000, 0] },
       // varFactors2: true
     }
   },
