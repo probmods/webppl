@@ -2,6 +2,9 @@
 
 Probabilistic programming for the web
 
+
+## WebPPL Packages
+
 ## Quick start
 
 Install using [nodejs](http://nodejs.org):
@@ -95,7 +98,24 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     node-inspector
 
 
-## Using external functions
+## Packages
+
+WebPPL packages are regular Node.js packages optionally extended to include WebPPL code and headers.
+
+To make a package available in your program use the `--require` argument:
+
+    webppl myFile.wppl --require myPackage
+
+WebPPL will search the following locations for packages specified by name:
+
+1. The `node_modules` directory within the directory in which your program is stored.
+2. The `.webppl` directory within your home directory.
+
+Packages can be loaded from other locations by passing a path:
+
+    webppl myFile.wppl --require ../../myPackage
+
+Note that an argument must beginning with `./`, `../` or `/` to be interpreted as a path.
 
 ### WebPPL code
 
