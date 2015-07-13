@@ -1,9 +1,10 @@
 'use strict';
 
 var path = require('path');
+var fs = require('fs');
 var _ = require('underscore');
 
-var isRequireable = function(path) {
+var isJsModule = function(path) {
   try {
     require.resolve(path);
     return true;
@@ -12,21 +13,50 @@ var isRequireable = function(path) {
   }
 };
 
-var read = function(name_or_path) {
+var globalPkgDir = function() {
+  // USERPROFILE is intended to support Windows. This is un-tested.
+  var home = process.env.HOME || process.env.USERPROFILE;
+  return home ? path.join(home, '.webppl') : '';
+};
 
-  // Locate packages and make filenames absolute.
+// This is the same logic used in Node's require.
+var isPath = function(s) {
+  var prefixes = ['', '.', '..'].map(function(s) { return s + path.sep });
+  return _.some(prefixes, function(prefix) {
+    return s.substr(0, prefix.length) === prefix;
+  });
+};
 
+var read = function(name_or_path, paths, verbose) {
+  var paths = paths || [globalPkgDir()];
   var name = path.basename(name_or_path);
-  var absPath = path.resolve(name_or_path);
-  var manifest = require(path.join(absPath, 'package.json')).webppl || {};
+  var log = verbose ? function(x) { console.warn(x); return x; } : _.identity;
 
-  var makeAbs = function(fn) { return path.join(absPath, fn); };
-
-  return {
-    js: isRequireable(absPath) && { identifier: name.replace('-', '_'), path: absPath },
-    headers: _.map(manifest.headers, makeAbs),
-    wppl: _.map(manifest.wppl, makeAbs)
+  var readFirst = function(candidates) {
+    if (candidates.length > 0) {
+      var candidate = path.resolve(candidates[0]);
+      if (fs.existsSync(candidate)) {
+        log('Loading module "' + name + '" from "' + candidate + '"');
+        var manifest = require(path.join(candidate, 'package.json')).webppl || {};
+        var joinPath = function(fn) { return path.join(candidate, fn); };
+        return {
+          js: isJsModule(candidate) && { identifier: name.replace('-', '_'), path: candidate },
+          headers: _.map(manifest.headers, joinPath),
+          wppl: _.map(manifest.wppl, joinPath)
+        };
+      } else {
+        return readFirst(candidates.slice(1));
+      }
+    } else {
+      log(allCandidates);
+      throw 'Could not find WebPPL package: ' + name;
+    }
   };
+
+  var joinName = function(p) { return path.join(p, name_or_path); };
+  var allCandidates = isPath(name_or_path) ? [name_or_path] : paths.map(joinName);
+
+  return log(readFirst(allCandidates))
 };
 
 var wrapWithQuotes = function(s) { return '"' + s + '"'; };
@@ -58,5 +88,6 @@ var stringify = function(obj, lastSeenKey) {
 
 module.exports = {
   read: read,
-  stringify: stringify
+  stringify: stringify,
+  globalPkgDir: globalPkgDir
 };

@@ -2,6 +2,7 @@
 'use strict';
 
 var fs = require('fs');
+var path = require('path');
 var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var parseArgs = require('minimist');
@@ -117,13 +118,19 @@ function main() {
   // Load webppl code
   var programFile = argv._[0];
   console.log('Processing', programFile);
+
   var code = fs.readFileSync(programFile, 'utf8');
-
-  var asArray = function(arg) { return arg ? [].concat(arg) : []; };
-
-  var packages = asArray(argv.require).map(pkg.read);
   var processCode = argv.compile ? compile : run;
   var outputFile = argv.out ? argv.out : 'tmp.js';
+
+  var packagePaths = [
+    path.join(path.dirname(programFile), 'node_modules'),
+    pkg.globalPkgDir()
+  ];
+  var asArray = function(arg) { return arg ? [].concat(arg) : []; };
+  var packages = asArray(argv.require).map(function(name_or_path) {
+    return pkg.read(name_or_path, packagePaths, argv.verbose)
+  });
 
   processCode(code, packages, argv.verbose, outputFile);
 }

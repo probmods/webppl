@@ -29,7 +29,9 @@ var transform = function(code, opts) {
           parent.id.type === 'Identifier' &&
           parent.id.name === 'packages') {
         assert(node.elements.length === 0);
-        var exprs = asArray(opts.require).map(_.compose(parseExpr, pkg.stringify, pkg.read));
+        var exprs = asArray(opts.require).map(function(name_or_path) {
+          return _.compose(parseExpr, pkg.stringify, pkg.read)(name_or_path);
+        });
 
         return { type: node.type, elements: exprs };
       }
