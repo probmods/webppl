@@ -1,3 +1,0 @@
-var mySum = function(l) {
-    return reduce(plus, 0, l);
-};
