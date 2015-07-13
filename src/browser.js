@@ -17,6 +17,7 @@ var packages = [];
 
 // Load JS and headers from packages.
 packages.forEach(function(pkg) {
+  console.log('package ' + pkg.name + ' loaded.');
   if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
   pkg.headers.forEach(webppl.requireHeaderWrapper);
 });
@@ -51,4 +52,4 @@ global.webppl = {
   analyze: analyze
 };
 
-console.log('webppl loaded. (' + packages.length + ' bundled packages.)');
+console.log('webppl loaded.');

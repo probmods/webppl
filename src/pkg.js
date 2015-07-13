@@ -40,6 +40,7 @@ var read = function(name_or_path, paths, verbose) {
         var manifest = require(path.join(candidate, 'package.json')).webppl || {};
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
+          name: name,
           js: isJsModule(candidate) && { identifier: name.replace('-', '_'), path: candidate },
           headers: _.map(manifest.headers, joinPath),
           wppl: _.map(manifest.wppl, joinPath)
@@ -65,6 +66,7 @@ var wrapWithReadFile = function(s) { return 'fs.readFileSync("' + s + '", "utf8"
 
 var wrappers = {
   identifier: wrapWithQuotes,
+  name: wrapWithQuotes,
   headers: wrapWithRequire,
   path: wrapWithRequire,
   wppl: wrapWithReadFile
