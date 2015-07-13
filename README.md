@@ -115,7 +115,7 @@ Packages can be loaded from other locations by passing a path:
 
     webppl myFile.wppl --require ../../myPackage
 
-Note that an argument must beginning with `./`, `../` or `/` to be interpreted as a path.
+Note that an argument must begin with `./`, `../` or `/` to be interpreted as a path.
 
 ### WebPPL code
 
