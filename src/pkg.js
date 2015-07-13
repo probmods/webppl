@@ -41,7 +41,7 @@ var read = function(name_or_path, paths, verbose) {
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
           name: name,
-          js: isJsModule(candidate) && { identifier: name.replace('-', '_'), path: candidate },
+          js: isJsModule(candidate) && { identifier: name.replace(/-/g, '_'), path: candidate },
           headers: _.map(manifest.headers, joinPath),
           wppl: _.map(manifest.wppl, joinPath)
         };
