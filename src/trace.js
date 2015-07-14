@@ -4,7 +4,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var ERP = require('./erp.js').ERP;
 
-var Trace = function(continuation, store) {
+var Trace = function() {
   this.choices = [];
   this.length = 0;
   this.score = 0;
