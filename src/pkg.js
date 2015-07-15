@@ -32,10 +32,11 @@ var read = function(name_or_path, paths, verbose) {
   var readFirst = function(candidates) {
     if (candidates.length > 0) {
       var candidate = path.resolve(candidates[0]);
-      if (fs.existsSync(candidate)) {
+      var candidatePackagePath = path.join(candidate, 'package.json');
+      if (fs.existsSync(candidatePackagePath)) {
         var name = path.basename(candidate);
         log('Loading module "' + name + '" from "' + candidate + '"');
-        var manifest = require(path.join(candidate, 'package.json')).webppl || {};
+        var manifest = require(candidatePackagePath).webppl || {};
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
           name: name,
