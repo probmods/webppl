@@ -27,13 +27,13 @@ var isPath = function(s) {
 
 var read = function(name_or_path, paths, verbose) {
   var paths = paths || [globalPkgDir()];
-  var name = path.basename(name_or_path);
   var log = verbose ? function(x) { console.warn(x); return x; } : _.identity;
 
   var readFirst = function(candidates) {
     if (candidates.length > 0) {
       var candidate = path.resolve(candidates[0]);
       if (fs.existsSync(candidate)) {
+        var name = path.basename(candidate);
         log('Loading module "' + name + '" from "' + candidate + '"');
         var manifest = require(path.join(candidate, 'package.json')).webppl || {};
         var joinPath = function(fn) { return path.join(candidate, fn); };
@@ -48,7 +48,7 @@ var read = function(name_or_path, paths, verbose) {
       }
     } else {
       log(allCandidates);
-      throw 'Could not find WebPPL package: ' + name;
+      throw 'Could not find WebPPL package: ' + name_or_path;
     }
   };
 
