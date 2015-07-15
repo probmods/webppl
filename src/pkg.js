@@ -16,7 +16,7 @@ var isJsModule = function(path) {
 var globalPkgDir = function() {
   // USERPROFILE is intended to support Windows. This is un-tested.
   var home = process.env.HOME || process.env.USERPROFILE;
-  return home ? path.join(home, '.webppl') : '';
+  return home ? path.join(home, '.webppl', 'node_modules') : '';
 };
 
 var isPath = function(s) {
