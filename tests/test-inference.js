@@ -186,8 +186,8 @@ var tests = [
     },
     models: {
       simple: { args: '{ method: MCMC, iterations: 1000, init: Rejection, kernel: MHKernel }' },
-      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: Rejection, kernel: MHKernel }' }
-      //geometric: true
+      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: Rejection, kernel: MHKernel }' },
+      geometric: { args: '{ method: MCMC, iterations: 5000, init: Rejection, kernel: MHKernel }' }
     }
   },
   {

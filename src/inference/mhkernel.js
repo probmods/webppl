@@ -65,11 +65,11 @@ module.exports = function(env) {
     assert(_.isNumber(regenFrom));
 
     var fw = -Math.log(oldTrace.length);
-    trace.upto(regenFrom).map(function(s) {
+    trace.choices.slice(regenFrom).map(function(s) {
       fw += s.reused ? 0 : s.choiceScore;
     });
     var bw = -Math.log(trace.length);
-    oldTrace.upto(regenFrom).map(function(s) {
+    oldTrace.choices.slice(regenFrom).map(function(s) {
       var nc = trace.findChoice(s.name);
       bw += (!nc || !nc.reused) ? s.choiceScore : 0;
     });
