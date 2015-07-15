@@ -19,12 +19,10 @@ var globalPkgDir = function() {
   return home ? path.join(home, '.webppl') : '';
 };
 
-// This is the same logic used in Node's require.
 var isPath = function(s) {
-  var prefixes = ['', '.', '..'].map(function(s) { return s + path.sep });
-  return _.some(prefixes, function(prefix) {
-    return s.substr(0, prefix.length) === prefix;
-  });
+  // This isn't expected to classify any valid NPM package names as paths.
+  // https://github.com/npm/validate-npm-package-name
+  return s.indexOf(path.sep) >= 0 || s.substr(0, 1) === '.';
 };
 
 var read = function(name_or_path, paths, verbose) {
