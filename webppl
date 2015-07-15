@@ -5,6 +5,7 @@ var fs = require('fs');
 var path = require('path');
 var webppl = require('./src/main');
 var pkg = require('./src/pkg');
+var util = require('./src/util');
 var parseArgs = require('minimist');
 var git = require('git-rev-2');
 var _ = require('underscore');
@@ -127,8 +128,8 @@ function main() {
     path.join(path.dirname(programFile), 'node_modules'),
     pkg.globalPkgDir()
   ];
-  var asArray = function(arg) { return arg ? [].concat(arg) : []; };
-  var packages = asArray(argv.require).map(function(name_or_path) {
+
+  var packages = util.asArray(argv.require).map(function(name_or_path) {
     return pkg.read(name_or_path, packagePaths, argv.verbose)
   });
 

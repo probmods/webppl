@@ -22,6 +22,10 @@ function prettyJSON(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
+function asArray(arg) {
+  return arg ? [].concat(arg) : [];
+}
+
 function sum(xs) {
   if (xs.length === 0) {
     return 0.0;
@@ -172,5 +176,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   std: std,
-  sum: sum
+  sum: sum,
+  asArray: asArray
 };

@@ -11,13 +11,11 @@ var escodegen = require('escodegen');
 var _ = require('underscore');
 
 var pkg = require('./pkg');
+var util = require('./util');
 
 var parseExpr = function(s) {
   return esprima.parse('(' + s + ')').body[0].expression;
 };
-
-// TODO: This is copied from webppl.
-var asArray = function(arg) { return arg ? [].concat(arg) : []; };
 
 var transform = function(code, opts) {
 
@@ -29,7 +27,7 @@ var transform = function(code, opts) {
           parent.id.type === 'Identifier' &&
           parent.id.name === 'packages') {
         assert(node.elements.length === 0);
-        var exprs = asArray(opts.require).map(function(name_or_path) {
+        var exprs = util.asArray(opts.require).map(function(name_or_path) {
           return _.compose(parseExpr, pkg.stringify, pkg.read)(name_or_path);
         });
 
