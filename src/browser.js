@@ -9,6 +9,7 @@ var escodegen = require('escodegen');
 var webppl = require('./main');
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
+var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
 var analyze = require('./analysis/main').analyze;
 
@@ -34,13 +35,13 @@ function compile(code, verbose) {
 
 function webpplCPS(code) {
   var programAst = esprima.parse(code);
-  var newProgramAst = optimize(cps(programAst));
+  var newProgramAst = optimize(cps(thunkify(programAst)));
   return escodegen.generate(newProgramAst);
 }
 
 function webpplNaming(code) {
   var programAst = esprima.parse(code);
-  var newProgramAst = naming(programAst);
+  var newProgramAst = naming(thunkify(programAst));
   return escodegen.generate(newProgramAst);
 }
 
