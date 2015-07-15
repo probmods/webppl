@@ -103,23 +103,26 @@ function compile(programCode, verbose, doCaching) {
   return out;
 }
 
-// TODO: One of these is called by webppl, the other by browser.js. Correct?
+// TODO: Understand the difference between run and webpplEval.
+// If I switch ./webppl to use run rather than webpplEval, it's not obvious what
+// changes.
 
+// Called by browser.js
 function run(code, contFun, verbose) {
   var compiledCode = compile(code, verbose);
   eval(compiledCode)({}, contFun, '');
 }
 
+// Called by ./webppl
 // Compile and run some webppl code in global scope:
 function webpplEval(k, code, verbose) {
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode)({}, k, '');
 }
 
-// TODO: Add eval to global for browser too? (This note was previously in main.js)
-
-// TODO: Where is this used?
 if (!util.runningInBrowser()) {
+  // Put eval into global scope. browser version??
+  // Or move to ./webppl of only used outside of the browser.
   global.webpplEval = webpplEval;
 }
 
