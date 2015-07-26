@@ -117,6 +117,8 @@ var tests = [
       store: { hist: { tol: 0 }, args: [30, 30] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
       importance: true,
       importance2: { args: [3000, 10] },
       withCaching: true
@@ -134,6 +136,8 @@ var tests = [
       simple: true,
       store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
       importance: true,
       importance2: true,
       withCaching: true
@@ -145,14 +149,17 @@ var tests = [
     settings: {
       args: [1000, 0],
       hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
       MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
-      importance: true,
-      importance2: { args: [3000, 0] },
       store: { hist: { tol: 0 }, args: [100, 0] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
+      importance: true,
+      importance2: { args: [3000, 0] },
       withCaching: true
       // varFactors1: { args: [5000, 0] },
       // varFactors2: true
