@@ -123,7 +123,7 @@ Particle.prototype.deactivate = function() {
 Particle.prototype.update = function(s, k, a, erp, erpParams, score, weight, erpValue) {
   this.continuation = k;
   this.store = _clone(s);
-  this.weight += weight;
+  this.weight += weight;        // doesn't need ad
   this.trace.append(s, k, a, erp, erpParams, score, erpValue);
 };
 Particle.prototype.clone = function(scorer) {

@@ -15,7 +15,7 @@ var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
 
-var ad_add = require('ad.js')({mode: 'r'}).add
+var ad = require('ad.js')({mode: 'r'})
 var T = require('../trace');
 var initParticle = T.initParticle
 
@@ -28,7 +28,7 @@ module.exports = function(env) {
   function HSMC(s, k, a, wpplFn, numParticles, rejuvSteps) {
     var exitK = function(s) {return wpplFn(s, env.exit, a);};
     this.isHSMCCoroutine = true;
-    this.particles = _.times(numParticles, function() {return initParticle(s, exitK, ad_add)});
+    this.particles = _.times(numParticles, function() {return initParticle(s, exitK, ad.add)});
     this.particleIndex = 0;
     this.rejuvSteps = rejuvSteps;
     this.baseAddress = a;
@@ -71,7 +71,7 @@ module.exports = function(env) {
             // otherwise, rejuvenate
             return _hmc(s,
                         function(s, trace) {
-                          particles[i].trace = trace;
+                          particles[i].trace = trace; // update rejuvenated trace
                           return nextK();
                         },
                         this.a,
@@ -132,13 +132,11 @@ module.exports = function(env) {
       return p.weight;
     }));
     var avgW = W - Math.log(m);
-
     // Allow -Infinity case (for mh initialization, in particular with few particles)
     if (avgW === -Infinity) {
       console.warn('HSMC: resampleParticles: all ' + m + ' particles have weight -Inf');
       return;
     }
-
     // Compute list of retained particles
     var retainedParticles = [];
     var newExpWeights = [];
@@ -152,7 +150,6 @@ module.exports = function(env) {
             retainedParticles.push(particle.clone());
           }
         });
-
     // Compute new particles
     var numNewParticles = m - retainedParticles.length;
     var newParticles = [];
@@ -161,10 +158,8 @@ module.exports = function(env) {
       j = erp.multinomialSample(newExpWeights);
       newParticles.push(this.particles[j].clone());
     }
-
     // Particles after update: Retained + new particles
     this.particles = newParticles.concat(retainedParticles);
-
     // Reset all weights
     _.each(this.particles, function(particle) {
       particle.weight = avgW;
@@ -202,12 +197,12 @@ module.exports = function(env) {
     var oldStore = this.oldStore;
     return util.cpsForEach(
         function(particle, i, particles, nextK) {
-          // no need to check for inactive particles here
           // make sure mhp coroutine doesn't escape:
           assert(env.coroutine.isHSMCCoroutine);
+          // no need to check for inactive particles here
           return _hmc(particle.store,
                       function(s, trace) {
-                        particles[i].trace = trace;
+                        particles[i].trace = trace; // update rejuvenated trace
                         return nextK();
                       },
                       this.a,
@@ -219,14 +214,11 @@ module.exports = function(env) {
         }.bind(this),
         function() {
           var dist = erp.makeMarginalERP(util.logHist(hist));
-
           // Save estimated normalization constant in erp (average particle weight)
           dist.normalizationConstant = this.particles[0].weight;
-
           // Reinstate previous coroutine:
           var k = this.k;
           env.coroutine = this.oldCoroutine;
-
           // Return from particle filter by calling original continuation:
           return k(oldStore, dist);
         }.bind(this),
@@ -240,40 +232,35 @@ module.exports = function(env) {
   // HMC on a particle
 
   var _HMC = require('./hmc.js')(env)._HMC;
+  // `finish` just returns currently accepted trace to update particle
+  _HMC.prototype.finish = function() {
+    // var k = this.k;
+    env.coroutine = this.oldCoroutine;
+    return this.k(this.s, this.trace);
+  }
 
   var _hmc = function(s, k, a, wpplFn, rejuvSteps, particle, limitAddress, hist) {
-    var opts = {stepSize: 0.1,
-                steps: 5,
-                iterations: rejuvSteps,
-                proposers: ['leapfrog'],
-                verbosity: 0}
+    if (rejuvSteps === 0)
+      return k(s, particle.trace); // if no rejuvenation
 
-    var hmc = new _HMC(s, k, a, wpplFn, opts);
-
+    var hmcOpts = {stepSize: 0.1,
+                   steps: 5,
+                   iterations: rejuvSteps,
+                   proposers: ['mh'],
+                   verbosity: 0}
+    var hmc = new _HMC(s, k, a, wpplFn, hmcOpts);
     // modify `factor` to exit at intended limit
-    var baseFactor = hmc.factor;
     hmc.factor = function(s, k, a, score) {
       return (a === limitAddress) ?
-        this.exit(s, undefined) :   // reached limit; exit
-        baseFactor.bind(this)(s, k, a, score); // use intended factor
+        this.exit(s, undefined) : // reached limit; exit
+        _HMC.prototype.factor.bind(this)(s, k, a, score); // use intended factor
     }
-
-    // when no hist to update, don't bother histogram updating
-    if (hist === undefined)
+    if (hist === undefined)  // don't bother updating when not available
       hmc.updateHist = function(val){return undefined};
+    if (hist)                   // use given hist when available
+      hmc.hist = hist;
 
-    // modify finish to return what we want and hand control back to the pf-part
-    hmc.finish = function() {
-      var k = this.k;
-      env.coroutine = this.oldCoroutine;
-      return k(this.s, this.trace); // return trace to update particle with
-    }
-
-    // mimic `run` with pre-built trace
-    hmc.trace = particle.trace.clone(ad_add);
-    // hmc.trace = particle.trace;
-    // hmc.trace.scoreUpdaterF = ad_add;
-    // directly propose since first-time trace has already been built
+    hmc.trace = particle.trace.clone(ad.add); // init with pre-built trace
     return hmc.propose()
   }
 
