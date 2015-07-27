@@ -1,5 +1,7 @@
 /** A Trace (and proposal) data-structure library **/
 
+var _clone = require('underscore').clone;
+
 // Trace Entry
 
 function TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceScore, postTraceScore) {
@@ -43,7 +45,7 @@ Trace.prototype.forEach = function(f) { this.trace.forEach(f); };
 // this keeps ad references, but ensures that the clone doesn't modify the original
 Trace.prototype.clone = function(scorer) {
   var newTrace = new Trace();
-  newTrace.scoreUpdaterF = scorer;
+  if (scorer !== undefined) newTrace.scoreUpdaterF = scorer;
   newTrace.trace = this.trace.slice();
   newTrace.addressIndices = JSON.parse(JSON.stringify(this.addressIndices));
   return newTrace;
@@ -105,11 +107,62 @@ function makeMHProposal(value, erp, erpParams) {
   return p;
 }
 
-// Proposals
+// Particle
+
+function Particle() {
+  this.store = undefined;
+  this.continuation = undefined;
+  this.value = undefined;
+  this.weight = 0;
+  this.trace = undefined;
+  this.active = true;
+}
+Particle.prototype.deactivate = function() {
+  this.active = false;
+};
+Particle.prototype.update = function(s, k, a, erp, erpParams, score, weight, erpValue) {
+  this.continuation = k;
+  this.store = _clone(s);
+  this.weight += weight;
+  this.trace.append(s, k, a, erp, erpParams, score, erpValue);
+};
+Particle.prototype.clone = function(scorer) {
+  var newParticle = makeParticle(this.weight);
+  newParticle.store = _clone(this.store);
+  newParticle.continuation = this.continuation;
+  newParticle.value = this.value
+  newParticle.trace = this.trace.clone(scorer)
+  newParticle.active = this.active
+  return newParticle;
+};
+Particle.prototype.score = function() {
+  return this.trace === undefined ? 0 : this.trace.score();
+};
+Particle.prototype.resume = function() {
+  return this.continuation(this.store);
+};
+
+function makeParticle(scorer) {
+  var p = new Particle();
+  p.trace = makeTrace();
+  if (scorer) p.trace.scoreUpdaterF = scorer;
+  return p;
+}
+
+function initParticle(s, k, traceScorer) {
+  var p = new Particle();
+  p.store = _clone(s);
+  p.continuation = k;
+  p.trace = makeTrace();
+  p.trace.addressIndices = {};
+  if (traceScorer) p.trace.scoreUpdaterF = traceScorer;
+  return p;
+}
 
 module.exports = {
   makeTrace: makeTrace,
   makeGradProposal: makeGradProposal,
   makeHMCProposal: makeHMCProposal,
-  makeMHProposal: makeMHProposal
+  makeMHProposal: makeMHProposal,
+  initParticle: initParticle
 };
