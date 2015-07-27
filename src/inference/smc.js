@@ -102,7 +102,9 @@ module.exports = function(env) {
             // make sure mhp coroutine doesn't escape:
             assert(env.coroutine.isParticleFilterRejuvCoroutine);
             // if particle has finished, don't rejuvenate
-            if (!particle.active) return nextK();
+            if (!particle.active) {
+              return nextK();
+            }
             // otherwise, rejuvenate
             return new MHP(function(p) {particles[i] = p; return nextK();},
                            particle, this.baseAddress, a,
@@ -111,10 +113,11 @@ module.exports = function(env) {
           function() {
             // Resampling can kill all continuing particles
             var i = this.firstActiveParticleIndex();
-            if (i === -1)
+            if (i === -1) {
               return this.finish(); // All particles completed
-            else
+            } else {
               this.particleIndex = i;
+            }
             return this.currentParticle().continuation(this.currentParticle().store);
           }.bind(this),
           this.particles
@@ -139,10 +142,11 @@ module.exports = function(env) {
   ParticleFilterRejuv.prototype.nextActiveParticleIndex = function() {
     var successorIndex = this.particleIndex + 1;
     var nextActiveIndex = util.indexOfPred(this.particles, isActive, successorIndex);
-    if (nextActiveIndex === -1)
+    if (nextActiveIndex === -1) {
       return this.firstActiveParticleIndex();  // wrap around
-    else
+    } else {
       return nextActiveIndex;
+    }
   };
 
   ParticleFilterRejuv.prototype.currentParticle = function() {
@@ -221,8 +225,9 @@ module.exports = function(env) {
     if (i === -1) {
       return this.finish();     // All particles completed
     } else {
-      if (i < this.particleIndex)
+      if (i < this.particleIndex) {
         this.resampleParticles(); // Updated all particles; now wrap around
+      }
       this.particleIndex = i;
       return this.currentParticle().continuation(this.currentParticle().store);
     }
