@@ -38,6 +38,7 @@ module.exports = function(env) {
     this.oldTrace = undefined;
     this.proposals = {};
     this.oldProposals = undefined;
+    this.currentValue = undefined;
     this.oldValue = undefined;
     this.oldExit = undefined;
 
@@ -56,12 +57,12 @@ module.exports = function(env) {
     this.trace = makeTrace();
     this.trace.scoreUpdaterF = ad.add;
     this.trace.addressIndices = {};
-    return this.wpplFn(this.s, env.exit, this.a);
+    return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
   HMC.prototype.factor = function(s, k, a, score) {
     // add dummy trace entries to have a trace be a complete record
-    this.trace.append(s, k, a, null, null, score, null);
+    this.trace.append(s, k, a, null, null, score, null); // clone store?
     return ad.untapify(score) === -Infinity ? this.exit(s) : k(s);
   };
 
@@ -98,7 +99,7 @@ module.exports = function(env) {
       console.log('Sampling:', a, erp.sample.name, ad.untapify(params),
                   ad.untapify(value), ad.untapify(score))
 
-    this.trace.append(s, k, a, erp, params, score, value);
+    this.trace.append(_.clone(s), k, a, erp, params, score, value);
     return ad.untapify(score) === -Infinity ? this.exit(s) : k(s, value);
   };
 
@@ -305,7 +306,6 @@ module.exports = function(env) {
 
     this.iteration -= 1;
 
-    var currentValue;
     var acceptance = this.computeAcceptance();
     if (this.verbosity > 1) console.log('Acceptance: ' + acceptance);
     if (isNaN(acceptance))
@@ -313,26 +313,25 @@ module.exports = function(env) {
 
     if (Math.random() < acceptance) { // accept
       if (this.verbosity > 1) console.log('Accepted!');
-      currentValue = value;
+      this.currentValue = value;
       this.oldValue = value;
       this.oldTrace = this.trace.clone(ad.add);
       this.acceptedProposals += 1;
     } else {                          // reject
       if (this.verbosity > 1) console.log('Rejected!');
-      currentValue = this.oldValue;
+      this.currentValue = this.oldValue;
       this.trace = this.oldTrace.clone(ad.add);
       // no need to copy back oldProposals -- make new one when proposing anyways
     }
-    this.updateHist(currentValue);
+    this.updateHist(this.currentValue);
 
     if (this.verbosity > 1) {
-      console.log('Value: ' + ad.untapify(currentValue) +
+      console.log('Value: ' + ad.untapify(this.currentValue) +
                   '\n  Score: ' + ad.untapify(this.trace.score()));
       if (this.verbosity > 2 && this.iteration < this.iterations - 1)
         console.log('completed proposal');
       console.log('Iteration ------------------------------------------------ ' + this.iteration);
     }
-
 
     return (this.iteration > 0) ?
         this.propose() :          // make a new proposal
