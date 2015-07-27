@@ -366,6 +366,7 @@ module.exports = function(env) {
   };
 
   return {
+    _HMC: HMC,
     HMC: hmc
   };
 
