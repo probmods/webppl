@@ -222,29 +222,6 @@ var tests = [
       geometric: true,
       varFactors2: true
     }
-  },
-  {
-    name: 'GradientAscent',
-    settings: {
-      args: [{stepSize: 0.1, steps: 5000}]
-    },
-    models: {
-      gaussianMean: { mean: { tol: 0.4 }, std: { tol: Infinity } },
-      reflectance: { mean: { tol: 0.3 } }
-    }
-  },
-  {
-    name: 'HMC',
-    settings: {
-      args: [{stepSize: 0.1, steps: 5, iterations: 2000, proposers: ['leapfrog', 'mh']}]
-    },
-    models: {
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 1 } },
-      gaussianMean2: { mean: { tol: 0.2 } },
-      mixed: { mean: { tol: 0.06 },
-        args: [{stepSize: 0.2, steps: 20, iterations: 2000, proposers: ['leapfrog', 'mh']}] },
-      reflectance: { mean: { tol: 0.2 } }
-    }
   }
 ];
 
