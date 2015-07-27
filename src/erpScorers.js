@@ -204,7 +204,7 @@ function dirichletScore(params, val) {
 
 function buildSimpleScorer(dist) {
   return function(params, val) {
-    var lk = dist[JSON.stringify(val)];
+    var lk = dist[JSON.stringify(ad.untapify(val))];
     return lk ? Math.log(lk.prob) : -Infinity;
   }
 }
