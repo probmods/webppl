@@ -16,14 +16,47 @@ var util = require('../util.js');
 var erp = require('../erp.js');
 
 var ad = require('ad.js')({mode: 'r'})
-var T = require('../trace');
-var initParticle = T.initParticle
+var initParticle = require('../trace').initParticle;
 
-function isActive(p) {return p.active};
+function isActive(p) {return p.active}
 
 module.exports = function(env) {
 
-  var mh = require('./mh.js')(env);
+  // HMC on a particle
+
+  var _HMC = require('./hmc.js')(env)._HMC;
+  // `finish` just needs current trace to update particle
+  _HMC.prototype.finish = function() {
+    env.coroutine = this.oldCoroutine; // restore prev coroutine
+    return this.k(this.s, this.trace);
+  }
+
+  var _hmc = function(s, k, a, wpplFn, rejuvSteps, particle, limitAddress, hist) {
+    if (rejuvSteps === 0)
+      return k(s, particle.trace); // if no rejuvenation
+
+    var hmcOpts = {stepSize: 0.1,
+                    steps: 5,
+                    iterations: rejuvSteps,
+                    proposers: ['mh'],
+                    verbosity: 0}
+    var hmc = new _HMC(s, k, a, wpplFn, hmcOpts);
+    // modify `factor` to exit at intended limit
+    hmc.factor = function(s, k, a, score) {
+      return (a === limitAddress) ?
+          this.exit(s, undefined) : // reached limit; exit
+          _HMC.prototype.factor.bind(this)(s, k, a, score); // use intended factor
+    }
+    if (hist === undefined)       // noop update when hist not available
+      hmc.updateHist = function(val) {return undefined};
+    else                        // use given hist when available
+      hmc.hist = hist;
+
+    hmc.trace = particle.trace.clone(ad.add); // init with pre-built trace
+    return hmc.propose()
+  }
+
+  // SMC with HMC
 
   function HSMC(s, k, a, wpplFn, numParticles, rejuvSteps) {
     var exitK = function(s) {return wpplFn(s, env.exit, a);};
@@ -34,12 +67,11 @@ module.exports = function(env) {
     this.baseAddress = a;
     this.wpplFn = wpplFn;
 
-    // Move old coroutine out of the way and install this as the current
-    // handler.
+    // Save old coroutine and install `this` as current handler.
+    this.oldCoroutine = env.coroutine;
     this.k = k;
     this.a = a;
     this.oldStore = s;          // will be reinstated at the end
-    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -228,43 +260,6 @@ module.exports = function(env) {
   };
 
   HSMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
-
-  // HMC on a particle
-
-  var _HMC = require('./hmc.js')(env)._HMC;
-  // `finish` just returns currently accepted trace to update particle
-  _HMC.prototype.finish = function() {
-    // var k = this.k;
-    env.coroutine = this.oldCoroutine;
-    return this.k(this.s, this.trace);
-  }
-
-  var _hmc = function(s, k, a, wpplFn, rejuvSteps, particle, limitAddress, hist) {
-    if (rejuvSteps === 0)
-      return k(s, particle.trace); // if no rejuvenation
-
-    var hmcOpts = {stepSize: 0.1,
-                   steps: 5,
-                   iterations: rejuvSteps,
-                   proposers: ['mh'],
-                   verbosity: 0}
-    var hmc = new _HMC(s, k, a, wpplFn, hmcOpts);
-    // modify `factor` to exit at intended limit
-    hmc.factor = function(s, k, a, score) {
-      return (a === limitAddress) ?
-        this.exit(s, undefined) : // reached limit; exit
-        _HMC.prototype.factor.bind(this)(s, k, a, score); // use intended factor
-    }
-    if (hist === undefined)  // don't bother updating when not available
-      hmc.updateHist = function(val){return undefined};
-    if (hist)                   // use given hist when available
-      hmc.hist = hist;
-
-    hmc.trace = particle.trace.clone(ad.add); // init with pre-built trace
-    return hmc.propose()
-  }
-
-  // setup HSMC
 
   function hsmc(s, cc, a, wpplFn, numParticles, rejuvSteps) {
     return new HSMC(s, cc, a, wpplFn, numParticles, rejuvSteps).run();
