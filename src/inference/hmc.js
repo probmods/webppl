@@ -340,7 +340,7 @@ module.exports = function(env) {
         this.finish();            // finish up
   };
 
-  HMC.prototype.updateHist = function (value, score) {
+  HMC.prototype.updateHist = function(value, score) {
     var s = JSON.stringify(ad.untapify(value));
     if (this.aggregator === 'score') {
       if (this.hist[s] === undefined)

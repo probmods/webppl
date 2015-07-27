@@ -222,7 +222,7 @@ module.exports = function(env) {
     }
   };
 
-  HSMC.prototype.updateHist = function (value, score) {
+  HSMC.prototype.updateHist = function(value, score) {
     var s = JSON.stringify(ad.untapify(value));
     if (this.aggregator === 'score') {
       if (this.hist[s] === undefined)
