@@ -11,8 +11,11 @@
 
 var _ = require('underscore');
 var erp = require('../erp.js');
-var ad = require('ad.js')({mode: 'r'})
-var logsumexp = require('../util.js').logsumexp
+var ad = require('ad.js')({mode: 'r'});
+
+var util = require('../util.js');
+var logsumexp = util.logsumexp;
+var getOpt = util.getOpt;
 
 var T = require('../trace');
 var makeTrace = T.makeTrace
@@ -21,18 +24,17 @@ var makeMHProposal = T.makeMHProposal
 
 module.exports = function(env) {
 
-  function getOpt(value, defaultValue) { return value === undefined ? defaultValue : value; };
-
   function HMC(s, k, a, wpplFn, opts) {
-    this.stepSize = getOpt(opts.stepSize, 0.1);
-    this.step = getOpt(opts.steps, 10);
-    this.steps = getOpt(opts.steps, 10);
-    this.iteration = getOpt(opts.iterations, 100);
-    this.iterations = getOpt(opts.iterations, 100);
-    this.proposers = getOpt(opts.proposers, ['leapfrog']);
-    this.verbosity = getOpt(opts.verbosity, 0);
+    this.stepSize = getOpt(opts, 'stepSize', 0.1);
+    this.step = getOpt(opts, 'steps', 10);
+    this.steps = getOpt(opts, 'steps', 10);
+    this.iteration = getOpt(opts, 'iterations', 100);
+    this.iterations = getOpt(opts, 'iterations', 100);
+    this.kernels = getOpt(opts, 'kernels', ['leapfrog', 'mh']);
+    this.aggregator = getOpt(opts, 'aggregator', 'count');
+    this.verbosity = getOpt(opts, 'verbosity', 0);
 
-    this.proposerIndex = 0;
+    this.kernelIndex = 0;
     this.acceptedProposals = 0;
     this.trace = undefined;
     this.oldTrace = undefined;
@@ -85,8 +87,8 @@ module.exports = function(env) {
     var value = erp.isContinuous() ? ad.tapify(_value) : _value;
     var score = erp.score(params, value);
 
-    // if mh proposer, keep track of fwd and rvs lp
-    if (this.proposers[this.proposerIndex] === 'mh') {
+    // if mh kernel, keep track of fwd and rvs lp
+    if (this.kernels[this.kernelIndex] === 'mh') {
       if (!seenBefore) {
         this.trace.fwdLP += ad.untapify(score);
       } else if (proposal) {
@@ -113,15 +115,15 @@ module.exports = function(env) {
       })
   }
 
-  // dummy: gets appropriately replaced by the current proposer
+  // dummy: gets appropriately replaced by the current kernel
   HMC.prototype.computeAcceptance = function() { return 1.0 };
 
   HMC.prototype.propose = function() {
     // (re)initialize proposals
     this.proposals = {};
-    // pick a proposer from a list of proposers and run
-    this.proposerIndex = (this.proposerIndex + 1) % this.proposers.length;
-    switch (this.proposers[this.proposerIndex]) {
+    // pick a kernel from a list of kernels and run
+    this.kernelIndex = (this.kernelIndex + 1) % this.kernels.length;
+    switch (this.kernels[this.kernelIndex]) {
       case 'leapfrog':
         if (this.verbosity > 2)
           console.log('leapfrog proposal')
@@ -323,7 +325,7 @@ module.exports = function(env) {
       this.trace = this.oldTrace.clone(ad.add);
       // no need to copy back oldProposals -- make new one when proposing anyways
     }
-    this.updateHist(this.currentValue);
+    this.updateHist(this.currentValue, this.trace.score());
 
     if (this.verbosity > 1) {
       console.log('Value: ' + ad.untapify(this.currentValue) +
@@ -338,21 +340,26 @@ module.exports = function(env) {
         this.finish();            // finish up
   };
 
-  // histogram should really be a class with it's own methods
-  HMC.prototype.updateHist = function(val) {
-    var v = ad.untapify(val);   // fixme: this is a hack
-    var l = JSON.stringify(v);
-    if (this.hist[l] === undefined) this.hist[l] = {prob: 0, val: v};
-    this.hist[l].prob = logsumexp([this.hist[l].prob,
-                                   ad.untapify(this.trace.score())]);
-    // this.hist[l].prob += 1;
+  HMC.prototype.updateHist = function (value, score) {
+    var s = JSON.stringify(ad.untapify(value));
+    if (this.aggregator === 'score') {
+      if (this.hist[s] === undefined)
+        this.hist[s] = {prob: -Infinity, val: value};
+      this.hist[s].prob = util.logsumexp([this.hist[s].prob,
+                                          ad.untapify(score)]);
+    } else {                    // aggregator = 'count'
+      if (this.hist[s] === undefined)
+        this.hist[s] = {prob: 0, val: value};
+      this.hist[s].prob += 1;
+    }
   };
 
   HMC.prototype.finish = function() {
     if (this.verbosity > 0)
       console.log('Acceptance Ratio:', this.acceptedProposals / this.iterations);
     // make return ERP
-    var dist = erp.makeMarginalERP(this.hist);
+    var hist = this.aggregator === 'score' ? this.hist : util.logHist(this.hist);
+    var dist = erp.makeMarginalERP(hist);
     var k = this.k;
     // Reinstate previous coroutine
     env.coroutine = this.oldCoroutine;

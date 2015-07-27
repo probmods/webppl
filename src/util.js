@@ -155,6 +155,10 @@ function std(hist) {
   return Math.sqrt(variance);
 }
 
+function getOpt(optObject, option, defaultValue) {
+  return (optObject && optObject[option]) ? optObject[option] : defaultValue;
+}
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -172,5 +176,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   std: std,
+  getOpt: getOpt,
   sum: sum
 };
