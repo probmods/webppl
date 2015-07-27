@@ -122,7 +122,7 @@ Particle.prototype.deactivate = function() {
 };
 Particle.prototype.update = function(s, k, a, erp, erpParams, score, weight, erpValue) {
   this.continuation = k;
-  this.store = _clone(s);
+  this.store = s;
   this.weight += weight;        // doesn't need ad
   this.trace.append(s, k, a, erp, erpParams, score, erpValue);
 };
@@ -151,7 +151,7 @@ function makeParticle(scorer) {
 
 function initParticle(s, k, traceScorer) {
   var p = new Particle();
-  p.store = _clone(s);
+  p.store = s;
   p.continuation = k;
   p.trace = makeTrace();
   p.trace.addressIndices = {};
