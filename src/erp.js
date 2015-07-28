@@ -45,7 +45,7 @@ ERP.prototype.isContinuous = function() {
 
 ERP.prototype.MAP = function() {
   if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
+    throw 'Cannot compute MAP for ERP without support!'
   var supp = this.support([]);
   var mapEst = {val: undefined, prob: 0};
   for (var i = 0, l = supp.length; i < l; i++) {
