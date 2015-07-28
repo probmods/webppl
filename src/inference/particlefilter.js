@@ -102,7 +102,6 @@ module.exports = function(env) {
     return this.currentParticle().continuation(this.currentParticle().store);
   };
 
-
   // The three functions below return -1 if there is no active particle
 
   ParticleFilter.prototype.firstActiveParticleIndex = function() {
@@ -122,7 +121,6 @@ module.exports = function(env) {
       return nextActiveIndex;
     }
   };
-
 
   ParticleFilter.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];

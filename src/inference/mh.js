@@ -78,7 +78,8 @@ module.exports = function(env) {
     var bw = -Math.log(trace.length - proposalBoundary);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      var reverseChoiceScore = (s.reverseChoiceScore !== undefined) ? s.reverseChoiceScore : s.forwardChoiceScore;
+      var reverseChoiceScore = ((nc && nc.reverseChoiceScore !== undefined) ?
+                                nc.reverseChoiceScore : s.forwardChoiceScore);
       bw += (!nc || !nc.reused) ? reverseChoiceScore : 0;
     });
     var p = Math.exp(currScore - oldScore + bw - fw);
