@@ -351,19 +351,21 @@ var makeDeltaERP = function(v) {
   );
 };
 
-var makeCategoricalERP = function(ps, vs) {
+var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
+  var auxParams = {};
   vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
+  auxParams['support'] = function categoricalSupport(params) {return vs};
+  if (extraParams)
+    for (var key in extraParams)
+      if (_.has(extraParams, key))
+        auxParams[key] = extraParams[key];
   return new ERP(
       function categoricalSample(params) {
         return vs[multinomialSample(ps)];
       },
       erpScorers.buildSimpleScorer(dist),
-      {
-        support: function categoricalSupport(params) {
-          return vs
-        }
-      }
+      auxParams
   );
 };
 
