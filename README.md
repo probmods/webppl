@@ -75,7 +75,13 @@ If gjslint complains about style errors (like indentation), you can fix many of 
 To compile webppl for use in browser, run:
 
     npm install -g browserify
-    browserify -t brfs src/main.js > compiled/webppl.js
+    browserify -t brfs src/browser.js > compiled/webppl.js
+
+Packages can also be used in the browser. For example, to include the `webppl-viz` package use:
+
+    browserify -t [./src/bundle.js --require webppl-viz] -t brfs src/browser.js > compiled/webppl.js
+
+Multiple `--require` arguments can be used to include multiple packages.
 
 ## Debugging
 
