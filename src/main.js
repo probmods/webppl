@@ -140,7 +140,7 @@ function webpplEval(k, code, verbose) {
 
 if (!util.runningInBrowser()) {
   // Put eval into global scope. browser version??
-  // Or move to ./webppl of only used outside of the browser.
+  // Or move to ./webppl if only used outside of the browser.
   global.webpplEval = webpplEval;
 }
 
