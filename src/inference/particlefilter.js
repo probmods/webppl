@@ -102,7 +102,6 @@ module.exports = function(env) {
     return this.currentParticle().continuation(this.currentParticle().store);
   };
 
-
   // The three functions below return -1 if there is no active particle
 
   ParticleFilter.prototype.firstActiveParticleIndex = function() {
@@ -122,7 +121,6 @@ module.exports = function(env) {
       return nextActiveIndex;
     }
   };
-
 
   ParticleFilter.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];
@@ -219,6 +217,8 @@ module.exports = function(env) {
     // Return from particle filter by calling original continuation:
     return this.k(this.oldStore, dist);
   };
+
+  ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function pf(s, cc, a, wpplFn, numParticles, strict) {
     return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict === undefined ? true : strict).run();

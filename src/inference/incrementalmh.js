@@ -95,8 +95,6 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    // tabbedlog(0, this.depth, "ERPNode", this.address, this.erp.sample.name.slice(0, -6),
-    //           this.params, this.val, this.reachable ? "" : "!!UNREACHABLE!!");
     tabbedlog(0, this.depth, 'ERPNode', this.erp.sample.name.slice(0, -6),
               this.params, this.val, this.reachable ? '' : '!!UNREACHABLE!!');
   };
@@ -212,7 +210,6 @@ module.exports = function(env) {
   }
 
   FactorNode.prototype.print = function() {
-    // tabbedlog(0, this.depth, "FactorNode", this.address, this.reachable ? "" : "!!UNREACHABLE!!");
     tabbedlog(0, this.depth, 'FactorNode', this.reachable ? '' : '!!UNREACHABLE!!');
   };
 
@@ -324,8 +321,6 @@ module.exports = function(env) {
   }
 
   FunctionNode.prototype.print = function() {
-    // tabbedlog(0, this.depth, "FunctionNode", this.address, this.args, this.retval,
-    //           this.reachable ? "" : "!!UNREACHABLE!!");
     tabbedlog(0, this.depth, 'FunctionNode', this.args, this.retval,
               this.reachable ? '' : '!!UNREACHABLE!!');
     for (var i = 0; i < this.children.length; i++)
@@ -706,8 +701,9 @@ module.exports = function(env) {
           var n = node.children.length;
           while (n--) stack.push(node.children[n]);
         }
-        if (this.idsToRemove[this.id(node.address)])
+        if (this.idsToRemove[this.id(node.address)]) {
           node.removeFromCache();
+        }
       }
       this.idsToRemove = {};
       this.hasIdsToRemove = false;

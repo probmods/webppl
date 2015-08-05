@@ -5,6 +5,7 @@ var types = require('ast-types');
 var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
+var estraverse = require('estraverse');
 
 var cps = require('./transforms/cps').cps;
 var optimize = require('./transforms/optimize').optimize;
@@ -42,6 +43,19 @@ function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
 }
 
+function cachingRequired(programAST) {
+  var flag = false;
+  estraverse.traverse(programAST, {
+    enter: function(node) {
+      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+        flag = true;
+        this.break();
+      }
+    }
+  });
+  return flag;
+}
+
 function prepare(programCode, verbose, doCaching) {
   if (verbose && console.time) {
     console.time('prepare');
@@ -70,7 +84,7 @@ function prepare(programCode, verbose, doCaching) {
   return out;
 }
 
-function compile(programCode, verbose, doCaching) {
+function compile(programCode, verbose) {
   if (verbose && console.time) {
     console.time('compile');
   }
@@ -92,8 +106,12 @@ function compile(programCode, verbose, doCaching) {
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
 
-  if (doCaching)
+  var doCaching = cachingRequired(programAST);
+
+  if (doCaching) {
+    if (verbose) console.log('Caching transforms will be applied.');
     programAST = caching(programAST);
+  }
 
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 

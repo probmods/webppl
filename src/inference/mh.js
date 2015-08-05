@@ -7,6 +7,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
 var diagnostics = require('./mh-diagnostics/diagnostics.js')
+var logHist = require('../util.js').logHist;
 
 module.exports = function(env) {
 
@@ -77,7 +78,8 @@ module.exports = function(env) {
     var bw = -Math.log(trace.length - proposalBoundary);
     oldTrace.slice(regenFrom).map(function(s) {
       var nc = findChoice(trace, s.name);
-      var reverseChoiceScore = (s.reverseChoiceScore !== undefined) ? s.reverseChoiceScore : s.forwardChoiceScore;
+      var reverseChoiceScore = ((nc && nc.reverseChoiceScore !== undefined) ?
+                                nc.reverseChoiceScore : s.forwardChoiceScore);
       bw += (!nc || !nc.reused) ? reverseChoiceScore : 0;
     });
     var p = Math.exp(currScore - oldScore + bw - fw);
@@ -185,7 +187,7 @@ module.exports = function(env) {
 
       return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
     } else {
-      var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
+      var dist = erp.makeMarginalERP(logHist(this.returnHist));
 
       // Reinstate previous coroutine:
       var k = this.k;
@@ -201,6 +203,8 @@ module.exports = function(env) {
       return k(this.oldStore, dist);
     }
   };
+
+  MH.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function mh(s, cc, a, wpplFn, numIterations, burn, diagnostics) {
     return new MH(s, cc, a, wpplFn, numIterations, burn, diagnostics).run();
