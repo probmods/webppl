@@ -121,33 +121,14 @@ function compile(programCode, verbose) {
   return out;
 }
 
-// TODO: Understand the difference between run and webpplEval.
-// If I switch ./webppl to use run rather than webpplEval, it's not obvious what
-// changes.
-
-// Called by browser.js
-function run(code, contFun, verbose) {
-  var compiledCode = compile(code, verbose);
-  eval(compiledCode)({}, contFun, '');
-}
-
-// Called by ./webppl
-// Compile and run some webppl code in global scope:
-function webpplEval(k, code, verbose) {
+function run(code, k, verbose) {
   var compiledCode = compile(code, verbose);
   eval.call(global, compiledCode)({}, k, '');
-}
-
-if (!util.runningInBrowser()) {
-  // Put eval into global scope. browser version??
-  // Or move to ./webppl if only used outside of the browser.
-  global.webpplEval = webpplEval;
 }
 
 module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
-  webpplEval: webpplEval,
   run: run,
   prepare: prepare,
   compile: compile,
