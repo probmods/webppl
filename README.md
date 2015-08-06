@@ -148,7 +148,7 @@ If your Javascript isn't in an `index.js` file in the root of the package, you s
 
 Note that packages must export functions as properties of an object. Exporting functions directly will not work as expected.
 
-### Additional header files
+#### Additional header files
 
 Sometimes, it is useful to define external functions that are able to access WebPPL internals. Header files have access to the following:
 
