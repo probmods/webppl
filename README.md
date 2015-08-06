@@ -127,7 +127,7 @@ You can automatically prepend WebPPL files to your code by added a `wppl` entry 
     {
       "name": "my-package"
       "webppl": {
-        "wppl": [myLibrary.wppl]
+        "wppl": ["myLibrary.wppl"]
       }
     }
 
@@ -176,7 +176,7 @@ Let's use the example of a function that makes the current address available in 
         {
           "name": "my-package"
           "webppl": {
-            "headers": [addressHeader.js]
+            "headers": ["addressHeader.js"]
           }
         }
 
