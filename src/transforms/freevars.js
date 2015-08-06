@@ -77,11 +77,23 @@ function exit(node) {
         freeVarNodes.push(build.identifier(name));
       }
       boundVarsStack.pop();
-      return build.callExpression(
+      var wrappedFn = build.callExpression(
           build.memberExpression(build.identifier('_Fn'),
           build.identifier('tag'), false),
           [node, build.literal(genid(0)), build.arrayExpression(freeVarNodes)]
-      );
+          );
+      // Also, if we're exiting a nested function, add all free variables of
+      //    that function to the outer function (if they are not bound in
+      //    the outer function)
+      if (freeVarsStack.length > 0) {
+        var outerFreeVars = freeVarsStack[freeVarsStack.length - 1];
+        var outerBoundVars = boundVarsStack[boundVarsStack.length - 1];
+        for (var name in freeVars) {
+          if (outerBoundVars[name] === undefined)
+            outerFreeVars[name] = true;
+        }
+      }
+      return wrappedFn;
     default:
   }
   nodeStack.pop();

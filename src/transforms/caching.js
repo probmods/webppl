@@ -10,7 +10,7 @@ var isPrimitive = require('../syntax').isPrimitive;
 
 
 // TODO: Auto-extract this list, somehow?
-var knownERPs = [
+var cacheExempt = [
   'flip',
   'randomInteger',
   'discrete',
@@ -23,13 +23,15 @@ var knownERPs = [
   'beta',
   'exponential',
   'gamma',
-  'factor'
+  'factor',
+  'sample',
+  'sampleWithFactor'
 ];
-var knownERPtable = {};
-_.each(knownERPs, function(erpname) {
-  knownERPtable[erpname] = true;
+var cacheExemptTable = {};
+_.each(cacheExempt, function(erpname) {
+  cacheExemptTable[erpname] = true;
 });
-knownERPs = knownERPtable;
+cacheExempt = cacheExemptTable;
 
 function shouldCache(callee) {
   // Don't cache 'primitive' functions. It actually could be benficial to cache
@@ -37,9 +39,13 @@ function shouldCache(callee) {
   //    systemic changes that I don't want to deal with right now.
   if (isPrimitive(callee))
     return false;
-  // Don't cache ERPs, because those are already handled specially
-  //    (Caching them isn't wrong, it's just unnecessary)
-  if (callee.type === Syntax.Identifier && knownERPs[callee.name])
+  // Don't cache ERPs or other coroutine functions that deal with ERPs.
+  // Why do this? If the cache adaptation decides to remove one of these functions,
+  //    then that function will have the same address as the ERP it's dealing with,
+  //    so the adapter will also try to remove the ERP.
+  // Basically, a core assumption of IncrementalMH is that all cache nodes have unique
+  //    addresses.
+  if (callee.type === Syntax.Identifier && cacheExempt[callee.name])
     return false;
   // Otherwise, go ahead
   return true;

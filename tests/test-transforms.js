@@ -309,6 +309,14 @@ var tests = {
 
   ],
 
+  testDebuggerStatement: [
+
+    { name: 'test',
+      code: 'debugger; true;',
+      expected: true }
+
+  ],
+
   testBlockStatement: [
 
     { name: 'testProgram',

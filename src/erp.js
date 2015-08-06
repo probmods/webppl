@@ -39,9 +39,13 @@ function ERP(sampler, scorer, auxParams) {
   }
 }
 
+ERP.prototype.isContinuous = function() {
+  return !this.support
+}
+
 ERP.prototype.MAP = function() {
   if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
+    throw 'Cannot compute MAP for ERP without support!'
   var supp = this.support([]);
   var mapEst = {val: undefined, prob: 0};
   for (var i = 0, l = supp.length; i < l; i++) {
@@ -459,22 +463,23 @@ function multinomialSample(theta) {
 
 // Make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
-
+  assert.ok(_.size(marginal) > 0);
   // Normalize distribution:
-  var norm = 0;
+  var norm = -Infinity;
   var supp = [];
   for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
     var d = marginal[v];
-    norm += d.prob;
+    norm = util.logsumexp([norm, d.prob]);
     supp.push(d.val);
   }}
   var mapEst = {val: undefined, prob: 0};
   for (v in marginal) {if (marginal.hasOwnProperty(v)) {
     var dd = marginal[v];
-    var nprob = dd.prob / norm;
-    if (nprob > mapEst.prob)
-      mapEst = {val: dd.val, prob: nprob};
-    marginal[v].prob = nprob;
+    var nprob = dd.prob - norm;
+    var nprobS = Math.exp(nprob)
+    if (nprobS > mapEst.prob)
+      mapEst = {val: dd.val, prob: nprobS};
+    marginal[v].prob = nprobS;
   }}
 
   // Make an ERP from marginal:

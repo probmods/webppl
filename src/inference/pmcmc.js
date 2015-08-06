@@ -187,7 +187,7 @@ module.exports = function(env) {
         return this.activeContinuationWithStore();
 
       } else {
-        var dist = erp.makeMarginalERP(this.returnHist);
+        var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
 
         // Reinstate previous coroutine:
         env.coroutine = this.oldCoroutine;
