@@ -3,7 +3,7 @@ SRCFILES = $(wildcard ../src/*.js) \
 		   $(wildcard ../src/inference/*.js) \
 		   $(wildcard ../src/transforms/*.js) \
 		   ../src/header.wppl
-MAINFILE = ../src/main.js
+MAINFILE = ../src/browser.js
 MINIFIED = webppl.min.js
 BROWSERIFIED = webppl.js
 

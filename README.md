@@ -75,7 +75,13 @@ If gjslint complains about style errors (like indentation), you can fix many of 
 To compile webppl for use in browser, run:
 
     npm install -g browserify
-    browserify -t brfs src/main.js > compiled/webppl.js
+    browserify -t brfs src/browser.js > compiled/webppl.js
+
+Packages can also be used in the browser. For example, to include the `webppl-viz` package use:
+
+    browserify -t [./src/bundle.js --require webppl-viz] -t brfs src/browser.js > compiled/webppl.js
+
+Multiple `--require` arguments can be used to include multiple packages.
 
 ## Debugging
 
@@ -93,57 +99,58 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     node-inspector
 
 
-## Using external functions
+## Packages
 
-### WebPPL code
+WebPPL packages are regular Node.js packages optionally extended to include WebPPL code and headers.
 
-You can automatically prepend a webppl file `myLibrary.wppl` to your code using the following command:
+To make a package available in your program use the `--require` argument:
 
-    webppl myFile.wppl --require-wppl myLibrary.wppl
+    webppl myFile.wppl --require myPackage
 
-### Javascript functions and libraries
+WebPPL will search the following locations for packages:
 
-Using the example of reading and writing CSV files:
+1. The `node_modules` directory within the directory in which your program is stored.
+2. The `.webppl/node_modules` directory within your home directory. Packages can be installed into this directory with `npm install --prefix ~/.webppl myPackage`.
 
-1. Install any node modules you want to use:
+Packages can be loaded from other locations by passing a path:
 
-        npm install -g babyparse
+    webppl myFile.wppl --require ../myPackage
 
-2. Write a Javascript file that exports the functions you want to use:
-    
-        // simpleCSV.js
-        
-        var fs = require('fs');
-        var babyparse = require('babyparse');
-        
-        function readCSV(filename){
-          return babyparse.parse(fs.readFileSync(filename, 'utf8'));
-        };
-        
-        function writeCSV(jsonCSV, filename){
-          fs.writeFileSync(filename, babyparse.unparse(jsonCSV) + "\n");
-        }
-        
-        module.exports = {
-          readCSV: readCSV,
-          writeCSV: writeCSV
-        };
+### Package Structure
 
-2. Write a WebPPL file that uses your new functions (with module qualifier):
+Packages can extend WebPPL in three ways:
 
-        // csvTest.wppl
-        
-        var myCSVdata = simpleCSV.readCSV('myinput.csv');
-        var myNewData = myCSVdata.data.concat([["foo", 3], ["bar", 10]]);
-        simpleCSV.writeCSV(myNewData, 'myoutput.csv');
+#### WebPPL code
 
-3. Run your WebPPL file with `require` command line flag:
+You can automatically prepend WebPPL files to your code by added a `wppl` entry to `package.json`. For example:
 
-        webppl csvTest.wppl --require-js ./simpleCSV.js
+    {
+      "name": "my-package"
+      "webppl": {
+        "wppl": [myLibrary.wppl]
+      }
+    }
+
+#### Javascript functions and libraries
+
+Any regular Javascript code within a package is made available in WebPPL as a global variable. The global variable takes the same name as the package except when the package name includes one or more `-` characters. In such cases the name of the global variable is obtained by converting the package name to camelCase.
+
+For example, if the package `my-package` contains this file:
+
+    // index.js
+    module.exports = {
+      myAdd: function(x, y) { return x + y; }
+    };
+
+Then the function `myAdd` will be available in WebPPL as `myPackage.myAdd`.
+
+If your Javascript isn't in an `index.js` file in the root of the package, you should indicate the entry point to your package by adding a `main` entry to `package.json`.
+
+Note that packages must export functions as properties of an object. Exporting functions directly will not work as expected.
 
 ### Additional header files
 
-Sometimes, it is useful to define external functions that are able to access WebPPL internals not usually exposed to the user. Header files have access to the following:
+Sometimes, it is useful to define external functions that are able to access WebPPL internals. Header files have access to the following:
 
 * The store, continuation, and address arguments that are present at any point in a WebPPL program.
 * The `env` container which allows access to `env.coroutine` among other things.
@@ -156,7 +163,7 @@ Let's use the example of a function that makes the current address available in 
 
         module.exports = function(env) {
 
-          function myGetAddress(store, k, address){
+          function myGetAddress(store, k, address) {
             return k(store, address);
           };
 
@@ -164,22 +171,27 @@ Let's use the example of a function that makes the current address available in 
 
         };
 
-2. Write a WebPPL file that uses your new functions (without module qualifier):
+2. Add a `headers` entry to `package.json`:
+
+        {
+          "name": "my-package"
+          "webppl": {
+            "headers": [addressHeader.js]
+          }
+        }
+
+3. Write a WebPPL file that uses your new functions (without module qualifier):
 
         // addressTest.wppl
 
-        var foo = function(){
-          var bar = function(){
+        var foo = function() {
+          var bar = function() {
             console.log(myGetAddress());
           }
-          bar()
-        }
-        
-        foo()
+          bar();
+        };
 
-3. Run your WebPPL file with `require-header` command line flag:
-
-        webppl addressTest.wppl --require-header ./addressHeader.js
+        foo();
 
 ## Updating the npm package
 
