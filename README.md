@@ -133,7 +133,7 @@ You can automatically prepend WebPPL files to your code by added a `wppl` entry 
 
 #### Javascript functions and libraries
 
-Any regular Javascript code within a package is made available in WebPPL as a global variable. The name of the variable is derived from the package name by replacing all occurrences of `-` with `_`.
+Any regular Javascript code within a package is made available in WebPPL as a global variable. The global variable takes the same name as the package except when the package name includes one or more `-` characters. In such cases the name of the global variable is obtained by converting the package name to camelCase.
 
 For example, if the package `my-package` contains this file:
 
@@ -142,7 +142,7 @@ For example, if the package `my-package` contains this file:
       myAdd: function(x, y) { return x + y; }
     };
 
-Then the function `myAdd` will be available in WebPPL as `my_package.myAdd`.
+Then the function `myAdd` will be available in WebPPL as `myPackage.myAdd`.
 
 If your Javascript isn't in an `index.js` file in the root of the package, you should indicate the entry point to your package by adding a `main` entry to `package.json`.
 

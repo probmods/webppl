@@ -25,6 +25,17 @@ var isPath = function(s) {
   return s.indexOf(path.sep) >= 0 || s.substr(0, 1) === '.';
 };
 
+var toCamelCase = function(name) {
+  return _.chain(name.split('-')).compact().map(function(s, i) {
+    return i > 0 ? upcaseInitial(s) : s;
+  }).value().join('');
+};
+
+var upcaseInitial = function(s) {
+  if (s.length === 0) return s;
+  return s[0].toUpperCase() + s.slice(1);
+};
+
 var read = function(name_or_path, paths, verbose) {
   var paths = paths || [globalPkgDir()];
   var log = verbose ? function(x) { console.warn(x); return x; } : _.identity;
@@ -40,7 +51,7 @@ var read = function(name_or_path, paths, verbose) {
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
           name: name,
-          js: isJsModule(candidate) && { identifier: name.replace(/-/g, '_'), path: candidate },
+          js: isJsModule(candidate) && { identifier: toCamelCase(name), path: candidate },
           headers: _.map(manifest.headers, joinPath),
           wppl: _.map(manifest.wppl, joinPath)
         };
