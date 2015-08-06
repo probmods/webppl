@@ -6,6 +6,7 @@ var ERP = require('./erp.js').ERP;
 
 var Trace = function() {
   this.choices = [];
+  this.addressMap = {}; // Maps addresses => choices.
   this.length = 0;
   this.score = 0;
 };
@@ -15,9 +16,7 @@ Trace.prototype.choiceAtIndex = function(index) {
 };
 
 Trace.prototype.findChoice = function(address) {
-  for (var i = 0; i < this.choices.length; i++) {
-    if (this.choices[i].name === address) return this.choices[i];
-  }
+  return this.addressMap[address];
 };
 
 Trace.prototype.saveContinuation = function(continuation, store) {
@@ -42,7 +41,7 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
 
   var choiceScore = erp.score(params, value);
 
-  this.choices.push({
+  var choice = {
     k: continuation,
     name: address,
     erp: erp,
@@ -52,10 +51,13 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
     val: value,
     s: _.clone(store),
     reused: reuse // TODO: MH specific. OK, or store elsewhere?
-  });
+  };
 
+  this.choices.push(choice);
+  this.addressMap[address] = choice;
   this.length += 1;
   this.score += choiceScore;
+  this.cc();
 };
 
 Trace.prototype.complete = function(value) {
@@ -76,22 +78,33 @@ Trace.prototype.upto = function(i) {
 
   var t = new Trace();
   t.choices = this.choices.slice(0, i);
+  t.choices.forEach(function(choice) { t.addressMap[choice.name] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
-
+  t.cc();
   return t;
 };
 
 Trace.prototype.copy = function() {
   var t = new Trace();
   t.choices = this.choices.slice(0);
+  t.addressMap = _.clone(this.addressMap);
   t.length = this.length;
   t.score = this.score;
   t.k = this.k;
   t.store = _.clone(this.store);
   t.value = this.value;
+  t.cc();
   return t;
-},
+};
+
+Trace.prototype.cc = function() {
+  assert(this.choices.length === this.length);
+  assert(_.keys(this.addressMap).length === this.length);
+  this.choices.forEach(function(choice) {
+    assert(_.has(this.addressMap, choice.name));
+  }, this);
+};
 
 module.exports = {
   Trace: Trace
