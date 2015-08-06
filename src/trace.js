@@ -4,7 +4,7 @@ var _clone = require('underscore').clone;
 
 // Trace Entry
 
-function TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceScore, postTraceScore) {
+function TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preChoiceScore, postChoiceScore) {
   this.store = s;
   this.continuation = k;
   this.address = a;
@@ -12,16 +12,16 @@ function TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceScore, 
   this.erpParams = erpParams;
   this.erpScore = erpScore;
   this.erpValue = erpValue;
-  this.preTraceScore = preTraceScore;
-  this.postTraceScore = postTraceScore;
+  this.preChoiceScore = preChoiceScore;
+  this.postChoiceScore = postChoiceScore;
 }
 
 TraceEntry.prototype.isContinuous = function() {
   return this.erp ? this.erp.isContinuous() : false;
 };
 
-function makeTraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceScore, postTraceScore) {
-  return new TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preTraceScore, postTraceScore);
+function makeTraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preChoiceScore, postChoiceScore) {
+  return new TraceEntry(s, k, a, erp, erpParams, erpScore, erpValue, preChoiceScore, postChoiceScore);
 }
 
 // Trace
@@ -33,7 +33,7 @@ Trace.prototype.addressIndices = undefined; // only for erps, not factors
 Trace.prototype.scoreUpdaterF = function(a, b) { return a + b };
 Trace.prototype.score = function() {
   var len = this.trace.length;
-  return len > 0 ? this.trace[len - 1].postTraceScore : 0;
+  return len > 0 ? this.trace[len - 1].postChoiceScore : 0;
 };
 Trace.prototype.append = function(s, k, a, erp, erpParams, score, erpValue) {
   this.trace.push(makeTraceEntry(s, k, a, erp, erpParams, score, erpValue,
