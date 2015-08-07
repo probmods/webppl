@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
+var util = require('../util');
 var Trace = require('../trace.js').Trace;
 
 module.exports = function(env) {
@@ -41,10 +42,14 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.sample = function(s, cont, name, erp, params, forceSample) {
-    var prev = this.oldTrace.findChoice(name);
-    var reuse = !(prev === undefined || forceSample);
-    var val = reuse ? prev.val : erp.sample(params);
-    this.trace.addChoice(erp, params, val, name, s, cont, reuse);
+    var prevChoice = this.oldTrace.findChoice(name);
+    assert(!forceSample || prevChoice); // Check: forceSample => (prevChoice !== undefined)
+    var useDrift = forceSample && erp.proposer;
+    var proposalErp = useDrift ? erp.proposer : erp;
+    // Assumes: forceSample => (prevChoice !== undefined)
+    var proposalParams = useDrift ? [params, prevChoice.val] : params;
+    var val = (forceSample || !prevChoice) ? proposalErp.sample(proposalParams) : prevChoice.val;
+    this.trace.addChoice(erp, params, val, name, s, cont);
     return cont(s, val);
   };
 
@@ -64,19 +69,39 @@ module.exports = function(env) {
     assert(_.isNumber(oldTrace.score));
     assert(_.isNumber(regenFrom));
 
-    var fw = -Math.log(oldTrace.length);
-    trace.choices.slice(regenFrom).map(function(s) {
-      fw += s.reused ? 0 : s.choiceScore;
-    });
-    var bw = -Math.log(trace.length);
-    oldTrace.choices.slice(regenFrom).map(function(s) {
-      var nc = trace.findChoice(s.name);
-      bw += (!nc || !nc.reused) ? s.choiceScore : 0;
-    });
-    var p = Math.exp(trace.score - oldTrace.score + bw - fw);
-    assert.ok(!isNaN(p));
+    var p = Math.exp(trace.score - oldTrace.score + q(trace, oldTrace, regenFrom) - q(oldTrace, trace, regenFrom));
+    assert(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
+  }
+
+  function q(fromTrace, toTrace, r) {
+    // TODO: Add the optimization (?) which skips over choices that were reused.
+
+    // Possible drift proposal at regen ERP.
+    var proposalErp, proposalParams;
+    var regenChoice = toTrace.choices[r];
+
+    if (regenChoice.erp.proposer) {
+      proposalErp = regenChoice.erp.proposer;
+      proposalParams = [regenChoice.params, fromTrace.findChoice(regenChoice.name).val];
+    } else {
+      proposalErp = regenChoice.erp;
+      proposalParams = regenChoice.params;
+    }
+
+    var score = proposalErp.score(proposalParams, regenChoice.val);
+
+    // Rest of the trace.
+    score += util.sum(toTrace.choices.slice(r + 1).map(function(choice) {
+      return choice.erp.score(choice.params, choice.val);
+    }));
+
+    score -= Math.log(fromTrace.length);
+    assert(!isNaN(score));
+    assert(score <= 0);
+
+    return score;
   }
 
   return {

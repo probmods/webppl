@@ -26,7 +26,7 @@ Trace.prototype.saveContinuation = function(continuation, store) {
   this.store = store;
 };
 
-Trace.prototype.addChoice = function(erp, params, value, address, store, continuation, reuse) {
+Trace.prototype.addChoice = function(erp, params, value, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
@@ -36,27 +36,22 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
   assert(_.isObject(store));
   assert(_.isFunction(continuation));
 
-  // Record the score before adding the choiceScore. This is the score we'll
-  // need if we regen from this choice.
-
-  var choiceScore = erp.score(params, value);
-
   var choice = {
     k: continuation,
     name: address,
     erp: erp,
     params: params,
+    // Record the score without adding the choiceScore. This is the score we'll
+    // need if we regen from this choice.
     score: this.score,
-    choiceScore: choiceScore,
     val: value,
-    s: _.clone(store),
-    reused: reuse // TODO: MH specific. OK, or store elsewhere?
+    s: _.clone(store)
   };
 
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score += choiceScore;
+  this.score += erp.score(params, value);
   this.cc();
 };
 
