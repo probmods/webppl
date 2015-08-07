@@ -579,6 +579,48 @@ var makeMultiplexERP = function(vs, erps) {
   );
 };
 
+function gaussianProposalParams(params, prevVal) {
+  var mu = prevVal;
+  var sigma = params[1] * 0.7;
+  return [mu, sigma];
+}
+
+function dirichletProposalParams(params, prevVal) {
+  var concentration = 0.1; // TODO: choose the right parameters.
+  var driftParams = params.map(function(x) {return concentration * x});
+  return driftParams;
+}
+
+function buildProposer(baseERP, getProposalParams) {
+  return new ERP(
+      function sample(params) {
+        var baseParams = params[0];
+        var prevVal = params[1];
+        var proposalParams = getProposalParams(baseParams, prevVal);
+        return baseERP.sample(proposalParams);
+      },
+      function score(params, val) {
+        var baseParams = params[0];
+        var prevVal = params[1];
+        var proposalParams = getProposalParams(baseParams, prevVal);
+        return baseERP.score(proposalParams, val);
+      }
+  );
+}
+
+var gaussianProposer = buildProposer(gaussianERP, gaussianProposalParams);
+var dirichletProposer = buildProposer(dirichletERP, dirichletProposalParams);
+
+var gaussianDriftERP = new ERP(
+    gaussianERP.sample,
+    gaussianERP.score,
+    { proposer: gaussianProposer });
+
+var dirichletDriftERP = new ERP(
+    dirichletERP.sample,
+    dirichletERP.score,
+    { proposer: dirichletProposer });
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -597,5 +639,7 @@ module.exports = {
   makeMarginalERP: makeMarginalERP,
   makeDeltaERP: makeDeltaERP,
   makeCategoricalERP: makeCategoricalERP,
-  makeMultiplexERP: makeMultiplexERP
+  makeMultiplexERP: makeMultiplexERP,
+  gaussianDriftERP: gaussianDriftERP,
+  dirichletDriftERP: dirichletDriftERP
 };
