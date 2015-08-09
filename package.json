@@ -1,7 +1,7 @@
 {
   "name": "webppl",
   "description": "Probabilistic programming for the web",
-  "version": "0.0.13",
+  "version": "0.1.0",
   "author": "webppl contributors",
   "main": "src/main.js",
   "repository": {
@@ -32,13 +32,14 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "brfs": "^1.4.0",
     "closure-linter-wrapper": "^0.2.11",
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.11.1",
     "grunt-contrib-nodeunit": "^0.4.1",
     "grunt-gjslint": "^0.1.6",
     "nodeunit": "^0.9.1",
-    "brfs": "^1.4.0"
+    "through2": "^2.0.0"
   },
   "scripts": {
     "test": "nodeunit tests"
