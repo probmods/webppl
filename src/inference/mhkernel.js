@@ -18,6 +18,7 @@ module.exports = function(env) {
     this.a = a;
 
     this.oldTrace = oldTrace;
+    this.reused = {};
     this.exitAddress = exitAddress;
 
     this.coroutine = env.coroutine;
@@ -52,6 +53,7 @@ module.exports = function(env) {
     } else {
       if (prevChoice) {
         val = prevChoice.val;
+        this.reused[name] = true;
       } else {
         val = erp.sample(params);
       }
@@ -64,29 +66,29 @@ module.exports = function(env) {
   MHKernel.prototype.exit = function(s, val) {
     if (this.exitAddress !== undefined) assert(this.trace.k !== undefined);
     this.trace.complete(val);
-    var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom);
+    var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
     var returnTrace = Math.random() < acceptance ? this.trace : this.oldTrace
     env.coroutine = this.coroutine;
     return this.k(this.s, returnTrace);
   };
 
-  function acceptProb(trace, oldTrace, regenFrom) {
+  function acceptProb(trace, oldTrace, regenFrom, reused) {
     assert(trace !== undefined);
     assert(oldTrace !== undefined);
     assert(_.isNumber(trace.score));
     assert(_.isNumber(oldTrace.score));
     assert(_.isNumber(regenFrom));
 
-    var p = Math.exp(trace.score - oldTrace.score + q(trace, oldTrace, regenFrom) - q(oldTrace, trace, regenFrom));
+    var fw = q(oldTrace, trace, regenFrom, reused);
+    var bw = q(trace, oldTrace, regenFrom, reused);
+    var p = Math.exp(trace.score - oldTrace.score + bw - fw);
     assert(!isNaN(p));
     var acceptance = Math.min(1, p);
     return acceptance;
   }
 
-  function q(fromTrace, toTrace, r) {
-    // TODO: Add the optimization (?) which skips over choices that were reused.
-
-    // Possible drift proposal at regen ERP.
+  function q(fromTrace, toTrace, r, reused) {
+    // Proposed to ERP.
     var proposalErp, proposalParams;
     var regenChoice = toTrace.choices[r];
 
@@ -102,7 +104,7 @@ module.exports = function(env) {
 
     // Rest of the trace.
     score += util.sum(toTrace.choices.slice(r + 1).map(function(choice) {
-      return choice.erp.score(choice.params, choice.val);
+      return reused.hasOwnProperty(choice.name) ? 0 : choice.erp.score(choice.params, choice.val);
     }));
 
     score -= Math.log(fromTrace.length);
