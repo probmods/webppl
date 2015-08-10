@@ -42,13 +42,21 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.sample = function(s, cont, name, erp, params, forceSample) {
-    var prevChoice = this.oldTrace.findChoice(name);
-    assert(!forceSample || prevChoice); // Check: forceSample => (prevChoice !== undefined)
-    var useDrift = forceSample && erp.proposer;
-    var proposalErp = useDrift ? erp.proposer : erp;
-    // Assumes: forceSample => (prevChoice !== undefined)
-    var proposalParams = useDrift ? [params, prevChoice.val] : params;
-    var val = (forceSample || !prevChoice) ? proposalErp.sample(proposalParams) : prevChoice.val;
+    var val, prevChoice = this.oldTrace.findChoice(name);
+
+    if (forceSample) {
+      assert(prevChoice);
+      var proposalErp = erp.proposer || erp;
+      var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
+      val = proposalErp.sample(proposalParams);
+    } else {
+      if (prevChoice) {
+        val = prevChoice.val;
+      } else {
+        val = erp.sample(params);
+      }
+    }
+
     this.trace.addChoice(erp, params, val, name, s, cont);
     return cont(s, val);
   };
