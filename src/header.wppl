@@ -216,10 +216,6 @@ var entropy = function(erp) {
   return erp.entropy();
 };
 
-var noisyEq = function(v, mu, sigma) {
-  return flip(Math.exp(gaussianERP.score([mu, sigma], v))) ? 0 : -Infinity;
-}
-
 // Data structures & higher-order functions
 
 var append = function(a, b) {
