@@ -160,7 +160,9 @@ function std(hist) {
 }
 
 function getOpt(optObject, option, defaultValue) {
-  return (optObject && optObject[option]) ? optObject[option] : defaultValue;
+  return (optObject && optObject[option] !== undefined) ?
+    optObject[option] :
+    defaultValue;
 }
 
 module.exports = {
