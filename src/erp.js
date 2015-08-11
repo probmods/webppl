@@ -510,42 +510,28 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-// Make an ERP that assigns probability 1 to a single value, probability 0 to everything else
-var makeDeltaERP = function(v) {
-  var stringifiedValue = JSON.stringify(v);
-  return new ERP(
-      function deltaSample(params) {
-        return v;
-      },
-      function deltaScore(params, val) {
-        if (JSON.stringify(val) === stringifiedValue) {
-          return 0;
-        } else {
-          return -Infinity;
-        }
-      },
-      {
-        support: function deltaSupport(params) {
-          return [v];
-        }
+// note: ps are expected to be normalized
+var makeCategoricalERP = function(ps, vs, extraParams) {
+  var dist = {};
+  var auxParams = {};
+  vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
+  auxParams['support'] = function categoricalSupport(params) {return vs};
+  if (extraParams) {
+    for (var key in extraParams) {
+      if (_.has(extraParams, key)) {
+        auxParams[key] = extraParams[key];
       }
-  );
-};
-
-var makeCategoricalERP = function(ps, vs) {
+    }
+  }
   return new ERP(
       function categoricalSample(params) {
         return vs[multinomialSample(ps)];
       },
       function categoricalScore(params, val) {
-        var i = vs.indexOf(val);
-        return i < 0 ? -Infinity : Math.log(ps[i]);
+        var lk = dist[JSON.stringify(val)];
+        return lk ? Math.log(lk.prob) : -Infinity;
       },
-      {
-        support: function categoricalSupport(params) {
-          return vs
-        }
-      }
+      auxParams
   );
 };
 
@@ -600,7 +586,6 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP,
   makeCategoricalERP: makeCategoricalERP,
   makeMultiplexERP: makeMultiplexERP
 };
