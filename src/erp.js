@@ -517,15 +517,11 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
   vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
   auxParams['support'] = function categoricalSupport(params) {return vs};
   if (extraParams) {
-    for (var key in extraParams) {
-      if (_.has(extraParams, key)) {
-        auxParams[key] = extraParams[key];
-      }
-    }
+    _.each(extraParams, function(v, k) {auxParams[k] = v;})
   }
   var categoricalSample = vs.length === 1 ?
-      function(params) { console.log('there'); return vs[0]; } :
-      function(params) { console.log('here'); return vs[multinomialSample(ps)]; };
+      function(params) { return vs[0]; } :
+      function(params) { return vs[multinomialSample(ps)]; };
   return new ERP(
       categoricalSample,
       function categoricalScore(params, val) {
