@@ -524,8 +524,8 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
     }
   }
   var categoricalSample = vs.length === 1 ?
-      function (params) { console.log('there'); return vs[0]; } :
-      function (params) { console.log('here'); return vs[multinomialSample(ps)]; };
+      function(params) { console.log('there'); return vs[0]; } :
+      function(params) { console.log('here'); return vs[multinomialSample(ps)]; };
   return new ERP(
       categoricalSample,
       function categoricalScore(params, val) {
