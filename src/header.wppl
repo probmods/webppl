@@ -104,32 +104,32 @@ var makeDirichletDiscrete = function(pseudocounts) {
 
 // put here because liftFn is a wppl-transformed fn
 var liftERP = function(erp, liftFn) {
-  var augS = map(function(be) {
-    var bep = erp.score([], be);
-    var liftedS = liftFn(be);
+  var augmentedSupport = map(function(baseEntity) {
+    var baseEntityScore = erp.score([], baseEntity);
+    var liftedSupport = liftFn(baseEntity);
     return {
-      k: JSON.stringify(liftedS),
-      vs: [be],
-      ps: [bep],
-      liftedS: liftedS,
-      aggP: bep
+      k: JSON.stringify(liftedSupport),
+      vs: [baseEntity],
+      ps: [baseEntityScore],
+      liftedSupport: liftedSupport,
+      aggregateScore: baseEntityScore
     };
   }, erp.support());
-  var eqClasses = groupBy(function(e, f) {return e.k === f.k}, augS);
-  var eqClassesP = map(function(c) {
-    return [c[0].k,
+  var eqClasses = groupBy(function(e, f) {return e.k === f.k}, augmentedSupport);
+  var eqClassesStructured = map(function(eqClass) {
+    return [eqClass[0].k,
             mapReduce1(function(a, b) {
               return {
                 vs: a.vs.concat(b.vs),
                 ps: a.ps.concat(b.ps),
-                liftedS: a.liftedS,
-                aggP: util.logsumexp([a.aggP, b.aggP])
+                liftedSupport: a.liftedSupport,
+                aggregateScore: util.logsumexp([a.aggregateScore, b.aggregateScore])
               };
-            }, idF, c)]
+            }, idF, eqClass)]
   }, eqClasses);
-  var vs = map(function(e) {return e[1].liftedS}, eqClassesP);
-  var ps = map(function(e) {return Math.exp(e[1].aggP)}, eqClassesP);
-  return categoricalERP(ps, vs, {baseERPEntries: _.object(eqClassesP)});
+  var vs = map(function(e) {return e[1].liftedSupport}, eqClassesStructured);
+  var ps = map(function(e) {return Math.exp(e[1].aggregateScore)}, eqClassesStructured);
+  return categoricalERP(ps, vs, {baseERPEntries: _.object(eqClassesStructured)});
 };
 
 // Arithmetic and other functionals
