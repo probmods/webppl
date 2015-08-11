@@ -510,7 +510,7 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-// note: ps are expected to be normalized
+// note: ps is expected to be normalized
 var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
   var auxParams = {};
@@ -523,10 +523,11 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
       }
     }
   }
+  var categoricalSample = vs.length === 1 ?
+      function (params) { console.log('there'); return vs[0]; } :
+      function (params) { console.log('here'); return vs[multinomialSample(ps)]; };
   return new ERP(
-      function categoricalSample(params) {
-        return vs[multinomialSample(ps)];
-      },
+      categoricalSample,
       function categoricalScore(params, val) {
         var lk = dist[JSON.stringify(val)];
         return lk ? Math.log(lk.prob) : -Infinity;
