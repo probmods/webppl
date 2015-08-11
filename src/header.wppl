@@ -102,6 +102,36 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
+// put here because liftFn is a wppl-transformed fn
+var liftERP = function(erp, liftFn) {
+  var augS = map(function(be) {
+    var bep = erp.score([], be);
+    var liftedS = liftFn(be);
+    return {
+      k: JSON.stringify(liftedS),
+      vs: [be],
+      ps: [bep],
+      liftedS: liftedS,
+      aggP: bep
+    };
+  }, erp.support());
+  var eqClasses = groupBy(function(e, f) {return e.k === f.k}, augS);
+  var eqClassesP = map(function(c) {
+    return [c[0].k,
+            mapReduce1(function(a, b) {
+              return {
+                vs: a.vs.concat(b.vs),
+                ps: a.ps.concat(b.ps),
+                liftedS: a.liftedS,
+                aggP: util.logsumexp([a.aggP, b.aggP])
+              };
+            }, idF, c)]
+  }, eqClasses);
+  var vs = map(function(e) {return e[1].liftedS}, eqClassesP);
+  var ps = map(function(e) {return Math.exp(e[1].aggP)}, eqClassesP);
+  return categoricalERP(ps, vs, {baseERPEntries: _.object(eqClassesP)});
+};
+
 // Arithmetic and other functionals
 
 var plus = function(a, b) {
@@ -185,6 +215,10 @@ var expectation = function(erp, func) {
 var entropy = function(erp) {
   return erp.entropy();
 };
+
+var noisyEq = function(v, mu, sigma) {
+  return flip(Math.exp(gaussianERP.score([mu, sigma], v))) ? 0 : -Infinity;
+}
 
 // Data structures & higher-order functions
 
