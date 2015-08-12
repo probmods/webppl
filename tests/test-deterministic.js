@@ -27,12 +27,12 @@ var testEqual = function(test, actual, expected, name) {
 };
 
 var getModelNames = function() {
-  var filenames = fs.readdirSync(testDataDir + 'util-scripts/');
+  var filenames = fs.readdirSync(testDataDir + 'deterministic/');
   return _.map(filenames, function(fn) { return fn.split('.')[0]; });
 };
 
 var loadModel = function(modelName) {
-  var filename = testDataDir + 'util-scripts/' + modelName + '.wppl';
+  var filename = testDataDir + 'deterministic/' + modelName + '.wppl';
   return fs.readFileSync(filename, 'utf-8');
 };
 
