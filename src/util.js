@@ -165,6 +165,14 @@ function getOpt(optObject, option, defaultValue) {
       defaultValue;
 }
 
+function isErp(x) {
+  return x && _.isFunction(x.score) && _.isFunction(x.sample);
+}
+
+function isErpWithSupport(x) {
+  return isErp(x) && _.isFunction(x.support);
+}
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -184,5 +192,7 @@ module.exports = {
   std: std,
   getOpt: getOpt,
   sum: sum,
-  asArray: asArray
+  asArray: asArray,
+  isErp: isErp,
+  isErpWithSupport: isErpWithSupport
 };

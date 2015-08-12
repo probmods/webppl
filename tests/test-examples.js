@@ -24,18 +24,12 @@ var loadExample = function(example) {
   return fs.readFileSync(filename, 'utf-8');
 };
 
-var isErp = function(erp) {
-  return _.every(['sample', 'support', 'sample'], function(property) {
-    return _.isFunction(erp[property]);
-  })
-};
-
 var generateTestCases = function() {
   _.each(examples, function(example) {
     exports[example] = function(test) {
       test.doesNotThrow(function() {
         webppl.run(loadExample(example), function(s, erp) {
-          test.ok(isErp(erp));
+          test.ok(util.isErp(erp));
         });
       });
       test.done();
