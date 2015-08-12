@@ -171,7 +171,8 @@ var tests = [
     name: 'ParticleFilter2',
     func: 'Infer',
     settings: {
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 }
     },
     models: {
       simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 0 }' },
@@ -184,7 +185,8 @@ var tests = [
     name: 'ParticleFilterRejuv2',
     func: 'Infer',
     settings: {
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 }
     },
     models: {
       simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },

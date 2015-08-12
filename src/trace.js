@@ -83,6 +83,7 @@ Trace.prototype.upto = function(i) {
   t.choices.forEach(function(choice) { t.addressMap[choice.name] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
+  t.weight = this.weight;
   t.cc();
   return t;
 };

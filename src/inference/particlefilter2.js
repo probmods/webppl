@@ -100,10 +100,12 @@ module.exports = function(env) {
     assert(_.some(ws, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
     assert(_.every(ws, function(w) { return w >= 0; }));
 
+    var avgW = util.logsumexp(_.pluck(this.particles, 'weight')) - Math.log(this.numParticles);
+
     this.particles = _.times(this.numParticles, function(i) {
       var ix = erp.multinomialSample(ws);
       var p = this.particles[ix].copy();
-      assert(p.weight === 0);
+      p.weight = avgW;
       return p;
     }, this);
   };
@@ -115,9 +117,9 @@ module.exports = function(env) {
   // need to pass s & a around either.
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
-
+    var w0 = _.first(this.particles).weight;
     assert(
-        _.every(this.particles, function(p) { return p.weight === 0; }),
+        _.every(this.particles, function(p) { return p.weight === w0; }),
         'Cannot rejuvenate weighted particles.');
 
     return util.cpsForEach(
