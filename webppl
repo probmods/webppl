@@ -11,7 +11,7 @@ var git = require('git-rev-2');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
-  if (util.isErpWithSupport(x)) {
+  if (isErpWithSupport(x)) {
     console.log('ERP:');
     var erpValues = x.support([])
       .map(function(v) {
