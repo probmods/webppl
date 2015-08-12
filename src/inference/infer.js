@@ -89,18 +89,18 @@ module.exports = function(env) {
   var PF = function(s, k, a, wpplFn, options) {
     return ParticleFilterCore(s, function(s, particles) {
       var hist = {};
-      var avgW = _.first(particles).weight;
+      var logAvgW = _.first(particles).logWeight;
 
       particles.forEach(function(p) {
         assert(p.value !== undefined);
-        assert(p.weight === avgW, 'Expected un-weighted particles.');
+        assert(p.logWeight === logAvgW, 'Expected un-weighted particles.');
         var r = JSON.stringify(p.value);
         if (hist[r] === undefined) hist[r] = { prob: 0, val: p.value };
         hist[r].prob += 1;
       });
 
       var dist = erp.makeMarginalERP(hist);
-      dist.normalizationConstant = avgW;
+      dist.normalizationConstant = logAvgW;
       return k(s, dist);
 
     }, a, wpplFn, options);

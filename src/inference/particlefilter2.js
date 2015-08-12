@@ -53,7 +53,7 @@ module.exports = function(env) {
     var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
     particle.addChoice(erp, params, val, a, s, k);
-    particle.weight += choiceScore - importanceScore;
+    particle.logWeight += choiceScore - importanceScore;
     return k(s, val);
   };
 
@@ -62,7 +62,7 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.saveContinuation(cc, s);
     particle.score += score;
-    particle.weight += score;
+    particle.logWeight += score;
 
     var cont = function() {
       this.nextParticle();
@@ -95,17 +95,17 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.resampleParticles = function() {
-    var ws = _.map(this.particles, function(p) { return Math.exp(p.weight); });
+    var ws = _.map(this.particles, function(p) { return Math.exp(p.logWeight); });
 
     assert(_.some(ws, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
     assert(_.every(ws, function(w) { return w >= 0; }));
 
-    var avgW = util.logsumexp(_.pluck(this.particles, 'weight')) - Math.log(this.numParticles);
+    var logAvgW = util.logsumexp(_.pluck(this.particles, 'logWeight')) - Math.log(this.numParticles);
 
     this.particles = _.times(this.numParticles, function(i) {
       var ix = erp.multinomialSample(ws);
       var p = this.particles[ix].copy();
-      p.weight = avgW;
+      p.logWeight = logAvgW;
       return p;
     }, this);
   };
@@ -120,9 +120,9 @@ module.exports = function(env) {
 
     // TODO: Return early if we're not doing rejuvenation.
 
-    var w0 = _.first(this.particles).weight;
+    var lw = _.first(this.particles).logWeight;
     assert(
-        _.every(this.particles, function(p) { return p.weight === w0; }),
+        _.every(this.particles, function(p) { return p.logWeight === lw; }),
         'Cannot rejuvenate weighted particles.');
 
     return util.cpsForEach(
