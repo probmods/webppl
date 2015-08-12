@@ -10,14 +10,6 @@ var parseArgs = require('minimist');
 var git = require('git-rev-2');
 var _ = require('underscore');
 
-function isErp(x) {
-  return (x && (x.score != undefined) && (x.sample != undefined));
-}
-
-function isErpWithSupport(x) {
-  return (isErp(x) && (x.support != undefined));
-}
-
 function printWebPPLValue(x) {
   if (isErpWithSupport(x)) {
     console.log('ERP:');
@@ -69,8 +61,6 @@ function compile(code, packages, verbose, outputFile) {
   });
 
   compiledCode += (
-      isErp.toString() + '\n' +
-      isErpWithSupport.toString() + '\n' +
       printWebPPLValue.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +

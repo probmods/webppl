@@ -567,6 +567,14 @@ var makeMultiplexERP = function(vs, erps) {
   );
 };
 
+function isErp(x) {
+  return x && _.isFunction(x.score) && _.isFunction(x.sample);
+}
+
+function isErpWithSupport(x) {
+  return isErp(x) && _.isFunction(x.support);
+}
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -584,5 +592,7 @@ module.exports = {
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
   makeCategoricalERP: makeCategoricalERP,
-  makeMultiplexERP: makeMultiplexERP
+  makeMultiplexERP: makeMultiplexERP,
+  isErp: isErp,
+  isErpWithSupport: isErpWithSupport
 };
