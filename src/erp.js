@@ -68,7 +68,41 @@ ERP.prototype.entropy = function() {
   }
   this.entropy = function() {return e};
   return e;
-}
+};
+
+// ERP serializer (allows JSON.stringify)
+ERP.prototype.toJSON = function() {
+  if (this.support === undefined) {
+    console.log('***Cannot serialize an ERP without support!***')
+    return '<erp>';
+  } else {
+    var erpObj = {};
+    var cc = this;
+    _.forEach(this.support([]), function(s){
+      erpObj[JSON.stringify(s)] = {val: s, prob: Math.exp(cc.score([], s))};
+    })
+    this.toJSON = function() {return erpObj};
+    return erpObj
+  }
+};
+
+ERP.prototype.print = function() {
+  var serialized = this.toJSON();
+  if (serialized === '<erp>') {
+    console.log(serialized + ' => ' + this.sample.name);
+  } else {
+    var erpValues = _.map(this.toJSON(), function(v, k) {return [k, v.prob]})
+        .sort(function(a, b) { return b[1] - a[1] });
+    erpValues.forEach(function(val) {
+      console.log('    ' + val[0] + ' : ' + val[1]);
+    });
+  }
+};
+
+// ERP deserializer
+var erpFromString = function(obj) {
+  return makeMarginalERP(JSON.parse(obj));
+};
 
 var uniformERP = new ERP(
     function uniformSample(params) {
@@ -577,6 +611,7 @@ function isErpWithSupport(x) {
 
 module.exports = {
   ERP: ERP,
+  erpFromString: erpFromString,
   bernoulliERP: bernoulliERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
