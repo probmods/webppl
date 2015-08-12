@@ -68,7 +68,7 @@ var multiplexERP = function(vs, erps) {
   return _top.makeMultiplexERP(vs, erps);
 };
 
-var erpFromString =  function(v) {
+var erpFromString = function(v) {
   return _top.erpFromString(v);
 };
 

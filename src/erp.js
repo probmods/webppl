@@ -78,7 +78,7 @@ ERP.prototype.toJSON = function() {
   } else {
     var erpObj = {};
     var cc = this;
-    _.forEach(this.support([]), function(s){
+    _.forEach(this.support([]), function(s) {
       erpObj[JSON.stringify(s)] = {val: s, prob: Math.exp(cc.score([], s))};
     })
     this.toJSON = function() {return erpObj};
