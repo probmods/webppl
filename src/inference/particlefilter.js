@@ -16,12 +16,6 @@ function isActive(particle) {
 
 module.exports = function(env) {
 
-  function withImportanceDist(s, k, a, erp, importanceERP) {
-    var newERP = _.clone(erp);
-    newERP.importanceERP = importanceERP;
-    return k(s, newERP);
-  }
-
   function copyParticle(particle) {
     return {
       continuation: particle.continuation,
@@ -225,8 +219,7 @@ module.exports = function(env) {
   }
 
   return {
-    ParticleFilter: pf,
-    withImportanceDist: withImportanceDist
+    ParticleFilter: pf
   };
 
 };

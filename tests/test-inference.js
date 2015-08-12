@@ -174,8 +174,23 @@ var tests = [
       hist: { tol: 0.1 }
     },
     models: {
+      simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 0 }' },
+      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 0 }' },
+      importance: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 0 }' },
+      importance2: { args: '{ method: PF, numParticles: 3000, rejuvSteps: 0 }' }
+    }
+  },
+  {
+    name: 'ParticleFilterRejuv2',
+    func: 'Infer',
+    settings: {
+      hist: { tol: 0.1 }
+    },
+    models: {
       simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
-      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' }
+      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      importance: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      importance2: { args: '{ method: PF, numParticles: 3000, rejuvSteps: 10, rejuvKernel: MHKernel }' }
     }
   },
   {

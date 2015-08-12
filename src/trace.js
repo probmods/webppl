@@ -2,7 +2,6 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var ERP = require('./erp.js').ERP;
 
 var Trace = function() {
   this.choices = [];
@@ -26,12 +25,19 @@ Trace.prototype.saveContinuation = function(continuation, store) {
   this.store = store;
 };
 
+// TODO: Re-use the version from ERP module once available.
+var isErp = function(erp) {
+  return _.every(['sample', 'score'], function(property) {
+    return _.isFunction(erp[property]);
+  });
+};
+
 Trace.prototype.addChoice = function(erp, params, value, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
-  assert(erp instanceof ERP);
-  assert(_.isArray(params));
+  assert(isErp(erp));
+  assert(_.isUndefined(params) || _.isArray(params));
   assert(_.isString(address));
   assert(_.isObject(store));
   assert(_.isFunction(continuation));

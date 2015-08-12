@@ -9,7 +9,6 @@ var Trace = require('../trace.js').Trace;
 // 1. Is doesn't handle variable numbers of factors.
 // 2. Multinomial resampling strategy.
 // 3. No final rejevenation at exit.
-// 4. No support for importance ERPs.
 
 module.exports = function(env) {
 
@@ -32,6 +31,7 @@ module.exports = function(env) {
     for (var i = 0; i < this.numParticles; i++) {
       var p = new Trace();
       p.saveContinuation(exitK, _.clone(s));
+      p.weight = 0;
       this.particles.push(p);
     }
 
@@ -48,9 +48,13 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.sample = function(s, k, a, erp, params) {
-    var val = erp.sample(params);
+    var importanceERP = erp.importanceERP || erp;
+    var val = importanceERP.sample(params);
+    var importanceScore = importanceERP.score(params, val);
+    var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
     particle.addChoice(erp, params, val, a, s, k);
+    particle.weight += choiceScore - importanceScore;
     return k(s, val);
   };
 
@@ -59,7 +63,7 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.saveContinuation(cc, s);
     particle.score += score;
-    particle.weight = score; // Importance weights for resampling.
+    particle.weight += score; // Importance weights for resampling.
 
     var cont = function() {
       this.nextParticle();
@@ -99,7 +103,9 @@ module.exports = function(env) {
 
     this.particles = _.times(this.numParticles, function(i) {
       var ix = erp.multinomialSample(ws);
-      return this.particles[ix].copy();
+      var p = this.particles[ix].copy();
+      p.weight = 0;
+      return p;
     }, this);
   };
 
@@ -110,6 +116,11 @@ module.exports = function(env) {
   // need to pass s & a around either.
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
+
+    assert(
+        _.every(this.particles, function(p) { return p.weight === 0; }),
+        'Cannot rejuvenate weighted particles.');
+
     return util.cpsForEach(
         function(p, i, ps, next) {
           return this.rejuvenateParticle(next, i, exitAddress);
@@ -144,6 +155,7 @@ module.exports = function(env) {
           }, particle);
         },
         function() {
+          particle.weight = 0;
           this.particles[i] = particle;
           return cont();
         }.bind(this)
@@ -165,6 +177,12 @@ module.exports = function(env) {
     return this.k(this.s, this.particles);
   };
 
+  function withImportanceDist(s, k, a, erp, importanceERP) {
+    var newERP = _.clone(erp);
+    newERP.importanceERP = importanceERP;
+    return k(s, newERP);
+  }
+
   return {
     // TODO: Better names.
     ParticleFilterCore: function(s, k, a, wpplFn, options) {
@@ -176,7 +194,8 @@ module.exports = function(env) {
       return ParticleFilterCore(s, function(s, particles) {
         return k(s, particles[0]);
       }, a, wpplFn, { numParticles: 10, rejuvSteps: 0 });
-    }
+    },
+    withImportanceDist: withImportanceDist
   };
 
 };
