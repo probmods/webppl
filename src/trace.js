@@ -8,6 +8,7 @@ var Trace = function() {
   this.addressMap = {}; // Maps addresses => choices.
   this.length = 0;
   this.score = 0;
+  this.weight = 0; // Importance weight.
 };
 
 Trace.prototype.choiceAtIndex = function(index) {

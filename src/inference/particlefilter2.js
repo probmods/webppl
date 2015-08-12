@@ -27,11 +27,10 @@ module.exports = function(env) {
     };
 
     // Create initial particles.
-    // Particles are partial/incomplete traces.
+    // Particles are partial traces.
     for (var i = 0; i < this.numParticles; i++) {
       var p = new Trace();
       p.saveContinuation(exitK, _.clone(s));
-      p.weight = 0;
       this.particles.push(p);
     }
 
@@ -63,7 +62,7 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.saveContinuation(cc, s);
     particle.score += score;
-    particle.weight += score; // Importance weights for resampling.
+    particle.weight += score;
 
     var cont = function() {
       this.nextParticle();
@@ -104,7 +103,7 @@ module.exports = function(env) {
     this.particles = _.times(this.numParticles, function(i) {
       var ix = erp.multinomialSample(ws);
       var p = this.particles[ix].copy();
-      p.weight = 0;
+      assert(p.weight === 0);
       return p;
     }, this);
   };
@@ -155,7 +154,6 @@ module.exports = function(env) {
           }, particle);
         },
         function() {
-          particle.weight = 0;
           this.particles[i] = particle;
           return cont();
         }.bind(this)
