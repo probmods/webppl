@@ -117,6 +117,9 @@ module.exports = function(env) {
   // need to pass s & a around either.
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
+
+    // TODO: Return early if we're not doing rejuvenation.
+
     var w0 = _.first(this.particles).weight;
     assert(
         _.every(this.particles, function(p) { return p.weight === w0; }),
