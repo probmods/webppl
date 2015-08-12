@@ -334,37 +334,24 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-// Make an ERP that assigns probability 1 to a single value, probability 0 to everything else
-var makeDeltaERP = function(v) {
-  var dist = {};
-  dist[JSON.stringify(v)] = {val: v, prob: 1}
-  return new ERP(
-      function deltaSample(params) {
-        return v;
-      },
-      erpScorers.buildSimpleScorer(dist),
-      {
-        support: function deltaSupport(params) {
-          return [v];
-        }
-      }
-  );
-};
-
+// note: ps is expected to be normalized
 var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
   var auxParams = {};
   vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
   auxParams['support'] = function categoricalSupport(params) {return vs};
-  if (extraParams)
-    for (var key in extraParams)
-      if (_.has(extraParams, key))
-        auxParams[key] = extraParams[key];
+  if (extraParams) {
+    _.each(extraParams, function(v, k) {auxParams[k] = v;})
+  }
+  var categoricalSample = vs.length === 1 ?
+      function(params) { return vs[0]; } :
+      function(params) { return vs[multinomialSample(ps)]; };
   return new ERP(
-      function categoricalSample(params) {
-        return vs[multinomialSample(ps)];
+      categoricalSample,
+      function categoricalScore(params, val) {
+        var lk = dist[JSON.stringify(val)];
+        return lk ? Math.log(lk.prob) : -Infinity;
       },
-      erpScorers.buildSimpleScorer(dist),
       auxParams
   );
 };
@@ -398,6 +385,14 @@ var makeMultiplexERP = function(vs, erps) {
   );
 };
 
+function isErp(x) {
+  return x && _.isFunction(x.score) && _.isFunction(x.sample);
+}
+
+function isErpWithSupport(x) {
+  return isErp(x) && _.isFunction(x.support);
+}
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -414,7 +409,8 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP,
   makeCategoricalERP: makeCategoricalERP,
-  makeMultiplexERP: makeMultiplexERP
+  makeMultiplexERP: makeMultiplexERP,
+  isErp: isErp,
+  isErpWithSupport: isErpWithSupport
 };
