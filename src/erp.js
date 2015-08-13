@@ -77,10 +77,8 @@ ERP.prototype.toJSON = function() {
     return '<erp>';
   } else {
     var erpObj = {};
-    var cc = this;
-    _.forEach(this.support([]), function(s) {
-      erpObj[JSON.stringify(s)] = {val: s, prob: Math.exp(cc.score([], s))};
-    })
+    var setObj = function(s) {erpObj[JSON.stringify(s)] = {val: s, prob: this.score([], s)};}
+    _.forEach(this.support([]), setObj, this);
     this.toJSON = function() {return erpObj};
     return erpObj
   }
@@ -94,7 +92,7 @@ ERP.prototype.print = function() {
     var erpValues = _.map(this.toJSON(), function(v, k) {return [k, v.prob]})
         .sort(function(a, b) { return b[1] - a[1] });
     erpValues.forEach(function(val) {
-      console.log('    ' + val[0] + ' : ' + val[1]);
+      console.log('    ' + val[0] + ' : ' + Math.exp(val[1]));
     });
   }
 };
