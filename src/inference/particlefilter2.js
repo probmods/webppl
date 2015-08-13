@@ -95,7 +95,9 @@ module.exports = function(env) {
     return this.currentParticle().k(this.currentParticle().store);
   };
 
-  ParticleFilter.prototype.resampleParticles = function() {
+  ParticleFilter.prototype.resampleParticles = function() { return this.resampleResidual(); };
+
+  ParticleFilter.prototype.resampleMultinomial = function() {
     var ws = _.map(this.particles, function(p) { return Math.exp(p.logWeight); });
 
     assert(_.some(ws, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
@@ -109,6 +111,44 @@ module.exports = function(env) {
       p.logWeight = logAvgW;
       return p;
     }, this);
+  };
+
+  ParticleFilter.prototype.resampleResidual = function() {
+    // Residual resampling following Liu 2008; p. 72, section 3.4.4
+    var m = this.numParticles;
+    var logW = util.logsumexp(_.pluck(this.particles, 'logWeight'));
+    var logAvgW = logW - Math.log(m)
+
+    assert(logAvgW !== -Infinity, 'All particles have zero weight.');
+
+    // Compute list of retained particles.
+    var retainedParticles = [];
+    var newWeights = [];
+    _.each(
+        this.particles,
+        function(particle) {
+          var w = Math.exp(particle.logWeight - logAvgW);
+          var nRetained = Math.floor(w);
+          newWeights.push(w - nRetained);
+          for (var i = 0; i < nRetained; i++) {
+            retainedParticles.push(particle.copy());
+          }
+        });
+
+    // Compute new particles.
+    var numNewParticles = m - retainedParticles.length;
+    var newParticles = [];
+    var j;
+    for (var i = 0; i < numNewParticles; i++) {
+      j = erp.multinomialSample(newWeights);
+      newParticles.push(this.particles[j].copy());
+    }
+
+    // Particles after update: retained + new particles.
+    this.particles = newParticles.concat(retainedParticles);
+
+    // Reset all weights.
+    _.each(this.particles, function(p) { p.logWeight = logAvgW; });
   };
 
   // TODO: How can this be written in a more straight-foward way.
