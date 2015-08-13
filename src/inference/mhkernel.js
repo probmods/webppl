@@ -64,8 +64,13 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.exit = function(s, val) {
-    if (this.exitAddress !== undefined) assert(this.trace.k !== undefined);
-    this.trace.complete(val);
+    if (!this.exitAddress) {
+      this.trace.complete(val);
+    } else {
+      // We're rejuvenating a particle (incomplete trace) which will be
+      // completed by SMC.
+      assert(this.trace.k !== undefined);
+    }
     var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
     var returnTrace = Math.random() < acceptance ? this.trace : this.oldTrace
     env.coroutine = this.coroutine;

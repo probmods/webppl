@@ -64,9 +64,10 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
 
 Trace.prototype.complete = function(value) {
   // Called at coroutine exit.
-  // value: The final value of the program.
   this.value = value;
-  // TODO: Maybe reset k & store to prevents attempts to continue a complete trace.
+  // Ensure any attempt to continue a completed trace fails in an obvious way.
+  this.k = undefined;
+  this.store = undefined;
 };
 
 Trace.prototype.map = function(f) {
