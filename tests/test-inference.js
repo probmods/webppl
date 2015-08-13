@@ -214,7 +214,8 @@ var tests = [
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
-      varFactors2: true
+      varFactors2: true,
+      withCaching: true
     }
   },
   {
