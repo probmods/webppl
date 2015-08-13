@@ -59,7 +59,7 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
   this.addressMap[address] = choice;
   this.length += 1;
   this.score += erp.score(params, value);
-  this.cc();
+  this.checkConsistency();
 };
 
 Trace.prototype.complete = function(value) {
@@ -85,7 +85,7 @@ Trace.prototype.upto = function(i) {
   t.length = t.choices.length;
   t.score = this.choices[i].score;
   t.logWeight = this.logWeight;
-  t.cc();
+  t.checkConsistency();
   return t;
 };
 
@@ -98,11 +98,11 @@ Trace.prototype.copy = function() {
   t.k = this.k;
   t.store = _.clone(this.store);
   t.value = this.value;
-  t.cc();
+  t.checkConsistency();
   return t;
 };
 
-Trace.prototype.cc = function() {
+Trace.prototype.checkConsistency = function() {
   assert(this.choices.length === this.length);
   assert(_.keys(this.addressMap).length === this.length);
   this.choices.forEach(function(choice) {
