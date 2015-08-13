@@ -122,6 +122,7 @@ module.exports = function(env) {
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
     // Check params for changes
+    if (params === undefined) { return; }
     for (var i = 0; i < params.length; i++)
     {
       if (params[i] !== this.params[i]) {

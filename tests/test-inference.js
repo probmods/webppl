@@ -55,6 +55,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
@@ -70,6 +71,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
@@ -85,6 +87,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
@@ -100,6 +103,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
       withCaching: true
@@ -116,6 +120,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
@@ -136,6 +141,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
       varFactors1: { args: [5000, 0] },
@@ -156,6 +162,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100, 0] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
       varFactors1: { args: [5000, 0] },
@@ -192,6 +199,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
       varFactors1: { args: [5000] },
@@ -209,6 +217,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       upweight: { args: [1000, 10] },
       incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
@@ -226,6 +235,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
