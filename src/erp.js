@@ -73,8 +73,7 @@ ERP.prototype.entropy = function() {
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
   if (this.support === undefined) {
-    console.log('***Cannot serialize an ERP without support!***')
-    return '<erp>';
+    return this.sample.name.slice(0, this.sample.name.match(/Sample/).index) + 'ERP'
   } else {
     var erpObj = {};
     var setObj = function(s) {erpObj[JSON.stringify(s)] = {val: s, prob: this.score([], s)};}
@@ -86,8 +85,8 @@ ERP.prototype.toJSON = function() {
 
 ERP.prototype.print = function() {
   var serialized = this.toJSON();
-  if (serialized === '<erp>') {
-    console.log(serialized + ' => ' + this.sample.name);
+  if (typeof serialized === 'string') {
+    console.log(serialized);
   } else {
     var erpValues = _.map(this.toJSON(), function(v, k) {return [k, v.prob]})
         .sort(function(a, b) { return b[1] - a[1] });
