@@ -76,8 +76,9 @@ ERP.prototype.toJSON = function() {
     return this.sample.name.slice(0, this.sample.name.match(/Sample/).index) + 'ERP'
   } else {
     var erpObj = {};
-    var setObj = function(s) {erpObj[JSON.stringify(s)] = {val: s, prob: this.score([], s)};}
-    _.forEach(this.support([]), setObj, this);
+    _.forEach(this.support([]), function(s) {
+      erpObj[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
+    }, this);
     this.toJSON = function() {return erpObj};
     return erpObj
   }
