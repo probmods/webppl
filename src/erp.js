@@ -87,13 +87,18 @@ ERP.prototype.parameterize = function(params) {
 
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
-  if (this.support === undefined) {
-    return this.sample.name.slice(0, this.sample.name.match(/Sample/).index) + 'ERP'
+  if (this.name === undefined) { // every erp must have a name
+    throw ['Cannot serialize ERP:', this];
+  } else if (this.parameterized || this.support === undefined) {
+    return this.name;
   } else {
-    var erpObj = {};
+    var erpObj = {name: this.name, erp: {}};
     _.forEach(this.support([]), function(s) {
-      erpObj[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
+      erpObj.erp[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
     }, this);
+    if (this.baseERPEntries) {
+      erpObj.baseERPEntries = this.baseERPEntries;
+    }
     this.toJSON = function() {return erpObj};
     return erpObj
   }
@@ -114,7 +119,13 @@ ERP.prototype.print = function() {
 
 // ERP deserializer
 var erpFromString = function(obj) {
-  return makeMarginalERP(JSON.parse(obj));
+  var jsonObj = JSON.parse(obj);
+  var _erp = makeMarginalERP(jsonObj.erp);
+  _erp.name = jsonObj.name;
+  if (jsonObj.baseERPEntries) {
+    _erp.baseERPEntries = jsonObj.baseERPEntries;
+  }
+  return _erp;
 };
 
 var uniformERP = new ERP(
