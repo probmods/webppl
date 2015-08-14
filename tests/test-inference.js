@@ -233,6 +233,7 @@ var tests = [
       geometric: true,
       varFactors1: true,
       varFactors2: true,
+      withCaching: true,
       optionalErpParams: true
     }
   },
