@@ -75,17 +75,22 @@ module.exports = function(env) {
       var hist = {};
       var logAvgW = _.first(particles).logWeight;
 
-      particles.forEach(function(p) {
-        assert(p.value !== undefined);
-        assert(p.logWeight === logAvgW, 'Expected un-weighted particles.');
-        var r = JSON.stringify(p.value);
-        if (hist[r] === undefined) hist[r] = { prob: 0, val: p.value };
-        hist[r].prob += 1;
-      });
-
-      var dist = erp.makeMarginalERP(hist);
-      dist.normalizationConstant = logAvgW;
-      return k(s, dist);
+      return util.cpsForEach(
+          function(particle, i, ps, k) {
+            assert(particle.value !== undefined);
+            assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
+            var r = JSON.stringify(particle.value);
+            if (hist[r] === undefined) hist[r] = { prob: 0, val: particle.value };
+            hist[r].prob += 1;
+            // Final rejuvenation.
+            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, k);
+          },
+          function() {
+            var dist = erp.makeMarginalERP(hist);
+            dist.normalizationConstant = logAvgW;
+            return k(s, dist);
+          },
+          particles);
 
     }, a, wpplFn, options);
   };
