@@ -99,11 +99,8 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.resampleMultinomial = function() {
     var ws = _.map(this.particles, function(p) { return Math.exp(p.logWeight); });
-
-    assert(_.some(ws, function(w) { return w > 0; }), 'No +ve weights: ' + ws);
-    assert(_.every(ws, function(w) { return w >= 0; }));
-
     var logAvgW = util.logsumexp(_.pluck(this.particles, 'logWeight')) - Math.log(this.numParticles);
+    assert(logAvgW !== -Infinity, 'All particles have zero weight.');
 
     this.particles = _.times(this.numParticles, function(i) {
       var ix = erp.multinomialSample(ws);
