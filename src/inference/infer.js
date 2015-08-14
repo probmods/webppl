@@ -64,16 +64,9 @@ module.exports = function(env) {
     return init(function(s, initialTrace) {
       // console.log('Initialized');
       var hist = {};
-      return util.cpsIterate(
-          n, initialTrace, kernel,
-          function(_) { return k(s, erp.makeMarginalERP(hist)) },
-          function(trace) {
-            var r = JSON.stringify(trace.value);
-            if (hist[r] === undefined) {
-              hist[r] = { prob: 0, val: trace.value };
-            }
-            hist[r].prob += 1;
-          });
+      return runMarkovChain(
+          n, initialTrace, kernel, hist,
+          function() { return k(s, erp.makeMarginalERP(hist)); });
     });
   };
 
@@ -96,6 +89,18 @@ module.exports = function(env) {
 
     }, a, wpplFn, options);
   };
+
+  function runMarkovChain(n, initialTrace, kernel, hist, k) {
+    return util.cpsIterate(
+        n, initialTrace, kernel, k,
+        function(trace) {
+          var r = JSON.stringify(trace.value);
+          if (hist[r] === undefined) {
+            hist[r] = { prob: 0, val: trace.value };
+          }
+          hist[r].prob += 1;
+        });
+  }
 
   return {
     Infer: Infer,
