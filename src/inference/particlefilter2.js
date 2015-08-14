@@ -152,13 +152,8 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
-
     // TODO: Return early if we're not doing rejuvenation.
-
-    var lw = _.first(this.particles).logWeight;
-    assert(
-        _.every(this.particles, function(p) { return p.logWeight === lw; }),
-        'Cannot rejuvenate weighted particles.');
+    assert(!this.particlesWeighted(), 'Cannot rejuvenate weighted particles.');
 
     return util.cpsForEach(
         function(p, i, ps, next) {
@@ -180,6 +175,11 @@ module.exports = function(env) {
         }.bind(this));
   };
 
+  ParticleFilter.prototype.particlesWeighted = function() {
+    var lw = _.first(this.particles).logWeight;
+    return _.any(this.particles, function(p) { return p.logWeight !== lw; });
+  };
+
   ParticleFilter.prototype.exit = function(s, val) {
     // Complete the trace.
     this.currentParticle().complete(val);
@@ -188,6 +188,10 @@ module.exports = function(env) {
     if (!this.lastParticle()) {
       this.nextParticle();
       return this.runCurrentParticle();
+    }
+
+    if (this.particlesWeighted()) {
+      this.resampleParticles();
     }
 
     // Finished, call original continuation.
