@@ -109,11 +109,12 @@ ERP.prototype.print = function() {
   if (typeof serialized === 'string') {
     console.log(serialized);
   } else {
-    var erpValues = _.map(serialized, function(v, k) {return [k, v.prob]})
-        .sort(function(a, b) { return b[1] - a[1] });
-    erpValues.forEach(function(val) {
-      console.log('    ' + val[0] + ' : ' + Math.exp(val[1]));
-    });
+    console.log(this.name + ':');
+    _.map(serialized.erp, function(v, k) { return [k, v.prob]; })
+      .sort(function(a, b) { return b[1] - a[1]; })
+      .forEach(function(val) {
+          console.log('    ' + val[0] + ' : ' + Math.exp(val[1]));
+        })
   }
 };
 

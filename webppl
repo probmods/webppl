@@ -12,7 +12,6 @@ var _ = require('underscore');
 
 function printWebPPLValue(x) {
   if (isErp(x)) {
-    console.log('ERP:');
     x.print();
   } else {
     console.log(x);
