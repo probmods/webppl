@@ -8,19 +8,11 @@ var Trace = require('../trace.js').Trace;
 
 module.exports = function(env) {
 
-  // Takes a wpplFn and a trace, and generates a new trace.
-
-  function MHKernel(s, k, a, wpplFn, oldTrace, exitAddress) {
-
-    this.wpplFn = wpplFn;
+  function MHKernel(k, oldTrace, exitAddress) {
     this.k = k;
-    this.s = s;
-    this.a = a;
-
     this.oldTrace = oldTrace;
     this.reused = {};
     this.exitAddress = exitAddress;
-
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -74,7 +66,7 @@ module.exports = function(env) {
     var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
     var returnTrace = Math.random() < acceptance ? this.trace : this.oldTrace
     env.coroutine = this.coroutine;
-    return this.k(this.s, returnTrace);
+    return this.k(returnTrace);
   };
 
   function acceptProb(trace, oldTrace, regenFrom, reused) {
@@ -120,8 +112,8 @@ module.exports = function(env) {
   }
 
   return {
-    MHKernel: function(s, k, a, wpplFn, oldTrace, exitAddress) {
-      return new MHKernel(s, k, a, wpplFn, oldTrace, exitAddress).run();
+    MHKernel: function(k, oldTrace, exitAddress) {
+      return new MHKernel(k, oldTrace, exitAddress).run();
     }
   };
 

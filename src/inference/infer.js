@@ -59,7 +59,7 @@ module.exports = function(env) {
     var n = options.iterations;
     // Partially applied to make what follows easier to read.
     var init = _.partial(options.init, s, _, a, wpplFn);
-    var kernel = _.partial(options.kernel, s, _, a, wpplFn);
+    var kernel = options.kernel;
 
     return init(function(s, initialTrace) {
       var trace = initialTrace;
@@ -70,7 +70,7 @@ module.exports = function(env) {
       return util.cpsLoop(n,
           function(i, next) {
             // console.log('Iteration: ' + i);
-            return kernel(function(s, newTrace) {
+            return kernel(function(newTrace) {
               trace = newTrace;
 
               // Update histogram.

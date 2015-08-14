@@ -151,12 +151,6 @@ module.exports = function(env) {
     _.each(this.particles, function(p) { p.logWeight = logAvgW; });
   };
 
-  // TODO: How can this be written in a more straight-foward way.
-
-  // TODO: k here isn't a webppl continuation, rather it's a thunk, created in
-  // factor. This doesn't need to be called with arguments and I don't think I
-  // need to pass s & a around either.
-
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
 
     // TODO: Return early if we're not doing rejuvenation.
@@ -177,15 +171,7 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
 
-    // TODO: Check this is correct.
-
-    // My intention is to run wpplFn with the same address as was used for the
-    // particle filter so that addresses line up correctly with the trace. I'm
-    // not sure I need to do this since the MHKernel will pick continue using
-    // the address of an entry in the trace.
-
-    // transition :: wpplFn x trace -> trace
-    var transition = _.partial(this.rejuvKernel, this.s, _, this.a, this.wpplFn, _, exitAddress);
+    var transition = _.partial(this.rejuvKernel, _, _, exitAddress);
 
     var particle = this.particles[i];
 
@@ -193,8 +179,8 @@ module.exports = function(env) {
 
     return util.cpsLoop(this.rejuvSteps,
         function(j, next) {
-          //console.log('Step: ' + j);
-          return transition(function(s, newParticle) {
+          // console.log('Step: ' + j);
+          return transition(function(newParticle) {
             particle = newParticle;
             return next();
           }, particle);
