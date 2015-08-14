@@ -70,6 +70,21 @@ ERP.prototype.entropy = function() {
   return e;
 };
 
+ERP.prototype.parameterize = function(params) {
+  var sampler = this.sample;
+  var scorer = this.score;
+  if (this.support) {
+    var support = this.support;
+  }
+  this.sample = function(ps) {return sampler(params)};
+  this.score = function(ps, val) {return scorer(params, val)};
+  if (this.support) {
+    this.support = function(ps) {return support(params)};
+  }
+  this.parameterized = false;
+  return this;
+};
+
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
   if (this.support === undefined) {
