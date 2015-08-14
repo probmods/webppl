@@ -170,26 +170,14 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
-
     var transition = _.partial(this.rejuvKernel, _, _, exitAddress);
 
-    var particle = this.particles[i];
-
-    // TODO: This is similar to MCMC with initialization. Extract?
-
-    return util.cpsLoop(this.rejuvSteps,
-        function(j, next) {
-          // console.log('Step: ' + j);
-          return transition(function(newParticle) {
-            particle = newParticle;
-            return next();
-          }, particle);
-        },
-        function() {
-          this.particles[i] = particle;
+    return util.cpsIterate(
+        this.rejuvSteps, this.particles[i], transition,
+        function(rejuvParticle) {
+          this.particles[i] = rejuvParticle;
           return cont();
-        }.bind(this)
-    );
+        }.bind(this));
   };
 
   ParticleFilter.prototype.exit = function(s, val) {

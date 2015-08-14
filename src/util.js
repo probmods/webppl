@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
+var assert = require('assert');
 
 
 function runningInBrowser() {
@@ -120,6 +121,19 @@ function cpsLoop(n, func, nextK, i) {
   }
 }
 
+function cpsIterate(n, initial, cpsFn, k, yieldFn) {
+  var val = initial;
+  return cpsLoop(n,
+      function(i, next) {
+        return cpsFn(function(nextVal) {
+          val = nextVal;
+          if (yieldFn) { yieldFn(val, i); }
+          return next();
+        }, val);
+      },
+      function() { return k(val); });
+}
+
 function histsApproximatelyEqual(hist, expectedHist, tolerance) {
   var allOk = (expectedHist !== undefined);
   _.each(
@@ -166,6 +180,7 @@ module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
+  cpsIterate: cpsIterate,
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,

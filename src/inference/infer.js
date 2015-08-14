@@ -62,27 +62,18 @@ module.exports = function(env) {
     var kernel = options.kernel;
 
     return init(function(s, initialTrace) {
-      var trace = initialTrace;
-      var hist = {};
-
       // console.log('Initialized');
-
-      return util.cpsLoop(n,
-          function(i, next) {
-            // console.log('Iteration: ' + i);
-            return kernel(function(newTrace) {
-              trace = newTrace;
-
-              // Update histogram.
-              var r = JSON.stringify(trace.value);
-              if (hist[r] === undefined) hist[r] = { prob: 0, val: trace.value };
-              hist[r].prob += 1;
-
-              return next();
-            }, trace);
-          },
-          function() { return k(s, erp.makeMarginalERP(hist)) }
-      );
+      var hist = {};
+      return util.cpsIterate(
+          n, initialTrace, kernel,
+          function(_) { return k(s, erp.makeMarginalERP(hist)) },
+          function(trace) {
+            var r = JSON.stringify(trace.value);
+            if (hist[r] === undefined) {
+              hist[r] = { prob: 0, val: trace.value };
+            }
+            hist[r].prob += 1;
+          });
     });
   };
 
