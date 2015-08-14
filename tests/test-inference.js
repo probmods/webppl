@@ -43,7 +43,8 @@ var tests = [
       liftERP: { hist: { tol: 0.0001 } },
       cache: true,
       stochasticCache: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -59,7 +60,8 @@ var tests = [
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -75,7 +77,8 @@ var tests = [
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -91,7 +94,8 @@ var tests = [
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -106,7 +110,8 @@ var tests = [
       cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -128,7 +133,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 10] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -148,7 +154,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -169,7 +176,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 0] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
       // varFactors1: { args: [5000, 0] },
       // varFactors2: true
     }
@@ -206,7 +214,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -223,7 +232,8 @@ var tests = [
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
-      varFactors2: true
+      varFactors2: true,
+      optionalErpParams: true
     }
   },
   {
@@ -239,7 +249,8 @@ var tests = [
       incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
-      varFactors2: true
+      varFactors2: true,
+      optionalErpParams: true
     }
   }
 ];

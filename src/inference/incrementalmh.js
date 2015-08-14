@@ -122,14 +122,9 @@ module.exports = function(env) {
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
     // Check params for changes
-    if (params === undefined) { return; }
-    for (var i = 0; i < params.length; i++)
-    {
-      if (params[i] !== this.params[i]) {
-        this.needsUpdate = true;
-        updateProperty(this, 'params', params);
-        break;
-      }
+    if (!paramsEqual(params, this.params)) {
+      this.needsUpdate = true;
+      updateProperty(this, 'params', params);
     }
   };
 
@@ -260,6 +255,21 @@ module.exports = function(env) {
     for (prop in s2) {
       if (s1[prop] !== s2[prop])
         return false;
+    }
+    return true;
+  }
+
+  function paramsEqual(p1, p2) {
+    if (p1 === p2) {
+      return true;
+    } else if (p1 === undefined || p2 === undefined) {
+      return false;
+    } else if (p1.length !== p2.length) {
+      return false;
+    } else {
+      for (var i = 0; i < p1.length; i++) {
+        if (p1[i] !== p2[i]) { return false; }
+      }
     }
     return true;
   }
