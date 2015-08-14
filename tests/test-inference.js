@@ -43,7 +43,8 @@ var tests = [
       liftERP: { hist: { tol: 0.0001 } },
       cache: true,
       stochasticCache: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -55,10 +56,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -70,10 +73,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -85,10 +90,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -100,9 +107,11 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -116,6 +125,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
@@ -123,7 +133,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 10] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -136,13 +147,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
       varFactors1: { args: [5000, 0] },
       varFactors2: true,
       importance: true,
       importance2: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -156,13 +169,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100, 0] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
       varFactors1: { args: [5000, 0] },
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 0] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
       // varFactors1: { args: [5000, 0] },
       // varFactors2: true
     }
@@ -192,13 +207,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
       varFactors1: { args: [5000] },
       varFactors2: true,
       importance: true,
       importance2: { args: [3000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -209,13 +226,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       upweight: { args: [1000, 10] },
       incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
       varFactors2: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -227,10 +246,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
-      varFactors2: true
+      varFactors2: true,
+      optionalErpParams: true
     }
   }
 ];
