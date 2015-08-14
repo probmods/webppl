@@ -125,7 +125,7 @@ Packages can extend WebPPL in three ways:
 You can automatically prepend WebPPL files to your code by added a `wppl` entry to `package.json`. For example:
 
     {
-      "name": "my-package"
+      "name": "my-package",
       "webppl": {
         "wppl": ["myLibrary.wppl"]
       }
@@ -174,7 +174,7 @@ Let's use the example of a function that makes the current address available in 
 2. Add a `headers` entry to `package.json`:
 
         {
-          "name": "my-package"
+          "name": "my-package",
           "webppl": {
             "headers": ["addressHeader.js"]
           }
