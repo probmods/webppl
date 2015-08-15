@@ -70,7 +70,7 @@ ERP.prototype.entropy = function() {
   return e;
 };
 
-ERP.prototype.parameterize = function(params) {
+ERP.prototype.fixParameters = function(params) {
   var sampler = this.sample;
   var scorer = this.score;
   if (this.support) {
