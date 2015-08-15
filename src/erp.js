@@ -71,18 +71,18 @@ ERP.prototype.entropy = function() {
 };
 
 ERP.prototype.fixParameters = function(params) {
+  var erp = new ERP();
+  _.forEach(this, function(v, k) {erp[k] = v;});
   var sampler = this.sample;
+  erp.sample = function(ps) {return sampler(params)};
   var scorer = this.score;
+  erp.score = function(ps, val) {return scorer(params, val)};
   if (this.support) {
     var support = this.support;
+    erp.support = function(ps) {return support(params)};
   }
-  this.sample = function(ps) {return sampler(params)};
-  this.score = function(ps, val) {return scorer(params, val)};
-  if (this.support) {
-    this.support = function(ps) {return support(params)};
-  }
-  this.parameterized = false;
-  return this;
+  erp.parameterized = false;
+  return erp;
 };
 
 // ERP serializer (allows JSON.stringify)
