@@ -86,11 +86,12 @@ ERP.prototype.fixParameters = function(params) {
 };
 
 // ERP serializer (allows JSON.stringify)
+// unless error, returns {name: *, erp: {*}}
 ERP.prototype.toJSON = function() {
   if (this.name === undefined) { // every erp must have a name
     throw ['Cannot serialize ERP:', this];
   } else if (this.parameterized || this.support === undefined) {
-    return this.name;
+    return {name: this.name, erp: {}};
   } else {
     var erpObj = {name: this.name, erp: {}};
     _.forEach(this.support([]), function(s) {
