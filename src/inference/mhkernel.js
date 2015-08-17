@@ -22,7 +22,7 @@ module.exports = function(env) {
     this.regenFrom = Math.floor(Math.random() * this.oldTrace.length);
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
-    return this.sample(_.clone(regen.s), regen.k, regen.name, regen.erp, regen.params, true);
+    return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {

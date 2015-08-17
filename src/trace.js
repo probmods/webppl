@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 var assert = require('assert');
+var isErp = require('./erp').isErp;
 
 var Trace = function() {
   this.choices = [];
@@ -21,19 +22,11 @@ Trace.prototype.findChoice = function(address) {
 
 Trace.prototype.saveContinuation = function(continuation, store) {
   this.k = continuation;
-  // Caller is currently expected to clone if necessary.
-  // TODO: Do all callers clone?
   this.store = store;
+  this.checkConsistency();
 };
 
-// TODO: Re-use the version from ERP module once available.
-var isErp = function(erp) {
-  return _.every(['sample', 'score'], function(property) {
-    return _.isFunction(erp[property]);
-  });
-};
-
-Trace.prototype.addChoice = function(erp, params, value, address, store, continuation) {
+Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
@@ -51,23 +44,23 @@ Trace.prototype.addChoice = function(erp, params, value, address, store, continu
     // Record the score without adding the choiceScore. This is the score we'll
     // need if we regen from this choice.
     score: this.score,
-    val: value,
-    s: _.clone(store)
+    val: val,
+    store: _.clone(store)
   };
 
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score += erp.score(params, value);
+  this.score += erp.score(params, val);
   this.checkConsistency();
 };
 
 Trace.prototype.complete = function(value) {
   // Called at coroutine exit.
+  assert(this.value === undefined);
   this.value = value;
   // Ensure any attempt to continue a completed trace fails in an obvious way.
-  this.k = undefined;
-  this.store = undefined;
+  this.k = this.store = undefined;
 };
 
 Trace.prototype.map = function(f) {
@@ -108,6 +101,7 @@ Trace.prototype.checkConsistency = function() {
   this.choices.forEach(function(choice) {
     assert(_.has(this.addressMap, choice.name));
   }, this);
+  assert(this.value === undefined || (this.k === undefined && this.store === undefined));
 };
 
 module.exports = {
