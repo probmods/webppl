@@ -70,6 +70,8 @@ ERP.prototype.entropy = function() {
   return e;
 };
 
+ERP.prototype.parameterized = true;
+
 ERP.prototype.withParameters = function(params) {
   var erp = new ERP();
   _.forEach(this, function(v, k) {erp[k] = v;});
@@ -138,8 +140,7 @@ var uniformERP = new ERP(
       return -Math.log(params[1] - params[0]);
     },
     {
-      name: 'uniformERP',
-      parameterized: true
+      name: 'uniformERP'
     }
     );
 
@@ -158,7 +159,6 @@ var bernoulliERP = new ERP(
     },
     {
       name: 'bernoulliERP',
-      parameterized: true,
       support: function flipSupport(params) {
         return [true, false];
       },
@@ -182,7 +182,6 @@ var randomIntegerERP = new ERP(
     },
     {
       name: 'randomIntegerERP',
-      parameterized: true,
       support: function randomIntegerSupport(params) {
         return _.range(params[0]);
       }
@@ -213,8 +212,7 @@ var gaussianERP = new ERP(
     gaussianSample,
     gaussianScore,
     {
-      name: 'gaussianERP',
-      parameterized: true
+      name: 'gaussianERP'
     }
     );
 
@@ -244,8 +242,7 @@ var multivariateGaussianERP = new ERP(
     multivariateGaussianSample,
     multivariateGaussianScore,
     {
-      name: 'multivariateGaussianERP',
-      parameterized: true
+      name: 'multivariateGaussianERP'
     }
     );
 
@@ -261,7 +258,6 @@ var discreteERP = new ERP(
     },
     {
       name: 'discreteERP',
-      parameterized: true,
       support:
           function discreteSupport(params) {
             return _.range(params[0].length);
@@ -333,8 +329,7 @@ var exponentialERP = new ERP(
       return Math.log(a) - a * val;
     },
     {
-      name: 'exponentialERP',
-      parameterized: true
+      name: 'exponentialERP'
     }
     );
 
@@ -360,8 +355,7 @@ var betaERP = new ERP(
           -Infinity);
     },
     {
-      name: 'betaERP',
-      parameterized: true
+      name: 'betaERP'
     }
     );
 
@@ -439,6 +433,7 @@ var binomialERP = new ERP(
       }
     },
     {
+      name: 'binomialERP',
       support:
           function binomialSupport(params) {
             return _.range(params[1]).concat([params[1]]);
@@ -501,8 +496,7 @@ var poissonERP = new ERP(
       return k * Math.log(mu) - mu - lnfact(k);
     },
     {
-      name: 'poissonERP',
-      parameterized: true
+      name: 'poissonERP'
     }
     );
 
@@ -541,8 +535,7 @@ var dirichletERP = new ERP(
     dirichletSample,
     dirichletScore,
     {
-      name: 'dirichletERP',
-      parameterized: true
+      name: 'dirichletERP'
     }
     );
 
@@ -663,7 +656,6 @@ var makeMultiplexERP = function(vs, erps) {
       },
       {
         name: 'multiplexERP',
-        parameterized: true,
         support: function multiplexSupport(params) {
           var erp = selectERP(params);
           return erp.support();
