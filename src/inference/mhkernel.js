@@ -42,6 +42,8 @@ module.exports = function(env) {
       var proposalErp = erp.proposer || erp;
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
       val = proposalErp.sample(proposalParams);
+      // Optimization: Bail early if same value is re-sampled.
+      if (prevChoice.val === val) { return this.cont(this.oldTrace); }
     } else {
       if (prevChoice) {
         val = prevChoice.val;
@@ -64,9 +66,13 @@ module.exports = function(env) {
       assert(this.trace.k !== undefined);
     }
     var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
-    var returnTrace = Math.random() < acceptance ? this.trace : this.oldTrace
+    return this.cont(Math.random() < acceptance ? this.trace : this.oldTrace);
+  };
+
+  // TODO: Better name? (Used to bail from sample.)
+  MHKernel.prototype.cont = function(val) {
     env.coroutine = this.coroutine;
-    return this.k(returnTrace);
+    return this.k(val);
   };
 
   function acceptProb(trace, oldTrace, regenFrom, reused) {
