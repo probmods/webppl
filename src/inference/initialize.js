@@ -9,9 +9,7 @@ module.exports = function(env) {
 
   // This takes a wpplFn and returns a trace which has a non-zero probability.
 
-  // It might plausibly be fleshed out into a full rejection sampler.
-
-  function Rejection(s, k, a, wpplFn) {
+  function Initialize(s, k, a, wpplFn) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
@@ -20,23 +18,23 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  Rejection.prototype.run = function() {
+  Initialize.prototype.run = function() {
     this.trace = new Trace();
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
-  Rejection.prototype.sample = function(s, k, a, erp, params) {
+  Initialize.prototype.sample = function(s, k, a, erp, params) {
     var val = erp.sample(params);
     this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
 
-  Rejection.prototype.factor = function(s, k, a, score) {
+  Initialize.prototype.factor = function(s, k, a, score) {
     this.trace.score += score;
     return k(s);
   };
 
-  Rejection.prototype.exit = function(s, val) {
+  Initialize.prototype.exit = function(s, val) {
     if (this.trace.score === -Infinity) {
       //console.log('Reject!');
       return this.run();
@@ -47,8 +45,8 @@ module.exports = function(env) {
   };
 
   return {
-    Rejection: function(s, k, a, wpplFn) {
-      return new Rejection(s, k, a, wpplFn).run();
+    Initialize: function(s, k, a, wpplFn) {
+      return new Initialize(s, k, a, wpplFn).run();
     }
   };
 };

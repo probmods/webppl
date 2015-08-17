@@ -202,13 +202,13 @@ var tests = [
       hist: { tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: MCMC, iterations: 1000, init: Rejection, kernel: MHKernel }' },
-      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: Rejection, kernel: MHKernel }' },
-      geometric: { args: '{ method: MCMC, iterations: 5000, init: Rejection, kernel: MHKernel }' },
+      simple: { args: '{ method: MCMC, iterations: 1000, init: Initialize, kernel: MHKernel }' },
+      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, init: Initialize, kernel: MHKernel }' },
+      geometric: { args: '{ method: MCMC, iterations: 5000, init: Initialize, kernel: MHKernel }' },
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
-        args: '{ method: MCMC, iterations: 100000, init: Rejection, kernel: MHKernel }'
+        args: '{ method: MCMC, iterations: 100000, init: Initialize, kernel: MHKernel }'
       }
     }
   },
