@@ -38,7 +38,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
 
   var choice = {
     k: continuation,
-    name: address,
+    address: address,
     erp: erp,
     params: params,
     // Record the score without adding the choiceScore. This is the score we'll
@@ -74,7 +74,7 @@ Trace.prototype.upto = function(i) {
 
   var t = new Trace();
   t.choices = this.choices.slice(0, i);
-  t.choices.forEach(function(choice) { t.addressMap[choice.name] = choice; });
+  t.choices.forEach(function(choice) { t.addressMap[choice.address] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
   t.logWeight = this.logWeight;
@@ -99,7 +99,7 @@ Trace.prototype.checkConsistency = function() {
   assert(this.choices.length === this.length);
   assert(_.keys(this.addressMap).length === this.length);
   this.choices.forEach(function(choice) {
-    assert(_.has(this.addressMap, choice.name));
+    assert(_.has(this.addressMap, choice.address));
   }, this);
   assert(this.value === undefined || (this.k === undefined && this.store === undefined));
 };

@@ -22,7 +22,7 @@ module.exports = function(env) {
     this.regenFrom = Math.floor(Math.random() * this.oldTrace.length);
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
-    return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
+    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {
@@ -34,8 +34,8 @@ module.exports = function(env) {
     return k(s);
   };
 
-  MHKernel.prototype.sample = function(s, cont, name, erp, params, forceSample) {
-    var val, prevChoice = this.oldTrace.findChoice(name);
+  MHKernel.prototype.sample = function(s, cont, address, erp, params, forceSample) {
+    var val, prevChoice = this.oldTrace.findChoice(address);
 
     if (forceSample) {
       assert(prevChoice);
@@ -45,13 +45,13 @@ module.exports = function(env) {
     } else {
       if (prevChoice) {
         val = prevChoice.val;
-        this.reused[name] = true;
+        this.reused[address] = true;
       } else {
         val = erp.sample(params);
       }
     }
 
-    this.trace.addChoice(erp, params, val, name, s, cont);
+    this.trace.addChoice(erp, params, val, address, s, cont);
     return cont(s, val);
   };
 
@@ -91,7 +91,7 @@ module.exports = function(env) {
 
     if (regenChoice.erp.proposer) {
       proposalErp = regenChoice.erp.proposer;
-      proposalParams = [regenChoice.params, fromTrace.findChoice(regenChoice.name).val];
+      proposalParams = [regenChoice.params, fromTrace.findChoice(regenChoice.address).val];
     } else {
       proposalErp = regenChoice.erp;
       proposalParams = regenChoice.params;
@@ -101,7 +101,7 @@ module.exports = function(env) {
 
     // Rest of the trace.
     score += util.sum(toTrace.choices.slice(r + 1).map(function(choice) {
-      return reused.hasOwnProperty(choice.name) ? 0 : choice.erp.score(choice.params, choice.val);
+      return reused.hasOwnProperty(choice.address) ? 0 : choice.erp.score(choice.params, choice.val);
     }));
 
     score -= Math.log(fromTrace.length);
