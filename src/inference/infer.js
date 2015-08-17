@@ -7,48 +7,6 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  // *** Kernels (trace => trace)
-
-  // TODO: Rename MH.
-  // MHKernel :: trace => trace
-
-  // TODO: Implement. (Kernel maker.)
-  // Mixture :: [trace => trace] => (trace => trace)
-
-
-  // *** Initializers ( => trace)
-
-  // Rejection :: => trace
-  // PFInit :: => trace
-
-
-  // *** Other
-
-  // ParticleFilterCore :: => [trace]
-
-  // *** Methods:
-
-  // PF :: => ERP
-  // options
-  //   { rejuv: trace => trace }
-
-  // MCMC :: => ERP
-  // options:
-  //   { init: => trace }
-  //   { kernel: trace => trace }
-
-  // NOTE: If we use function composition e.g. Mixture(MH, HMC) how do we handle
-  // kernels which take options? Partial application?
-
-  // Examples:
-  //Infer(program, { method: MCMC, init: Rejection, kernel: MHKernel })
-  //Infer(program, { method: MCMC, init: PFInit, kernel: Mixture(MHKernel, HMC) })
-
-  // NOTE: Kernels for rejuvenation need to support early exit.
-
-  //Infer(program, { method: PF, rejuvKernel: MHKernel })
-  //Infer(program, { method: PF, rejuvKernel: Mixture(MH, HMC) })
-
   var Infer = function(s, k, a, wpplFn, options) {
     return options.method(s, function(s, val) {
       return k(s, val);

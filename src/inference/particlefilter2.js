@@ -6,11 +6,6 @@ var erp = require('../erp.js');
 var Trace = require('../trace');
 var assert = require('assert');
 
-// This is a stripped down particle filter.
-// 1. Is doesn't handle variable numbers of factors.
-// 2. Multinomial resampling strategy.
-// 3. No final rejevenation at exit.
-
 module.exports = function(env) {
 
   function ParticleFilter(s, k, a, wpplFn, options) {
