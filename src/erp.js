@@ -70,7 +70,7 @@ ERP.prototype.entropy = function() {
   return e;
 };
 
-ERP.prototype.fixParameters = function(params) {
+ERP.prototype.withParameters = function(params) {
   var erp = new ERP();
   _.forEach(this, function(v, k) {erp[k] = v;});
   var sampler = this.sample;
