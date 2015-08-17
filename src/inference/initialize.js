@@ -2,7 +2,6 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var erp = require('../erp.js');
 var Trace = require('../trace');
 
 module.exports = function(env) {
