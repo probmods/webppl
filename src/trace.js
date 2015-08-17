@@ -104,6 +104,4 @@ Trace.prototype.checkConsistency = function() {
   assert(this.value === undefined || (this.k === undefined && this.store === undefined));
 };
 
-module.exports = {
-  Trace: Trace
-};
+module.exports = Trace;

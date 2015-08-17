@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var util = require('../util.js');
 var erp = require('../erp.js');
-var Trace = require('../trace.js').Trace;
+var Trace = require('../trace');
 var assert = require('assert');
 
 // This is a stripped down particle filter.
