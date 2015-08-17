@@ -262,24 +262,24 @@ var tests = [
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 0 }' },
-      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 0 }' },
-      importance: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 0 }' },
-      importance2: { args: '{ method: PF, numParticles: 3000, rejuvSteps: 0 }' }
+      simple: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 0 }' },
+      store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100, rejuvSteps: 0 }' },
+      importance: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 0 }' },
+      importance2: { args: '{ method: SMC, numParticles: 3000, rejuvSteps: 0 }' }
     }
   },
   {
-    name: 'ParticleFilterRejuv2',
+    name: 'SMC',
     func: 'Infer',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
-      store: { hist: { tol: 0 }, args: '{ method: PF, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' },
-      importance: { args: '{ method: PF, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
-      importance2: { args: '{ method: PF, numParticles: 3000, rejuvSteps: 10, rejuvKernel: MHKernel }' }
+      simple: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      importance: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      importance2: { args: '{ method: SMC, numParticles: 3000, rejuvSteps: 10, rejuvKernel: MHKernel }' }
     }
   },
   {

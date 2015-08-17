@@ -29,7 +29,7 @@ module.exports = function(env) {
     });
   };
 
-  var PF = function(s, k, a, wpplFn, options) {
+  var SMC = function(s, k, a, wpplFn, options) {
     return ParticleFilterCore(s, function(s, particles) {
       var hist = {};
       var logAvgW = _.first(particles).logWeight;
@@ -69,7 +69,7 @@ module.exports = function(env) {
   return {
     Infer: Infer,
     MCMC: MCMC,
-    PF: PF
+    SMC: SMC
   };
 
 };
