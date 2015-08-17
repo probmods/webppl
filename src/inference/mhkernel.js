@@ -76,22 +76,21 @@ module.exports = function(env) {
     assert(_.isNumber(oldTrace.score));
     assert(_.isNumber(regenFrom));
 
-    var fw = q(oldTrace, trace, regenFrom, reused);
-    var bw = q(trace, oldTrace, regenFrom, reused);
+    var fw = transitionProb(oldTrace, trace, regenFrom, reused);
+    var bw = transitionProb(trace, oldTrace, regenFrom, reused);
     var p = Math.exp(trace.score - oldTrace.score + bw - fw);
     assert(!isNaN(p));
-    var acceptance = Math.min(1, p);
-    return acceptance;
+    return Math.min(1, p);
   }
 
-  function q(fromTrace, toTrace, r, reused) {
+  function transitionProb(fromTrace, toTrace, regenFrom, reused) {
     // Proposed to ERP.
     var proposalErp, proposalParams;
-    var regenChoice = toTrace.choices[r];
+    var regenChoice = toTrace.choiceAtIndex(regenFrom);
 
     if (regenChoice.erp.proposer) {
       proposalErp = regenChoice.erp.proposer;
-      proposalParams = [regenChoice.params, fromTrace.findChoice(regenChoice.address).val];
+      proposalParams = [regenChoice.params, fromTrace.choiceAtIndex(regenFrom).val];
     } else {
       proposalErp = regenChoice.erp;
       proposalParams = regenChoice.params;
@@ -100,7 +99,7 @@ module.exports = function(env) {
     var score = proposalErp.score(proposalParams, regenChoice.val);
 
     // Rest of the trace.
-    score += util.sum(toTrace.choices.slice(r + 1).map(function(choice) {
+    score += util.sum(toTrace.choices.slice(regenFrom + 1).map(function(choice) {
       return reused.hasOwnProperty(choice.address) ? 0 : choice.erp.score(choice.params, choice.val);
     }));
 
