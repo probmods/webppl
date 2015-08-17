@@ -200,13 +200,6 @@ module.exports = function(env) {
     ParticleFilterCore: function(s, k, a, wpplFn, options) {
       return new ParticleFilter(s, k, a, wpplFn, options).run();
     },
-    // This exists so I have an init method other than rejection to demo.
-    // TODO: Don't hard-code these options.
-    PFInit: function(s, k, a, wpplFn, options) {
-      return ParticleFilterCore(s, function(s, particles) {
-        return k(s, particles[0]);
-      }, a, wpplFn, { numParticles: 10, rejuvSteps: 0 });
-    },
     withImportanceDist: withImportanceDist
   };
 

@@ -17,10 +17,10 @@ module.exports = function(env) {
     // TODO: Set defaults.
     var n = options.iterations;
     // Partially applied to make what follows easier to read.
-    var init = _.partial(options.init, s, _, a, wpplFn);
+    var initialize = _.partial(Initialize, s, _, a, wpplFn);
     var kernel = options.kernel;
 
-    return init(function(s, initialTrace) {
+    return initialize(function(s, initialTrace) {
       // console.log('Initialized');
       var hist = {};
       return runMarkovChain(
