@@ -89,13 +89,13 @@ ERP.prototype.withParameters = function(params) {
 // unless error, returns {name: *, erp: {*}}
 ERP.prototype.toJSON = function() {
   if (this.name === undefined) { // every erp must have a name
-    throw ['Cannot serialize ERP:', this];
+    throw ['Cannot serialize unnamed ERP:', this];
   } else if (this.parameterized || this.support === undefined) {
-    return {name: this.name, erp: {}};
+    return {name: this.name, dist: {}};
   } else {
-    var erpObj = {name: this.name, erp: {}};
+    var erpObj = {name: this.name, dist: {}};
     _.forEach(this.support([]), function(s) {
-      erpObj.erp[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
+      erpObj.dist[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
     }, this);
     if (this.baseERPEntries) {
       erpObj.baseERPEntries = this.baseERPEntries;
@@ -108,7 +108,7 @@ ERP.prototype.toJSON = function() {
 ERP.prototype.print = function() {
   var serialized = this.toJSON();
   console.log(serialized.name + ':');
-  _.map(serialized.erp, function(v, k) { return [k, v.prob]; })
+  _.map(serialized.dist, function(v, k) { return [k, v.prob]; })
     .sort(function(a, b) { return b[1] - a[1]; })
     .forEach(function(val) {
         console.log('    ' + val[0] + ' : ' + Math.exp(val[1]));
@@ -118,7 +118,7 @@ ERP.prototype.print = function() {
 // ERP deserializer
 var erpFromString = function(obj) {
   var jsonObj = JSON.parse(obj);
-  var _erp = makeMarginalERP(jsonObj.erp);
+  var _erp = makeMarginalERP(jsonObj.dist);
   _erp.name = jsonObj.name;
   if (jsonObj.baseERPEntries) {
     _erp.baseERPEntries = jsonObj.baseERPEntries;
