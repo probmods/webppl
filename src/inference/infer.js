@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
+var util = require('../util');
 
 module.exports = function(env) {
 
@@ -66,7 +67,7 @@ module.exports = function(env) {
       var hist = {};
       return runMarkovChain(
           n, initialTrace, kernel, hist,
-          function() { return k(s, erp.makeMarginalERP(hist)); });
+          function() { return k(s, erp.makeMarginalERP(util.logHist(hist))); });
     });
   };
 
@@ -86,7 +87,7 @@ module.exports = function(env) {
             return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, k);
           },
           function() {
-            var dist = erp.makeMarginalERP(hist);
+            var dist = erp.makeMarginalERP(util.logHist(hist));
             dist.normalizationConstant = logAvgW;
             return k(s, dist);
           },

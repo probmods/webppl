@@ -96,7 +96,6 @@ module.exports = function(env) {
     return this.currentParticle().continuation(this.currentParticle().store);
   };
 
-
   // The three functions below return -1 if there is no active particle
 
   ParticleFilter.prototype.firstActiveParticleIndex = function() {
@@ -116,7 +115,6 @@ module.exports = function(env) {
       return nextActiveIndex;
     }
   };
-
 
   ParticleFilter.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];
@@ -202,7 +200,7 @@ module.exports = function(env) {
           }
           hist[k].prob += 1;
         });
-    var dist = erp.makeMarginalERP(hist);
+    var dist = erp.makeMarginalERP(util.logHist(hist));
 
     // Save estimated normalization constant in erp (average particle weight)
     dist.normalizationConstant = this.particles[0].weight;
@@ -213,6 +211,8 @@ module.exports = function(env) {
     // Return from particle filter by calling original continuation:
     return this.k(this.oldStore, dist);
   };
+
+  ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function pf(s, cc, a, wpplFn, numParticles, strict) {
     return new ParticleFilter(s, cc, a, wpplFn, numParticles, strict === undefined ? true : strict).run();

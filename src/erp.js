@@ -39,9 +39,13 @@ function ERP(sampler, scorer, auxParams) {
   }
 }
 
+ERP.prototype.isContinuous = function() {
+  return !this.support
+}
+
 ERP.prototype.MAP = function() {
   if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
+    throw 'Cannot compute MAP for ERP without support!'
   var supp = this.support([]);
   var mapEst = {val: undefined, prob: 0};
   for (var i = 0, l = supp.length; i < l; i++) {
@@ -459,22 +463,23 @@ function multinomialSample(theta) {
 
 // Make a discrete ERP from a {val: prob, etc.} object (unormalized).
 function makeMarginalERP(marginal) {
-
+  assert.ok(_.size(marginal) > 0);
   // Normalize distribution:
-  var norm = 0;
+  var norm = -Infinity;
   var supp = [];
   for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
     var d = marginal[v];
-    norm += d.prob;
+    norm = util.logsumexp([norm, d.prob]);
     supp.push(d.val);
   }}
   var mapEst = {val: undefined, prob: 0};
   for (v in marginal) {if (marginal.hasOwnProperty(v)) {
     var dd = marginal[v];
-    var nprob = dd.prob / norm;
-    if (nprob > mapEst.prob)
-      mapEst = {val: dd.val, prob: nprob};
-    marginal[v].prob = nprob;
+    var nprob = dd.prob - norm;
+    var nprobS = Math.exp(nprob)
+    if (nprobS > mapEst.prob)
+      mapEst = {val: dd.val, prob: nprobS};
+    marginal[v].prob = nprobS;
   }}
 
   // Make an ERP from marginal:
@@ -505,42 +510,25 @@ function makeMarginalERP(marginal) {
   return dist;
 }
 
-// Make an ERP that assigns probability 1 to a single value, probability 0 to everything else
-var makeDeltaERP = function(v) {
-  var stringifiedValue = JSON.stringify(v);
+// note: ps is expected to be normalized
+var makeCategoricalERP = function(ps, vs, extraParams) {
+  var dist = {};
+  var auxParams = {};
+  vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
+  auxParams['support'] = function categoricalSupport(params) {return vs};
+  if (extraParams) {
+    _.each(extraParams, function(v, k) {auxParams[k] = v;})
+  }
+  var categoricalSample = vs.length === 1 ?
+      function(params) { return vs[0]; } :
+      function(params) { return vs[multinomialSample(ps)]; };
   return new ERP(
-      function deltaSample(params) {
-        return v;
-      },
-      function deltaScore(params, val) {
-        if (JSON.stringify(val) === stringifiedValue) {
-          return 0;
-        } else {
-          return -Infinity;
-        }
-      },
-      {
-        support: function deltaSupport(params) {
-          return [v];
-        }
-      }
-  );
-};
-
-var makeCategoricalERP = function(ps, vs) {
-  return new ERP(
-      function categoricalSample(params) {
-        return vs[multinomialSample(ps)];
-      },
+      categoricalSample,
       function categoricalScore(params, val) {
-        var i = vs.indexOf(val);
-        return i < 0 ? -Infinity : Math.log(ps[i]);
+        var lk = dist[JSON.stringify(val)];
+        return lk ? Math.log(lk.prob) : -Infinity;
       },
-      {
-        support: function categoricalSupport(params) {
-          return vs
-        }
-      }
+      auxParams
   );
 };
 
@@ -621,6 +609,14 @@ var dirichletDriftERP = new ERP(
     dirichletERP.score,
     { proposer: dirichletProposer });
 
+function isErp(x) {
+  return x && _.isFunction(x.score) && _.isFunction(x.sample);
+}
+
+function isErpWithSupport(x) {
+  return isErp(x) && _.isFunction(x.support);
+}
+
 module.exports = {
   ERP: ERP,
   bernoulliERP: bernoulliERP,
@@ -637,9 +633,10 @@ module.exports = {
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
   makeMarginalERP: makeMarginalERP,
-  makeDeltaERP: makeDeltaERP,
   makeCategoricalERP: makeCategoricalERP,
   makeMultiplexERP: makeMultiplexERP,
   gaussianDriftERP: gaussianDriftERP,
-  dirichletDriftERP: dirichletDriftERP
+  dirichletDriftERP: dirichletDriftERP,
+  isErp: isErp,
+  isErpWithSupport: isErpWithSupport
 };

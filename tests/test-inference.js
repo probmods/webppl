@@ -12,8 +12,9 @@ var testDataDir = './tests/test-data/';
 var tests = [
   {
     name: 'ForwardSample',
+    func: 'Rejection',
     settings: {
-      args: [1000],
+      args: [3000],
       hist: { tol: 0.05 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 }
@@ -29,25 +30,38 @@ var tests = [
   },
   {
     name: 'Enumerate',
-    settings: { args: [10] },
+    settings: {
+      args: [10],
+      MAP: { check: true }
+    },
     models: {
       simple: true,
+      upweight: true,
+      incrementalBinomial: true,
       store: { hist: { tol: 0 } },
       geometric: true,
-      cache: true
+      liftERP: { hist: { tol: 0.0001 } },
+      cache: true,
+      stochasticCache: true,
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
     name: 'MH',
     settings: {
       args: [5000],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -55,12 +69,16 @@ var tests = [
     settings: {
       args: [5000],
       hist: { tol: 0.1 }
+      //MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -68,24 +86,32 @@ var tests = [
     settings: {
       args: [5000],
       hist: { tol: 0.1 }
+      //MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
     name: 'PMCMC',
     settings: {
       args: [1000, 5],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -94,15 +120,21 @@ var tests = [
     settings: {
       args: [1000, 10],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
       importance: true,
-      importance2: { args: [3000, 10] }
+      importance2: { args: [3000, 10] },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -110,14 +142,20 @@ var tests = [
     func: 'ParticleFilterRejuv',
     settings: {
       args: [1, 10000],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100] },
+      cache: true,
+      store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
       importance: true,
-      importance2: true
+      importance2: true,
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -125,15 +163,22 @@ var tests = [
     func: 'ParticleFilterRejuv',
     settings: {
       args: [1000, 0],
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
+      store: { hist: { tol: 0 }, args: [100, 0] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
+      varFactors1: { args: [5000, 0] },
+      varFactors2: true,
       importance: true,
-      importance2: { args: [3000] },
-      store: { hist: { tol: 0 }, args: [100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] }
-      // varFactors1: { args: [5000] },
+      importance2: { args: [3000, 0] },
+      withCaching: true,
+      optionalErpParams: true
+      // varFactors1: { args: [5000, 0] },
       // varFactors2: true
     }
   },
@@ -142,12 +187,14 @@ var tests = [
     settings: {
       args: [1000, 1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
       store: { hist: { tol: 0 }, args: [100, 100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] }
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] },
+      withCaching: true
     }
   },
   {
@@ -155,16 +202,56 @@ var tests = [
     settings: {
       args: [1000],
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
       varFactors1: { args: [5000] },
       varFactors2: true,
       importance: true,
-      importance2: { args: [3000] }
+      importance2: { args: [3000] },
+      withCaching: true,
+      optionalErpParams: true
+    }
+  },
+  {
+    name: 'Rejection',
+    settings: {
+      args: [1000],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      upweight: { args: [1000, 10] },
+      incrementalBinomial: { args: [1000, -2] },
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors1: true,
+      varFactors2: true,
+      withCaching: true,
+      optionalErpParams: true
+    }
+  },
+  {
+    name: 'IncrementalRejection',
+    func: 'Rejection',
+    settings: {
+      args: [1000, 0, true],
+      hist: { tol: 0.1 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      incrementalBinomial: { args: [1000, -2, true] },
+      store: { hist: { tol: 0 } },
+      geometric: true,
+      varFactors2: true,
+      optionalErpParams: true
     }
   },
   {
@@ -275,6 +362,11 @@ var testWithinTolerance = function(test, actual, expected, tolerance, name) {
   test.ok(absDiff < tolerance, msg);
 };
 
+var testEqual = function(test, actual, expected, name) {
+  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
+  test.ok(actual === expected, msg);
+};
+
 var testFunctions = {
   hist: function(test, erp, hist, expected, args) {
     test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
@@ -288,6 +380,13 @@ var testFunctions = {
   logZ: function(test, erp, hist, expected, args) {
     if (args.check) {
       testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
+    }
+  },
+  MAP: function(test, erp, hist, expected, args) {
+    if (args.check) {
+      var map = erp.MAP();
+      testEqual(test, map.val, expected.val, 'MAP value');
+      testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
   }
 };

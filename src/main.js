@@ -5,6 +5,7 @@ var types = require('ast-types');
 var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
+var estraverse = require('estraverse');
 
 var cps = require('./transforms/cps').cps;
 var optimize = require('./transforms/optimize').optimize;
@@ -18,21 +19,41 @@ var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
 
-
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
 var env = {};
 
 // Make header functions globally available:
-var header = require('./header.js')(env);
-for (var prop in header) {
-  if (header.hasOwnProperty(prop)) {
-    global[prop] = header[prop];
+function requireHeader(path) { requireHeaderWrapper(require(path)); }
+function requireHeaderWrapper(wrapper) { makePropertiesGlobal(wrapper(env)); }
+
+function makePropertiesGlobal(obj) {
+  for (var prop in obj) {
+    if (obj.hasOwnProperty(prop)) {
+      global[prop] = obj[prop];
+    }
   }
 }
 
+// Explicitly call require here to ensure that browserify notices that the
+// header should be bundled.
+requireHeaderWrapper(require('./header'));
+
 function concatPrograms(p0, p1) {
   return build.program(p0.body.concat(p1.body));
+}
+
+function cachingRequired(programAST) {
+  var flag = false;
+  estraverse.traverse(programAST, {
+    enter: function(node) {
+      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+        flag = true;
+        this.break();
+      }
+    }
+  });
+  return flag;
 }
 
 function prepare(programCode, verbose, doCaching) {
@@ -54,6 +75,7 @@ function prepare(programCode, verbose, doCaching) {
   var programAST = esprima.parse(programCode);
   // if (doCaching)
   //   programAST = caching(programAST);
+
   var out = _prepare(concatPrograms(headerAST, programAST));
 
   if (verbose && console.timeEnd) {
@@ -62,7 +84,7 @@ function prepare(programCode, verbose, doCaching) {
   return out;
 }
 
-function compile(programCode, verbose, doCaching) {
+function compile(programCode, verbose) {
   if (verbose && console.time) {
     console.time('compile');
   }
@@ -83,8 +105,14 @@ function compile(programCode, verbose, doCaching) {
   // Parse header and program, combine, compile, and generate program
   var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
   var programAST = esprima.parse(programCode);
-  if (doCaching)
+
+  var doCaching = cachingRequired(programAST);
+
+  if (doCaching) {
+    if (verbose) console.log('Caching transforms will be applied.');
     programAST = caching(programAST);
+  }
+
   var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
 
   if (verbose && console.timeEnd) {
@@ -93,47 +121,20 @@ function compile(programCode, verbose, doCaching) {
   return out;
 }
 
-function run(code, contFun, verbose) {
+function run(code, k, verbose) {
   var compiledCode = compile(code, verbose);
-  eval(compiledCode)({}, contFun, '');
-}
-
-// Compile and run some webppl code in global scope:
-function webpplEval(k, code, verbose) {
-  var compiledCode = compile(code, verbose);
+  if (verbose && console.time) {
+    console.time('run');
+  }
   eval.call(global, compiledCode)({}, k, '');
-}
-
-// For use in browser
-function webpplCPS(code) {
-  var programAst = esprima.parse(code);
-  var newProgramAst = optimize(cps(programAst));
-  return escodegen.generate(newProgramAst);
-}
-
-function webpplNaming(code) {
-  var programAst = esprima.parse(code);
-  var newProgramAst = naming(programAst);
-  return escodegen.generate(newProgramAst);
-}
-
-// For use in browser using browserify
-if (util.runningInBrowser()) {
-  window.webppl = {
-    run: run,
-    compile: compile,
-    cps: webpplCPS,
-    naming: webpplNaming,
-    analyze: analyze
-  };
-  console.log('webppl loaded.');
-} else {
-  // Put eval into global scope. browser version??
-  global.webpplEval = webpplEval;
+  if (verbose && console.timeEnd) {
+    console.timeEnd('run');
+  }
 }
 
 module.exports = {
-  webpplEval: webpplEval,
+  requireHeader: requireHeader,
+  requireHeaderWrapper: requireHeaderWrapper,
   run: run,
   prepare: prepare,
   compile: compile,

@@ -15,6 +15,9 @@ var assert = require('assert');
 var util = require('../util.js');
 var erp = require('../erp.js');
 
+function isActive(particle) {
+  return particle.active;
+}
 
 module.exports = function(env) {
 
@@ -56,15 +59,16 @@ module.exports = function(env) {
         score: 0,
         value: undefined,
         trace: [],
-        store: _.clone(s)
+        store: _.clone(s),
+        active: true,
+        proposalBoundary: 0 // index of first erp to consider for mh proposals
       };
       this.particles.push(particle);
     }
-
   }
 
   ParticleFilterRejuv.prototype.run = function() {
-    return this.activeParticle().continuation(this.activeParticle().store);
+    return this.currentParticle().continuation(this.currentParticle().store);
   };
 
   ParticleFilterRejuv.prototype.sample = function(s, cc, a, erp, params) {
@@ -72,26 +76,22 @@ module.exports = function(env) {
     var val = importanceERP.sample(params);
     var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
-    var currScore = this.activeParticle().score;
-    this.activeParticle().trace.push(
-        {
-          k: cc, name: a, erp: erp, params: params,
-          score: currScore,
-          forwardChoiceScore: importanceScore,
-          val: val, reused: false,
-          store: _.clone(s)
-        });
-    this.activeParticle().score += choiceScore;
-    this.activeParticle().weight += choiceScore - importanceScore;
+    var currScore = this.currentParticle().score;
+    this.currentParticle().trace.push(
+        {k: cc, name: a, erp: erp, params: params,
+          score: currScore, forwardChoiceScore: importanceScore,
+          val: val, reused: false, store: _.clone(s)});
+    this.currentParticle().score += choiceScore;
+    this.currentParticle().weight += choiceScore - importanceScore;
     return cc(s, val);
   };
 
   ParticleFilterRejuv.prototype.factor = function(s, cc, a, score) {
     // Update particle weight and score
-    this.activeParticle().weight += score;
-    this.activeParticle().score += score;
-    this.activeParticle().continuation = cc;
-    this.activeParticle().store = _.clone(s);
+    this.currentParticle().weight += score;
+    this.currentParticle().score += score;
+    this.currentParticle().continuation = cc;
+    this.currentParticle().store = _.clone(s);
 
     if (this.allParticlesAdvanced()) {
       // Resample in proportion to weights
@@ -101,33 +101,60 @@ module.exports = function(env) {
           function(particle, i, particles, nextK) {
             // make sure mhp coroutine doesn't escape:
             assert(env.coroutine.isParticleFilterRejuvCoroutine);
-            return new MHP(
-                function(p) {
-                  particles[i] = p;
-                  return nextK();
-                },
-                particle, this.baseAddress,
-                a, this.wpplFn, this.rejuvSteps).run();
+            // if particle has finished, don't rejuvenate
+            if (!particle.active) {
+              return nextK();
+            }
+            // otherwise, rejuvenate
+            return new MHP(function(p) {particles[i] = p; return nextK();},
+                           particle, this.baseAddress, a,
+                           this.wpplFn, this.rejuvSteps).run();
           }.bind(this),
           function() {
-            this.particleIndex = 0;
-            return this.activeParticle().continuation(this.activeParticle().store);
+            // Resampling can kill all continuing particles
+            var i = this.firstActiveParticleIndex();
+            if (i === -1) {
+              return this.finish(); // All particles completed
+            } else {
+              this.particleIndex = i;
+            }
+            return this.currentParticle().continuation(this.currentParticle().store);
           }.bind(this),
           this.particles
       );
     } else {
       // Advance to the next particle
-      this.particleIndex += 1;
-      return this.activeParticle().continuation(this.activeParticle().store);
+      this.particleIndex = this.nextActiveParticleIndex();
+      return this.currentParticle().continuation(this.currentParticle().store);
     }
   };
 
-  ParticleFilterRejuv.prototype.activeParticle = function() {
+  // The three functions below return -1 if there is no active particle
+
+  ParticleFilterRejuv.prototype.firstActiveParticleIndex = function() {
+    return util.indexOfPred(this.particles, isActive);
+  };
+
+  ParticleFilterRejuv.prototype.lastActiveParticleIndex = function() {
+    return util.lastIndexOfPred(this.particles, isActive);
+  };
+
+  ParticleFilterRejuv.prototype.nextActiveParticleIndex = function() {
+    var successorIndex = this.particleIndex + 1;
+    var nextActiveIndex = util.indexOfPred(this.particles, isActive, successorIndex);
+    if (nextActiveIndex === -1) {
+      return this.firstActiveParticleIndex();  // wrap around
+    } else {
+      return nextActiveIndex;
+    }
+  };
+
+  ParticleFilterRejuv.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];
   };
 
   ParticleFilterRejuv.prototype.allParticlesAdvanced = function() {
-    return ((this.particleIndex + 1) === this.particles.length);
+    return this.particleIndex === this.lastActiveParticleIndex();
   };
 
   function copyPFRParticle(particle) {
@@ -137,12 +164,13 @@ module.exports = function(env) {
       value: particle.value,
       score: particle.score,
       store: _.clone(particle.store),
-      trace: deepCopyTrace(particle.trace)
+      active: particle.active,
+      trace: deepCopyTrace(particle.trace),
+      proposalBoundary: particle.proposalBoundary
     };
   }
 
   ParticleFilterRejuv.prototype.resampleParticles = function() {
-
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = this.particles.length;
     var W = util.logsumexp(_.map(this.particles, function(p) {
@@ -189,16 +217,23 @@ module.exports = function(env) {
   };
 
   ParticleFilterRejuv.prototype.exit = function(s, retval) {
-
-    this.activeParticle().value = retval;
-
+    this.currentParticle().value = retval;
+    this.currentParticle().active = false;
     // Wait for all particles to reach exit before computing
     // marginal distribution from particles
-    if (!this.allParticlesAdvanced()) {
-      this.particleIndex += 1;
-      return this.activeParticle().continuation(this.activeParticle().store);
+    var i = this.nextActiveParticleIndex();
+    if (i === -1) {
+      return this.finish();     // All particles completed
+    } else {
+      if (i < this.particleIndex) {
+        this.resampleParticles(); // Updated all particles; now wrap around
+      }
+      this.particleIndex = i;
+      return this.currentParticle().continuation(this.currentParticle().store);
     }
+  };
 
+  ParticleFilterRejuv.prototype.finish = function() {
     // Initialize histogram with particle values
     var hist = {};
     this.particles.forEach(function(particle) {
@@ -213,18 +248,15 @@ module.exports = function(env) {
     var oldStore = this.oldStore;
     return util.cpsForEach(
         function(particle, i, particles, nextK) {
+          // no need to check for inactive particles here
           // make sure mhp coroutine doesn't escape:
           assert(env.coroutine.isParticleFilterRejuvCoroutine);
-          return new MHP(
-              function(p) {
-                particles[i] = p;
-                return nextK();
-              },
-              particle, this.baseAddress, undefined,
-              this.wpplFn, this.rejuvSteps, hist).run();
+          return new MHP(function(p) {particles[i] = p; return nextK();},
+                         particle, this.baseAddress, undefined,
+                         this.wpplFn, this.rejuvSteps, hist).run();
         }.bind(this),
         function() {
-          var dist = erp.makeMarginalERP(hist);
+          var dist = erp.makeMarginalERP(util.logHist(hist));
 
           // Save estimated normalization constant in erp (average particle weight)
           dist.normalizationConstant = this.particles[0].weight;
@@ -243,7 +275,6 @@ module.exports = function(env) {
 
   ParticleFilterRejuv.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-
   ////// Lightweight MH on a particle
 
   function MHP(backToPF, particle, baseAddress, limitAddress, wpplFn, numIterations, hist) {
@@ -259,6 +290,7 @@ module.exports = function(env) {
     this.limitAddress = limitAddress;
     this.originalParticle = particle;
     this.hist = hist;
+    this.proposalBoundary = particle.proposalBoundary;
 
     // Move PF coroutine out of the way and install this as the current
     // handler.
@@ -290,7 +322,7 @@ module.exports = function(env) {
 
   MHP.prototype.propose = function() {
     //make a new proposal:
-    this.regenFrom = Math.floor(Math.random() * this.trace.length);
+    this.regenFrom = this.proposalBoundary + Math.floor(Math.random() * (this.trace.length - this.proposalBoundary));
     var regen = this.trace[this.regenFrom];
     this.oldTrace = deepCopyTrace(this.trace);
     this.trace = this.trace.slice(0, this.regenFrom);
@@ -300,7 +332,6 @@ module.exports = function(env) {
 
     return this.sample(_.clone(regen.store), regen.k, regen.name, regen.erp, regen.params, true);
   };
-
 
   MHP.prototype.exit = function(s, val) {
 
@@ -312,7 +343,8 @@ module.exports = function(env) {
         this.oldTrace,
         this.regenFrom,
         this.currScore,
-        this.oldScore);
+        this.oldScore,
+        this.proposalBoundary);
 
     var accepted = Math.random() < acceptance;
 
@@ -347,7 +379,9 @@ module.exports = function(env) {
         value: this.val,
         score: this.currScore,
         store: this.oldStore, // use store from latest accepted proposal
-        trace: this.trace
+        active: this.originalParticle.active,
+        trace: this.trace,
+        proposalBoundary: this.originalParticle.proposalBoundary
       };
 
       // Reinstate previous coroutine and return by calling original continuation:
@@ -359,13 +393,22 @@ module.exports = function(env) {
   // TODO: Incrementalized version?
   MHP.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
+  // Restrict rejuvenation to erps that come after proposal boundary
+  function setProposalBoundary(s, k, a) {
+    if (env.coroutine.isParticleFilterRejuvCoroutine) {
+      var particle = env.coroutine.currentParticle();
+      particle.proposalBoundary = particle.trace.length;
+    }
+    return k(s);
+  }
 
   function pfr(s, cc, a, wpplFn, numParticles, rejuvSteps) {
     return new ParticleFilterRejuv(s, cc, a, wpplFn, numParticles, rejuvSteps).run();
   }
 
   return {
-    ParticleFilterRejuv: pfr
+    ParticleFilterRejuv: pfr,
+    setProposalBoundary: setProposalBoundary
   };
 
 };

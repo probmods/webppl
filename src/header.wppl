@@ -57,15 +57,15 @@ var gamma = function(shape, scale) {
 };
 
 var deltaERP = function(v) {
-  return top.makeDeltaERP(v);
+  return _top.makeCategoricalERP([1.0], [v]);
 };
 
-var categoricalERP = function(ps, vs) {
-  return top.makeCategoricalERP(ps, vs);
+var categoricalERP = function(ps, vs, extraParams) {
+  return _top.makeCategoricalERP(ps, vs, extraParams);
 };
 
 var multiplexERP = function(vs, erps) {
-  return top.makeMultiplexERP(vs, erps);
+  return _top.makeMultiplexERP(vs, erps);
 };
 
 // XRPs
@@ -100,6 +100,36 @@ var makeDirichletDiscrete = function(pseudocounts) {
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
+};
+
+// put here because liftFn is a wppl-transformed fn
+var liftERP = function(erp, liftFn) {
+  var augmentedSupport = map(function(baseEntity) {
+    var baseEntityScore = erp.score([], baseEntity);
+    var liftedSupport = liftFn(baseEntity);
+    return {
+      k: JSON.stringify(liftedSupport),
+      vs: [baseEntity],
+      ps: [baseEntityScore],
+      liftedSupport: liftedSupport,
+      aggregateScore: baseEntityScore
+    };
+  }, erp.support());
+  var eqClasses = groupBy(function(e, f) {return e.k === f.k}, augmentedSupport);
+  var eqClassesStructured = map(function(eqClass) {
+    return [eqClass[0].k,
+            mapReduce1(function(a, b) {
+              return {
+                vs: a.vs.concat(b.vs),
+                ps: a.ps.concat(b.ps),
+                liftedSupport: a.liftedSupport,
+                aggregateScore: util.logsumexp([a.aggregateScore, b.aggregateScore])
+              };
+            }, idF, eqClass)]
+  }, eqClasses);
+  var vs = map(function(e) {return e[1].liftedSupport}, eqClassesStructured);
+  var ps = map(function(e) {return Math.exp(e[1].aggregateScore)}, eqClassesStructured);
+  return categoricalERP(ps, vs, {baseERPEntries: _.object(eqClassesStructured)});
 };
 
 // Arithmetic and other functionals
