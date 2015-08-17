@@ -113,8 +113,6 @@ module.exports = function(env) {
 
     score -= Math.log(fromTrace.length);
     assert(!isNaN(score));
-    assert(score <= 0);
-
     return score;
   }
 
