@@ -30,15 +30,13 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.factor = function(s, k, a, score) {
+    if (score === -Infinity) { return this.run(); }
     this.trace.score += score;
     return k(s);
   };
 
   Initialize.prototype.exit = function(s, val) {
-    if (this.trace.score === -Infinity) {
-      //console.log('Reject!');
-      return this.run();
-    }
+    assert(this.trace.score !== -Infinity);
     this.trace.complete(val);
     env.coroutine = this.coroutine;
     return this.k(this.s, this.trace);

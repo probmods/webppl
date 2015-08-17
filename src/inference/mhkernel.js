@@ -26,6 +26,8 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {
+    // Optimization: Bail early if we know acceptProb will be zero.
+    if (score === -Infinity) { return this.cont(this.oldTrace); }
     this.trace.score += score;
     if (this.exitAddress === a) {
       this.trace.saveContinuation(k, s);
