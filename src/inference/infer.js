@@ -7,18 +7,19 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  var Infer = function(s, k, a, wpplFn, options) {
+  function Infer(s, k, a, wpplFn, options) {
     return options.method(s, function(s, val) {
       return k(s, val);
     }, a, wpplFn, options);
-  };
+  }
 
   function MCMC(s, k, a, wpplFn, options) {
     // TODO: Set defaults.
     var n = options.iterations;
+    var kernel = options.kernel;
+
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
-    var kernel = options.kernel;
 
     return initialize(function(s, initialTrace) {
       // console.log('Initialized');
@@ -27,9 +28,9 @@ module.exports = function(env) {
           n, initialTrace, kernel, hist,
           function() { return k(s, erp.makeMarginalERP(util.logHist(hist))); });
     });
-  };
+  }
 
-  var SMC = function(s, k, a, wpplFn, options) {
+  function SMC(s, k, a, wpplFn, options) {
     return ParticleFilterCore(s, function(s, particles) {
       var hist = {};
       var logAvgW = _.first(particles).logWeight;
@@ -39,7 +40,7 @@ module.exports = function(env) {
             assert(particle.value !== undefined);
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
             var r = JSON.stringify(particle.value);
-            if (hist[r] === undefined) hist[r] = { prob: 0, val: particle.value };
+            if (hist[r] === undefined) { hist[r] = { prob: 0, val: particle.value }; }
             hist[r].prob += 1;
             // Final rejuvenation.
             return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, k);
@@ -52,7 +53,7 @@ module.exports = function(env) {
           particles);
 
     }, a, wpplFn, options);
-  };
+  }
 
   function runMarkovChain(n, initialTrace, kernel, hist, k) {
     return util.cpsIterate(
