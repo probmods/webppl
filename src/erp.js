@@ -99,9 +99,6 @@ ERP.prototype.toJSON = function() {
     _.forEach(this.support([]), function(s) {
       erpObj.dist[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
     }, this);
-    if (this.baseERPEntries) {
-      erpObj.baseERPEntries = this.baseERPEntries;
-    }
     this.toJSON = function() {return erpObj};
     return erpObj
   }
@@ -122,9 +119,6 @@ var erpFromString = function(obj) {
   var jsonObj = JSON.parse(obj);
   var _erp = makeMarginalERP(jsonObj.dist);
   _erp.name = jsonObj.name;
-  if (jsonObj.baseERPEntries) {
-    _erp.baseERPEntries = jsonObj.baseERPEntries;
-  }
   return _erp;
 };
 
