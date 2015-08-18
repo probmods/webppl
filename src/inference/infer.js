@@ -8,9 +8,28 @@ var util = require('../util');
 module.exports = function(env) {
 
   function Infer(s, k, a, wpplFn, options) {
-    return options.method(s, function(s, val) {
-      return k(s, val);
-    }, a, wpplFn, options);
+    var baseArgs = [s, k, a, wpplFn];
+    return options.method.apply(null, baseArgs.concat(methodArgs(options)));
+  }
+
+  function methodArgs(options) {
+    // Maps an options object to a list of arguments. Used to present a uniform
+    // interface over existing inference methods.
+    // TODO: Clean this up:
+    // 1. This could be removed if we don't care about backwards compat.
+    // 2. Push these down into the inference methods.
+    //    a. Attach a function to do this conversion to the inference function. Ergh.
+    //    b. Export a conversion function alongside the inference function.
+    //    c. Update each inference routine to take an options hash *or* the old
+    //       style args list.
+    switch (options.method) {
+      case Enumerate:
+      case EnumerateDepthFirst:
+      case EnumerateBreadthFirst:
+        return [options.maxExecutions];
+      default:
+        return options;
+    }
   }
 
   function MCMC(s, k, a, wpplFn, options) {
