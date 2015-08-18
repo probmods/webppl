@@ -88,38 +88,28 @@ ERP.prototype.withParameters = function(params) {
 };
 
 // ERP serializer (allows JSON.stringify)
-// unless error, returns {name: *, erp: {*}}
 ERP.prototype.toJSON = function() {
-  if (this.name === undefined) { // every erp must have a name
-    throw ['Cannot serialize unnamed ERP:', this];
-  } else if (this.parameterized || this.support === undefined) {
-    return {name: this.name, dist: {}};
+  if (this.parameterized || this.support === undefined) {
+    throw 'Cannot serialize ERP: ' + this.sample.name;
   } else {
-    var erpObj = {name: this.name, dist: {}};
-    _.forEach(this.support([]), function(s) {
-      erpObj.dist[JSON.stringify(s)] = {val: s, prob: this.score([], s)};
-    }, this);
-    this.toJSON = function() {return erpObj};
-    return erpObj
+    var support = this.support([]);
+    var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
+    var erpJSON = [probs, support];
+    this.toJSON = function() {return erpJSON};
+    return erpJSON;
   }
 };
 
 ERP.prototype.print = function() {
-  var serialized = this.toJSON();
-  console.log(serialized.name + ':');
-  _.map(serialized.dist, function(v, k) { return [k, v.prob]; })
-    .sort(function(a, b) { return b[1] - a[1]; })
-    .forEach(function(val) {
-        console.log('    ' + val[0] + ' : ' + Math.exp(val[1]));
-      })
+  console.log('ERP :');
+  _.zip.apply(null, this.toJSON())
+    .sort(function(a, b) { return b[0] - a[0]; })
+    .forEach(function(val) {console.log('    ' + JSON.stringify(val[1]) + ' : ' + val[0]);})
 };
 
 // ERP deserializer
-var erpFromString = function(obj) {
-  var jsonObj = JSON.parse(obj);
-  var _erp = makeMarginalERP(jsonObj.dist);
-  _erp.name = jsonObj.name;
-  return _erp;
+var erpFromString = function(s) {
+  return makeCategoricalERP.apply(null, JSON.parse(s));
 };
 
 var uniformERP = new ERP(
