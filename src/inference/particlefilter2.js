@@ -17,6 +17,7 @@ module.exports = function(env) {
 
     this.particles = [];
     this.particleIndex = 0;
+    this.particlesAtExit = false;
 
     var exitK = function(s) {
       return wpplFn(s, env.exit, a);
@@ -60,17 +61,16 @@ module.exports = function(env) {
     particle.score += score;
     particle.logWeight += score;
 
-    var cont = function() {
-      this.nextParticle();
+    if (this.particlesAtExit) {
+      // Continue with current particle to exit.
       return this.runCurrentParticle();
-    }.bind(this);
-
-    // Resample/rejuvenate at the last particle.
-    if (this.lastParticle()) {
+    } else if (this.lastParticle()) {
+      this.activateFirstParticle();
       this.resampleParticles();
-      return this.rejuvenateParticles(cont, a);
+      return this.rejuvenateParticles(this.runCurrentParticle.bind(this), a);
     } else {
-      return cont();
+      this.activateNextParticle();
+      return this.runCurrentParticle();
     }
   };
 
@@ -82,12 +82,22 @@ module.exports = function(env) {
     return this.particles[this.particleIndex];
   };
 
-  ParticleFilter.prototype.nextParticle = function() {
-    this.particleIndex = (this.particleIndex + 1) % this.numParticles;
-  };
-
   ParticleFilter.prototype.runCurrentParticle = function() {
     return this.currentParticle().k(this.currentParticle().store);
+  };
+
+  ParticleFilter.prototype.activateFirstParticle = function() {
+    this.particleIndex = -1;
+    return this.activateNextParticle();
+  };
+
+  ParticleFilter.prototype.activateNextParticle = function() {
+    do {
+      this.particleIndex += 1;
+    } while (this.particleIndex < this.numParticles && this.currentParticle().isComplete())
+    //console.log('Active particle is ' + this.particleIndex);
+    // Returns false if there is no next particle.
+    return this.particleIndex !== this.numParticles;
   };
 
   ParticleFilter.prototype.resampleParticles = function() { return this.resampleResidual(); };
@@ -174,9 +184,18 @@ module.exports = function(env) {
     // Complete the trace.
     this.currentParticle().complete(val);
 
+    // First particle has reached exit.
+    // Set-up to perform final sweep through particles running each to the exit.
+    if (!this.particlesAtExit) {
+      //console.log('Exit reached by 1st particle! (' + this.particleIndex + ')');
+      this.particlesAtExit = true;
+      this.activateFirstParticle();
+      return this.runCurrentParticle();
+    }
+
     // Run any remaining particles.
-    if (!this.lastParticle()) {
-      this.nextParticle();
+    if (this.activateNextParticle()) {
+      //console.log('More active particles to run:' + this.particleIndex);
       return this.runCurrentParticle();
     }
 
