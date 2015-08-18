@@ -64,9 +64,9 @@ module.exports = function(env) {
     if (!this.exitAddress) {
       this.trace.complete(val);
     } else {
-      // We're rejuvenating a particle (incomplete trace) which will be
-      // completed by SMC.
-      assert(this.trace.k !== undefined);
+      // We're rejuvenating a particle - ensure that exitAddress was reached by
+      // checking that the continuation was saved.
+      assert(this.trace.k && this.trace.store);
     }
     var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
     return this.cont(Math.random() < acceptance ? this.trace : this.oldTrace);
