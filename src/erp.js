@@ -132,9 +132,6 @@ var uniformERP = new ERP(
         return -Infinity;
       }
       return -Math.log(params[1] - params[0]);
-    },
-    {
-      name: 'uniformERP'
     }
     );
 
@@ -152,7 +149,6 @@ var bernoulliERP = new ERP(
       return val ? Math.log(weight) : Math.log(1 - weight);
     },
     {
-      name: 'bernoulliERP',
       support: function flipSupport(params) {
         return [true, false];
       },
@@ -175,7 +171,6 @@ var randomIntegerERP = new ERP(
       return inSupport ? -Math.log(stop) : -Infinity;
     },
     {
-      name: 'randomIntegerERP',
       support: function randomIntegerSupport(params) {
         return _.range(params[0]);
       }
@@ -202,13 +197,7 @@ function gaussianScore(params, x) {
   return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
-var gaussianERP = new ERP(
-    gaussianSample,
-    gaussianScore,
-    {
-      name: 'gaussianERP'
-    }
-    );
+var gaussianERP = new ERP(gaussianSample, gaussianScore);
 
 function multivariateGaussianSample(params) {
   var mu = params[0];
@@ -234,10 +223,7 @@ function multivariateGaussianScore(params, x) {
 
 var multivariateGaussianERP = new ERP(
     multivariateGaussianSample,
-    multivariateGaussianScore,
-    {
-      name: 'multivariateGaussianERP'
-    }
+    multivariateGaussianScore
     );
 
 var discreteERP = new ERP(
@@ -251,7 +237,6 @@ var discreteERP = new ERP(
       return inSupport ? Math.log(probs[val]) : -Infinity;
     },
     {
-      name: 'discreteERP',
       support:
           function discreteSupport(params) {
             return _.range(params[0].length);
@@ -321,9 +306,6 @@ var exponentialERP = new ERP(
     function exponentialScore(params, val) {
       var a = params[0];
       return Math.log(a) - a * val;
-    },
-    {
-      name: 'exponentialERP'
     }
     );
 
@@ -347,9 +329,6 @@ var betaERP = new ERP(
       return ((x > 0 && x < 1) ?
           (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
           -Infinity);
-    },
-    {
-      name: 'betaERP'
     }
     );
 
@@ -427,7 +406,6 @@ var binomialERP = new ERP(
       }
     },
     {
-      name: 'binomialERP',
       support:
           function binomialSupport(params) {
             return _.range(params[1]).concat([params[1]]);
@@ -488,9 +466,6 @@ var poissonERP = new ERP(
       var mu = params[0];
       var k = val;
       return k * Math.log(mu) - mu - lnfact(k);
-    },
-    {
-      name: 'poissonERP'
     }
     );
 
@@ -525,13 +500,7 @@ function dirichletScore(params, val) {
   return logp;
 }
 
-var dirichletERP = new ERP(
-    dirichletSample,
-    dirichletScore,
-    {
-      name: 'dirichletERP'
-    }
-    );
+var dirichletERP = new ERP(dirichletSample, dirichletScore);
 
 function multinomialSample(theta) {
   var thetaSum = util.sum(theta);
@@ -586,7 +555,6 @@ function makeMarginalERP(marginal) {
         return lk ? Math.log(lk.prob) : -Infinity;
       },
       {
-        name: 'marginalERP',
         parameterized: false,
         support: function(params) {
           return supp;
@@ -603,7 +571,6 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
   var auxParams = {};
   vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
-  auxParams['name'] = 'categoricalERP';
   auxParams['parameterized'] = false;
   auxParams['support'] = function categoricalSupport(params) {return vs};
   if (extraParams) {
@@ -649,7 +616,6 @@ var makeMultiplexERP = function(vs, erps) {
         }
       },
       {
-        name: 'multiplexERP',
         support: function multiplexSupport(params) {
           var erp = selectERP(params);
           return erp.support();
