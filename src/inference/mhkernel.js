@@ -18,6 +18,7 @@ module.exports = function(env) {
   }
 
   MHKernel.prototype.run = function() {
+    if (this.oldTrace.length === 0) { return this.cont(this.oldTrace); }
     // Make a new proposal.
     this.regenFrom = Math.floor(Math.random() * this.oldTrace.length);
     this.trace = this.oldTrace.upto(this.regenFrom);

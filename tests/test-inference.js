@@ -263,6 +263,7 @@ var tests = [
     },
     models: {
       simple: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 0 }' },
+      deterministic: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 0 }' },
       store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100, rejuvSteps: 0 }' },
       importance: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 0 }' },
       importance2: { args: '{ method: SMC, numParticles: 3000, rejuvSteps: 0 }' }
@@ -277,6 +278,7 @@ var tests = [
     },
     models: {
       simple: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
+      deterministic: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
       store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100, rejuvSteps: 10, rejuvKernel: MHKernel }' },
       importance: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10, rejuvKernel: MHKernel }' },
       importance2: { args: '{ method: SMC, numParticles: 3000, rejuvSteps: 10, rejuvKernel: MHKernel }' }
@@ -290,6 +292,7 @@ var tests = [
     },
     models: {
       simple: { args: '{ method: MCMC, iterations: 1000, kernel: MHKernel }' },
+      deterministic: { args: '{ method: MCMC, iterations: 1000, kernel: MHKernel }' },
       store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10, kernel: MHKernel }' },
       geometric: { args: '{ method: MCMC, iterations: 5000, kernel: MHKernel }' },
       drift: {
