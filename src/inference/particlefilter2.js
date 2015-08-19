@@ -12,7 +12,7 @@ module.exports = function(env) {
 
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
-    this.numParticles = options.numParticles;
+    this.numParticles = options.particles;
 
     this.particles = [];
     this.particleIndex = 0;

@@ -64,7 +64,7 @@ module.exports = function(env) {
   }
 
   function SMC(s, k, a, wpplFn, options) {
-    var options = _.extendOwn({ numParticles: 100, rejuvSteps: 0, rejuvKernel: MHKernel }, options);
+    var options = _.extendOwn({ particles: 100, rejuvSteps: 0, rejuvKernel: MHKernel }, options);
 
     return ParticleFilterCore(s, function(s, particles) {
       var hist = new Histogram();

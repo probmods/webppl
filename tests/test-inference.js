@@ -262,13 +262,13 @@ var tests = [
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: SMC, numParticles: 1000 }' },
-      deterministic: { args: '{ method: SMC, numParticles: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100 }' },
-      varFactors1: { args: '{ method: SMC, numParticles: 1000 }' },
-      varFactors2: { args: '{ method: SMC, numParticles: 1000 }' },
-      importance: { args: '{ method: SMC, numParticles: 1000 }' },
-      importance2: { args: '{ method: SMC, numParticles: 3000 }' }
+      simple: { args: '{ method: SMC, particles: 1000 }' },
+      deterministic: { args: '{ method: SMC, particles: 1000 }' },
+      store: { hist: { tol: 0 }, args: '{ method: SMC, particles: 100 }' },
+      varFactors1: { args: '{ method: SMC, particles: 1000 }' },
+      varFactors2: { args: '{ method: SMC, particles: 1000 }' },
+      importance: { args: '{ method: SMC, particles: 1000 }' },
+      importance2: { args: '{ method: SMC, particles: 3000 }' }
     }
   },
   {
@@ -279,12 +279,12 @@ var tests = [
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10 }' },
-      deterministic: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10 }' },
-      store: { hist: { tol: 0 }, args: '{ method: SMC, numParticles: 100, rejuvSteps: 10 }' },
-      varFactors2: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10 }' },
-      importance: { args: '{ method: SMC, numParticles: 1000, rejuvSteps: 10 }' },
-      importance2: { args: '{ method: SMC, numParticles: 3000, rejuvSteps: 10 }' }
+      simple: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
+      deterministic: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
+      store: { hist: { tol: 0 }, args: '{ method: SMC, particles: 100, rejuvSteps: 10 }' },
+      varFactors2: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
+      importance: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
+      importance2: { args: '{ method: SMC, particles: 3000, rejuvSteps: 10 }' }
     }
   },
   {
