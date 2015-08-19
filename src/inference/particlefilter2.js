@@ -10,7 +10,6 @@ module.exports = function(env) {
 
   function ParticleFilter(s, k, a, wpplFn, options) {
 
-    // TODO: Set defaults.
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
     this.numParticles = options.numParticles;

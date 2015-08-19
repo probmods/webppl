@@ -34,9 +34,7 @@ module.exports = function(env) {
   }
 
   function MCMC(s, k, a, wpplFn, options) {
-    // TODO: Set defaults.
-    var n = options.iterations;
-    var kernel = options.kernel;
+    var options = _.extendOwn({ iterations: 100, kernel: MHKernel }, options);
 
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
@@ -51,7 +49,7 @@ module.exports = function(env) {
           new Histogram();
 
       return runMarkovChain(
-          n, initialTrace, kernel, query,
+          options.iterations, initialTrace, options.kernel, query,
           // For each sample:
           function(value, score) { acc.add(value, score); },
           // Continuation:
@@ -60,6 +58,8 @@ module.exports = function(env) {
   }
 
   function SMC(s, k, a, wpplFn, options) {
+    var options = _.extendOwn({ numParticles: 100, rejuvSteps: 0, rejuvKernel: MHKernel }, options);
+
     return ParticleFilterCore(s, function(s, particles) {
       var hist = new Histogram();
       var logAvgW = _.first(particles).logWeight;
