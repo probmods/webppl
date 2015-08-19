@@ -94,7 +94,7 @@ ERP.prototype.toJSON = function() {
   } else {
     var support = this.support([]);
     var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
-    var erpJSON = [probs, support];
+    var erpJSON = {erp: [probs, support]};
     this.toJSON = function() {return erpJSON};
     return erpJSON;
   }
@@ -102,14 +102,21 @@ ERP.prototype.toJSON = function() {
 
 ERP.prototype.print = function() {
   console.log('ERP :');
-  _.zip.apply(null, this.toJSON())
+  _.zip.apply(null, this.toJSON().erp)
     .sort(function(a, b) { return b[0] - a[0]; })
     .forEach(function(val) {console.log('    ' + JSON.stringify(val[1]) + ' : ' + val[0]);})
 };
 
-// ERP deserializer
+// ERP deserializers
+var erpFromJSON = function(obj) {
+  if (!(_.has(obj, 'erp'))) {
+    throw "Not an ERP JSON object!"
+  }
+  return makeCategoricalERP.apply(null, obj.erp);
+}
+
 var erpFromString = function(s) {
-  return makeCategoricalERP.apply(null, JSON.parse(s));
+  return erpFromJSON(JSON.parse(s));
 };
 
 var uniformERP = new ERP(
@@ -624,6 +631,7 @@ function isErpWithSupport(x) {
 
 module.exports = {
   ERP: ERP,
+  erpFromJSON: erpFromJSON,
   erpFromString: erpFromString,
   bernoulliERP: bernoulliERP,
   betaERP: betaERP,
