@@ -110,7 +110,7 @@ ERP.prototype.print = function() {
 // ERP deserializers
 var erpFromJSON = function(obj) {
   if (!(_.has(obj, 'erp'))) {
-    throw "Not an ERP JSON object!"
+    throw 'Not an ERP JSON object!'
   }
   return makeCategoricalERP.apply(null, obj.erp);
 }
