@@ -43,18 +43,25 @@ module.exports = function(env) {
 
     return initialize(function(s, initialTrace) {
       // console.log('Initialized');
-      var hist = {};
       var query = new Query();
       if (initialTrace.value === env.query) { query.addAll(env.query); }
+
+      var acc = (options.justSample || options.onlyMAP) ?
+          new MAPEstimator(options.justSample) :
+          new Histogram();
+
       return runMarkovChain(
-          n, initialTrace, kernel, hist, query,
-          function() { return k(s, erp.makeMarginalERP(util.logHist(hist))); });
+          n, initialTrace, kernel, query,
+          // For each sample:
+          function(value, score) { acc.add(value, score); },
+          // Continuation:
+          function() { return k(s, acc.toERP()); });
     });
   }
 
   function SMC(s, k, a, wpplFn, options) {
     return ParticleFilterCore(s, function(s, particles) {
-      var hist = {};
+      var hist = new Histogram();
       var logAvgW = _.first(particles).logWeight;
 
       return util.cpsForEach(
@@ -62,15 +69,13 @@ module.exports = function(env) {
             assert(particle.value !== undefined);
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
             if (options.rejuvSteps === 0) {
-              var r = JSON.stringify(particle.value);
-              if (hist[r] === undefined) { hist[r] = { prob: 0, val: particle.value }; }
-              hist[r].prob += 1;
+              hist.add(particle.value);
             }
             // Final rejuvenation.
-            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, null, k);
+            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, null, hist.add.bind(hist), k);
           },
           function() {
-            var dist = erp.makeMarginalERP(util.logHist(hist));
+            var dist = hist.toERP();
             dist.normalizationConstant = logAvgW;
             return k(s, dist);
           },
@@ -79,7 +84,7 @@ module.exports = function(env) {
     }, a, wpplFn, options);
   }
 
-  function runMarkovChain(n, initialTrace, kernel, hist, query, k) {
+  function runMarkovChain(n, initialTrace, kernel, query, yieldFn, k) {
     return util.cpsIterate(
         n, initialTrace, kernel, k,
         function(i, trace, accepted) {
@@ -90,14 +95,47 @@ module.exports = function(env) {
           } else {
             value = trace.value;
           }
-
-          var r = JSON.stringify(value);
-          if (hist[r] === undefined) {
-            hist[r] = { prob: 0, val: value };
-          }
-          hist[r].prob += 1;
+          yieldFn(value, trace.score);
         });
   }
+
+  var Histogram = function() {
+    this.hist = {};
+  };
+
+  Histogram.prototype.add = function(value) {
+    var k = JSON.stringify(value);
+    if (this.hist[k] === undefined) {
+      this.hist[k] = { prob: 0, val: value };
+    }
+    this.hist[k].prob += 1;
+  };
+
+  Histogram.prototype.toERP = function() {
+    return erp.makeMarginalERP(util.logHist(this.hist));
+  };
+
+  var MAPEstimator = function(retainSamples) {
+    this.MAP = { value: undefined, score: -Infinity };
+    this.samples = [];
+    this.retainSamples = retainSamples;
+  };
+
+  MAPEstimator.prototype.add = function(value, score) {
+    if (this.retainSamples) { this.samples.push(value); }
+    if (score > this.MAP.score) {
+      this.MAP.value = value;
+      this.MAP.score = score;
+    }
+  };
+
+  MAPEstimator.prototype.toERP = function() {
+    var hist = new Histogram();
+    hist.add(this.MAP.value);
+    var erp = hist.toERP();
+    if (this.retainSamples) { erp.samples = this.samples; }
+    return erp;
+  };
 
   return {
     Infer: Infer,
