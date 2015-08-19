@@ -18,8 +18,9 @@ module.exports = function(env) {
   }
 
   MHKernel.prototype.run = function() {
-    if (this.oldTrace.length === 0) { return this.cont(this.oldTrace); }
+    if (this.oldTrace.length === 0) { return this.cont(this.oldTrace, false); }
     // Make a new proposal.
+    env.query.clear();
     this.regenFrom = Math.floor(Math.random() * this.oldTrace.length);
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
@@ -28,7 +29,7 @@ module.exports = function(env) {
 
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
-    if (score === -Infinity) { return this.cont(this.oldTrace); }
+    if (score === -Infinity) { return this.cont(this.oldTrace, false); }
     this.trace.score += score;
     if (this.exitAddress === a) {
       this.trace.saveContinuation(k, s);
@@ -46,7 +47,7 @@ module.exports = function(env) {
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
       val = proposalErp.sample(proposalParams);
       // Optimization: Bail early if same value is re-sampled.
-      if (prevChoice.val === val) { return this.cont(this.oldTrace); }
+      if (prevChoice.val === val) { return this.cont(this.oldTrace, false); }
     } else {
       if (prevChoice) {
         val = prevChoice.val;
@@ -68,14 +69,15 @@ module.exports = function(env) {
       // checking that the continuation was saved.
       assert(this.trace.k && this.trace.store);
     }
-    var acceptance = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
-    return this.cont(Math.random() < acceptance ? this.trace : this.oldTrace);
+    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
+    var accept = Math.random() < prob;
+    return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
 
   // TODO: Better name? (Used to bail from sample.)
-  MHKernel.prototype.cont = function(val) {
+  MHKernel.prototype.cont = function(trace, accepted) {
     env.coroutine = this.coroutine;
-    return this.k(val);
+    return this.k(trace, accepted);
   };
 
   function acceptProb(trace, oldTrace, regenFrom, reused) {

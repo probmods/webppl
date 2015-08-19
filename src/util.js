@@ -138,7 +138,9 @@ function cpsIterate(n, initial, cpsFn, k, yieldFn) {
       function(i, next) {
         return cpsFn(function(nextVal) {
           val = nextVal;
-          if (yieldFn) { yieldFn(val, i); }
+          if (yieldFn) {
+            yieldFn.apply(null, [i].concat(_.toArray(arguments)));
+          }
           return next();
         }, val);
       },

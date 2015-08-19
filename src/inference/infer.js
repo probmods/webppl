@@ -4,6 +4,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp.js');
 var util = require('../util');
+var Query = require('../query.js').Query;
 
 module.exports = function(env) {
 
@@ -43,8 +44,10 @@ module.exports = function(env) {
     return initialize(function(s, initialTrace) {
       // console.log('Initialized');
       var hist = {};
+      var query = new Query();
+      if (initialTrace.value === env.query) { query.addAll(env.query); }
       return runMarkovChain(
-          n, initialTrace, kernel, hist,
+          n, initialTrace, kernel, hist, query,
           function() { return k(s, erp.makeMarginalERP(util.logHist(hist))); });
     });
   }
@@ -62,7 +65,7 @@ module.exports = function(env) {
             if (hist[r] === undefined) { hist[r] = { prob: 0, val: particle.value }; }
             hist[r].prob += 1;
             // Final rejuvenation.
-            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, k);
+            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, null, k);
           },
           function() {
             var dist = erp.makeMarginalERP(util.logHist(hist));
@@ -74,13 +77,21 @@ module.exports = function(env) {
     }, a, wpplFn, options);
   }
 
-  function runMarkovChain(n, initialTrace, kernel, hist, k) {
+  function runMarkovChain(n, initialTrace, kernel, hist, query, k) {
     return util.cpsIterate(
         n, initialTrace, kernel, k,
-        function(trace) {
-          var r = JSON.stringify(trace.value);
+        function(i, trace, accepted) {
+          var value;
+          if (query && trace.value === env.query) {
+            if (accepted) { query.addAll(env.query); }
+            value = query.getTable();
+          } else {
+            value = trace.value;
+          }
+
+          var r = JSON.stringify(value);
           if (hist[r] === undefined) {
-            hist[r] = { prob: 0, val: trace.value };
+            hist[r] = { prob: 0, val: value };
           }
           hist[r].prob += 1;
         });
