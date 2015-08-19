@@ -34,7 +34,7 @@ module.exports = function(env) {
   }
 
   function MCMC(s, k, a, wpplFn, options) {
-    var options = _.extendOwn({ iterations: 100, kernel: MHKernel }, options);
+    var options = _.extendOwn({ samples: 100, kernel: MHKernel, lag: 1, burn: 0 }, options);
 
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
@@ -49,9 +49,15 @@ module.exports = function(env) {
           new Histogram();
 
       return runMarkovChain(
-          options.iterations, initialTrace, options.kernel, query,
+          options.samples * options.lag + options.burn,
+          initialTrace, options.kernel, query,
           // For each sample:
-          function(value, score) { acc.add(value, score); },
+          function(value, score, iter) {
+            if ((iter >= options.burn) &&
+                (iter - options.burn + 1) % options.lag == 0) {
+              acc.add(value, score);
+            }
+          },
           // Continuation:
           function() { return k(s, acc.toERP()); });
     });
@@ -95,7 +101,7 @@ module.exports = function(env) {
           } else {
             value = trace.value;
           }
-          yieldFn(value, trace.score);
+          yieldFn(value, trace.score, i);
         });
   }
 

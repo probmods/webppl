@@ -294,14 +294,14 @@ var tests = [
       hist: { tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: MCMC, iterations: 1000 }' },
-      deterministic: { args: '{ method: MCMC, iterations: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ method: MCMC, iterations: 10 }' },
-      geometric: { args: '{ method: MCMC, iterations: 5000 }' },
+      simple: { args: '{ method: MCMC, samples: 1000 }' },
+      deterministic: { args: '{ method: MCMC, samples: 1000 }' },
+      store: { hist: { tol: 0 }, args: '{ method: MCMC, samples: 10 }' },
+      geometric: { args: '{ method: MCMC, samples: 5000 }' },
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
-        args: '{ method: MCMC, iterations: 100000 }'
+        args: '{ method: MCMC, samples: 100000 }'
       }
     }
   }
