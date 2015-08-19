@@ -61,9 +61,11 @@ module.exports = function(env) {
           function(particle, i, ps, k) {
             assert(particle.value !== undefined);
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
-            var r = JSON.stringify(particle.value);
-            if (hist[r] === undefined) { hist[r] = { prob: 0, val: particle.value }; }
-            hist[r].prob += 1;
+            if (options.rejuvSteps === 0) {
+              var r = JSON.stringify(particle.value);
+              if (hist[r] === undefined) { hist[r] = { prob: 0, val: particle.value }; }
+              hist[r].prob += 1;
+            }
             // Final rejuvenation.
             return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, hist, null, k);
           },
