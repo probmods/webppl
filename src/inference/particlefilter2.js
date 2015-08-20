@@ -4,6 +4,7 @@ var _ = require('underscore');
 var util = require('../util.js');
 var erp = require('../erp.js');
 var Trace = require('../trace');
+var Particle = require('../particle');
 var assert = require('assert');
 
 module.exports = function(env) {
@@ -22,10 +23,9 @@ module.exports = function(env) {
       return wpplFn(s, env.exit, a);
     };
 
-    // Create initial particles.
-    // Particles are partial traces.
+    // Create initial particles/traces.
     for (var i = 0; i < this.numParticles; i++) {
-      var p = new Trace();
+      var p = new (this.rejuvSteps === 0 ? Particle : Trace)();
       p.saveContinuation(exitK, _.clone(s));
       this.particles.push(p);
     }
