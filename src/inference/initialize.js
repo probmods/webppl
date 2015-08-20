@@ -19,9 +19,9 @@ module.exports = function(env) {
 
   Initialize.prototype.run = function() {
     this.trace = new Trace();
-    // TODO: Consider having MCMC be responsible for re-runing init. when score is -Inf.
-    // That way it can take care of resetting env.query rather than doing it in
-    // even init method and kernel.
+    // TODO: Consider having MCMC be responsible for re-running init. when score
+    // is -Inf. That way it can take care of resetting env.query rather than
+    // doing it in every init method and kernel.
     env.query.clear();
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
