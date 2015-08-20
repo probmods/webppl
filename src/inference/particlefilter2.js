@@ -64,11 +64,11 @@ module.exports = function(env) {
       // Continue with current particle to exit.
       return this.runCurrentParticle();
     } else if (this.lastParticle()) {
-      this.activateFirstParticle();
+      this.nextParticle();
       this.resampleParticles();
       return this.rejuvenateParticles(this.runCurrentParticle.bind(this), a);
     } else {
-      this.activateNextParticle();
+      this.nextParticle();
       return this.runCurrentParticle();
     }
   };
@@ -85,18 +85,8 @@ module.exports = function(env) {
     return this.currentParticle().k(this.currentParticle().store);
   };
 
-  ParticleFilter.prototype.activateFirstParticle = function() {
-    this.particleIndex = -1;
-    return this.activateNextParticle();
-  };
-
-  ParticleFilter.prototype.activateNextParticle = function() {
-    do {
-      this.particleIndex += 1;
-    } while (this.particleIndex < this.numParticles && this.currentParticle().isComplete())
-    //console.log('Active particle is ' + this.particleIndex);
-    // Returns false if there is no next particle.
-    return this.particleIndex !== this.numParticles;
+  ParticleFilter.prototype.nextParticle = function() {
+    this.particleIndex = (this.particleIndex + 1) % this.numParticles;
   };
 
   ParticleFilter.prototype.resampleParticles = function() { return this.resampleResidual(); };
@@ -183,18 +173,18 @@ module.exports = function(env) {
     // Complete the trace.
     this.currentParticle().complete(val);
 
-    // First particle has reached exit.
-    // Set-up to perform final sweep through particles running each to the exit.
     if (!this.particlesAtExit) {
-      //console.log('Exit reached by 1st particle! (' + this.particleIndex + ')');
+      // First particle has reached exit.
+      // To handle variable numbers of factors we now run all particles to the end.
+      // Rather than tracking which particles have finished, move the current
+      // particle to the beginning of the array and continue as normal.
       this.particlesAtExit = true;
-      this.activateFirstParticle();
-      return this.runCurrentParticle();
+      util.swapElements(this.particles, 0, this.particleIndex);
+      this.particleIndex = 0;
     }
 
-    // Run any remaining particles.
-    if (this.activateNextParticle()) {
-      //console.log('More active particles to run:' + this.particleIndex);
+    if (!this.lastParticle()) {
+      this.nextParticle();
       return this.runCurrentParticle();
     }
 

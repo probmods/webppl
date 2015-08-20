@@ -103,6 +103,12 @@ var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
 }
 
+function swapElements(array, i, j) {
+  var tmp = array[i];
+  array[i] = array[j];
+  array[j] = tmp;
+}
+
 // func(x, i, xs, nextK)
 // nextK()
 function cpsForEach(func, nextK, xs, i) {
@@ -216,5 +222,6 @@ module.exports = {
   std: std,
   getOpt: getOpt,
   sum: sum,
-  asArray: asArray
+  asArray: asArray,
+  swapElements: swapElements
 };

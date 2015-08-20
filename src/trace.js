@@ -63,10 +63,6 @@ Trace.prototype.complete = function(value) {
   this.k = this.store = undefined;
 };
 
-Trace.prototype.isComplete = function() {
-  return !this.k && !this.store;
-};
-
 Trace.prototype.map = function(f) {
   return this.choices.map(f);
 };
