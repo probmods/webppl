@@ -29,7 +29,7 @@ module.exports = function(env) {
           // For each sample:
           function(value, score, iter) {
             if ((iter >= options.burn) &&
-                (iter - options.burn + 1) % options.lag == 0) {
+                (iter - options.burn + 1) % options.lag === 0) {
               acc.add(value, score);
             }
           },
