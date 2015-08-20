@@ -146,19 +146,19 @@ module.exports = function(env) {
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
     if (this.rejuvSteps === 0) { return cont(); }
     assert(!this.particlesWeighted(), 'Cannot rejuvenate weighted particles.');
-    var transition = _.partial(this.rejuvKernel, _, _, exitAddress);
+    var kernel = _.partial(this.rejuvKernel, _, _, exitAddress);
     return util.cpsForEach(
         function(p, i, ps, next) {
-          return this.rejuvenateParticle(next, i, transition);
+          return this.rejuvenateParticle(next, i, kernel);
         }.bind(this),
         cont,
         this.particles
     );
   };
 
-  ParticleFilter.prototype.rejuvenateParticle = function(cont, i, transition) {
+  ParticleFilter.prototype.rejuvenateParticle = function(cont, i, kernel) {
     return util.cpsIterate(
-        this.rejuvSteps, this.particles[i], transition,
+        this.rejuvSteps, this.particles[i], kernel,
         function(rejuvParticle) {
           this.particles[i] = rejuvParticle;
           return cont();
