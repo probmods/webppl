@@ -268,7 +268,8 @@ var tests = [
       varFactors1: { args: '{ particles: 1000 }' },
       varFactors2: { args: '{ particles: 1000 }' },
       importance: { args: '{ particles: 1000 }' },
-      importance2: { args: '{ particles: 3000 }' }
+      importance2: { args: '{ particles: 3000 }' },
+      withCaching: { args: '{ particles: 1000 }' }
     }
   },
   {
@@ -319,7 +320,8 @@ var tests = [
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
         args: '{ samples: 100000 }'
-      }
+      },
+      withCaching: { args: '{ samples: 5000 }' }
     }
   }
 ];

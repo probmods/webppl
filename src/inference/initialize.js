@@ -45,6 +45,8 @@ module.exports = function(env) {
     return this.k(this.s, this.trace);
   };
 
+  Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   return {
     Initialize: function(s, k, a, wpplFn) {
       return new Initialize(s, k, a, wpplFn).run();

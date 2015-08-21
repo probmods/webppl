@@ -82,6 +82,8 @@ module.exports = function(env) {
     return this.k(trace, accepted);
   };
 
+  MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function acceptProb(trace, oldTrace, regenFrom, reused) {
     assert(trace !== undefined);
     assert(oldTrace !== undefined);

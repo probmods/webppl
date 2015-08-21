@@ -201,6 +201,8 @@ module.exports = function(env) {
     return this.k(this.s, this.particles);
   };
 
+  ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function withImportanceDist(s, k, a, erp, importanceERP) {
     var newERP = _.clone(erp);
     newERP.importanceERP = importanceERP;
