@@ -10,6 +10,8 @@ module.exports = function(env) {
 
   function MHKernel(k, oldTrace, exitAddress) {
     this.k = k;
+    // TODO: Check the oldTrace has probability > 0.
+    // Otherwise transition prob. is undefined. PFRjAsMH makes this tricky.
     this.oldTrace = oldTrace;
     this.reused = {};
     this.exitAddress = exitAddress;
