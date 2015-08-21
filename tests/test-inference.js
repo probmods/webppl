@@ -259,17 +259,21 @@ var tests = [
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: { args: '{ particles: 1000 }' },
+      cache: { args: '{ particles: 1000 }' },
       deterministic: { args: '{ particles: 1000 }' },
       store: { hist: { tol: 0 }, args: '{ particles: 100 }' },
-      varFactors1: { args: '{ particles: 1000 }' },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ particles: 10000 }' },
+      varFactors1: { args: '{ particles: 5000 }' },
       varFactors2: { args: '{ particles: 1000 }' },
       importance: { args: '{ particles: 1000 }' },
       importance2: { args: '{ particles: 3000 }' },
-      withCaching: { args: '{ particles: 1000 }' }
+      withCaching: { args: '{ particles: 1000 }' },
+      optionalErpParams: { args: '{ particles: 1000 }' }
     }
   },
   {
@@ -277,15 +281,20 @@ var tests = [
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 }
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
       simple: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      cache: { args: '{ particles: 1000, rejuvSteps: 10 }' },
       deterministic: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      store: { hist: { tol: 0 }, args: '{ particles: 100, rejuvSteps: 10 }' },
-      varFactors2: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      store: { hist: { tol: 0 }, args: '{ particles: 30, rejuvSteps: 30 }' },
+      geometric: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ particles: 1000, rejuvSteps: 15 }' },
       importance: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      importance2: { args: '{ particles: 3000, rejuvSteps: 10 }' }
+      importance2: { args: '{ particles: 3000, rejuvSteps: 10 }' },
+      withCaching: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      optionalErpParams: { args: '{ particles: 1000, rejuvSteps: 10 }' }
     }
   },
   {
@@ -309,19 +318,23 @@ var tests = [
     name: 'MH',
     func: 'MCMC',
     settings: {
-      hist: { tol: 0.1 }
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
     },
     models: {
-      simple: { args: '{ samples: 1000 }' },
+      simple: { args: '{ samples: 5000 }' },
+      cache: { args: '{ samples: 5000 }' },
       deterministic: { args: '{ samples: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ samples: 10 }' },
+      store: { hist: { tol: 0 }, args: '{ samples: 100 }' },
       geometric: { args: '{ samples: 5000 }' },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ samples: 80000, burn: 20000 }' },
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
-        args: '{ samples: 100000 }'
+        args: '{ samples: 80000, burn: 20000 }'
       },
-      withCaching: { args: '{ samples: 5000 }' }
+      withCaching: { args: '{ samples: 5000 }' },
+      optionalErpParams: { args: '{ samples: 5000 }' }
     }
   }
 ];
