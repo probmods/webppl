@@ -112,7 +112,7 @@ module.exports = function(env) {
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = this.numParticles;
     var logW = util.logsumexp(_.pluck(this.particles, 'logWeight'));
-    var logAvgW = logW - Math.log(m)
+    var logAvgW = logW - Math.log(m);
 
     assert(logAvgW !== -Infinity, 'All particles have zero weight.');
 
