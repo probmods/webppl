@@ -213,7 +213,6 @@ module.exports = function(env) {
 
       return util.cpsForEach(
           function(particle, i, ps, k) {
-            assert(particle.value !== undefined);
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
             if (options.rejuvSteps === 0) {
               hist.add(particle.value);
