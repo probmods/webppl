@@ -170,7 +170,7 @@ module.exports = function(env) {
   return {
     acceptProb: acceptProb,
     findChoice: findChoice,
-    MH: mh,
+    MHPrev: mh,
     mhSample: function(context, args) {
       return MH.prototype.sample.apply(context, args);
     }

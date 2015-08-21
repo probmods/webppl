@@ -407,7 +407,7 @@ module.exports = function(env) {
   }
 
   return {
-    ParticleFilterRejuv: pfr,
+    ParticleFilterRejuvPrev: pfr,
     setProposalBoundary: setProposalBoundary
   };
 

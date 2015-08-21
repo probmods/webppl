@@ -219,7 +219,7 @@ module.exports = function(env) {
   }
 
   return {
-    ParticleFilter: pf
+    ParticleFilterPrev: pf
   };
 
 };

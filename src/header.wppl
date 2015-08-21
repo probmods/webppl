@@ -508,3 +508,18 @@ var sortOn = function(l, key, pred) {
 var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
+
+// Backwards compatability.
+
+var MH = function(wpplFn, iterations, burn) {
+  var burn = (burn !== undefined) ? burn : Math.min(500, Math.floor(iterations / 2));
+  return MCMC(wpplFn, { samples: iterations - burn, burn: burn });
+};
+
+var ParticleFilter = function(wpplFn, particles) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: 0 });
+};
+
+var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
+};

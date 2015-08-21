@@ -48,7 +48,7 @@ var tests = [
     }
   },
   {
-    name: 'MH',
+    name: 'MHPrev',
     settings: {
       args: [5000],
       hist: { tol: 0.1 },
@@ -115,8 +115,8 @@ var tests = [
     }
   },
   {
-    name: 'PFRj',
-    func: 'ParticleFilterRejuv',
+    name: 'PFRjPrev',
+    func: 'ParticleFilterRejuvPrev',
     settings: {
       args: [1000, 10],
       hist: { tol: 0.1 },
@@ -138,8 +138,8 @@ var tests = [
     }
   },
   {
-    name: 'PFRjAsMH',
-    func: 'ParticleFilterRejuv',
+    name: 'PFRjAsMHPrev',
+    func: 'ParticleFilterRejuvPrev',
     settings: {
       args: [1, 10000],
       hist: { tol: 0.1 },
@@ -159,8 +159,8 @@ var tests = [
     }
   },
   {
-    name: 'PFRjAsParticleFilter',
-    func: 'ParticleFilterRejuv',
+    name: 'PFRjAsParticleFilterPrev',
+    func: 'ParticleFilterRejuvPrev',
     settings: {
       args: [1000, 0],
       hist: { tol: 0.1 },
@@ -198,7 +198,7 @@ var tests = [
     }
   },
   {
-    name: 'ParticleFilter',
+    name: 'ParticleFilterPrev',
     settings: {
       args: [1000],
       hist: { tol: 0.1 },
@@ -255,53 +255,53 @@ var tests = [
     }
   },
   {
-    name: 'ParticleFilter2',
-    func: 'Infer',
+    name: 'ParticleFilter',
+    func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: SMC, particles: 1000 }' },
-      deterministic: { args: '{ method: SMC, particles: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ method: SMC, particles: 100 }' },
-      varFactors1: { args: '{ method: SMC, particles: 1000 }' },
-      varFactors2: { args: '{ method: SMC, particles: 1000 }' },
-      importance: { args: '{ method: SMC, particles: 1000 }' },
-      importance2: { args: '{ method: SMC, particles: 3000 }' }
+      simple: { args: '{ particles: 1000 }' },
+      deterministic: { args: '{ particles: 1000 }' },
+      store: { hist: { tol: 0 }, args: '{ particles: 100 }' },
+      varFactors1: { args: '{ particles: 1000 }' },
+      varFactors2: { args: '{ particles: 1000 }' },
+      importance: { args: '{ particles: 1000 }' },
+      importance2: { args: '{ particles: 3000 }' }
     }
   },
   {
-    name: 'SMC',
-    func: 'Infer',
+    name: 'ParticleFilterRejuv',
+    func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
-      deterministic: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
-      store: { hist: { tol: 0 }, args: '{ method: SMC, particles: 100, rejuvSteps: 10 }' },
-      varFactors2: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
-      importance: { args: '{ method: SMC, particles: 1000, rejuvSteps: 10 }' },
-      importance2: { args: '{ method: SMC, particles: 3000, rejuvSteps: 10 }' }
+      simple: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      deterministic: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      store: { hist: { tol: 0 }, args: '{ particles: 100, rejuvSteps: 10 }' },
+      varFactors2: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      importance: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      importance2: { args: '{ particles: 3000, rejuvSteps: 10 }' }
     }
   },
   {
-    name: 'MCMC',
-    func: 'Infer',
+    name: 'MH',
+    func: 'MCMC',
     settings: {
       hist: { tol: 0.1 }
     },
     models: {
-      simple: { args: '{ method: MCMC, samples: 1000 }' },
-      deterministic: { args: '{ method: MCMC, samples: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ method: MCMC, samples: 10 }' },
-      geometric: { args: '{ method: MCMC, samples: 5000 }' },
+      simple: { args: '{ samples: 1000 }' },
+      deterministic: { args: '{ samples: 1000 }' },
+      store: { hist: { tol: 0 }, args: '{ samples: 10 }' },
+      geometric: { args: '{ samples: 5000 }' },
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
-        args: '{ method: MCMC, samples: 100000 }'
+        args: '{ samples: 100000 }'
       }
     }
   }
@@ -345,9 +345,7 @@ var performTest = function(modelName, testDef, test) {
 };
 
 var getInferenceArgs = function(testDef, model) {
-  var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  // HACK: To make it possible to pass args to Infer.
-  return _.isString(args) ? args : JSON.stringify(args).slice(1, -1);
+  return (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {
