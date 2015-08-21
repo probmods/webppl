@@ -146,10 +146,10 @@ Then the function `myAdd` will be available in WebPPL as `myPackage.myAdd`.
 
 If your Javascript isn't in an `index.js` file in the root of the package, you should indicate the entry point to your package by adding a `main` entry to `package.json`. For example:
 
-{
-  "name": "my-package",
-  "main": "src/main.js"
-}
+    {
+      "name": "my-package",
+      "main": "src/main.js"
+    }
 
 Note that packages must export functions as properties of an object. Exporting functions directly will not work as expected.
 
