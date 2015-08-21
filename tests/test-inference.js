@@ -95,7 +95,8 @@ var tests = [
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      variableSupport: true
     }
   },
   {
@@ -296,7 +297,8 @@ var tests = [
       importance: { args: '{ particles: 1000, rejuvSteps: 10 }' },
       importance2: { args: '{ particles: 3000, rejuvSteps: 10 }' },
       withCaching: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      optionalErpParams: { args: '{ particles: 1000, rejuvSteps: 10 }' }
+      optionalErpParams: { args: '{ particles: 1000, rejuvSteps: 10 }' },
+      variableSupport: { args: '{ particles: 1000, rejuvSteps: 10 }' }
     }
   },
   {
@@ -314,7 +316,8 @@ var tests = [
       geometric: { args: '{ particles: 1, rejuvSteps: 10000 }' },
       importance: { args: '{ particles: 1, rejuvSteps: 10000 }' },
       importance2: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      optionalErpParams: { args: '{ particles: 1, rejuvSteps: 10000 }' }
+      optionalErpParams: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      variableSupport: { args: '{ particles: 1, rejuvSteps: 10000 }' }
     }
   },
   {
@@ -337,7 +340,8 @@ var tests = [
         args: '{ samples: 80000, burn: 20000 }'
       },
       withCaching: { args: '{ samples: 5000 }' },
-      optionalErpParams: { args: '{ samples: 5000 }' }
+      optionalErpParams: { args: '{ samples: 5000 }' },
+      variableSupport: { args: '{ samples: 5000 }' }
     }
   }
 ];

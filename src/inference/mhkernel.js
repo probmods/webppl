@@ -60,6 +60,7 @@ module.exports = function(env) {
     }
 
     this.trace.addChoice(erp, params, val, address, s, cont);
+    if (this.trace.score === -Infinity) { return this.cont(this.oldTrace, false); }
     return cont(s, val);
   };
 
