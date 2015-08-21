@@ -17,8 +17,8 @@ module.exports = function(env) {
     this.numParticles = options.particles;
 
     this.particles = [];
+    this.completeParticles = [];
     this.particleIndex = 0;
-    this.particlesAtExit = false;
 
     var exitK = function(s) {
       return wpplFn(s, env.exit, a);
@@ -61,21 +61,13 @@ module.exports = function(env) {
     particle.score += score;
     particle.logWeight += score;
 
-    if (this.particlesAtExit) {
-      // Continue with current particle to exit.
-      return this.runCurrentParticle();
-    } else if (this.lastParticle()) {
-      this.nextParticle();
-      this.resampleParticles();
-      return this.rejuvenateParticles(this.runCurrentParticle.bind(this), a);
-    } else {
-      this.nextParticle();
-      return this.runCurrentParticle();
-    }
+    //console.log('(' + this.particleIndex + ') Factor: ' + a);
+
+    return this.sync(a);
   };
 
   ParticleFilter.prototype.lastParticle = function() {
-    return this.particleIndex === this.numParticles - 1;
+    return this.particleIndex === this.particles.length - 1;
   };
 
   ParticleFilter.prototype.currentParticle = function() {
@@ -87,31 +79,21 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.nextParticle = function() {
-    this.particleIndex = (this.particleIndex + 1) % this.numParticles;
+    this.particleIndex += 1;
   };
 
-  ParticleFilter.prototype.resampleParticles = function() {
-    // Assume we are doing ParticleFilterAsMH when numParticles == 1.
-    if (this.numParticles > 1) { return this.resampleResidual(); }
+  ParticleFilter.prototype.allParticles = function() {
+    return this.particles.concat(this.completeParticles);
   };
 
-  ParticleFilter.prototype.resampleMultinomial = function() {
-    var ws = _.map(this.particles, function(p) { return Math.exp(p.logWeight); });
-    var logAvgW = util.logsumexp(_.pluck(this.particles, 'logWeight')) - Math.log(this.numParticles);
-    assert(logAvgW !== -Infinity, 'All particles have zero weight.');
+  function resampleParticles(particles) {
 
-    this.particles = _.times(this.numParticles, function(i) {
-      var ix = erp.multinomialSample(ws);
-      var p = this.particles[ix].copy();
-      p.logWeight = logAvgW;
-      return p;
-    }, this);
-  };
+    // Skip resampling if doing ParticleFilterAsMH.
+    if (particles.length === 1) { return particles; }
 
-  ParticleFilter.prototype.resampleResidual = function() {
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
-    var m = this.numParticles;
-    var logW = util.logsumexp(_.pluck(this.particles, 'logWeight'));
+    var m = particles.length;
+    var logW = util.logsumexp(_.pluck(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
 
     assert(logAvgW !== -Infinity, 'All particles have zero weight.');
@@ -120,7 +102,7 @@ module.exports = function(env) {
     var retainedParticles = [];
     var newWeights = [];
     _.each(
-        this.particles,
+        particles,
         function(particle) {
           var w = Math.exp(particle.logWeight - logAvgW);
           var nRetained = Math.floor(w);
@@ -136,15 +118,17 @@ module.exports = function(env) {
     var j;
     for (var i = 0; i < numNewParticles; i++) {
       j = erp.multinomialSample(newWeights);
-      newParticles.push(this.particles[j].copy());
+      newParticles.push(particles[j].copy());
     }
 
     // Particles after update: retained + new particles.
-    this.particles = newParticles.concat(retainedParticles);
+    var allParticles = newParticles.concat(retainedParticles);
 
     // Reset all weights.
-    _.each(this.particles, function(p) { p.logWeight = logAvgW; });
-  };
+    _.each(allParticles, function(p) { p.logWeight = logAvgW; });
+
+    return allParticles;
+  }
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
     if (this.rejuvSteps === 0) { return cont(); }
@@ -173,32 +157,58 @@ module.exports = function(env) {
     return _.any(this.particles, function(p) { return p.logWeight !== lw; });
   };
 
-  ParticleFilter.prototype.exit = function(s, val) {
-    // Complete the trace.
-    this.currentParticle().complete(val);
+  ParticleFilter.prototype.sync = function(address) {
+    // Called at sync points factor and exit.
+    // Either advance the next active particle, or if all particles have
+    // advanced, perform re-sampling and rejuvenation.
+    if (this.lastParticle()) {
+      //console.log('*** SYNC *** [' + (address || 'exit') + ']');
 
-    if (!this.particlesAtExit) {
-      // First particle has reached exit.
-      // To handle variable numbers of factors we now run all particles to the end.
-      // Rather than tracking which particles have finished, move the current
-      // particle to the beginning of the array and continue as normal.
-      this.particlesAtExit = true;
-      util.swapElements(this.particles, 0, this.particleIndex);
-      this.particleIndex = 0;
-    }
+      var resampledParticles = resampleParticles(this.allParticles());
+      assert(resampledParticles.length === this.numParticles);
 
-    if (!this.lastParticle()) {
+      // TODO: Move logic for checking for complete particles to Particle/Trace?
+      var p = _.partition(resampledParticles, function(p) { return p.k && p.store; });
+      this.particles = p[0], this.completeParticles = p[1];
+
+      //console.log('RESAMPLED | Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
+
+      if (this.particles.length > 0) {
+        // We still have active particles, wrap-around:
+        this.particleIndex = 0;
+
+        // TODO: Rejuvenation particles at factors when sync is called from exit.
+
+        // Since some particles might be at factor statements and some at the
+        // exit. If we also saved the address when we save the continuation we
+        // can use this to rejuvenate the particles at factor statements. (And
+        // do so using their particular address, rather than the address of the
+        // factor statement reached by the last particle.)
+
+        if (address) {
+          // Rejuvenate if called from factor statement.
+          return this.rejuvenateParticles(this.runCurrentParticle.bind(this), address);
+        } else {
+          return this.runCurrentParticle();
+        }
+
+      } else {
+        // All particles complete.
+        assert(this.completeParticles.length === this.numParticles);
+        env.coroutine = this.coroutine;
+        return this.k(this.s, this.completeParticles);
+      }
+    } else {
       this.nextParticle();
       return this.runCurrentParticle();
     }
+  };
 
-    if (this.particlesWeighted()) {
-      this.resampleParticles();
-    }
-
-    // Finished, call original continuation.
-    env.coroutine = this.coroutine;
-    return this.k(this.s, this.particles);
+  ParticleFilter.prototype.exit = function(s, val) {
+    // Complete the trace.
+    this.currentParticle().complete(val);
+    //console.log('(' + this.particleIndex + ') Exit');
+    return this.sync();
   };
 
   ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
