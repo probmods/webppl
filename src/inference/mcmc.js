@@ -9,7 +9,7 @@ var Histogram = require('../histogram');
 module.exports = function(env) {
 
   function MCMC(s, k, a, wpplFn, options) {
-    var options = _.extendOwn({ samples: 100, kernel: MHKernel, lag: 1, burn: 0 }, options);
+    var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 1, burn: 0 });
 
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
