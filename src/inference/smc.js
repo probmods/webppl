@@ -90,7 +90,10 @@ module.exports = function(env) {
     this.particleIndex = (this.particleIndex + 1) % this.numParticles;
   };
 
-  ParticleFilter.prototype.resampleParticles = function() { return this.resampleResidual(); };
+  ParticleFilter.prototype.resampleParticles = function() {
+    // Assume we are doing ParticleFilterAsMH when numParticles == 1.
+    if (this.numParticles > 1) { return this.resampleResidual(); }
+  };
 
   ParticleFilter.prototype.resampleMultinomial = function() {
     var ws = _.map(this.particles, function(p) { return Math.exp(p.logWeight); });
@@ -214,6 +217,11 @@ module.exports = function(env) {
       return util.cpsForEach(
           function(particle, i, ps, k) {
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
+            if (particle.score === -Infinity) {
+              // Can happen with one particle as we don't resample to allow
+              // ParticleFilterAsMH.
+              throw 'Particle score is -Infinity';
+            }
             if (options.rejuvSteps === 0) {
               hist.add(particle.value);
             }

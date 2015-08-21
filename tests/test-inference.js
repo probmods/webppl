@@ -288,6 +288,23 @@ var tests = [
     }
   },
   {
+    name: 'ParticleFilterAsMH',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true }
+    },
+    models: {
+      simple: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      cache: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      store: { hist: { tol: 0 }, args: '{ particles: 1, rejuvSteps: 100 }' },
+      geometric: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      importance: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      importance2: { args: '{ particles: 1, rejuvSteps: 10000 }' },
+      optionalErpParams: { args: '{ particles: 1, rejuvSteps: 10000 }' }
+    }
+  },
+  {
     name: 'MH',
     func: 'MCMC',
     settings: {
