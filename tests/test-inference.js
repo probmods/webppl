@@ -40,7 +40,6 @@ var tests = [
       incrementalBinomial: true,
       store: { hist: { tol: 0 } },
       geometric: true,
-      liftERP: { hist: { tol: 0.0001 } },
       cache: true,
       stochasticCache: true,
       withCaching: true,
