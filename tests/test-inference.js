@@ -261,21 +261,22 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000 }
     },
     models: {
-      simple: { args: '{ particles: 1000 }' },
-      cache: { args: '{ particles: 1000 }' },
-      deterministic: { args: '{ particles: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ particles: 100 }' },
-      store2: { hist: { tol: 0 }, args: '{ particles: 100 }' },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ particles: 10000 }' },
-      varFactors1: { args: '{ particles: 5000 }' },
-      varFactors2: { args: '{ particles: 1000 }' },
-      importance: { args: '{ particles: 1000 }' },
-      importance2: { args: '{ particles: 3000 }' },
-      withCaching: { args: '{ particles: 1000 }' },
-      optionalErpParams: { args: '{ particles: 1000 }' }
+      simple: true,
+      cache: true,
+      deterministic: true,
+      store: { hist: { tol: 0 }, args: { particles: 100 } },
+      store2: { hist: { tol: 0 }, args: { particles: 100 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
+      varFactors1: { args: { particles: 5000 } },
+      varFactors2: true,
+      importance: true,
+      importance2: { args: { particles: 3000 } },
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -284,21 +285,22 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000, rejuvSteps: 10 }
     },
     models: {
-      simple: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      cache: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      deterministic: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      store: { hist: { tol: 0 }, args: '{ particles: 30, rejuvSteps: 30 }' },
-      store2: { hist: { tol: 0 }, args: '{ particles: 30, rejuvSteps: 30 }' },
-      geometric: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ particles: 1000, rejuvSteps: 15 }' },
-      importance: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      importance2: { args: '{ particles: 3000, rejuvSteps: 10 }' },
-      withCaching: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      optionalErpParams: { args: '{ particles: 1000, rejuvSteps: 10 }' },
-      variableSupport: { args: '{ particles: 1000, rejuvSteps: 10 }' }
+      simple: true,
+      cache: true,
+      deterministic: true,
+      store: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
+      importance: true,
+      importance2: { args: { particles: 3000, rejuvSteps: 10 } },
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true
     }
   },
   {
@@ -306,18 +308,19 @@ var tests = [
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1, rejuvSteps: 10000 }
     },
     models: {
-      simple: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      cache: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      store: { hist: { tol: 0 }, args: '{ particles: 1, rejuvSteps: 100 }' },
-      store2: { hist: { tol: 0 }, args: '{ particles: 1, rejuvSteps: 100 }' },
-      geometric: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      importance: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      importance2: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      optionalErpParams: { args: '{ particles: 1, rejuvSteps: 10000 }' },
-      variableSupport: { args: '{ particles: 1, rejuvSteps: 10000 }' }
+      simple: true,
+      cache: true,
+      store: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      store2: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      geometric: true,
+      importance: true,
+      importance2: true,
+      optionalErpParams: true,
+      variableSupport: true
     }
   },
   {
@@ -325,23 +328,24 @@ var tests = [
     func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.1, check: true },
+      args: { samples: 5000 }
     },
     models: {
-      simple: { args: '{ samples: 5000 }' },
-      cache: { args: '{ samples: 5000 }' },
-      deterministic: { args: '{ samples: 1000 }' },
-      store: { hist: { tol: 0 }, args: '{ samples: 100 }' },
-      geometric: { args: '{ samples: 5000 }' },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: '{ samples: 80000, burn: 20000 }' },
+      simple: true,
+      cache: true,
+      deterministic: { args: { samples: 1000 } },
+      store: { hist: { tol: 0 }, args: { samples: 100 } },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
-        args: '{ samples: 80000, burn: 20000 }'
+        args: { samples: 80000, burn: 20000 }
       },
-      withCaching: { args: '{ samples: 5000 }' },
-      optionalErpParams: { args: '{ samples: 5000 }' },
-      variableSupport: { args: '{ samples: 5000 }' }
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true
     }
   }
 ];
@@ -384,7 +388,8 @@ var performTest = function(modelName, testDef, test) {
 };
 
 var getInferenceArgs = function(testDef, model) {
-  return (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
+  var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
+  return _.isArray(args) ? args.toString() : JSON.stringify(args);
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {
