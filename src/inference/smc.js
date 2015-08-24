@@ -236,9 +236,11 @@ module.exports = function(env) {
             }
             if (options.rejuvSteps === 0) {
               hist.add(particle.value);
+              return k();
+            } else {
+              // Final rejuvenation.
+              return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, null, hist.add.bind(hist), k);
             }
-            // Final rejuvenation.
-            return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, null, hist.add.bind(hist), k);
           },
           function() {
             var dist = hist.toERP();
