@@ -7,7 +7,6 @@ var assert = require('assert');
 // without rejuvenation.
 
 var Particle = function() {
-  this.score = 0;
   this.logWeight = 0; // Importance weight.
 };
 
@@ -16,8 +15,7 @@ Particle.prototype.saveContinuation = function(continuation, store) {
   this.store = store;
 };
 
-Particle.prototype.addChoice = function(erp, params, val, address, store, continuation) {
-  this.score += erp.score(params, val);
+Particle.prototype.addChoice = function() {
 };
 
 Particle.prototype.complete = function(value) {
@@ -30,7 +28,6 @@ Particle.prototype.complete = function(value) {
 
 Particle.prototype.copy = function() {
   var t = new Particle();
-  t.score = this.score;
   t.k = this.k;
   t.store = _.clone(this.store);
   t.value = this.value;
