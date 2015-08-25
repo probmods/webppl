@@ -11,30 +11,38 @@ module.exports = function(env) {
   function MCMC(s, k, a, wpplFn, options) {
     var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 1, burn: 0 });
 
+    // TODO: Implement via hooks/callbacks.
+    var log = options.verbose ? console.log : _.identity;
+
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
 
     return initialize(function(s, initialTrace) {
-      // console.log('Initialized');
       var query = new Query();
       if (initialTrace.value === env.query) { query.addAll(env.query); }
 
+      var acceptedCount = 0;
       var acc = (options.justSample || options.onlyMAP) ?
           new MAPEstimator(options.justSample) :
           new Histogram();
+      var iterations = options.samples * options.lag + options.burn;
 
       return runMarkovChain(
-          options.samples * options.lag + options.burn,
-          initialTrace, options.kernel, query,
+          iterations, initialTrace, options.kernel, query,
           // For each sample:
-          function(value, score, iter) {
+          function(value, score, accepted, iter) {
             if ((iter >= options.burn) &&
                 (iter - options.burn + 1) % options.lag === 0) {
               acc.add(value, score);
             }
+            log('Iteration ' + (iter + 1) + ' / ' + iterations);
+            acceptedCount += accepted;
           },
           // Continuation:
-          function() { return k(s, acc.toERP()); });
+          function() {
+            log('Acceptance ratio: ' + acceptedCount / iterations);
+            return k(s, acc.toERP());
+          });
     });
   }
 
@@ -49,7 +57,7 @@ module.exports = function(env) {
           } else {
             value = trace.value;
           }
-          yieldFn(value, trace.score, i);
+          yieldFn(value, trace.score, accepted, i);
         });
   }
 
