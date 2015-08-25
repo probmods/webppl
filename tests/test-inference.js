@@ -47,40 +47,6 @@ var tests = [
     }
   },
   {
-    name: 'MHPrev',
-    settings: {
-      args: [5000],
-      hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'HashMH',
-    settings: {
-      args: [5000],
-      hist: { tol: 0.1 }
-      //MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
     name: 'IncrementalMH',
     settings: {
       args: [5000],
@@ -115,74 +81,6 @@ var tests = [
     }
   },
   {
-    name: 'PFRjPrev',
-    func: 'ParticleFilterRejuvPrev',
-    settings: {
-      args: [1000, 10],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [30, 30] },
-      geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000, 10] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'PFRjAsMHPrev',
-    func: 'ParticleFilterRejuvPrev',
-    settings: {
-      args: [1, 10000],
-      hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [1, 100] },
-      geometric: true,
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: true,
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'PFRjAsParticleFilterPrev',
-    func: 'ParticleFilterRejuvPrev',
-    settings: {
-      args: [1000, 0],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100, 0] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000, 0] },
-      withCaching: true,
-      optionalErpParams: true
-      // varFactors1: { args: [5000, 0] },
-      // varFactors2: true
-    }
-  },
-  {
     name: 'AsyncPF',
     settings: {
       args: [1000, 1000],
@@ -195,27 +93,6 @@ var tests = [
       store: { hist: { tol: 0 }, args: [100, 100] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] },
       withCaching: true
-    }
-  },
-  {
-    name: 'ParticleFilterPrev',
-    settings: {
-      args: [1000],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
-      varFactors1: { args: [5000] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000] },
-      withCaching: true,
-      optionalErpParams: true
     }
   },
   {
