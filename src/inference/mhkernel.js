@@ -7,22 +7,24 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  function MHKernel(k, oldTrace, exitAddress) {
+  function MHKernel(k, oldTrace, exitAddress, proposalBoundary) {
     this.k = k;
     // TODO: Check the oldTrace has probability > 0.
     // Otherwise transition prob. is undefined. PFRjAsMH makes this tricky.
     this.oldTrace = oldTrace;
     this.reused = {};
     this.exitAddress = exitAddress;
+    this.proposalBoundary = proposalBoundary || 0;
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
   MHKernel.prototype.run = function() {
-    if (this.oldTrace.length === 0) { return this.cont(this.oldTrace, false); }
+    var numERP = this.oldTrace.length - this.proposalBoundary;
+    if (numERP === 0) { return this.cont(this.oldTrace, false); }
     // Make a new proposal.
     env.query.clear();
-    this.regenFrom = Math.floor(Math.random() * this.oldTrace.length);
+    this.regenFrom = this.proposalBoundary + Math.floor(Math.random() * numERP);
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
     return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
@@ -71,7 +73,7 @@ module.exports = function(env) {
       // checking that the continuation was saved.
       assert(this.trace.k && this.trace.store);
     }
-    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused);
+    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
     var accept = Math.random() < prob;
     return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
@@ -84,21 +86,22 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function acceptProb(trace, oldTrace, regenFrom, reused) {
+  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary) {
     assert(trace !== undefined);
     assert(oldTrace !== undefined);
     assert(_.isNumber(trace.score));
     assert(_.isNumber(oldTrace.score));
     assert(_.isNumber(regenFrom));
+    assert(_.isNumber(proposalBoundary));
 
-    var fw = transitionProb(oldTrace, trace, regenFrom, reused);
-    var bw = transitionProb(trace, oldTrace, regenFrom, reused);
+    var fw = transitionProb(oldTrace, trace, regenFrom, reused, proposalBoundary);
+    var bw = transitionProb(trace, oldTrace, regenFrom, reused, proposalBoundary);
     var p = Math.exp(trace.score - oldTrace.score + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   }
 
-  function transitionProb(fromTrace, toTrace, regenFrom, reused) {
+  function transitionProb(fromTrace, toTrace, regenFrom, reused, proposalBoundary) {
     // Proposed to ERP.
     var proposalErp, proposalParams;
     var regenChoice = toTrace.choiceAtIndex(regenFrom);
@@ -118,14 +121,14 @@ module.exports = function(env) {
       return reused.hasOwnProperty(choice.address) ? 0 : choice.erp.score(choice.params, choice.val);
     }));
 
-    score -= Math.log(fromTrace.length);
+    score -= Math.log(fromTrace.length - proposalBoundary);
     assert(!isNaN(score));
     return score;
   }
 
   return {
-    MHKernel: function(k, oldTrace, exitAddress) {
-      return new MHKernel(k, oldTrace, exitAddress).run();
+    MHKernel: function(k, oldTrace, exitAddress, proposalBoundary) {
+      return new MHKernel(k, oldTrace, exitAddress, proposalBoundary).run();
     }
   };
 

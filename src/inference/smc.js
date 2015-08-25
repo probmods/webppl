@@ -133,17 +133,17 @@ module.exports = function(env) {
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
     if (this.rejuvSteps === 0) { return cont(); }
     assert(!this.particlesWeighted(), 'Cannot rejuvenate weighted particles.');
-    var kernel = _.partial(this.rejuvKernel, _, _, exitAddress);
     return util.cpsForEach(
         function(p, i, ps, next) {
-          return this.rejuvenateParticle(next, i, kernel);
+          return this.rejuvenateParticle(next, i, exitAddress);
         }.bind(this),
         cont,
         this.particles
     );
   };
 
-  ParticleFilter.prototype.rejuvenateParticle = function(cont, i, kernel) {
+  ParticleFilter.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
+    var kernel = _.partial(this.rejuvKernel, _, _, exitAddress, this.particles[i].proposalBoundary);
     return util.cpsIterate(
         this.rejuvSteps, this.particles[i].trace, kernel,
         function(rejuvParticle) {
@@ -219,14 +219,25 @@ module.exports = function(env) {
     return k(s, newERP);
   }
 
+  // Restrict rejuvenation to erps that come after proposal boundary.
+  function setProposalBoundary(s, k, a) {
+    if (env.coroutine.currentParticle) {
+      var particle = env.coroutine.currentParticle();
+      particle.proposalBoundary = particle.trace.length;
+    }
+    return k(s);
+  }
+
   var Particle = function(trace) {
     this.trace = trace;
     this.logWeight = 0;
+    this.proposalBoundary = 0;
   };
 
   Particle.prototype.copy = function() {
     var p = new Particle(this.trace.copy());
     p.logWeight = this.logWeight;
+    p.proposalBoundary = this.proposalBoundary;
     return p;
   };
 
@@ -293,6 +304,7 @@ module.exports = function(env) {
 
   return {
     withImportanceDist: withImportanceDist,
+    setProposalBoundary: setProposalBoundary,
     SMC: SMC
   };
 

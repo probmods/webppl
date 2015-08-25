@@ -393,22 +393,12 @@ module.exports = function(env) {
   // TODO: Incrementalized version?
   MHP.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  // Restrict rejuvenation to erps that come after proposal boundary
-  function setProposalBoundary(s, k, a) {
-    if (env.coroutine.isParticleFilterRejuvCoroutine) {
-      var particle = env.coroutine.currentParticle();
-      particle.proposalBoundary = particle.trace.length;
-    }
-    return k(s);
-  }
-
   function pfr(s, cc, a, wpplFn, numParticles, rejuvSteps) {
     return new ParticleFilterRejuv(s, cc, a, wpplFn, numParticles, rejuvSteps).run();
   }
 
   return {
-    ParticleFilterRejuvPrev: pfr,
-    setProposalBoundary: setProposalBoundary
+    ParticleFilterRejuvPrev: pfr
   };
 
 };
