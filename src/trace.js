@@ -22,18 +22,18 @@ Trace.prototype.findChoice = function(address) {
 Trace.prototype.saveContinuation = function(continuation, store) {
   this.k = continuation;
   this.store = store;
-  this.checkConsistency();
+  //this.checkConsistency();
 };
 
 Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
-  assert(isErp(erp));
-  assert(_.isUndefined(params) || _.isArray(params));
-  assert(_.isString(address));
-  assert(_.isObject(store));
-  assert(_.isFunction(continuation));
+  // assert(isErp(erp));
+  // assert(_.isUndefined(params) || _.isArray(params));
+  // assert(_.isString(address));
+  // assert(_.isObject(store));
+  // assert(_.isFunction(continuation));
 
   var choice = {
     k: continuation,
@@ -51,7 +51,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   this.addressMap[address] = choice;
   this.length += 1;
   this.score += erp.score(params, val);
-  this.checkConsistency();
+  //this.checkConsistency();
 };
 
 Trace.prototype.complete = function(value) {
@@ -76,7 +76,7 @@ Trace.prototype.upto = function(i) {
   t.choices.forEach(function(choice) { t.addressMap[choice.address] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
-  t.checkConsistency();
+  //t.checkConsistency();
   return t;
 };
 
@@ -89,7 +89,7 @@ Trace.prototype.copy = function() {
   t.k = this.k;
   t.store = _.clone(this.store);
   t.value = this.value;
-  t.checkConsistency();
+  //t.checkConsistency();
   return t;
 };
 
