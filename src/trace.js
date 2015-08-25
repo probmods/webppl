@@ -9,7 +9,6 @@ var Trace = function() {
   this.addressMap = {}; // Maps addresses => choices.
   this.length = 0;
   this.score = 0;
-  this.logWeight = 0; // Importance weight.
 };
 
 Trace.prototype.choiceAtIndex = function(index) {
@@ -77,7 +76,6 @@ Trace.prototype.upto = function(i) {
   t.choices.forEach(function(choice) { t.addressMap[choice.address] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
-  t.logWeight = this.logWeight;
   t.checkConsistency();
   return t;
 };

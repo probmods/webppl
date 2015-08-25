@@ -4,7 +4,6 @@ var _ = require('underscore');
 var util = require('../util.js');
 var erp = require('../erp.js');
 var Trace = require('../trace');
-var Particle = require('../particle');
 var assert = require('assert');
 var Histogram = require('../histogram');
 
@@ -24,11 +23,11 @@ module.exports = function(env) {
       return wpplFn(s, env.exit, a);
     };
 
-    // Create initial particles/traces.
+    // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
-      var p = new (this.rejuvSteps === 0 ? Particle : Trace)();
-      p.saveContinuation(exitK, _.clone(s));
-      this.particles.push(p);
+      var trace = new (this.rejuvSteps === 0 ? TraceLite : Trace)();
+      trace.saveContinuation(exitK, _.clone(s));
+      this.particles.push(new Particle(trace));
     }
 
     this.k = k;
@@ -49,7 +48,7 @@ module.exports = function(env) {
     var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
-    particle.addChoice(erp, params, val, a, s, k);
+    particle.trace.addChoice(erp, params, val, a, s, k);
     particle.logWeight += choiceScore - importanceScore;
     return k(s, val);
   };
@@ -57,8 +56,8 @@ module.exports = function(env) {
   ParticleFilter.prototype.factor = function(s, cc, a, score) {
     // Update particle.
     var particle = this.currentParticle();
-    particle.saveContinuation(cc, s);
-    particle.score += score;
+    particle.trace.saveContinuation(cc, s);
+    particle.trace.score += score;
     particle.logWeight += score;
 
     //console.log('(' + this.particleIndex + ') Factor: ' + a);
@@ -75,7 +74,8 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.runCurrentParticle = function() {
-    return this.currentParticle().k(this.currentParticle().store);
+    var trace = this.currentParticle().trace;
+    return trace.k(trace.store);
   };
 
   ParticleFilter.prototype.nextParticle = function() {
@@ -145,9 +145,9 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.rejuvenateParticle = function(cont, i, kernel) {
     return util.cpsIterate(
-        this.rejuvSteps, this.particles[i], kernel,
+        this.rejuvSteps, this.particles[i].trace, kernel,
         function(rejuvParticle) {
-          this.particles[i] = rejuvParticle;
+          this.particles[i].trace = rejuvParticle;
           return cont();
         }.bind(this));
   };
@@ -167,8 +167,8 @@ module.exports = function(env) {
       var resampledParticles = resampleParticles(this.allParticles());
       assert(resampledParticles.length === this.numParticles);
 
-      // TODO: Move logic for checking for complete particles to Particle/Trace?
-      var p = _.partition(resampledParticles, function(p) { return p.k && p.store; });
+      // TODO: Move logic for checking for complete particles to Trace?
+      var p = _.partition(resampledParticles, function(p) { return p.trace.k && p.trace.store; });
       this.particles = p[0], this.completeParticles = p[1];
 
       //console.log('RESAMPLED | Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
@@ -206,7 +206,7 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.exit = function(s, val) {
     // Complete the trace.
-    this.currentParticle().complete(val);
+    this.currentParticle().trace.complete(val);
     //console.log('(' + this.particleIndex + ') Exit');
     return this.sync();
   };
@@ -219,6 +219,43 @@ module.exports = function(env) {
     return k(s, newERP);
   }
 
+  var Particle = function(trace) {
+    this.trace = trace;
+    this.logWeight = 0;
+  };
+
+  Particle.prototype.copy = function() {
+    var p = new Particle(this.trace.copy());
+    p.logWeight = this.logWeight;
+    return p;
+  };
+
+  // Minimal Trace-like structure used to avoid unnecessary overhead in SMC
+  // without rejuvenation.
+
+  var TraceLite = function() {};
+
+  TraceLite.prototype.saveContinuation = function(continuation, store) {
+    this.k = continuation;
+    this.store = store;
+  };
+
+  TraceLite.prototype.addChoice = function() {};
+
+  TraceLite.prototype.complete = function(value) {
+    assert(this.value === undefined);
+    this.value = value;
+    this.k = this.store = undefined;
+  };
+
+  TraceLite.prototype.copy = function() {
+    var t = new TraceLite();
+    t.k = this.k;
+    t.store = _.clone(this.store);
+    t.value = this.value;
+    return t;
+  };
+
   function SMC(s, k, a, wpplFn, options) {
     var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, rejuvKernel: MHKernel });
 
@@ -229,17 +266,19 @@ module.exports = function(env) {
       return util.cpsForEach(
           function(particle, i, ps, k) {
             assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
-            if (particle.score === -Infinity) {
+            if (particle.trace.score === -Infinity) {
               // Can happen with one particle as we don't resample to allow
               // ParticleFilterAsMH.
               throw 'Particle score is -Infinity';
             }
             if (options.rejuvSteps === 0) {
-              hist.add(particle.value);
+              hist.add(particle.trace.value);
               return k();
             } else {
               // Final rejuvenation.
-              return runMarkovChain(options.rejuvSteps, particle, options.rejuvKernel, null, hist.add.bind(hist), k);
+              return runMarkovChain(
+                  options.rejuvSteps, particle.trace, options.rejuvKernel,
+                  null, hist.add.bind(hist), k);
             }
           },
           function() {
