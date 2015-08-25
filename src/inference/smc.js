@@ -14,6 +14,7 @@ module.exports = function(env) {
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
     this.numParticles = options.particles;
+    this.debug = options.debug;
 
     this.particles = [];
     this.completeParticles = [];
@@ -59,9 +60,7 @@ module.exports = function(env) {
     particle.trace.saveContinuation(cc, s);
     particle.trace.score += score;
     particle.logWeight += score;
-
-    //console.log('(' + this.particleIndex + ') Factor: ' + a);
-
+    this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync(a);
   };
 
@@ -162,7 +161,7 @@ module.exports = function(env) {
     // Either advance the next active particle, or if all particles have
     // advanced, perform re-sampling and rejuvenation.
     if (this.lastParticle()) {
-      //console.log('*** SYNC *** [' + (address || 'exit') + ']');
+      this.debugLog('***** SYNC at ' + (address || 'EXIT') + ' *****');
 
       var resampledParticles = resampleParticles(this.allParticles());
       assert(resampledParticles.length === this.numParticles);
@@ -171,7 +170,7 @@ module.exports = function(env) {
       var p = _.partition(resampledParticles, function(p) { return p.trace.k && p.trace.store; });
       this.particles = p[0], this.completeParticles = p[1];
 
-      //console.log('RESAMPLED | Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
+      this.debugLog('Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
 
       if (this.particles.length > 0) {
         // We still have active particles, wrap-around:
@@ -204,10 +203,14 @@ module.exports = function(env) {
     }
   };
 
+  ParticleFilter.prototype.debugLog = function(s) {
+    if (this.debug) { console.log(s); }
+  };
+
   ParticleFilter.prototype.exit = function(s, val) {
     // Complete the trace.
     this.currentParticle().trace.complete(val);
-    //console.log('(' + this.particleIndex + ') Exit');
+    this.debugLog('(' + this.particleIndex + ') Exit');
     return this.sync();
   };
 
