@@ -12,7 +12,7 @@ module.exports = function(env) {
     var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 1, burn: 0 });
 
     // TODO: Implement via hooks/callbacks.
-    var log = options.verbose ? console.log : _.identity;
+    var log = function(s) { if (options.verbose) { console.log(s); } };
 
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
