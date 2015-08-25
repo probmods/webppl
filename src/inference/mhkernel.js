@@ -50,7 +50,7 @@ module.exports = function(env) {
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
       val = proposalErp.sample(proposalParams);
       // Optimization: Bail early if same value is re-sampled.
-      if (prevChoice.val === val) { return this.cont(this.oldTrace, false); }
+      if (prevChoice.val === val) { return this.cont(this.oldTrace, Math.random() < 0.5); }
     } else {
       if (prevChoice) {
         val = prevChoice.val;
