@@ -231,7 +231,11 @@ var tests = {
 
     { name: 'testReturn2',
       code: 'var foo = function(){ (function(){ return 1})(); return 2; }; foo()',
-      expected: 2 }
+      expected: 2 },
+
+    { name: 'testReturn3',
+      code: 'var foo = function(){ return; return; }; foo()',
+      expected: undefined }
 
   ],
 

@@ -275,7 +275,7 @@ function cpsInnerStatement(node, e, fk) {
       });
     }),
     clause(Syntax.ReturnStatement, function(argument) {
-      return cps(argument, fk);
+      return cps(argument || build.identifier('undefined'), fk);
     }),
     clause(Syntax.VariableDeclaration, function(declarations) {
       return cpsDeclarations(declarations, 0, function(id) {
@@ -312,7 +312,7 @@ function cpsFinalStatement(node, k, fk) {
       });
     }),
     clause(Syntax.ReturnStatement, function(argument) {
-      return cps(argument, fk);
+      return cps(argument || build.identifier('undefined'), fk);
     }),
     clause(Syntax.VariableDeclaration, function(declarations) {
       return cpsDeclarations(declarations, 0, function(id) {
