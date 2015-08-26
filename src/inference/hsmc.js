@@ -56,15 +56,15 @@ module.exports = function(env) {
 
   function HSMC(s, k, a, wpplFn, opts) {
     this.numParticles = getOpt(opts, 'numParticles', 100);
+    this.aggregator = getOpt(opts, 'aggregator', 'count');
     this.kernelOpts = getOpt(opts,
                              'kernelOpts',
                              {stepSize: 0.1,
                               steps: 5,
                               iterations: 1000,
-                              proposers: ['leapfrog', 'mh'],
-                              aggregator: 'score',
+                              kernels: ['leapfrog', 'mh'],
+                              aggregator: this.aggregator,
                               verbosity: 0});
-    this.aggregator = getOpt(opts, 'aggregator', 'count');
 
     var exitK = function(s) {return wpplFn(s, env.exit, a);};
     this.isHSMCCoroutine = true;
