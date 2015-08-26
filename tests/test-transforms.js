@@ -1,5 +1,6 @@
 'use strict';
 
+require('../src/main');
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
