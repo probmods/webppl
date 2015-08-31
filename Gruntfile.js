@@ -28,7 +28,7 @@ var jslintSettings = {
 module.exports = function(grunt) {
   grunt.initConfig({
     nodeunit: {
-      all: ['tests/*.js']
+      all: ['tests/test-*.js']
     },
     jshint: {
       files: [

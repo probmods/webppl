@@ -6,8 +6,10 @@ var assert = require('assert');
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
 var erp = require('../src/erp.js');
+var helpers = require('./helpers.js');
 
-var testDataDir = './tests/test-data/';
+
+var testDataDir = './tests/test-data/stochastic/';
 
 var tests = [
   {
@@ -236,7 +238,7 @@ var wpplRunInference = function(modelName, testDef) {
   var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
-    loadModel(modelName),
+    helpers.loadModel(testDataDir, modelName),
     inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
   var erp;
@@ -252,7 +254,7 @@ var wpplRunInference = function(modelName, testDef) {
 var performTest = function(modelName, testDef, test) {
   var erp = wpplRunInference(modelName, testDef);
   var hist = getHist(erp);
-  var expectedResults = loadExpected(modelName);
+  var expectedResults = helpers.loadExpected(testDataDir, modelName);
 
   _.each(expectedResults, function(expected, testName) {
     // The tests to run for a particular model are determined by the contents
@@ -274,37 +276,26 @@ var getInferenceArgs = function(testDef, model) {
   return JSON.stringify(args).slice(1, -1);
 };
 
-var testWithinTolerance = function(test, actual, expected, tolerance, name) {
-  var absDiff = Math.abs(actual - expected);
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(absDiff < tolerance, msg);
-};
-
-var testEqual = function(test, actual, expected, name) {
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(actual === expected, msg);
-};
-
 var testFunctions = {
   hist: function(test, erp, hist, expected, args) {
     test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
   },
   mean: function(test, erp, hist, expected, args) {
-    testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
   },
   std: function(test, erp, hist, expected, args) {
-    testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
   },
   logZ: function(test, erp, hist, expected, args) {
     if (args.check) {
-      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
   MAP: function(test, erp, hist, expected, args) {
     if (args.check) {
       var map = erp.MAP();
-      testEqual(test, map.val, expected.val, 'MAP value');
-      testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
+      helpers.testEqual(test, map.val, expected.val, 'MAP value');
+      helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
   }
 };
@@ -317,23 +308,8 @@ var getHist = function(erp) {
   return util.normalizeHist(hist);
 };
 
-var getModelNames = function() {
-  var filenames = fs.readdirSync(testDataDir + 'models/');
-  return _.map(filenames, function(fn) { return fn.split('.')[0]; });
-};
-
-var loadModel = function(modelName) {
-  var filename = testDataDir + 'models/' + modelName + '.wppl';
-  return fs.readFileSync(filename, 'utf-8');
-};
-
-var loadExpected = function(modelName) {
-  var filename = testDataDir + 'expected/' + modelName + '.json';
-  return JSON.parse(fs.readFileSync(filename, 'utf-8'));
-};
-
 var generateTestCases = function() {
-  var modelNames = getModelNames();
+  var modelNames = helpers.getModelNames(testDataDir);
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
     _.each(modelNames, function(modelName) {
