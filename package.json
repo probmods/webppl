@@ -39,7 +39,7 @@
     "through2": "^2.0.0"
   },
   "scripts": {
-    "test": "nodeunit tests"
+    "test": "nodeunit tests/test-*.js"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"
