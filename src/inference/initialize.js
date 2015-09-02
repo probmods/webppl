@@ -33,7 +33,9 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.factor = function(s, k, a, score) {
-    if (score === -Infinity) { return this.run(); }
+    if (score === -Infinity) {
+      return this.run();
+    }
     this.trace.score += score;
     return k(s);
   };

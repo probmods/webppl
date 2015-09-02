@@ -12,14 +12,20 @@ module.exports = function(env) {
     var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 1, burn: 0 });
 
     // TODO: Implement via hooks/callbacks.
-    var log = function(s) { if (options.verbose) { console.log(s); } };
+    var log = function(s) {
+      if (options.verbose) {
+        console.log(s);
+      }
+    };
 
     // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
 
     return initialize(function(s, initialTrace) {
       var query = new Query();
-      if (initialTrace.value === env.query) { query.addAll(env.query); }
+      if (initialTrace.value === env.query) {
+        query.addAll(env.query);
+      }
 
       var acceptedCount = 0;
       var acc = (options.justSample || options.onlyMAP) ?
@@ -52,7 +58,9 @@ module.exports = function(env) {
         function(i, trace, accepted) {
           var value;
           if (query && trace.value === env.query) {
-            if (accepted) { query.addAll(env.query); }
+            if (accepted) {
+              query.addAll(env.query);
+            }
             value = query.getTable();
           } else {
             value = trace.value;
@@ -68,7 +76,9 @@ module.exports = function(env) {
   };
 
   MAPEstimator.prototype.add = function(value, score) {
-    if (this.retainSamples) { this.samples.push(value); }
+    if (this.retainSamples) {
+      this.samples.push(value);
+    }
     if (score > this.MAP.score) {
       this.MAP.value = value;
       this.MAP.score = score;
@@ -79,7 +89,9 @@ module.exports = function(env) {
     var hist = new Histogram();
     hist.add(this.MAP.value);
     var erp = hist.toERP();
-    if (this.retainSamples) { erp.samples = this.samples; }
+    if (this.retainSamples) {
+      erp.samples = this.samples;
+    }
     return erp;
   };
 

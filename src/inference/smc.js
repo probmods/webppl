@@ -88,7 +88,9 @@ module.exports = function(env) {
   function resampleParticles(particles) {
 
     // Skip resampling if doing ParticleFilterAsMH.
-    if (particles.length === 1) { return particles; }
+    if (particles.length === 1) {
+      return particles;
+    }
 
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = particles.length;
@@ -130,7 +132,9 @@ module.exports = function(env) {
   }
 
   ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
-    if (this.rejuvSteps === 0) { return cont(); }
+    if (this.rejuvSteps === 0) {
+      return cont();
+    }
     assert(!this.particlesWeighted(), 'Cannot rejuvenate weighted particles.');
     return util.cpsForEach(
         function(p, i, ps, next) {
@@ -204,7 +208,9 @@ module.exports = function(env) {
   };
 
   ParticleFilter.prototype.debugLog = function(s) {
-    if (this.debug) { console.log(s); }
+    if (this.debug) {
+      console.log(s);
+    }
   };
 
   ParticleFilter.prototype.exit = function(s, val) {

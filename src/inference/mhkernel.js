@@ -21,7 +21,9 @@ module.exports = function(env) {
 
   MHKernel.prototype.run = function() {
     var numERP = this.oldTrace.length - this.proposalBoundary;
-    if (numERP === 0) { return this.cont(this.oldTrace, false); }
+    if (numERP === 0) {
+      return this.cont(this.oldTrace, false);
+    }
     // Make a new proposal.
     env.query.clear();
     this.regenFrom = this.proposalBoundary + Math.floor(Math.random() * numERP);
@@ -32,7 +34,9 @@ module.exports = function(env) {
 
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
-    if (score === -Infinity) { return this.cont(this.oldTrace, false); }
+    if (score === -Infinity) {
+      return this.cont(this.oldTrace, false);
+    }
     this.trace.score += score;
     if (this.exitAddress === a) {
       this.trace.saveContinuation(k, s);
@@ -50,7 +54,9 @@ module.exports = function(env) {
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
       val = proposalErp.sample(proposalParams);
       // Optimization: Bail early if same value is re-sampled.
-      if (prevChoice.val === val) { return this.cont(this.oldTrace, Math.random() < 0.5); }
+      if (prevChoice.val === val) {
+        return this.cont(this.oldTrace, Math.random() < 0.5);
+      }
     } else {
       if (prevChoice) {
         val = prevChoice.val;
@@ -61,7 +67,9 @@ module.exports = function(env) {
     }
 
     this.trace.addChoice(erp, params, val, address, s, cont);
-    if (this.trace.score === -Infinity) { return this.cont(this.oldTrace, false); }
+    if (this.trace.score === -Infinity) {
+      return this.cont(this.oldTrace, false);
+    }
     return cont(s, val);
   };
 
