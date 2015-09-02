@@ -41,7 +41,7 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.exit = function(s, val) {
-    assert(this.trace.score !== -Infinity);
+    assert.notStrictEqual(this.trace.score, -Infinity);
     this.trace.complete(val);
     env.coroutine = this.coroutine;
     return this.k(this.s, this.trace);

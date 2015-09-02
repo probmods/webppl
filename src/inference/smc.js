@@ -97,7 +97,7 @@ module.exports = function(env) {
     var logW = util.logsumexp(_.pluck(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
 
-    assert(logAvgW !== -Infinity, 'All particles have zero weight.');
+    assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
 
     // Compute list of retained particles.
     var retainedParticles = [];
@@ -171,7 +171,7 @@ module.exports = function(env) {
       this.debugLog('***** SYNC at ' + (address || 'EXIT') + ' *****');
 
       var resampledParticles = resampleParticles(this.allParticles());
-      assert(resampledParticles.length === this.numParticles);
+      assert.strictEqual(resampledParticles.length, this.numParticles);
 
       // TODO: Move logic for checking for complete particles to Trace?
       var p = _.partition(resampledParticles, function(p) { return p.trace.k && p.trace.store; });
@@ -200,7 +200,7 @@ module.exports = function(env) {
 
       } else {
         // All particles complete.
-        assert(this.completeParticles.length === this.numParticles);
+        assert.strictEqual(this.completeParticles.length, this.numParticles);
         env.coroutine = this.coroutine;
         return this.k(this.s, this.completeParticles);
       }
@@ -263,7 +263,7 @@ module.exports = function(env) {
   TraceLite.prototype.addChoice = function() {};
 
   TraceLite.prototype.complete = function(value) {
-    assert(this.value === undefined);
+    assert.strictEqual(this.value, undefined);
     this.value = value;
     this.k = this.store = undefined;
   };
@@ -285,7 +285,7 @@ module.exports = function(env) {
 
       return util.cpsForEach(
           function(particle, i, ps, k) {
-            assert(particle.logWeight === logAvgW, 'Expected un-weighted particles.');
+            assert.strictEqual(particle.logWeight, logAvgW, 'Expected un-weighted particles.');
             if (particle.trace.score === -Infinity) {
               // Can happen with one particle as we don't resample to allow
               // ParticleFilterAsMH.

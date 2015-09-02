@@ -56,7 +56,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
 
 Trace.prototype.complete = function(value) {
   // Called at coroutine exit.
-  assert(this.value === undefined);
+  assert.strictEqual(this.value, undefined);
   this.value = value;
   // Ensure any attempt to continue a completed trace fails in an obvious way.
   this.k = this.store = undefined;

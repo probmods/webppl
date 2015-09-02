@@ -95,8 +95,8 @@ module.exports = function(env) {
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary) {
-    // assert(trace !== undefined);
-    // assert(oldTrace !== undefined);
+    // assert.notStrictEqual(trace, undefined);
+    // assert.notStrictEqual(oldTrace, undefined);
     // assert(_.isNumber(trace.score));
     // assert(_.isNumber(oldTrace.score));
     // assert(_.isNumber(regenFrom));
