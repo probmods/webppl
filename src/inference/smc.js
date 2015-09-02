@@ -164,7 +164,10 @@ module.exports = function(env) {
     // Called at sync points factor and exit.
     // Either advance the next active particle, or if all particles have
     // advanced, perform re-sampling and rejuvenation.
-    if (this.atLastParticle()) {
+    if (!this.atLastParticle()) {
+      this.advanceParticleIndex();
+      return this.runCurrentParticle();
+    } else {
       this.debugLog('***** SYNC at ' + (address || 'EXIT') + ' *****');
 
       var resampledParticles = resampleParticles(this.allParticles());
@@ -201,9 +204,6 @@ module.exports = function(env) {
         env.coroutine = this.coroutine;
         return this.k(this.s, this.completeParticles);
       }
-    } else {
-      this.advanceParticleIndex();
-      return this.runCurrentParticle();
     }
   };
 
