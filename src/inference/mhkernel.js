@@ -45,8 +45,8 @@ module.exports = function(env) {
     return k(s);
   };
 
-  MHKernel.prototype.sample = function(s, cont, address, erp, params, forceSample) {
-    var val, prevChoice = this.oldTrace.findChoice(address);
+  MHKernel.prototype.sample = function(s, k, a, erp, params, forceSample) {
+    var val, prevChoice = this.oldTrace.findChoice(a);
 
     if (forceSample) {
       assert(prevChoice);
@@ -60,17 +60,17 @@ module.exports = function(env) {
     } else {
       if (prevChoice) {
         val = prevChoice.val;
-        this.reused[address] = true;
+        this.reused[a] = true;
       } else {
         val = erp.sample(params);
       }
     }
 
-    this.trace.addChoice(erp, params, val, address, s, cont);
+    this.trace.addChoice(erp, params, val, a, s, k);
     if (this.trace.score === -Infinity) {
       return this.cont(this.oldTrace, false);
     }
-    return cont(s, val);
+    return k(s, val);
   };
 
   MHKernel.prototype.exit = function(s, val) {

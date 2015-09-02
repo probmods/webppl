@@ -54,10 +54,10 @@ module.exports = function(env) {
     return k(s, val);
   };
 
-  ParticleFilter.prototype.factor = function(s, cc, a, score) {
+  ParticleFilter.prototype.factor = function(s, k, a, score) {
     // Update particle.
     var particle = this.currentParticle();
-    particle.trace.saveContinuation(cc, s);
+    particle.trace.saveContinuation(k, s);
     particle.trace.score += score;
     particle.logWeight += score;
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
