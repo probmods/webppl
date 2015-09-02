@@ -20,7 +20,7 @@ var jslintSettings = {
   },
   wppl: {
     src: [
-      'tests/test-data/models/*.wppl',
+      'tests/test-data/**/*.wppl',
       'examples/*.wppl'
     ]
   }
