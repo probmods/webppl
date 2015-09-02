@@ -15,7 +15,7 @@ var generateTestCases = function() {
     exports[modelName] = function(test) {
       var result;
       webppl.run(model, function(s, val) { result = val; });
-      helpers.testEqual(test, result, expected.result, modelName);
+      helpers.testEqual(test, result, expected.result, 'result');
       test.done();
     };
   });
