@@ -1,5 +1,6 @@
 'use strict';
 
+require('../src/main');
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
@@ -230,7 +231,15 @@ var tests = {
 
     { name: 'testReturn2',
       code: 'var foo = function(){ (function(){ return 1})(); return 2; }; foo()',
-      expected: 2 }
+      expected: 2 },
+
+    { name: 'testReturnWithoutArgFinal',
+      code: 'var foo = function(){ return; }; foo()',
+      expected: undefined },
+
+    { name: 'testReturnWithoutArgInner',
+      code: 'var foo = function(){ return; return 1; }; foo()',
+      expected: undefined }
 
   ],
 
