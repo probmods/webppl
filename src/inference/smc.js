@@ -64,7 +64,7 @@ module.exports = function(env) {
     return this.sync(a);
   };
 
-  ParticleFilter.prototype.lastParticle = function() {
+  ParticleFilter.prototype.atLastParticle = function() {
     return this.particleIndex === this.particles.length - 1;
   };
 
@@ -77,7 +77,7 @@ module.exports = function(env) {
     return trace.k(trace.store);
   };
 
-  ParticleFilter.prototype.nextParticle = function() {
+  ParticleFilter.prototype.advanceParticleIndex = function() {
     this.particleIndex += 1;
   };
 
@@ -135,7 +135,7 @@ module.exports = function(env) {
     if (this.rejuvSteps === 0) {
       return cont();
     }
-    assert(!this.particlesWeighted(), 'Cannot rejuvenate weighted particles.');
+    assert(!this.particlesAreWeighted(), 'Cannot rejuvenate weighted particles.');
     return util.cpsForEach(
         function(p, i, ps, next) {
           return this.rejuvenateParticle(next, i, exitAddress);
@@ -155,7 +155,7 @@ module.exports = function(env) {
         }.bind(this));
   };
 
-  ParticleFilter.prototype.particlesWeighted = function() {
+  ParticleFilter.prototype.particlesAreWeighted = function() {
     var lw = _.first(this.particles).logWeight;
     return _.any(this.particles, function(p) { return p.logWeight !== lw; });
   };
@@ -164,7 +164,7 @@ module.exports = function(env) {
     // Called at sync points factor and exit.
     // Either advance the next active particle, or if all particles have
     // advanced, perform re-sampling and rejuvenation.
-    if (this.lastParticle()) {
+    if (this.atLastParticle()) {
       this.debugLog('***** SYNC at ' + (address || 'EXIT') + ' *****');
 
       var resampledParticles = resampleParticles(this.allParticles());
@@ -202,7 +202,7 @@ module.exports = function(env) {
         return this.k(this.s, this.completeParticles);
       }
     } else {
-      this.nextParticle();
+      this.advanceParticleIndex();
       return this.runCurrentParticle();
     }
   };
