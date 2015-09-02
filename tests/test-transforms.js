@@ -233,8 +233,12 @@ var tests = {
       code: 'var foo = function(){ (function(){ return 1})(); return 2; }; foo()',
       expected: 2 },
 
-    { name: 'testReturn3',
-      code: 'var foo = function(){ return; return; }; foo()',
+    { name: 'testReturnWithoutArgFinal',
+      code: 'var foo = function(){ return; }; foo()',
+      expected: undefined },
+
+    { name: 'testReturnWithoutArgInner',
+      code: 'var foo = function(){ return; return 1; }; foo()',
       expected: undefined }
 
   ],
