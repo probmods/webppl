@@ -242,12 +242,7 @@ var wpplRunInference = function(modelName, testDef) {
     inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
   var erp;
-  try {
-    webppl.run(progText, function(s, val) { erp = val; });
-  } catch (e) {
-    console.log('Exception:' + e);
-    throw e;
-  }
+  webppl.run(progText, function(s, val) { erp = val; });
   return erp;
 };
 

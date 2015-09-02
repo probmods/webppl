@@ -14,13 +14,8 @@ var generateTestCases = function() {
     var expected = helpers.loadExpected(testDataDir, modelName);
     exports[modelName] = function(test) {
       var result;
-      try {
-        webppl.run(model, function(s, val) { result = val; });
-      } catch (e) {
-        console.log('Exception:' + e);
-        throw e;
-      }
-      helpers.testEqual(test, result, expected['result'], modelName);
+      webppl.run(model, function(s, val) { result = val; });
+      helpers.testEqual(test, result, expected.result, modelName);
       test.done();
     };
   });
