@@ -173,9 +173,8 @@ module.exports = function(env) {
       var resampledParticles = resampleParticles(this.allParticles());
       assert.strictEqual(resampledParticles.length, this.numParticles);
 
-      // TODO: Move logic for checking for complete particles to Trace?
-      var p = _.partition(resampledParticles, function(p) { return p.trace.k && p.trace.store; });
-      this.particles = p[0], this.completeParticles = p[1];
+      var p = _.partition(resampledParticles, function(p) { return p.trace.isComplete(); });
+      this.completeParticles = p[0], this.particles = p[1];
 
       this.debugLog('Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
 
@@ -266,6 +265,10 @@ module.exports = function(env) {
     assert.strictEqual(this.value, undefined);
     this.value = value;
     this.k = this.store = undefined;
+  };
+
+  TraceLite.prototype.isComplete = function() {
+    return this.k === undefined && this.store === undefined;
   };
 
   TraceLite.prototype.copy = function() {

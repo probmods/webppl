@@ -66,6 +66,10 @@ Trace.prototype.map = function(f) {
   return this.choices.map(f);
 };
 
+Trace.prototype.isComplete = function() {
+  return this.k === undefined && this.store === undefined;
+};
+
 Trace.prototype.upto = function(i) {
   // We never take all choices as we don't include the choice we're regenerating
   // from.
