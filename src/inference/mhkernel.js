@@ -7,14 +7,17 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  function MHKernel(k, oldTrace, exitAddress, proposalBoundary) {
+  function MHKernel(k, oldTrace, exitAddress, proposalBoundary, permissive) {
+    if (!permissive) {
+      assert.notStrictEqual(oldTrace.score, -Infinity);
+    }
+
     this.k = k;
-    // TODO: Check the oldTrace has probability > 0.
-    // Otherwise transition prob. is undefined. PFRjAsMH makes this tricky.
     this.oldTrace = oldTrace;
     this.reused = {};
     this.exitAddress = exitAddress;
     this.proposalBoundary = proposalBoundary || 0;
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -137,8 +140,8 @@ module.exports = function(env) {
   }
 
   return {
-    MHKernel: function(k, oldTrace, exitAddress, proposalBoundary) {
-      return new MHKernel(k, oldTrace, exitAddress, proposalBoundary).run();
+    MHKernel: function(k, oldTrace, exitAddress, proposalBoundary, permissive) {
+      return new MHKernel(k, oldTrace, exitAddress, proposalBoundary, permissive).run();
     }
   };
 

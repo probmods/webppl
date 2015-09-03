@@ -279,7 +279,11 @@ module.exports = function(env) {
   };
 
   function MarginalSMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, rejuvKernel: MHKernel });
+    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0 });
+    if (!options.rejuvKernel) {
+      // Use MHKernel in permissive mode if doing ParticleFilterAsMH.
+      options.rejuvKernel = _.partial(MHKernel, _, _, _, _, options.particles === 1);
+    }
 
     return new SMC(s, function(s, particles) {
       var hist = new Histogram();
