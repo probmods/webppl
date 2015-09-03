@@ -9,7 +9,7 @@ var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
-  function ParticleFilter(s, k, a, wpplFn, options) {
+  function SMC(s, k, a, wpplFn, options) {
 
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
@@ -39,11 +39,11 @@ module.exports = function(env) {
 
   }
 
-  ParticleFilter.prototype.run = function() {
+  SMC.prototype.run = function() {
     return this.runCurrentParticle();
   };
 
-  ParticleFilter.prototype.sample = function(s, k, a, erp, params) {
+  SMC.prototype.sample = function(s, k, a, erp, params) {
     var importanceERP = erp.importanceERP || erp;
     var val = importanceERP.sample(params);
     var importanceScore = importanceERP.score(params, val);
@@ -54,7 +54,7 @@ module.exports = function(env) {
     return k(s, val);
   };
 
-  ParticleFilter.prototype.factor = function(s, k, a, score) {
+  SMC.prototype.factor = function(s, k, a, score) {
     // Update particle.
     var particle = this.currentParticle();
     particle.trace.saveContinuation(k, s);
@@ -64,24 +64,24 @@ module.exports = function(env) {
     return this.sync(a);
   };
 
-  ParticleFilter.prototype.atLastParticle = function() {
+  SMC.prototype.atLastParticle = function() {
     return this.particleIndex === this.particles.length - 1;
   };
 
-  ParticleFilter.prototype.currentParticle = function() {
+  SMC.prototype.currentParticle = function() {
     return this.particles[this.particleIndex];
   };
 
-  ParticleFilter.prototype.runCurrentParticle = function() {
+  SMC.prototype.runCurrentParticle = function() {
     var trace = this.currentParticle().trace;
     return trace.k(trace.store);
   };
 
-  ParticleFilter.prototype.advanceParticleIndex = function() {
+  SMC.prototype.advanceParticleIndex = function() {
     this.particleIndex += 1;
   };
 
-  ParticleFilter.prototype.allParticles = function() {
+  SMC.prototype.allParticles = function() {
     return this.particles.concat(this.completeParticles);
   };
 
@@ -131,7 +131,7 @@ module.exports = function(env) {
     return allParticles;
   }
 
-  ParticleFilter.prototype.rejuvenateParticles = function(cont, exitAddress) {
+  SMC.prototype.rejuvenateParticles = function(cont, exitAddress) {
     if (this.rejuvSteps === 0) {
       return cont();
     }
@@ -145,7 +145,7 @@ module.exports = function(env) {
     );
   };
 
-  ParticleFilter.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
+  SMC.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
     var kernel = _.partial(this.rejuvKernel, _, _, exitAddress, this.particles[i].proposalBoundary);
     var chain = repeatKernel(this.rejuvSteps, kernel);
     return chain(function(trace) {
@@ -154,12 +154,12 @@ module.exports = function(env) {
     }.bind(this), this.particles[i].trace);
   };
 
-  ParticleFilter.prototype.particlesAreWeighted = function() {
+  SMC.prototype.particlesAreWeighted = function() {
     var lw = _.first(this.particles).logWeight;
     return _.any(this.particles, function(p) { return p.logWeight !== lw; });
   };
 
-  ParticleFilter.prototype.sync = function(address) {
+  SMC.prototype.sync = function(address) {
     // Called at sync points factor and exit.
     // Either advance the next active particle, or if all particles have
     // advanced, perform re-sampling and rejuvenation.
@@ -205,20 +205,20 @@ module.exports = function(env) {
     }
   };
 
-  ParticleFilter.prototype.debugLog = function(s) {
+  SMC.prototype.debugLog = function(s) {
     if (this.debug) {
       console.log(s);
     }
   };
 
-  ParticleFilter.prototype.exit = function(s, val) {
+  SMC.prototype.exit = function(s, val) {
     // Complete the trace.
     this.currentParticle().trace.complete(val);
     this.debugLog('(' + this.particleIndex + ') Exit');
     return this.sync();
   };
 
-  ParticleFilter.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+  SMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function withImportanceDist(s, k, a, erp, importanceERP) {
     var newERP = _.clone(erp);
@@ -278,10 +278,10 @@ module.exports = function(env) {
     return t;
   };
 
-  function SMC(s, k, a, wpplFn, options) {
+  function MarginalSMC(s, k, a, wpplFn, options) {
     var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, rejuvKernel: MHKernel });
 
-    return new ParticleFilter(s, function(s, particles) {
+    return new SMC(s, function(s, particles) {
       var hist = new Histogram();
       var logAvgW = _.first(particles).logWeight;
 
@@ -317,9 +317,9 @@ module.exports = function(env) {
   }
 
   return {
+    MarginalSMC: MarginalSMC,
     withImportanceDist: withImportanceDist,
-    setProposalBoundary: setProposalBoundary,
-    SMC: SMC
+    setProposalBoundary: setProposalBoundary
   };
 
 };
