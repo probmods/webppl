@@ -82,7 +82,7 @@ module.exports = function(env) {
   };
 
   SMC.prototype.allParticles = function() {
-    return this.particles.concat(this.completeParticles);
+    return this.completeParticles.concat(this.particles);
   };
 
   function resampleParticles(particles) {
