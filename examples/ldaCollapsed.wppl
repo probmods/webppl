@@ -73,7 +73,7 @@ var mapObject = function(fn, obj) {
       },
       _.pairs(obj))
   );
-}
+};
 
 
 // Model
