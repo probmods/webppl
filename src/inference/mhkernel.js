@@ -89,7 +89,6 @@ module.exports = function(env) {
     return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
 
-  // TODO: Better name? (Used to bail from sample.)
   MHKernel.prototype.cont = function(trace, accepted) {
     assert(_.isBoolean(accepted));
     env.coroutine = this.coroutine;
