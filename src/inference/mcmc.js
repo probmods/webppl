@@ -4,7 +4,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
 var Query = require('../query.js').Query;
-var Histogram = require('../histogram');
+var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
@@ -22,14 +22,14 @@ module.exports = function(env) {
 
     return initialize(function(s, initialTrace) {
 
-      var acc = (options.justSample || options.onlyMAP) ?
-          new MAPEstimator(options.justSample) :
-          new Histogram();
+      var aggregator = (options.justSample || options.onlyMAP) ?
+          new aggregation.MAPEstimator(options.justSample) :
+          new aggregation.Histogram();
 
       var acceptedCount = 0;
       var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
       var printCurrIter = makePrintCurrIteration(log);
-      var collectSample = makeExtractValue(initialTrace, acc.add.bind(acc));
+      var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
 
       var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
 
@@ -43,7 +43,7 @@ module.exports = function(env) {
       return chain(function() {
         var iterations = options.samples * (options.lag + 1) + options.burn;
         log('Acceptance ratio: ' + acceptedCount / iterations);
-        return k(s, acc.toERP());
+        return k(s, aggregator.toERP());
       }, initialTrace);
 
     });
@@ -107,32 +107,6 @@ module.exports = function(env) {
       return util.cpsIterate(n, trace, kernel, k);
     };
   }
-
-  var MAPEstimator = function(retainSamples) {
-    this.MAP = { value: undefined, score: -Infinity };
-    this.samples = [];
-    this.retainSamples = retainSamples;
-  };
-
-  MAPEstimator.prototype.add = function(value, score) {
-    if (this.retainSamples) {
-      this.samples.push(value);
-    }
-    if (score > this.MAP.score) {
-      this.MAP.value = value;
-      this.MAP.score = score;
-    }
-  };
-
-  MAPEstimator.prototype.toERP = function() {
-    var hist = new Histogram();
-    hist.add(this.MAP.value);
-    var erp = hist.toERP();
-    if (this.retainSamples) {
-      erp.samples = this.samples;
-    }
-    return erp;
-  };
 
   return {
     MCMC: MCMC,

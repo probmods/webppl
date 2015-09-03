@@ -5,7 +5,7 @@ var util = require('../util.js');
 var erp = require('../erp.js');
 var Trace = require('../trace');
 var assert = require('assert');
-var Histogram = require('../histogram');
+var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
