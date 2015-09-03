@@ -147,12 +147,11 @@ module.exports = function(env) {
 
   ParticleFilter.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
     var kernel = _.partial(this.rejuvKernel, _, _, exitAddress, this.particles[i].proposalBoundary);
-    return util.cpsIterate(
-        this.rejuvSteps, this.particles[i].trace, kernel,
-        function(rejuvParticle) {
-          this.particles[i].trace = rejuvParticle;
-          return cont();
-        }.bind(this));
+    var chain = repeatKernel(this.rejuvSteps, kernel);
+    return chain(function(trace) {
+      this.particles[i].trace = trace;
+      return cont();
+    }.bind(this), this.particles[i].trace);
   };
 
   ParticleFilter.prototype.particlesAreWeighted = function() {
@@ -299,9 +298,12 @@ module.exports = function(env) {
               return k();
             } else {
               // Final rejuvenation.
-              return runMarkovChain(
-                  options.rejuvSteps, particle.trace, options.rejuvKernel,
-                  null, hist.add.bind(hist), k);
+              var chain = repeatKernel(
+                  options.rejuvSteps,
+                  composeKernels(
+                      options.rejuvKernel,
+                      tapKernel(function(trace) { hist.add(trace.value) })));
+              return chain(k, particle.trace);
             }
           },
           function() {

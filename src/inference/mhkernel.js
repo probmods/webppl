@@ -88,8 +88,10 @@ module.exports = function(env) {
 
   // TODO: Better name? (Used to bail from sample.)
   MHKernel.prototype.cont = function(trace, accepted) {
+    assert(_.isBoolean(accepted));
     env.coroutine = this.coroutine;
-    return this.k(trace, accepted);
+    trace.info = { accepted: accepted };
+    return this.k(trace);
   };
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;

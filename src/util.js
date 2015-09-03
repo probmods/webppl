@@ -132,15 +132,12 @@ function cpsLoop(n, func, nextK, i) {
   }
 }
 
-function cpsIterate(n, initial, cpsFn, k, yieldFn) {
+function cpsIterate(n, initial, cpsFn, k) {
   var val = initial;
   return cpsLoop(n,
       function(i, next) {
         return cpsFn(function(nextVal) {
           val = nextVal;
-          if (yieldFn) {
-            yieldFn.apply(null, [i].concat(_.toArray(arguments)));
-          }
           return next();
         }, val);
       },

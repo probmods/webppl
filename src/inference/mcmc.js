@@ -9,7 +9,7 @@ var Histogram = require('../histogram');
 module.exports = function(env) {
 
   function MCMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 1, burn: 0 });
+    var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 0, burn: 0 });
 
     // TODO: Implement via hooks/callbacks.
     var log = function(s) {
@@ -18,55 +18,94 @@ module.exports = function(env) {
       }
     };
 
-    // Partially applied to make what follows easier to read.
     var initialize = _.partial(Initialize, s, _, a, wpplFn);
 
     return initialize(function(s, initialTrace) {
-      var query = new Query();
-      if (initialTrace.value === env.query) {
-        query.addAll(env.query);
-      }
 
-      var acceptedCount = 0;
       var acc = (options.justSample || options.onlyMAP) ?
           new MAPEstimator(options.justSample) :
           new Histogram();
-      var iterations = options.samples * options.lag + options.burn;
 
-      return runMarkovChain(
-          iterations, initialTrace, options.kernel, query,
-          // For each sample:
-          function(value, score, accepted, iter) {
-            if ((iter >= options.burn) &&
-                (iter - options.burn + 1) % options.lag === 0) {
-              acc.add(value, score);
-            }
-            log('Iteration ' + (iter + 1) + ' / ' + iterations);
-            acceptedCount += accepted;
-          },
-          // Continuation:
-          function() {
-            log('Acceptance ratio: ' + acceptedCount / iterations);
-            return k(s, acc.toERP());
-          });
+      var acceptedCount = 0;
+      var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
+      var printCurrIter = makePrintCurrIteration(log);
+      var collectSample = makeExtractValue(initialTrace, acc.add.bind(acc));
+
+      var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
+
+      var chain = sequenceKernels(
+          repeatKernel(options.burn, kernel),
+          repeatKernel(options.samples,
+              sequenceKernels(
+                  repeatKernel(options.lag, kernel),
+                  composeKernels(kernel, collectSample))));
+
+      return chain(function() {
+        var iterations = options.samples * (options.lag + 1) + options.burn;
+        log('Acceptance ratio: ' + acceptedCount / iterations);
+        return k(s, acc.toERP());
+      }, initialTrace);
+
     });
   }
 
-  function runMarkovChain(n, initialTrace, kernel, query, yieldFn, k) {
-    return util.cpsIterate(
-        n, initialTrace, kernel, k,
-        function(i, trace, accepted) {
-          var value;
-          if (query && trace.value === env.query) {
-            if (accepted) {
-              query.addAll(env.query);
-            }
-            value = query.getTable();
-          } else {
-            value = trace.value;
-          }
-          yieldFn(value, trace.score, accepted, i);
-        });
+  function makeExtractValue(initialTrace, fn) {
+    var query = new Query();
+    if (initialTrace.value === env.query) {
+      query.addAll(env.query);
+    }
+    return tapKernel(function(trace) {
+      var value;
+      if (trace.value === env.query) {
+        if (trace.info.accepted) {
+          query.addAll(env.query);
+        }
+        value = query.getTable();
+      } else {
+        value = trace.value;
+      }
+      fn(value, trace.score);
+    });
+  }
+
+  function makePrintCurrIteration(log) {
+    var i = 0;
+    return tapKernel(function() {
+      log('Iteration: ' + i++);
+    });
+  }
+
+  function tapKernel(fn) {
+    return function(k, trace) {
+      fn(trace);
+      return k(trace);
+    };
+  }
+
+  function sequenceKernels() {
+    var kernels = arguments;
+    assert(kernels.length > 0);
+    if (kernels.length === 1) {
+      return _.first(kernels);
+    } else {
+      return composeKernels(
+          _.first(kernels),
+          sequenceKernels.apply(null, _.rest(kernels)));
+    }
+  }
+
+  function composeKernels(kernel1, kernel2) {
+    return function(k, trace1) {
+      return kernel1(function(trace2) {
+        return kernel2(k, trace2);
+      }, trace1);
+    };
+  }
+
+  function repeatKernel(n, kernel) {
+    return function(k, trace) {
+      return util.cpsIterate(n, trace, kernel, k);
+    };
   }
 
   var MAPEstimator = function(retainSamples) {
@@ -97,7 +136,10 @@ module.exports = function(env) {
 
   return {
     MCMC: MCMC,
-    runMarkovChain: runMarkovChain
+    tapKernel: tapKernel,
+    repeatKernel: repeatKernel,
+    composeKernels: composeKernels,
+    sequenceKernels: sequenceKernels
   };
 
 };
