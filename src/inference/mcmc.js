@@ -37,8 +37,8 @@ module.exports = function(env) {
           repeatKernel(options.burn, kernel),
           repeatKernel(options.samples,
               sequenceKernels(
-                  repeatKernel(options.lag, kernel),
-                  composeKernels(kernel, collectSample))));
+                  repeatKernel(options.lag + 1, kernel),
+                  collectSample)));
 
       return chain(function() {
         var iterations = options.samples * (options.lag + 1) + options.burn;
@@ -84,22 +84,18 @@ module.exports = function(env) {
 
   function sequenceKernels() {
     var kernels = arguments;
-    assert(kernels.length > 0);
-    if (kernels.length === 1) {
-      return _.first(kernels);
+    assert(kernels.length > 1);
+    if (kernels.length === 2) {
+      return function(k, trace1) {
+        return kernels[0](function(trace2) {
+          return kernels[1](k, trace2);
+        }, trace1);
+      };
     } else {
-      return composeKernels(
-          _.first(kernels),
-          sequenceKernels.apply(null, _.rest(kernels)));
+      return sequenceKernels(
+          kernels[0],
+          sequenceKernels.apply(null, _.rest(kernels)))
     }
-  }
-
-  function composeKernels(kernel1, kernel2) {
-    return function(k, trace1) {
-      return kernel1(function(trace2) {
-        return kernel2(k, trace2);
-      }, trace1);
-    };
   }
 
   function repeatKernel(n, kernel) {
@@ -112,7 +108,6 @@ module.exports = function(env) {
     MarginalMCMC: MarginalMCMC,
     tapKernel: tapKernel,
     repeatKernel: repeatKernel,
-    composeKernels: composeKernels,
     sequenceKernels: sequenceKernels
   };
 

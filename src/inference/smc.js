@@ -304,7 +304,7 @@ module.exports = function(env) {
               // Final rejuvenation.
               var chain = repeatKernel(
                   options.rejuvSteps,
-                  composeKernels(
+                  sequenceKernels(
                       options.rejuvKernel,
                       tapKernel(function(trace) { hist.add(trace.value) })));
               return chain(k, particle.trace);
