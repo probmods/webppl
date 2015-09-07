@@ -94,7 +94,7 @@ ERP.prototype.toJSON = function() {
   } else {
     var support = this.support([]);
     var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
-    var erpJSON = {erp: {probs: probs, support: support}};
+    var erpJSON = {probs: probs, support: support};
     this.toJSON = function() {return erpJSON};
     return erpJSON;
   }
@@ -103,19 +103,19 @@ ERP.prototype.toJSON = function() {
 ERP.prototype.print = function() {
   console.log('ERP :');
   var json = this.toJSON();
-  _.zip(json.erp.probs, json.erp.support)
+  _.zip(json.probs, json.support)
     .sort(function(a, b) { return b[0] - a[0]; })
     .forEach(function(val) {console.log('    ' + JSON.stringify(val[1]) + ' : ' + val[0]);})
 };
 
 // ERP deserializers
 var erpFromJSON = function(obj) {
-  if (!(_.has(obj, 'erp'))) {
+  if (!obj.probs || !obj.support) {
     throw 'Not an ERP JSON object!'
   }
-  return makeCategoricalERP(obj.erp.probs,
-                            obj.erp.support,
-                            _.omit(obj.erp, 'probs', 'support'));
+  return makeCategoricalERP(obj.probs,
+                            obj.support,
+                            _.omit(obj, 'probs', 'support'));
 }
 
 var erpFromString = function(s) {
