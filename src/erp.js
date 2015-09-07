@@ -101,7 +101,7 @@ ERP.prototype.toJSON = function() {
 };
 
 ERP.prototype.print = function() {
-  console.log('ERP :');
+  console.log('ERP:');
   var json = this.toJSON();
   _.zip(json.probs, json.support)
     .sort(function(a, b) { return b[0] - a[0]; })
