@@ -123,7 +123,13 @@ function compile(programCode, verbose) {
 
 function run(code, k, verbose) {
   var compiledCode = compile(code, verbose);
+  if (verbose && console.time) {
+    console.time('run');
+  }
   eval.call(global, compiledCode)({}, k, '');
+  if (verbose && console.timeEnd) {
+    console.timeEnd('run');
+  }
 }
 
 // wrap run so that it can be used in ./webppl and in the browser

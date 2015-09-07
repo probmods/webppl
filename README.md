@@ -90,10 +90,10 @@ To debug WebPPL programs running in Chrome, enable [pause on JavaScript exceptio
     // 1. Install node-inspector (only need to do this once)
     npm install -g node-inspector
 
-    // 2. Add "debugger;" statements to my-program.js to indicate breakpoints
+    // 2. Add "debugger;" statements to my-program.wppl to indicate breakpoints
 
     // 3. Run your compiled program in debug mode (will pause automatically)
-    node --debug-brk webppl my-program.js
+    node --debug-brk webppl my-program.wppl
 
     // 4. (In separate terminal:) Load node inspector, resume program execution in node-inspector
     node-inspector
@@ -125,7 +125,7 @@ Packages can extend WebPPL in three ways:
 You can automatically prepend WebPPL files to your code by added a `wppl` entry to `package.json`. For example:
 
     {
-      "name": "my-package"
+      "name": "my-package",
       "webppl": {
         "wppl": ["myLibrary.wppl"]
       }
@@ -144,7 +144,12 @@ For example, if the package `my-package` contains this file:
 
 Then the function `myAdd` will be available in WebPPL as `myPackage.myAdd`.
 
-If your Javascript isn't in an `index.js` file in the root of the package, you should indicate the entry point to your package by adding a `main` entry to `package.json`.
+If your Javascript isn't in an `index.js` file in the root of the package, you should indicate the entry point to your package by adding a `main` entry to `package.json`. For example:
+
+    {
+      "name": "my-package",
+      "main": "src/main.js"
+    }
 
 Note that packages must export functions as properties of an object. Exporting functions directly will not work as expected.
 
@@ -174,7 +179,7 @@ Let's use the example of a function that makes the current address available in 
 2. Add a `headers` entry to `package.json`:
 
         {
-          "name": "my-package"
+          "name": "my-package",
           "webppl": {
             "headers": ["addressHeader.js"]
           }

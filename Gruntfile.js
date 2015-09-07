@@ -20,7 +20,7 @@ var jslintSettings = {
   },
   wppl: {
     src: [
-      'tests/test-data/models/*.wppl',
+      'tests/test-data/**/*.wppl',
       'examples/*.wppl'
     ]
   }
@@ -28,7 +28,7 @@ var jslintSettings = {
 module.exports = function(grunt) {
   grunt.initConfig({
     nodeunit: {
-      all: ['tests/*.js']
+      all: ['tests/test-*.js']
     },
     jshint: {
       files: [

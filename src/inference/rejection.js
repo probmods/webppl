@@ -79,6 +79,8 @@ module.exports = function(env) {
     }
   }
 
+  Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+
   function rej(s, k, a, wpplFn, numSamples, maxScore, incremental) {
     return new Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental).run();
   }

@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var fs = require('fs');
 var webppl = require('../src/main.js');
+var erp = require('../src/erp');
 
 var examplesDir = './examples/';
 
@@ -24,18 +25,12 @@ var loadExample = function(example) {
   return fs.readFileSync(filename, 'utf-8');
 };
 
-var isErp = function(erp) {
-  return _.every(['sample', 'support', 'sample'], function(property) {
-    return _.isFunction(erp[property]);
-  })
-};
-
 var generateTestCases = function() {
   _.each(examples, function(example) {
     exports[example] = function(test) {
       test.doesNotThrow(function() {
-        webppl.run(loadExample(example), function(s, erp) {
-          test.ok(isErp(erp));
+        webppl.run(loadExample(example), function(s, val) {
+          test.ok(erp.isErp(val));
         });
       });
       test.done();
