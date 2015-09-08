@@ -82,7 +82,7 @@ module.exports = function(env) {
     } else {
       // We're rejuvenating a particle - ensure that exitAddress was reached by
       // checking that the continuation was saved.
-      assert(!this.trace.isComplete());
+      assert(!this.trace.isComplete(), 'Particle missed exit address during rejuvenation.');
     }
     var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
     var accept = Math.random() < prob;
