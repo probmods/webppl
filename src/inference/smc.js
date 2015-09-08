@@ -10,6 +10,12 @@ var Histogram = require('../aggregation').Histogram;
 module.exports = function(env) {
 
   function SMC(s, k, a, wpplFn, options) {
+    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0 });
+
+    if (!options.rejuvKernel) {
+      // Use MHKernel in permissive mode if doing ParticleFilterAsMH.
+      options.rejuvKernel = _.partial(MHKernel, _, _, _, _, options.particles === 1);
+    }
 
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
@@ -198,9 +204,7 @@ module.exports = function(env) {
 
       } else {
         // All particles complete.
-        assert.strictEqual(this.completeParticles.length, this.numParticles);
-        env.coroutine = this.coroutine;
-        return this.k(this.s, this.completeParticles);
+        return this.finish();
       }
     }
   };
@@ -216,6 +220,42 @@ module.exports = function(env) {
     this.currentParticle().trace.complete(val);
     this.debugLog('(' + this.particleIndex + ') Exit');
     return this.sync();
+  };
+
+  SMC.prototype.finish = function(s, val) {
+    assert.strictEqual(this.completeParticles.length, this.numParticles);
+
+    var hist = new Histogram();
+    var logAvgW = _.first(this.completeParticles).logWeight;
+
+    return util.cpsForEach(
+        function(particle, i, ps, k) {
+          assert.strictEqual(particle.logWeight, logAvgW, 'Expected un-weighted particles.');
+          if (particle.trace.score === -Infinity) {
+            // Can happen with one particle as we don't resample to allow
+            // ParticleFilterAsMH.
+            throw 'Particle score is -Infinity';
+          }
+          if (this.rejuvSteps === 0) {
+            hist.add(particle.trace.value);
+            return k();
+          } else {
+            // Final rejuvenation.
+            var chain = repeatKernel(
+                this.rejuvSteps,
+                sequenceKernels(
+                    this.rejuvKernel,
+                    tapKernel(function(trace) { hist.add(trace.value); })));
+            return chain(k, particle.trace);
+          }
+        }.bind(this),
+        function() {
+          var dist = hist.toERP();
+          dist.normalizationConstant = logAvgW;
+          env.coroutine = this.coroutine;
+          return this.k(this.s, dist);
+        }.bind(this),
+        this.completeParticles);
   };
 
   SMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
@@ -279,45 +319,7 @@ module.exports = function(env) {
   };
 
   function MarginalSMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0 });
-    if (!options.rejuvKernel) {
-      // Use MHKernel in permissive mode if doing ParticleFilterAsMH.
-      options.rejuvKernel = _.partial(MHKernel, _, _, _, _, options.particles === 1);
-    }
-
-    return new SMC(s, function(s, particles) {
-      var hist = new Histogram();
-      var logAvgW = _.first(particles).logWeight;
-
-      return util.cpsForEach(
-          function(particle, i, ps, k) {
-            assert.strictEqual(particle.logWeight, logAvgW, 'Expected un-weighted particles.');
-            if (particle.trace.score === -Infinity) {
-              // Can happen with one particle as we don't resample to allow
-              // ParticleFilterAsMH.
-              throw 'Particle score is -Infinity';
-            }
-            if (options.rejuvSteps === 0) {
-              hist.add(particle.trace.value);
-              return k();
-            } else {
-              // Final rejuvenation.
-              var chain = repeatKernel(
-                  options.rejuvSteps,
-                  sequenceKernels(
-                      options.rejuvKernel,
-                      tapKernel(function(trace) { hist.add(trace.value) })));
-              return chain(k, particle.trace);
-            }
-          },
-          function() {
-            var dist = hist.toERP();
-            dist.normalizationConstant = logAvgW;
-            return k(s, dist);
-          },
-          particles);
-
-    }, a, wpplFn, options).run();
+    return new SMC(s, k, a, wpplFn, options).run();
   }
 
   return {
