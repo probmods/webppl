@@ -4,9 +4,12 @@ var _ = require('underscore');
 var assert = require('assert');
 var isErp = require('./erp').isErp;
 
-var Trace = function() {
-  this.choices = [];
-  this.addressMap = {}; // Maps addresses => choices.
+var Trace = function(skipChoices) {
+  this.skipChoices = skipChoices;
+  if (!this.skipChoices) {
+    this.choices = [];
+    this.addressMap = {}; // Maps addresses => choices.
+  }
   this.length = 0;
   this.score = 0;
 };
@@ -28,6 +31,10 @@ Trace.prototype.saveContinuation = function(continuation, store) {
 Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
+
+  if (this.skipChoices) {
+    return;
+  }
 
   // assert(isErp(erp));
   // assert(_.isUndefined(params) || _.isArray(params));
@@ -81,9 +88,11 @@ Trace.prototype.upto = function(i) {
 };
 
 Trace.prototype.copy = function() {
-  var t = new Trace();
-  t.choices = this.choices.slice(0);
-  t.addressMap = _.clone(this.addressMap);
+  var t = new Trace(this.skipChoices);
+  if (!this.skipChoices) {
+    t.choices = this.choices.slice(0);
+    t.addressMap = _.clone(this.addressMap);
+  }
   t.length = this.length;
   t.score = this.score;
   t.k = this.k;
@@ -94,11 +103,13 @@ Trace.prototype.copy = function() {
 };
 
 Trace.prototype.checkConsistency = function() {
-  assert(this.choices.length === this.length);
-  assert(_.keys(this.addressMap).length === this.length);
-  this.choices.forEach(function(choice) {
-    assert(_.has(this.addressMap, choice.address));
-  }, this);
+  if (!this.skipChoices) {
+    assert(this.choices.length === this.length);
+    assert(_.keys(this.addressMap).length === this.length);
+    this.choices.forEach(function(choice) {
+      assert(_.has(this.addressMap, choice.address));
+    }, this);
+  }
   assert(this.value === undefined || (this.k === undefined && this.store === undefined));
 };
 

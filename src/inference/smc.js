@@ -32,7 +32,7 @@ module.exports = function(env) {
 
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
-      var trace = new (this.rejuvSteps === 0 ? TraceLite : Trace)();
+      var trace = new Trace(this.rejuvSteps === 0);
       trace.saveContinuation(exitK, _.clone(s));
       this.particles.push(new Particle(trace));
     }
@@ -286,36 +286,6 @@ module.exports = function(env) {
     p.logWeight = this.logWeight;
     p.proposalBoundary = this.proposalBoundary;
     return p;
-  };
-
-  // Minimal Trace-like structure used to avoid unnecessary overhead in SMC
-  // without rejuvenation.
-
-  var TraceLite = function() {};
-
-  TraceLite.prototype.saveContinuation = function(continuation, store) {
-    this.k = continuation;
-    this.store = store;
-  };
-
-  TraceLite.prototype.addChoice = function() {};
-
-  TraceLite.prototype.complete = function(value) {
-    assert.strictEqual(this.value, undefined);
-    this.value = value;
-    this.k = this.store = undefined;
-  };
-
-  TraceLite.prototype.isComplete = function() {
-    return this.k === undefined && this.store === undefined;
-  };
-
-  TraceLite.prototype.copy = function() {
-    var t = new TraceLite();
-    t.k = this.k;
-    t.store = _.clone(this.store);
-    t.value = this.value;
-    return t;
   };
 
   function MarginalSMC(s, k, a, wpplFn, options) {
