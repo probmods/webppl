@@ -105,21 +105,22 @@ ERP.prototype.print = function() {
   var json = this.toJSON();
   _.zip(json.probs, json.support)
     .sort(function(a, b) { return b[0] - a[0]; })
-    .forEach(function(val) {console.log('    ' + JSON.stringify(val[1]) + ' : ' + val[0]);})
+    .forEach(function(val) {console.log('    ' + util.serialize(val[1]) + ' : ' + val[0]);})
+};
+
+var serializeERP = function(erp) {
+  return util.serialize(erp);
 };
 
 // ERP deserializers
-var erpFromJSON = function(obj) {
+var deserializeERP = function(JSONString) {
+  var obj = util.deserialize(JSONString);
   if (!obj.probs || !obj.support) {
-    throw 'Not an ERP JSON object!'
+    throw 'Cannot deserialize a non-ERP JSON object: ' + JSONString;
   }
   return makeCategoricalERP(obj.probs,
                             obj.support,
                             _.omit(obj, 'probs', 'support'));
-}
-
-var erpFromString = function(s) {
-  return erpFromJSON(JSON.parse(s));
 };
 
 var uniformERP = new ERP(
@@ -634,8 +635,8 @@ function isErpWithSupport(x) {
 
 module.exports = {
   ERP: ERP,
-  erpFromJSON: erpFromJSON,
-  erpFromString: erpFromString,
+  serializeERP: serializeERP,
+  deserializeERP: deserializeERP,
   bernoulliERP: bernoulliERP,
   betaERP: betaERP,
   binomialERP: binomialERP,

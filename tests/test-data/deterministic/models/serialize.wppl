@@ -1,3 +1,3 @@
-var erp1 = categoricalERP([0.4, 0.6], ['A', 'B']);
-var erp2 = erpFromString(JSON.stringify(erp1));
-JSON.stringify(erp1) === JSON.stringify(erp2);
+var erp1 = categoricalERP([0.4, 0.6], [-Infinity, 'B']);
+var erp2 = deserializeERP(serializeERP(erp1));
+serializeERP(erp1) === serializeERP(erp2);

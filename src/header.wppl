@@ -68,12 +68,12 @@ var multiplexERP = function(vs, erps) {
   return _top.makeMultiplexERP(vs, erps);
 };
 
-var erpFromJSON = function(obj) {
-  return _top.erpFromJSON(obj);
+var serializeERP = function(erp) {
+  return _top.serializeERP(erp);
 };
 
-var erpFromString = function(v) {
-  return _top.erpFromString(v);
+var deserializeERP = function(JSONString) {
+  return _top.deserializeERP(JSONString);
 };
 
 // XRPs
