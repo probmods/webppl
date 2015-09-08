@@ -132,8 +132,11 @@ function run(code, k, verbose) {
   }
 }
 
-// wrap run so that it can be used in ./webppl and in the browser
-global.webpplEval = function(s, k, a, code) { return run(code, k); };
+// Make webppl eval available within webppl
+global.webpplEval = function(s, k, a, code) {  
+  var compiledCode = compile(code, false);
+  return eval.call(global, compiledCode)(s, k, a);
+};
 
 module.exports = {
   requireHeader: requireHeader,
