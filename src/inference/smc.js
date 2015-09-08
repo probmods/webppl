@@ -181,7 +181,7 @@ module.exports = function(env) {
       var p = _.partition(resampledParticles, function(p) { return p.trace.isComplete(); });
       this.completeParticles = p[0], this.particles = p[1];
 
-      this.debugLog('Active: ' + p[0].length + ' | Complete: ' + p[1].length + '\n');
+      this.debugLog('After resampling: active = ' + p[1].length + ', complete = ' + p[0].length + '\n');
 
       if (this.particles.length > 0) {
         // We still have active particles, wrap-around:
