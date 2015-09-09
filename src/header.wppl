@@ -68,6 +68,14 @@ var multiplexERP = function(vs, erps) {
   return _top.makeMultiplexERP(vs, erps);
 };
 
+var serializeERP = function(erp) {
+  return _top.serializeERP(erp);
+};
+
+var deserializeERP = function(JSONString) {
+  return _top.deserializeERP(JSONString);
+};
+
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {

@@ -68,7 +68,60 @@ ERP.prototype.entropy = function() {
   }
   this.entropy = function() {return e};
   return e;
-}
+};
+
+ERP.prototype.parameterized = true;
+
+ERP.prototype.withParameters = function(params) {
+  var erp = new ERP();
+  _.forEach(this, function(v, k) {erp[k] = v;});
+  var sampler = this.sample;
+  erp.sample = function(ps) {return sampler(params)};
+  var scorer = this.score;
+  erp.score = function(ps, val) {return scorer(params, val)};
+  if (this.support) {
+    var support = this.support;
+    erp.support = function(ps) {return support(params)};
+  }
+  erp.parameterized = false;
+  return erp;
+};
+
+// ERP serializer (allows JSON.stringify)
+ERP.prototype.toJSON = function() {
+  if (this.parameterized || this.support === undefined) {
+    throw 'Cannot serialize ERP: ' + this.sample.name;
+  } else {
+    var support = this.support([]);
+    var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
+    var erpJSON = {probs: probs, support: support};
+    this.toJSON = function() {return erpJSON};
+    return erpJSON;
+  }
+};
+
+ERP.prototype.print = function() {
+  console.log('ERP:');
+  var json = this.toJSON();
+  _.zip(json.probs, json.support)
+    .sort(function(a, b) { return b[0] - a[0]; })
+    .forEach(function(val) {console.log('    ' + util.serialize(val[1]) + ' : ' + val[0]);})
+};
+
+var serializeERP = function(erp) {
+  return util.serialize(erp);
+};
+
+// ERP deserializers
+var deserializeERP = function(JSONString) {
+  var obj = util.deserialize(JSONString);
+  if (!obj.probs || !obj.support) {
+    throw 'Cannot deserialize a non-ERP JSON object: ' + JSONString;
+  }
+  return makeCategoricalERP(obj.probs,
+                            obj.support,
+                            _.omit(obj, 'probs', 'support'));
+};
 
 var uniformERP = new ERP(
     function uniformSample(params) {
@@ -169,7 +222,10 @@ function multivariateGaussianScore(params, x) {
   return -0.5 * (coeffs + exponents);
 }
 
-var multivariateGaussianERP = new ERP(multivariateGaussianSample, multivariateGaussianScore);
+var multivariateGaussianERP = new ERP(
+    multivariateGaussianSample,
+    multivariateGaussianScore
+    );
 
 var discreteERP = new ERP(
     function discreteSample(params) {
@@ -500,6 +556,7 @@ function makeMarginalERP(marginal) {
         return lk ? Math.log(lk.prob) : -Infinity;
       },
       {
+        parameterized: false,
         support: function(params) {
           return supp;
         }
@@ -515,6 +572,7 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
   var auxParams = {};
   vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
+  auxParams['parameterized'] = false;
   auxParams['support'] = function categoricalSupport(params) {return vs};
   if (extraParams) {
     _.each(extraParams, function(v, k) {auxParams[k] = v;})
@@ -577,6 +635,8 @@ function isErpWithSupport(x) {
 
 module.exports = {
   ERP: ERP,
+  serializeERP: serializeERP,
+  deserializeERP: deserializeERP,
   bernoulliERP: bernoulliERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
