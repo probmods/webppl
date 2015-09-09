@@ -19,6 +19,7 @@ module.exports = function(env) {
 
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
+    this.performRejuv = this.rejuvSteps > 0;
     this.numParticles = options.particles;
     this.debug = options.debug;
 
@@ -32,7 +33,7 @@ module.exports = function(env) {
 
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
-      var trace = new (this.rejuvSteps === 0 ? TraceLite : Trace)();
+      var trace = new Trace();
       trace.saveContinuation(exitK, _.clone(s));
       this.particles.push(new Particle(trace));
     }
@@ -55,7 +56,10 @@ module.exports = function(env) {
     var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
-    particle.trace.addChoice(erp, params, val, a, s, k);
+    if (this.performRejuv) {
+      // Optimization: Choices not required in this case.
+      particle.trace.addChoice(erp, params, val, a, s, k);
+    }
     particle.logWeight += choiceScore - importanceScore;
     return k(s, val);
   };
@@ -138,7 +142,7 @@ module.exports = function(env) {
   }
 
   SMC.prototype.rejuvenateParticles = function(cont, exitAddress) {
-    if (this.rejuvSteps === 0) {
+    if (!this.performRejuv) {
       return cont();
     }
     assert(!this.particlesAreWeighted(), 'Cannot rejuvenate weighted particles.');
@@ -236,7 +240,7 @@ module.exports = function(env) {
             // ParticleFilterAsMH.
             throw 'Particle score is -Infinity';
           }
-          if (this.rejuvSteps === 0) {
+          if (!this.performRejuv) {
             hist.add(particle.trace.value);
             return k();
           } else {
@@ -286,36 +290,6 @@ module.exports = function(env) {
     p.logWeight = this.logWeight;
     p.proposalBoundary = this.proposalBoundary;
     return p;
-  };
-
-  // Minimal Trace-like structure used to avoid unnecessary overhead in SMC
-  // without rejuvenation.
-
-  var TraceLite = function() {};
-
-  TraceLite.prototype.saveContinuation = function(continuation, store) {
-    this.k = continuation;
-    this.store = store;
-  };
-
-  TraceLite.prototype.addChoice = function() {};
-
-  TraceLite.prototype.complete = function(value) {
-    assert.strictEqual(this.value, undefined);
-    this.value = value;
-    this.k = this.store = undefined;
-  };
-
-  TraceLite.prototype.isComplete = function() {
-    return this.k === undefined && this.store === undefined;
-  };
-
-  TraceLite.prototype.copy = function() {
-    var t = new TraceLite();
-    t.k = this.k;
-    t.store = _.clone(this.store);
-    t.value = this.value;
-    return t;
   };
 
   function MarginalSMC(s, k, a, wpplFn, options) {
