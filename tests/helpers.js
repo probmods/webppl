@@ -23,7 +23,7 @@ var loadExpected = function(testDataDir, modelName) {
 
 var testEqual = function(test, actual, expected, name) {
   var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(actual === expected, msg);
+  test.ok(_.isEqual(actual, expected), msg);
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {
