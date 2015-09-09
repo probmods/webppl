@@ -123,8 +123,20 @@ function compile(programCode, verbose) {
 
 function run(code, k, verbose) {
   var compiledCode = compile(code, verbose);
+  if (verbose && console.time) {
+    console.time('run');
+  }
   eval.call(global, compiledCode)({}, k, '');
+  if (verbose && console.timeEnd) {
+    console.timeEnd('run');
+  }
 }
+
+// Make webppl eval available within webppl
+global.webpplEval = function(s, k, a, code) {
+  var compiledCode = compile(code, false);
+  return eval.call(global, compiledCode)(s, k, a);
+};
 
 module.exports = {
   requireHeader: requireHeader,

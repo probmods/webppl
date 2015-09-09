@@ -159,6 +159,40 @@ function std(hist) {
   return Math.sqrt(variance);
 }
 
+function getOpt(optObject, option, defaultValue) {
+  return (optObject && optObject[option] !== undefined) ?
+      optObject[option] :
+      defaultValue;
+}
+
+function InfToJSON(k, v) {
+  if (v === Infinity) {
+    return 'Infinity';
+  } else if (v === -Infinity) {
+    return '-Infinity';
+  } else {
+    return v;
+  }
+}
+
+function InfFromJSON(k, v) {
+  if (v === 'Infinity') {
+    return Infinity;
+  } else if (v === '-Infinity') {
+    return -Infinity;
+  } else {
+    return v;
+  }
+}
+
+function serialize(o) {
+  return JSON.stringify(o, InfToJSON);
+}
+
+function deserialize(o) {
+  return JSON.parse(o, InfFromJSON);
+}
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -176,6 +210,9 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   std: std,
+  getOpt: getOpt,
   sum: sum,
-  asArray: asArray
+  asArray: asArray,
+  serialize: serialize,
+  deserialize: deserialize
 };

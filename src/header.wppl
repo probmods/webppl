@@ -57,15 +57,23 @@ var gamma = function(shape, scale) {
 };
 
 var deltaERP = function(v) {
-  return _top.makeDeltaERP(v);
+  return _top.makeCategoricalERP([1.0], [v]);
 };
 
-var categoricalERP = function(ps, vs) {
-  return _top.makeCategoricalERP(ps, vs);
+var categoricalERP = function(ps, vs, extraParams) {
+  return _top.makeCategoricalERP(ps, vs, extraParams);
 };
 
 var multiplexERP = function(vs, erps) {
   return _top.makeMultiplexERP(vs, erps);
+};
+
+var serializeERP = function(erp) {
+  return _top.serializeERP(erp);
+};
+
+var deserializeERP = function(JSONString) {
+  return _top.deserializeERP(JSONString);
 };
 
 // XRPs

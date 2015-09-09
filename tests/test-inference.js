@@ -6,8 +6,10 @@ var assert = require('assert');
 var util = require('../src/util.js');
 var webppl = require('../src/main.js');
 var erp = require('../src/erp.js');
+var helpers = require('./helpers.js');
 
-var testDataDir = './tests/test-data/';
+
+var testDataDir = './tests/test-data/stochastic/';
 
 var tests = [
   {
@@ -41,7 +43,9 @@ var tests = [
       store: { hist: { tol: 0 } },
       geometric: true,
       cache: true,
-      withCaching: true
+      stochasticCache: true,
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -53,10 +57,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -68,10 +74,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -83,10 +91,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -98,9 +108,11 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -114,6 +126,7 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [30, 30] },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
@@ -121,7 +134,8 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 10] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -134,13 +148,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [1, 100] },
       geometric: true,
       varFactors1: { args: [5000, 0] },
       varFactors2: true,
       importance: true,
       importance2: true,
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -154,13 +170,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100, 0] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
       varFactors1: { args: [5000, 0] },
       varFactors2: true,
       importance: true,
       importance2: { args: [3000, 0] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
       // varFactors1: { args: [5000, 0] },
       // varFactors2: true
     }
@@ -190,13 +208,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
       varFactors1: { args: [5000] },
       varFactors2: true,
       importance: true,
       importance2: { args: [3000] },
-      withCaching: true
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -207,12 +227,15 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       upweight: { args: [1000, 10] },
       incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
-      varFactors2: true
+      varFactors2: true,
+      withCaching: true,
+      optionalErpParams: true
     }
   },
   {
@@ -224,10 +247,12 @@ var tests = [
     },
     models: {
       simple: true,
+      cache: true,
       incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
-      varFactors2: true
+      varFactors2: true,
+      optionalErpParams: true
     }
   }
 ];
@@ -236,23 +261,18 @@ var wpplRunInference = function(modelName, testDef) {
   var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
-    loadModel(modelName),
+    helpers.loadModel(testDataDir, modelName),
     inferenceFunc, '(model,', inferenceArgs, ');'
   ].join('');
   var erp;
-  try {
-    webppl.run(progText, function(s, val) { erp = val; });
-  } catch (e) {
-    console.log('Exception:' + e);
-    throw e;
-  }
+  webppl.run(progText, function(s, val) { erp = val; });
   return erp;
 };
 
 var performTest = function(modelName, testDef, test) {
   var erp = wpplRunInference(modelName, testDef);
   var hist = getHist(erp);
-  var expectedResults = loadExpected(modelName);
+  var expectedResults = helpers.loadExpected(testDataDir, modelName);
 
   _.each(expectedResults, function(expected, testName) {
     // The tests to run for a particular model are determined by the contents
@@ -274,37 +294,26 @@ var getInferenceArgs = function(testDef, model) {
   return JSON.stringify(args).slice(1, -1);
 };
 
-var testWithinTolerance = function(test, actual, expected, tolerance, name) {
-  var absDiff = Math.abs(actual - expected);
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(absDiff < tolerance, msg);
-};
-
-var testEqual = function(test, actual, expected, name) {
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(actual === expected, msg);
-};
-
 var testFunctions = {
   hist: function(test, erp, hist, expected, args) {
     test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
   },
   mean: function(test, erp, hist, expected, args) {
-    testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
   },
   std: function(test, erp, hist, expected, args) {
-    testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
   },
   logZ: function(test, erp, hist, expected, args) {
     if (args.check) {
-      testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
   MAP: function(test, erp, hist, expected, args) {
     if (args.check) {
       var map = erp.MAP();
-      testEqual(test, map.val, expected.val, 'MAP value');
-      testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
+      helpers.testEqual(test, map.val, expected.val, 'MAP value');
+      helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
   }
 };
@@ -317,23 +326,8 @@ var getHist = function(erp) {
   return util.normalizeHist(hist);
 };
 
-var getModelNames = function() {
-  var filenames = fs.readdirSync(testDataDir + 'models/');
-  return _.map(filenames, function(fn) { return fn.split('.')[0]; });
-};
-
-var loadModel = function(modelName) {
-  var filename = testDataDir + 'models/' + modelName + '.wppl';
-  return fs.readFileSync(filename, 'utf-8');
-};
-
-var loadExpected = function(modelName) {
-  var filename = testDataDir + 'expected/' + modelName + '.json';
-  return JSON.parse(fs.readFileSync(filename, 'utf-8'));
-};
-
 var generateTestCases = function() {
-  var modelNames = getModelNames();
+  var modelNames = helpers.getModelNames(testDataDir);
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
     _.each(modelNames, function(modelName) {
