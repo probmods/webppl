@@ -10,7 +10,7 @@ var Histogram = require('../aggregation').Histogram;
 module.exports = function(env) {
 
   function SMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0 });
+    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, allowOutOfSyncRejuv: false });
 
     if (!options.rejuvKernel) {
       // Use MHKernel in permissive mode if doing ParticleFilterAsMH.
@@ -20,6 +20,7 @@ module.exports = function(env) {
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
     this.performRejuv = this.rejuvSteps > 0;
+    this.allowOutOfSyncRejuv = options.allowOutOfSyncRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
 
@@ -146,6 +147,9 @@ module.exports = function(env) {
       return cont();
     }
     assert(!this.particlesAreWeighted(), 'Cannot rejuvenate weighted particles.');
+    if (!this.allowOutOfSyncRejuv && this.particlesAreOutOfSync()) {
+      throw 'Cannot rejuvenate out of sync particles.';
+    }
     return util.cpsForEach(
         function(p, i, ps, next) {
           return this.rejuvenateParticle(next, i);
@@ -169,6 +173,11 @@ module.exports = function(env) {
   SMC.prototype.particlesAreWeighted = function() {
     var lw = _.first(this.particles).logWeight;
     return _.any(this.particles, function(p) { return p.logWeight !== lw; });
+  };
+
+  SMC.prototype.particlesAreOutOfSync = function() {
+    var a = _.first(this.particles).trace.address;
+    return _.any(this.particles, function(p) { return p.trace.address !== a; });
   };
 
   SMC.prototype.sync = function() {
