@@ -292,12 +292,10 @@ module.exports = function(env) {
     return p;
   };
 
-  function MarginalSMC(s, k, a, wpplFn, options) {
-    return new SMC(s, k, a, wpplFn, options).run();
-  }
-
   return {
-    MarginalSMC: MarginalSMC,
+    SMC: function(s, k, a, wpplFn, options) {
+      return new SMC(s, k, a, wpplFn, options).run();
+    },
     withImportanceDist: withImportanceDist,
     setProposalBoundary: setProposalBoundary
   };

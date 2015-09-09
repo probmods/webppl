@@ -483,13 +483,13 @@ var condition = function(bool) {
 
 var MH = function(wpplFn, iterations, burn) {
   var burn = (burn !== undefined) ? burn : Math.min(500, Math.floor(iterations / 2));
-  return MarginalMCMC(wpplFn, { samples: iterations - burn, burn: burn });
+  return MCMC(wpplFn, { samples: iterations - burn, burn: burn });
 };
 
 var ParticleFilter = function(wpplFn, particles) {
-  return MarginalSMC(wpplFn, { particles: particles, rejuvSteps: 0 });
+  return SMC(wpplFn, { particles: particles, rejuvSteps: 0 });
 };
 
 var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
-  return MarginalSMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
+  return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };

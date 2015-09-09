@@ -135,7 +135,7 @@ var tests = [
   },
   {
     name: 'ParticleFilter',
-    func: 'MarginalSMC',
+    func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -159,7 +159,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuv',
-    func: 'MarginalSMC',
+    func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -183,7 +183,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterAsMH',
-    func: 'MarginalSMC',
+    func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
@@ -203,7 +203,7 @@ var tests = [
   },
   {
     name: 'MH',
-    func: 'MarginalMCMC',
+    func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },

@@ -8,7 +8,7 @@ var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
-  function MarginalMCMC(s, k, a, wpplFn, options) {
+  function MCMC(s, k, a, wpplFn, options) {
     var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 0, burn: 0 });
 
     // TODO: Implement via hooks/callbacks.
@@ -105,7 +105,7 @@ module.exports = function(env) {
   }
 
   return {
-    MarginalMCMC: MarginalMCMC,
+    MCMC: MCMC,
     tapKernel: tapKernel,
     repeatKernel: repeatKernel,
     sequenceKernels: sequenceKernels
