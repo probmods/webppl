@@ -42,7 +42,7 @@ module.exports = function(env) {
     }
     this.trace.score += score;
     if (this.exitAddress === a) {
-      this.trace.saveContinuation(k, s);
+      this.trace.saveContinuation(s, k, a);
       return env.exit(s);
     }
     return k(s);

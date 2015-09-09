@@ -19,9 +19,10 @@ Trace.prototype.findChoice = function(address) {
   return this.addressMap[address];
 };
 
-Trace.prototype.saveContinuation = function(continuation, store) {
-  this.k = continuation;
-  this.store = store;
+Trace.prototype.saveContinuation = function(s, k, a) {
+  this.store = s;
+  this.k = k;
+  this.address = a;
   //this.checkConsistency();
 };
 
@@ -59,11 +60,11 @@ Trace.prototype.complete = function(value) {
   assert.strictEqual(this.value, undefined);
   this.value = value;
   // Ensure any attempt to continue a completed trace fails in an obvious way.
-  this.k = this.store = undefined;
+  this.k = this.store = this.address = undefined;
 };
 
 Trace.prototype.isComplete = function() {
-  return this.k === undefined && this.store === undefined;
+  return this.k === undefined && this.store === undefined && this.address === undefined;
 };
 
 Trace.prototype.upto = function(i) {
@@ -88,6 +89,7 @@ Trace.prototype.copy = function() {
   t.score = this.score;
   t.k = this.k;
   t.store = _.clone(this.store);
+  t.address = this.address;
   t.value = this.value;
   //t.checkConsistency();
   return t;
@@ -99,7 +101,7 @@ Trace.prototype.checkConsistency = function() {
   this.choices.forEach(function(choice) {
     assert(_.has(this.addressMap, choice.address));
   }, this);
-  assert(this.value === undefined || (this.k === undefined && this.store === undefined));
+  assert(this.value === undefined || (this.k === undefined && this.store === undefined && this.address === undefined));
 };
 
 module.exports = Trace;

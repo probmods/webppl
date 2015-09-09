@@ -34,7 +34,7 @@ module.exports = function(env) {
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
       var trace = new Trace();
-      trace.saveContinuation(exitK, _.clone(s));
+      trace.saveContinuation(_.clone(s), exitK, a);
       this.particles.push(new Particle(trace));
     }
 
@@ -67,11 +67,11 @@ module.exports = function(env) {
   SMC.prototype.factor = function(s, k, a, score) {
     // Update particle.
     var particle = this.currentParticle();
-    particle.trace.saveContinuation(k, s);
+    particle.trace.saveContinuation(s, k, a);
     particle.trace.score += score;
     particle.logWeight += score;
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
-    return this.sync(a);
+    return this.sync();
   };
 
   SMC.prototype.atLastParticle = function() {
@@ -141,21 +141,23 @@ module.exports = function(env) {
     return allParticles;
   }
 
-  SMC.prototype.rejuvenateParticles = function(cont, exitAddress) {
+  SMC.prototype.rejuvenateParticles = function(cont) {
     if (!this.performRejuv) {
       return cont();
     }
     assert(!this.particlesAreWeighted(), 'Cannot rejuvenate weighted particles.');
     return util.cpsForEach(
         function(p, i, ps, next) {
-          return this.rejuvenateParticle(next, i, exitAddress);
+          return this.rejuvenateParticle(next, i);
         }.bind(this),
         cont,
         this.particles
     );
   };
 
-  SMC.prototype.rejuvenateParticle = function(cont, i, exitAddress) {
+  SMC.prototype.rejuvenateParticle = function(cont, i) {
+    var exitAddress = this.particles[i].trace.address;
+    assert.notStrictEqual(exitAddress, undefined);
     var kernel = _.partial(this.rejuvKernel, _, _, exitAddress, this.particles[i].proposalBoundary);
     var chain = repeatKernel(this.rejuvSteps, kernel);
     return chain(function(trace) {
@@ -169,7 +171,7 @@ module.exports = function(env) {
     return _.any(this.particles, function(p) { return p.logWeight !== lw; });
   };
 
-  SMC.prototype.sync = function(address) {
+  SMC.prototype.sync = function() {
     // Called at sync points factor and exit.
     // Either advance the next active particle, or if all particles have
     // advanced, perform re-sampling and rejuvenation.
@@ -177,7 +179,7 @@ module.exports = function(env) {
       this.advanceParticleIndex();
       return this.runCurrentParticle();
     } else {
-      this.debugLog('***** SYNC at ' + (address || 'EXIT') + ' *****');
+      this.debugLog('***** SYNC *****');
 
       var resampledParticles = resampleParticles(this.allParticles());
       assert.strictEqual(resampledParticles.length, this.numParticles);
@@ -190,22 +192,7 @@ module.exports = function(env) {
       if (this.particles.length > 0) {
         // We still have active particles, wrap-around:
         this.particleIndex = 0;
-
-        // TODO: Rejuvenation particles at factors when sync is called from exit.
-
-        // Since some particles might be at factor statements and some at the
-        // exit. If we also saved the address when we save the continuation we
-        // can use this to rejuvenate the particles at factor statements. (And
-        // do so using their particular address, rather than the address of the
-        // factor statement reached by the last particle.)
-
-        if (address) {
-          // Rejuvenate if called from factor statement.
-          return this.rejuvenateParticles(this.runCurrentParticle.bind(this), address);
-        } else {
-          return this.runCurrentParticle();
-        }
-
+        return this.rejuvenateParticles(this.runCurrentParticle.bind(this));
       } else {
         // All particles complete.
         return this.finish();
