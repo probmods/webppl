@@ -83,7 +83,7 @@ ERP.prototype.withParameters = function(params) {
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
   if (this.parameterized || this.support === undefined) {
-    throw 'Cannot serialize ERP: ' + this.sample.name;
+    throw 'Cannot serialize ERP.';
   } else {
     var support = this.support([]);
     var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
