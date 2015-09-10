@@ -29,6 +29,7 @@ var assert = require('assert');
 var LOG_2PI = 1.8378770664093453;
 
 function ERP(obj) {
+  assert(obj.sample && obj.score, 'ERP must implement sample and score.');
   _.extendOwn(this, obj);
 }
 
