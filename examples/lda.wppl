@@ -22,17 +22,6 @@ var ones = function(n) {
   return repeat(n, function() {return 1.0;});
 }
 
-var mapObject = function(fn, obj) {
-  return _.object(
-      map(
-      function(kv) {
-        return [kv[0], fn(kv[0], kv[1])]
-      },
-      _.pairs(obj))
-  );
-}
-
-
 // Model
 
 var makeWordDist = function() {
