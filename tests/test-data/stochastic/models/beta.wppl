@@ -1,0 +1,3 @@
+var model = function() {
+  return beta(1, 1);
+};
