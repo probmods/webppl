@@ -192,6 +192,34 @@ function getOpt(optObject, option, defaultValue) {
       defaultValue;
 }
 
+function InfToJSON(k, v) {
+  if (v === Infinity) {
+    return 'Infinity';
+  } else if (v === -Infinity) {
+    return '-Infinity';
+  } else {
+    return v;
+  }
+}
+
+function InfFromJSON(k, v) {
+  if (v === 'Infinity') {
+    return Infinity;
+  } else if (v === '-Infinity') {
+    return -Infinity;
+  } else {
+    return v;
+  }
+}
+
+function serialize(o) {
+  return JSON.stringify(o, InfToJSON);
+}
+
+function deserialize(o) {
+  return JSON.parse(o, InfFromJSON);
+}
+
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
@@ -213,5 +241,7 @@ module.exports = {
   std: std,
   getOpt: getOpt,
   sum: sum,
-  asArray: asArray
+  asArray: asArray,
+  serialize: serialize,
+  deserialize: deserialize
 };

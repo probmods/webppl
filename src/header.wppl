@@ -68,6 +68,14 @@ var multiplexERP = function(vs, erps) {
   return _top.makeMultiplexERP(vs, erps);
 };
 
+var serializeERP = function(erp) {
+  return _top.serializeERP(erp);
+};
+
+var deserializeERP = function(JSONString) {
+  return _top.deserializeERP(JSONString);
+};
+
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {
@@ -283,6 +291,16 @@ var mapPairsNC = function(f, l) {
     return a === b ? undefined : f(a, b);
   }, l, l);
   return remove(undefined, res);
+};
+
+var mapObject = function(fn, obj) {
+  return _.object(
+      map(
+      function(kv) {
+        return [kv[0], fn(kv[0], kv[1])]
+      },
+      _.pairs(obj))
+  );
 };
 
 var reduce = function(fn, init, ar) {
