@@ -171,11 +171,13 @@ module.exports = function(env) {
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
   }
 
+  function enuDefault(s, cc, a, wpplFn, maxExecutions) {
+    var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
+    return enu(s, cc, a, wpplFn, maxExecutions);
+  }
+
   return {
-    Enumerate: function(s, cc, a, wpplFn, maxExecutions) {
-      var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
-      return enu(s, cc, a, wpplFn, maxExecutions);
-    },
+    Enumerate: enuDefault,
     EnumerateBreadthFirst: enuFifo,
     EnumerateDepthFirst: enuFilo,
     EnumerateLikelyFirst: enuPriority
