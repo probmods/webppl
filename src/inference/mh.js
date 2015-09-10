@@ -24,35 +24,37 @@ module.exports = function(env) {
   }
 
   function buildProposer(baseERP, getProposalParams) {
-    return new erp.ERP(
-        function sample(params) {
-          var baseParams = params[0];
-          var prevVal = params[1];
-          var proposalParams = getProposalParams(baseParams, prevVal);
-          return baseERP.sample(proposalParams);
-        },
-        function score(params, val) {
-          var baseParams = params[0];
-          var prevVal = params[1];
-          var proposalParams = getProposalParams(baseParams, prevVal);
-          return baseERP.score(proposalParams, val);
-        }
-    );
+    return new erp.ERP({
+      sample: function(params) {
+        var baseParams = params[0];
+        var prevVal = params[1];
+        var proposalParams = getProposalParams(baseParams, prevVal);
+        return baseERP.sample(proposalParams);
+      },
+      score: function(params, val) {
+        var baseParams = params[0];
+        var prevVal = params[1];
+        var proposalParams = getProposalParams(baseParams, prevVal);
+        return baseERP.score(proposalParams, val);
+      }
+    });
   }
 
   var gaussianProposer = buildProposer(erp.gaussianERP, gaussianProposalParams);
 
   var dirichletProposer = buildProposer(erp.dirichletERP, dirichletProposalParams);
 
-  var gaussianDriftERP = new erp.ERP(
-      erp.gaussianERP.sample,
-      erp.gaussianERP.score,
-      {proposer: gaussianProposer});
+  var gaussianDriftERP = new erp.ERP({
+    sample: erp.gaussianERP.sample,
+    score: erp.gaussianERP.score,
+    proposer: gaussianProposer
+  });
 
-  var dirichletDriftERP = new erp.ERP(
-      erp.dirichletERP.sample,
-      erp.dirichletERP.score,
-      {proposer: dirichletProposer});
+  var dirichletDriftERP = new erp.ERP({
+    sample: erp.dirichletERP.sample,
+    score: erp.dirichletERP.score,
+    proposer: dirichletProposer
+  });
 
   function findChoice(trace, name) {
     if (trace === undefined) {

@@ -27,7 +27,11 @@ var tests = [
       geometric: true,
       randomInteger: true,
       gaussian: { args: [10000] },
-      uniform: { args: [10000] }
+      uniform: { args: [10000] },
+      beta: true,
+      exponential: true,
+      binomial: true,
+      poisson: true
     }
   },
   {
