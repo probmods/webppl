@@ -33,7 +33,7 @@ var tests = [
   {
     name: 'Enumerate',
     settings: {
-      args: [10],
+      args: [],
       MAP: { check: true }
     },
     models: {
@@ -41,7 +41,7 @@ var tests = [
       upweight: true,
       incrementalBinomial: true,
       store: { hist: { tol: 0 } },
-      geometric: true,
+      geometric: { args: [10] },
       cache: true,
       stochasticCache: true,
       withCaching: true,
@@ -262,7 +262,7 @@ var wpplRunInference = function(modelName, testDef) {
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    inferenceFunc, '(model,', inferenceArgs, ');'
+    inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
   ].join('');
   var erp;
   webppl.run(progText, function(s, val) { erp = val; });
@@ -291,7 +291,7 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return JSON.stringify(args).slice(1, -1);
+  return args.map(JSON.stringify);
 };
 
 var testFunctions = {

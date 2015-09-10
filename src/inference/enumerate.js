@@ -172,7 +172,10 @@ module.exports = function(env) {
   }
 
   return {
-    Enumerate: enuPriority,
+    Enumerate: function(s, cc, a, wpplFn, maxExecutions) {
+      var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
+      return enu(s, cc, a, wpplFn, maxExecutions);
+    },
     EnumerateBreadthFirst: enuFifo,
     EnumerateDepthFirst: enuFilo,
     EnumerateLikelyFirst: enuPriority
