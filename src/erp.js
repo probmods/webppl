@@ -3,7 +3,7 @@
 //
 // Elementary Random Primitives (ERPs) are the representation of
 // distributions. They can have sampling, scoring, and support
-// functions. A single ERP need not hve all three, but some inference
+// functions. A single ERP need not have all three, but some inference
 // functions will complain if they're missing one.
 //
 // The main thing we can do with ERPs in WebPPL is feed them into the
