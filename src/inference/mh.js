@@ -36,7 +36,8 @@ module.exports = function(env) {
         var prevVal = params[1];
         var proposalParams = getProposalParams(baseParams, prevVal);
         return baseERP.score(proposalParams, val);
-      }
+      },
+      name: baseERP.name + 'Proposer'
     });
   }
 
@@ -47,13 +48,15 @@ module.exports = function(env) {
   var gaussianDriftERP = new erp.ERP({
     sample: erp.gaussianERP.sample,
     score: erp.gaussianERP.score,
-    proposer: gaussianProposer
+    proposer: gaussianProposer,
+    name: 'gaussianDrift'
   });
 
   var dirichletDriftERP = new erp.ERP({
     sample: erp.dirichletERP.sample,
     score: erp.dirichletERP.score,
-    proposer: dirichletProposer
+    proposer: dirichletProposer,
+    name: 'dirichletDrift'
   });
 
   function findChoice(trace, name) {
