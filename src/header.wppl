@@ -8,8 +8,8 @@ var randomInteger = function(n) {
   return sample(randomIntegerERP, [n]);
 };
 
-var discrete = function(n) {
-  return sample(discreteERP, [n]);
+var discrete = function(ps) {
+  return sample(discreteERP, [ps]);
 };
 
 var categorical = function(ps, vs) {
