@@ -36,8 +36,8 @@ var dirichlet = function(alpha) {
   return sample(dirichletERP, alpha);
 };
 
-var poisson = function(mu, k) {
-  return sample(poissonERP, [mu, k]);
+var poisson = function(mu) {
+  return sample(poissonERP, [mu]);
 };
 
 var binomial = function(p, n) {
