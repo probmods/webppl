@@ -67,8 +67,7 @@ ERP.prototype.entropy = function() {
 ERP.prototype.parameterized = true;
 
 ERP.prototype.withParameters = function(params) {
-  var erp = new ERP();
-  _.forEach(this, function(v, k) {erp[k] = v;});
+  var erp = new ERP(this);
   var sampler = this.sample;
   erp.sample = function(ps) {return sampler(params)};
   var scorer = this.score;
