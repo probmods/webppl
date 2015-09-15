@@ -80,21 +80,25 @@ ERP.prototype.withParameters = function(params) {
   return erp;
 };
 
+ERP.prototype.isSerializeable = function() {
+  return this.support && !this.parameterized;
+};
+
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
-  if (this.parameterized || this.support === undefined) {
-    throw 'Cannot serialize ' + this.name + ' ERP.';
-  } else {
+  if (this.isSerializeable()) {
     var support = this.support([]);
     var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
     var erpJSON = {probs: probs, support: support};
     this.toJSON = function() {return erpJSON};
     return erpJSON;
+  } else {
+    throw 'Cannot serialize ' + this.name + ' ERP.';
   }
 };
 
 ERP.prototype.print = function() {
-  if (this.support && !this.parameterized) {
+  if (this.isSerializeable()) {
     console.log('ERP:');
     var json = this.toJSON();
     _.zip(json.probs, json.support)
