@@ -27,7 +27,7 @@ var multivariateGaussian = function(mu, cov) {
 };
 
 var uniform = function(a, b) {
-  var params = arguments.length > 0 ? arguments: [0, 1];
+  var params = arguments.length > 0 ? arguments : [0, 1];
   return sample(uniformERP, params);
 };
 
