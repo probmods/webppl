@@ -94,11 +94,17 @@ ERP.prototype.toJSON = function() {
 };
 
 ERP.prototype.print = function() {
-  console.log('ERP:');
-  var json = this.toJSON();
-  _.zip(json.probs, json.support)
-    .sort(function(a, b) { return b[0] - a[0]; })
-    .forEach(function(val) {console.log('    ' + util.serialize(val[1]) + ' : ' + val[0]);})
+  if (this.support && !this.parameterized) {
+    console.log('ERP:');
+    var json = this.toJSON();
+    _.zip(json.probs, json.support)
+      .sort(function(a, b) { return b[0] - a[0]; })
+      .forEach(function(val) {
+          console.log('    ' + util.serialize(val[1]) + ' : ' + val[0]);
+        });
+  } else {
+    console.log('[ERP: ' + this.name + ']');
+  }
 };
 
 var serializeERP = function(erp) {
