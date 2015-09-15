@@ -42,18 +42,14 @@ function clause(type, destructor) {
 }
 
 function match(node, clauses, fail) {
-  function loop(i) {
-    if (i === clauses.length) {
-      return fail();
-    }
-    else {
-      return clauses[i](node, function() {
-        return loop(i + 1);
-      });
+  for (var i = 0; i < clauses.length; i++) {
+    var failed = false;
+    var value = clauses[i](node, function() {failed = true});
+    if (!failed) {
+      return value;
     }
   }
-
-  return loop(0);
+  return fail();
 }
 
 function failSafe(who, fail) {
