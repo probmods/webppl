@@ -67,8 +67,7 @@ ERP.prototype.entropy = function() {
 ERP.prototype.parameterized = true;
 
 ERP.prototype.withParameters = function(params) {
-  var erp = new ERP();
-  _.forEach(this, function(v, k) {erp[k] = v;});
+  var erp = new ERP(this);
   var sampler = this.sample;
   erp.sample = function(ps) {return sampler(params)};
   var scorer = this.score;
@@ -84,7 +83,7 @@ ERP.prototype.withParameters = function(params) {
 // ERP serializer (allows JSON.stringify)
 ERP.prototype.toJSON = function() {
   if (this.parameterized || this.support === undefined) {
-    throw 'Cannot serialize ERP.';
+    throw 'Cannot serialize ' + this.name + ' ERP.';
   } else {
     var support = this.support([]);
     var probs = support.map(function(s) {return Math.exp(this.score([], s));}, this);
@@ -543,7 +542,8 @@ function makeMarginalERP(marginal) {
     support: function(params) {
       return supp;
     },
-    parameterized: false
+    parameterized: false,
+    name: 'marginal'
   });
 
   dist.MAP = function() {return mapEst};
@@ -564,7 +564,8 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
       return lk ? Math.log(lk.prob) : -Infinity;
     },
     support: function(params) { return vs; },
-    parameterized: false
+    parameterized: false,
+    name: 'categorical'
   }, extraParams));
 };
 
@@ -597,7 +598,8 @@ var makeMultiplexERP = function(vs, erps) {
     support: function(params) {
       var erp = selectERP(params);
       return erp.support();
-    }
+    },
+    name: 'multiplex'
   });
 };
 
@@ -630,19 +632,19 @@ function buildProposer(baseERP, getProposalParams) {
   });
 }
 
-var gaussianProposer = buildProposer(gaussianERP, gaussianProposalParams);
-var dirichletProposer = buildProposer(dirichletERP, dirichletProposalParams);
+var gaussianProposerERP = buildProposer(gaussianERP, gaussianProposalParams);
+var dirichletProposerERP = buildProposer(dirichletERP, dirichletProposalParams);
 
 var gaussianDriftERP = new ERP({
   sample: gaussianERP.sample,
   score: gaussianERP.score,
-  proposer: gaussianProposer
+  proposer: gaussianProposerERP
 });
 
 var dirichletDriftERP = new ERP({
   sample: dirichletERP.sample,
   score: dirichletERP.score,
-  proposer: dirichletProposer
+  proposer: dirichletProposerERP
 });
 
 function isErp(x) {
@@ -653,7 +655,15 @@ function isErpWithSupport(x) {
   return isErp(x) && _.isFunction(x.support);
 }
 
-module.exports = {
+function setErpNames(exports) {
+  return _.each(exports, function(val, key) {
+    if (isErp(val)) {
+      val.name = key.replace(/ERP$/, '');
+    }
+  });
+}
+
+module.exports = setErpNames({
   ERP: ERP,
   serializeERP: serializeERP,
   deserializeERP: deserializeERP,
@@ -675,6 +685,8 @@ module.exports = {
   makeMultiplexERP: makeMultiplexERP,
   gaussianDriftERP: gaussianDriftERP,
   dirichletDriftERP: dirichletDriftERP,
+  gaussianProposerERP: gaussianProposerERP,
+  dirichetProposerERP: dirichletProposerERP,
   isErp: isErp,
   isErpWithSupport: isErpWithSupport
-};
+});
