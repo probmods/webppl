@@ -5,7 +5,7 @@ var analyze = require('../src/analysis/main').analyze;
 
 var Set = require('immutable').Set;
 
-// TODO: Update analyze to handle member expressions.
+// TODO: Update analyze to handle undefined.
 
 var tests = {
   constant: {
