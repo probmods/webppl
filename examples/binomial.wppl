@@ -1,7 +1,7 @@
 var binomial = function() {
-  var a = sample(bernoulliERP, [0.5])
-  var b = sample(bernoulliERP, [0.5])
-  var c = sample(bernoulliERP, [0.5])
+  var a = flip();
+  var b = flip();
+  var c = flip();
   return a + b + c;
 };
 

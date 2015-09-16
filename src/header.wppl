@@ -1,6 +1,7 @@
 // ERPs
 
 var flip = function(theta) {
+  var theta = (theta !== undefined) ? theta : 0.5;
   return sample(bernoulliERP, [theta]);
 };
 
@@ -17,6 +18,8 @@ var categorical = function(ps, vs) {
 }
 
 var gaussian = function(mu, sigma) {
+  var mu = (mu !== undefined) ? mu : 0;
+  var sigma = (sigma !== undefined) ? sigma : 1;
   return sample(gaussianERP, [mu, sigma]);
 };
 
@@ -25,6 +28,8 @@ var multivariateGaussian = function(mu, cov) {
 };
 
 var uniform = function(a, b) {
+  var a = (a !== undefined) ? a : 0;
+  var b = (b !== undefined) ? b : 1;
   return sample(uniformERP, [a, b]);
 };
 
