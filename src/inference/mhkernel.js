@@ -8,7 +8,10 @@ var util = require('../util');
 module.exports = function(env) {
 
   function MHKernel(k, oldTrace, options) {
-    var options = _.defaults(_.clone(options || {}), { proposalBoundary: 0, permissive: false });
+    var options = util.mergeDefaults(options, {
+      proposalBoundary: 0,
+      permissive: false
+    });
 
     if (!options.permissive) {
       assert.notStrictEqual(oldTrace.score, -Infinity);

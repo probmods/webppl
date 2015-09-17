@@ -10,7 +10,11 @@ var Histogram = require('../aggregation').Histogram;
 module.exports = function(env) {
 
   function SMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, allowOutOfSyncRejuv: false });
+    var options = util.mergeDefaults(options, {
+      particles: 100,
+      rejuvSteps: 0,
+      allowOutOfSyncRejuv: false
+    });
 
     if (!options.rejuvKernel) {
       options.rejuvKernel = function(k, oldTrace, opts) {

@@ -9,7 +9,12 @@ var aggregation = require('../aggregation');
 module.exports = function(env) {
 
   function MCMC(s, k, a, wpplFn, options) {
-    var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 0, burn: 0 });
+    var options = util.mergeDefaults(options, {
+      samples: 100,
+      kernel: MHKernel,
+      lag: 0,
+      burn: 0
+    });
 
     var log = function(s) {
       if (options.verbose) {

@@ -192,6 +192,10 @@ function getOpt(optObject, option, defaultValue) {
       defaultValue;
 }
 
+function mergeDefaults(options, defaults) {
+  return _.defaults(options ? _.clone(options) : {}, defaults);
+}
+
 function InfToJSON(k, v) {
   if (v === Infinity) {
     return 'Infinity';
@@ -240,6 +244,7 @@ module.exports = {
   runningInBrowser: runningInBrowser,
   std: std,
   getOpt: getOpt,
+  mergeDefaults: mergeDefaults,
   sum: sum,
   asArray: asArray,
   serialize: serialize,
