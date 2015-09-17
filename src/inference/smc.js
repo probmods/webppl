@@ -239,11 +239,6 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(particle, i, ps, k) {
           assert.strictEqual(particle.logWeight, logAvgW, 'Expected un-weighted particles.');
-          if (particle.trace.score === -Infinity) {
-            // Can happen with one particle as we don't resample to allow
-            // ParticleFilterAsMH.
-            throw 'Particle score is -Infinity';
-          }
           if (!this.performRejuv) {
             hist.add(particle.trace.value);
             return k();
