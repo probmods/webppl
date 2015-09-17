@@ -7,16 +7,18 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  function MHKernel(k, oldTrace, exitAddress, proposalBoundary, permissive) {
-    if (!permissive) {
+  function MHKernel(k, oldTrace, options) {
+    var options = _.defaults(_.clone(options || {}), { proposalBoundary: 0, permissive: false });
+
+    if (!options.permissive) {
       assert.notStrictEqual(oldTrace.score, -Infinity);
     }
 
     this.k = k;
     this.oldTrace = oldTrace;
     this.reused = {};
-    this.exitAddress = exitAddress;
-    this.proposalBoundary = proposalBoundary || 0;
+    this.exitAddress = options.exitAddress;
+    this.proposalBoundary = options.proposalBoundary;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -139,8 +141,8 @@ module.exports = function(env) {
   }
 
   return {
-    MHKernel: function(k, oldTrace, exitAddress, proposalBoundary, permissive) {
-      return new MHKernel(k, oldTrace, exitAddress, proposalBoundary, permissive).run();
+    MHKernel: function(k, oldTrace, options) {
+      return new MHKernel(k, oldTrace, options).run();
     }
   };
 

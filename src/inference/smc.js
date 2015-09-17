@@ -13,8 +13,11 @@ module.exports = function(env) {
     var options = _.defaults(_.clone(options), { particles: 100, rejuvSteps: 0, allowOutOfSyncRejuv: false });
 
     if (!options.rejuvKernel) {
-      // Use MHKernel in permissive mode if doing ParticleFilterAsMH.
-      options.rejuvKernel = _.partial(MHKernel, _, _, _, _, options.particles === 1);
+      options.rejuvKernel = function(k, oldTrace, opts) {
+        var opts = _.clone(opts || {});
+        opts.permissive = options.particles === 1;
+        return MHKernel(k, oldTrace, opts);
+      };
     }
 
     this.rejuvSteps = options.rejuvSteps;
@@ -162,7 +165,11 @@ module.exports = function(env) {
   SMC.prototype.rejuvenateParticle = function(cont, i) {
     var exitAddress = this.particles[i].trace.address;
     assert.notStrictEqual(exitAddress, undefined);
-    var kernel = _.partial(this.rejuvKernel, _, _, exitAddress, this.particles[i].proposalBoundary);
+    var kernelOptions = {
+      exitAddress: exitAddress,
+      proposalBoundary: this.particles[i].proposalBoundary
+    };
+    var kernel = _.partial(this.rejuvKernel, _, _, kernelOptions);
     var chain = repeatKernel(this.rejuvSteps, kernel);
     return chain(function(trace) {
       this.particles[i].trace = trace;
