@@ -1,6 +1,7 @@
 // ERPs
 
 var flip = function(theta) {
+  var theta = (theta !== undefined) ? theta : 0.5;
   return sample(bernoulliERP, [theta]);
 };
 
