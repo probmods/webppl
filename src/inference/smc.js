@@ -263,12 +263,6 @@ module.exports = function(env) {
 
   SMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function withImportanceDist(s, k, a, erp, importanceERP) {
-    var newERP = _.clone(erp);
-    newERP.importanceERP = importanceERP;
-    return k(s, newERP);
-  }
-
   // Restrict rejuvenation to erps that come after proposal boundary.
   function setProposalBoundary(s, k, a) {
     if (env.coroutine.currentParticle) {
@@ -295,7 +289,6 @@ module.exports = function(env) {
     SMC: function(s, k, a, wpplFn, options) {
       return new SMC(s, k, a, wpplFn, options).run();
     },
-    withImportanceDist: withImportanceDist,
     setProposalBoundary: setProposalBoundary
   };
 

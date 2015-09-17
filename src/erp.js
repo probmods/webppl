@@ -647,6 +647,12 @@ var dirichletDriftERP = new ERP({
   proposer: dirichletProposerERP
 });
 
+function withImportanceDist(s, k, a, erp, importanceERP) {
+  var newERP = _.clone(erp);
+  newERP.importanceERP = importanceERP;
+  return k(s, newERP);
+}
+
 function isErp(x) {
   return x && _.isFunction(x.score) && _.isFunction(x.sample);
 }
@@ -687,6 +693,7 @@ module.exports = setErpNames({
   dirichletDriftERP: dirichletDriftERP,
   gaussianProposerERP: gaussianProposerERP,
   dirichetProposerERP: dirichletProposerERP,
+  withImportanceDist: withImportanceDist,
   isErp: isErp,
   isErpWithSupport: isErpWithSupport
 });
