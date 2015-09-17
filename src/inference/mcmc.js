@@ -11,7 +11,6 @@ module.exports = function(env) {
   function MCMC(s, k, a, wpplFn, options) {
     var options = _.defaults(_.clone(options), { samples: 100, kernel: MHKernel, lag: 0, burn: 0 });
 
-    // TODO: Implement via hooks/callbacks.
     var log = function(s) {
       if (options.verbose) {
         console.log(s);

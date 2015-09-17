@@ -57,8 +57,8 @@ module.exports = function(env) {
     var importanceScore = importanceERP.score(params, val);
     var choiceScore = erp.score(params, val);
     var particle = this.currentParticle();
+    // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
-      // Optimization: Choices not required in this case.
       particle.trace.addChoice(erp, params, val, a, s, k);
     }
     particle.logWeight += choiceScore - importanceScore;

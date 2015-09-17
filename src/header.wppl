@@ -497,7 +497,7 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
-// Backwards compatability.
+// Backwards compatibility.
 
 var MH = function(wpplFn, iterations, burn) {
   var burn = (burn !== undefined) ? burn : Math.min(500, Math.floor(iterations / 2));
