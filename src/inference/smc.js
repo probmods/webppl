@@ -201,7 +201,8 @@ module.exports = function(env) {
       assert.strictEqual(resampledParticles.length, this.numParticles);
 
       var p = _.partition(resampledParticles, function(p) { return p.trace.isComplete(); });
-      this.completeParticles = p[0], this.particles = p[1];
+      this.completeParticles = p[0];
+      this.particles = p[1];
 
       this.debugLog('After resampling: active = ' + p[1].length + ', complete = ' + p[0].length + '\n');
 
