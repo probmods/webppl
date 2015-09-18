@@ -22,35 +22,36 @@ module.exports = function(env) {
       }
     };
 
-    var initialize = _.partial(Initialize, s, _, a, wpplFn);
+    var acceptedCount = 0;
+    var aggregator = (options.justSample || options.onlyMAP) ?
+        new aggregation.MAPEstimator(options.justSample) :
+        new aggregation.Histogram();
 
-    return initialize(function(s, initialTrace) {
+    var initialize, run, finish;
 
-      var aggregator = (options.justSample || options.onlyMAP) ?
-          new aggregation.MAPEstimator(options.justSample) :
-          new aggregation.Histogram();
+    initialize = _.partial(Initialize, s, _, a, wpplFn);
 
-      var acceptedCount = 0;
+    run = function(s, initialTrace) {
       var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
       var printCurrIter = makePrintCurrIteration(log);
       var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
-
       var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
-
       var chain = sequenceKernels(
           repeatKernel(options.burn, kernel),
           repeatKernel(options.samples,
               sequenceKernels(
                   repeatKernel(options.lag + 1, kernel),
                   collectSample)));
+      return chain(finish, initialTrace);
+    };
 
-      return chain(function() {
-        var iterations = options.samples * (options.lag + 1) + options.burn;
-        log('Acceptance ratio: ' + acceptedCount / iterations);
-        return k(s, aggregator.toERP());
-      }, initialTrace);
+    finish = function() {
+      var iterations = options.samples * (options.lag + 1) + options.burn;
+      log('Acceptance ratio: ' + acceptedCount / iterations);
+      return k(s, aggregator.toERP());
+    };
 
-    });
+    return initialize(run);
   }
 
   function makeExtractValue(initialTrace, fn) {
