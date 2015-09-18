@@ -29,7 +29,9 @@ module.exports = function(env) {
 
     var initialize, run, finish;
 
-    initialize = _.partial(Initialize, s, _, a, wpplFn);
+    initialize = function() {
+      return Initialize(s, run, a, wpplFn);
+    };
 
     run = function(s, initialTrace) {
       var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
@@ -51,7 +53,7 @@ module.exports = function(env) {
       return k(s, aggregator.toERP());
     };
 
-    return initialize(run);
+    return initialize();
   }
 
   function makeExtractValue(initialTrace, fn) {
