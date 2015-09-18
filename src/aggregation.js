@@ -19,25 +19,26 @@ Histogram.prototype.toERP = function() {
   return erp.makeMarginalERP(util.logHist(this.hist));
 };
 
-var MAPEstimator = function(retainSamples) {
-  this.MAP = { value: undefined, score: -Infinity };
+var MAP = function(retainSamples) {
+  this.max = { value: undefined, score: -Infinity };
   this.samples = [];
   this.retainSamples = retainSamples;
 };
 
-MAPEstimator.prototype.add = function(value, score) {
+MAP.prototype.add = function(value, score) {
+  console.log(value, score);
   if (this.retainSamples) {
     this.samples.push(value);
   }
-  if (score > this.MAP.score) {
-    this.MAP.value = value;
-    this.MAP.score = score;
+  if (score > this.max.score) {
+    this.max.value = value;
+    this.max.score = score;
   }
 };
 
-MAPEstimator.prototype.toERP = function() {
+MAP.prototype.toERP = function() {
   var hist = new Histogram();
-  hist.add(this.MAP.value);
+  hist.add(this.max.value);
   var erp = hist.toERP();
   if (this.retainSamples) {
     erp.samples = this.samples;
@@ -47,5 +48,5 @@ MAPEstimator.prototype.toERP = function() {
 
 module.exports = {
   Histogram: Histogram,
-  MAPEstimator: MAPEstimator
+  MAP: MAP
 };

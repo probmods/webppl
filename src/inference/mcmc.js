@@ -24,7 +24,7 @@ module.exports = function(env) {
 
     var acceptedCount = 0;
     var aggregator = (options.justSample || options.onlyMAP) ?
-        new aggregation.MAPEstimator(options.justSample) :
+        new aggregation.MAP(options.justSample) :
         new aggregation.Histogram();
 
     var initialize, run, finish;
