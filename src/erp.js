@@ -613,6 +613,56 @@ var makeMultiplexERP = function(vs, erps) {
   });
 };
 
+function gaussianProposalParams(params, prevVal) {
+  var mu = prevVal;
+  var sigma = params[1] * 0.7;
+  return [mu, sigma];
+}
+
+function dirichletProposalParams(params, prevVal) {
+  var concentration = 0.1; // TODO: choose the right parameters.
+  var driftParams = params.map(function(x) {return concentration * x});
+  return driftParams;
+}
+
+function buildProposer(baseERP, getProposalParams) {
+  return new ERP({
+    sample: function(params) {
+      var baseParams = params[0];
+      var prevVal = params[1];
+      var proposalParams = getProposalParams(baseParams, prevVal);
+      return baseERP.sample(proposalParams);
+    },
+    score: function(params, val) {
+      var baseParams = params[0];
+      var prevVal = params[1];
+      var proposalParams = getProposalParams(baseParams, prevVal);
+      return baseERP.score(proposalParams, val);
+    }
+  });
+}
+
+var gaussianProposerERP = buildProposer(gaussianERP, gaussianProposalParams);
+var dirichletProposerERP = buildProposer(dirichletERP, dirichletProposalParams);
+
+var gaussianDriftERP = new ERP({
+  sample: gaussianERP.sample,
+  score: gaussianERP.score,
+  proposer: gaussianProposerERP
+});
+
+var dirichletDriftERP = new ERP({
+  sample: dirichletERP.sample,
+  score: dirichletERP.score,
+  proposer: dirichletProposerERP
+});
+
+function withImportanceDist(s, k, a, erp, importanceERP) {
+  var newERP = _.clone(erp);
+  newERP.importanceERP = importanceERP;
+  return k(s, newERP);
+}
+
 function isErp(x) {
   return x && _.isFunction(x.score) && _.isFunction(x.sample);
 }
@@ -649,6 +699,11 @@ module.exports = setErpNames({
   makeMarginalERP: makeMarginalERP,
   makeCategoricalERP: makeCategoricalERP,
   makeMultiplexERP: makeMultiplexERP,
+  gaussianDriftERP: gaussianDriftERP,
+  dirichletDriftERP: dirichletDriftERP,
+  gaussianProposerERP: gaussianProposerERP,
+  dirichetProposerERP: dirichletProposerERP,
+  withImportanceDist: withImportanceDist,
   isErp: isErp,
   isErpWithSupport: isErpWithSupport
 });

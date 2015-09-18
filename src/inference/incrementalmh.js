@@ -743,7 +743,7 @@ module.exports = function(env) {
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
     var minHitRate = opts.cacheMinHitRate === undefined ? 0.00000001 : opts.cacheMinHitRate;
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
-    var lag = opts.lag === undefined ? 1 : opts.lag;
+    var lag = opts.lag === undefined ? 0 : opts.lag;
     var iterFuseLength = opts.cacheIterFuseLength === undefined ? 10 : opts.cacheIterFuseLength;
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
@@ -883,7 +883,7 @@ module.exports = function(env) {
 
         // Record this sample, if lag allows for it
         var iternum = this.totalIterations - this.iterations;
-        if (iternum % this.lag === 0) {
+        if (iternum % (this.lag + 1) === 0) {
           // Replace val with accumulated query, if need be.
           if (val === env.query)
             val = this.query.getTable();

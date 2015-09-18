@@ -497,3 +497,15 @@ var sortOn = function(l, key, pred) {
 var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
+
+var MH = function(wpplFn, samples, burn) {
+  return MCMC(wpplFn, { samples: samples, burn: burn });
+};
+
+var ParticleFilter = function(wpplFn, particles) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: 0 });
+};
+
+var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
+};

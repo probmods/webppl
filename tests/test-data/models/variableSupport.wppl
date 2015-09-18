@@ -1,0 +1,8 @@
+var model = function() {
+  var allTrue = repeat(poisson(10) + 1, trueF);
+  var val = uniformDraw(allTrue);
+  // Simulate error arising from execution continuing with zero probability
+  // trace.
+  assert.ok(val === true);
+  return val;
+};

@@ -24,10 +24,10 @@ var _ = require('underscore');
 var util = require('./util.js');
 var erp = require('./erp.js');
 var enumerate = require('./inference/enumerate.js');
-var particlefilter = require('./inference/particlefilter.js');
+var mcmc = require('./inference/mcmc.js');
+var initialize = require('./inference/initialize.js');
+var mhkernel = require('./inference/mhkernel.js');
 var asyncpf = require('./inference/asyncpf.js');
-var mh = require('./inference/mh.js');
-var hashmh = require('./inference/hashmh.js');
 var pmcmc = require('./inference/pmcmc.js');
 var smc = require('./inference/smc.js');
 var variational = require('./inference/variational.js');
@@ -127,7 +127,7 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, particlefilter, asyncpf, mh, hashmh, incrementalmh, pmcmc,
+    enumerate, asyncpf, mhkernel, mcmc, initialize, incrementalmh, pmcmc,
     smc, variational, rejection, headerUtils
   ];
   headerModules.forEach(function(mod) {
