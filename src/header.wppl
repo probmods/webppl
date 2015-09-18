@@ -497,11 +497,8 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
-// Backwards compatibility.
-
-var MH = function(wpplFn, iterations, burn) {
-  var burn = (burn !== undefined) ? burn : Math.min(500, Math.floor(iterations / 2));
-  return MCMC(wpplFn, { samples: iterations - burn, burn: burn });
+var MH = function(wpplFn, samples, burn) {
+  return MCMC(wpplFn, { samples: samples, burn: burn });
 };
 
 var ParticleFilter = function(wpplFn, particles) {
