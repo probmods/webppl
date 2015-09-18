@@ -1,6 +1,7 @@
 // ERPs
 
 var flip = function(theta) {
+  var theta = (theta !== undefined) ? theta : 0.5;
   return sample(bernoulliERP, [theta]);
 };
 
@@ -449,7 +450,7 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn(n - 1)]);
+  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
 };
 
 var push = function(xs, x) {
