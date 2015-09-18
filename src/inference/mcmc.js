@@ -29,9 +29,9 @@ module.exports = function(env) {
 
     var initialize, run, finish;
 
-    initialize = function(){
+    initialize = function() {
       return Initialize(s, run, a, wpplFn);
-    };    
+    };
 
     run = function(s, initialTrace) {
       var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
