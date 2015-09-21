@@ -67,7 +67,8 @@ var tests = [
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
       withCaching: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      query: true
     }
   },
   {
@@ -230,7 +231,8 @@ var tests = [
       },
       withCaching: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      query: true
     }
   }
 ];
@@ -299,7 +301,7 @@ var testFunctions = {
 var getHist = function(erp) {
   var hist = {};
   erp.support().forEach(function(value) {
-    hist[value] = Math.exp(erp.score([], value));
+    hist[JSON.stringify(value)] = Math.exp(erp.score([], value));
   });
   return util.normalizeHist(hist);
 };
