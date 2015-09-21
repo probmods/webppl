@@ -30,7 +30,7 @@ module.exports = function(env) {
   MHKernel.prototype.run = function() {
     var numERP = this.oldTrace.length - this.proposalBoundary;
     if (numERP === 0) {
-      return this.cont(this.oldTrace, false);
+      return this.cont(this.oldTrace, true);
     }
     // Make a new proposal.
     env.query.clear();
