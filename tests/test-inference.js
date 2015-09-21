@@ -61,6 +61,7 @@ var tests = [
     },
     models: {
       simple: true,
+      deterministic: { hist: { tol: 0 }, args: [100] },
       cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
