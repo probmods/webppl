@@ -916,18 +916,22 @@ module.exports = function(env) {
         if (this.doAdapt)
           this.cacheAdapter.adapt(this.cacheRoot);
 
-        // Prepare to make a new proposal
-        this.oldScore = this.score;
-        this.erpMasterList.preProposal();
-        this.touchedNodes = [];
-        this.fwdPropLP = 0;
-        this.rvsPropLP = 0;
-        // Select ERP to change.
-        var propnode = this.erpMasterList.getRandom();
-        // Propose change and resume execution
-        debuglog(1, '----------------------------------------------------------------------');
-        debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
-        return propnode.propose();
+        if (this.erpMasterList.numErps > 0) {
+          // Prepare to make a new proposal
+          this.oldScore = this.score;
+          this.erpMasterList.preProposal();
+          this.touchedNodes = [];
+          this.fwdPropLP = 0;
+          this.rvsPropLP = 0;
+          // Select ERP to change.
+          var propnode = this.erpMasterList.getRandom();
+          // Propose change and resume execution
+          debuglog(1, '----------------------------------------------------------------------');
+          debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
+          return propnode.propose();
+        } else {
+          return this.runFromStart();
+        }
       }
     } else {
       var dist;

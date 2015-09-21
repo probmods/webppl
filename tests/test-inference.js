@@ -44,6 +44,7 @@ var tests = [
       simple: true,
       upweight: true,
       incrementalBinomial: true,
+      deterministic: { hist: { tol: 0 } },
       store: { hist: { tol: 0 } },
       geometric: { args: [10] },
       cache: true,
@@ -61,6 +62,7 @@ var tests = [
     },
     models: {
       simple: true,
+      deterministic: { hist: { tol: 0 }, args: [100] },
       cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
@@ -81,6 +83,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
+      deterministic: { hist: { tol: 0 }, args: [30, 30] },
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
       withCaching: true,
@@ -111,6 +114,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
+      deterministic: { hist: { tol: 0 } },
       upweight: { args: [1000, 10] },
       incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
@@ -150,7 +154,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
-      deterministic: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 100 } },
       store: { hist: { tol: 0 }, args: { particles: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 100 } },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
@@ -175,7 +179,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
-      deterministic: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       geometric: true,
@@ -199,6 +203,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
       store: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
       geometric: true,
@@ -220,7 +225,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
-      deterministic: { args: { samples: 1000 } },
+      deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
       store: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
