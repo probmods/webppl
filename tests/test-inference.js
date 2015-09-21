@@ -67,7 +67,8 @@ var tests = [
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
       withCaching: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      query: true
     }
   },
   {
@@ -227,7 +228,8 @@ var tests = [
       },
       withCaching: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      query: true
     }
   }
 ];

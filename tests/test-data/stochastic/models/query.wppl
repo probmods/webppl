@@ -1,0 +1,7 @@
+var model = function() {
+  var x = flip();
+  query.add('x', x);
+  var y = flip();
+  factor(x | y ? 0 : -Infinity);
+  return query;
+};
