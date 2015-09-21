@@ -157,6 +157,7 @@ var tests = [
       varFactors2: true,
       importance: true,
       importance2: { args: { particles: 3000 } },
+      importance3: true,
       withCaching: true,
       optionalErpParams: true
     }
@@ -180,6 +181,7 @@ var tests = [
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
       importance: true,
       importance2: { args: { particles: 3000, rejuvSteps: 10 } },
+      importance3: true,
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true
@@ -201,6 +203,7 @@ var tests = [
       geometric: true,
       importance: true,
       importance2: true,
+      importance3: true,
       optionalErpParams: true,
       variableSupport: true
     }
