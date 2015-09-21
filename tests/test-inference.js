@@ -307,13 +307,10 @@ var getHist = function(erp) {
 };
 
 var generateTestCases = function() {
-  var modelNames = helpers.getModelNames(testDataDir);
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
-    _.each(modelNames, function(modelName) {
-      if (testDef.models[modelName]) {
-        exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
-      }
+    _.each(_.keys(testDef.models), function(modelName) {
+      exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
 };
