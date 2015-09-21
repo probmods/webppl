@@ -296,7 +296,7 @@ var testFunctions = {
 var getHist = function(erp) {
   var hist = {};
   erp.support().forEach(function(value) {
-    hist[value] = Math.exp(erp.score([], value));
+    hist[JSON.stringify(value)] = Math.exp(erp.score([], value));
   });
   return util.normalizeHist(hist);
 };
