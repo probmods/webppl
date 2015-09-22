@@ -38,7 +38,7 @@ module.exports = function(env) {
     // Run the wppl computation, when the computation returns we want it
     // to call the exit method of this coroutine so we pass that as the
     // continuation.
-    return this.wpplFn(this.store, env.exit, this.a);
+    return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
   Enumerate.prototype.nextInQueue = function() {
