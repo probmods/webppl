@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var webppl = require('../src/main.js');
+var webppl = require('../src/main');
 
 
 var getModelNames = function(testDataDir) {

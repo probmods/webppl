@@ -1,4 +1,4 @@
-var util = require('../../util.js');
+var util = require('../../util');
 var fs = require('fs');
 var os = require('os');
 

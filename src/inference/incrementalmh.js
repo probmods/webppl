@@ -5,10 +5,10 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var util = require('../util.js');
-var erp = require('../erp.js');
-var Hashtable = require('../hashtable.js').Hashtable
-var Query = require('../query.js').Query;
+var util = require('../util');
+var erp = require('../erp');
+var Hashtable = require('../hashtable').Hashtable
+var Query = require('../query').Query;
 
 module.exports = function(env) {
 

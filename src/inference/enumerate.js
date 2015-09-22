@@ -8,8 +8,8 @@
 
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
-var erp = require('../erp.js');
-var util = require('../util.js');
+var erp = require('../erp');
+var util = require('../util');
 
 module.exports = function(env) {
 

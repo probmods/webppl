@@ -1,6 +1,6 @@
 'use strict';
 
-var util = require('../src/util.js');
+var util = require('../src/util');
 
 function testAlmostEqual(test, x, y, epsilon) {
   if (x === y) {
