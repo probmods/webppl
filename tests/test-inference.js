@@ -256,7 +256,7 @@ var wpplRunInference = function(modelName, testDef) {
 
 var performTest = function(modelName, testDef, test) {
   var result = wpplRunInference(modelName, testDef);
-  var hist = getHist(result.erp);
+  result.hist = getHist(result.erp);
   var expectedResults = helpers.loadExpected(testDataDir, modelName);
 
   _.each(expectedResults, function(expected, testName) {
@@ -268,7 +268,7 @@ var performTest = function(modelName, testDef, test) {
       testDef.settings[testName],
       testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
     ]));
-    testFunctions[testName](test, result, hist, expected, testArgs);
+    testFunctions[testName](test, result, expected, testArgs);
   });
 
   test.done();
@@ -280,28 +280,28 @@ var getInferenceArgs = function(testDef, model) {
 };
 
 var testFunctions = {
-  hist: function(test, result, hist, expected, args) {
-    test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
+  hist: function(test, result, expected, args) {
+    test.ok(util.histsApproximatelyEqual(result.hist, expected, args.tol));
   },
-  mean: function(test, result, hist, expected, args) {
-    helpers.testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+  mean: function(test, result, expected, args) {
+    helpers.testWithinTolerance(test, util.expectation(result.hist), expected, args.tol, 'mean');
   },
-  std: function(test, result, hist, expected, args) {
-    helpers.testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+  std: function(test, result, expected, args) {
+    helpers.testWithinTolerance(test, util.std(result.hist), expected, args.tol, 'std');
   },
-  logZ: function(test, result, hist, expected, args) {
+  logZ: function(test, result, expected, args) {
     if (args.check) {
       helpers.testWithinTolerance(test, result.erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
-  MAP: function(test, result, hist, expected, args) {
+  MAP: function(test, result, expected, args) {
     if (args.check) {
       var map = result.erp.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
       helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
   },
-  store: function(test, result, hist, expected, args) {
+  store: function(test, result, expected, args) {
     helpers.testEqual(test, result.store, expected, 'store');
   }
 };
