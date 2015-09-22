@@ -22,7 +22,8 @@ var loadExpected = function(testDataDir, modelName) {
 };
 
 var testEqual = function(test, actual, expected, name) {
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
+  var msg = ['Expected ', name, ': ', JSON.stringify(expected),
+             ', actual: ', JSON.stringify(actual)].join('');
   test.ok(_.isEqual(actual, expected), msg);
 };
 
