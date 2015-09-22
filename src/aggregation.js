@@ -26,7 +26,6 @@ var MAP = function(retainSamples) {
 };
 
 MAP.prototype.add = function(value, score) {
-  console.log(value, score);
   if (this.retainSamples) {
     this.samples.push(value);
   }
