@@ -17,6 +17,10 @@ Upgrade webppl:
 
     npm update -g webppl
 
+## Documentation
+
+Read our docs at [webppl.readthedocs.org][http://webppl.readthedocs.org/].
+
 ## License
 
 webppl is released under the [MIT License](LICENSE.md).
