@@ -5,3 +5,6 @@ node_modules
 npm-debug.log
 compiled/webppl.js
 compiled/webppl.min.js
+docs/_build
+docs/_static
+docs/_templates
