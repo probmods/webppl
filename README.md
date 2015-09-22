@@ -19,7 +19,7 @@ Upgrade webppl:
 
 ## Documentation
 
-Read our docs at [webppl.readthedocs.org][http://webppl.readthedocs.org/].
+Read our docs at [webppl.readthedocs.org](http://webppl.readthedocs.org/).
 
 ## License
 
