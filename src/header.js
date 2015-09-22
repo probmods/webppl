@@ -21,20 +21,20 @@
 var assert = require('assert');
 var _ = require('underscore');
 
-var util = require('./util.js');
-var erp = require('./erp.js');
-var enumerate = require('./inference/enumerate.js');
-var mcmc = require('./inference/mcmc.js');
-var initialize = require('./inference/initialize.js');
-var mhkernel = require('./inference/mhkernel.js');
-var asyncpf = require('./inference/asyncpf.js');
-var pmcmc = require('./inference/pmcmc.js');
-var smc = require('./inference/smc.js');
-var variational = require('./inference/variational.js');
-var rejection = require('./inference/rejection.js');
-var incrementalmh = require('./inference/incrementalmh.js');
-var headerUtils = require('./headerUtils.js');
-var Query = require('./query.js').Query;
+var util = require('./util');
+var erp = require('./erp');
+var enumerate = require('./inference/enumerate');
+var mcmc = require('./inference/mcmc');
+var initialize = require('./inference/initialize');
+var mhkernel = require('./inference/mhkernel');
+var asyncpf = require('./inference/asyncpf');
+var pmcmc = require('./inference/pmcmc');
+var smc = require('./inference/smc');
+var variational = require('./inference/variational');
+var rejection = require('./inference/rejection');
+var incrementalmh = require('./inference/incrementalmh');
+var headerUtils = require('./headerUtils');
+var Query = require('./query').Query;
 
 
 module.exports = function(env) {

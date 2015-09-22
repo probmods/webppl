@@ -1,8 +1,8 @@
 'use strict';
 
 var _ = require('underscore');
-var util = require('../util.js');
-var erp = require('../erp.js');
+var util = require('../util');
+var erp = require('../erp');
 var Trace = require('../trace');
 var assert = require('assert');
 var Histogram = require('../aggregation').Histogram;

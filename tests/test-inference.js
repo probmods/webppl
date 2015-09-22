@@ -3,10 +3,10 @@
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var util = require('../src/util.js');
-var webppl = require('../src/main.js');
-var erp = require('../src/erp.js');
-var helpers = require('./helpers.js');
+var util = require('../src/util');
+var webppl = require('../src/main');
+var erp = require('../src/erp');
+var helpers = require('./helpers');
 
 
 var testDataDir = './tests/test-data/stochastic/';
