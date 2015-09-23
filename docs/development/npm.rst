@@ -8,7 +8,7 @@ Updating the npm package
     git add conf.py
     git commit -m "Update version in conf.py"
 
-2. Update version in `package.json`::
+2. Update version in ``package.json``::
 
     npm version patch  // or minor, or major (needs to match version above)
 
