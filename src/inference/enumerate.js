@@ -8,8 +8,8 @@
 
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
-var erp = require('../erp.js');
-var util = require('../util.js');
+var erp = require('../erp');
+var util = require('../util');
 
 module.exports = function(env) {
 
@@ -38,7 +38,7 @@ module.exports = function(env) {
     // Run the wppl computation, when the computation returns we want it
     // to call the exit method of this coroutine so we pass that as the
     // continuation.
-    return this.wpplFn(this.store, env.exit, this.a);
+    return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
   Enumerate.prototype.nextInQueue = function() {
@@ -171,8 +171,13 @@ module.exports = function(env) {
     return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
   }
 
+  function enuDefault(s, cc, a, wpplFn, maxExecutions) {
+    var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
+    return enu(s, cc, a, wpplFn, maxExecutions);
+  }
+
   return {
-    Enumerate: enuPriority,
+    Enumerate: enuDefault,
     EnumerateBreadthFirst: enuFifo,
     EnumerateDepthFirst: enuFilo,
     EnumerateLikelyFirst: enuPriority

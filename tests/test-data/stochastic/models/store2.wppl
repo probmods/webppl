@@ -1,0 +1,9 @@
+var model = function() {
+  globalStore.foo = 0;
+  var x = flip(0.5);
+  globalStore.foo = globalStore.foo + x;
+  var y = flip(0.5);
+  globalStore.foo = globalStore.foo + y;
+  factor(0);
+  return x + y === globalStore.foo;
+};

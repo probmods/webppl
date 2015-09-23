@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var webppl = require('../src/main.js');
+var webppl = require('../src/main');
 
 
 var getModelNames = function(testDataDir) {
@@ -22,8 +22,9 @@ var loadExpected = function(testDataDir, modelName) {
 };
 
 var testEqual = function(test, actual, expected, name) {
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(actual === expected, msg);
+  var msg = ['Expected ', name, ': ', JSON.stringify(expected),
+             ', actual: ', JSON.stringify(actual)].join('');
+  test.ok(_.isEqual(actual, expected), msg);
 };
 
 var testWithinTolerance = function(test, actual, expected, tolerance, name) {

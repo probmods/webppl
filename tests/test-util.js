@@ -1,6 +1,6 @@
 'use strict';
 
-var util = require('../src/util.js');
+var util = require('../src/util');
 
 function testAlmostEqual(test, x, y, epsilon) {
   if (x === y) {
@@ -27,6 +27,20 @@ module.exports = {
                   testAlmostEqual(test, targetVal, actualVal, epsilon);
                 });
           });
+      test.done();
+    }
+
+  },
+
+  testCpsIterate: {
+
+    test1: function(test) {
+      var result = util.cpsIterate(5, 3,
+          function(k, val) { return k(val + 2); },
+          function(finalVal) { return finalVal; });
+      // Trampoline.
+      while (typeof result === 'function') { result = result(); }
+      test.equal(result, 13);
       test.done();
     }
 

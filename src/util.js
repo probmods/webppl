@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
+var assert = require('assert');
 
 
 function runningInBrowser() {
@@ -102,19 +103,45 @@ var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
 }
 
-// func(x, i, xs, nextK)
-// nextK()
-function cpsForEach(func, nextK, xs, i) {
+// func(x, i, xs, cont)
+// cont()
+function cpsForEach(func, cont, xs, i) {
   i = (i === undefined) ? 0 : i;
   if (i === xs.length) {
-    return nextK();
+    return cont();
   } else {
     return func(xs[i], i, xs, function() {
       return function() { // insert trampoline step
-        return cpsForEach(func, nextK, xs, i + 1);
-      }
+        return cpsForEach(func, cont, xs, i + 1);
+      };
     });
   }
+}
+
+function cpsLoop(n, func, cont, i) {
+  assert(_.isNumber(n), 'Number expected.');
+  i = (i === undefined) ? 0 : i;
+  if (i === n) {
+    return cont();
+  } else {
+    return func(i, function() {
+      return function() { // insert trampoline step
+        return cpsLoop(n, func, cont, i + 1);
+      };
+    });
+  }
+}
+
+function cpsIterate(n, initial, func, cont) {
+  var val = initial;
+  return cpsLoop(n,
+      function(i, next) {
+        return func(function(nextVal) {
+          val = nextVal;
+          return next();
+        }, val);
+      },
+      function() { return cont(val); });
 }
 
 function histsApproximatelyEqual(hist, expectedHist, tolerance) {
@@ -165,6 +192,10 @@ function getOpt(optObject, option, defaultValue) {
       defaultValue;
 }
 
+function mergeDefaults(options, defaults) {
+  return _.defaults(options ? _.clone(options) : {}, defaults);
+}
+
 function InfToJSON(k, v) {
   if (v === Infinity) {
     return 'Infinity';
@@ -196,6 +227,8 @@ function deserialize(o) {
 module.exports = {
   copyObj: copyObj,
   cpsForEach: cpsForEach,
+  cpsLoop: cpsLoop,
+  cpsIterate: cpsIterate,
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,
@@ -211,6 +244,7 @@ module.exports = {
   runningInBrowser: runningInBrowser,
   std: std,
   getOpt: getOpt,
+  mergeDefaults: mergeDefaults,
   sum: sum,
   asArray: asArray,
   serialize: serialize,

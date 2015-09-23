@@ -3,10 +3,10 @@
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var util = require('../src/util.js');
-var webppl = require('../src/main.js');
-var erp = require('../src/erp.js');
-var helpers = require('./helpers.js');
+var util = require('../src/util');
+var webppl = require('../src/main');
+var erp = require('../src/erp');
+var helpers = require('./helpers');
 
 
 var testDataDir = './tests/test-data/stochastic/';
@@ -27,57 +27,28 @@ var tests = [
       geometric: true,
       randomInteger: true,
       gaussian: { args: [10000] },
-      uniform: { args: [10000] }
+      uniform: { args: [10000] },
+      beta: true,
+      exponential: true,
+      binomial: true,
+      poisson: true
     }
   },
   {
     name: 'Enumerate',
     settings: {
-      args: [10],
+      args: [],
       MAP: { check: true }
     },
     models: {
       simple: true,
       upweight: true,
       incrementalBinomial: true,
+      deterministic: { hist: { tol: 0 } },
       store: { hist: { tol: 0 } },
-      geometric: true,
+      geometric: { args: [10] },
       cache: true,
       stochasticCache: true,
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'MH',
-    settings: {
-      args: [5000],
-      hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'HashMH',
-    settings: {
-      args: [5000],
-      hist: { tol: 0.1 }
-      //MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
       withCaching: true,
       optionalErpParams: true
     }
@@ -91,12 +62,15 @@ var tests = [
     },
     models: {
       simple: true,
+      deterministic: { hist: { tol: 0 }, args: [100] },
       cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      variableSupport: true,
+      query: true
     }
   },
   {
@@ -109,78 +83,11 @@ var tests = [
     models: {
       simple: true,
       cache: true,
+      deterministic: { hist: { tol: 0 }, args: [30, 30] },
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
       withCaching: true,
       optionalErpParams: true
-    }
-  },
-  {
-    name: 'PFRj',
-    func: 'ParticleFilterRejuv',
-    settings: {
-      args: [1000, 10],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [30, 30] },
-      geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 15] },
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000, 10] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'PFRjAsMH',
-    func: 'ParticleFilterRejuv',
-    settings: {
-      args: [1, 10000],
-      hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [1, 100] },
-      geometric: true,
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: true,
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
-    name: 'PFRjAsParticleFilter',
-    func: 'ParticleFilterRejuv',
-    settings: {
-      args: [1000, 0],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100, 0] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 0] },
-      varFactors1: { args: [5000, 0] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000, 0] },
-      withCaching: true,
-      optionalErpParams: true
-      // varFactors1: { args: [5000, 0] },
-      // varFactors2: true
     }
   },
   {
@@ -199,27 +106,6 @@ var tests = [
     }
   },
   {
-    name: 'ParticleFilter',
-    settings: {
-      args: [1000],
-      hist: { tol: 0.1 },
-      logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
-    },
-    models: {
-      simple: true,
-      cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000] },
-      varFactors1: { args: [5000] },
-      varFactors2: true,
-      importance: true,
-      importance2: { args: [3000] },
-      withCaching: true,
-      optionalErpParams: true
-    }
-  },
-  {
     name: 'Rejection',
     settings: {
       args: [1000],
@@ -228,6 +114,7 @@ var tests = [
     models: {
       simple: true,
       cache: true,
+      deterministic: { hist: { tol: 0 } },
       upweight: { args: [1000, 10] },
       incrementalBinomial: { args: [1000, -2] },
       store: { hist: { tol: 0 } },
@@ -254,6 +141,104 @@ var tests = [
       varFactors2: true,
       optionalErpParams: true
     }
+  },
+  {
+    name: 'ParticleFilter',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 100 } },
+      store: { hist: { tol: 0 }, args: { particles: 100 } },
+      store2: { hist: { tol: 0 }, args: { particles: 100 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
+      varFactors1: { args: { particles: 5000 } },
+      varFactors2: true,
+      importance: true,
+      importance2: { args: { particles: 3000 } },
+      importance3: true,
+      withCaching: true,
+      optionalErpParams: true
+    }
+  },
+  {
+    name: 'ParticleFilterRejuv',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000, rejuvSteps: 10 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      store: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      geometric: true,
+      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
+      importance: true,
+      importance2: { args: { particles: 3000, rejuvSteps: 10 } },
+      importance3: true,
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true
+    }
+  },
+  {
+    name: 'ParticleFilterAsMH',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1, rejuvSteps: 10000 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      deterministic: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      store: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      store2: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      geometric: true,
+      importance: true,
+      importance2: true,
+      importance3: true,
+      optionalErpParams: true,
+      variableSupport: true
+    }
+  },
+  {
+    name: 'MH',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { samples: 5000 }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
+      store: { hist: { tol: 0 }, args: { samples: 100 } },
+      geometric: true,
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
+      drift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: { samples: 80000, burn: 20000 }
+      },
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true,
+      query: true
+    }
   }
 ];
 
@@ -262,16 +247,16 @@ var wpplRunInference = function(modelName, testDef) {
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    inferenceFunc, '(model,', inferenceArgs, ');'
+    inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
   ].join('');
-  var erp;
-  webppl.run(progText, function(s, val) { erp = val; });
-  return erp;
+  var retVal;
+  webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+  return retVal;
 };
 
 var performTest = function(modelName, testDef, test) {
-  var erp = wpplRunInference(modelName, testDef);
-  var hist = getHist(erp);
+  var result = wpplRunInference(modelName, testDef);
+  result.hist = getHist(result.erp);
   var expectedResults = helpers.loadExpected(testDataDir, modelName);
 
   _.each(expectedResults, function(expected, testName) {
@@ -283,7 +268,7 @@ var performTest = function(modelName, testDef, test) {
       testDef.settings[testName],
       testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
     ]));
-    testFunctions[testName](test, erp, hist, expected, testArgs);
+    testFunctions[testName](test, result, expected, testArgs);
   });
 
   test.done();
@@ -291,49 +276,49 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return JSON.stringify(args).slice(1, -1);
+  return _.isArray(args) ? args.map(JSON.stringify) : JSON.stringify(args);
 };
 
 var testFunctions = {
-  hist: function(test, erp, hist, expected, args) {
-    test.ok(util.histsApproximatelyEqual(hist, expected, args.tol));
+  hist: function(test, result, expected, args) {
+    test.ok(util.histsApproximatelyEqual(result.hist, expected, args.tol));
   },
-  mean: function(test, erp, hist, expected, args) {
-    helpers.testWithinTolerance(test, util.expectation(hist), expected, args.tol, 'mean');
+  mean: function(test, result, expected, args) {
+    helpers.testWithinTolerance(test, util.expectation(result.hist), expected, args.tol, 'mean');
   },
-  std: function(test, erp, hist, expected, args) {
-    helpers.testWithinTolerance(test, util.std(hist), expected, args.tol, 'std');
+  std: function(test, result, expected, args) {
+    helpers.testWithinTolerance(test, util.std(result.hist), expected, args.tol, 'std');
   },
-  logZ: function(test, erp, hist, expected, args) {
+  logZ: function(test, result, expected, args) {
     if (args.check) {
-      helpers.testWithinTolerance(test, erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, result.erp.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
-  MAP: function(test, erp, hist, expected, args) {
+  MAP: function(test, result, expected, args) {
     if (args.check) {
-      var map = erp.MAP();
+      var map = result.erp.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
       helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
     }
+  },
+  store: function(test, result, expected, args) {
+    helpers.testEqual(test, result.store, expected, 'store');
   }
 };
 
 var getHist = function(erp) {
   var hist = {};
   erp.support().forEach(function(value) {
-    hist[value] = Math.exp(erp.score([], value));
+    hist[JSON.stringify(value)] = Math.exp(erp.score([], value));
   });
   return util.normalizeHist(hist);
 };
 
 var generateTestCases = function() {
-  var modelNames = helpers.getModelNames(testDataDir);
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
-    _.each(modelNames, function(modelName) {
-      if (testDef.models[modelName]) {
-        exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
-      }
+    _.each(_.keys(testDef.models), function(modelName) {
+      exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
 };

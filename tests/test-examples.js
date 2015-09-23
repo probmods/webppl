@@ -2,7 +2,7 @@
 
 var _ = require('underscore');
 var fs = require('fs');
-var webppl = require('../src/main.js');
+var webppl = require('../src/main');
 var erp = require('../src/erp');
 
 var examplesDir = './examples/';

@@ -1,6 +1,7 @@
 // ERPs
 
 var flip = function(theta) {
+  var theta = (theta !== undefined) ? theta : 0.5;
   return sample(bernoulliERP, [theta]);
 };
 
@@ -8,8 +9,8 @@ var randomInteger = function(n) {
   return sample(randomIntegerERP, [n]);
 };
 
-var discrete = function(n) {
-  return sample(discreteERP, [n]);
+var discrete = function(ps) {
+  return sample(discreteERP, [ps]);
 };
 
 var categorical = function(ps, vs) {
@@ -36,8 +37,8 @@ var dirichlet = function(alpha) {
   return sample(dirichletERP, alpha);
 };
 
-var poisson = function(mu, k) {
-  return sample(poissonERP, [mu, k]);
+var poisson = function(mu) {
+  return sample(poissonERP, [mu]);
 };
 
 var binomial = function(p, n) {
@@ -293,6 +294,16 @@ var mapPairsNC = function(f, l) {
   return remove(undefined, res);
 };
 
+var mapObject = function(fn, obj) {
+  return _.object(
+      map(
+      function(kv) {
+        return [kv[0], fn(kv[0], kv[1])]
+      },
+      _.pairs(obj))
+  );
+};
+
 var reduce = function(fn, init, ar) {
   return ar.length === 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
 };
@@ -439,7 +450,7 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn(n - 1)]);
+  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
 };
 
 var push = function(xs, x) {
@@ -485,4 +496,16 @@ var sortOn = function(l, key, pred) {
 
 var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
+};
+
+var MH = function(wpplFn, samples, burn) {
+  return MCMC(wpplFn, { samples: samples, burn: burn });
+};
+
+var ParticleFilter = function(wpplFn, particles) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: 0 });
+};
+
+var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
+  return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };

@@ -9,3 +9,5 @@ var model = function() {
   globalStore.foo = globalStore.foo + 1;
   return globalStore.foo;
 };
+
+globalStore.bar = 0;

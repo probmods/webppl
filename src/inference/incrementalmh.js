@@ -5,10 +5,10 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var util = require('../util.js');
-var erp = require('../erp.js');
-var Hashtable = require('../hashtable.js').Hashtable
-var Query = require('../query.js').Query;
+var util = require('../util');
+var erp = require('../erp');
+var Hashtable = require('../hashtable').Hashtable
+var Query = require('../query').Query;
 
 module.exports = function(env) {
 
@@ -743,7 +743,7 @@ module.exports = function(env) {
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
     var minHitRate = opts.cacheMinHitRate === undefined ? 0.00000001 : opts.cacheMinHitRate;
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
-    var lag = opts.lag === undefined ? 1 : opts.lag;
+    var lag = opts.lag === undefined ? 0 : opts.lag;
     var iterFuseLength = opts.cacheIterFuseLength === undefined ? 10 : opts.cacheIterFuseLength;
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
@@ -883,7 +883,7 @@ module.exports = function(env) {
 
         // Record this sample, if lag allows for it
         var iternum = this.totalIterations - this.iterations;
-        if (iternum % this.lag === 0) {
+        if (iternum % (this.lag + 1) === 0) {
           // Replace val with accumulated query, if need be.
           if (val === env.query)
             val = this.query.getTable();
@@ -916,18 +916,22 @@ module.exports = function(env) {
         if (this.doAdapt)
           this.cacheAdapter.adapt(this.cacheRoot);
 
-        // Prepare to make a new proposal
-        this.oldScore = this.score;
-        this.erpMasterList.preProposal();
-        this.touchedNodes = [];
-        this.fwdPropLP = 0;
-        this.rvsPropLP = 0;
-        // Select ERP to change.
-        var propnode = this.erpMasterList.getRandom();
-        // Propose change and resume execution
-        debuglog(1, '----------------------------------------------------------------------');
-        debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
-        return propnode.propose();
+        if (this.erpMasterList.numErps > 0) {
+          // Prepare to make a new proposal
+          this.oldScore = this.score;
+          this.erpMasterList.preProposal();
+          this.touchedNodes = [];
+          this.fwdPropLP = 0;
+          this.rvsPropLP = 0;
+          // Select ERP to change.
+          var propnode = this.erpMasterList.getRandom();
+          // Propose change and resume execution
+          debuglog(1, '----------------------------------------------------------------------');
+          debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
+          return propnode.propose();
+        } else {
+          return this.runFromStart();
+        }
       }
     } else {
       var dist;

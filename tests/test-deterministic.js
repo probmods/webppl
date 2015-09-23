@@ -2,8 +2,8 @@
 
 // Tests for deterministic code written in webppl (e.g., preamble functions)
 
-var webppl = require('../src/main.js');
-var helpers = require('./helpers.js');
+var webppl = require('../src/main');
+var helpers = require('./helpers');
 
 var testDataDir = './tests/test-data/deterministic/';
 

@@ -9,7 +9,7 @@ To make a contribution, follow these steps:
     - Describe your proposed changes by commenting on an existing issue related to your contribution
     - Email the [webppl-dev mailing list](https://groups.google.com/forum/#!forum/webppl-dev)
 2. Fork, then clone the webppl repository.
-3. Install webppl from GitHub (see [README.md](README.md)).
+3. [Install webppl from GitHub](http://docs.webppl.org/en/master/development/install.html).
 4. Make sure all tests and style checks pass by running `grunt`.
 5. Apply your changes, including tests.
 6. Run `grunt` again to verify that tests and checks still pass. Run `fixjsstyle` if style problems are discovered.
