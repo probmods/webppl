@@ -3,13 +3,13 @@ Updating the npm package
 
 1. Update version in ``docs/conf.py``::
 
-    // Edit `version = ...` and `release = ...` in conf.py
+    git checkout dev
+    # Edit `version = ...` and `release = ...` in conf.py
     git add conf.py
     git commit -m "Update version in conf.py"
 
-2. Update version in dev::
+2. Update version in `package.json`::
 
-    git checkout dev
     npm version patch  // or minor, or major (needs to match version above)
 
 2. Merge into master::
