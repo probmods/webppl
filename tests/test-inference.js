@@ -66,7 +66,7 @@ var tests = [
       cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000] },
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
