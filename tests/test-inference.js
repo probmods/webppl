@@ -259,7 +259,28 @@ var tests = [
       variableSupport: true,
       query: true
     }
+  },
+  {
+    name: 'MHonlyMAP',
+    func: 'MCMC',
+    settings: {
+      args: { samples: 100, onlyMAP: true }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
+    name: 'MHjustSample',
+    func: 'MCMC',
+    settings: {
+      args: { samples: 100, justSample: true }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
   }
+
 ];
 
 var wpplRunInference = function(modelName, testDef) {
