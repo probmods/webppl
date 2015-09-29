@@ -934,11 +934,14 @@ module.exports = function(env) {
         }
       }
     } else {
-      var dist;
-      if (this.returnHist)
-        dist = erp.makeMarginalERP(util.logHist(this.returnHist));
-      else
-        dist = erp.makeMarginalERP({});
+      var hist;
+      if (!this.returnSamps && !this.onlyMAP) {
+        hist = this.returnHist;
+      } else {
+        hist = {};
+        hist[JSON.stringify(this.MAP.value)] = { prob: 1, val: this.MAP.value };
+      }
+      var dist = erp.makeMarginalERP(util.logHist(hist));
       if (this.returnSamps) {
         if (this.onlyMAP)
           this.returnSamps.push(this.MAP);

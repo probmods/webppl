@@ -74,6 +74,26 @@ var tests = [
     }
   },
   {
+    name: 'IMHjustSample',
+    func: 'IncrementalMH',
+    settings: {
+      args: [100, { justSample: true }]
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
+    name: 'IMHonlyMAP',
+    func: 'IncrementalMH',
+    settings: {
+      args: [100, { onlyMAP: true }]
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
     name: 'PMCMC',
     settings: {
       args: [1000, 5],
