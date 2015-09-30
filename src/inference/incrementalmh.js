@@ -935,11 +935,11 @@ module.exports = function(env) {
       }
     } else {
       var hist;
-      if (!this.returnSamps && !this.onlyMAP) {
-        hist = this.returnHist;
-      } else {
+      if (this.returnSamps || this.onlyMAP) {
         hist = {};
         hist[JSON.stringify(this.MAP.value)] = { prob: 1, val: this.MAP.value };
+      } else {
+        hist = this.returnHist;
       }
       var dist = erp.makeMarginalERP(util.logHist(hist));
       if (this.returnSamps) {
