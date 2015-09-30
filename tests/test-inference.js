@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
+var seedrandom = require('seedrandom');
 var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
@@ -360,13 +361,23 @@ var getHist = function(erp) {
   return util.normalizeHist(hist);
 };
 
-var generateTestCases = function() {
+var generateTestCases = function(seed) {
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
     _.each(_.keys(testDef.models), function(modelName) {
       exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
+  exports.setUp = function(callback) {
+    util.seedRNG(seed);
+    callback();
+  };
+  exports.tearDown = function(callback) {
+    util.resetRNG();
+    callback();
+  };
 };
 
-generateTestCases();
+var seed = util.getRandomSeedFromEnv() || seedrandom().int32();
+console.log('Random seed: ' + seed);
+generateTestCases(seed);

@@ -2,7 +2,29 @@
 
 var _ = require('underscore');
 var assert = require('assert');
+var seedrandom = require('seedrandom');
 
+var rng = Math.random;
+
+function random() {
+  return rng();
+}
+
+function seedRNG(seed) {
+  rng = seedrandom(seed);
+}
+
+function resetRNG() {
+  rng = Math.random;
+}
+
+function getRandomSeedFromEnv() {
+  if (process.env.RANDOM_SEED) {
+    var seed = parseInt(process.env.RANDOM_SEED);
+    assert(_.isFinite(seed), 'Random seed should be an integer.');
+    return seed;
+  }
+}
 
 function runningInBrowser() {
   return (typeof window !== 'undefined');
@@ -205,6 +227,10 @@ function deserialize(o) {
 }
 
 module.exports = {
+  random: random,
+  seedRNG: seedRNG,
+  resetRNG: resetRNG,
+  getRandomSeedFromEnv: getRandomSeedFromEnv,
   copyObj: copyObj,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,

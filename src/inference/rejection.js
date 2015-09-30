@@ -32,7 +32,7 @@ module.exports = function(env) {
 
   Rejection.prototype.run = function() {
     this.scoreSoFar = 0;
-    this.threshold = this.maxScore + Math.log(Math.random());
+    this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   }
 

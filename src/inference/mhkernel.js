@@ -34,7 +34,7 @@ module.exports = function(env) {
     }
     // Make a new proposal.
     env.query.clear();
-    this.regenFrom = this.proposalBoundary + Math.floor(Math.random() * numERP);
+    this.regenFrom = this.proposalBoundary + Math.floor(util.random() * numERP);
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
     return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
@@ -90,7 +90,7 @@ module.exports = function(env) {
       assert(!this.trace.isComplete(), 'Particle missed exit address during rejuvenation.');
     }
     var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
-    var accept = Math.random() < prob;
+    var accept = util.random() < prob;
     return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
 

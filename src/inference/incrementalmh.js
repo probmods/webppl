@@ -564,7 +564,7 @@ module.exports = function(env) {
   };
 
   ArrayERPMasterList.prototype.getRandom = function() {
-    var idx = Math.floor(Math.random() * this.erpNodes.length);
+    var idx = Math.floor(util.random() * this.erpNodes.length);
     return this.erpNodes[idx];
   };
 
@@ -862,7 +862,7 @@ module.exports = function(env) {
                                     this.rvsPropLP, this.fwdPropLP);
         debuglog(1, 'num vars:', this.erpMasterList.size(), 'old num vars:', this.erpMasterList.oldSize());
         debuglog(1, 'acceptance prob:', acceptance);
-        if (Math.random() >= acceptance) {
+        if (util.random() >= acceptance) {
           debuglog(1, 'REJECT');
           this.score = this.oldScore;
           var n = this.touchedNodes.length;
