@@ -250,9 +250,14 @@ var wpplRunInference = function(modelName, testDef) {
     helpers.loadModel(testDataDir, modelName),
     inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
   ].join('');
-  var retVal;
-  webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
-  return retVal;
+  try {
+    var retVal;
+    webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+    return retVal;
+  } catch (e) {
+    console.log('Exception: ' + e);
+    throw e;
+  }
 };
 
 var performTest = function(modelName, testDef, test) {
