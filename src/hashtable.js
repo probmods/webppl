@@ -376,9 +376,9 @@ function Hashtable() {
     // console.log("SIZE: " + size);
     var L = biggestBucket.entries.length;
     while (true) {
-      var bi = Math.floor(Math.random() * buckets.length);
+      var bi = Math.floor(util.random() * buckets.length);
       var bucket = buckets[bi];
-      var p = Math.floor(Math.random() * L);
+      var p = Math.floor(util.random() * L);
       if (p < bucket.entries.length)
         return bucket.entries[p][1];
     }

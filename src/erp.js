@@ -128,7 +128,7 @@ var deserializeERP = function(JSONString) {
 
 var uniformERP = new ERP({
   sample: function(params) {
-    var u = Math.random();
+    var u = util.random();
     return (1 - u) * params[0] + u * params[1];
   },
   score: function(params, val) {
@@ -142,7 +142,7 @@ var uniformERP = new ERP({
 var bernoulliERP = new ERP({
   sample: function(params) {
     var weight = params[0];
-    var val = Math.random() < weight;
+    var val = util.random() < weight;
     return val;
   },
   score: function(params, val) {
@@ -166,7 +166,7 @@ var bernoulliERP = new ERP({
 
 var randomIntegerERP = new ERP({
   sample: function(params) {
-    return Math.floor(Math.random() * params[0]);
+    return Math.floor(util.random() * params[0]);
   },
   score: function(params, val) {
     var stop = params[0];
@@ -183,8 +183,8 @@ function gaussianSample(params) {
   var sigma = params[1];
   var u, v, x, y, q;
   do {
-    u = 1 - Math.random();
-    v = 1.7156 * (Math.random() - 0.5);
+    u = 1 - util.random();
+    v = 1.7156 * (util.random() - 0.5);
     x = u - 0.449871;
     y = Math.abs(v) + 0.386595;
     q = x * x + y * (0.196 * y - 0.25472 * x);
@@ -266,7 +266,7 @@ function gammaSample(params) {
   var a = params[0];
   var b = params[1];
   if (a < 1) {
-    return gammaSample([1 + a, b]) * Math.pow(Math.random(), 1 / a);
+    return gammaSample([1 + a, b]) * Math.pow(util.random(), 1 / a);
   }
   var x, v, u;
   var d = a - 1 / 3;
@@ -277,7 +277,7 @@ function gammaSample(params) {
       v = 1 + c * x;
     } while (v <= 0);
     v = v * v * v;
-    u = Math.random();
+    u = util.random();
     if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
       return b * d * v;
     }
@@ -298,7 +298,7 @@ var gammaERP = new ERP({
 var exponentialERP = new ERP({
   sample: function(params) {
     var a = params[0];
-    var u = Math.random();
+    var u = util.random();
     return Math.log(u) / (-1 * a);
   },
   score: function(params, val) {
@@ -363,7 +363,7 @@ function binomialSample(params) {
   }
   var u;
   for (var i = 0; i < n; i++) {
-    u = Math.random();
+    u = util.random();
     if (u < p) {
       k++;
     }
@@ -452,7 +452,7 @@ var poissonERP = new ERP({
     var emu = Math.exp(-mu);
     var p = 1;
     do {
-      p *= Math.random();
+      p *= util.random();
       k++;
     } while (p > emu);
     return (k - 1) || 0;
@@ -499,7 +499,7 @@ var dirichletERP = new ERP({ sample: dirichletSample, score: dirichletScore });
 
 function multinomialSample(theta) {
   var thetaSum = util.sum(theta);
-  var x = Math.random() * thetaSum;
+  var x = util.random() * thetaSum;
   var k = theta.length;
   var probAccum = 0;
   for (var i = 0; i < k; i++) {
@@ -535,7 +535,7 @@ function makeMarginalERP(marginal) {
   // Make an ERP from marginal:
   var dist = new ERP({
     sample: function(params) {
-      var x = Math.random();
+      var x = util.random();
       var probAccum = 0;
       for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
         probAccum += marginal[i].prob;

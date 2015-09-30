@@ -322,17 +322,16 @@ var generateTestCases = function(seed) {
       exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
-  var random = Math.random;
   exports.setUp = function(callback) {
-    Math.random = seedrandom(seed);
+    util.seedRNG(seed);
     callback();
   };
   exports.tearDown = function(callback) {
-    Math.random = random;
+    util.resetRNG();
     callback();
   };
 };
 
-var seed = process.env.RANDOM_SEED ? parseInt(process.env.RANDOM_SEED) : seedrandom().int32();
+var seed = util.getRandomSeedFromEnv() || seedrandom().int32();
 console.log('Random seed: ' + seed);
 generateTestCases(seed);
