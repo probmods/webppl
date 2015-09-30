@@ -79,26 +79,6 @@ function copyObj(obj) {
   return newobj;
 }
 
-// More efficient version of (indexOf o map p)
-var indexOfPred = function(l, p, start) {
-  var start = start || 0;
-  for (var i = start; i < l.length; i++) {
-    if (p(l[i])) {
-      return i;
-    }
-  }
-  return -1;
-};
-
-// more efficient version of (indexOf o map p o reverse)
-var lastIndexOfPred = function(l, p, start) {
-  var start = start || l.length - 1;
-  for (var i = start; i >= 0; i--) {
-    if (p(l[i])) return i;
-  }
-  return -1;
-};
-
 var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
 }
@@ -232,10 +212,8 @@ module.exports = {
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,
-  indexOfPred: indexOfPred,
   logsumexp: logsumexp,
   logHist: logHist,
-  lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
