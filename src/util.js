@@ -2,7 +2,6 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var process = require('process');
 var seedrandom = require('seedrandom');
 
 var rng = Math.random;
