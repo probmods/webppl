@@ -504,11 +504,11 @@ function multinomialSample(theta) {
   var probAccum = 0;
   for (var i = 0; i < k; i++) {
     probAccum += theta[i];
-    if (probAccum >= x) {
+    if (x < probAccum) {
       return i;
-    } //FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
+    }
   }
-  return k;
+  return k - 1;
 }
 
 // Make a discrete ERP from a {val: prob, etc.} object (unormalized).
@@ -537,12 +537,14 @@ function makeMarginalERP(marginal) {
     sample: function(params) {
       var x = util.random();
       var probAccum = 0;
-      for (var i in marginal) {if (marginal.hasOwnProperty(i)) {
-        probAccum += marginal[i].prob;
-        // FIXME: if x=0 returns i=0, but this isn't right if theta[0]==0...
-        if (probAccum >= x)
-          return marginal[i].val;
-      }}
+      for (var i in marginal) {
+        if (marginal.hasOwnProperty(i)) {
+          probAccum += marginal[i].prob;
+          if (x < probAccum) {
+            return marginal[i].val;
+          }
+        }
+      }
       return marginal[i].val;
     },
     score: function(params, val) {
