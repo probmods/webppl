@@ -4,6 +4,7 @@ Updating the npm package
 1. Update version in dev::
 
     git checkout dev
+    git pull
     npm version patch  // or minor, or major; prints new version number
 
 2. Merge into master::

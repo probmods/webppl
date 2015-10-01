@@ -51,7 +51,7 @@ module.exports = function(env) {
       var args = Array.prototype.slice.call(arguments, 3);
       var stringedArgs = JSON.stringify(args);
       var foundInCache = stringedArgs in c;
-      var recomp = Math.random() < recompProb;
+      var recomp = util.random() < recompProb;
       if (foundInCache && !recomp) {      // return stored value
         return k(s, c[stringedArgs]);
       } else {                           // recompute

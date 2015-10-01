@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
+var seedrandom = require('seedrandom');
 var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
@@ -66,11 +67,31 @@ var tests = [
       cache: true,
       store: { hist: { tol: 0 }, args: [100] },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000, 20000] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000] },
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
       query: true
+    }
+  },
+  {
+    name: 'IMHjustSample',
+    func: 'IncrementalMH',
+    settings: {
+      args: [100, { justSample: true }]
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
+    name: 'IMHonlyMAP',
+    func: 'IncrementalMH',
+    settings: {
+      args: [100, { onlyMAP: true }]
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
     }
   },
   {
@@ -239,7 +260,28 @@ var tests = [
       variableSupport: true,
       query: true
     }
+  },
+  {
+    name: 'MHonlyMAP',
+    func: 'MCMC',
+    settings: {
+      args: { samples: 100, onlyMAP: true }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
+    name: 'MHjustSample',
+    func: 'MCMC',
+    settings: {
+      args: { samples: 100, justSample: true }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } }
+    }
   }
+
 ];
 
 var wpplRunInference = function(modelName, testDef) {
@@ -249,9 +291,14 @@ var wpplRunInference = function(modelName, testDef) {
     helpers.loadModel(testDataDir, modelName),
     inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
   ].join('');
-  var retVal;
-  webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
-  return retVal;
+  try {
+    var retVal;
+    webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+    return retVal;
+  } catch (e) {
+    console.log('Exception: ' + e);
+    throw e;
+  }
 };
 
 var performTest = function(modelName, testDef, test) {
@@ -314,13 +361,23 @@ var getHist = function(erp) {
   return util.normalizeHist(hist);
 };
 
-var generateTestCases = function() {
+var generateTestCases = function(seed) {
   _.each(tests, function(testDef) {
     exports[testDef.name] = {};
     _.each(_.keys(testDef.models), function(modelName) {
       exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
+  exports.setUp = function(callback) {
+    util.seedRNG(seed);
+    callback();
+  };
+  exports.tearDown = function(callback) {
+    util.resetRNG();
+    callback();
+  };
 };
 
-generateTestCases();
+var seed = util.getRandomSeedFromEnv() || seedrandom().int32();
+console.log('Random seed: ' + seed);
+generateTestCases(seed);

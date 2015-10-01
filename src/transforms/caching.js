@@ -8,8 +8,6 @@ var build = require('ast-types').builders;
 var types = require('ast-types').types;
 var isPrimitive = require('../syntax').isPrimitive;
 
-
-// TODO: Auto-extract this list, somehow?
 var cacheExempt = [
   'flip',
   'randomInteger',

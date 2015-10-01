@@ -113,6 +113,11 @@ function main() {
     return pkg.read(name_or_path, packagePaths, argv.verbose)
   });
 
+  var seed = util.getRandomSeedFromEnv();
+  if (seed !== undefined) {
+    util.seedRNG(seed);
+  }
+
   processCode(code, packages, argv.verbose, outputFile);
 }
 

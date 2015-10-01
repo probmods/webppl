@@ -2,7 +2,29 @@
 
 var _ = require('underscore');
 var assert = require('assert');
+var seedrandom = require('seedrandom');
 
+var rng = Math.random;
+
+function random() {
+  return rng();
+}
+
+function seedRNG(seed) {
+  rng = seedrandom(seed);
+}
+
+function resetRNG() {
+  rng = Math.random;
+}
+
+function getRandomSeedFromEnv() {
+  if (process.env.RANDOM_SEED) {
+    var seed = parseInt(process.env.RANDOM_SEED);
+    assert(_.isFinite(seed), 'Random seed should be an integer.');
+    return seed;
+  }
+}
 
 function runningInBrowser() {
   return (typeof window !== 'undefined');
@@ -70,34 +92,6 @@ function logsumexp(a) {
   }
   return m + Math.log(sum);
 }
-
-function copyObj(obj) {
-  var newobj = {};
-  for (var k in obj) {
-    if (obj.hasOwnProperty(k)) {newobj[k] = obj[k];}
-  }
-  return newobj;
-}
-
-// More efficient version of (indexOf o map p)
-var indexOfPred = function(l, p, start) {
-  var start = start || 0;
-  for (var i = start; i < l.length; i++) {
-    if (p(l[i])) {
-      return i;
-    }
-  }
-  return -1;
-};
-
-// more efficient version of (indexOf o map p o reverse)
-var lastIndexOfPred = function(l, p, start) {
-  var start = start || l.length - 1;
-  for (var i = start; i >= 0; i--) {
-    if (p(l[i])) return i;
-  }
-  return -1;
-};
 
 var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
@@ -186,12 +180,6 @@ function std(hist) {
   return Math.sqrt(variance);
 }
 
-function getOpt(optObject, option, defaultValue) {
-  return (optObject && optObject[option] !== undefined) ?
-      optObject[option] :
-      defaultValue;
-}
-
 function mergeDefaults(options, defaults) {
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
@@ -225,17 +213,18 @@ function deserialize(o) {
 }
 
 module.exports = {
-  copyObj: copyObj,
+  random: random,
+  seedRNG: seedRNG,
+  resetRNG: resetRNG,
+  getRandomSeedFromEnv: getRandomSeedFromEnv,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
   expectation: expectation,
   gensym: gensym,
   histsApproximatelyEqual: histsApproximatelyEqual,
-  indexOfPred: indexOfPred,
   logsumexp: logsumexp,
   logHist: logHist,
-  lastIndexOfPred: lastIndexOfPred,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
@@ -243,7 +232,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   std: std,
-  getOpt: getOpt,
   mergeDefaults: mergeDefaults,
   sum: sum,
   asArray: asArray,
