@@ -1,7 +1,7 @@
 {
   "name": "webppl",
   "description": "Probabilistic programming for the web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "webppl contributors",
   "main": "src/main.js",
   "repository": {
