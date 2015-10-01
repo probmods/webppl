@@ -93,14 +93,6 @@ function logsumexp(a) {
   return m + Math.log(sum);
 }
 
-function copyObj(obj) {
-  var newobj = {};
-  for (var k in obj) {
-    if (obj.hasOwnProperty(k)) {newobj[k] = obj[k];}
-  }
-  return newobj;
-}
-
 var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
 }
@@ -188,12 +180,6 @@ function std(hist) {
   return Math.sqrt(variance);
 }
 
-function getOpt(optObject, option, defaultValue) {
-  return (optObject && optObject[option] !== undefined) ?
-      optObject[option] :
-      defaultValue;
-}
-
 function mergeDefaults(options, defaults) {
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
@@ -231,7 +217,6 @@ module.exports = {
   seedRNG: seedRNG,
   resetRNG: resetRNG,
   getRandomSeedFromEnv: getRandomSeedFromEnv,
-  copyObj: copyObj,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
@@ -247,7 +232,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   std: std,
-  getOpt: getOpt,
   mergeDefaults: mergeDefaults,
   sum: sum,
   asArray: asArray,
