@@ -18,12 +18,9 @@ function resetRNG() {
   rng = Math.random;
 }
 
-function getRandomSeedFromEnv() {
-  if (process.env.RANDOM_SEED) {
-    var seed = parseInt(process.env.RANDOM_SEED);
-    assert(_.isFinite(seed), 'Random seed should be an integer.');
-    return seed;
-  }
+function assertValidRandomSeed(seed) {
+  var msg = 'Random seed should be a positive integer.';
+  assert(_.isFinite(seed) && seed >= 0, msg);
 }
 
 function runningInBrowser() {
@@ -216,7 +213,7 @@ module.exports = {
   random: random,
   seedRNG: seedRNG,
   resetRNG: resetRNG,
-  getRandomSeedFromEnv: getRandomSeedFromEnv,
+  assertValidRandomSeed: assertValidRandomSeed,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,

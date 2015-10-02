@@ -92,7 +92,8 @@ function main() {
   // Return if no file argument given
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
-    console.log('webppl program.wppl [--compile] [--out compiled.js] [--require path]');
+    console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
+                '[--require path] [--random-seed int]');
     return;
   }
 
@@ -113,8 +114,10 @@ function main() {
     return pkg.read(name_or_path, packagePaths, argv.verbose)
   });
 
-  var seed = util.getRandomSeedFromEnv();
+
+  var seed = argv['random-seed'];
   if (seed !== undefined) {
+    util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
   }
 
