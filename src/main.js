@@ -62,7 +62,7 @@ function parseExtra(extra) {
 function loadMacros(pkg) {
   return {
     wppl: pkg.wppl,
-    macros: pkg.macros.map(sweet.loadModule)
+    macros: pkg.macros.map(function(code) { return sweet.loadModule(code); })
   };
 }
 
