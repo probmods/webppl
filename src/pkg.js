@@ -75,8 +75,8 @@ var load = function(pkg) {
   return {
     js: pkg.js,
     headers: pkg.headers,
-    wppl: pkg.wppl.map(fs.readFileSync),
-    macros: pkg.macros.map(fs.readFileSync)
+    wppl: pkg.wppl.map(function(fn) { return fs.readFileSync(fn); }),
+    macros: pkg.macros.map(function(fn) { return fs.readFileSync(fn); })
   };
 };
 
