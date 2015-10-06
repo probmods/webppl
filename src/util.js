@@ -209,6 +209,25 @@ function deserialize(o) {
   return JSON.parse(o, InfFromJSON);
 }
 
+function time(name, thunk) {
+  if (console.time) {
+    console.time(name);
+    var ret = thunk();
+    console.timeEnd(name);
+    return ret;
+  } else {
+    return thunk();
+  }
+}
+
+function timeif(bool, name, thunk) {
+  return bool ? time(name, thunk) : thunk();
+}
+
+function pipeline(fns) {
+  return _.compose.apply(null, fns.reverse());
+}
+
 module.exports = {
   random: random,
   seedRNG: seedRNG,
@@ -233,5 +252,7 @@ module.exports = {
   sum: sum,
   asArray: asArray,
   serialize: serialize,
-  deserialize: deserialize
+  deserialize: deserialize,
+  timeif: timeif,
+  pipeline: pipeline
 };

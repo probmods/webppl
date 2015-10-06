@@ -13,7 +13,7 @@ $(MINIFIED): $(BROWSERIFIED)
 	uglifyjs $< -b ascii_only=true,beautify=false > $@
 
 $(BROWSERIFIED): $(SRCFILES)
-	browserify -t brfs $(MAINFILE) > $@
+	browserify -g brfs $(MAINFILE) > $@
 
 clean:
 	rm -f $(MINIFIED) $(BROWSERIFIED)

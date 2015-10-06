@@ -6,6 +6,9 @@ var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
 var estraverse = require('estraverse');
+var assert = require('assert');
+var _ = require('underscore');
+var sweet = require('sweet.js');
 
 var cps = require('./transforms/cps').cps;
 var optimize = require('./transforms/optimize').optimize;
@@ -39,8 +42,56 @@ function makePropertiesGlobal(obj) {
 // header should be bundled.
 requireHeaderWrapper(require('./header'));
 
-function concatPrograms(p0, p1) {
-  return build.program(p0.body.concat(p1.body));
+function concatPrograms(programs) {
+  assert.ok(_.isArray(programs));
+  var concat = function(p0, p1) {
+    return build.program(p0.body.concat(p1.body));
+  };
+  var emptyProgram = esprima.parse('');
+  return programs.reduce(concat, emptyProgram);
+}
+
+function parse(code, macros) {
+  return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+}
+
+function parseExtra(extra) {
+  return parse(extra.wppl, extra.macros);
+}
+
+function loadMacros(pkg) {
+  return {
+    wppl: pkg.wppl,
+    macros: pkg.macros.map(sweet.loadModule)
+  };
+}
+
+function expandPackages(packages, headerMacros) {
+  // Returns an array with one entry for each wppl file in packages.
+  // Each entry is associated with the macros which will be applied to
+  // that file.
+  return _.chain(packages).map(function(pkg) {
+    var macros = pkg.macros.concat(headerMacros);
+    return pkg.wppl.map(function(wppl) {
+      return { wppl: wppl, macros: macros };
+    });
+  }).flatten().value();
+}
+
+function prepareExtras(packages) {
+  // Takes an array of packages and turns them into an array of ASTs
+  // (one for each wppl file plus one for the header) where macros
+  // have been expanded. Also collects together all macros in
+  // preparation for parsing the program.
+  var packages = (packages !== undefined) ? packages.map(loadMacros) : [];
+  var headerCode = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
+  var headerModule = sweet.loadModule(fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8'));
+  var packageModules = _.chain(packages).pluck('macros').flatten().value();
+  var headerExtra = { wppl: headerCode, macros: [headerModule] };
+  var packageExtras = expandPackages(packages, headerModule);
+  var asts = [headerExtra].concat(packageExtras).map(parseExtra);
+  var macros = [headerModule].concat(packageModules);
+  return { asts: asts, macros: macros };
 }
 
 function cachingRequired(programAST) {
@@ -56,91 +107,81 @@ function cachingRequired(programAST) {
   return flag;
 }
 
-function prepare(programCode, verbose, doCaching) {
-  if (verbose && console.time) {
-    console.time('prepare');
-  }
-
-  var _prepare = function(ast) {
-    // ast = freevars(ast);
-    ast = thunkify(ast);
-    ast = naming(ast);
-    ast = cps(ast);
-    ast = optimize(ast);
-    return ast;
-  };
-
-  // Parse header and program, combine, compile, and generate program
-  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
-  var programAST = esprima.parse(programCode);
-  // if (doCaching)
-  //   programAST = caching(programAST);
-
-  var out = _prepare(concatPrograms(headerAST, programAST));
-
-  if (verbose && console.timeEnd) {
-    console.timeEnd('prepare');
-  }
-  return out;
+function applyCaching(asts) {
+  // This assume that asts[0] is the header.
+  return asts.map(function(ast, i) {
+    return i > 0 ? caching(ast) : ast;
+  });
 }
 
-function compile(programCode, verbose) {
-  if (verbose && console.time) {
-    console.time('compile');
-  }
+function compile(code, extras, verbose) {
+  var extras = extras || prepareExtras();
 
-  var _compile = function(ast) {
-    if (doCaching)
-      ast = freevars(ast);
-    ast = thunkify(ast);
-    ast = naming(ast);
-    ast = cps(ast);
-    ast = store(ast);
-    ast = optimize(ast);
-    ast = varargs(ast);
-    ast = trampoline(ast);
-    return ast;
+  function _compile() {
+    var programAst = parse(code, extras.macros);
+    var asts = extras.asts.concat(programAst);
+    var doCaching = _.any(asts, cachingRequired);
+
+    if (verbose && doCaching) {
+      console.log('Caching transform will be applied.');
+    }
+
+    var compilationPipeline = util.pipeline([
+      doCaching ? freevars : _.identity,
+      thunkify,
+      naming,
+      cps,
+      store,
+      optimize,
+      varargs,
+      trampoline
+    ]);
+
+    return util.pipeline([
+      doCaching ? applyCaching : _.identity,
+      concatPrograms,
+      compilationPipeline,
+      escodegen.generate
+    ])(asts);
   };
 
-  // Parse header and program, combine, compile, and generate program
-  var headerAST = esprima.parse(fs.readFileSync(__dirname + '/header.wppl'));
-  var programAST = esprima.parse(programCode);
-
-  var doCaching = cachingRequired(programAST);
-
-  if (doCaching) {
-    if (verbose) console.log('Caching transforms will be applied.');
-    programAST = caching(programAST);
-  }
-
-  var out = escodegen.generate(_compile(concatPrograms(headerAST, programAST)));
-
-  if (verbose && console.timeEnd) {
-    console.timeEnd('compile');
-  }
-  return out;
+  return util.timeif(verbose, 'compile', _compile);
 }
 
-function run(code, k, verbose) {
-  var compiledCode = compile(code, verbose);
-  if (verbose && console.time) {
-    console.time('run');
+function prepare(code, verbose) {
+  function _prepare() {
+    var extras = prepareExtras();
+    var programAst = parse(code, extras.macros);
+    var asts = extras.asts.concat(programAst);
+    var preparationPipeline = util.pipeline([
+      thunkify,
+      naming,
+      cps,
+      optimize
+    ]);
+    return preparationPipeline(concatPrograms(asts));
   }
-  eval.call(global, compiledCode)({}, k, '');
-  if (verbose && console.timeEnd) {
-    console.timeEnd('run');
-  }
+
+  return util.timeif(verbose, 'prepare', _prepare);
+}
+
+function run(code, k, extras, verbose) {
+  var compiledCode = compile(code, extras, verbose);
+  util.timeif(verbose, 'run', function() {
+    eval.call(global, compiledCode)({}, k, '');
+  });
 }
 
 // Make webppl eval available within webppl
 global.webpplEval = function(s, k, a, code) {
-  var compiledCode = compile(code, false);
+  var compiledCode = compile(code);
   return eval.call(global, compiledCode)(s, k, a);
 };
 
 module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
+  prepareExtras: prepareExtras,
   run: run,
   prepare: prepare,
   compile: compile,
