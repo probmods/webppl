@@ -38,8 +38,19 @@ many of them automatically using::
 
 To compile webppl for use in browser, run::
 
-    npm install -g browserify
-    browserify -t brfs src/browser.js > compiled/webppl.js
+    npm install -g browserify uglifyjs
+    cd compiled
+    make clean
+    make
+
+Then, to run the browser tests use::
+
+    make test
+
+The tests will run in the default browser. Specify a different browser
+using the ``BROWSER`` environment variable. For example::
+
+    BROWSER="Google Chrome" make test
 
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
