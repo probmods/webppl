@@ -26,7 +26,7 @@
     "minimist": "^1.1.1",
     "numeric": "~1.2.6",
     "priorityqueuejs": "~1.0.0",
-    "sweet.js": "null-a/sweet.js#browserify",
+    "sweet.js": "probmods/sweet.js#browserify",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
