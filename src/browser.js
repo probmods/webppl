@@ -23,11 +23,13 @@ packages.forEach(function(pkg) {
 });
 
 function run(code, k, verbose) {
-  return webppl.run(code, k, webppl.parsePackageCode(packages), verbose);
+  var extra = webppl.parsePackageCode(packages);
+  return webppl.run(code, k, { extra: extra, verbose: verbose });
 }
 
 function compile(code, verbose) {
-  return webppl.compile(code, webppl.parsePackageCode(packages), verbose);
+  var extra = webppl.parsePackageCode(packages);
+  return webppl.compile(code, { extra: extra, verbose: verbose });
 }
 
 function webpplCPS(code) {

@@ -18,7 +18,7 @@ var pkg2 = {
 var wpplRunWithPkgs = function(code, packages) {
   var val;
   var extra = webppl.parsePackageCode(packages);
-  webppl.run(code, function(s, v) { val = v; }, extra);
+  webppl.run(code, function(s, v) { val = v; }, { extra: extra });
   return val;
 };
 

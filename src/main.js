@@ -160,9 +160,10 @@ function compile(code, options) {
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
-function run(code, k, extra, verbose) {
-  var compiledCode = compile(code, { extra: extra, verbose: verbose });
-  util.timeif(verbose, 'run', function() {
+function run(code, k, options) {
+  var options = options || {};
+  var compiledCode = compile(code, options);
+  util.timeif(options.verbose, 'run', function() {
     eval.call(global, compiledCode)({}, k, '');
   });
 }
