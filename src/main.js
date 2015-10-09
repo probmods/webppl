@@ -98,7 +98,7 @@ function addHeaderMacrosToEachPair(pairs) {
   });
 }
 
-function parsePackageCode(packages) {
+function parsePackageCode(packages, verbose) {
   // Takes an array of packages and turns them into an array of ASTs
   // in which macros have been expanded. The contents of the header
   // are included at this stage.
@@ -106,16 +106,20 @@ function parsePackageCode(packages) {
   // As a convinience, an array of all macros (header + packages) is
   // also returned in preparation for parsing the main program.
   //
-  var allPackages = [headerPackage()].concat(packages || []).map(loadMacros);
-  var macros = _.chain(allPackages).pluck('macros').flatten().value();
+  function _parsePackageCode() {
+    var allPackages = [headerPackage()].concat(packages).map(loadMacros);
+    var macros = _.chain(allPackages).pluck('macros').flatten().value();
 
-  var asts = util.pipeline([
-    packagesToPairs,
-    addHeaderMacrosToEachPair,
-    parseAllPairs
-  ])(allPackages);
+    var asts = util.pipeline([
+      packagesToPairs,
+      addHeaderMacrosToEachPair,
+      parseAllPairs
+    ])(allPackages);
 
-  return { asts: asts, macros: macros };
+    return { asts: asts, macros: macros };
+  }
+
+  return util.timeif(verbose, 'parsePackageCode', _parsePackageCode);
 }
 
 function applyCaching(asts) {
@@ -128,7 +132,7 @@ function applyCaching(asts) {
 function compile(code, options) {
   var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
 
-  var extra = options.extra || parsePackageCode();
+  var extra = options.extra || parsePackageCode([], options.verbose);
   var transforms = options.transforms || [
     thunkify,
     naming,

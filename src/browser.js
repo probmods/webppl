@@ -23,12 +23,12 @@ packages.forEach(function(pkg) {
 });
 
 function run(code, k, verbose) {
-  var extra = webppl.parsePackageCode(packages);
+  var extra = webppl.parsePackageCode(packages, verbose);
   return webppl.run(code, k, { extra: extra, verbose: verbose });
 }
 
 function compile(code, verbose) {
-  var extra = webppl.parsePackageCode(packages);
+  var extra = webppl.parsePackageCode(packages, verbose);
   return webppl.compile(code, { extra: extra, verbose: verbose });
 }
 
