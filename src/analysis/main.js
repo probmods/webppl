@@ -22,6 +22,12 @@ var parse = require('./parser-combinator');
 var analyzeRefs = require('./analyze-refs').analyzeRefs;
 var isHeapRef = require('./analyze-refs').isHeapRef;
 
+var thunkify = require('../syntax').thunkify;
+var naming = require('../transforms/naming').naming;
+var cps = require('../transforms/cps').cps;
+var optimize = require('../transforms/optimize').optimize;
+
+var compile = require('../main').compile;
 
 var isHeapVar = null;
 
@@ -478,6 +484,15 @@ function analyzeMain(program) {
   }
 }
 
+function prepare(code, verbose) {
+  return compile(code, {
+    transforms: [thunkify, naming, cps, optimize],
+    verbose: verbose,
+    generateCode: false
+  });
+}
+
 module.exports = {
-  analyze: analyzeMain
+  analyze: analyzeMain,
+  prepare: prepare
 };

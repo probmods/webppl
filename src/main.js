@@ -125,59 +125,43 @@ function applyCaching(asts) {
   });
 }
 
-function compile(code, extra, verbose) {
-  var extra = extra || parsePackageCode();
+function compile(code, options) {
+  var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
+
+  var extra = options.extra || parsePackageCode();
+  var transforms = options.transforms || [
+    thunkify,
+    naming,
+    cps,
+    store,
+    optimize,
+    varargs,
+    trampoline
+  ];
 
   function _compile() {
     var programAst = parse(code, extra.macros);
     var asts = extra.asts.concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
-    if (verbose && doCaching) {
+    if (options.verbose && doCaching) {
       console.log('Caching transform will be applied.');
     }
-
-    var compilationPipeline = util.pipeline([
-      doCaching ? freevars : _.identity,
-      thunkify,
-      naming,
-      cps,
-      store,
-      optimize,
-      varargs,
-      trampoline
-    ]);
 
     return util.pipeline([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
-      compilationPipeline,
-      escodegen.generate
+      doCaching ? freevars : _.identity,
+      util.pipeline(transforms),
+      options.generateCode ? escodegen.generate : _.identity
     ])(asts);
   };
 
-  return util.timeif(verbose, 'compile', _compile);
-}
-
-function prepare(code, verbose) {
-  function _prepare() {
-    var extra = parsePackageCode();
-    var programAst = parse(code, extra.macros);
-    var asts = extra.asts.concat(programAst);
-    var preparationPipeline = util.pipeline([
-      thunkify,
-      naming,
-      cps,
-      optimize
-    ]);
-    return preparationPipeline(concatPrograms(asts));
-  }
-
-  return util.timeif(verbose, 'prepare', _prepare);
+  return util.timeif(options.verbose, 'compile', _compile);
 }
 
 function run(code, k, extra, verbose) {
-  var compiledCode = compile(code, extra, verbose);
+  var compiledCode = compile(code, { extra: extra, verbose: verbose });
   util.timeif(verbose, 'run', function() {
     eval.call(global, compiledCode)({}, k, '');
   });
@@ -194,7 +178,6 @@ module.exports = {
   requireHeaderWrapper: requireHeaderWrapper,
   parsePackageCode: parsePackageCode,
   run: run,
-  prepare: prepare,
   compile: compile,
   analyze: analyze
 };

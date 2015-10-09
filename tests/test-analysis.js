@@ -1,7 +1,6 @@
 'use strict';
 
-var prepare = require('../src/main').prepare;
-var analyze = require('../src/analysis/main').analyze;
+var analysis = require('../src/analysis/main');
 
 var Set = require('immutable').Set;
 
@@ -29,7 +28,7 @@ var tests = {
 
 function makeTest(t) {
   return function(test) {
-    var results = analyze(prepare(t.program));
+    var results = analysis.analyze(analysis.prepare(t.program));
 
     var values = results.finals.reduce(function(values, result) {
       return values.union(result.value);
