@@ -5,7 +5,6 @@
 var fs = require('fs');
 var esprima = require('esprima');
 var escodegen = require('escodegen');
-var _ = require('underscore');
 var webppl = require('./main');
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
