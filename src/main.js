@@ -55,8 +55,10 @@ function parse(code, macros) {
   return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
 }
 
-function parseExtra(extra) {
-  return parse(extra.wppl, extra.macros);
+function parseAllPairs(pairs) {
+  return pairs.map(function(pair) {
+    return parse(pair.code, pair.macros);
+  });
 }
 
 function loadMacros(pkg) {
@@ -66,31 +68,54 @@ function loadMacros(pkg) {
   };
 }
 
-function expandPackages(packages, headerMacros) {
-  // Returns an array with one entry for each wppl file in packages.
-  // Each entry is associated with the macros which will be applied to
-  // that file.
+function headerPackage() {
+  // Create a pseudo package from the header.
+  var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
+  var macroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
+  return { wppl: [code], macros: [macroModule] };
+}
+
+function packagesToPairs(packages) {
+  // Transform an array of packages into an array of pairs. A pair
+  // contains a string of WebPPL code and an array of macros required
+  // to parse that code.
+
+  // Package :: { wppl: [String], macros: [LoadedMacroModule] }
+  // Pair :: { code: String, macros: [LoadedMacroModule] }
+
   return _.chain(packages).map(function(pkg) {
-    var macros = pkg.macros.concat(headerMacros);
     return pkg.wppl.map(function(wppl) {
-      return { wppl: wppl, macros: macros };
+      return { code: wppl, macros: pkg.macros };
     });
   }).flatten().value();
 }
 
-function prepareExtras(packages) {
+function addHeaderMacrosToEachPair(pairs) {
+  // This assumes that pair[0] is the content of the header.
+  assert.ok(pairs.length >= 1 && pairs[0].macros.length === 1);
+  var headerMacros = pairs[0].macros[0];
+  return pairs.map(function(pair) {
+    return { code: pair.code, macros: pair.macros.concat(headerMacros) };
+  });
+}
+
+function parsePackageCode(packages) {
   // Takes an array of packages and turns them into an array of ASTs
-  // (one for each wppl file plus one for the header) where macros
-  // have been expanded. Also collects together all macros in
-  // preparation for parsing the program.
-  var packages = (packages !== undefined) ? packages.map(loadMacros) : [];
-  var headerCode = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
-  var headerModule = sweet.loadModule(fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8'));
-  var packageModules = _.chain(packages).pluck('macros').flatten().value();
-  var headerExtra = { wppl: headerCode, macros: [headerModule] };
-  var packageExtras = expandPackages(packages, headerModule);
-  var asts = [headerExtra].concat(packageExtras).map(parseExtra);
-  var macros = [headerModule].concat(packageModules);
+  // in which macros have been expanded. The contents of the header
+  // are included at this stage.
+  //
+  // As a convinience, an array of all macros (header + packages) is
+  // also returned in preparation for parsing the main program.
+  //
+  var allPackages = [headerPackage()].concat(packages || []).map(loadMacros);
+  var macros = _.chain(allPackages).pluck('macros').flatten().value();
+
+  var asts = util.pipeline([
+    packagesToPairs,
+    addHeaderMacrosToEachPair,
+    parseAllPairs
+  ])(allPackages);
+
   return { asts: asts, macros: macros };
 }
 
@@ -114,12 +139,12 @@ function applyCaching(asts) {
   });
 }
 
-function compile(code, extras, verbose) {
-  var extras = extras || prepareExtras();
+function compile(code, extra, verbose) {
+  var extra = extra || parsePackageCode();
 
   function _compile() {
-    var programAst = parse(code, extras.macros);
-    var asts = extras.asts.concat(programAst);
+    var programAst = parse(code, extra.macros);
+    var asts = extra.asts.concat(programAst);
     var doCaching = _.any(asts, cachingRequired);
 
     if (verbose && doCaching) {
@@ -150,9 +175,9 @@ function compile(code, extras, verbose) {
 
 function prepare(code, verbose) {
   function _prepare() {
-    var extras = prepareExtras();
-    var programAst = parse(code, extras.macros);
-    var asts = extras.asts.concat(programAst);
+    var extra = parsePackageCode();
+    var programAst = parse(code, extra.macros);
+    var asts = extra.asts.concat(programAst);
     var preparationPipeline = util.pipeline([
       thunkify,
       naming,
@@ -165,8 +190,8 @@ function prepare(code, verbose) {
   return util.timeif(verbose, 'prepare', _prepare);
 }
 
-function run(code, k, extras, verbose) {
-  var compiledCode = compile(code, extras, verbose);
+function run(code, k, extra, verbose) {
+  var compiledCode = compile(code, extra, verbose);
   util.timeif(verbose, 'run', function() {
     eval.call(global, compiledCode)({}, k, '');
   });
@@ -181,7 +206,7 @@ global.webpplEval = function(s, k, a, code) {
 module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
-  prepareExtras: prepareExtras,
+  parsePackageCode: parsePackageCode,
   run: run,
   prepare: prepare,
   compile: compile,

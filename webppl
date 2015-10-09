@@ -30,7 +30,7 @@ function run(code, packages, verbose) {
         console.log('\n* Program return value:\n');
         printWebPPLValue(x);
       },
-      webppl.prepareExtras(packages),
+      webppl.parsePackageCode(packages),
       verbose);
 }
 
@@ -43,14 +43,14 @@ function compile(code, packages, verbose, outputFile) {
     });
   });
 
-  var extras = webppl.prepareExtras(packages);
+  var extra = webppl.parsePackageCode(packages);
 
   compiledCode += (
       printWebPPLValue.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +
       ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + webppl.compile(code, extras, verbose) + '\n\n';
+  compiledCode += 'var main = ' + webppl.compile(code, extra, verbose) + '\n\n';
   compiledCode += "main({}, topK, '');";
   // Write Javascript code to file
   fs.writeFile(
