@@ -2,11 +2,12 @@
 
 var _ = require('underscore');
 
-var Syntax = require('estraverse').Syntax;
-var replace = require('estraverse').replace;
+var estraverse = require('estraverse');
 var build = require('ast-types').builders;
 var types = require('ast-types').types;
 var isPrimitive = require('../syntax').isPrimitive;
+
+var Syntax = estraverse.Syntax;
 
 var cacheExempt = [
   'flip',
@@ -63,9 +64,23 @@ function exit(node) {
 }
 
 function cachingMain(node) {
-  return replace(node, { leave: exit });
+  return estraverse.replace(node, { leave: exit });
+}
+
+function transformRequired(programAST) {
+  var flag = false;
+  estraverse.traverse(programAST, {
+    enter: function(node) {
+      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+        flag = true;
+        this.break();
+      }
+    }
+  });
+  return flag;
 }
 
 module.exports = {
-  caching: cachingMain
+  transform: cachingMain,
+  transformRequired: transformRequired
 };

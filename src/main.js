@@ -5,7 +5,6 @@ var types = require('ast-types');
 var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
-var estraverse = require('estraverse');
 var assert = require('assert');
 var _ = require('underscore');
 var sweet = require('sweet.js');
@@ -17,7 +16,7 @@ var store = require('./transforms/store').store;
 var varargs = require('./transforms/varargs').varargs;
 var trampoline = require('./transforms/trampoline').trampoline;
 var freevars = require('./transforms/freevars').freevars;
-var caching = require('./transforms/caching').caching;
+var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
@@ -119,23 +118,10 @@ function parsePackageCode(packages) {
   return { asts: asts, macros: macros };
 }
 
-function cachingRequired(programAST) {
-  var flag = false;
-  estraverse.traverse(programAST, {
-    enter: function(node) {
-      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
-        flag = true;
-        this.break();
-      }
-    }
-  });
-  return flag;
-}
-
 function applyCaching(asts) {
   // This assume that asts[0] is the header.
   return asts.map(function(ast, i) {
-    return i > 0 ? caching(ast) : ast;
+    return i > 0 ? caching.transform(ast) : ast;
   });
 }
 
@@ -145,7 +131,7 @@ function compile(code, extra, verbose) {
   function _compile() {
     var programAst = parse(code, extra.macros);
     var asts = extra.asts.concat(programAst);
-    var doCaching = _.any(asts, cachingRequired);
+    var doCaching = _.any(asts, caching.transformRequired);
 
     if (verbose && doCaching) {
       console.log('Caching transform will be applied.');
