@@ -18,12 +18,9 @@ function resetRNG() {
   rng = Math.random;
 }
 
-function getRandomSeedFromEnv() {
-  if (process.env.RANDOM_SEED) {
-    var seed = parseInt(process.env.RANDOM_SEED);
-    assert(_.isFinite(seed), 'Random seed should be an integer.');
-    return seed;
-  }
+function assertValidRandomSeed(seed) {
+  var msg = 'Random seed should be a positive integer.';
+  assert(_.isFinite(seed) && seed >= 0, msg);
 }
 
 function runningInBrowser() {
@@ -212,11 +209,30 @@ function deserialize(o) {
   return JSON.parse(o, InfFromJSON);
 }
 
+function time(name, thunk) {
+  if (console.time) {
+    console.time(name);
+    var ret = thunk();
+    console.timeEnd(name);
+    return ret;
+  } else {
+    return thunk();
+  }
+}
+
+function timeif(bool, name, thunk) {
+  return bool ? time(name, thunk) : thunk();
+}
+
+function pipeline(fns) {
+  return _.compose.apply(null, fns.reverse());
+}
+
 module.exports = {
   random: random,
   seedRNG: seedRNG,
   resetRNG: resetRNG,
-  getRandomSeedFromEnv: getRandomSeedFromEnv,
+  assertValidRandomSeed: assertValidRandomSeed,
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
@@ -236,5 +252,7 @@ module.exports = {
   sum: sum,
   asArray: asArray,
   serialize: serialize,
-  deserialize: deserialize
+  deserialize: deserialize,
+  timeif: timeif,
+  pipeline: pipeline
 };

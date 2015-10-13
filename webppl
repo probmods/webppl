@@ -22,10 +22,6 @@ function run(code, packages, verbose) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
-    pkg.wppl.forEach(function(fn) {
-      var wppl = fs.readFileSync(fn, 'utf8');
-      code = wppl + ';' + code;
-    });
   });
 
   webppl.run(
@@ -34,7 +30,10 @@ function run(code, packages, verbose) {
         console.log('\n* Program return value:\n');
         printWebPPLValue(x);
       },
-      verbose);
+      {
+        extra: webppl.parsePackageCode(packages, verbose),
+        verbose: verbose
+      });
 }
 
 function compile(code, packages, verbose, outputFile) {
@@ -44,18 +43,16 @@ function compile(code, packages, verbose, outputFile) {
     pkg.headers.forEach(function(header) {
       compiledCode += 'webppl.requireHeader("' + header + '");\n';
     });
-    pkg.wppl.forEach(function(fn) {
-      var wppl = fs.readFileSync(fn, 'utf8');
-      code = wppl + ';' + code;
-    });
   });
+
+  var compileOptions = { extra: webppl.parsePackageCode(packages, verbose), verbose: verbose };
 
   compiledCode += (
       printWebPPLValue.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +
       ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + webppl.compile(code, verbose) + '\n\n';
+  compiledCode += 'var main = ' + webppl.compile(code, compileOptions) + '\n\n';
   compiledCode += "main({}, topK, '');";
   // Write Javascript code to file
   fs.writeFile(
@@ -92,7 +89,8 @@ function main() {
   // Return if no file argument given
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
-    console.log('webppl program.wppl [--compile] [--out compiled.js] [--require path]');
+    console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
+                '[--require path] [--random-seed int]');
     return;
   }
 
@@ -110,11 +108,12 @@ function main() {
   ];
 
   var packages = util.asArray(argv.require).map(function(name_or_path) {
-    return pkg.read(name_or_path, packagePaths, argv.verbose)
+    return pkg.load(pkg.read(name_or_path, packagePaths, argv.verbose));
   });
 
-  var seed = util.getRandomSeedFromEnv();
+  var seed = argv['random-seed'];
   if (seed !== undefined) {
+    util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
   }
 

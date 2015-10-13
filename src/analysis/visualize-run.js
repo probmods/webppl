@@ -1,7 +1,7 @@
 'use strict';
 
-var prepare = require('../main').prepare;
-var analyze = require('../main').analyze;
+var prepare = require('./main').prepare;
+var analyze = require('./main').analyze;
 var vizualize = require('./visualize').vizualize;
 
 process.stdin.setEncoding('utf8');

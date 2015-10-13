@@ -7,7 +7,7 @@ Running webppl programs::
 
 Seeding the random number generator::
 
-    RANDOM_SEED=2344512342 webppl examples/lda.wppl
+    webppl examples/lda.wppl --random-seed 2344512342
 
 Compiling webppl programs to Javascript::
 

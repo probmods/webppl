@@ -1,6 +1,6 @@
 HOW TO USE IT
 
-The top level of the control-flow analysis is the 'analyze' function in the 'analysis/main' module. This function takes a named, CPS'd AST (which 'prepare' of the 'main' module produces given a literal program) and produces a relation over abstract program states along with some information about the relation itself. All this is encoded as a JS object naming this information. These parts are
+The top level of the control-flow analysis is the 'analyze' function in the 'analysis/main' module. This function takes a named, CPS'd AST (which 'prepare' of the 'analysis/main' module produces given a literal program) and produces a relation over abstract program states along with some information about the relation itself. All this is encoded as a JS object naming this information. These parts are
 
 - 'seen': the set of abstract states over which the relation is defined
 - 'calls': a map from an abstract entry point to a set of abstract call points

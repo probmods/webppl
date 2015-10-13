@@ -113,7 +113,13 @@ module.exports = function(env) {
       tabbedlog(4, this.depth, 'no, ERP params have not changed');
       tabbedlog(5, this.depth, 'params:', this.params);
     }
-    return this.kontinue();
+    // Bail out early if we know proposal will be rejected
+    if (this.score === -Infinity) {
+      tabbedlog(4, this.depth, 'score became -Infinity; bailing out early');
+      return this.coroutine.exit();
+    } else {
+      return this.kontinue();
+    }
   };
 
   ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
@@ -178,10 +184,6 @@ module.exports = function(env) {
     var oldscore = this.score;
     updateProperty(this, 'score', this.erp.score(this.params, this.val));
     this.coroutine.score += this.score - oldscore;
-    if (this.score === -Infinity) {
-      tabbedlog(4, this.depth, 'score became -Infinity; bailing out early');
-      return this.coroutine.exit();
-    }
   };
 
   // ------------------------------------------------------------------
