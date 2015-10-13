@@ -5,7 +5,6 @@
 var fs = require('fs');
 var esprima = require('esprima');
 var escodegen = require('escodegen');
-
 var webppl = require('./main');
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
@@ -23,14 +22,14 @@ packages.forEach(function(pkg) {
   pkg.headers.forEach(webppl.requireHeaderWrapper);
 });
 
-var wpplExtra = packages.map(function(pkg) { return pkg.wppl.join(';'); }).join(';');
-
 function run(code, k, verbose) {
-  return webppl.run(wpplExtra + code, k, verbose);
+  var extra = webppl.parsePackageCode(packages, verbose);
+  return webppl.run(code, k, { extra: extra, verbose: verbose });
 }
 
 function compile(code, verbose) {
-  return webppl.compile(wpplExtra + code, verbose);
+  var extra = webppl.parsePackageCode(packages, verbose);
+  return webppl.compile(code, { extra: extra, verbose: verbose });
 }
 
 function webpplCPS(code) {

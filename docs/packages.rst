@@ -2,7 +2,7 @@ WebPPL Packages
 ===============
 
 WebPPL packages are regular Node.js packages optionally extended to
-include WebPPL code and headers.
+include WebPPL code, macros and headers.
 
 To make a package available in your program use the ``--require``
 argument::
@@ -21,7 +21,7 @@ Packages can be loaded from other locations by passing a path::
 
     webppl myFile.wppl --require ../myPackage
 
-Packages can extend WebPPL in three ways:
+Packages can extend WebPPL in several ways:
 
 WebPPL code
 -----------
@@ -35,6 +35,33 @@ You can automatically prepend WebPPL files to your code by added a
         "wppl": ["myLibrary.wppl"]
       }
     }
+
+Macros
+------
+
+`sweet.js`_ modules can be included in a package as follows:
+
+1. Add a file containing the macros to the package::
+
+    // macros.sjs
+    macro m { /* ... */ }
+    export m;
+
+Note that macros must be exported explicitly using the ``export``
+keyword. See the `sweet.js module documentation`_ for further details.
+
+2. Add a ``macros`` entry to ``package.json``::
+
+    {
+      "name": "my-package",
+      "webppl": {
+        "macros": ["macros.sjs"]
+      }
+    }
+
+These macros will be visible to the WebPPL program which is been run
+or compiled, and to any WebPPL code within the same package. They will
+not be visible to WebPPL code in other packages.
 
 Javascript functions and libraries
 ----------------------------------
@@ -118,3 +145,6 @@ available in WebPPL:
         };
 
         foo();
+
+.. _sweet.js: http://sweetjs.org
+.. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules

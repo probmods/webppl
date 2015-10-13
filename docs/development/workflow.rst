@@ -55,7 +55,7 @@ using the ``BROWSER`` environment variable. For example::
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
 
-    browserify -t [./src/bundle.js --require webppl-viz] -t brfs src/browser.js > compiled/webppl.js
+    browserify -t [./src/bundle.js --require webppl-viz] -g brfs src/browser.js > compiled/webppl.js
 
 Multiple ``--require`` arguments can be used to include multiple
 packages.

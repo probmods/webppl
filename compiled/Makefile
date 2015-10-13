@@ -14,7 +14,7 @@ $(MINIFIED): $(BROWSERIFIED)
 	uglifyjs $< -b ascii_only=true,beautify=false > $@
 
 $(BROWSERIFIED): $(SRCFILES)
-	browserify -t brfs $(MAINFILE) > $@
+	browserify -g brfs $(MAINFILE) > $@
 
 test: $(BROWSERIFIED)
 	node -e "require('open')(process.argv[1], process.env.BROWSER)" $(TESTS)

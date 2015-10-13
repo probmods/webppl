@@ -53,7 +53,8 @@ var read = function(name_or_path, paths, verbose) {
           name: name,
           js: isJsModule(candidate) && { identifier: toCamelCase(name), path: candidate },
           headers: _.map(manifest.headers, joinPath),
-          wppl: _.map(manifest.wppl, joinPath)
+          wppl: _.map(manifest.wppl, joinPath),
+          macros: _.map(manifest.macros, joinPath)
         };
       } else {
         return readFirst(candidates.slice(1));
@@ -70,6 +71,15 @@ var read = function(name_or_path, paths, verbose) {
   return log(readFirst(allCandidates))
 };
 
+var load = function(pkg) {
+  return {
+    js: pkg.js,
+    headers: pkg.headers,
+    wppl: pkg.wppl.map(function(fn) { return fs.readFileSync(fn); }),
+    macros: pkg.macros.map(function(fn) { return fs.readFileSync(fn); })
+  };
+};
+
 var wrapWithQuotes = function(s) { return '"' + s + '"'; };
 var wrapWithRequire = function(s) { return 'require("' + s + '")'; };
 var wrapWithReadFile = function(s) { return 'fs.readFileSync("' + s + '", "utf8")'; };
@@ -79,7 +89,8 @@ var wrappers = {
   name: wrapWithQuotes,
   headers: wrapWithRequire,
   path: wrapWithRequire,
-  wppl: wrapWithReadFile
+  wppl: wrapWithReadFile,
+  macros: wrapWithReadFile
 };
 
 // Recursively transform a package (as returned by read) into an expression
@@ -100,6 +111,7 @@ var stringify = function(obj, lastSeenKey) {
 
 module.exports = {
   read: read,
+  load: load,
   stringify: stringify,
   globalPkgDir: globalPkgDir
 };
