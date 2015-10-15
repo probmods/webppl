@@ -102,8 +102,8 @@ ERP.prototype.print = function() {
     console.log('ERP:');
     var json = this.toJSON();
     _.zip(json.probs, json.support)
-      .sort(function(a, b) { return b[0] - a[0]; })
-      .forEach(function(val) {
+        .sort(function(a, b) { return b[0] - a[0]; })
+        .forEach(function(val) {
           console.log('    ' + util.serialize(val[1]) + ' : ' + val[0]);
         });
   } else {

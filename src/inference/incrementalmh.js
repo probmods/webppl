@@ -542,12 +542,12 @@ module.exports = function(env) {
 
   ArrayERPMasterList.prototype.size = function() { return this.erpNodes.length; }
       ArrayERPMasterList.prototype.oldSize = function() {
-    return this.oldErpNodes === undefined ? undefined : this.oldErpNodes.length;
-  }
+        return this.oldErpNodes === undefined ? undefined : this.oldErpNodes.length;
+      }
 
-  ArrayERPMasterList.prototype.addERP = function(node) {
-    this.erpNodes.push(node);
-  };
+      ArrayERPMasterList.prototype.addERP = function(node) {
+        this.erpNodes.push(node);
+      };
 
   ArrayERPMasterList.prototype.removeERP = function(node) {
     // Set it up to be removed as a post-process
@@ -586,11 +586,11 @@ module.exports = function(env) {
       HashtableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
 
       HashtableERPMasterList.prototype.addERP = function(node) {
-    this.erpNodeMap.put(node.address, node);
-    this.erpsAdded.push(node);
-    this.numErps++;
-    // this.checkConsistency("addERP");
-  };
+        this.erpNodeMap.put(node.address, node);
+        this.erpsAdded.push(node);
+        this.numErps++;
+        // this.checkConsistency("addERP");
+      };
 
   HashtableERPMasterList.prototype.removeERP = function(node) {
     this.erpNodeMap.remove(node.address);
@@ -610,19 +610,19 @@ module.exports = function(env) {
   HashtableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
 
       HashtableERPMasterList.prototype.restoreOnReject = function() {
-    // this.checkConsistency("restoreOnReject");
-    this.numErps = this.oldNumErps;
-    var n = this.erpsAdded.length;
-    while (n--) {
-      var node = this.erpsAdded[n];
-      this.erpNodeMap.remove(node.address);
-    }
-    n = this.erpsRemoved.length;
-    while (n--) {
-      var node = this.erpsRemoved[n];
-      this.erpNodeMap.put(node.address, node);
-    }
-  };
+        // this.checkConsistency("restoreOnReject");
+        this.numErps = this.oldNumErps;
+        var n = this.erpsAdded.length;
+        while (n--) {
+          var node = this.erpsAdded[n];
+          this.erpNodeMap.remove(node.address);
+        }
+        n = this.erpsRemoved.length;
+        while (n--) {
+          var node = this.erpsRemoved[n];
+          this.erpNodeMap.put(node.address, node);
+        }
+      };
 
   // For debugging
   HashtableERPMasterList.prototype.checkConsistency = function(tag) {
