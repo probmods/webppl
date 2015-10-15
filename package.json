@@ -30,7 +30,7 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "brfs": "0.0.8",
+    "brfs": "1.4.1",
     "closure-linter-wrapper": "^1.0.1",
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.11.3",
