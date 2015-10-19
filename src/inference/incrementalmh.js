@@ -747,6 +747,8 @@ module.exports = function(env) {
     var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
     var lag = opts.lag === undefined ? 0 : opts.lag;
     var iterFuseLength = opts.cacheIterFuseLength === undefined ? 10 : opts.cacheIterFuseLength;
+    var burn = opts.burn === undefined ? 0 : opts.burn;
+    var verboseLag = opts.verboseLag === undefined ? 1 : opts.verboseLag;
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
     //    caching, so disable adaptation in this case.
@@ -772,6 +774,8 @@ module.exports = function(env) {
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
     this.lag = lag;
+    this.burn = burn;
+    this.verboseLag = verboseLag;
 
     this.doFullRerun = doFullRerun;
 
@@ -846,10 +850,15 @@ module.exports = function(env) {
       if (!this.isInitialized() && this.score === -Infinity) {
         return this.run();
       } else {
-        debuglog(1, 'iteration', (this.totalIterations - this.iterations));
-        if (this.verbose)
-          console.log('IncrementalMH iteration ' + (this.totalIterations - this.iterations) +
-              ' / ' + this.totalIterations);
+        var iternum = this.totalIterations - this.iterations;
+        debuglog(1, 'iteration', iternum);
+        if (this.verbose && (this.iterations % this.verboseLag === 0)) {
+          if  (iternum > this.burn) {
+            console.log('IncrementalMH iteration ' + (iternum-this.burn) + ' / ' + (this.totalIterations - this.burn));
+          } else {
+            console.log('IncrementalMH burnin ' + iternum + ' / ' + this.burn);
+          }
+        }
         // Continue proposing as normal
         this.iterations--;
 
@@ -883,9 +892,8 @@ module.exports = function(env) {
         var val = this.cacheRoot.retval;
         debuglog(1, 'return val:', val);
 
-        // Record this sample, if lag allows for it
-        var iternum = this.totalIterations - this.iterations;
-        if (iternum % (this.lag + 1) === 0) {
+        // Record this sample, if lag allows for it and not in burnin period
+        if ((iternum % (this.lag + 1) === 0) && (iternum > this.burn)) {
           // Replace val with accumulated query, if need be.
           if (val === env.query)
             val = this.query.getTable();
