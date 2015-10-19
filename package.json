@@ -26,6 +26,7 @@
     "minimist": "^1.2.0",
     "numeric": "^1.2.6",
     "priorityqueuejs": "~1.0.0",
+    "seedrandom": "^2.4.2",
     "sweet.js": "probmods/sweet.js#browserify",
     "underscore": "^1.8.3"
   },
@@ -38,7 +39,6 @@
     "grunt-gjslint": "^0.2.0",
     "nodeunit": "^0.9.1",
     "open": "0.0.5",
-    "seedrandom": "^2.4.2",
     "through2": "^2.0.0"
   },
   "scripts": {
