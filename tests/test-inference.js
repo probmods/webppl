@@ -49,7 +49,6 @@ var tests = [
       store: { hist: { tol: 0 } },
       geometric: { args: [10] },
       cache: true,
-      stochasticCache: true,
       withCaching: true,
       optionalErpParams: true
     }
