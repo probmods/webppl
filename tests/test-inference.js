@@ -9,7 +9,6 @@ var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
 
-
 var testDataDir = './tests/test-data/stochastic/';
 
 var tests = [
@@ -322,7 +321,7 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return _.isArray(args) ? args.map(JSON.stringify) : JSON.stringify(args);
+  return _.isArray(args) ? args.map(util.serialize) : util.serialize(args);
 };
 
 var testFunctions = {
@@ -355,7 +354,7 @@ var testFunctions = {
 var getHist = function(erp) {
   var hist = {};
   erp.support().forEach(function(value) {
-    hist[JSON.stringify(value)] = Math.exp(erp.score([], value));
+    hist[util.serialize(value)] = Math.exp(erp.score([], value));
   });
   return util.normalizeHist(hist);
 };

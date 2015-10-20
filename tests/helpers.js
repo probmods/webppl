@@ -4,7 +4,7 @@ var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
 var webppl = require('../src/main');
-
+var serialize = require('../src/util').serialize
 
 var getModelNames = function(testDataDir) {
   var filenames = fs.readdirSync(testDataDir + 'models/');
@@ -22,8 +22,8 @@ var loadExpected = function(testDataDir, modelName) {
 };
 
 var testEqual = function(test, actual, expected, name) {
-  var msg = ['Expected ', name, ': ', JSON.stringify(expected),
-             ', actual: ', JSON.stringify(actual)].join('');
+  var msg = ['Expected ', name, ': ', serialize(expected),
+             ', actual: ', serialize(actual)].join('');
   test.ok(_.isEqual(actual, expected), msg);
 };
 

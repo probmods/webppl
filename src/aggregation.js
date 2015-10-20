@@ -8,7 +8,7 @@ var Histogram = function() {
 };
 
 Histogram.prototype.add = function(value) {
-  var k = JSON.stringify(value);
+  var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { prob: 0, val: value };
   }

@@ -10,6 +10,7 @@
 
 var erp = require('../erp');
 var assert = require('assert');
+var util = require('../util')
 
 module.exports = function(env) {
 
@@ -62,7 +63,7 @@ module.exports = function(env) {
 
     if (this.scoreSoFar > this.threshold) {
       // Accept.
-      var r = JSON.stringify(retval);
+      var r = util.serialize(retval);
       if (this.hist[r] === undefined) {
         this.hist[r] = { prob: 0, val: retval };
       }

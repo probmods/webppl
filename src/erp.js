@@ -84,7 +84,7 @@ ERP.prototype.isSerializeable = function() {
   return this.support && !this.parameterized;
 };
 
-// ERP serializer (allows JSON.stringify)
+// ERP serializer
 ERP.prototype.toJSON = function() {
   if (this.isSerializeable()) {
     var support = this.support([]);
@@ -548,7 +548,7 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     score: function(params, val) {
-      var lk = marginal[JSON.stringify(val)];
+      var lk = marginal[util.serialize(val)];
       return lk ? Math.log(lk.prob) : -Infinity;
     },
     support: function(params) {
@@ -565,14 +565,14 @@ function makeMarginalERP(marginal) {
 // note: ps is expected to be normalized
 var makeCategoricalERP = function(ps, vs, extraParams) {
   var dist = {};
-  vs.forEach(function(v, i) {dist[JSON.stringify(v)] = {val: v, prob: ps[i]}})
+  vs.forEach(function(v, i) {dist[util.serialize(v)] = {val: v, prob: ps[i]}})
   var categoricalSample = vs.length === 1 ?
       function(params) { return vs[0]; } :
       function(params) { return vs[multinomialSample(ps)]; };
   return new ERP(_.extendOwn({
     sample: categoricalSample,
     score: function(params, val) {
-      var lk = dist[JSON.stringify(val)];
+      var lk = dist[util.serialize(val)];
       return lk ? Math.log(lk.prob) : -Infinity;
     },
     support: function(params) { return vs; },
@@ -583,9 +583,9 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
 
 // Make a parameterized ERP that selects among multiple (unparameterized) ERPs
 var makeMultiplexERP = function(vs, erps) {
-  var stringifiedVals = vs.map(JSON.stringify);
+  var stringifiedVals = vs.map(util.serialize);
   var selectERP = function(params) {
-    var stringifiedV = JSON.stringify(params[0]);
+    var stringifiedV = util.serialize(params[0]);
     var i = _.indexOf(stringifiedVals, stringifiedV);
     if (i === -1) {
       return undefined;
