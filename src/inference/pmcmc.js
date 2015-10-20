@@ -5,6 +5,7 @@
 
 var _ = require('underscore');
 var erp = require('../erp');
+var util = require('../util')
 
 module.exports = function(env) {
 
@@ -167,7 +168,7 @@ module.exports = function(env) {
       if (this.sweep > 0) {
         this.particles.concat(this.retainedParticle).forEach(
             function(particle) {
-              var k = JSON.stringify(particle.value);
+              var k = util.serialize(particle.value);
               if (this.returnHist[k] === undefined) {
                 this.returnHist[k] = {prob: 0, val: particle.value};
               }

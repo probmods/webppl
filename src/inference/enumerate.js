@@ -117,7 +117,7 @@ module.exports = function(env) {
 
   Enumerate.prototype.exit = function(s, retval) {
     // We have reached an exit of the computation. Accumulate probability into retval bin.
-    var r = JSON.stringify(retval);
+    var r = util.serialize(retval);
     if (this.score !== -Infinity) {
       if (this.marginal[r] === undefined) {
         this.marginal[r] = {val: retval, prob: -Infinity};

@@ -163,7 +163,7 @@ module.exports = function(env) {
     this.activeParticle.weight += Math.log(this.activeParticle.multiplicity);
     this.exitedParticles += 1;
 
-    var k = JSON.stringify(retval);
+    var k = util.serialize(retval);
     if (this.hist[k] === undefined) this.hist[k] = {prob: 0, val: retval};
     this.hist[k].prob += 1;
 

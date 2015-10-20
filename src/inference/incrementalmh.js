@@ -903,7 +903,7 @@ module.exports = function(env) {
             if (this.returnSamps)
               this.returnSamps.push({score: this.score, value: val})
             else {
-              var stringifiedVal = JSON.stringify(val);
+              var stringifiedVal = util.serialize(val);
               if (this.returnHist[stringifiedVal] === undefined) {
                 this.returnHist[stringifiedVal] = { prob: 0, val: val };
               }
@@ -948,7 +948,7 @@ module.exports = function(env) {
       var hist;
       if (this.returnSamps || this.onlyMAP) {
         hist = {};
-        hist[JSON.stringify(this.MAP.value)] = { prob: 1, val: this.MAP.value };
+        hist[util.serialize(this.MAP.value)] = { prob: 1, val: this.MAP.value };
       } else {
         hist = this.returnHist;
       }

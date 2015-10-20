@@ -1,5 +1,6 @@
 'use strict';
 
+var serialize = require('./util').serialize
 
 module.exports = function(env) {
 
@@ -16,7 +17,7 @@ module.exports = function(env) {
     var c = {};
     var cf = function(s, k, a) {
       var args = Array.prototype.slice.call(arguments, 3);
-      var stringedArgs = JSON.stringify(args);
+      var stringedArgs = serialize(args);
       if (stringedArgs in c) {
         return k(s, c[stringedArgs]);
       } else {
@@ -24,7 +25,7 @@ module.exports = function(env) {
           if (stringedArgs in c) {
             // This can happen when cache is used on recursive functions
             console.log('Already in cache:', stringedArgs);
-            if (JSON.stringify(c[stringedArgs]) !== JSON.stringify(r)) {
+            if (serialize(c[stringedArgs]) !== serialize(r)) {
               console.log('OLD AND NEW CACHE VALUE DIFFER!');
               console.log('Old value:', c[stringedArgs]);
               console.log('New value:', r);
