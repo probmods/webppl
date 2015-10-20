@@ -9,6 +9,7 @@ var Trace = function() {
   this.addressMap = {}; // Maps addresses => choices.
   this.length = 0;
   this.score = 0;
+  this.numFactors = 0; // The number of factors encountered so far.
 };
 
 Trace.prototype.choiceAtIndex = function(index) {
@@ -19,11 +20,10 @@ Trace.prototype.findChoice = function(address) {
   return this.addressMap[address];
 };
 
-Trace.prototype.saveContinuation = function(s, k, a) {
+Trace.prototype.saveContinuation = function(s, k) {
   this.store = s;
   this.k = k;
-  this.address = a;
-  //this.checkConsistency();
+  // this.checkConsistency();
 };
 
 Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
@@ -45,14 +45,15 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
     // need if we regen from this choice.
     score: this.score,
     val: val,
-    store: _.clone(store)
+    store: _.clone(store),
+    numFactors: this.numFactors
   };
 
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
   this.score += erp.score(params, val);
-  //this.checkConsistency();
+  // this.checkConsistency();
 };
 
 Trace.prototype.complete = function(value) {
@@ -60,11 +61,11 @@ Trace.prototype.complete = function(value) {
   assert.strictEqual(this.value, undefined);
   this.value = value;
   // Ensure any attempt to continue a completed trace fails in an obvious way.
-  this.k = this.store = this.address = undefined;
+  this.k = this.store = undefined;
 };
 
 Trace.prototype.isComplete = function() {
-  return this.k === undefined && this.store === undefined && this.address === undefined;
+  return this.k === undefined && this.store === undefined;
 };
 
 Trace.prototype.upto = function(i) {
@@ -77,7 +78,8 @@ Trace.prototype.upto = function(i) {
   t.choices.forEach(function(choice) { t.addressMap[choice.address] = choice; });
   t.length = t.choices.length;
   t.score = this.choices[i].score;
-  //t.checkConsistency();
+  t.numFactors = this.choices[i].numFactors;
+  // t.checkConsistency();
   return t;
 };
 
@@ -91,7 +93,8 @@ Trace.prototype.copy = function() {
   t.store = _.clone(this.store);
   t.address = this.address;
   t.value = this.value;
-  //t.checkConsistency();
+  t.numFactors = this.numFactors;
+  // t.checkConsistency();
   return t;
 };
 
@@ -101,7 +104,7 @@ Trace.prototype.checkConsistency = function() {
   this.choices.forEach(function(choice) {
     assert(_.has(this.addressMap, choice.address));
   }, this);
-  assert(this.value === undefined || (this.k === undefined && this.store === undefined && this.address === undefined));
+  assert(this.value === undefined || (this.k === undefined && this.store === undefined));
 };
 
 module.exports = Trace;

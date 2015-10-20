@@ -10,6 +10,7 @@ module.exports = function(env) {
   function MHKernel(k, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
+      exitFactor: 0,
       permissive: false
     });
 
@@ -20,8 +21,8 @@ module.exports = function(env) {
     this.k = k;
     this.oldTrace = oldTrace;
     this.reused = {};
-    this.exitAddress = options.exitAddress;
     this.proposalBoundary = options.proposalBoundary;
+    this.exitFactor = options.exitFactor;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -45,10 +46,11 @@ module.exports = function(env) {
     if (score === -Infinity) {
       return this.cont(this.oldTrace, false);
     }
+    this.trace.numFactors += 1;
     this.trace.score += score;
-    if (this.exitAddress === a) {
-      this.trace.saveContinuation(s, k, a);
-      return env.exit(s);
+    if (this.trace.numFactors === this.exitFactor) {
+      this.trace.saveContinuation(s, k);
+      return this.exit(s, undefined, true);
     }
     return k(s);
   };
@@ -81,13 +83,13 @@ module.exports = function(env) {
     return k(s, val);
   };
 
-  MHKernel.prototype.exit = function(s, val) {
-    if (!this.exitAddress) {
+  MHKernel.prototype.exit = function(s, val, earlyExit) {
+    if (!earlyExit) {
       this.trace.complete(val);
     } else {
-      // We're rejuvenating a particle - ensure that exitAddress was reached by
-      // checking that the continuation was saved.
-      assert(!this.trace.isComplete(), 'Particle missed exit address during rejuvenation.');
+      assert(this.trace.store);
+      assert(this.trace.k);
+      assert(!this.trace.isComplete());
     }
     var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
     var accept = util.random() < prob;

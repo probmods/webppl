@@ -203,6 +203,8 @@ var tests = [
       store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
+      varFactors1: true,
+      varFactors2: true,
       importance: true,
       importance2: { args: { particles: 3000, rejuvSteps: 10 } },
       importance3: true,

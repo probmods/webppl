@@ -13,7 +13,7 @@ module.exports = function(env) {
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
-      allowOutOfSyncRejuv: false
+      finalRejuv: true
     });
 
     if (!options.rejuvKernel) {
@@ -27,13 +27,15 @@ module.exports = function(env) {
     this.rejuvSteps = options.rejuvSteps;
     this.rejuvKernel = options.rejuvKernel;
     this.performRejuv = this.rejuvSteps > 0;
-    this.allowOutOfSyncRejuv = options.allowOutOfSyncRejuv;
+    this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
 
     this.particles = [];
     this.completeParticles = [];
     this.particleIndex = 0;
+
+    this.step = 0;
 
     var exitK = function(s) {
       return wpplFn(s, env.exit, a);
@@ -42,7 +44,7 @@ module.exports = function(env) {
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
       var trace = new Trace();
-      trace.saveContinuation(_.clone(s), exitK, a);
+      trace.saveContinuation(_.clone(s), exitK);
       this.particles.push(new Particle(trace));
     }
 
@@ -75,7 +77,8 @@ module.exports = function(env) {
   SMC.prototype.factor = function(s, k, a, score) {
     // Update particle.
     var particle = this.currentParticle();
-    particle.trace.saveContinuation(s, k, a);
+    particle.trace.numFactors += 1;
+    particle.trace.saveContinuation(s, k);
     particle.trace.score += score;
     particle.logWeight += score;
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
@@ -149,46 +152,51 @@ module.exports = function(env) {
     return allParticles;
   }
 
-  SMC.prototype.rejuvenateParticles = function(cont) {
+
+  SMC.prototype.rejuvenateParticles = function(particles, cont) {
     if (!this.performRejuv) {
-      return cont();
+      return cont(particles);
     }
-    assert(!this.particlesAreWeighted(), 'Cannot rejuvenate weighted particles.');
-    if (!this.allowOutOfSyncRejuv && this.particlesAreOutOfSync()) {
-      throw 'Cannot rejuvenate out of sync particles.';
-    }
+
+    assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
+
     return util.cpsForEach(
         function(p, i, ps, next) {
-          return this.rejuvenateParticle(next, i);
+          return this.rejuvenateParticle(next, p);
         }.bind(this),
-        cont,
-        this.particles
+        function() {
+          return cont(particles);
+        },
+        particles
     );
   };
 
-  SMC.prototype.rejuvenateParticle = function(cont, i) {
-    var exitAddress = this.particles[i].trace.address;
-    assert.notStrictEqual(exitAddress, undefined);
-    var kernelOptions = {
-      exitAddress: exitAddress,
-      proposalBoundary: this.particles[i].proposalBoundary
-    };
+  SMC.prototype.rejuvenateParticle = function(cont, particle) {
+    var kernelOptions = { proposalBoundary: particle.proposalBoundary };
+    if (this.performRejuv) {
+      kernelOptions.exitFactor = this.step;
+    }
     var kernel = _.partial(this.rejuvKernel, _, _, kernelOptions);
     var chain = repeatKernel(this.rejuvSteps, kernel);
     return chain(function(trace) {
-      this.particles[i].trace = trace;
+      particle.trace = trace;
       return cont();
-    }.bind(this), this.particles[i].trace);
+    }, particle.trace);
   };
 
-  SMC.prototype.particlesAreWeighted = function() {
-    var lw = _.first(this.particles).logWeight;
-    return _.any(this.particles, function(p) { return p.logWeight !== lw; });
+  SMC.prototype.particlesAreWeighted = function(particles) {
+    var lw = _.first(particles).logWeight;
+    return _.any(particles, function(p) { return p.logWeight !== lw; });
   };
 
-  SMC.prototype.particlesAreOutOfSync = function() {
-    var a = _.first(this.particles).trace.address;
-    return _.any(this.particles, function(p) { return p.trace.address !== a; });
+  SMC.prototype.particlesAreInSync = function(particles) {
+    // All particles are either at the step^{th} factor statement, or
+    // at the exit having encountered < than step factor statements.
+    return _.all(particles, function(p) {
+      var trace = p.trace;
+      return ((trace.isComplete() && trace.numFactors < this.step) ||
+              (!trace.isComplete() && trace.numFactors === this.step));
+    }.bind(this));
   };
 
   SMC.prototype.sync = function() {
@@ -199,23 +207,42 @@ module.exports = function(env) {
       this.advanceParticleIndex();
       return this.runCurrentParticle();
     } else {
-      this.debugLog('***** SYNC *****');
+      this.step += 1;
+      this.debugLog('***** sync :: step = ' + this.step + ' *****');
 
-      var resampledParticles = resampleParticles(this.allParticles());
+      // Resampling and rejuvenation are applied to all particles.
+      // Active and complete particles are combined here and
+      // re-partitioned after rejuvenation.
+      var allParticles = this.allParticles();
+      assert(this.particlesAreInSync(allParticles));
+      var resampledParticles = resampleParticles(allParticles);
       assert.strictEqual(resampledParticles.length, this.numParticles);
 
-      var p = _.partition(resampledParticles, function(p) { return p.trace.isComplete(); });
-      this.completeParticles = p[0];
-      this.particles = p[1];
+      var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
+        return acc + (p.trace.isComplete() ? 0 : 1);
+      }, 0);
 
-      this.debugLog('After resampling: active = ' + p[1].length + ', complete = ' + p[0].length + '\n');
-
-      if (this.particles.length > 0) {
+      if (numActiveParticles > 0) {
         // We still have active particles, wrap-around:
         this.particleIndex = 0;
-        return this.rejuvenateParticles(this.runCurrentParticle.bind(this));
+        return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
+          assert(this.particlesAreInSync(rejuvenatedParticles));
+
+          var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
+          this.completeParticles = p[0];
+          this.particles = p[1];
+          this.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
+
+          if (this.particles.length > 0) {
+            return this.runCurrentParticle();
+          } else {
+            return this.finish();
+          }
+        }.bind(this));
       } else {
         // All particles complete.
+        this.particles = [];
+        this.completeParticles = resampledParticles;
         return this.finish();
       }
     }
@@ -230,7 +257,7 @@ module.exports = function(env) {
   SMC.prototype.exit = function(s, val) {
     // Complete the trace.
     this.currentParticle().trace.complete(val);
-    this.debugLog('(' + this.particleIndex + ') Exit');
+    this.debugLog('(' + this.particleIndex + ') Exit | Value: ' + val);
     return this.sync();
   };
 
@@ -242,11 +269,7 @@ module.exports = function(env) {
 
     return util.cpsForEach(
         function(particle, i, ps, k) {
-          assert.strictEqual(particle.logWeight, logAvgW, 'Expected un-weighted particles.');
-          if (!this.performRejuv) {
-            hist.add(particle.trace.value);
-            return k();
-          } else {
+          if (this.performFinalRejuv) {
             // Final rejuvenation.
             var chain = repeatKernel(
                 this.rejuvSteps,
@@ -254,6 +277,9 @@ module.exports = function(env) {
                     this.rejuvKernel,
                     tapKernel(function(trace) { hist.add(trace.value); })));
             return chain(k, particle.trace);
+          } else {
+            hist.add(particle.trace.value);
+            return k();
           }
         }.bind(this),
         function() {
