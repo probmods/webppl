@@ -1,5 +1,6 @@
 'use strict';
 
+var _ = require('underscore');
 var erp = require('./erp');
 var util = require('./util');
 
@@ -8,6 +9,7 @@ var Histogram = function() {
 };
 
 Histogram.prototype.add = function(value) {
+  var value = untapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { prob: 0, val: value };
@@ -26,6 +28,7 @@ var MAP = function(retainSamples) {
 };
 
 MAP.prototype.add = function(value, score) {
+  var value = untapify(value);
   if (this.retainSamples) {
     this.samples.push(value);
   }
@@ -44,6 +47,16 @@ MAP.prototype.toERP = function() {
   }
   return erp;
 };
+
+// Recursively untapify objects.
+function untapify(x) {
+  // TODO: More robust way of checking whether x is a tape. (Push into ad.js?)
+  if (!_.isArray(x) && !_.isFunction(x) && _.isObject(x) && !x.primal) {
+    return _.mapObject(x, untapify);
+  } else {
+    return ad.untapify(x);
+  }
+}
 
 module.exports = {
   Histogram: Histogram,

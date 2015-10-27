@@ -25,7 +25,8 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var val = erp.sample(params);
+    var _val = erp.sample(ad.untapify(params));
+    var val = erp.isContinuous ? ad.tapify(_val) : _val;
     this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
@@ -34,7 +35,7 @@ module.exports = function(env) {
     if (score === -Infinity) {
       return this.fail();
     }
-    this.trace.score += score;
+    this.trace.score = ad.add(this.trace.score, score);
     return k(s);
   };
 

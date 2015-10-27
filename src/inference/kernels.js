@@ -7,6 +7,7 @@ var util = require('../util');
 module.exports = function(env) {
 
   var MH = require('./mhkernel')(env);
+  var HMC = require('./hmckernel')(env);
 
   function sequence(cont, runWppl, oldTrace, options) {
     var kernels = options.kernels;
@@ -23,7 +24,7 @@ module.exports = function(env) {
     return iter(cont, oldTrace, kernels);
   }
 
-  var kernels = { MH: MH, sequence: sequence };
+  var kernels = { MH: MH, HMC: HMC, sequence: sequence };
 
   function parseOptions(obj) {
 
@@ -94,7 +95,8 @@ module.exports = function(env) {
     tap: tap,
     sequence: seq,
     repeat: repeat,
-    MH: MH
+    MH: MH,
+    HMC: HMC
   };
 
 };

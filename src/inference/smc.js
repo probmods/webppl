@@ -59,9 +59,11 @@ module.exports = function(env) {
 
   SMC.prototype.sample = function(s, k, a, erp, params) {
     var importanceERP = erp.importanceERP || erp;
-    var val = importanceERP.sample(params);
-    var importanceScore = importanceERP.score(params, val);
-    var choiceScore = erp.score(params, val);
+    var _params = ad.untapify(params);
+    var _val = importanceERP.sample(_params);
+    var val = importanceERP.isContinuous ? ad.tapify(_val) : _val;
+    var importanceScore = importanceERP.score(_params, _val);
+    var choiceScore = erp.score(_params, _val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
@@ -76,8 +78,8 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.trace.numFactors += 1;
     particle.trace.saveContinuation(s, k);
-    particle.trace.score += score;
-    particle.logWeight += score;
+    particle.trace.score = ad.add(particle.trace.score, score);
+    particle.logWeight += ad.untapify(score);
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
   };

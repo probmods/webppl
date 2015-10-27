@@ -33,9 +33,7 @@ function ERP(obj) {
   _.extendOwn(this, obj);
 }
 
-ERP.prototype.isContinuous = function() {
-  return !this.support
-}
+ERP.prototype.isContinuous = false;
 
 ERP.prototype.MAP = function() {
   if (this.support === undefined)
@@ -136,7 +134,11 @@ var uniformERP = new ERP({
       return -Infinity;
     }
     return -Math.log(params[1] - params[0]);
-  }
+  },
+  support: function(params) {
+    return { lower: params[0], upper: params[1] };
+  },
+  isContinuous: true
 });
 
 var bernoulliERP = new ERP({
@@ -198,7 +200,11 @@ function gaussianScore(params, x) {
   return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
-var gaussianERP = new ERP({ sample: gaussianSample, score: gaussianScore });
+var gaussianERP = new ERP({
+  sample: gaussianSample,
+  score: gaussianScore,
+  isContinuous: true
+});
 
 function multivariateGaussianSample(params) {
   var mu = params[0];
@@ -224,7 +230,9 @@ function multivariateGaussianScore(params, x) {
 
 var multivariateGaussianERP = new ERP({
   sample: multivariateGaussianSample,
-  score: multivariateGaussianScore
+  score: multivariateGaussianScore,
+  // HACK: Avoid tapifying a matrix as it's not yet supported.
+  isContinuous: false
 });
 
 function sum(xs) {
@@ -296,7 +304,11 @@ var gammaERP = new ERP({
     var b = params[1];
     var x = val;
     return (a - 1) * Math.log(x) - x / b - logGamma(a) - a * Math.log(b);
-  }
+  },
+  support: function() {
+    return { lower: 0, upper: Infinity };
+  },
+  isContinuous: true
 });
 
 var exponentialERP = new ERP({
@@ -311,7 +323,8 @@ var exponentialERP = new ERP({
   },
   support: function(params) {
     return { lower: 0, upper: Infinity };
-  }
+  },
+  isContinuous: true
 });
 
 function logBeta(a, b) {
@@ -335,7 +348,8 @@ var betaERP = new ERP({
         (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
         -Infinity);
   },
-  support: { lower: 0, upper: 1 }
+  support: { lower: 0, upper: 1 },
+  isContinuous: true
 });
 
 function binomialG(x) {
@@ -470,7 +484,8 @@ var poissonERP = new ERP({
     var mu = params[0];
     var k = val;
     return k * Math.log(mu) - mu - lnfact(k);
-  }
+  },
+  isContinuous: false
 });
 
 function dirichletSample(params) {
@@ -504,7 +519,12 @@ function dirichletScore(params, val) {
   return logp;
 }
 
-var dirichletERP = new ERP({ sample: dirichletSample, score: dirichletScore });
+var dirichletERP = new ERP({
+  sample: dirichletSample,
+  score: dirichletScore,
+  // HACK: Avoid tapifying a vector as it's not yet supported.
+  isContinuous: false
+});
 
 function multinomialSample(theta) {
   var thetaSum = util.sum(theta);
@@ -649,7 +669,8 @@ function buildProposer(baseERP, getProposalParams) {
       var prevVal = params[1];
       var proposalParams = getProposalParams(baseParams, prevVal);
       return baseERP.score(proposalParams, val);
-    }
+    },
+    isContinuous: true
   });
 }
 
@@ -659,13 +680,15 @@ var dirichletProposerERP = buildProposer(dirichletERP, dirichletProposalParams);
 var gaussianDriftERP = new ERP({
   sample: gaussianERP.sample,
   score: gaussianERP.score,
-  proposer: gaussianProposerERP
+  proposer: gaussianProposerERP,
+  isContinuous: true
 });
 
 var dirichletDriftERP = new ERP({
   sample: dirichletERP.sample,
   score: dirichletERP.score,
-  proposer: dirichletProposerERP
+  proposer: dirichletProposerERP,
+  isContinuous: true
 });
 
 function withImportanceDist(s, k, a, erp, importanceERP) {

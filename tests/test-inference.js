@@ -187,7 +187,7 @@ var tests = [
     }
   },
   {
-    name: 'ParticleFilterRejuv',
+    name: 'ParticleFilterRejuvMH',
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
@@ -211,6 +211,26 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true
+    }
+  },
+  {
+    name: 'ParticleFilterRejuvHMC',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000, rejuvSteps: 10, rejuvKernel: 'HMC' }
+    },
+    models: {
+      simple: true,
+      deterministic: { hist: { tol: 0 } },
+      store: { hist: { tol: 0 } },
+      store2: { hist: { tol: 0 } },
+      drift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 }
+      }
     }
   },
   {
@@ -271,6 +291,60 @@ var tests = [
     }
   },
   {
+    name: 'HMC',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { samples: 1000, kernel: 'HMC' }
+    },
+    models: {
+      deterministic: true,
+      gaussianMean: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 }
+      }
+      // drift: {
+      //   mean: { tol: 0.3 },
+      //   std: { tol: 0.3 }
+      // }
+    }
+  },
+  {
+    name: 'HMC+MH',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: {
+        samples: 1000,
+        kernel: {
+          sequence: { kernels: ['HMC', { MH: { discreteOnly: true } }] }
+        }
+      }
+    },
+    models: {
+      simple: true,
+      cache: true,
+      deterministic: { hist: { tol: 0 } },
+      store: { hist: { tol: 0 } },
+      store2: { hist: { tol: 0 } },
+      geometric: true,
+      gaussianMean: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 }
+      },
+      // drift: {
+      //   mean: { tol: 0.3 },
+      //   std: { tol: 0.3 }
+      // },
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true,
+      query: true
+    }
+  },
+  {
     name: 'MHonlyMAP',
     func: 'MCMC',
     settings: {
@@ -290,7 +364,6 @@ var tests = [
       deterministic: { hist: { tol: 0 } }
     }
   }
-
 ];
 
 var wpplRunInference = function(modelName, testDef) {

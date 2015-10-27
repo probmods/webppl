@@ -11,7 +11,8 @@ module.exports = function(env) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,
-      permissive: false
+      permissive: false,
+      discreteOnly: false
     });
 
     if (!options.permissive) {
@@ -21,7 +22,11 @@ module.exports = function(env) {
     this.k = k;
     this.oldTrace = oldTrace;
     this.reused = {};
+
     this.proposalBoundary = options.proposalBoundary;
+    this.proposalFilter = options.discreteOnly ?
+        function(erp) { return !erp.isContinuous; } :
+        function(erp) { return true; };
     this.exitFactor = options.exitFactor;
 
     this.coroutine = env.coroutine;
@@ -29,13 +34,14 @@ module.exports = function(env) {
   }
 
   MHKernel.prototype.run = function() {
-    var numERP = this.oldTrace.length - this.proposalBoundary;
+    var indicies = proposeableIndicies(this.oldTrace, this.proposalBoundary, this.proposalFilter);
+    var numERP = indicies.length;
     if (numERP === 0) {
       return this.cont(this.oldTrace, true);
     }
     // Make a new proposal.
     env.query.clear();
-    this.regenFrom = this.proposalBoundary + Math.floor(util.random() * numERP);
+    this.regenFrom = indicies[Math.floor(util.random() * numERP)];
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
     return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
@@ -43,11 +49,11 @@ module.exports = function(env) {
 
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
-    if (score === -Infinity) {
+    if (ad.untapify(score) === -Infinity) {
       return this.cont(this.oldTrace, false);
     }
     this.trace.numFactors += 1;
-    this.trace.score += score;
+    this.trace.score = ad.add(this.trace.score, score);
     if (this.trace.numFactors === this.exitFactor) {
       this.trace.saveContinuation(s, k);
       return this.exit(s, undefined, true);
@@ -56,28 +62,30 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.sample = function(s, k, a, erp, params, forceSample) {
-    var val, prevChoice = this.oldTrace.findChoice(a);
+    var _val, val, prevChoice = this.oldTrace.findChoice(a);
 
     if (forceSample) {
       assert(prevChoice);
       var proposalErp = erp.proposer || erp;
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
-      val = proposalErp.sample(proposalParams);
+      _val = proposalErp.sample(ad.untapify(proposalParams));
+      val = proposalErp.isContinuous ? ad.tapify(_val) : _val;
       // Optimization: Bail early if same value is re-sampled.
-      if (prevChoice.val === val) {
+      if (!proposalErp.isContinuous && prevChoice.val === val) {
         return this.cont(this.oldTrace, true);
       }
     } else {
       if (prevChoice) {
-        val = prevChoice.val;
+        val = prevChoice.val; // Will be a tape if continuous.
         this.reused[a] = true;
       } else {
-        val = erp.sample(params);
+        _val = erp.sample(ad.untapify(params));
+        val = erp.isContinuous ? ad.tapify(_val) : _val;
       }
     }
 
     this.trace.addChoice(erp, params, val, a, s, k);
-    if (this.trace.score === -Infinity) {
+    if (ad.untapify(this.trace.score) === -Infinity) {
       return this.cont(this.oldTrace, false);
     }
     return k(s, val);
@@ -91,7 +99,10 @@ module.exports = function(env) {
       assert(this.trace.k);
       assert(!this.trace.isComplete());
     }
-    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
+    var prob = acceptProb(
+        this.trace, this.oldTrace,
+        this.regenFrom, this.reused,
+        this.proposalBoundary, this.proposalFilter);
     var accept = util.random() < prob;
     return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
@@ -105,22 +116,28 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary) {
+  function proposeableIndicies(trace, boundary, pred) {
+    return _.range(boundary, trace.length).filter(function(i) {
+      return pred(trace.choices[i].erp);
+    }, this);
+  }
+
+  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary, proposalFilter) {
     // assert.notStrictEqual(trace, undefined);
     // assert.notStrictEqual(oldTrace, undefined);
-    // assert(_.isNumber(trace.score));
-    // assert(_.isNumber(oldTrace.score));
+    // assert(_.isNumber(ad.untapify(trace.score)));
+    // assert(_.isNumber(ad.untapify(oldTrace.score)));
     // assert(_.isNumber(regenFrom));
     // assert(_.isNumber(proposalBoundary));
 
-    var fw = transitionProb(oldTrace, trace, regenFrom, reused, proposalBoundary);
-    var bw = transitionProb(trace, oldTrace, regenFrom, reused, proposalBoundary);
-    var p = Math.exp(trace.score - oldTrace.score + bw - fw);
+    var fw = transitionProb(oldTrace, trace, regenFrom, reused, proposalBoundary, proposalFilter);
+    var bw = transitionProb(trace, oldTrace, regenFrom, reused, proposalBoundary, proposalFilter);
+    var p = Math.exp(ad.untapify(trace.score) - ad.untapify(oldTrace.score) + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   }
 
-  function transitionProb(fromTrace, toTrace, regenFrom, reused, proposalBoundary) {
+  function transitionProb(fromTrace, toTrace, regenFrom, reused, proposalBoundary, proposalFilter) {
     // Proposed to ERP.
     var proposalErp, proposalParams;
     var regenChoice = toTrace.choiceAtIndex(regenFrom);
@@ -133,14 +150,14 @@ module.exports = function(env) {
       proposalParams = regenChoice.params;
     }
 
-    var score = proposalErp.score(proposalParams, regenChoice.val);
+    var score = ad.untapify(proposalErp.score(proposalParams, regenChoice.val));
 
     // Rest of the trace.
     score += util.sum(toTrace.choices.slice(regenFrom + 1).map(function(choice) {
-      return reused.hasOwnProperty(choice.address) ? 0 : choice.erp.score(choice.params, choice.val);
+      return reused.hasOwnProperty(choice.address) ? 0 : ad.untapify(choice.erp.score(choice.params, choice.val));
     }));
 
-    score -= Math.log(fromTrace.length - proposalBoundary);
+    score -= Math.log(proposeableIndicies(fromTrace, proposalBoundary, proposalFilter).length);
     assert(!isNaN(score));
     return score;
   }
