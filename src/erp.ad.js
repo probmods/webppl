@@ -227,15 +227,19 @@ var multivariateGaussianERP = new ERP({
   score: multivariateGaussianScore
 });
 
+function sum(xs) {
+  return xs.reduce(function(a, b) { return a + b; }, 0);
+};
+
 var discreteERP = new ERP({
   sample: function(params) {
     return multinomialSample(params[0]);
   },
   score: function(params, val) {
-    var probs = util.normalizeArray(params[0]);
+    var probs = params[0];
     var stop = probs.length;
     var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-    return inSupport ? Math.log(probs[val]) : -Infinity;
+    return inSupport ? Math.log(probs[val] / sum(probs)) : -Infinity;
   },
   support: function(params) {
     return _.range(params[0].length);
@@ -256,7 +260,7 @@ function logGamma(xx) {
   tmp -= (x + 0.5) * Math.log(tmp);
   var ser = 1.000000000190015;
   for (var j = 0; j <= 5; j++) {
-    x++;
+    x += 1;
     ser += gammaCof[j] / x;
   }
   return -tmp + Math.log(2.5066282746310005 * ser);
@@ -304,6 +308,9 @@ var exponentialERP = new ERP({
   score: function(params, val) {
     var a = params[0];
     return Math.log(a) - a * val;
+  },
+  support: function(params) {
+    return { lower: 0, upper: Infinity };
   }
 });
 
@@ -327,7 +334,8 @@ var betaERP = new ERP({
     return ((x > 0 && x < 1) ?
         (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
         -Infinity);
-  }
+  },
+  support: { lower: 0, upper: 1 }
 });
 
 function binomialG(x) {
@@ -411,7 +419,8 @@ var binomialERP = new ERP({
 function fact(x) {
   var t = 1;
   while (x > 1) {
-    t *= x--;
+    t *= x;
+    x -= 1;
   }
   return t;
 }

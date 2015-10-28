@@ -59,9 +59,9 @@ module.exports = function(env) {
 
   var getSupport = function(dist, params) {
     // Find support of this erp:
-    if (!dist.support) {
+    if (dist.isContinuous || !dist.support) {
       console.error(dist, params);
-      throw 'Enumerate can only be used with ERPs that have support function.';
+      throw 'Enumerate can only be used with ERPs that have finite support.';
     }
     var supp = dist.support(params);
 

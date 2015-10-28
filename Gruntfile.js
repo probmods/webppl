@@ -12,7 +12,7 @@ var jslintSettings = {
     src: [
       'Gruntfile.js',
       'src/header.wppl',
-      'src/**/*.js'
+      'src/**/!(erp).js'
     ]
   },
   test: {

@@ -20,6 +20,7 @@
 
 var assert = require('assert');
 var _ = require('underscore');
+var ad = require('ad.js')({ mode: 'r' });
 
 var util = require('./util');
 var erp = require('./erp');
@@ -122,7 +123,8 @@ module.exports = function(env) {
   addExports({
     _: _,
     util: util,
-    assert: assert
+    assert: assert,
+    ad: ad
   });
 
   // Inference functions and header utils
