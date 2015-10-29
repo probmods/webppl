@@ -1,0 +1,2 @@
+var id = cache(function(x) { return x; });
+id(Infinity) === Infinity && id(-Infinity) === -Infinity;
