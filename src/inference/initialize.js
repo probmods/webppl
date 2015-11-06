@@ -6,15 +6,13 @@ var Trace = require('../trace');
 
 module.exports = function(env) {
 
-  // This takes a wpplFn and returns a trace which has a non-zero probability.
+  // Returns a trace which has a non-zero probability.
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(s, k, a, wpplFn) {
-    this.wpplFn = wpplFn;
-    this.s = s;
+  function Initialize(k, runWppl) {
     this.k = k;
-    this.a = a;
+    this.runWppl = runWppl;
     this.failures = 0;
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -23,7 +21,7 @@ module.exports = function(env) {
   Initialize.prototype.run = function() {
     this.trace = new Trace();
     env.query.clear();
-    return this.wpplFn(_.clone(this.s), env.exit, this.a);
+    return this.runWppl();
   };
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {

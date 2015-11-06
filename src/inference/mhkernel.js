@@ -7,7 +7,7 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  function MHKernel(k, oldTrace, options) {
+  function MHKernel(k, runWppl, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,
@@ -145,10 +145,8 @@ module.exports = function(env) {
     return score;
   }
 
-  return {
-    MHKernel: function(k, oldTrace, options) {
-      return new MHKernel(k, oldTrace, options).run();
-    }
+  return function(k, runWppl, oldTrace, options) {
+    return new MHKernel(k, runWppl, oldTrace, options).run();
   };
 
 };

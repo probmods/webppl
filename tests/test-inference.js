@@ -219,14 +219,23 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
-      args: { particles: 1, rejuvSteps: 10000 }
+      args: { particles: 1, rejuvSteps: 10000, rejuvKernel: { MH: { permissive: true } } }
     },
     models: {
       simple: true,
       cache: true,
-      deterministic: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
-      store: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
-      store2: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      deterministic: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
+      store: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
+      store2: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
       geometric: true,
       importance: true,
       importance2: true,

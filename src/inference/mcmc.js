@@ -8,13 +8,18 @@ var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
+  var kernels = require('./kernels')(env);
+
   function MCMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
       samples: 100,
-      kernel: MHKernel,
+      kernel: 'MH',
       lag: 0,
       burn: 0
     });
+
+    var runWppl = function() { return wpplFn(_.clone(s), env.exit, a); };
+    options.kernel = _.partial(kernels.parseOptions(options.kernel), _, runWppl);
 
     var log = function(s) {
       if (options.verbose) {
@@ -30,19 +35,19 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
-      return Initialize(s, run, a, wpplFn);
+      return Initialize(run, runWppl);
     };
 
     run = function(s, initialTrace) {
-      var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
+      var logAccepted = kernels.tap(function(trace) { acceptedCount += trace.info.accepted; });
       var printCurrIter = makePrintCurrIteration(log);
       var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
-      var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
-      var chain = sequenceKernels(
-          repeatKernel(options.burn, kernel),
-          repeatKernel(options.samples,
-              sequenceKernels(
-                  repeatKernel(options.lag + 1, kernel),
+      var kernel = kernels.sequence(options.kernel, printCurrIter, logAccepted);
+      var chain = kernels.sequence(
+          kernels.repeat(options.burn, kernel),
+          kernels.repeat(options.samples,
+              kernels.sequence(
+                  kernels.repeat(options.lag + 1, kernel),
                   collectSample)));
       return chain(finish, initialTrace);
     };
@@ -61,7 +66,7 @@ module.exports = function(env) {
     if (initialTrace.value === env.query) {
       query.addAll(env.query);
     }
-    return tapKernel(function(trace) {
+    return kernels.tap(function(trace) {
       var value;
       if (trace.value === env.query) {
         if (trace.info.accepted) {
@@ -77,45 +82,13 @@ module.exports = function(env) {
 
   function makePrintCurrIteration(log) {
     var i = 0;
-    return tapKernel(function() {
+    return kernels.tap(function() {
       log('Iteration: ' + i++);
     });
   }
 
-  function tapKernel(fn) {
-    return function(k, trace) {
-      fn(trace);
-      return k(trace);
-    };
-  }
-
-  function sequenceKernels() {
-    var kernels = arguments;
-    assert(kernels.length > 1);
-    if (kernels.length === 2) {
-      return function(k, trace1) {
-        return kernels[0](function(trace2) {
-          return kernels[1](k, trace2);
-        }, trace1);
-      };
-    } else {
-      return sequenceKernels(
-          kernels[0],
-          sequenceKernels.apply(null, _.rest(kernels)))
-    }
-  }
-
-  function repeatKernel(n, kernel) {
-    return function(k, trace) {
-      return util.cpsIterate(n, trace, kernel, k);
-    };
-  }
-
   return {
-    MCMC: MCMC,
-    tapKernel: tapKernel,
-    repeatKernel: repeatKernel,
-    sequenceKernels: sequenceKernels
+    MCMC: MCMC
   };
 
 };

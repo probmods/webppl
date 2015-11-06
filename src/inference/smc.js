@@ -9,23 +9,20 @@ var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
+  var kernels = require('./kernels')(env);
+
   function SMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
+      rejuvKernel: 'MH',
       finalRejuv: true
     });
 
-    if (!options.rejuvKernel) {
-      options.rejuvKernel = function(k, oldTrace, opts) {
-        var opts = _.clone(opts || {});
-        opts.permissive = options.particles === 1;
-        return MHKernel(k, oldTrace, opts);
-      };
-    }
-
+    var runWppl = function() { return wpplFn(_.clone(s), env.exit, a); };
+    this.rejuvKernel = _.partial(kernels.parseOptions(options.rejuvKernel), _, runWppl);
     this.rejuvSteps = options.rejuvSteps;
-    this.rejuvKernel = options.rejuvKernel;
+
     this.performRejuv = this.rejuvSteps > 0;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
@@ -177,7 +174,7 @@ module.exports = function(env) {
       kernelOptions.exitFactor = this.step;
     }
     var kernel = _.partial(this.rejuvKernel, _, _, kernelOptions);
-    var chain = repeatKernel(this.rejuvSteps, kernel);
+    var chain = kernels.repeat(this.rejuvSteps, kernel);
     return chain(function(trace) {
       particle.trace = trace;
       return cont();
@@ -271,11 +268,11 @@ module.exports = function(env) {
         function(particle, i, ps, k) {
           if (this.performFinalRejuv) {
             // Final rejuvenation.
-            var chain = repeatKernel(
+            var chain = kernels.repeat(
                 this.rejuvSteps,
-                sequenceKernels(
+                kernels.sequence(
                     this.rejuvKernel,
-                    tapKernel(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(function(trace) { hist.add(trace.value); })));
             return chain(k, particle.trace);
           } else {
             hist.add(particle.trace.value);
