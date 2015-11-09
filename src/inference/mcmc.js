@@ -8,6 +8,7 @@ var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
+  var Initialize = require('./initialize')(env);
   var kernels = require('./kernels')(env);
 
   function MCMC(s, k, a, wpplFn, options) {
