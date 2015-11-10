@@ -31,7 +31,7 @@ function transform(ast) {
 
   var isNamedScoreFn = function(node) {
     return node.type === 'FunctionDeclaration' &&
-        node.id.name.endsWith('Score');
+        node.id.name.match(/Score$/);
   };
 
   var isAnonymousScoreFn = function(node, parent) {
