@@ -26,6 +26,7 @@ var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
 
+var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
 
 function ERP(obj) {
@@ -225,6 +226,20 @@ function multivariateGaussianScore(params, x) {
 var multivariateGaussianERP = new ERP({
   sample: multivariateGaussianSample,
   score: multivariateGaussianScore
+});
+
+var cauchyERP = new ERP({
+  sample: function(params) {
+    var location = params[0];
+    var scale = params[1];
+    var u = util.random();
+    return location + scale * Math.tan(180 * (u - 0.5));
+  },
+  score: function(params, x) {
+    var location = params[0];
+    var scale = params[1];
+    return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  }
 });
 
 var discreteERP = new ERP({
@@ -695,6 +710,7 @@ module.exports = setErpNames({
   gaussianERP: gaussianERP,
   multinomialSample: multinomialSample,
   multivariateGaussianERP: multivariateGaussianERP,
+  cauchyERP: cauchyERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,
