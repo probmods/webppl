@@ -80,7 +80,15 @@ function transformRequired(programAST) {
   return flag;
 }
 
+function hasNoCachingDirective(ast) {
+  return ast.body.length > 0 &&
+         ast.body[0].type === Syntax.ExpressionStatement &&
+         ast.body[0].expression.type === Syntax.Literal &&
+         ast.body[0].expression.value === 'no caching';
+}
+
 module.exports = {
   transform: cachingMain,
-  transformRequired: transformRequired
+  transformRequired: transformRequired,
+  hasNoCachingDirective: hasNoCachingDirective
 };
