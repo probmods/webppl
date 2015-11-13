@@ -1,0 +1,9 @@
+var f = function(x) {
+  return (Math.pow(x, 3) + 5 * x) / 20;
+}
+
+var model = function() {
+  var x = gaussian(0, 1);
+  var y = gaussian(f(x), 0.5);
+  return y;
+};

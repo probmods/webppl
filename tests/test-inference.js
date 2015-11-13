@@ -31,7 +31,12 @@ var tests = [
       beta: true,
       exponential: true,
       binomial: true,
-      poisson: true
+      poisson: true,
+      mixed1: true,
+      mixed2: true,
+      mixed3: true,
+      bivariateGaussian: true,
+      indirectDependency: true
     }
   },
   {
@@ -295,6 +300,8 @@ var tests = [
     func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
+      mean: { tol: 0.1 },
+      std: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
       args: { samples: 1000, kernel: 'HMC' }
     },
@@ -303,11 +310,34 @@ var tests = [
       gaussianMean: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 }
+      },
+      gaussianMeanVar: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      bivariateGaussian: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      indirectDependency: {
+        args: {
+          samples: 1000,
+          burn: 100,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } },
+          verbose: 0
+        }
       }
       // drift: {
       //   mean: { tol: 0.3 },
       //   std: { tol: 0.3 }
       // }
+
     }
   },
   {
@@ -315,6 +345,8 @@ var tests = [
     func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
+      mean: { tol: 0.1 },
+      std: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
       args: {
         samples: 1000,
@@ -341,7 +373,35 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      mixed1: true,
+      mixed2: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 25, stepSize: 1 } }
+              ]
+            }
+          }
+        }
+      },
+      mixed3: {
+        args: {
+          samples: 2000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 20, stepSize: 1 } }
+              ]
+            }
+          }
+        }
+      }
     }
   },
   {
