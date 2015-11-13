@@ -1,3 +1,5 @@
+'no caching';
+
 // ERPs
 
 var flip = function(theta) {
@@ -23,6 +25,10 @@ var gaussian = function(mu, sigma) {
 
 var multivariateGaussian = function(mu, cov) {
   return sample(multivariateGaussianERP, [mu, cov]);
+};
+
+var cauchy = function(location, scale) {
+  return sample(cauchyERP, [location, scale]);
 };
 
 var uniform = function(a, b) {

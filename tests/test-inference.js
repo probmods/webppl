@@ -31,7 +31,8 @@ var tests = [
       beta: true,
       exponential: true,
       binomial: true,
-      poisson: true
+      poisson: true,
+      cauchy: true
     }
   },
   {
