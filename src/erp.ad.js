@@ -348,7 +348,9 @@ var betaERP = new ERP({
         (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
         -Infinity);
   },
-  support: { lower: 0, upper: 1 },
+  support: function() {
+    return { lower: 0, upper: 1 };
+  },
   isContinuous: true
 });
 
