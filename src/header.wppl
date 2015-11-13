@@ -225,6 +225,11 @@ var secondLast = function(xs) {
 var last = function(xs) {
   return xs[xs.length - 1];
 };
+
+var most = function(xs) {
+  return xs.slice(0, xs.length - 1);
+}
+
 var rest = function(xs) {
   return xs.slice(1);
 };
