@@ -17,11 +17,9 @@ function expandMacros(code) {
 }
 
 function transform(ast) {
-  var helpers = ['sum', 'fact', 'lnfact', 'binomialG', 'logBeta', 'logGamma'];
-
   var isHelperFn = function(node) {
     return node.type === 'FunctionDeclaration' &&
-        _.contains(helpers, node.id.name);
+        node.id.name.match(/AD$/);
   };
 
   var isNamedScoreFn = function(node) {

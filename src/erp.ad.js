@@ -235,7 +235,7 @@ var multivariateGaussianERP = new ERP({
   isContinuous: false
 });
 
-function sum(xs) {
+function sumAD(xs) {
   return xs.reduce(function(a, b) { return a + b; }, 0);
 };
 
@@ -247,7 +247,7 @@ var discreteERP = new ERP({
     var probs = params[0];
     var stop = probs.length;
     var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-    return inSupport ? Math.log(probs[val] / sum(probs)) : -Infinity;
+    return inSupport ? Math.log(probs[val] / sumAD(probs)) : -Infinity;
   },
   support: function(params) {
     return _.range(params[0].length);
@@ -262,7 +262,7 @@ var gammaCof = [
   0.1208650973866179e-2,
   -0.5395239384953e-5];
 
-function logGamma(xx) {
+function logGammaAD(xx) {
   var x = xx - 1.0;
   var tmp = x + 5.5;
   tmp -= (x + 0.5) * Math.log(tmp);
@@ -303,7 +303,7 @@ var gammaERP = new ERP({
     var a = params[0];
     var b = params[1];
     var x = val;
-    return (a - 1) * Math.log(x) - x / b - logGamma(a) - a * Math.log(b);
+    return (a - 1) * Math.log(x) - x / b - logGammaAD(a) - a * Math.log(b);
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -327,8 +327,8 @@ var exponentialERP = new ERP({
   isContinuous: true
 });
 
-function logBeta(a, b) {
-  return logGamma(a) + logGamma(b) - logGamma(a + b);
+function logBetaAD(a, b) {
+  return logGammaAD(a) + logGammaAD(b) - logGammaAD(a + b);
 }
 
 function betaSample(params) {
@@ -345,7 +345,7 @@ var betaERP = new ERP({
     var b = params[1];
     var x = val;
     return ((x > 0 && x < 1) ?
-        (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
+        (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBetaAD(a, b) :
         -Infinity);
   },
   support: function() {
@@ -354,7 +354,7 @@ var betaERP = new ERP({
   isContinuous: true
 });
 
-function binomialG(x) {
+function binomialG_AD(x) {
   if (x === 0) {
     return 1;
   }
@@ -415,7 +415,7 @@ var binomialERP = new ERP({
       var d1 = s + inv6 - (n + inv3) * p;
       var d2 = q / (s + inv2) - p / (T + inv2) + (q - inv2) / (n + 1);
       d2 = d1 + 0.02 * d2;
-      var num = 1 + q * binomialG(S / (n * p)) + p * binomialG(T / (n * q));
+      var num = 1 + q * binomialG_AD(S / (n * p)) + p * binomialG_AD(T / (n * q));
       var den = (n + inv6) * p * q;
       var z = num / den;
       var invsd = Math.sqrt(z);
@@ -423,7 +423,7 @@ var binomialERP = new ERP({
       return gaussianScore([0, 1], z) + Math.log(invsd);
     } else {
       // exact formula
-      return (lnfact(n) - lnfact(n - val) - lnfact(val) +
+      return (lnfactAD(n) - lnfactAD(n - val) - lnfactAD(val) +
           val * Math.log(p) + (n - val) * Math.log(1 - p));
     }
   },
@@ -432,7 +432,7 @@ var binomialERP = new ERP({
   }
 });
 
-function fact(x) {
+function factAD(x) {
   var t = 1;
   while (x > 1) {
     t *= x;
@@ -441,12 +441,12 @@ function fact(x) {
   return t;
 }
 
-function lnfact(x) {
+function lnfactAD(x) {
   if (x < 1) {
     x = 1;
   }
   if (x < 12) {
-    return Math.log(fact(Math.round(x)));
+    return Math.log(factAD(Math.round(x)));
   }
   var invx = 1 / x;
   var invx2 = invx * invx;
@@ -485,7 +485,7 @@ var poissonERP = new ERP({
   score: function(params, val) {
     var mu = params[0];
     var k = val;
-    return k * Math.log(mu) - mu - lnfact(k);
+    return k * Math.log(mu) - mu - lnfactAD(k);
   },
   isContinuous: false
 });
@@ -513,10 +513,10 @@ function dirichletScore(params, val) {
   for (var i = 0; i < alpha.length; i++) {
     asum += alpha[i];
   }
-  var logp = logGamma(asum);
+  var logp = logGammaAD(asum);
   for (var j = 0; j < alpha.length; j++) {
     logp += (alpha[j] - 1) * Math.log(theta[j]);
-    logp -= logGamma(alpha[j]);
+    logp -= logGammaAD(alpha[j]);
   }
   return logp;
 }
