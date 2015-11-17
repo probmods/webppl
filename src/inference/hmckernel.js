@@ -138,6 +138,13 @@ module.exports = function(env) {
     // variables.
     this.prevTrace = trace;
     this.trace = new Trace();
+    // Once the WebPPL program has finished we need to call k to
+    // continue inference. Since the program will call env.exit once
+    // finished, we save k here in order to resume inference as
+    // desired. Note that we can't pass a continuation other than
+    // env.exit to the program. This is because the continuation is
+    // store as part of the trace, and when invoked by a different
+    // MCMC kernel execution would jump back here.
     this.positionStepCont = k;
     return this.runWppl();
   };
