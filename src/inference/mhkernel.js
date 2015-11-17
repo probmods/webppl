@@ -34,14 +34,14 @@ module.exports = function(env) {
   }
 
   MHKernel.prototype.run = function() {
-    var indicies = proposeableIndicies(this.oldTrace, this.proposalBoundary, this.proposalFilter);
-    var numERP = indicies.length;
+    var indices = proposeableIndices(this.oldTrace, this.proposalBoundary, this.proposalFilter);
+    var numERP = indices.length;
     if (numERP === 0) {
       return this.cont(this.oldTrace, true);
     }
     // Make a new proposal.
     env.query.clear();
-    this.regenFrom = indicies[Math.floor(util.random() * numERP)];
+    this.regenFrom = indices[Math.floor(util.random() * numERP)];
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
     return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
@@ -117,7 +117,7 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function proposeableIndicies(trace, boundary, pred) {
+  function proposeableIndices(trace, boundary, pred) {
     return _.range(boundary, trace.length).filter(function(i) {
       return pred(trace.choices[i].erp);
     }, this);
@@ -158,7 +158,7 @@ module.exports = function(env) {
       return reused.hasOwnProperty(choice.address) ? 0 : ad.untapify(choice.erp.score(choice.params, choice.val));
     }));
 
-    score -= Math.log(proposeableIndicies(fromTrace, proposalBoundary, proposalFilter).length);
+    score -= Math.log(proposeableIndices(fromTrace, proposalBoundary, proposalFilter).length);
     assert(!isNaN(score));
     return score;
   }
