@@ -62,7 +62,8 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.sample = function(s, k, a, erp, params, forceSample) {
-    var _val, val, prevChoice = this.oldTrace.findChoice(a);
+    var _val, val;
+    var prevChoice = this.oldTrace.findChoice(a);
 
     if (forceSample) {
       assert(prevChoice);
