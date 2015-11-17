@@ -1,3 +1,7 @@
+// Neal, Radford M. "MCMC using Hamiltonian dynamics." Handbook of
+// Markov Chain Monte Carlo 2 (2011).
+// http://arxiv.org/abs/1206.1901
+
 'use strict';
 
 var _ = require('underscore');
@@ -89,6 +93,8 @@ module.exports = function(env) {
     this.momentumStep(this.oldTrace, 0.5); // Half-step. (Modifies momentum in-place.)
 
     // Main HMC loop.
+    // The leapfrog method. (See page 8 of "MCMC using Hamiltonian
+    // dynamics.)
     return util.cpsIterate(
         this.steps - 1,
         this.oldTrace,
