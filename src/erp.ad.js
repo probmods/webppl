@@ -26,6 +26,7 @@ var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
 
+var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
 
 function ERP(obj) {
@@ -233,6 +234,21 @@ var multivariateGaussianERP = new ERP({
   score: multivariateGaussianScore,
   // HACK: Avoid tapifying a matrix as it's not yet supported.
   isContinuous: false
+});
+
+var cauchyERP = new ERP({
+  sample: function(params) {
+    var location = params[0];
+    var scale = params[1];
+    var u = util.random();
+    return location + scale * Math.tan(180 * (u - 0.5));
+  },
+  score: function(params, x) {
+    var location = params[0];
+    var scale = params[1];
+    return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  },
+  isContinuous: true
 });
 
 function sumAD(xs) {
@@ -729,6 +745,7 @@ module.exports = setErpNames({
   gaussianERP: gaussianERP,
   multinomialSample: multinomialSample,
   multivariateGaussianERP: multivariateGaussianERP,
+  cauchyERP: cauchyERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,
   uniformERP: uniformERP,

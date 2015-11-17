@@ -32,6 +32,7 @@ var tests = [
       exponential: true,
       binomial: true,
       poisson: true,
+      cauchy: true,
       mixed1: true,
       mixed2: true,
       mixed3: true,

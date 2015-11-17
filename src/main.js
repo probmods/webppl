@@ -126,9 +126,8 @@ function parsePackageCode(packages, verbose) {
 }
 
 function applyCaching(asts) {
-  // This assume that asts[0] is the header.
-  return asts.map(function(ast, i) {
-    return i > 0 ? caching.transform(ast) : ast;
+  return asts.map(function(ast) {
+    return caching.hasNoCachingDirective(ast) ? ast : caching.transform(ast);
   });
 }
 

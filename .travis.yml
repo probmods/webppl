@@ -5,6 +5,7 @@ node_js:
   - "0.11"
   - "0.10"
   - "4"
+  - "5"
 
 install:
   - npm install
