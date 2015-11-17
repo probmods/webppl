@@ -69,7 +69,7 @@ function isUseStrictExpr(node) {
       node.expression.value === 'use strict';
 }
 
-function main(code) {
+function adscorersMain(code) {
   return util.pipeline([
     parse,
     transform,
@@ -78,4 +78,6 @@ function main(code) {
   ])(code);
 }
 
-module.exports = main;
+module.exports = {
+  adscorers: adscorersMain
+};
