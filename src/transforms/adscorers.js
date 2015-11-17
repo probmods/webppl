@@ -13,12 +13,7 @@ var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
 var sweetOptions = { modules: adMacros, readableNames: true, ast: true };
 
 function expandMacros(code) {
-  //console.log('Before:');
-  //console.log(code);
-  var ast = sweet.compile(code, sweetOptions).body[0];
-  //console.log('After:');
-  //console.log(generate(ast));
-  return ast;
+  return sweet.compile(code, sweetOptions).body[0];
 }
 
 function transform(ast) {
@@ -47,7 +42,6 @@ function transform(ast) {
       }
 
       if (isHelperFn(node) || isNamedScoreFn(node)) {
-        //console.log(node.id.name);
         return expandMacros(generate(node));
       }
     }
