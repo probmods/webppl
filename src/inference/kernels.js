@@ -6,10 +6,10 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  var MH = require('./mhkernel')(env);
-  var HMC = require('./hmckernel')(env);
+  var MHKernel = require('./mhkernel')(env);
+  var HMCKernel = require('./hmckernel')(env);
 
-  function sequence(cont, runWppl, oldTrace, options) {
+  function sequenceKernel(cont, runWppl, oldTrace, options) {
     var kernels = options.kernels;
     var iter = function(cont, trace, kernels) {
       if (kernels.length === 1) {
@@ -24,7 +24,17 @@ module.exports = function(env) {
     return iter(cont, oldTrace, kernels);
   }
 
-  var kernels = { MH: MH, HMC: HMC, sequence: sequence };
+  var kernels = { MH: MHKernel, HMC: HMCKernel, sequence: sequenceKernel };
+
+  // Takes an options object (as passed to inference algorithms) and
+  // converts kernel options into functions with options partially
+  // applied. For example:
+
+  // { kernel: 'MH' } =>
+  // { kernel: function(..., opts) { return MHKernel(..., opts); } }
+
+  // { kernel: { MH: options } =>
+  // { kernel: function(..., extraOpts) { return MHKernel(..., merge(options, extraOpts)) } }
 
   function parseOptions(obj) {
 
@@ -68,7 +78,7 @@ module.exports = function(env) {
     };
   }
 
-  function seq() {
+  function sequence() {
     var kernels = arguments;
     assert(kernels.length > 1);
     if (kernels.length === 2) {
@@ -78,9 +88,9 @@ module.exports = function(env) {
         }, trace1);
       };
     } else {
-      return seq(
+      return sequence(
           kernels[0],
-          seq.apply(null, _.rest(kernels)));
+          sequence.apply(null, _.rest(kernels)));
     }
   }
 
@@ -93,10 +103,8 @@ module.exports = function(env) {
   return {
     parseOptions: parseOptions,
     tap: tap,
-    sequence: seq,
-    repeat: repeat,
-    MH: MH,
-    HMC: HMC
+    sequence: sequence,
+    repeat: repeat
   };
 
 };
