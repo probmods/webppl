@@ -15,3 +15,6 @@ script:
   - grunt
 
 sudo: false
+
+notifications:
+  slack: cocolab-stanford:X2Ebs0qIMVUidJBD1xZd2XU1
