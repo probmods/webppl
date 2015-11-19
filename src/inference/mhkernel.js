@@ -112,7 +112,6 @@ module.exports = function(env) {
     assert(_.isBoolean(accepted));
     if (accepted && trace.value === env.query) {
       trace.value = _.extendOwn({}, this.oldTrace.value, env.query.getTable());
-      //trace.value = env.query.getTable();
     }
     if (this.oldTrace.info) {
       var oldInfo = this.oldTrace.info;
