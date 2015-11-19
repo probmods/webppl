@@ -180,8 +180,17 @@ module.exports = function(env) {
 
   HMCKernel.prototype.cont = function(trace, accepted) {
     assert(_.isBoolean(accepted));
+    if (accepted && trace.value === env.query) {
+      trace.value = env.query.getTable();
+    }
+    if (this.oldTrace.info) {
+      var oldInfo = this.oldTrace.info;
+      trace.info = {
+        accepted: oldInfo.accepted + accepted,
+        total: oldInfo.total + 1
+      };
+    }
     env.coroutine = this.coroutine;
-    trace.info = { accepted: accepted };
     return this.k(trace);
   };
 

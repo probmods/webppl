@@ -52,6 +52,9 @@ module.exports = function(env) {
   Initialize.prototype.exit = function(s, val) {
     assert.notStrictEqual(this.trace.score, -Infinity);
     this.trace.complete(val);
+    if (this.trace.value === env.query) {
+      this.trace.value = env.query.getTable();
+    }
     env.coroutine = this.coroutine;
     return this.k(this.s, this.trace);
   };

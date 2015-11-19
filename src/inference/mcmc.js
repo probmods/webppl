@@ -28,7 +28,6 @@ module.exports = function(env) {
       }
     };
 
-    var acceptedCount = 0;
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
         new aggregation.Histogram();
@@ -40,10 +39,10 @@ module.exports = function(env) {
     };
 
     run = function(s, initialTrace) {
-      var logAccepted = kernels.tap(function(trace) { acceptedCount += trace.info.accepted; });
+      initialTrace.info = { accepted: 0, total: 0 };
       var printCurrIter = makePrintCurrIteration(log);
-      var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
-      var kernel = kernels.sequence(options.kernel, printCurrIter, logAccepted);
+      var collectSample = makeExtractValue(aggregator.add.bind(aggregator));
+      var kernel = kernels.sequence(options.kernel, printCurrIter);
       var chain = kernels.sequence(
           kernels.repeat(options.burn, kernel),
           kernels.repeat(options.samples,
@@ -53,31 +52,17 @@ module.exports = function(env) {
       return chain(finish, initialTrace);
     };
 
-    finish = function() {
-      var iterations = options.samples * (options.lag + 1) + options.burn;
-      log('Acceptance ratio: ' + acceptedCount / iterations);
+    finish = function(trace) {
+      log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
       return k(s, aggregator.toERP());
     };
 
     return initialize();
   }
 
-  function makeExtractValue(initialTrace, fn) {
-    var query = new Query();
-    if (initialTrace.value === env.query) {
-      query.addAll(env.query);
-    }
+  function makeExtractValue(fn) {
     return kernels.tap(function(trace) {
-      var value;
-      if (trace.value === env.query) {
-        if (trace.info.accepted) {
-          query.addAll(env.query);
-        }
-        value = query.getTable();
-      } else {
-        value = trace.value;
-      }
-      fn(value, trace.score);
+      fn(trace.value, trace.score);
     });
   }
 
