@@ -1,12 +1,19 @@
 Workflow
 ========
 
-Before committing changes, run grunt (which runs tests and linting)::
+Committing changes
+------------------
+
+Before committing changes, run grunt (which runs `tests`_ and
+`linting`_)::
 
     grunt
 
 If grunt doesn’t succeed, the `continuous integration tests`_ will fail
 as well.
+
+Tests
+-----
 
 To only run the tests, do::
 
@@ -23,6 +30,9 @@ nodeunit can also run individual tests or test groups. For example::
 
 See the `nodeunit documentation`_ for details.
 
+Linting
+-------
+
 To only run the linter::
 
     grunt gjslint
@@ -35,6 +45,9 @@ If gjslint complains about style errors (like indentation), you can fix
 many of them automatically using::
 
     grunt fixjsstyle
+
+Compiling for browser
+---------------------
 
 To compile webppl for use in browser, run::
 
