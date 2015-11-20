@@ -376,7 +376,23 @@ var tests = [
       variableSupport: true,
       query: true,
       mixed1: true,
+      mixed1WithFactor1: true,
+      mixed1WithFactor2: true,
       mixed2: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 25, stepSize: 1 } }
+              ]
+            }
+          }
+        }
+      },
+      mixed2WithFactor1: {
         args: {
           samples: 6000,
           burn: 1000,
