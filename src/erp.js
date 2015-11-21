@@ -277,6 +277,8 @@ function logGamma(xx) {
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
+// an implementation of Marsaglia & Tang, 2000:
+// A Simple Method for Generating Gamma Variables
 // if giveLog is true, sample log(x) where x ~ Gamma(shape, scale)
 function gammaSample(params) {
   var shape = params[0];
