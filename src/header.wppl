@@ -59,8 +59,8 @@ var exponential = function(a) {
   return sample(exponentialERP, [a]);
 };
 
-var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale]);
+var gamma = function(shape, scale, giveLog) {
+  return sample(gammaERP, [shape, scale, giveLog]);
 };
 
 var deltaERP = function(v) {

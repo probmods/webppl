@@ -277,24 +277,37 @@ function logGamma(xx) {
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
+// if giveLog is true, sample log(x) where x ~ Gamma(shape, scale)
 function gammaSample(params) {
-  var a = params[0];
-  var b = params[1];
-  if (a < 1) {
-    return gammaSample([1 + a, b]) * Math.pow(util.random(), 1 / a);
+  var shape = params[0];
+  var scale = params[1];
+  var giveLog = params[2];
+  if (shape < 1) {
+    if (giveLog) {
+      return gammaSample([1 + shape, scale, giveLog]) + Math.log(util.random()) / shape;
+    } else {
+      return gammaSample([1 + shape, scale, giveLog]) * Math.pow(util.random(), 1 / shape);
+    }
   }
-  var x, v, u;
-  var d = a - 1 / 3;
+  var x, v, u, log_v;
+  var d = shape - 1 / 3;
   var c = 1 / Math.sqrt(9 * d);
   while (true) {
     do {
       x = gaussianSample([0, 1]);
       v = 1 + c * x;
     } while (v <= 0);
+
+    log_v = 3 * Math.log(v);
     v = v * v * v;
     u = util.random();
     if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
-      return b * d * v;
+      if (giveLog) {
+        return Math.log(scale) + Math.log(d) + log_v
+      } else {
+        return scale * d * v;
+      }
+
     }
   }
 }
@@ -303,10 +316,15 @@ function gammaSample(params) {
 var gammaERP = new ERP({
   sample: gammaSample,
   score: function(params, val) {
-    var a = params[0];
-    var b = params[1];
+    var shape = params[0];
+    var scale = params[1];
+    var giveLog = params[2];
     var x = val;
-    return (a - 1) * Math.log(x) - x / b - logGamma(a) - a * Math.log(b);
+    if (giveLog) {
+      return (shape - 1) * x           - Math.exp(x) / scale  - logGamma(shape) - shape * Math.log(scale);
+    } else {
+      return (shape - 1) * Math.log(x) - x / scale            - logGamma(shape) - shape * Math.log(scale);
+    }
   }
 });
 
