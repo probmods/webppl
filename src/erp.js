@@ -283,10 +283,21 @@ function gammaSample(params) {
   var scale = params[1];
   var giveLog = params[2];
   if (shape < 1) {
+    var r;
     if (giveLog) {
-      return gammaSample([1 + shape, scale, giveLog]) + Math.log(util.random()) / shape;
+      r = gammaSample([1 + shape, scale, giveLog]) + Math.log(util.random()) / shape;
+      if (r === -Infinity) {
+        util.warn('log gamma sample underflow, bumped up');
+        return -Number.MAX_VALUE;
+      }
+      return r;
     } else {
-      return gammaSample([1 + shape, scale, giveLog]) * Math.pow(util.random(), 1 / shape);
+      r = gammaSample([1 + shape, scale, giveLog]) * Math.pow(util.random(), 1 / shape);
+      if (r === 0) {
+        util.warn('gamma sample underflow, bumped up');
+        return Number.MIN_VALUE;
+      }
+      return r;
     }
   }
   var x, v, u, log_v;

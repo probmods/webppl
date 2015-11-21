@@ -228,6 +228,14 @@ function pipeline(fns) {
   return _.compose.apply(null, fns.reverse());
 }
 
+function warn(msg) {
+  if (runningInBrowser()) {
+    global.jsPrint(msg)
+  } else {
+    console.warn(msg)
+  }
+}
+
 module.exports = {
   random: random,
   seedRNG: seedRNG,
@@ -254,5 +262,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   timeif: timeif,
-  pipeline: pipeline
+  pipeline: pipeline,
+  warn: warn
 };
