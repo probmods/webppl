@@ -358,8 +358,26 @@ function logBeta(a, b) {
 function betaSample(params) {
   var a = params[0];
   var b = params[1];
-  var x = gammaSample([a, 1]);
-  return x / (x + gammaSample([b, 1]));
+  var log_x = gammaSample([a, 1, true]);
+  var log_y = gammaSample([b, 1, true]);
+
+  // we should return x / (x + y)
+  // but for stability, let's use a different form of this:
+  // = 1 / ( (x + y)/x )
+  // = 1 / ( x/x + y/x )
+  // = 1 / ( 1 + y/x )
+  // using log_x and log_y we get:
+  var r = 1 / (1 + Math.exp(log_y - log_x));
+
+  if (r < Number.EPSILON) {
+    util.warn("beta sample < EPSILON, bumped up")
+    return Number.EPSILON;
+  }
+  if (r > 1 - Number.EPSILON) {
+    util.warn("beta sample > 1 - EPSILON, bumped down")
+    return 1 - Number.EPSILON;
+  }
+  return r;
 }
 
 var betaERP = new ERP({
