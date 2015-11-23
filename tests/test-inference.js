@@ -327,7 +327,7 @@ var tests = [
         }
       },
       bivariateGaussianFactor: {
-          args: {
+        args: {
           samples: 2000,
           burn: 10,
           kernel: { HMC: { steps: 20, stepSize: 0.1 } }
