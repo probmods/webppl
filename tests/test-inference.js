@@ -326,6 +326,13 @@ var tests = [
           kernel: { HMC: { steps: 20, stepSize: 0.1 } }
         }
       },
+      bivariateGaussianFactor: {
+          args: {
+          samples: 2000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
       indirectDependency: {
         args: {
           samples: 1000,
@@ -376,8 +383,7 @@ var tests = [
       variableSupport: true,
       query: true,
       mixed1: true,
-      mixed1WithFactor1: true,
-      mixed1WithFactor2: true,
+      mixed1Factor: true,
       mixed2: {
         args: {
           samples: 6000,
@@ -386,13 +392,13 @@ var tests = [
             sequence: {
               kernels: [
                 { MH: { discreteOnly: true } },
-                { HMC: { steps: 25, stepSize: 1 } }
+                { HMC: { steps: 5, stepSize: 1 } }
               ]
             }
           }
         }
       },
-      mixed2WithFactor1: {
+      mixed2Factor: {
         args: {
           samples: 6000,
           burn: 1000,
@@ -400,7 +406,7 @@ var tests = [
             sequence: {
               kernels: [
                 { MH: { discreteOnly: true } },
-                { HMC: { steps: 25, stepSize: 1 } }
+                { HMC: { steps: 5, stepSize: 1 } }
               ]
             }
           }
@@ -418,7 +424,49 @@ var tests = [
             }
           }
         }
+      },
+      mixed3Factor: {
+        args: {
+          samples: 2000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 20, stepSize: 1 } }
+              ]
+            }
+          }
+        }
+      },
+      mixed4: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 5, stepSize: 1 } }
+              ]
+            }
+          }
+        }
+      },
+      mixed4Factor: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: {
+            sequence: {
+              kernels: [
+                { MH: { discreteOnly: true } },
+                { HMC: { steps: 5, stepSize: 1 } }
+              ]
+            }
+          }
+        }
       }
+
     }
   },
   {

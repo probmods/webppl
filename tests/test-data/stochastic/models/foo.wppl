@@ -1,0 +1,10 @@
+var model = function() {
+  // p([x, y]) = N([1, 2], [[1, 0.95], [0.95, 1]]);
+  var x = gaussian(1, 1);
+  var y = gaussian(1.05 + 0.95 * x, Math.sqrt(1 - Math.pow(0.95, 2)));
+  // This factor shifts the marginal mean from 2 to 3. (Without
+  // changing the variance.)
+  var mu = 3;
+  factor(x * (mu - 2) - Math.pow(mu, 2) / 2 + 2);
+  return y;
+};

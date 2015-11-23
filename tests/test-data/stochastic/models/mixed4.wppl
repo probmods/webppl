@@ -1,0 +1,5 @@
+var model = function() {
+  var x = uniformDraw([0.5, 18]);
+  var y = gaussian(1, Math.sqrt(x / 2));
+  return y;
+};
