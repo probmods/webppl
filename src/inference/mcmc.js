@@ -1,9 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
-var assert = require('assert');
 var util = require('../util');
-var Query = require('../query').Query;
 var aggregation = require('../aggregation');
 
 module.exports = function(env) {
