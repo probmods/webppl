@@ -36,6 +36,7 @@ var tests = [
       mixed1: true,
       mixed2: true,
       mixed3: true,
+      mixed4: true,
       bivariateGaussian: true,
       indirectDependency: true
     }
