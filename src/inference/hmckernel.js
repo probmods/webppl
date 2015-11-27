@@ -163,6 +163,7 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.momentumStep = function(trace, scaleFactor) {
+    // Compute gradient of score w.r.t. the continuous variables.
     ad.yGradientR(trace.score);
     var stepSize = this.stepSize * scaleFactor;
     _.each(trace.choices, function(choice) {
