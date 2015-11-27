@@ -24,7 +24,21 @@ module.exports = function(env) {
     return iter(cont, oldTrace, kernels);
   }
 
-  var kernels = { MH: MHKernel, HMC: HMCKernel, sequence: sequenceKernel };
+  function HMCwithMHKernel(cont, runWppl, oldTrace, options) {
+    // The options arg is passed to both kernels as SMC passes
+    // exitFactor via options.
+    return HMCKernel(function(trace) {
+      var opts = _.extendOwn({ discreteOnly: true }, options);
+      return MHKernel(cont, runWppl, trace, opts);
+    }, runWppl, oldTrace, options);
+  }
+
+  var kernels = {
+    MH: MHKernel,
+    HMC: HMCwithMHKernel,
+    HMConly: HMCKernel,
+    sequence: sequenceKernel
+  };
 
   // Takes an options object (as passed to inference algorithms) and
   // converts kernel options into functions with options partially

@@ -305,7 +305,7 @@ var tests = [
       mean: { tol: 0.1 },
       std: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
-      args: { samples: 1000, kernel: 'HMC' }
+      args: { samples: 1000, kernel: 'HMConly' }
     },
     models: {
       deterministic: true,
@@ -317,28 +317,28 @@ var tests = [
         args: {
           samples: 1000,
           burn: 10,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
         }
       },
       bivariateGaussian: {
         args: {
           samples: 1000,
           burn: 10,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
         }
       },
       bivariateGaussianFactor: {
         args: {
           samples: 2000,
           burn: 10,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
         }
       },
       indirectDependency: {
         args: {
           samples: 1000,
           burn: 100,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } },
+          kernel: { HMConly: { steps: 20, stepSize: 0.1 } },
           verbose: 0
         }
       }
@@ -357,12 +357,7 @@ var tests = [
       mean: { tol: 0.1 },
       std: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
-      args: {
-        samples: 1000,
-        kernel: {
-          sequence: { kernels: ['HMC', { MH: { discreteOnly: true } }] }
-        }
-      }
+      args: { samples: 1000, kernel: 'HMC' }
     },
     models: {
       simple: true,
@@ -389,82 +384,40 @@ var tests = [
         args: {
           samples: 6000,
           burn: 1000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 5, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
       mixed2Factor: {
         args: {
           samples: 6000,
           burn: 1000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 5, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
       mixed3: {
         args: {
           samples: 2000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 20, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 20, stepSize: 1 } }
         }
       },
       mixed3Factor: {
         args: {
           samples: 2000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 20, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 20, stepSize: 1 } }
         }
       },
       mixed4: {
         args: {
           samples: 6000,
           burn: 1000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 5, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
       mixed4Factor: {
         args: {
           samples: 6000,
           burn: 1000,
-          kernel: {
-            sequence: {
-              kernels: [
-                { MH: { discreteOnly: true } },
-                { HMC: { steps: 5, stepSize: 1 } }
-              ]
-            }
-          }
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       }
 
