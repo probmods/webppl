@@ -4,6 +4,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var erp = require('../erp');
 var util = require('../util');
+var ad = require('../ad');
 
 module.exports = function(env) {
 

@@ -50,7 +50,7 @@ function addAdRequire(ast) {
   var body = ast.body;
   assert.ok(isUseStrictExpr(body[0]), 'Strict mode expected.');
   var useStrictNode = body[0];
-  var requireNode = parse("var ad = require('ad.js')({ mode: 'r' });").body[0];
+  var requireNode = parse("var ad = require('./ad');").body[0];
   var rest = body.slice(1);
   return build.program([useStrictNode, requireNode].concat(rest));
 }

@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var Trace = require('../trace');
+var ad = require('../ad');
 
 module.exports = function(env) {
 

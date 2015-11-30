@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var isErp = require('./erp').isErp;
+var ad = require('./ad');
 
 var Trace = function() {
   this.choices = [];

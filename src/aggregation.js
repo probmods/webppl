@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var erp = require('./erp');
 var util = require('./util');
+var ad = require('./ad');
 
 var Histogram = function() {
   this.hist = {};

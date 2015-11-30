@@ -4,8 +4,10 @@ var _ = require('underscore');
 var util = require('../util');
 var erp = require('../erp');
 var Trace = require('../trace');
+
 var assert = require('assert');
 var Histogram = require('../aggregation').Histogram;
+var ad = require('../ad');
 
 module.exports = function(env) {
 

@@ -20,7 +20,6 @@
 
 var assert = require('assert');
 var _ = require('underscore');
-var ad = require('ad.js')({ mode: 'r' });
 
 var util = require('./util');
 var erp = require('./erp');
@@ -34,7 +33,7 @@ var rejection = require('./inference/rejection');
 var incrementalmh = require('./inference/incrementalmh');
 var headerUtils = require('./headerUtils');
 var Query = require('./query').Query;
-
+var ad = require('./ad');
 
 module.exports = function(env) {
 
