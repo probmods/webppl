@@ -229,10 +229,12 @@ function pipeline(fns) {
 }
 
 function warn(msg) {
-  if (runningInBrowser()) {
-    global.jsPrint(msg)
-  } else {
-    console.warn(msg)
+  if (!global.suppressWarnings) {
+    if (runningInBrowser()) {
+      global.jsPrint(msg)
+    } else {
+      console.warn(msg)
+    }
   }
 }
 
