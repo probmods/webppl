@@ -36,7 +36,7 @@ module.exports = function(env) {
       return Initialize(run, runWppl);
     };
 
-    run = function(s, initialTrace) {
+    run = function(initialTrace) {
       initialTrace.info = { accepted: 0, total: 0 };
       var printCurrIter = makePrintCurrIteration(log);
       var collectSample = makeExtractValue(aggregator.add.bind(aggregator));

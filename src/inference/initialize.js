@@ -57,7 +57,7 @@ module.exports = function(env) {
       this.trace.value = env.query.getTable();
     }
     env.coroutine = this.coroutine;
-    return this.k(this.s, this.trace);
+    return this.k(this.trace);
   };
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
