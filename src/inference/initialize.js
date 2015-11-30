@@ -11,8 +11,8 @@ module.exports = function(env) {
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(k, runWppl) {
-    this.k = k;
+  function Initialize(cont, runWppl) {
+    this.cont = cont;
     this.runWppl = runWppl;
     this.failures = 0;
     this.coroutine = env.coroutine;
@@ -57,7 +57,7 @@ module.exports = function(env) {
       this.trace.value = env.query.getTable();
     }
     env.coroutine = this.coroutine;
-    return this.k(this.trace);
+    return this.cont(this.trace);
   };
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;

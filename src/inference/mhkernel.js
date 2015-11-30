@@ -8,7 +8,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function MHKernel(k, runWppl, oldTrace, options) {
+  function MHKernel(cont, runWppl, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,
@@ -20,7 +20,7 @@ module.exports = function(env) {
       assert.notStrictEqual(oldTrace.score, -Infinity);
     }
 
-    this.k = k;
+    this.cont = cont;
     this.oldTrace = oldTrace;
     this.reused = {};
 
@@ -38,7 +38,7 @@ module.exports = function(env) {
     var indices = proposeableIndices(this.oldTrace, this.proposalBoundary, this.proposalFilter);
     var numERP = indices.length;
     if (numERP === 0) {
-      return this.cont(this.oldTrace, true);
+      return this.finish(this.oldTrace, true);
     }
     // Make a new proposal.
     env.query.clear();
@@ -51,7 +51,7 @@ module.exports = function(env) {
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
     if (ad.untapify(score) === -Infinity) {
-      return this.cont(this.oldTrace, false);
+      return this.finish(this.oldTrace, false);
     }
     this.trace.numFactors += 1;
     this.trace.score = ad.add(this.trace.score, score);
@@ -74,7 +74,7 @@ module.exports = function(env) {
       val = proposalErp.isContinuous ? ad.tapify(_val) : _val;
       // Optimization: Bail early if same value is re-sampled.
       if (!proposalErp.isContinuous && prevChoice.val === val) {
-        return this.cont(this.oldTrace, true);
+        return this.finish(this.oldTrace, true);
       }
     } else {
       if (prevChoice) {
@@ -88,7 +88,7 @@ module.exports = function(env) {
 
     this.trace.addChoice(erp, params, val, a, s, k);
     if (ad.untapify(this.trace.score) === -Infinity) {
-      return this.cont(this.oldTrace, false);
+      return this.finish(this.oldTrace, false);
     }
     return k(s, val);
   };
@@ -106,10 +106,10 @@ module.exports = function(env) {
         this.regenFrom, this.reused,
         this.proposalBoundary, this.proposalFilter);
     var accept = util.random() < prob;
-    return this.cont(accept ? this.trace : this.oldTrace, accept);
+    return this.finish(accept ? this.trace : this.oldTrace, accept);
   };
 
-  MHKernel.prototype.cont = function(trace, accepted) {
+  MHKernel.prototype.finish = function(trace, accepted) {
     assert(_.isBoolean(accepted));
     if (accepted && trace.value === env.query) {
       trace.value = _.extendOwn({}, this.oldTrace.value, env.query.getTable());
@@ -122,7 +122,7 @@ module.exports = function(env) {
       };
     }
     env.coroutine = this.coroutine;
-    return this.k(trace);
+    return this.cont(trace);
   };
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
@@ -173,8 +173,8 @@ module.exports = function(env) {
     return score;
   }
 
-  return function(k, runWppl, oldTrace, options) {
-    return new MHKernel(k, runWppl, oldTrace, options).run();
+  return function(cont, runWppl, oldTrace, options) {
+    return new MHKernel(cont, runWppl, oldTrace, options).run();
   };
 
 };

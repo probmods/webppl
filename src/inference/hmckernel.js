@@ -13,7 +13,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function HMCKernel(k, runWppl, oldTrace, options) {
+  function HMCKernel(cont, runWppl, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       // TODO: Are these sensible defaults?
       steps: 5,
@@ -27,7 +27,7 @@ module.exports = function(env) {
 
     assert.ok(this.steps > 0);
 
-    this.k = k;
+    this.cont = cont;
     this.runWppl = runWppl;
     this.oldTrace = oldTrace;
 
@@ -111,7 +111,7 @@ module.exports = function(env) {
             // Accept/reject.
             var p = Math.min(1, Math.exp(newH - oldH));
             var accept = util.random() < p;
-            return this.cont(accept ? finalTrace : this.oldTrace, accept);
+            return this.finish(accept ? finalTrace : this.oldTrace, accept);
 
           }.bind(this), trace);
         }.bind(this));
@@ -127,14 +127,14 @@ module.exports = function(env) {
     return momentum;
   };
 
-  HMCKernel.prototype.leapFrogStep = function(k, trace) {
+  HMCKernel.prototype.leapFrogStep = function(cont, trace) {
     return this.positionStep(function(newTrace) {
       this.momentumStep(newTrace, 1);
-      return k(newTrace);
+      return cont(newTrace);
     }.bind(this), trace);
   };
 
-  HMCKernel.prototype.positionStep = function(k, trace) {
+  HMCKernel.prototype.positionStep = function(cont, trace) {
     // Run the program creating a new trace with updated (continuous)
     // variables.
     this.prevTrace = trace;
@@ -146,7 +146,7 @@ module.exports = function(env) {
     // env.exit to the program. This is because the continuation is
     // store as part of the trace, and when invoked by a different
     // MCMC kernel execution would jump back here.
-    this.positionStepCont = k;
+    this.positionStepCont = cont;
     return this.runWppl();
   };
 
@@ -180,7 +180,7 @@ module.exports = function(env) {
     return score - kinetic;
   }
 
-  HMCKernel.prototype.cont = function(trace, accepted) {
+  HMCKernel.prototype.finish = function(trace, accepted) {
     assert(_.isBoolean(accepted));
     if (accepted && trace.value === env.query) {
       trace.value = env.query.getTable();
@@ -193,13 +193,13 @@ module.exports = function(env) {
       };
     }
     env.coroutine = this.coroutine;
-    return this.k(trace);
+    return this.cont(trace);
   };
 
   HMCKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return function(k, runWppl, oldTrace, options) {
-    return new HMCKernel(k, runWppl, oldTrace, options).run();
+  return function(cont, runWppl, oldTrace, options) {
+    return new HMCKernel(cont, runWppl, oldTrace, options).run();
   };
 
 };
