@@ -49,10 +49,8 @@ module.exports = function(env) {
 
     this.k = k;
     this.s = s;
-    this.a = a;
     this.coroutine = env.coroutine;
     env.coroutine = this;
-
   }
 
   SMC.prototype.run = function() {
