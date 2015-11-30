@@ -36,7 +36,9 @@ module.exports = function(env) {
 
   HMCKernel.prototype.sample = function(s, k, a, erp, params) {
     var prevChoice = this.prevTrace.findChoice(a);
-    assert(prevChoice, 'HMC does not support structural continuous variables.');
+    if (!prevChoice) {
+      throw 'HMC does not support structural continuous variables.';
+    }
 
     var val;
     if (erp.isContinuous) {
