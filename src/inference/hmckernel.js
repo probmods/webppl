@@ -13,7 +13,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function HMCKernel(cont, runWppl, oldTrace, options) {
+  function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       // TODO: Are these sensible defaults?
       steps: 5,
@@ -28,7 +28,6 @@ module.exports = function(env) {
     assert.ok(this.steps > 0);
 
     this.cont = cont;
-    this.runWppl = runWppl;
     this.oldTrace = oldTrace;
 
     this.coroutine = env.coroutine;
@@ -138,7 +137,7 @@ module.exports = function(env) {
     // Run the program creating a new trace with updated (continuous)
     // variables.
     this.prevTrace = trace;
-    this.trace = new Trace();
+    this.trace = this.prevTrace.fresh();
     // Once the WebPPL program has finished we need to call k to
     // continue inference. Since the program will call env.exit once
     // finished, we save k here in order to resume inference as
@@ -147,7 +146,7 @@ module.exports = function(env) {
     // store as part of the trace, and when invoked by a different
     // MCMC kernel execution would jump back here.
     this.positionStepCont = cont;
-    return this.runWppl();
+    return this.trace.continue();
   };
 
   HMCKernel.prototype.exit = function(k, val, earlyExit) {
@@ -198,8 +197,8 @@ module.exports = function(env) {
 
   HMCKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return function(cont, runWppl, oldTrace, options) {
-    return new HMCKernel(cont, runWppl, oldTrace, options).run();
+  return function(cont, oldTrace, options) {
+    return new HMCKernel(cont, oldTrace, options).run();
   };
 
 };

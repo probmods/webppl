@@ -21,8 +21,7 @@ module.exports = function(env) {
       finalRejuv: true
     });
 
-    var runWppl = function() { return wpplFn(_.clone(s), env.exit, a); };
-    this.rejuvKernel = _.partial(kernels.parseOptions(options.rejuvKernel), _, runWppl);
+    this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
     this.performRejuv = this.rejuvSteps > 0;
@@ -36,14 +35,9 @@ module.exports = function(env) {
 
     this.step = 0;
 
-    var exitK = function(s) {
-      return wpplFn(s, env.exit, a);
-    };
-
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
-      var trace = new Trace();
-      trace.saveContinuation(_.clone(s), exitK);
+      var trace = new Trace(wpplFn, s, env.exit, a);
       this.particles.push(new Particle(trace));
     }
 
@@ -93,8 +87,7 @@ module.exports = function(env) {
   };
 
   SMC.prototype.runCurrentParticle = function() {
-    var trace = this.currentParticle().trace;
-    return trace.k(trace.store);
+    return this.currentParticle().trace.continue();
   };
 
   SMC.prototype.advanceParticleIndex = function() {

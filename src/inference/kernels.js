@@ -9,28 +9,28 @@ module.exports = function(env) {
   var MHKernel = require('./mhkernel')(env);
   var HMCKernel = require('./hmckernel')(env);
 
-  function sequenceKernel(cont, runWppl, oldTrace, options) {
+  function sequenceKernel(cont, oldTrace, options) {
     var kernels = options.kernels;
     var iter = function(cont, trace, kernels) {
       if (kernels.length === 1) {
-        return kernels[0](cont, runWppl, trace, options);
+        return kernels[0](cont, trace, options);
       } else {
         return kernels[0](function(trace2) {
           return iter(cont, trace2, _.rest(kernels));
-        }, runWppl, trace, options);
+        }, trace, options);
       }
 
     };
     return iter(cont, oldTrace, kernels);
   }
 
-  function HMCwithMHKernel(cont, runWppl, oldTrace, options) {
+  function HMCwithMHKernel(cont, oldTrace, options) {
     // The options arg is passed to both kernels as SMC passes
     // exitFactor via options.
     return HMCKernel(function(trace) {
       var opts = _.extendOwn({ discreteOnly: true }, options);
-      return MHKernel(cont, runWppl, trace, opts);
-    }, runWppl, oldTrace, options);
+      return MHKernel(cont, trace, opts);
+    }, oldTrace, options);
   }
 
   var kernels = {
@@ -69,9 +69,9 @@ module.exports = function(env) {
     if (isKernelOption(obj)) {
       var name = getKernelName(obj);
       var options = parseOptions(getKernelOptions(obj));
-      return function(cont, runWppl, oldTrace, extraOptions) {
+      return function(cont, oldTrace, extraOptions) {
         var allOptions = _.extendOwn({}, options, extraOptions);
-        return kernels[name](cont, runWppl, oldTrace, allOptions);
+        return kernels[name](cont, oldTrace, allOptions);
       };
     } else if (_.isArray(obj)) {
       return _.map(obj, parseOptions);
@@ -82,8 +82,7 @@ module.exports = function(env) {
     }
   }
 
-  // Combinators for kernel functions which have had runWppl and
-  // options partially applied.
+  // Combinators for kernel functions.
 
   function tap(fn) {
     return function(k, trace) {

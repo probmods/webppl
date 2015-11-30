@@ -11,18 +11,23 @@ module.exports = function(env) {
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(cont, runWppl) {
+  function Initialize(cont, wpplFn, s, k, a) {
     this.cont = cont;
-    this.runWppl = runWppl;
+
+    this.wpplFn = wpplFn;
+    this.s = s;
+    this.k = k;
+    this.a = a;
+
     this.failures = 0;
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
   Initialize.prototype.run = function() {
-    this.trace = new Trace();
+    this.trace = new Trace(this.wpplFn, this.s, this.k, this.a);
     env.query.clear();
-    return this.runWppl();
+    return this.trace.continue();
   };
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {
@@ -62,8 +67,8 @@ module.exports = function(env) {
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return function(s, k, a, wpplFn) {
-    return new Initialize(s, k, a, wpplFn).run();
+  return function(cont, wpplFn, s, k, a) {
+    return new Initialize(cont, wpplFn, s, k, a).run();
   };
 
 };

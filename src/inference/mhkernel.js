@@ -8,7 +8,8 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function MHKernel(cont, runWppl, oldTrace, options) {
+
+  function MHKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,

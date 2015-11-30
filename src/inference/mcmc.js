@@ -17,8 +17,7 @@ module.exports = function(env) {
       burn: 0
     });
 
-    var runWppl = function() { return wpplFn(_.clone(s), env.exit, a); };
-    options.kernel = _.partial(kernels.parseOptions(options.kernel), _, runWppl);
+    options.kernel = kernels.parseOptions(options.kernel);
 
     var log = function(s) {
       if (options.verbose) {
@@ -33,7 +32,7 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
-      return Initialize(run, runWppl);
+      return Initialize(run, wpplFn, s, env.exit, a);
     };
 
     run = function(initialTrace) {
