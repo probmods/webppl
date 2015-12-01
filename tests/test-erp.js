@@ -11,6 +11,8 @@ var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
 
+var EM = 0.57721566490153286060651209008240243104215933593992;
+
 var repeat = function(n,f) {
   var a = [];
   while(n--) {
@@ -119,7 +121,7 @@ function kdeMode(samps) {
     var x = min + bandwidth * i;
     var kernel_sum = 0;
     for (var j = 0; j < samps.length; j++) {
-      kernel_sum += kernel((x - samps[j]) / bandwidth)// * counter.count(keys[j]);
+      kernel_sum += kernel((x - samps[j]) / bandwidth);
     }
     if (kernel_sum > maxDensity) {
       maxDensity = kernel_sum;
@@ -188,22 +190,47 @@ var sampleStatisticFunctions = {
 
 global.suppressWarnings = true;
 
+var ln = Math.log,
+    pow = Math.pow;
+
+// HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
+var digamma = function(x) {
+  if (x < 6)
+    return digamma(x + 1) - 1/x;
+
+  return ln(x)
+    - 1/(2   * x)
+    - 1/(12  * pow(x,2))
+    + 1/(120 * pow(x,4))
+    - 1/(252 * pow(x,6))
+    + 1/(240 * pow(x,8))
+    - 5/(660 * pow(x,10))
+    + 691/(32760 * pow(x,12))
+    - 1/(12 * pow(x,14));
+}
+
 var erpMetadataList = [
   {name: 'gamma',
    sampler: erp.gammaERP.sample,
    inSupport: function(params, x) {
-     return typeof x === 'number' && x > 0 && x < Infinity;
+     var giveLog = params[2];
+     if (giveLog) {
+       return typeof x === 'number' && x > -Infinity && x < Infinity;
+     } else {
+       return typeof x === 'number' && x > 0 && x < Infinity;
+     }
    },
    settings: [
-     // TODO: test with giveLog = true
-     {params: [0.001,1/0.001], n: 6000000, reltol: 0.1, skip: ['mode']},
-     {params: [0.01,1/0.01],   n: 1000000, reltol: 0.1, skip: ['mode']},
-     {params: [0.1,1/0.1],     n: 90000,   reltol: 0.1, skip: ['mode']},
-     {params: [1,1],           n: 90000,   reltol: 0.1, skip: ['mode']},
-     {params: [3,9],           n: 500000,   reltol: 0.05},
-     {params: [300, 200],      n: 500000,   reltol: 0.05}
+     {params: [0.001,1/0.001], n: 6e6, reltol: 0.1, skip: ['mode']},
+     {params: [0.001,1/0.001, true], n: 6e6, reltol: 0.1, skip: ['mode', 'variance', 'skew', 'kurtosis']},
+     // {params: [0.01,1/0.01],   n: 1e6, reltol: 0.1, skip: ['mode']},
+     // {params: [0.1,1/0.1],     n: 1e6, reltol: 0.1, skip: ['mode']},
+     // {params: [1,1],           n: 1e6, reltol: 0.1, skip: ['mode']},
+     // {params: [3,9],           n: 1e6, reltol: 0.05},
+     // {params: [300, 200],      n: 1e6, reltol: 0.05}
+     {params: [1.5,1.2,true], n:1e6, reltol: 0.1, skip: ['variance','kurtosis','skew']}
    ],
-   tStats: {
+   populationStatisticFunctions: {
      mean: function(params) {
        var shape = params[0];
        var scale = params[1];
@@ -215,9 +242,16 @@ var erpMetadataList = [
      mode: function(params) {
        var shape = params[0];
        var scale = params[1];
+       var giveLog = params[2];
 
        // for shape > 1
-       return (shape - 1) * scale;
+       if (giveLog) {
+         // TODO: double check
+         // HT http://stats.stackexchange.com/questions/40989/density-of-y-logx-for-gamma-distributed-x
+         return ln(shape * scale);
+       } else {
+         return (shape - 1) * scale;
+       }
 
      },
      variance: function(params) {
@@ -268,14 +302,13 @@ var generateSettingTest = function(erpMetadata, settings) {
     test.done();
   }
 
-  var includedStats = _.omit(erpMetadata.tStats,
+  var includedStats = _.omit(erpMetadata.populationStatisticFunctions,
                              function(v,k) {
                                return _.contains(settings.skip, k)
                              });
 
-  // check each of the tStats
-  _.each(includedStats, function(tStat, statName) {
-    var expectedResult = tStat(params);
+  _.each(includedStats, function(statFn, statName) {
+    var expectedResult = statFn(params);
     var testId = testIdPrefix + statName;
 
     exports[testId] = function(test) {
