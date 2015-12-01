@@ -281,7 +281,7 @@ var generateSettingTest = function(erpMetadata, settings) {
     exports[testId] = function(test) {
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
       var actualResult = sampleStatisticFunction(samples);
-      helpers.testWithinTolerance(test, actualResult, expectedResult, settings.reltol * expectedResult, statName);
+      helpers.testWithinTolerance(test, actualResult, expectedResult, Math.abs(settings.reltol * expectedResult), statName);
       test.done();
     }
   });
