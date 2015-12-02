@@ -39,26 +39,23 @@ many of them automatically using::
 To compile webppl for use in browser, run::
 
     npm install -g browserify uglifyjs
-    cd compiled
-    make clean
-    make
+    grunt compile
 
 Then, to run the browser tests use::
 
-    make test
+    grunt test-browser
 
 The tests will run in the default browser. Specify a different browser
 using the ``BROWSER`` environment variable. For example::
 
-    BROWSER="Google Chrome" make test
+    BROWSER="Google Chrome" grunt test-browser
 
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
 
-    browserify -t [./src/bundle.js --require webppl-viz] -g brfs src/browser.js > compiled/webppl.js
+    grunt compile:path/to/webppl-viz
 
-Multiple ``--require`` arguments can be used to include multiple
-packages.
+Multiple packages can specified, separated by colons.
 
 .. _continuous integration tests: https://travis-ci.org/probmods/webppl
 .. _nodeunit documentation: https://github.com/caolan/nodeunit#command-line-options
