@@ -158,5 +158,11 @@ available in WebPPL:
 
         foo();
 
+Package template
+----------------
+
+The `WebPPL package template`_ provides a scaffold that you can extend to create your own packages.
+
 .. _sweet.js: http://sweetjs.org
 .. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules
+.. _WebPPL package template: https://github.com/probmods/webppl-package-template
