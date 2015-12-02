@@ -233,13 +233,13 @@ SMC
 
 .. rubric:: Bibliography
 
-.. [wingate11] Wingate, David, Andreas Stuhlmüller, and Noah D.
+.. [wingate11] David Wingate, Andreas Stuhlmüller, and Noah D.
                Goodman. "Lightweight implementations of probabilistic
                programming languages via transformational
                compilation." International Conference on Artificial
                Intelligence and Statistics. 2011.
 
-.. [ritchie15] Ritchie, Daniel, Andreas Stuhlmüller, and Noah D.
+.. [ritchie15] Daniel Ritchie, Andreas Stuhlmüller, and Noah D.
                Goodman. "C3: Lightweight Incrementalized MCMC for
                Probabilistic Programs using Continuations and Callsite
                Caching." arXiv preprint arXiv:1509.02151 (2015).
