@@ -7,12 +7,12 @@ Enumeration
 .. js:function:: Enumerate(thunk[, maxExecutions])
 
    :param function thunk: Program to perform inference in.
-   :param number maxExecutions: Maximum number of executions to perform.
+   :param number maxExecutions: Maximum number of (complete) executions to enumerate.
    :returns: Marginal ERP
 
    This method performs inference by enumeration. If ``maxExecutions``
-   is not specified exhaustive enumeration is performed. Otherwise,
-   paths through the program are explored using a "likely first"
+   is not specified, exhaustive enumeration is performed. Otherwise,
+   paths through the program are explored using a "most probable first"
    heuristic until the maximum number of executions is reached.
 
    Alternative search strategies are available using the following
@@ -93,7 +93,7 @@ MCMC
 
       .. describe:: burn
 
-         The number of addition iterations to perform before
+         The number of additional iterations to perform before
          collecting samples.
 
          Default: ``0``
@@ -145,7 +145,7 @@ Incremental MH
 
    :param function thunk: Program to perform inference in.
    :param number numIterations: The total number of iterations to
-                                perform. (Including burn in and lag.)
+                                perform. (Including burn-in and lag.)
    :param object options: Options.
    :returns: Marginal ERP
 
@@ -202,8 +202,8 @@ SMC
    :param object options: Options.
    :returns: Marginal ERP
 
-   This method performs inference using sequential Monte Carlo. This
-   method is also known as a particle filter.
+   This method performs inference using sequential Monte Carlo. When
+   `rejuvSteps` is 0, this method is also known as a particle filter.
 
    The following options are supported:
 
@@ -233,7 +233,7 @@ SMC
 
 .. rubric:: Bibliography
 
-.. [wingate11] Wingate, David, Andreas Stuhlmüeller, and Noah D.
+.. [wingate11] Wingate, David, Andreas Stuhlmüller, and Noah D.
                Goodman. "Lightweight implementations of probabilistic
                programming languages via transformational
                compilation." International Conference on Artificial
