@@ -19,13 +19,12 @@ install:
   - npm install
   - npm install -g nodeunit grunt-cli
   - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglifyjs; fi
-  - if [ $TASK = travis-phantomjs ]; then travis/install-phantomjs.sh; fi
-  - if [ $TASK = travis-phantomjs ]; then export PATH=$PWD/phantomjs:$PATH; fi
 
 script:
   - grunt $TASK
 
-sudo: false
+sudo: required
+dist: trusty
 
 notifications:
   slack: cocolab-stanford:X2Ebs0qIMVUidJBD1xZd2XU1
