@@ -3,8 +3,7 @@
 *.swp
 node_modules
 npm-debug.log
-compiled/webppl.js
-compiled/webppl.min.js
+compiled/
 docs/_build
 docs/_static
 docs/_templates

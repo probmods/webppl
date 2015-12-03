@@ -8,6 +8,7 @@ Contents:
    
    quickstart
    usage
+   inference
    debugging
    packages
    development/index

@@ -1,5 +1,9 @@
 'use strict';
 
+var _ = require('underscore');
+var open = require('open');
+var execSync = require('child_process').execSync;
+
 var jslintSettings = {
   options: {
     flags: ['--flagfile .gjslintrc'],
@@ -58,15 +62,37 @@ module.exports = function(grunt) {
       }
     },
     gjslint: jslintSettings,
-    fixjsstyle: jslintSettings
+    fixjsstyle: jslintSettings,
+    clean: ['compiled/*.js']
   });
 
   grunt.loadNpmTasks('grunt-gjslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
+  grunt.loadNpmTasks('grunt-contrib-clean');
+
   grunt.registerTask('default', ['nodeunit', 'gjslint']);
   grunt.registerTask('test', ['nodeunit']);
   grunt.registerTask('lint', ['gjslint']);
   grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('fixstyle', ['fixjsstyle']);
+
+  grunt.registerTask('compile', 'Compile for the browser', function() {
+    var pkgArg = '';
+    if (arguments.length > 0) {
+      var requires = _.chain(_.toArray(arguments))
+          .map(function(name) { return ['--require', '\"' + name + '\"']; })
+          .flatten().value();
+      pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
+    }
+    execSync('mkdir -p compiled');
+    grunt.log.writeln('Running browserify');
+    execSync('browserify' + pkgArg + ' -g brfs src/browser.js > compiled/webppl.js');
+    grunt.log.writeln('Running uglifyjs');
+    execSync('uglifyjs compiled/webppl.js -b ascii_only=true,beautify=false > compiled/webppl.min.js');
+  });
+
+  grunt.registerTask('test-browser', function() {
+    open('tests/browser/index.html', process.env.BROWSER);
+  });
 };
