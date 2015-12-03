@@ -7,14 +7,24 @@ node_js:
   - "4"
   - "5"
 
+env:
+  - TASK=default
+
+matrix:
+  include:
+    - node_js: "5"
+      env: TASK=travis-phantomjs
+
 install:
   - npm install
   - npm install -g nodeunit grunt-cli
+  - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglifyjs; fi
 
 script:
-  - grunt
+  - grunt $TASK
 
-sudo: false
+sudo: required
+dist: trusty
 
 notifications:
   slack: cocolab-stanford:X2Ebs0qIMVUidJBD1xZd2XU1
