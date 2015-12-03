@@ -100,14 +100,7 @@ MCMC
 
       .. describe:: kernel
 
-         The transition kernel to use for inference. The following
-         kernels are available:
-
-         =========  ============================================
-         Option     Description
-         =========  ============================================
-         ``'MH'``   Single site Metropolis-Hastings [wingate11]_
-         =========  ============================================
+         The transition kernel to use for inference. See `Kernels`_.
 
          Default: ``'MH'``
 
@@ -137,6 +130,46 @@ MCMC
    Example usage::
 
      MCMC(model, { samples: 1000, lag: 100, burn: 5 });
+
+Kernels
+^^^^^^^
+
+The following kernels are available:
+
+.. describe:: MH
+
+   Implements single site Metropolis-Hastings. [wingate11]_
+
+Example usage::
+
+    MCMC(model, { kernel: 'MH' });
+
+.. describe:: HMC
+
+   Implements Hamiltonian Monte Carlo. [neal11]_
+
+   As the HMC algorithm is only applicable to continuous variables,
+   ``HMC`` is a cycle kernel which includes a MH step for discrete
+   variables.
+
+   The following options are supported:
+
+   .. describe:: steps
+
+      The number of steps to take per-iteration.
+
+      Default: ``5``
+
+   .. describe:: stepSize
+
+      The size of each step.
+
+      Default: ``0.1``
+
+Example usage::
+
+    MCMC(model, { kernel: 'HMC' });
+    MCMC(model, { kernel: { HMC: { steps: 10, stepSize: 1 }}});
 
 Incremental MH
 --------------
@@ -224,7 +257,7 @@ SMC
 
       .. describe:: rejuvKernel
 
-         The :js:func:`MCMC` kernel to use for rejuvenation.
+         The MCMC kernel to use for rejuvenation. See `Kernels`_.
 
          Default: ``'MH'``
 
@@ -239,6 +272,9 @@ SMC
                programming languages via transformational
                compilation." International Conference on Artificial
                Intelligence and Statistics. 2011.
+
+.. [neal11] Radford M. Neal, "MCMC using Hamiltonian dynamics."
+            Handbook of Markov Chain Monte Carlo 2 (2011).
 
 .. [ritchie15] Daniel Ritchie, Andreas Stuhlmüller, and Noah D.
                Goodman. "C3: Lightweight Incrementalized MCMC for
