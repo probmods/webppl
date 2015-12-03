@@ -7,12 +7,23 @@ node_js:
   - "4"
   - "5"
 
+env:
+  - TASK=default
+
+matrix:
+  include:
+    - node_js: "5"
+      env: TASK=travis-phantomjs
+
 install:
   - npm install
   - npm install -g nodeunit grunt-cli
+  - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglifyjs; fi
+  - if [ $TASK = travis-phantomjs ]; then travis/install-phantomjs.sh; fi
+  - if [ $TASK = travis-phantomjs ]; then export PATH=$PWD/phantomjs:$PATH; fi
 
 script:
-  - grunt
+  - grunt $TASK
 
 sudo: false
 

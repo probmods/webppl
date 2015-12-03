@@ -40,6 +40,7 @@
     "grunt-gjslint": "^0.2.0",
     "nodeunit": "^0.9.1",
     "open": "0.0.5",
+    "qunit-phantomjs-runner": "^2.1.0",
     "through2": "^2.0.0"
   },
   "scripts": {
