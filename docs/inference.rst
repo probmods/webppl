@@ -203,7 +203,8 @@ SMC
    :returns: Marginal ERP
 
    This method performs inference using sequential Monte Carlo. When
-   `rejuvSteps` is 0, this method is also known as a particle filter.
+   ``rejuvSteps`` is 0, this method is also known as a particle
+   filter.
 
    The following options are supported:
 
