@@ -334,9 +334,9 @@ var gammaERP = new ERP({
     var giveLog = params[2];
     var x = val;
     if (giveLog) {
-      return (shape - 1) * x           - Math.exp(x) / scale  - logGamma(shape) - shape * Math.log(scale);
+      return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
     } else {
-      return (shape - 1) * Math.log(x) - x / scale            - logGamma(shape) - shape * Math.log(scale);
+      return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
     }
   }
 });
