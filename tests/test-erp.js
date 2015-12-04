@@ -313,11 +313,11 @@ var generateSettingTest = function(erpMetadata, settings) {
     // do it with a for loop because some nodes don't define map()
     // for Float64Array
     var allInSupport = true;
-    for(var i = 0, n = samples.length; i < n; i++) {
+    for (var i = 0, n = samples.length; i < n; i++) {
       allInSupport = allInSupport && inSupport(params, samples[i]);
     }
 
-    test.ok( allInSupport );
+    test.ok(allInSupport);
     test.done();
   }
 
