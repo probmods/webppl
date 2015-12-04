@@ -16,7 +16,7 @@ var helpers = require('./helpers');
 
 // suppress warnings (for, e.g., underflow)
 global.suppressWarnings = true;
-Error.stackTraceLimit = 0;
+Error.stackTraceLimit = 2;
 
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays
