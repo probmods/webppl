@@ -14,9 +14,13 @@ var helpers = require('./helpers');
 var EM = 0.57721566490153286060651209008240243104215933593992;
 
 var repeat = function(n,f) {
-  var a = [];
-  while(n--) {
-    a.push(f());
+  // used typedarray because node can run out of memory easily
+  // with lots of big arrays
+
+  var a = new Float64Array(n);
+
+  for(var i = 0; i < n; i++) {
+    a[i] = f()
   }
   return a;
 }
