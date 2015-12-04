@@ -211,22 +211,22 @@ var erpMetadataList = [
      // n is the number of samples we'll take
      // reltol is the relative tolerance
      // skip says that we'll skip certain statistics
-     {params: [0.0001,1/0.0001], n: 5e6, reltol: 0.2, skip: ['mode']},
-     {params: [0.001,1/0.001], n: 5e6, reltol: 0.1, skip: ['mode']},
-     {params: [0.01,1/0.01],   n: 5e6, reltol: 0.1, skip: ['mode']},
-     {params: [0.1,1/0.1],     n: 5e6, reltol: 0.1, skip: ['mode']},
-     {params: [1,1],           n: 5e6, reltol: 0.1, skip: ['mode']},
-     {params: [3,9],           n: 5e6, reltol: 0.1},
-     {params: [300, 200],      n: 5e6, reltol: 0.1},
-     {params: [100006, 34],    n: 5e6, reltol: 0.1},
-     {params: [0.0001,1/0.0001, true], n: 5e6, reltol: 0.2, skip: ['mode','skew','kurtosis']},
-     {params: [0.001,1/0.001, true],   n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
-     {params: [0.01,1/0.01, true],     n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
-     {params: [0.1,1/0.1, true],       n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
-     {params: [1,1,true],              n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
-     {params: [3,9,true],              n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
-     {params: [300, 200,true],         n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
-     {params: [100006, 34,true],       n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']}
+     {params: [0.0001,1/0.0001], n: 5e6, reltol: 0.25, skip: ['mode']},
+     {params: [0.001,1/0.001], n: 5e6, reltol: 0.15, skip: ['mode']},
+     {params: [0.01,1/0.01],   n: 5e6, reltol: 0.15, skip: ['mode']},
+     {params: [0.1,1/0.1],     n: 5e6, reltol: 0.15, skip: ['mode']},
+     {params: [1,1],           n: 5e6, reltol: 0.15, skip: ['mode']},
+     {params: [3,9],           n: 5e6, reltol: 0.15},
+     {params: [300, 200],      n: 5e6, reltol: 0.15},
+     {params: [100006, 34],    n: 5e6, reltol: 0.15},
+     {params: [0.0001,1/0.0001, true], n: 5e6, reltol: 0.25, skip: ['mode','skew','kurtosis']},
+     {params: [0.001,1/0.001, true],   n: 5e6, reltol: 0.15, skip: ['mode','skew','kurtosis']},
+     {params: [0.01,1/0.01, true],     n: 5e6, reltol: 0.15, skip: ['mode','skew','kurtosis']},
+     {params: [0.1,1/0.1, true],       n: 5e6, reltol: 0.15, skip: ['mode','skew','kurtosis']},
+     {params: [1,1,true],              n: 5e6, reltol: 0.15, skip: ['mode','skew','kurtosis']},
+     {params: [3,9,true],              n: 5e6, reltol: 0.15, skip: ['skew','kurtosis']},
+     {params: [300, 200,true],         n: 5e6, reltol: 0.15, skip: ['skew','kurtosis']},
+     {params: [100006, 34,true],       n: 5e6, reltol: 0.15, skip: ['skew','kurtosis']}
    ],
    // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
    populationStatisticFunctions: {
