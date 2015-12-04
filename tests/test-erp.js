@@ -1,5 +1,8 @@
 'use strict';
 
+// suppress warnings (for, e.g., underflow)
+global.suppressWarnings = true;
+
 Error.stackTraceLimit = 0;
 
 var _ = require('underscore');
@@ -10,8 +13,6 @@ var util = require('../src/util');
 var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
-
-var EM = 0.57721566490153286060651209008240243104215933593992;
 
 var repeat = function(n,f) {
   // used typedarray because node can run out of memory easily
@@ -101,6 +102,9 @@ function _kurtosis(a) {
 };
 var kurtosis = (_kurtosis);
 
+// estimate the mode of a continuous distribution from some
+// samples by computing kde and returning the bin with
+// max density
 function kdeMode(samps) {
   var kernel = function(u) {
     return Math.abs(u) <= 1 ? .75 * (1 - u * u) : 0;
@@ -135,8 +139,8 @@ function kdeMode(samps) {
   return maxEl;
 }
 
-
-// compute half-sample mode of bickel & fruewith
+// (unused) another way of inferring pop. mode from samples
+// half-sample mode of bickel & fruewith
 // http://arxiv.org/abs/math/0505419
 // assumes a is sorted
 function hsm(a) {
@@ -191,8 +195,6 @@ var sampleStatisticFunctions = {
   kurtosis: kurtosis,
   mode: mode
 }
-
-global.suppressWarnings = true;
 
 var ln = Math.log,
     pow = Math.pow;
