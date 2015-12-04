@@ -181,7 +181,6 @@ function hsm(a) {
 
 }
 
-
 function _mode(a) {
   return kdeMode(a)
 }
@@ -215,6 +214,22 @@ var digamma = function(x) {
     - 1/(12 * pow(x,14));
 }
 
+// HT http://ms.mcmaster.ca/peter/s743/trigamma.html
+// (cites formulas from abramowitz & stegun, which you can get at:
+// http://people.math.sfu.ca/~cbm/aands/
+var trigamma = function(x) {
+  if (x < 30) {
+    return trigamma(x + 1) + 1/(x*x);
+  }
+
+  return 1 / x
+    + 1/(2 * pow(x,2))
+    + 1/(6 * pow(x,3))
+    - 1/(30 * pow(x,5))
+    + 1/(42 * pow(x,7))
+    - 1/(30 * pow(x,9))
+}
+
 var erpMetadataList = [
   {name: 'gamma',
    sampler: erp.gammaERP.sample,
@@ -227,14 +242,23 @@ var erpMetadataList = [
      }
    },
    settings: [
-     {params: [0.001,1/0.001], n: 6e6, reltol: 0.1, skip: ['mode']},
-     {params: [0.001,1/0.001, true], n: 6e6, reltol: 0.1, skip: ['mode', 'variance', 'skew', 'kurtosis']},
-     // {params: [0.01,1/0.01],   n: 1e6, reltol: 0.1, skip: ['mode']},
-     // {params: [0.1,1/0.1],     n: 1e6, reltol: 0.1, skip: ['mode']},
-     // {params: [1,1],           n: 1e6, reltol: 0.1, skip: ['mode']},
-     // {params: [3,9],           n: 1e6, reltol: 0.05},
-     // {params: [300, 200],      n: 1e6, reltol: 0.05}
-     {params: [1.5,1.2,true], n:1e6, reltol: 0.1, skip: ['variance','kurtosis','skew']}
+     {params: [0.0001,1/0.0001], n: 5e6, reltol: 0.2, skip: ['mode']},
+     {params: [0.001,1/0.001], n: 5e6, reltol: 0.1, skip: ['mode']},
+     {params: [0.01,1/0.01],   n: 5e6, reltol: 0.1, skip: ['mode']},
+     {params: [0.1,1/0.1],     n: 5e6, reltol: 0.1, skip: ['mode']},
+     {params: [1,1],           n: 5e6, reltol: 0.1, skip: ['mode']},
+     {params: [3,9],           n: 5e6, reltol: 0.1},
+     {params: [300, 200],      n: 5e6, reltol: 0.1},
+     {params: [100006, 34],    n: 5e6, reltol: 0.1},
+     {params: [0.0001,1/0.0001, true], n: 5e6, reltol: 0.2, skip: ['mode','skew','kurtosis']},
+     {params: [0.001,1/0.001, true],   n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
+     {params: [0.01,1/0.01, true],     n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
+     {params: [0.1,1/0.1, true],       n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
+     {params: [1,1,true],              n: 5e6, reltol: 0.1, skip: ['mode','skew','kurtosis']},
+     {params: [3,9,true],              n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
+     {params: [300, 200,true],         n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
+     {params: [100006, 34,true],       n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']}
+
    ],
    populationStatisticFunctions: {
      mean: function(params) {
@@ -242,8 +266,11 @@ var erpMetadataList = [
        var scale = params[1];
        var giveLog = params[2] ;
 
-       return giveLog ? digamma(shape) + Math.log(scale)
-         : shape * scale;
+       if (giveLog) {
+         return digamma(shape) + Math.log(scale)
+       } else {
+         return shape * scale;
+       }
      },
      mode: function(params) {
        var shape = params[0];
@@ -252,7 +279,6 @@ var erpMetadataList = [
 
        // for shape > 1
        if (giveLog) {
-         // TODO: double check
          // HT http://stats.stackexchange.com/questions/40989/density-of-y-logx-for-gamma-distributed-x
          return ln(shape * scale);
        } else {
@@ -265,8 +291,11 @@ var erpMetadataList = [
        var scale = params[1];
        var giveLog = params[2];
 
-       return giveLog ? trigamma(shape)
-         : shape * scale * scale;
+       if (giveLog) {
+         return trigamma(shape)
+       } else {
+         return shape * scale * scale;
+       }
      },
      skew: function(params) {
        var shape = params[0];
