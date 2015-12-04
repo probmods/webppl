@@ -37,8 +37,9 @@ function ERP(obj) {
 ERP.prototype.isContinuous = false;
 
 ERP.prototype.MAP = function() {
-  if (this.support === undefined)
-    throw 'Cannot compute MAP for ERP without support!'
+  if (this.isContinuous || !this.support) {
+    throw 'Can only compute MAP for ERPs with finite support.';
+  }
   var supp = this.support([]);
   var mapEst = {val: undefined, prob: 0};
   for (var i = 0, l = supp.length; i < l; i++) {
@@ -51,8 +52,9 @@ ERP.prototype.MAP = function() {
 };
 
 ERP.prototype.entropy = function() {
-  if (this.support === undefined)
-    throw 'Cannot compute entropy for ERP without support!'
+  if (this.isContinuous || !this.support) {
+    throw 'Can only compute entropy for ERPs with finite support.';
+  }
   var supp = this.support([]);
   var e = 0;
   for (var i = 0, l = supp.length; i < l; i++) {
@@ -80,7 +82,7 @@ ERP.prototype.withParameters = function(params) {
 };
 
 ERP.prototype.isSerializeable = function() {
-  return this.support && !this.parameterized;
+  return !this.isContinuous && this.support && !this.parameterized;
 };
 
 // ERP serializer
