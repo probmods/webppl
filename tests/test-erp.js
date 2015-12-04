@@ -1,10 +1,5 @@
 'use strict';
 
-// suppress warnings (for, e.g., underflow)
-global.suppressWarnings = true;
-
-Error.stackTraceLimit = 0;
-
 var _ = require('underscore');
 var seedrandom = require('seedrandom');
 var fs = require('fs');
@@ -14,21 +9,33 @@ var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
 
+// In this file, we test our ERP samplers by running them a bunch for various
+// sample values and comparing the resulting *sample* statistics against mathematically
+// derived *population* statistics. We also check that every sample is in the
+// support of the distribution, so that modelers aren't bit by underflow or overflow
+
+// suppress warnings (for, e.g., underflow)
+global.suppressWarnings = true;
+Error.stackTraceLimit = 0;
+
 var repeat = function(n,f) {
-  // used typedarray because node can run out of memory easily
-  // with lots of big arrays
-
+  // used typedarray because node can run out of memory easily with lots of big arrays
   var a = new Float64Array(n);
-
   for(var i = 0; i < n; i++) {
     a[i] = f()
   }
   return a;
 }
 
+var ln = Math.log,
+    pow = Math.pow;
+
 // cache sample statistics by attaching
 // properties to the sample array
-// e.g., a._mean, a._sd,
+// e.g., a._mean, a._sd
+// note that this requires f to be declared
+// as function foo() { }
+// rather than var foo = function() { }
 var cache = function(f) {
   var key = f.name;
   return function(array) {
@@ -61,6 +68,7 @@ function _variance(a) {
 
   return sum / n;
 };
+// probably don't need to cache variance
 var variance = cache(_variance);
 
 function _sd(a) {
@@ -76,13 +84,14 @@ function _skew(a) {
 
   for(var i = 0; i < n; i++) {
     var v = a[i]-m;
-    sum += Math.pow(v,3);
+    sum += pow(v,3);
   }
 
-  sum = sum / (Math.pow(s,3));
+  sum = sum / (pow(s,3));
 
   return sum/n;
 };
+// probably don't need to cache skew
 var skew = (_skew);
 
 function _kurtosis(a) {
@@ -93,13 +102,14 @@ function _kurtosis(a) {
 
   for(var i = 0; i < n; i++) {
     var v = a[i]-m;
-    sum += Math.pow(v,4);
+    sum += pow(v,4);
   }
 
-  sum = sum / (Math.pow(s,4));
+  sum = sum / (pow(s,4));
 
   return sum/n;
 };
+// probably don't need to cache kurtosis
 var kurtosis = (_kurtosis);
 
 // estimate the mode of a continuous distribution from some
@@ -115,7 +125,7 @@ function kdeMode(samps) {
   var n = samps.length;
   var s = sd(samps);
 
-  var bandwidth = 1.06 * s * Math.pow(n, -0.2);
+  var bandwidth = 1.06 * s * pow(n, -0.2);
 
   var min = _.min(samps);
   var max = _.max(samps);
@@ -139,48 +149,6 @@ function kdeMode(samps) {
   return maxEl;
 }
 
-// (unused) another way of inferring pop. mode from samples
-// half-sample mode of bickel & fruewith
-// http://arxiv.org/abs/math/0505419
-// assumes a is sorted
-function hsm(a) {
-
-  while(a.length > 3) {
-    var n = a.length;
-    var N = Math.ceil(n/2);
-    var minWidth = a[n-1] - a[0];
-
-    var j;
-
-    for(var i = 0; i <= n - N; i++) {
-      var width = a[i+N-1] - a[i];
-      if (width < minWidth) {
-        minWidth = width;
-        j = i
-      }
-    }
-
-    a = a.slice(j,j+N-1);
-  }
-
-  if (a.length == 1) {
-    return a[0];
-  }
-  if (a.length == 2) {
-    return (a[0] + a[1])/2
-  }
-  if (a.length == 3) {
-    if (a[1] - a[0] < a[2] - a[1]) {
-      return (a[0] + a[1])/2
-    } else if (a[0] - a[0] > a[2] - a[1]) {
-      return (a[1] + a[2])/2
-    } else {
-      return a[1]
-    }
-  }
-
-}
-
 function _mode(a) {
   return kdeMode(a)
 }
@@ -194,9 +162,6 @@ var sampleStatisticFunctions = {
   kurtosis: kurtosis,
   mode: mode
 }
-
-var ln = Math.log,
-    pow = Math.pow;
 
 // HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
 var digamma = function(x) {
@@ -242,6 +207,10 @@ var erpMetadataList = [
      }
    },
    settings: [
+     // params are sampled to the ERP sampler
+     // n is the number of samples we'll take
+     // reltol is the relative tolerance
+     // skip says that we'll skip certain statistics
      {params: [0.0001,1/0.0001], n: 5e6, reltol: 0.2, skip: ['mode']},
      {params: [0.001,1/0.001], n: 5e6, reltol: 0.1, skip: ['mode']},
      {params: [0.01,1/0.01],   n: 5e6, reltol: 0.1, skip: ['mode']},
@@ -258,8 +227,8 @@ var erpMetadataList = [
      {params: [3,9,true],              n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
      {params: [300, 200,true],         n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']},
      {params: [100006, 34,true],       n: 5e6, reltol: 0.1, skip: ['skew','kurtosis']}
-
    ],
+   // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
    populationStatisticFunctions: {
      mean: function(params) {
        var shape = params[0];
@@ -267,7 +236,7 @@ var erpMetadataList = [
        var giveLog = params[2] ;
 
        if (giveLog) {
-         return digamma(shape) + Math.log(scale)
+         return digamma(shape) + ln(scale)
        } else {
          return shape * scale;
        }
