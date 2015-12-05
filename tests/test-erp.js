@@ -209,24 +209,25 @@ var erpMetadataList = [
     settings: [
       // params are sampled to the ERP sampler
       // n is the number of samples we'll take
-      // reltol is the relative tolerance
-      // skip says that we'll skip certain statistics
-      {params: [0.0001, 1 / 0.0001], n: 5e6, reltol: 0.25, skip: ['mode']},
-      {params: [0.001, 1 / 0.001], n: 5e6, reltol: 0.15, skip: ['mode']},
-      {params: [0.01, 1 / 0.01], n: 5e6, reltol: 0.15, skip: ['mode']},
-      {params: [0.1, 1 / 0.1], n: 5e6, reltol: 0.15, skip: ['mode']},
-      {params: [1, 1], n: 5e6, reltol: 0.15, skip: ['mode']},
-      {params: [3, 9], n: 5e6, reltol: 0.15},
-      {params: [300, 200], n: 5e6, reltol: 0.15},
-      {params: [100006, 34], n: 5e6, reltol: 0.15},
-      {params: [0.0001, 1 / 0.0001, true], n: 5e6, reltol: 0.25, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [0.001, 1 / 0.001, true], n: 5e6, reltol: 0.15, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [0.01, 1 / 0.01, true], n: 5e6, reltol: 0.15, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [0.1, 1 / 0.1, true], n: 5e6, reltol: 0.15, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1, 1, true], n: 5e6, reltol: 0.15, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [3, 9, true], n: 5e6, reltol: 0.15, skip: ['skew', 'kurtosis']},
-      {params: [300, 200, true], n: 5e6, reltol: 0.15, skip: ['skew', 'kurtosis']},
-      {params: [100006, 34, true], n: 5e6, reltol: 0.15, skip: ['skew', 'kurtosis']}
+      // reltol declares which stats we'll run for a single parameter value
+      // and the acceptable relative tolerance for each
+
+      {params: [1e-4, 1e4, false], n: 5e6, reltol: {mean: 0.1, variance: 0.1, skew: 0.4, kurtosis: 0.4}},
+      {params: [1e-3, 1e3, false], n: 5e6, reltol: {mean: 0.1, variance: 0.1, skew: 0.4, kurtosis: 0.4}},
+      {params: [1e-2, 1e2 , false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.3, kurtosis: 0.3}},
+      {params: [1e-1, 1e1, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.2, kurtosis: 0.2}},
+      {params: [1e0, 1e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
+      {params: [3e0, 9e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
+      {params: [3e2, 2e2, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
+      {params: [1e5, 3e1, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.4, kurtosis: 0.4}},
+      {params: [1e-4, 1e4, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
+      {params: [1e-3, 1e3, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
+      {params: [1e-2, 1e2 , true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
+      {params: [1e-1, 1e1, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
+      {params: [1e0, 1e0, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
+      {params: [3e0, 9e0, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
+      {params: [3e2, 2e2, true], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1}},
+      {params: [1e5, 3e1, true], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1}}
     ],
     // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
     populationStatisticFunctions: {
@@ -283,7 +284,7 @@ var erpMetadataList = [
         var giveLog = params[2];
 
         if (giveLog) {
-          throw new Error('gamma skew not implemented for log samples');
+          throw new Error('gamma kurtosis not implemented for log samples');
         } else {
           return 3 + 6 / shape;
         }
@@ -321,22 +322,21 @@ var generateSettingTest = function(erpMetadata, settings) {
     test.done();
   }
 
-  var includedStats = _.omit(erpMetadata.populationStatisticFunctions,
-                             function(v, k) {
-                               return _.contains(settings.skip, k)
-                             });
+  var populationStatisticFunctions = _.pick(erpMetadata.populationStatisticFunctions,
+                                            _.keys(settings.reltol));
 
-  _.each(includedStats, function(statFn, statName) {
+  _.each(populationStatisticFunctions, function(statFn, statName) {
     var expectedResult = statFn(params);
     var testId = testIdPrefix + statName;
 
     exports[testId] = function(test) {
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
+      var reltol = settings.reltol[statName];
       var actualResult = sampleStatisticFunction(samples);
       helpers.testWithinTolerance(test,
                                   actualResult,
                                   expectedResult,
-                                  Math.abs(settings.reltol * expectedResult),
+                                  Math.abs(reltol * expectedResult),
                                   statName);
       test.done();
     }
