@@ -11,7 +11,8 @@ module.exports = function(env) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,
-      permissive: false
+      permissive: false,
+      factorCoeff: 1
     });
 
     if (!options.permissive) {
@@ -23,6 +24,7 @@ module.exports = function(env) {
     this.reused = {};
     this.proposalBoundary = options.proposalBoundary;
     this.exitFactor = options.exitFactor;
+    this.factorCoeff = options.factorCoeff;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -91,7 +93,8 @@ module.exports = function(env) {
       assert(this.trace.k);
       assert(!this.trace.isComplete());
     }
-    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom, this.reused, this.proposalBoundary);
+    var prob = acceptProb(this.trace, this.oldTrace, this.regenFrom,
+      this.reused, this.proposalBoundary, this.factorCoeff);
     var accept = util.random() < prob;
     return this.cont(accept ? this.trace : this.oldTrace, accept);
   };
@@ -105,17 +108,22 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary) {
+  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary, factorCoeff) {
     // assert.notStrictEqual(trace, undefined);
     // assert.notStrictEqual(oldTrace, undefined);
     // assert(_.isNumber(trace.score));
     // assert(_.isNumber(oldTrace.score));
     // assert(_.isNumber(regenFrom));
     // assert(_.isNumber(proposalBoundary));
-
     var fw = transitionProb(oldTrace, trace, regenFrom, reused, proposalBoundary);
     var bw = transitionProb(trace, oldTrace, regenFrom, reused, proposalBoundary);
-    var p = Math.exp(trace.score - oldTrace.score + bw - fw);
+    var newTraceScore = trace.sampleScore;
+    var oldTraceScore = oldTrace.sampleScore;
+    if (factorCoeff > 0) {
+      newTraceScore += factorCoeff*(trace.score - trace.sampleScore);
+      oldTraceScore += factorCoeff*(oldTrace.score - oldTrace.sampleScore);
+    }
+    var p = Math.exp(newTraceScore - oldTraceScore + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   }
