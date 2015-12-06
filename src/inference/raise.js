@@ -20,11 +20,11 @@ module.exports = function(env){
 	  		if (options.verbose) {
 			console.log(s);
 			}
-	  	};
+	  };
 
-	  	var weights = [];
+	  var weights = [];
 
-	  	// To be used with util.cpsLoop
+	  // To be used with util.cpsLoop
 		var singleSample = function (k) {
 
 			var initialize, run, finish;
@@ -89,11 +89,11 @@ module.exports = function(env){
 	  		if (options.verbose) {
 			console.log(s);
 			}
-	  	};
+	  };
 
-	  	var weights = [];
+	  var weights = [];
 
-	  	// To be used with util.cpsLoop
+	  // To be used with util.cpsLoop
 		var singleSample = function (k) {
 
 			var mcmc, run;
@@ -165,26 +165,26 @@ module.exports = function(env){
 	};
 
 	function sequenceKernels() {
-		var kernels = arguments;
-		assert(kernels.length > 1);
-		if (kernels.length === 2) {
-		  return function(k, trace1) {
-			return kernels[0](function(trace2) {
-			  return kernels[1](k, trace2);
-			}, trace1);
-		  };
-		} else {
-		  return sequenceKernels(
-			  kernels[0],
-			  sequenceKernels.apply(null, _.rest(kernels)))
-		}
-  	};
+    var kernels = arguments;
+    assert(kernels.length > 1);
+    if (kernels.length === 2) {
+      return function(k, trace1) {
+        return kernels[0](function(trace2) {
+          return kernels[1](k, trace2);
+        }, trace1);
+      };
+    } else {
+      return sequenceKernels(
+          kernels[0],
+          sequenceKernels.apply(null, _.rest(kernels)))
+    }
+  }
 
-  	function repeatKernel(n, kernel) {
-		return function(k, trace) {
-		  return util.cpsIterate(n, trace, kernel, k);
-		};
-  	};
+  function repeatKernel(n, kernel) {
+    return function(k, trace) {
+      return util.cpsIterate(n, trace, kernel, k);
+    };
+  }
 
 	return {
 		AIS: AIS,
