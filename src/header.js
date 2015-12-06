@@ -25,6 +25,7 @@ var util = require('./util');
 var erp = require('./erp');
 var enumerate = require('./inference/enumerate');
 var mcmc = require('./inference/mcmc');
+var raise = require('./inference/raise');
 var initialize = require('./inference/initialize');
 var mhkernel = require('./inference/mhkernel');
 var asyncpf = require('./inference/asyncpf');
@@ -49,6 +50,11 @@ module.exports = function(env) {
     factor: function() {
       throw 'factor allowed only inside inference.';
     },
+
+    observe: function() {
+      throw 'observe allowed only inside inference.';
+    },
+
     exit: function(s, r) {
       return r;
     },
@@ -67,6 +73,10 @@ module.exports = function(env) {
   env.factor = function(s, k, a, score) {
     assert.ok(!isNaN(score));
     return env.coroutine.factor(s, k, a, score);
+  };
+
+  env.observe = function(s, k, a, dist, params, val) {
+    return env.coroutine.observe(s, k, a, dist, params, val);
   };
 
   env.sampleWithFactor = function(s, k, a, dist, params, scoreFn) {
@@ -112,6 +122,7 @@ module.exports = function(env) {
   // Inference interface
   addExports({
     factor: env.factor,
+    observe: env.observe,
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
     incrementalize: env.incrementalize,
@@ -127,7 +138,7 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, asyncpf, mhkernel, mcmc, initialize, incrementalmh, pmcmc,
+    enumerate, asyncpf, mhkernel, mcmc, raise, initialize, incrementalmh, pmcmc,
     smc, variational, rejection, headerUtils
   ];
   headerModules.forEach(function(mod) {

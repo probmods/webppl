@@ -12,7 +12,8 @@ module.exports = function(env) {
       proposalBoundary: 0,
       exitFactor: 0,
       permissive: false,
-      factorCoeff: 1
+      factorCoeff: 1,
+      observeTable: undefined
     });
 
     if (!options.permissive) {
@@ -25,6 +26,7 @@ module.exports = function(env) {
     this.proposalBoundary = options.proposalBoundary;
     this.exitFactor = options.exitFactor;
     this.factorCoeff = options.factorCoeff;
+    this.observeTable = options.observeTable;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -84,6 +86,18 @@ module.exports = function(env) {
     }
     return k(s, val);
   };
+
+  MHKernel.prototype.observe = function(s, k, a, erp, params, val) {
+    if (this.observeTable !== undefined) {
+      var val = this.observeTable[a];
+      var score = (val === undefined) ? -Infinity : erp.score(params, val);
+      return this.factor(s, k, a, score);
+    } else {
+      assert(val !== undefined);
+      var score = erp.score(params, val);
+      return this.factor(s, k, a, score);
+    }
+  }
 
   MHKernel.prototype.exit = function(s, val, earlyExit) {
     if (!earlyExit) {

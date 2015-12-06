@@ -10,8 +10,20 @@ module.exports = function(env) {
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(s, k, a, wpplFn) {
+  function Initialize(s, k, a, wpplFn, options) {
+    var options = util.mergeDefaults(options, {
+        observeMode: 'none', // Modes - none, use, build 
+        observeTable: undefined
+      });
+
+    if (options.observeMode === 'use')
+      assert (options.observeTable !== undefined);
+    else if (options.observeMode === 'build')
+      options.observeTable = {}
+
     this.wpplFn = wpplFn;
+    this.observeMode = options.observeMode;
+    this.observeTable = options.observeTable;
     this.s = s;
     this.k = k;
     this.a = a;
@@ -40,6 +52,25 @@ module.exports = function(env) {
     return k(s);
   };
 
+  Initialize.prototype.observe = function(s, k, a, erp, params, val) {
+
+    if (this.observeMode === 'none') {
+      assert (val !== undefined);
+      var score = erp.score(params, val);
+      return this.factor(s, k, a, score);
+    } else if (this.observeMode === 'build') {
+      var val = erp.sample(params);
+      var score = erp.score(params, val);
+      this.observeTable[a] = val;
+      return this.factor(s, k, a, score);
+    }
+    else if (this.observeMode === 'use') {
+      var val = this.observeTable[a];
+      var score = (val === undefined) ? -Infinity : erp.score(params, val);
+      return this.factor(s, k, a, score);
+    } else throw new Error ('Invalid observe mode. Shoule be one of - use/build/none');
+  }
+
   Initialize.prototype.fail = function() {
     this.failures += 1;
     var ix = warnAfter.indexOf(this.failures);
@@ -54,7 +85,9 @@ module.exports = function(env) {
     assert.notStrictEqual(this.trace.score, -Infinity);
     this.trace.complete(val);
     env.coroutine = this.coroutine;
-    return this.k(this.s, this.trace);
+    if (this.observeMode === 'build')
+      return this.k(this.s, [this.trace, this.observeTable]);
+    else return this.k(this.s, this.trace);
   };
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
