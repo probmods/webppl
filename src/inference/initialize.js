@@ -53,21 +53,26 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.observe = function(s, k, a, erp, params, val) {
-
+    // observe acts like factor (hence factor is called in the end), but
+    // it returns a value unlike factor. So we need to pass a modified k
+    // to factor.
+    var factorCont = function(val){
+      return function(s) {return k(s, val)};
+    }
     if (this.observeMode === 'none') {
       assert (val !== undefined);
       var score = erp.score(params, val);
-      return this.factor(s, k, a, score);
+      return this.factor(s, factorCont(val), a, score);
     } else if (this.observeMode === 'build') {
       var val = erp.sample(params);
       var score = erp.score(params, val);
       this.observeTable[a] = val;
-      return this.factor(s, k, a, score);
+      return this.factor(s, factorCont(val), a, score);
     }
     else if (this.observeMode === 'use') {
       var val = this.observeTable[a];
       var score = (val === undefined) ? -Infinity : erp.score(params, val);
-      return this.factor(s, k, a, score);
+      return this.factor(s, factorCont(val), a, score);
     } else throw new Error ('Invalid observe mode. Shoule be one of - use/build/none');
   }
 
@@ -86,15 +91,15 @@ module.exports = function(env) {
     this.trace.complete(val);
     env.coroutine = this.coroutine;
     if (this.observeMode === 'build')
-      return this.k(this.s, [this.trace, this.observeTable]);
+      return this.k(this.s, this.trace, this.observeTable);
     else return this.k(this.s, this.trace);
   };
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   return {
-    Initialize: function(s, k, a, wpplFn) {
-      return new Initialize(s, k, a, wpplFn).run();
+    Initialize: function(s, k, a, wpplFn, options) {
+      return new Initialize(s, k, a, wpplFn, options).run();
     }
   };
 };

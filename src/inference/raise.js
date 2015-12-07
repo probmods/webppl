@@ -16,12 +16,6 @@ module.exports = function(env){
       observeTable: undefined
     });
 
-    var log = function(s) {
-        if (options.verbose) {
-      console.log(s);
-      }
-    };
-
     var weights = [];
 
     // To be used with util.cpsLoop
@@ -82,14 +76,9 @@ module.exports = function(env){
       samples: 10,
       returnMean: true,
       observeTable: undefined,
-      mcmcSteps: 20
+      mcmcSteps: 20,
+      exactSample: undefined
     });
-
-    var log = function(s) {
-        if (options.verbose) {
-      console.log(s);
-      }
-    };
 
     var weights = [];
 
@@ -144,7 +133,10 @@ module.exports = function(env){
         }, initialTrace);
       }
     
-      return mcmc();
+      if (options.exactSample === undefined)
+        return mcmc();
+      else
+        return run(options.exactSample);
     }
 
     return util.cpsLoop(options.samples, function(i, next){
@@ -163,6 +155,56 @@ module.exports = function(env){
       }
     });
   };
+
+  function AISRAISE(s, k, a, wpplFn, options) {
+    var options = util.mergeDefaults(options, {
+      steps: 20,
+      samples: 1,
+      mcmcSteps: 20
+    });
+
+    var observeTable, aisWeight, raisWeight;
+
+    var initialize, rais, ais, finish;
+
+    initialize = function() {
+      return Initialize(s, function(s1, trace, table) {
+        observeTable = table;
+        return rais(trace);
+      }, a, wpplFn, {observeMode: 'build'});
+    }
+
+    rais = function(trace) {
+      var raisOptions = {steps: options.steps,
+                         samples: options.samples,
+                         returnMean: true,
+                         observeTable: observeTable,
+                         mcmcSteps: options.mcmcSteps};
+     
+      // Uses the exact sample for rais.
+      if (options.samples === 1)
+        raisOptions.exactSample = trace;
+      
+      return RAIS(s, ais, a, wpplFn, raisOptions);
+    }
+
+    ais = function(s1, weight) {
+      raisWeight = weight;
+
+      var aisOptions = {steps: options.steps,
+                        samples: options.samples,
+                        returnMean: true,
+                        observeTable: observeTable};
+      return AIS(s, finish, a, wpplFn, aisOptions);
+    }
+
+    finish = function(s1, weight) {
+      aisWeight = weight;
+      return k(s, [aisWeight, raisWeight]);
+    }
+
+    return initialize();
+  }
 
   function sequenceKernels() {
     var kernels = arguments;
@@ -189,6 +231,7 @@ module.exports = function(env){
   return {
     AIS: AIS,
     RAIS: RAIS,
+    AISRAISE: AISRAISE,
     repeatKernel: repeatKernel,
     sequenceKernels: sequenceKernels
     };

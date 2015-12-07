@@ -88,14 +88,21 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.observe = function(s, k, a, erp, params, val) {
+    // observe acts like factor (hence factor is called in the end), but
+    // it returns a value unlike factor. So we need to pass a modified k
+    // to factor.
+    var factorCont = function(val){
+      return function(s) {return k(s, val)};
+    }
     if (this.observeTable !== undefined) {
       var val = this.observeTable[a];
+      assert(val !== undefined);
       var score = (val === undefined) ? -Infinity : erp.score(params, val);
-      return this.factor(s, k, a, score);
+      return this.factor(s, factorCont(val), a, score);
     } else {
       assert(val !== undefined);
       var score = erp.score(params, val);
-      return this.factor(s, k, a, score);
+      return this.factor(s, factorCont(val), a, score);
     }
   }
 
