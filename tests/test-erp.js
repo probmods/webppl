@@ -213,15 +213,14 @@ var erpMetadataList = [
       // and the acceptable relative tolerance for each
 
       // skip kurtosis for smallest shapes because i think it's swayed a bunch by small (underflowy) values
-      {params: [1e-4, 1e4, false], n: 5e6, reltol: {mean: 0.1, variance: 0.2, skew: 0.4}},
+      {params: [1e-4, 1e4, false], n: 5e6, reltol: {mean: 0.2, variance: 0.5, skew: 0.4}},
       {params: [1e-3, 1e3, false], n: 5e6, reltol: {mean: 0.1, variance: 0.2, skew: 0.4}},
-
       {params: [1e-2, 1e2 , false], n: 5e6, reltol: {mean: 0.05, variance: 0.2, skew: 0.3, kurtosis: 0.4}},
       {params: [1e-1, 1e1, false], n: 5e6, reltol: {mean: 0.05, variance: 0.2, skew: 0.2, kurtosis: 0.3}},
       {params: [1e0, 1e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
       {params: [3e0, 9e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
       {params: [3e2, 2e2, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
-      {params: [1e5, 3e1, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.4, kurtosis: 0.4}},
+      {params: [1e5, 3e1, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.6, kurtosis: 0.4}},
       {params: [1e-4, 1e4, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
       {params: [1e-3, 1e3, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
       {params: [1e-2, 1e2 , true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
