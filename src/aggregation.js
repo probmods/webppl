@@ -52,7 +52,7 @@ MAP.prototype.toERP = function() {
 // Recursively untapify objects.
 function untapify(x) {
   // TODO: More robust way of checking whether x is a tape. (Push into ad.js?)
-  if (!_.isArray(x) && !_.isFunction(x) && _.isObject(x) && !x.primal) {
+  if (!_.isArray(x) && !_.isFunction(x) && _.isObject(x) && !_.has(x, 'primal')) {
     return _.mapObject(x, untapify);
   } else {
     return ad.untapify(x);
