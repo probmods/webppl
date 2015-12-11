@@ -223,14 +223,14 @@ var erpMetadataList = [
       // and the acceptable relative tolerance for each
 
       // skip skew and kurtosis for smallest shapes because they are swayed by small (underflowy) values
-      {params: [1e-4, 1e4, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1e-3, 1e3, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1e-2, 1e2 , false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1e-1, 1e1, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1e0, 1e0, false], n: 5e05, skip: ['mode', 'kurtosis']}, // kurtosis is finicky
-      {params: [3e0, 9e0, false], n: 5e05, reltol: {mode: 0.1}},
-      {params: [3e2, 2e2, false], n: 5e05, reltol: {mode: 0.1}},
-      {params: [1e5, 3e1, false], n: 5e05, reltol: {mode: 0.1}}
+      {params: [1e-4, 1e4, false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-3, 1e3, false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-2, 1e2 , false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-1, 1e1, false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e0, 1e0, false], n: 5e06, skip: ['mode', 'kurtosis']}, // kurtosis is finicky
+      {params: [3e0, 9e0, false], n: 5e06, reltol: {mode: 0.1}, skip: ['kurtosis']}, // kurtosis finicky
+      {params: [3e2, 2e2, false], n: 5e06, reltol: {mode: 0.1}},
+      {params: [1e5, 3e1, false], n: 5e06, reltol: {mode: 0.1}}
 
       // // disable giveLog tests for now because i don't know how to compute moments
       // {params: [1e-4, 1e4, true], n: 5e05, skip: ['mode','skew','kurtosis']},
