@@ -18,6 +18,14 @@ var helpers = require('./helpers');
 global.suppressWarnings = true;
 Error.stackTraceLimit = 2;
 
+var product = function(arr) {
+  var result = 1;
+  for(var i = 0, n = arr.length; i < n; i++) {
+    result *= arr[i];
+  }
+  return result;
+}
+
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays
   var a = new Float64Array(n);
@@ -214,24 +222,35 @@ var erpMetadataList = [
       // reltol declares which stats we'll run for a single parameter value
       // and the acceptable relative tolerance for each
 
-      // skip kurtosis for smallest shapes because i think it's swayed a bunch by small (underflowy) values
-      {params: [1e-4, 1e4, false], n: 5e6, reltol: {mean: 0.2, variance: 0.5, skew: 0.4}},
-      {params: [1e-3, 1e3, false], n: 5e6, reltol: {mean: 0.1, variance: 0.2, skew: 0.4}},
-      {params: [1e-2, 1e2 , false], n: 5e6, reltol: {mean: 0.05, variance: 0.2, skew: 0.3, kurtosis: 0.4}},
-      {params: [1e-1, 1e1, false], n: 5e6, reltol: {mean: 0.05, variance: 0.2, skew: 0.2, kurtosis: 0.3}},
-      {params: [1e0, 1e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
-      {params: [3e0, 9e0, false], n: 5e6, reltol: {mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
-      {params: [3e2, 2e2, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.1, kurtosis: 0.1}},
-      {params: [1e5, 3e1, false], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1, skew: 0.6, kurtosis: 0.4}},
-      {params: [1e-4, 1e4, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
-      {params: [1e-3, 1e3, true], n: 5e6, reltol: {mean: 0.1, variance: 0.1}},
-      {params: [1e-2, 1e2 , true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
-      {params: [1e-1, 1e1, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
-      {params: [1e0, 1e0, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
-      {params: [3e0, 9e0, true], n: 5e6, reltol: {mean: 0.05, variance: 0.1}},
-      {params: [3e2, 2e2, true], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1}},
-      {params: [1e5, 3e1, true], n: 5e6, reltol: {mode: 0.1, mean: 0.05, variance: 0.1}}
+      // skip skew and kurtosis for smallest shapes because they are swayed by small (underflowy) values
+      {params: [1e-4, 1e4, false], n: 5e05, skip: ['mode','skew','kurtosis']},
+      {params: [1e-3, 1e3, false], n: 5e05, skip: ['mode','skew','kurtosis']},
+      {params: [1e-2, 1e2 , false], n: 5e05, skip: ['mode','skew','kurtosis']},
+      {params: [1e-1, 1e1, false], n: 5e05, skip: ['mode','skew','kurtosis']},
+      {params: [1e0, 1e0, false], n: 5e05, skip: ['mode', 'kurtosis']}, // kurtosis is finicky
+      {params: [3e0, 9e0, false], n: 5e05, reltol: {mode: 0.1}},
+      {params: [3e2, 2e2, false], n: 5e05, reltol: {mode: 0.1}},
+      {params: [1e5, 3e1, false], n: 5e05, reltol: {mode: 0.1}}
+
+      // // disable giveLog tests for now because i don't know how to compute moments
+      // {params: [1e-4, 1e4, true], n: 5e05, skip: ['mode','skew','kurtosis']},
+      // {params: [1e-3, 1e3, true], n: 5e05, skip: ['mode','skew','kurtosis']},
+      // {params: [1e-2, 1e2 , true], n: 5e05, skip: ['mode','skew','kurtosis']},
+      // {params: [1e-1, 1e1, true], n: 5e05, skip: ['mode','skew','kurtosis']},
+      // {params: [1e0, 1e0, true], n: 5e05, skip: ['mode', 'skew','kurtosis']}, // kurtosis is finicky
+      // {params: [3e0, 9e0, true], n: 5e05, reltol: {mode: 0.1}, skip: ['skew','kurtosis']},
+      // {params: [3e2, 2e2, true], n: 5e05, reltol: {mode: 0.1}, skip: ['skew','kurtosis']},
+      // {params: [1e5, 3e1, true], n: 5e05, reltol: {mode: 0.1}, skip: ['skew','kurtosis']}
+
     ],
+   moment: function(params, n) {
+     // returns the nth moment
+     var shape = params[0];
+     var scale = params[1];
+     // HT http://ocw.mit.edu/courses/mathematics/18-443-statistics-for-applications-fall-2006/lecture-notes/lecture6.pdf
+     // (but NB: they use shape, rate whereas we have shape, scale)
+     return product(_.range(0,n-1).map(function(k) { return shape + k })) * pow(scale,n)
+   },
     // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
     populationStatisticFunctions: {
       mean: function(params) {
@@ -297,7 +316,7 @@ var erpMetadataList = [
 ];
 
 
-var generateSettingTest = function(erpMetadata, settings) {
+var generateSettingTest = function(seed,erpMetadata, settings) {
   var erpName = erpMetadata.name;
 
   // settings includes:
@@ -305,19 +324,34 @@ var generateSettingTest = function(erpMetadata, settings) {
   // - inference params (e.g., number of samples)
   // - test params (e.g., relative tolerance)
   var params = settings.params;
-  var samples = repeat(settings.n, function() {
-    return erpMetadata.sampler(params);
-  });
+  var n = settings.n;
+  var samples;
 
-  var testIdPrefix = erpName + '(' + params.join(',') + '): ';
+
+  var group = {};
+
+  group.setUp = function(callback) {
+    util.seedRNG(seed);
+    if (!samples) {
+      samples = repeat(n, function() {
+        return erpMetadata.sampler(params);
+      })
+    }
+    callback();
+  };
+
+  group.tearDown = function(callback) {
+    util.resetRNG();
+    callback();
+  };
 
   // check that every sample is in the support of the distribution
   var inSupport = erpMetadata.inSupport;
-  exports[testIdPrefix + 'support'] = function(test) {
+  group['support'] = function(test) {
     // do it with a for loop because some nodes don't define map()
     // for Float64Array
     var allInSupport = true;
-    for (var i = 0, n = samples.length; i < n; i++) {
+    for (var i = 0, ii = samples.length; ii < n; i++) {
       allInSupport = allInSupport && inSupport(params, samples[i]);
     }
 
@@ -325,42 +359,91 @@ var generateSettingTest = function(erpMetadata, settings) {
     test.done();
   }
 
+  // only test the stats that aren't blacklisted
   var populationStatisticFunctions = _.pick(erpMetadata.populationStatisticFunctions,
-                                            _.keys(settings.reltol));
+                                            function(v,k) {
+                                              return !_.contains(settings.skip,k)
+                                            });
+
+  var moment = erpMetadata.moment;
 
   _.each(populationStatisticFunctions, function(statFn, statName) {
     var expectedResult = statFn(params);
-    var testId = testIdPrefix + statName;
 
-    exports[testId] = function(test) {
+    // compute an automatic tolerance for mean, variance, skew, kurtosis
+    var autoTolerance;
+
+    var variance = populationStatisticFunctions.variance(params)
+    var sigma = sqrt(variance);
+
+    var samplingDistVariance;
+
+    if (statName == 'mean') {
+      samplingDistVariance = variance / n;
+    }
+
+    if (statName == 'variance') {
+      // sample variance is asymptotically normally distributed
+      // http://stats.stackexchange.com/questions/105337/asymptotic-distribution-of-sample-variance-of-non-normal-sample
+      samplingDistVariance = moment(params,4) / n - pow(sigma,4) * (n-3)/(n * (n-1));
+    }
+
+    if (statName == 'skew') {
+      // HT https://en.wikipedia.org/wiki/Skewness#Sample_skewness
+      // formula assumes normal distribution
+      // thankfully, van der Vaart tells us that sample skew is asymptotically
+      // normally distributed (page 29 of Asymptotic Statistics)
+      samplingDistVariance = 6*n*(n-1)/( (n-2)*(n+1)*(n+3) );
+    }
+
+    if (statName == 'kurtosis') {
+      // HT https://en.wikipedia.org/wiki/Kurtosis#Sample_kurtosis
+      samplingDistVariance = 24*n*(n-1)*(n-1) / ((n-3)*(n-2)*(n+3)*(n+5))
+    }
+
+    // we want tests to fail with probability 1/10000
+    // (succeed with probability 0.9999)
+    // set the error tolerance to be 4 sd's;
+    // 0.999367 of the probability mass of a normal distribution lies within
+    // 4 standard deviations
+    autoTolerance = 10 * sqrt(samplingDistVariance);
+
+    group[statName] = function(test) {
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
-      var reltol = settings.reltol[statName];
       var actualResult = sampleStatisticFunction(samples);
+
+      var tolerance;
+      if (settings.reltol && settings.reltol[statName]) {
+        tolerance = abs(settings.reltol[statName] * expectedResult);
+      } else {
+        tolerance = autoTolerance
+      }
+
       helpers.testWithinTolerance(test,
                                   actualResult,
                                   expectedResult,
-                                  Math.abs(reltol * expectedResult),
-                                  statName);
+                                  tolerance,
+                                  statName,
+                                  'verbose'
+                                 );
       test.done();
     }
   });
+
+  return group;
 }
 
 var generateTestCases = function(seed) {
   _.each(erpMetadataList, function(erpMetadata) {
-    _.each(erpMetadata.settings, function(settings) {
-      generateSettingTest(erpMetadata, settings)
+    var group = {};
+
+    _.map(erpMetadata.settings, function(settings) {
+      group[settings.params.join(',')] = generateSettingTest(seed,erpMetadata, settings)
     });
+
+    exports[erpMetadata.name] = group;
   });
 
-  exports.setUp = function(callback) {
-    util.seedRNG(seed);
-    callback();
-  };
-  exports.tearDown = function(callback) {
-    util.resetRNG();
-    callback();
-  };
 };
 
 function getRandomSeedFromEnv() {
