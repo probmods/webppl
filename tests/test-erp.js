@@ -289,7 +289,6 @@ var erpMetadataList = [
       },
       skew: function(params) {
         var shape = params[0];
-        // var scale = params[1]; // appease linter
         var giveLog = params[2];
 
         if (giveLog) {
@@ -300,7 +299,6 @@ var erpMetadataList = [
       },
       kurtosis: function(params) {
         var shape = params[0];
-        // var scale = params[1]; // appease linter
         var giveLog = params[2];
 
         if (giveLog) {
