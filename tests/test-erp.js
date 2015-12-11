@@ -267,7 +267,7 @@ var erpMetadataList = [
         var scale = params[1];
         var giveLog = params[2];
 
-        // for shape > 1
+        assert(shape > 1, 'gamma mode called with shape <= 1')
         if (giveLog) {
           // HT http://stats.stackexchange.com/questions/40989/density-of-y-logx-for-gamma-distributed-x
           return ln(shape * scale);
