@@ -321,23 +321,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
   var n = settings.n;
   var samples;
 
-
   var group = {};
-
-  group.setUp = function(callback) {
-    util.seedRNG(seed);
-    if (!samples) {
-      samples = repeat(n, function() {
-        return erpMetadata.sampler(params);
-      })
-    }
-    callback();
-  };
-
-  group.tearDown = function(callback) {
-    util.resetRNG();
-    callback();
-  };
 
   // check that every sample is in the support of the distribution
   var inSupport = erpMetadata.inSupport;
@@ -426,11 +410,33 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
                                   expectedResult,
                                   tolerance,
                                   statName,
-                                  'verbose'
-      );
+                                  'verbose');
       test.done();
     }
   });
+
+  var numTestsLeft = _.size(_.omit(group, 'setUp', 'tearDown'));
+
+  group.setUp = function(callback) {
+    util.seedRNG(seed);
+    if (!samples) {
+      samples = repeat(n, function() {
+        return erpMetadata.sampler(params);
+      })
+    }
+    callback();
+  };
+
+  group.tearDown = function(callback) {
+    numTestsLeft--;
+    if (numTestsLeft == 0) {
+      // encourage gc
+      samples = null;
+    }
+    util.resetRNG();
+    callback();
+  };
+
 
   return group;
 }
