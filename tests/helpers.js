@@ -6,6 +6,11 @@ var assert = require('assert');
 var webppl = require('../src/main');
 var serialize = require('../src/util').serialize
 
+_.templateSettings = {
+  interpolate: /\{\{(.+?)\}\}/g
+};
+
+
 var getModelNames = function(testDataDir) {
   var filenames = fs.readdirSync(testDataDir + 'models/');
   return _.map(filenames, function(fn) { return fn.split('.')[0]; });
@@ -27,10 +32,21 @@ var testEqual = function(test, actual, expected, name) {
   test.ok(_.isEqual(actual, expected), msg);
 };
 
-var testWithinTolerance = function(test, actual, expected, tolerance, name) {
+
+var toleranceMessage = _.template('Expected {{name}}: {{expected}}, actual: {{actual}}, tolerance: {{tolerance}}');
+var testWithinTolerance = function(test, actual, expected, tolerance, name, verbose) {
   var absDiff = Math.abs(actual - expected);
-  var msg = ['Expected ', name, ': ', expected, ', actual: ', actual].join('');
-  test.ok(absDiff < tolerance, msg);
+  var msg = toleranceMessage({
+    name: name,
+    expected: expected,
+    actual: actual,
+    tolerance: tolerance
+  });
+  var isOk = absDiff < tolerance;
+  if (isOk && verbose) {
+    console.log(msg)
+  }
+  test.ok(isOk, msg);
 };
 
 
