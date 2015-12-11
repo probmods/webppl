@@ -13,9 +13,6 @@ var helpers = require('./helpers');
 // derived *population* statistics. We also check that every sample is in the
 // support of the distribution, so that modelers aren't bit by underflow or overflow
 
-// suppress warnings (for, e.g., underflow)
-global.suppressWarnings = true;
-Error.stackTraceLimit = 2;
 
 var product = function(arr) {
   var result = 1;
@@ -441,6 +438,22 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
 }
 
 var generateTestCases = function(seed) {
+  var oldSuppressWarnings = !!global.suppressWarnings;
+  var oldStackTraceLimit = Error.stackTraceLimit;
+
+  exports.setUp = function() {
+    // suppress warnings (for, e.g., underflow)
+    global.suppressWarnings = true;
+
+    // less noise from stack trace
+    Error.stackTraceLimit = 2;
+  }
+
+  exports.tearDown = function() {
+    global.suppressWarnings = oldSuppressWarnings;
+    Error.stackTraceLimit = oldStackTraceLimit;
+  }
+
   _.each(erpMetadataList, function(erpMetadata) {
     var group = {};
 
@@ -452,6 +465,8 @@ var generateTestCases = function(seed) {
   });
 
 };
+
+
 
 function getRandomSeedFromEnv() {
   if (process.env.RANDOM_SEED) {
