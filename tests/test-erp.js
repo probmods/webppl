@@ -28,7 +28,9 @@ var repeat = function(n, f) {
 }
 
 var ln = Math.log,
-    pow = Math.pow;
+    pow = Math.pow,
+    sqrt = Math.sqrt,
+    abs = Math.abs;
 
 // cache sample statistics by attaching
 // properties to the sample array
@@ -72,7 +74,7 @@ function _variance(a) {
 var variance = cache(_variance);
 
 function _sd(a) {
-  return Math.sqrt(variance(a));
+  return sqrt(variance(a));
 }
 var sd = cache(_sd);
 
@@ -117,7 +119,7 @@ var kurtosis = (_kurtosis);
 // max density
 function kdeMode(samps) {
   var kernel = function(u) {
-    return Math.abs(u) <= 1 ? .75 * (1 - u * u) : 0;
+    return abs(u) <= 1 ? .75 * (1 - u * u) : 0;
   };
 
   // get optimal bandwidth
@@ -276,7 +278,7 @@ var erpMetadataList = [
         if (giveLog) {
           throw new Error('gamma skew not implemented for log samples');
         } else {
-          return 2 / Math.sqrt(shape);
+          return 2 / sqrt(shape);
         }
       },
       kurtosis: function(params) {
@@ -369,6 +371,6 @@ function getRandomSeedFromEnv() {
   }
 }
 
-var seed = getRandomSeedFromEnv() || Math.abs(seedrandom().int32());
+var seed = getRandomSeedFromEnv() || abs(seedrandom().int32());
 console.log('Random seed: ' + seed);
 generateTestCases(seed);
