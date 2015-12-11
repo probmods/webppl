@@ -20,7 +20,7 @@ Error.stackTraceLimit = 2;
 
 var product = function(arr) {
   var result = 1;
-  for(var i = 0, n = arr.length; i < n; i++) {
+  for (var i = 0, n = arr.length; i < n; i++) {
     result *= arr[i];
   }
   return result;
@@ -223,10 +223,10 @@ var erpMetadataList = [
       // and the acceptable relative tolerance for each
 
       // skip skew and kurtosis for smallest shapes because they are swayed by small (underflowy) values
-      {params: [1e-4, 1e4, false], n: 5e05, skip: ['mode','skew','kurtosis']},
-      {params: [1e-3, 1e3, false], n: 5e05, skip: ['mode','skew','kurtosis']},
-      {params: [1e-2, 1e2 , false], n: 5e05, skip: ['mode','skew','kurtosis']},
-      {params: [1e-1, 1e1, false], n: 5e05, skip: ['mode','skew','kurtosis']},
+      {params: [1e-4, 1e4, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-3, 1e3, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-2, 1e2 , false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
+      {params: [1e-1, 1e1, false], n: 5e05, skip: ['mode', 'skew', 'kurtosis']},
       {params: [1e0, 1e0, false], n: 5e05, skip: ['mode', 'kurtosis']}, // kurtosis is finicky
       {params: [3e0, 9e0, false], n: 5e05, reltol: {mode: 0.1}},
       {params: [3e2, 2e2, false], n: 5e05, reltol: {mode: 0.1}},
@@ -243,14 +243,16 @@ var erpMetadataList = [
       // {params: [1e5, 3e1, true], n: 5e05, reltol: {mode: 0.1}, skip: ['skew','kurtosis']}
 
     ],
-   moment: function(params, n) {
-     // returns the nth moment
-     var shape = params[0];
-     var scale = params[1];
-     // HT http://ocw.mit.edu/courses/mathematics/18-443-statistics-for-applications-fall-2006/lecture-notes/lecture6.pdf
-     // (but NB: they use shape, rate whereas we have shape, scale)
-     return product(_.range(0,n-1).map(function(k) { return shape + k })) * pow(scale,n)
-   },
+    moment: function(params, n) {
+      // returns the nth moment
+      var shape = params[0];
+      var scale = params[1];
+      // HT
+      // http://ocw.mit.edu/courses/mathematics/
+      // 18-443-statistics-for-applications-fall-2006/lecture-notes/lecture6.pdf
+      // (but NB: they use shape, rate whereas we have shape, scale)
+      return product(_.range(0, n - 1).map(function(k) { return shape + k })) * pow(scale, n)
+    },
     // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
     populationStatisticFunctions: {
       mean: function(params) {
@@ -316,9 +318,7 @@ var erpMetadataList = [
 ];
 
 
-var generateSettingTest = function(seed,erpMetadata, settings) {
-  var erpName = erpMetadata.name;
-
+var generateSettingTest = function(seed, erpMetadata, settings) {
   // settings includes:
   // - params to the erp
   // - inference params (e.g., number of samples)
@@ -361,8 +361,8 @@ var generateSettingTest = function(seed,erpMetadata, settings) {
 
   // only test the stats that aren't blacklisted
   var populationStatisticFunctions = _.pick(erpMetadata.populationStatisticFunctions,
-                                            function(v,k) {
-                                              return !_.contains(settings.skip,k)
+                                            function(v, k) {
+                                              return !_.contains(settings.skip, k)
                                             });
 
   var moment = erpMetadata.moment;
@@ -385,7 +385,7 @@ var generateSettingTest = function(seed,erpMetadata, settings) {
     if (statName == 'variance') {
       // sample variance is asymptotically normally distributed
       // http://stats.stackexchange.com/questions/105337/asymptotic-distribution-of-sample-variance-of-non-normal-sample
-      samplingDistVariance = moment(params,4) / n - pow(sigma,4) * (n-3)/(n * (n-1));
+      samplingDistVariance = moment(params, 4) / n - pow(sigma, 4) * (n - 3) / (n * (n - 1));
     }
 
     if (statName == 'skew') {
@@ -393,12 +393,12 @@ var generateSettingTest = function(seed,erpMetadata, settings) {
       // formula assumes normal distribution
       // thankfully, van der Vaart tells us that sample skew is asymptotically
       // normally distributed (page 29 of Asymptotic Statistics)
-      samplingDistVariance = 6*n*(n-1)/( (n-2)*(n+1)*(n+3) );
+      samplingDistVariance = 6 * n * (n - 1) / ((n - 2) * (n + 1) * (n + 3));
     }
 
     if (statName == 'kurtosis') {
       // HT https://en.wikipedia.org/wiki/Kurtosis#Sample_kurtosis
-      samplingDistVariance = 24*n*(n-1)*(n-1) / ((n-3)*(n-2)*(n+3)*(n+5))
+      samplingDistVariance = 24 * n * (n - 1) * (n - 1) / ((n - 3) * (n - 2) * (n + 3) * (n + 5))
     }
 
     // we want tests to fail with probability 1/10000
@@ -425,7 +425,7 @@ var generateSettingTest = function(seed,erpMetadata, settings) {
                                   tolerance,
                                   statName,
                                   'verbose'
-                                 );
+      );
       test.done();
     }
   });
@@ -438,7 +438,7 @@ var generateTestCases = function(seed) {
     var group = {};
 
     _.map(erpMetadata.settings, function(settings) {
-      group[settings.params.join(',')] = generateSettingTest(seed,erpMetadata, settings)
+      group[settings.params.join(',')] = generateSettingTest(seed, erpMetadata, settings)
     });
 
     exports[erpMetadata.name] = group;
