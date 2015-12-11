@@ -10,5 +10,5 @@ var model = function() {
 
   var steps2 = steps1 + 1;
 
-  return [steps2,i,j];
+  return [steps2, i, j];
 };
