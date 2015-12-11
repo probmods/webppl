@@ -2,7 +2,6 @@
 
 var _ = require('underscore');
 var seedrandom = require('seedrandom');
-var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
