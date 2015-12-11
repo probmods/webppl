@@ -26,24 +26,19 @@ module.exports = function(env) {
     this.reused = {};
 
     this.proposalBoundary = options.proposalBoundary;
-    this.proposalFilter = options.discreteOnly ?
-        function(erp) { return !erp.isContinuous; } :
-        function(erp) { return true; };
     this.exitFactor = options.exitFactor;
+    this.discreteOnly = options.discreteOnly;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
   MHKernel.prototype.run = function() {
-    var indices = proposeableIndices(this.oldTrace, this.proposalBoundary, this.proposalFilter);
-    var numERP = indices.length;
-    if (numERP === 0) {
+    this.regenFrom = this.sampleRegenChoice(this.oldTrace);
+    if (this.regenFrom < 0) {
       return this.finish(this.oldTrace, true);
     }
-    // Make a new proposal.
     env.query.clear();
-    this.regenFrom = indices[Math.floor(util.random() * numERP)];
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
     return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
@@ -102,10 +97,7 @@ module.exports = function(env) {
       assert(this.trace.k);
       assert(!this.trace.isComplete());
     }
-    var prob = acceptProb(
-        this.trace, this.oldTrace,
-        this.regenFrom, this.reused,
-        this.proposalBoundary, this.proposalFilter);
+    var prob = this.acceptProb(this.trace, this.oldTrace);
     var accept = util.random() < prob;
     return this.finish(accept ? this.trace : this.oldTrace, accept);
   };
@@ -128,35 +120,59 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function proposeableIndices(trace, boundary, pred) {
-    return _.range(boundary, trace.length).filter(function(i) {
-      return pred(trace.choices[i].erp);
-    }, this);
-  }
+  MHKernel.prototype.proposeableDiscreteErpIndices = function(trace) {
+    return _.range(this.proposalBoundary, trace.length).filter(function(i) {
+      return !trace.choices[i].erp.isContinuous;
+    });
+  };
 
-  function acceptProb(trace, oldTrace, regenFrom, reused, proposalBoundary, proposalFilter) {
+  MHKernel.prototype.numRegenChoices = function(trace) {
+    if (this.discreteOnly) {
+      return this.proposeableDiscreteErpIndices(trace).length;
+    } else {
+      return trace.length - this.proposalBoundary;
+    }
+  };
+
+  MHKernel.prototype.sampleRegenChoice = function(trace) {
+    return this.discreteOnly ?
+      this.sampleRegenChoiceDiscrete(trace) :
+      this.sampleRegenChoiceAny(trace);
+  };
+
+  MHKernel.prototype.sampleRegenChoiceDiscrete = function(trace) {
+    var indices = this.proposeableDiscreteErpIndices(trace);
+    return indices.length > 0 ? indices[Math.floor(util.random() * indices.length)] : -1;
+  };
+
+  MHKernel.prototype.sampleRegenChoiceAny = function(trace) {
+    var numChoices = trace.length - this.proposalBoundary;
+    return numChoices > 0 ? this.proposalBoundary + Math.floor(util.random() * numChoices) : -1;
+  };
+
+  MHKernel.prototype.acceptProb = function(trace, oldTrace) {
     // assert.notStrictEqual(trace, undefined);
     // assert.notStrictEqual(oldTrace, undefined);
     // assert(_.isNumber(ad.untapify(trace.score)));
     // assert(_.isNumber(ad.untapify(oldTrace.score)));
-    // assert(_.isNumber(regenFrom));
-    // assert(_.isNumber(proposalBoundary));
+    // assert(_.isNumber(this.regenFrom));
+    // assert(_.isNumber(this.proposalBoundary));
 
-    var fw = transitionProb(oldTrace, trace, regenFrom, reused, proposalBoundary, proposalFilter);
-    var bw = transitionProb(trace, oldTrace, regenFrom, reused, proposalBoundary, proposalFilter);
+    var fw = this.transitionProb(oldTrace, trace);
+    var bw = this.transitionProb(trace, oldTrace);
     var p = Math.exp(ad.untapify(trace.score) - ad.untapify(oldTrace.score) + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
-  }
+  };
 
-  function transitionProb(fromTrace, toTrace, regenFrom, reused, proposalBoundary, proposalFilter) {
+  MHKernel.prototype.transitionProb = function(fromTrace, toTrace) {
     // Proposed to ERP.
     var proposalErp, proposalParams;
-    var regenChoice = toTrace.choiceAtIndex(regenFrom);
+    var regenChoice = toTrace.choiceAtIndex(this.regenFrom);
 
     if (regenChoice.erp.proposer) {
       proposalErp = regenChoice.erp.proposer;
-      proposalParams = [regenChoice.params, fromTrace.choiceAtIndex(regenFrom).val];
+      proposalParams = [regenChoice.params, fromTrace.choiceAtIndex(this.regenFrom).val];
     } else {
       proposalErp = regenChoice.erp;
       proposalParams = regenChoice.params;
@@ -165,14 +181,14 @@ module.exports = function(env) {
     var score = ad.untapify(proposalErp.score(proposalParams, regenChoice.val));
 
     // Rest of the trace.
-    score += util.sum(toTrace.choices.slice(regenFrom + 1).map(function(choice) {
-      return reused.hasOwnProperty(choice.address) ? 0 : ad.untapify(choice.erp.score(choice.params, choice.val));
-    }));
+    score += util.sum(toTrace.choices.slice(this.regenFrom + 1).map(function(choice) {
+      return this.reused.hasOwnProperty(choice.address) ? 0 : ad.untapify(choice.erp.score(choice.params, choice.val));
+    }, this));
 
-    score -= Math.log(proposeableIndices(fromTrace, proposalBoundary, proposalFilter).length);
+    score -= Math.log(this.numRegenChoices(fromTrace));
     assert(!isNaN(score));
     return score;
-  }
+  };
 
   return function(cont, runWppl, oldTrace, options) {
     return new MHKernel(cont, runWppl, oldTrace, options).run();
