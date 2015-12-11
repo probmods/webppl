@@ -1,14 +1,11 @@
 var model = function() {
-  var steps0 = 0;
   var i = randomInteger(10);
   factor(i === 5 ? 0 : -Infinity)
-
-  var steps1 = steps0 + 1;
+  assert.ok(i === 5);
 
   var j = randomInteger(12);
   factor(j === 6 ? 0 : -Infinity)
+  assert.ok(j === 6);
 
-  var steps2 = steps1 + 1;
-
-  return [steps2, i, j];
+  return i * j;
 };
