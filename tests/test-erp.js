@@ -227,8 +227,8 @@ var erpMetadataList = [
       {params: [1e-3, 1e3, false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
       {params: [1e-2, 1e2 , false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
       {params: [1e-1, 1e1, false], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
-      {params: [1e0, 1e0, false], n: 5e06, skip: ['mode', 'kurtosis']}, // kurtosis is finicky
-      {params: [3e0, 9e0, false], n: 5e06, reltol: {mode: 0.1}, skip: ['kurtosis']}, // kurtosis finicky
+      {params: [1e0, 1e0, false], n: 5e06, skip: ['mode']},
+      {params: [3e0, 9e0, false], n: 5e06, reltol: {mode: 0.1}},
       {params: [3e2, 2e2, false], n: 5e06, reltol: {mode: 0.1}},
       {params: [1e5, 3e1, false], n: 5e06, reltol: {mode: 0.1}}
 
@@ -405,8 +405,16 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
     // (succeed with probability 0.9999)
     // set the error tolerance to be 4 sd's;
     // 0.999367 of the probability mass of a normal distribution lies within
-    // 4 standard deviations
-    autoTolerance = 4 * sqrt(samplingDistVariance);
+    // 4 standard deviations.
+    // but the sampling distributions are only asymptotically normal
+    // so let's give them some breathing room
+    var autoToleranceMultiple = {
+      mean: 8,
+      variance: 8,
+      skew: 400,
+      kurtosis: 400
+    };
+    autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
 
     group[statName] = function(test) {
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
