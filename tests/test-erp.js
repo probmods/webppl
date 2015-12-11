@@ -441,17 +441,19 @@ var generateTestCases = function(seed) {
   var oldSuppressWarnings = !!global.suppressWarnings;
   var oldStackTraceLimit = Error.stackTraceLimit;
 
-  exports.setUp = function() {
+  exports.setUp = function(callback) {
     // suppress warnings (for, e.g., underflow)
     global.suppressWarnings = true;
 
     // less noise from stack trace
     Error.stackTraceLimit = 2;
+    callback()
   }
 
-  exports.tearDown = function() {
+  exports.tearDown = function(callback) {
     global.suppressWarnings = oldSuppressWarnings;
     Error.stackTraceLimit = oldStackTraceLimit;
+    callback()
   }
 
   _.each(erpMetadataList, function(erpMetadata) {
