@@ -1,0 +1,14 @@
+var model = function() {
+  var steps0 = 0;
+  var i = randomInteger(10);
+  factor(i === 5 ? 0 : -Infinity)
+
+  var steps1 = steps0 + 1;
+
+  var j = randomInteger(12);
+  factor(j === 6 ? 0 : -Infinity)
+
+  var steps2 = steps1 + 1;
+
+  return [steps2,i,j];
+};
