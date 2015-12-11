@@ -4,7 +4,8 @@ var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
 var webppl = require('../src/main');
-var serialize = require('../src/util').serialize
+var util = require('../src/util');
+var serialize = util.serialize;
 
 _.templateSettings = {
   interpolate: /\{\{(.+?)\}\}/g
@@ -49,11 +50,19 @@ var testWithinTolerance = function(test, actual, expected, tolerance, name, verb
   test.ok(isOk, msg);
 };
 
+var getRandomSeedFromEnv = function()  {
+  if (process.env.RANDOM_SEED) {
+    var seed = parseInt(process.env.RANDOM_SEED);
+    util.assertValidRandomSeed(seed);
+    return seed;
+  }
+};
 
 module.exports = {
   getModelNames: getModelNames,
   loadModel: loadModel,
   loadExpected: loadExpected,
   testEqual: testEqual,
-  testWithinTolerance: testWithinTolerance
+  testWithinTolerance: testWithinTolerance,
+  getRandomSeedFromEnv: getRandomSeedFromEnv
 }
