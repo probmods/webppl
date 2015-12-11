@@ -136,8 +136,8 @@ module.exports = function(env) {
 
   MHKernel.prototype.sampleRegenChoice = function(trace) {
     return this.discreteOnly ?
-      this.sampleRegenChoiceDiscrete(trace) :
-      this.sampleRegenChoiceAny(trace);
+        this.sampleRegenChoiceDiscrete(trace) :
+        this.sampleRegenChoiceAny(trace);
   };
 
   MHKernel.prototype.sampleRegenChoiceDiscrete = function(trace) {
