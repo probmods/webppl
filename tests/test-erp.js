@@ -406,7 +406,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
     // set the error tolerance to be 4 sd's;
     // 0.999367 of the probability mass of a normal distribution lies within
     // 4 standard deviations
-    autoTolerance = 10 * sqrt(samplingDistVariance);
+    autoTolerance = 4 * sqrt(samplingDistVariance);
 
     group[statName] = function(test) {
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
