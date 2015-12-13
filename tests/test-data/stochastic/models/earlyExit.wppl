@@ -1,0 +1,11 @@
+var model = function() {
+  var i = randomInteger(10);
+  factor(i === 5 ? 0 : -Infinity)
+  assert.ok(i === 5);
+
+  var j = randomInteger(12);
+  factor(j === 6 ? 0 : -Infinity)
+  assert.ok(j === 6);
+
+  return i * j;
+};

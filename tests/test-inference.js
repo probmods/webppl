@@ -50,7 +50,8 @@ var tests = [
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      earlyExit: true
     }
   },
   {
