@@ -120,7 +120,7 @@ module.exports = function(env) {
 
   MHKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  MHKernel.prototype.proposeableDiscreteErpIndices = function(trace) {
+  MHKernel.prototype.proposableDiscreteErpIndices = function(trace) {
     return _.range(this.proposalBoundary, trace.length).filter(function(i) {
       return !trace.choices[i].erp.isContinuous;
     });
@@ -128,7 +128,7 @@ module.exports = function(env) {
 
   MHKernel.prototype.numRegenChoices = function(trace) {
     if (this.discreteOnly) {
-      return this.proposeableDiscreteErpIndices(trace).length;
+      return this.proposableDiscreteErpIndices(trace).length;
     } else {
       return trace.length - this.proposalBoundary;
     }
@@ -141,7 +141,7 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.sampleRegenChoiceDiscrete = function(trace) {
-    var indices = this.proposeableDiscreteErpIndices(trace);
+    var indices = this.proposableDiscreteErpIndices(trace);
     return indices.length > 0 ? indices[Math.floor(util.random() * indices.length)] : -1;
   };
 
