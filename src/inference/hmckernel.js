@@ -15,7 +15,6 @@ module.exports = function(env) {
 
   function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
-      // TODO: Are these sensible defaults?
       steps: 5,
       stepSize: 0.1,
       exitFactor: 0
@@ -51,7 +50,6 @@ module.exports = function(env) {
         var lower = support.lower;
         var upper = support.upper;
 
-        // TODO: Handle open vs. closed intervals.
         while (_val < lower || _val > upper) {
           if (_val < lower) {
             _val = lower + (lower - _val);
@@ -73,7 +71,6 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.factor = function(s, k, a, score) {
-    // TODO: Correct handling of hard constraints?
     this.trace.numFactors += 1;
     this.trace.score = ad.add(this.trace.score, score);
 
