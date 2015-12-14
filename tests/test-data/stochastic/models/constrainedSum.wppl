@@ -1,0 +1,13 @@
+var bin = function(x) {
+  return Math.floor(x * 10) / 10;
+};
+
+var model = function() {
+  var xs = repeat(10, function() {
+    return uniform(0, 1);
+  });
+  var targetSum = xs.length / 2;
+  var error = sum(xs) - targetSum;
+  factor(-5000 * Math.pow(error, 2));
+  return bin(xs[0]);
+};

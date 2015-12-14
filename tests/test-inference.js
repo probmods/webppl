@@ -341,6 +341,14 @@ var tests = [
           kernel: { HMConly: { steps: 20, stepSize: 0.1 } },
           verbose: 0
         }
+      },
+      constrainedSum: {
+        hist: { tol: 0.08 },
+        args: {
+          samples: 500,
+          burn: 50,
+          kernel: { HMConly: { steps: 50, stepSize: 0.004 } }
+        }
       }
       // drift: {
       //   mean: { tol: 0.3 },
