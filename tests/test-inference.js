@@ -305,83 +305,15 @@ var tests = [
       mean: { tol: 0.1 },
       std: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
-      args: { samples: 1000, kernel: 'HMConly' }
-    },
-    models: {
-      deterministic: true,
-      gaussianMean: {
-        mean: { tol: 0.3 },
-        std: { tol: 0.3 }
-      },
-      gaussianMeanVar: {
-        args: {
-          samples: 1000,
-          burn: 10,
-          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
-        }
-      },
-      bivariateGaussian: {
-        args: {
-          samples: 1000,
-          burn: 10,
-          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
-        }
-      },
-      bivariateGaussianFactor: {
-        args: {
-          samples: 2000,
-          burn: 10,
-          kernel: { HMConly: { steps: 20, stepSize: 0.1 } }
-        }
-      },
-      indirectDependency: {
-        args: {
-          samples: 1000,
-          burn: 100,
-          kernel: { HMConly: { steps: 20, stepSize: 0.1 } },
-          verbose: 0
-        }
-      },
-      constrainedSum: {
-        hist: { tol: 0.08 },
-        args: {
-          samples: 500,
-          burn: 50,
-          kernel: { HMConly: { steps: 50, stepSize: 0.004 } }
-        }
-      }
-      // drift: {
-      //   mean: { tol: 0.3 },
-      //   std: { tol: 0.3 }
-      // }
-
-    }
-  },
-  {
-    name: 'HMC+MH',
-    func: 'MCMC',
-    settings: {
-      hist: { tol: 0.1 },
-      mean: { tol: 0.1 },
-      std: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
       args: { samples: 1000, kernel: 'HMC' }
     },
     models: {
+      deterministic: { hist: { tol: 0 } },
       simple: true,
       cache: true,
-      deterministic: { hist: { tol: 0 } },
       store: { hist: { tol: 0 } },
       store2: { hist: { tol: 0 } },
       geometric: true,
-      gaussianMean: {
-        mean: { tol: 0.3 },
-        std: { tol: 0.3 }
-      },
-      // drift: {
-      //   mean: { tol: 0.3 },
-      //   std: { tol: 0.3 }
-      // },
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
@@ -427,8 +359,61 @@ var tests = [
           burn: 1000,
           kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
+      },
+      gaussianMean: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 }
+      },
+      gaussianMeanVar: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      bivariateGaussian: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      bivariateGaussianFactor: {
+        args: {
+          samples: 2000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      indirectDependency: {
+        args: {
+          samples: 1000,
+          burn: 100,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      constrainedSum: {
+        hist: { tol: 0.08 },
+        args: {
+          samples: 500,
+          burn: 50,
+          kernel: { HMC: { steps: 50, stepSize: 0.004 } }
+        }
       }
-
+    }
+  },
+  {
+    name: 'HMConly',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      mean: { tol: 0.3 },
+      std: { tol: 0.3 },
+      args: { samples: 1000, kernel: 'HMConly' }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } },
+      gaussianMean: true
     }
   },
   {
