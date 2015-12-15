@@ -58,15 +58,6 @@ function sum(xs) {
   }
 }
 
-function normalizeHist(hist) {
-  var normHist = {};
-  var Z = sum(_.values(hist));
-  _.each(hist, function(val, key) {
-    normHist[key] = hist[key] / Z;
-  });
-  return normHist;
-}
-
 var logHist = function(hist) {
   return _.mapObject(hist, function(x) {
     return {prob: Math.log(x.prob), val: x.val}
@@ -135,7 +126,40 @@ function cpsIterate(n, initial, func, cont) {
       function() { return cont(val); });
 }
 
-function histsApproximatelyEqual(hist, expectedHist, tolerance) {
+function expectation(a, func) {
+  assert.ok(a.length > 0);
+  var f = func || _.identity;
+  return _.reduce(a, function(acc, x) {
+    return acc + f(x);
+  }, 0) / a.length;
+}
+
+function std(a, mean) {
+  assert.ok(a.length > 0);
+  var m = (mean !== undefined) ? mean : expectation(a);
+  return Math.sqrt(expectation(a, function(x) {
+    return Math.pow(x - m, 2);
+  }));
+}
+
+function histExpectation(hist, func) {
+  var f = func || _.identity;
+  return _.reduce(hist, function(acc, pair) {
+    var x = pair[0];
+    var p = pair[1];
+    return acc + p * f(x);
+  }, 0);
+}
+
+function histStd(hist) {
+  var m = histExpectation(hist);
+  return Math.sqrt(histExpectation(hist, function(x) {
+    return Math.pow(x - m, 2);
+  }));
+}
+
+function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
+  var hist = _.object(_.map(actualHist, function(p) { return [serialize(p[0]), p[1]]; }));
   var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,
@@ -149,32 +173,6 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
     console.log('Actual:', hist);
   }
   return allOk;
-}
-
-function expectation(hist, func) {
-  var f = func == undefined ? function(x) {return x;} : func;
-  if (_.isArray(hist)) {
-    return sum(hist) / hist.length;
-  } else {
-    var expectedValue = sum(_.mapObject(hist, function(v, x) {
-      return f(x) * v;
-    }));
-    return expectedValue;
-  }
-}
-
-function std(hist) {
-  var mu = expectation(hist);
-  if (_.isArray(hist)) {
-    var variance = expectation(hist.map(function(x) {
-      return Math.pow(x - mu, 2);
-    }));
-  } else {
-    var variance = sum(_.mapObject(hist, function(v, x) {
-      return v * Math.pow(mu - x, 2);
-    }));
-  }
-  return Math.sqrt(variance);
 }
 
 function mergeDefaults(options, defaults) {
@@ -237,17 +235,18 @@ module.exports = {
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
   expectation: expectation,
-  gensym: gensym,
+  std: std,
+  histExpectation: histExpectation,
+  histStd: histStd,
   histsApproximatelyEqual: histsApproximatelyEqual,
+  gensym: gensym,
   logsumexp: logsumexp,
   logHist: logHist,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
-  normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  std: std,
   mergeDefaults: mergeDefaults,
   sum: sum,
   asArray: asArray,
