@@ -289,14 +289,14 @@ function gammaSample(params) {
     if (giveLog) {
       r = gammaSample([1 + shape, scale, giveLog]) + Math.log(util.random()) / shape;
       if (r === -Infinity) {
-        util.warn('log gamma sample underflow, bumped up');
+        util.warn('log gamma sample underflow, rounded to nearest representable support value');
         return -Number.MAX_VALUE;
       }
       return r;
     } else {
       r = gammaSample([1 + shape, scale, giveLog]) * Math.pow(util.random(), 1 / shape);
       if (r === 0) {
-        util.warn('gamma sample underflow, bumped up');
+        util.warn('gamma sample underflow, rounded to nearest representable support value');
         return Number.MIN_VALUE;
       }
       return r;
