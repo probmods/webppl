@@ -358,23 +358,17 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
 
     if (statName == 'mean') {
       samplingDistVariance = variance / n;
-    }
-
-    if (statName == 'variance') {
+    } else if (statName == 'variance') {
       // sample variance is asymptotically normally distributed
       // http://stats.stackexchange.com/questions/105337/asymptotic-distribution-of-sample-variance-of-non-normal-sample
       samplingDistVariance = moment(params, 4) / n - pow(sigma, 4) * (n - 3) / (n * (n - 1));
-    }
-
-    if (statName == 'skew') {
+    } else if (statName == 'skew') {
       // HT https://en.wikipedia.org/wiki/Skewness#Sample_skewness
       // formula assumes normal distribution
       // thankfully, van der Vaart tells us that sample skew is asymptotically
       // normally distributed (page 29 of Asymptotic Statistics)
       samplingDistVariance = 6 * n * (n - 1) / ((n - 2) * (n + 1) * (n + 3));
-    }
-
-    if (statName == 'kurtosis') {
+    } else if (statName == 'kurtosis') {
       // HT https://en.wikipedia.org/wiki/Kurtosis#Sample_kurtosis
       samplingDistVariance = 24 * n * (n - 1) * (n - 1) / ((n - 3) * (n - 2) * (n + 3) * (n + 5))
     }
