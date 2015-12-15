@@ -329,7 +329,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
     // do it with a for loop because some nodes don't define map()
     // for Float64Array
     var allInSupport = true;
-    for (var i = 0, ii = samples.length; ii < n; i++) {
+    for (var i = 0, ii = samples.length; i < ii; i++) {
       allInSupport = allInSupport && inSupport(params, samples[i]);
     }
 
