@@ -11,7 +11,7 @@ module.exports = function(env) {
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(cont, wpplFn, s, k, a) {
+  function Initialize(cont, wpplFn, s, k, a, options) {
     this.cont = cont;
 
     this.wpplFn = wpplFn;
@@ -19,6 +19,7 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
 
+    this.ad = options.ad;
     this.failures = 0;
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -32,7 +33,7 @@ module.exports = function(env) {
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {
     var _val = erp.sample(ad.untapify(params));
-    var val = erp.isContinuous ? ad.tapify(_val) : _val;
+    var val = this.ad && erp.isContinuous ? ad.tapify(_val) : _val;
     this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
@@ -67,8 +68,8 @@ module.exports = function(env) {
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return function(cont, wpplFn, s, k, a) {
-    return new Initialize(cont, wpplFn, s, k, a).run();
+  return function(cont, wpplFn, s, k, a, options) {
+    return new Initialize(cont, wpplFn, s, k, a, options).run();
   };
 
 };

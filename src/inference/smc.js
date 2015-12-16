@@ -24,6 +24,7 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
+    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
@@ -55,7 +56,7 @@ module.exports = function(env) {
     var importanceERP = erp.importanceERP || erp;
     var _params = ad.untapify(params);
     var _val = importanceERP.sample(_params);
-    var val = importanceERP.isContinuous ? ad.tapify(_val) : _val;
+    var val = this.adRequired && importanceERP.isContinuous ? ad.tapify(_val) : _val;
     var importanceScore = importanceERP.score(_params, _val);
     var choiceScore = erp.score(_params, _val);
     var particle = this.currentParticle();

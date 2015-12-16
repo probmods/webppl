@@ -183,6 +183,7 @@ var tests = [
       deterministic: { hist: { tol: 0 }, args: { particles: 100 } },
       store: { hist: { tol: 0 }, args: { particles: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 100 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
       varFactors1: { args: { particles: 5000 } },
       varFactors2: true,
@@ -208,6 +209,7 @@ var tests = [
       deterministic: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
       varFactors1: true,
@@ -284,6 +286,7 @@ var tests = [
       cache: true,
       deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
       store: { hist: { tol: 0 }, args: { samples: 100 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
       drift: {

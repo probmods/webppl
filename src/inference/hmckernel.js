@@ -196,8 +196,8 @@ module.exports = function(env) {
 
   HMCKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return function(cont, oldTrace, options) {
+  return _.extendOwn(function(cont, oldTrace, options) {
     return new HMCKernel(cont, oldTrace, options).run();
-  };
+  }, { adRequired: true });
 
 };

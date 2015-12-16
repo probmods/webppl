@@ -32,7 +32,7 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
-      return Initialize(run, wpplFn, s, env.exit, a);
+      return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
     run = function(initialTrace) {

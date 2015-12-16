@@ -8,13 +8,13 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-
   function MHKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
       exitFactor: 0,
       permissive: false,
-      discreteOnly: false
+      discreteOnly: false,
+      adRequired: false
     });
 
     if (!options.permissive) {
@@ -28,6 +28,7 @@ module.exports = function(env) {
     this.proposalBoundary = options.proposalBoundary;
     this.exitFactor = options.exitFactor;
     this.discreteOnly = options.discreteOnly;
+    this.adRequired = options.adRequired;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -67,7 +68,7 @@ module.exports = function(env) {
       var proposalErp = erp.proposer || erp;
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
       _val = proposalErp.sample(ad.untapify(proposalParams));
-      val = proposalErp.isContinuous ? ad.tapify(_val) : _val;
+      val = this.adRequired && proposalErp.isContinuous ? ad.tapify(_val) : _val;
       // Optimization: Bail early if same value is re-sampled.
       if (!proposalErp.isContinuous && prevChoice.val === val) {
         return this.finish(this.oldTrace, true);
@@ -78,7 +79,7 @@ module.exports = function(env) {
         this.reused[a] = true;
       } else {
         _val = erp.sample(ad.untapify(params));
-        val = erp.isContinuous ? ad.tapify(_val) : _val;
+        val = this.adRequired && erp.isContinuous ? ad.tapify(_val) : _val;
       }
     }
 

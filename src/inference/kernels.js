@@ -13,10 +13,12 @@ module.exports = function(env) {
     // The options arg is passed to both kernels as SMC passes
     // exitFactor via options.
     return HMCKernel(function(trace) {
-      var opts = _.extendOwn({ discreteOnly: true }, options);
+      var opts = _.extendOwn({ discreteOnly: true, adRequired: true }, options);
       return MHKernel(cont, trace, opts);
     }, oldTrace, options);
   }
+
+  HMCwithMHKernel.adRequired = true;
 
   var kernels = {
     MH: MHKernel,
@@ -47,11 +49,12 @@ module.exports = function(env) {
 
     var name = _.isString(obj) ? obj : _.keys(obj)[0];
     var options = _.isString(obj) ? {} : _.values(obj)[0];
+    var kernel = kernels[name];
 
-    return function(cont, oldTrace, extraOptions) {
+    return _.extendOwn(function(cont, oldTrace, extraOptions) {
       var allOptions = _.extendOwn({}, options, extraOptions);
-      return kernels[name](cont, oldTrace, allOptions);
-    };
+      return kernel(cont, oldTrace, allOptions);
+    }, kernel);
   }
 
   // Combinators for kernel functions.
