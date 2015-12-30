@@ -58,6 +58,14 @@ function sum(xs) {
   }
 }
 
+function product(xs) {
+  var result = 1;
+  for (var i = 0, n = xs.length; i < n; i++) {
+    result *= xs[i];
+  }
+  return result;
+}
+
 function normalizeHist(hist) {
   var normHist = {};
   var Z = sum(_.values(hist));
@@ -256,6 +264,7 @@ module.exports = {
   std: std,
   mergeDefaults: mergeDefaults,
   sum: sum,
+  product: product,
   asArray: asArray,
   serialize: serialize,
   deserialize: deserialize,
