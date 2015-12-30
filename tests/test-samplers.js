@@ -320,11 +320,6 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
   var params = settings.params;
   var n = settings.n;
 
-  // check that every sample is in the support of the distribution
-  var inSupport = function(test) {
-    test.done();
-  }
-
   // only test the stats that aren't blacklisted
   var populationStatisticFunctions = _.pick(erpMetadata.populationStatisticFunctions,
                                             function(v, k) {
