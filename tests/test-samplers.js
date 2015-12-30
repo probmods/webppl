@@ -319,21 +319,9 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
   // - test params (e.g., relative tolerance)
   var params = settings.params;
   var n = settings.n;
-  var samples;
-
-  var group = {};
 
   // check that every sample is in the support of the distribution
-  var inSupport = erpMetadata.inSupport;
-  group['support'] = function(test) {
-    // do it with a for loop because some nodes don't define map()
-    // for Float64Array
-    var allInSupport = true;
-    for (var i = 0, ii = samples.length; i < ii; i++) {
-      allInSupport = allInSupport && inSupport(params, samples[i]);
-    }
-
-    test.ok(allInSupport);
+  var inSupport = function(test) {
     test.done();
   }
 
@@ -343,52 +331,70 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
                                               return !_.contains(settings.skip, k)
                                             });
 
+  var group = {};
+
   var moment = erpMetadata.moment;
 
-  _.each(populationStatisticFunctions, function(statFn, statName) {
-    var expectedResult = statFn(params);
+  group['test'] = function(test) {
+    var samples = repeat(n, function() {
+      return erpMetadata.sampler(params);
+    });
 
-    // compute an automatic tolerance for mean, variance, skew, kurtosis
-    var autoTolerance;
-
-    var variance = populationStatisticFunctions.variance(params)
-    var sigma = sqrt(variance);
-
-    var samplingDistVariance;
-
-    if (statName == 'mean') {
-      samplingDistVariance = variance / n;
-    } else if (statName == 'variance') {
-      // sample variance is asymptotically normally distributed
-      // http://stats.stackexchange.com/questions/105337/asymptotic-distribution-of-sample-variance-of-non-normal-sample
-      samplingDistVariance = moment(params, 4) / n - pow(sigma, 4) * (n - 3) / (n * (n - 1));
-    } else if (statName == 'skew') {
-      // HT https://en.wikipedia.org/wiki/Skewness#Sample_skewness
-      // formula assumes normal distribution
-      // thankfully, van der Vaart tells us that sample skew is asymptotically
-      // normally distributed (page 29 of Asymptotic Statistics)
-      samplingDistVariance = 6 * n * (n - 1) / ((n - 2) * (n + 1) * (n + 3));
-    } else if (statName == 'kurtosis') {
-      // HT https://en.wikipedia.org/wiki/Kurtosis#Sample_kurtosis
-      samplingDistVariance = 24 * n * (n - 1) * (n - 1) / ((n - 3) * (n - 2) * (n + 3) * (n + 5))
+    // first check support
+    // use for loop because some nodes don't define map()
+    // for Float64Array
+    var allInSupport = true;
+    for (var i = 0, ii = samples.length; i < ii; i++) {
+      allInSupport = allInSupport && erpMetadata.inSupport(params, samples[i]);
     }
 
-    // we want tests to fail with probability 1/10000
-    // (succeed with probability 0.9999)
-    // set the error tolerance to be 4 sd's;
-    // 0.999367 of the probability mass of a normal distribution lies within
-    // 4 standard deviations.
-    // but the sampling distributions are only asymptotically normal
-    // so let's give them some breathing room
-    var autoToleranceMultiple = {
-      mean: 8,
-      variance: 8,
-      skew: 400,
-      kurtosis: 400
-    };
-    autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
+    test.ok(allInSupport);
 
-    group[statName] = function(test) {
+    // then check each populationStatisticFunction
+    _.each(populationStatisticFunctions, function(statFn, statName) {
+      var expectedResult = statFn(params);
+
+      // compute an automatic tolerance for mean, variance, skew, kurtosis
+      var autoTolerance;
+
+      var variance = populationStatisticFunctions.variance(params)
+      var sigma = sqrt(variance);
+
+      var samplingDistVariance;
+
+      if (statName == 'mean') {
+        samplingDistVariance = variance / n;
+      } else if (statName == 'variance') {
+        // sample variance is asymptotically normally distributed
+        // http://stats.stackexchange.com/a/105338/71884
+        samplingDistVariance = moment(params, 4) / n - pow(sigma, 4) * (n - 3) / (n * (n - 1));
+      } else if (statName == 'skew') {
+        // HT https://en.wikipedia.org/wiki/Skewness#Sample_skewness
+        // formula assumes normal distribution
+        // thankfully, van der Vaart tells us that sample skew is asymptotically
+        // normally distributed (page 29 of Asymptotic Statistics)
+        samplingDistVariance = 6 * n * (n - 1) / ((n - 2) * (n + 1) * (n + 3));
+      } else if (statName == 'kurtosis') {
+        // HT https://en.wikipedia.org/wiki/Kurtosis#Sample_kurtosis
+        samplingDistVariance = 24 * n * (n - 1) * (n - 1) / ((n - 3) * (n - 2) * (n + 3) * (n + 5))
+      }
+
+      // we want tests to fail with probability 1/10000
+      // (succeed with probability 0.9999)
+      // set the error tolerance to be 4 sd's;
+      // 0.999367 of the probability mass of a normal distribution lies within
+      // 4 standard deviations.
+      // but the sampling distributions are only asymptotically normal
+      // so let's give them some breathing room
+      var autoToleranceMultiple = {
+        mean: 8,
+        variance: 8,
+        skew: 400,
+        kurtosis: 400
+      };
+      autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
+
+
       var sampleStatisticFunction = sampleStatisticFunctions[statName];
       var actualResult = sampleStatisticFunction(samples);
 
@@ -405,28 +411,21 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
                                   tolerance,
                                   statName,
                                   'verbose');
-      test.done();
-    }
-  });
+    });
+
+    test.done();
+
+  };
 
   var numTestsLeft = _.size(_.omit(group, 'setUp', 'tearDown'));
 
   group.setUp = function(callback) {
     util.seedRNG(seed);
-    if (!samples) {
-      samples = repeat(n, function() {
-        return erpMetadata.sampler(params);
-      })
-    }
     callback();
   };
 
   group.tearDown = function(callback) {
     numTestsLeft--;
-    if (numTestsLeft == 0) {
-      // encourage gc
-      samples = null;
-    }
     util.resetRNG();
     callback();
   };
