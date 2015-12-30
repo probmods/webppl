@@ -7,6 +7,7 @@ var util = require('../src/util');
 var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
+var statistics = require('../src/statistics');
 
 // In this file, we test our ERP samplers by running them a bunch for various
 // sample values and comparing the resulting *sample* statistics against mathematically
@@ -52,71 +53,15 @@ var cache = function(f) {
   }
 }
 
-function _mean(a) {
-  var n = a.length;
-  var sum = 0;
-  for (var i = 0; i < n; i++) {
-    sum += a[i];
-  }
-  return sum / n;
-}
-var mean = cache(_mean);
+var mean = cache(statistics.mean);
 
-function _variance(a) {
-  var n = a.length;
-  var m = mean(a);
-  var sum = 0;
+// performant timings: 49660ms, 49529ms
 
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += v * v;
-  }
-
-  return sum / n;
-}
 // probably don't need to cache variance
-var variance = cache(_variance);
-
-function _sd(a) {
-  return sqrt(variance(a));
-}
-var sd = cache(_sd);
-
-function _skew(a) {
-  var n = a.length;
-  var m = mean(a);
-  var s = sd(a);
-  var sum = 0;
-
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += pow(v, 3);
-  }
-
-  sum = sum / (pow(s, 3));
-
-  return sum / n;
-}
-// probably don't need to cache skew
-var skew = (_skew);
-
-function _kurtosis(a) {
-  var n = a.length;
-  var m = mean(a);
-  var s = sd(a);
-  var sum = 0;
-
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += pow(v, 4);
-  }
-
-  sum = sum / (pow(s, 4));
-
-  return sum / n;
-}
-// probably don't need to cache kurtosis
-var kurtosis = (_kurtosis);
+var variance = cache(statistics.variance);
+var sd = cache(statistics.sd);
+var skew = statistics.skew;
+var kurtosis = statistics.kurtosis;
 
 // estimate the mode of a continuous distribution from some
 // samples by computing kde and returning the bin with
@@ -169,37 +114,6 @@ var sampleStatisticFunctions = {
   mode: mode
 }
 
-// HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
-var digamma = function(x) {
-  if (x < 6)
-    return digamma(x + 1) - 1 / x;
-
-  return ln(x) -
-      1 / (2 * x) -
-      1 / (12 * pow(x, 2)) +
-      1 / (120 * pow(x, 4)) -
-      1 / (252 * pow(x, 6)) +
-      1 / (240 * pow(x, 8)) -
-      5 / (660 * pow(x, 10)) +
-      691 / (32760 * pow(x, 12)) -
-      1 / (12 * pow(x, 14));
-}
-
-// HT http://ms.mcmaster.ca/peter/s743/trigamma.html
-// (cites formulas from abramowitz & stegun, which you can get at:
-// http://people.math.sfu.ca/~cbm/aands/
-var trigamma = function(x) {
-  if (x < 30) {
-    return trigamma(x + 1) + 1 / (x * x);
-  }
-
-  return 1 / x +
-      1 / (2 * pow(x, 2)) +
-      1 / (6 * pow(x, 3)) -
-      1 / (30 * pow(x, 5)) +
-      1 / (42 * pow(x, 7)) -
-      1 / (30 * pow(x, 9))
-}
 
 var erpMetadataList = [
   require('./test-data/erp/gamma')
@@ -268,8 +182,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
         samplingDistVariance = 24 * n * (n - 1) * (n - 1) / ((n - 3) * (n - 2) * (n + 3) * (n + 5))
       }
 
-      // we want tests to fail with probability 1/10000
-      // (succeed with probability 0.9999)
+      // we want tests to fail with probability 1/10000 (succeed with probability 0.9999)
       // set the error tolerance to be 4 sd's;
       // 0.999367 of the probability mass of a normal distribution lies within
       // 4 standard deviations.

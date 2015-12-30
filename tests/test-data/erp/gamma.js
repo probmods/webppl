@@ -2,6 +2,8 @@ var erp = require('../../../src/erp.js');
 
 var util = require('../../../src/util.js');
 
+var statistics = require('../../../src/statistics.js');
+
 var ln = Math.log,
     pow = Math.pow,
     sqrt = Math.sqrt,
@@ -64,7 +66,7 @@ module.exports = {
       var giveLog = params[2];
 
       if (giveLog) {
-        return digamma(shape) + ln(scale)
+        return statistics.digamma(shape) + ln(scale)
       } else {
         return shape * scale;
       }
@@ -89,7 +91,7 @@ module.exports = {
       var giveLog = params[2];
 
       if (giveLog) {
-        return trigamma(shape)
+        return statistics.trigamma(shape)
       } else {
         return shape * scale * scale;
       }
