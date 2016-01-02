@@ -1,9 +1,19 @@
 var _ = require('underscore');
+var util = require('./util');
+var assert = require('assert');
 
 var abs = Math.abs,
     pow = Math.pow,
     sqrt = Math.sqrt,
     ln = Math.ln;
+
+function expectation(a, func) {
+  assert.ok(a.length > 0);
+  var f = func || _.identity;
+  return _.reduce(a, function(acc, x) {
+    return acc + f(x);
+  }, 0) / a.length;
+}
 
 // HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
 var digamma = function(x) {
@@ -23,7 +33,7 @@ var digamma = function(x) {
 
 // HT http://ms.mcmaster.ca/peter/s743/trigamma.html
 // (cites formulas from abramowitz & stegun, which you can get at:
-// http://people.math.sfu.ca/~cbm/aands/
+// http://people.math.sfu.ca/~cbm/aands/)
 var trigamma = function(x) {
   if (x < 30) {
     return trigamma(x + 1) + 1 / (x * x);
@@ -38,25 +48,12 @@ var trigamma = function(x) {
 }
 
 function mean(a) {
-  var n = a.length;
-  var sum = 0;
-  for (var i = 0; i < n; i++) {
-    sum += a[i];
-  }
-  return sum / n;
+  return expectation(a)
 }
 
 function variance(a) {
-  var n = a.length;
-  var m = mean(a);
-  var sum = 0;
-
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += v * v;
-  }
-
-  return sum / n;
+  var m = expectation(a);
+  return expectation(a, function(x) { return pow(x - m, 2) })
 }
 
 function sd(a) {
@@ -64,35 +61,17 @@ function sd(a) {
 }
 
 function skew(a) {
-  var n = a.length;
   var m = mean(a);
   var s = sd(a);
-  var sum = 0;
 
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += pow(v, 3);
-  }
-
-  sum = sum / (pow(s, 3));
-
-  return sum / n;
+  return expectation(a, function(x) { return pow((x - m) / s, 3) })
 }
 
 function kurtosis(a) {
-  var n = a.length;
   var m = mean(a);
-  var s = sd(a);
-  var sum = 0;
 
-  for (var i = 0; i < n; i++) {
-    var v = a[i] - m;
-    sum += pow(v, 4);
-  }
-
-  sum = sum / (pow(s, 4));
-
-  return sum / n;
+  return expectation(a, function(x) { return pow((x - m), 4) }) /
+      pow(expectation(a, function(x) { return pow((x - m), 2) }), 2);
 }
 
 function kde(samps, kernel) {
