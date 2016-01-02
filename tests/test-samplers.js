@@ -116,9 +116,8 @@ var sampleStatisticFunctions = {
 
 
 var erpMetadataList = [
-  require('./test-data/erp/gamma')
+  require('./test-data/sampler/gamma')
 ];
-
 
 var generateSettingTest = function(seed, erpMetadata, settings) {
   // settings includes:
