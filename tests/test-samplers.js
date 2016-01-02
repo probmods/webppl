@@ -12,16 +12,7 @@ var statistics = require('../src/statistics');
 // In this file, we test our ERP samplers by running them a bunch for various
 // sample values and comparing the resulting *sample* statistics against mathematically
 // derived *population* statistics. We also check that every sample is in the
-// support of the distribution, so that modelers aren't bit by underflow or overflow
-
-
-var product = function(arr) {
-  var result = 1;
-  for (var i = 0, n = arr.length; i < n; i++) {
-    result *= arr[i];
-  }
-  return result;
-}
+// support of the distribution, so that users aren't bit by underflow or overflow
 
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays
@@ -54,10 +45,6 @@ var cache = function(f) {
 }
 
 var mean = cache(statistics.mean);
-
-// performant timings: 49660ms, 49529ms
-
-// probably don't need to cache variance
 var variance = cache(statistics.variance);
 var sd = cache(statistics.sd);
 var skew = statistics.skew;
