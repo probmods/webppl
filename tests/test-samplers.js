@@ -1,3 +1,8 @@
+// In this file, we test our ERP samplers by running them a bunch for various
+// sample values and comparing the resulting *sample* statistics against mathematically
+// derived *population* statistics. We also check that every sample is in the
+// support of the distribution, so that users aren't bit by underflow or overflow
+
 'use strict';
 
 var _ = require('underscore');
@@ -8,11 +13,6 @@ var webppl = require('../src/main');
 var erp = require('../src/erp');
 var helpers = require('./helpers');
 var statistics = require('../src/statistics');
-
-// In this file, we test our ERP samplers by running them a bunch for various
-// sample values and comparing the resulting *sample* statistics against mathematically
-// derived *population* statistics. We also check that every sample is in the
-// support of the distribution, so that users aren't bit by underflow or overflow
 
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays
@@ -30,7 +30,7 @@ var ln = Math.log,
 
 // cache sample statistics by attaching
 // properties to the sample array
-// e.g., a._mean, a._sd
+// e.g., a.mean, a.sd
 // note that this requires f to be declared
 // as function foo() { }
 // rather than var foo = function() { }
@@ -51,7 +51,6 @@ var skew = statistics.skew;
 var kurtosis = statistics.kurtosis;
 var mode = statistics.kdeMode;
 
-// sample statistic functions
 var sampleStatisticFunctions = {
   mean: mean,
   variance: variance,
@@ -59,7 +58,6 @@ var sampleStatisticFunctions = {
   kurtosis: kurtosis,
   mode: mode
 }
-
 
 var erpMetadataList = [
   require('./test-data/sampler/gamma')
@@ -78,7 +76,6 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
                                             function(v, k) {
                                               return !_.contains(settings.skip, k)
                                             });
-
   var group = {};
 
   var moment = erpMetadata.moment;
@@ -164,15 +161,12 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
 
   };
 
-  var numTestsLeft = _.size(_.omit(group, 'setUp', 'tearDown'));
-
   group.setUp = function(callback) {
     util.seedRNG(seed);
     callback();
   };
 
   group.tearDown = function(callback) {
-    numTestsLeft--;
     util.resetRNG();
     callback();
   };
