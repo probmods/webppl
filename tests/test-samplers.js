@@ -49,48 +49,7 @@ var variance = cache(statistics.variance);
 var sd = cache(statistics.sd);
 var skew = statistics.skew;
 var kurtosis = statistics.kurtosis;
-
-// estimate the mode of a continuous distribution from some
-// samples by computing kde and returning the bin with
-// max density
-function kdeMode(samps) {
-  var kernel = function(u) {
-    return abs(u) <= 1 ? .75 * (1 - u * u) : 0;
-  };
-
-  // get optimal bandwidth
-  // HT http://en.wikipedia.org/wiki/Kernel_density_estimation#Practical_estimation_of_the_bandwidth
-  var n = samps.length;
-  var s = sd(samps);
-
-  var bandwidth = 1.06 * s * pow(n, -0.2);
-
-  var min = _.min(samps);
-  var max = _.max(samps);
-
-  var numBins = (max - min) / bandwidth;
-
-  var maxDensity = -Infinity;
-  var maxEl;
-
-  for (var i = 0; i <= numBins; i++) {
-    var x = min + bandwidth * i;
-    var kernel_sum = 0;
-    for (var j = 0; j < samps.length; j++) {
-      kernel_sum += kernel((x - samps[j]) / bandwidth);
-    }
-    if (kernel_sum > maxDensity) {
-      maxDensity = kernel_sum;
-      maxEl = x;
-    }
-  }
-  return maxEl;
-}
-
-function _mode(a) {
-  return kdeMode(a)
-}
-var mode = (_mode);
+var mode = statistics.kdeMode;
 
 // sample statistic functions
 var sampleStatisticFunctions = {
