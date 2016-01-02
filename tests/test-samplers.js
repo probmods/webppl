@@ -28,25 +28,9 @@ var ln = Math.log,
     sqrt = Math.sqrt,
     abs = Math.abs;
 
-// cache sample statistics by attaching
-// properties to the sample array
-// e.g., a.mean, a.sd
-// note that this requires f to be declared
-// as function foo() { }
-// rather than var foo = function() { }
-var cache = function(f) {
-  var key = f.name;
-  return function(array) {
-    if (!array[key]) {
-      array[key] = f(array);
-    }
-    return array[key]
-  }
-}
-
-var mean = cache(statistics.mean);
-var variance = cache(statistics.variance);
-var sd = cache(statistics.sd);
+var mean = statistics.mean;
+var variance = statistics.variance;
+var sd = statistics.sd;
 var skew = statistics.skew;
 var kurtosis = statistics.kurtosis;
 var mode = statistics.kdeMode;
