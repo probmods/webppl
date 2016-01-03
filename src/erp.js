@@ -283,24 +283,43 @@ function logGamma(xx) {
 function gammaSample(params) {
   var shape = params[0];
   var scale = params[1];
-  var giveLog = params[2];
   if (shape < 1) {
     var r;
-    if (giveLog) {
-      r = gammaSample([1 + shape, scale, giveLog]) + Math.log(util.random()) / shape;
-      if (r === -Infinity) {
-        util.warn('log gamma sample underflow, rounded to nearest representable support value');
-        return -Number.MAX_VALUE;
-      }
-      return r;
-    } else {
-      r = gammaSample([1 + shape, scale, giveLog]) * Math.pow(util.random(), 1 / shape);
-      if (r === 0) {
-        util.warn('gamma sample underflow, rounded to nearest representable support value');
-        return Number.MIN_VALUE;
-      }
-      return r;
+    r = gammaSample([1 + shape, scale]) * Math.pow(util.random(), 1 / shape);
+    if (r === 0) {
+      util.warn('gamma sample underflow, rounded to nearest representable support value');
+      return Number.MIN_VALUE;
     }
+    return r;
+  }
+  var x, v, u;
+  var d = shape - 1 / 3;
+  var c = 1 / Math.sqrt(9 * d);
+  while (true) {
+    do {
+      x = gaussianSample([0, 1]);
+      v = 1 + c * x;
+    } while (v <= 0);
+
+    v = v * v * v;
+    u = util.random();
+    if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
+      return scale * d * v;
+    }
+  }
+}
+
+function expGammaSample(params) {
+  var shape = params[0];
+  var scale = params[1];
+  if (shape < 1) {
+    var r;
+    r = gammaSample([1 + shape, scale]) + Math.log(util.random()) / shape;
+    if (r === -Infinity) {
+      util.warn('log gamma sample underflow, rounded to nearest representable support value');
+      return -Number.MAX_VALUE;
+    }
+    return r;
   }
   var x, v, u, log_v;
   var d = shape - 1 / 3;
@@ -315,12 +334,7 @@ function gammaSample(params) {
     v = v * v * v;
     u = util.random();
     if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
-      if (giveLog) {
-        return Math.log(scale) + Math.log(d) + log_v
-      } else {
-        return scale * d * v;
-      }
-
+      return Math.log(scale) + Math.log(d) + log_v;
     }
   }
 }
