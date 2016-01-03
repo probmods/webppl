@@ -30,14 +30,12 @@ module.exports = {
     // skip skew and kurtosis for smallest shapes because they are swayed by small (underflowy) values
     {params: [1e-4, 1e4], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
     {params: [1e-3, 1e3], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
-    {params: [1e-2, 1e2 ], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
+    {params: [1e-2, 1e2], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
     {params: [1e-1, 1e1], n: 5e06, skip: ['mode', 'skew', 'kurtosis']},
     {params: [1e0, 1e0], n: 5e06, skip: ['mode']},
     {params: [3e0, 9e0], n: 5e06, reltol: {mode: 0.1}},
     {params: [3e2, 2e2], n: 5e06, reltol: {mode: 0.1}},
     {params: [1e5, 3e1], n: 5e06, reltol: {mode: 0.1}}
-
-
   ],
   moment: function(params, n) {
     // returns the nth moment
