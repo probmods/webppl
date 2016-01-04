@@ -117,8 +117,8 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
       var autoToleranceMultiple = {
         mean: 8,
         variance: 8,
-        skew: 400,
-        kurtosis: 400
+        skew: 100,
+        kurtosis: 100
       };
       autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
 
