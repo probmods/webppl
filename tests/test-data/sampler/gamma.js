@@ -14,12 +14,7 @@ module.exports = {
   name: 'gamma',
   sampler: erp.gammaERP.sample,
   inSupport: function(params, x) {
-    var giveLog = params[2];
-    if (giveLog) {
-      return typeof x === 'number' && x > -Infinity && x < Infinity;
-    } else {
-      return typeof x === 'number' && x > 0 && x < Infinity;
-    }
+    return typeof x === 'number' && x > 0 && x < Infinity;
   },
   settings: [
     // params are sampled to the ERP sampler
@@ -41,8 +36,7 @@ module.exports = {
     // returns the nth moment
     var shape = params[0];
     var scale = params[1];
-    // HT
-    // http://ocw.mit.edu/courses/mathematics/
+    // HT http://ocw.mit.edu/courses/mathematics/
     // 18-443-statistics-for-applications-fall-2006/lecture-notes/lecture6.pdf
     // (but NB: they use shape, rate whereas we have shape, scale)
     return util.product(_.range(0, n - 1).map(function(k) { return shape + k })) * pow(scale, n)
@@ -52,58 +46,26 @@ module.exports = {
     mean: function(params) {
       var shape = params[0];
       var scale = params[1];
-      var giveLog = params[2];
-
-      if (giveLog) {
-        return statistics.digamma(shape) + ln(scale)
-      } else {
-        return shape * scale;
-      }
+      return shape * scale;
     },
     mode: function(params) {
       var shape = params[0];
       var scale = params[1];
-      var giveLog = params[2];
-
       assert(shape > 1, 'gamma mode called with shape <= 1')
-      if (giveLog) {
-        // HT http://stats.stackexchange.com/questions/40989/density-of-y-logx-for-gamma-distributed-x
-        return ln(shape * scale);
-      } else {
-        return (shape - 1) * scale;
-      }
-
+      return (shape - 1) * scale;
     },
     variance: function(params) {
       var shape = params[0];
       var scale = params[1];
-      var giveLog = params[2];
-
-      if (giveLog) {
-        return statistics.trigamma(shape)
-      } else {
-        return shape * scale * scale;
-      }
+      return shape * scale * scale;
     },
     skew: function(params) {
       var shape = params[0];
-      var giveLog = params[2];
-
-      if (giveLog) {
-        throw new Error('gamma skew not implemented for log samples');
-      } else {
-        return 2 / sqrt(shape);
-      }
+      return 2 / sqrt(shape);
     },
     kurtosis: function(params) {
       var shape = params[0];
-      var giveLog = params[2];
-
-      if (giveLog) {
-        throw new Error('gamma kurtosis not implemented for log samples');
-      } else {
-        return 3 + 6 / shape;
-      }
+      return 3 + 6 / shape;
     }
   }
 }
