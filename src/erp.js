@@ -279,7 +279,6 @@ function logGamma(xx) {
 
 // an implementation of Marsaglia & Tang, 2000:
 // A Simple Method for Generating Gamma Variables
-// if giveLog is true, sample log(x) where x ~ Gamma(shape, scale)
 function gammaSample(params) {
   var shape = params[0];
   var scale = params[1];
@@ -339,19 +338,21 @@ function expGammaSample(params) {
   }
 }
 
+function expGammaScore(params, val) {
+  var shape = params[0];
+  var scale = params[1];
+  var x = val;
+  return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
+}
+
 // params are shape and scale
 var gammaERP = new ERP({
   sample: gammaSample,
   score: function(params, val) {
     var shape = params[0];
     var scale = params[1];
-    var giveLog = params[2];
     var x = val;
-    if (giveLog) {
-      return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
-    } else {
-      return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
-    }
+    return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
   }
 });
 

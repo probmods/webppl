@@ -60,7 +60,7 @@ var exponential = function(a) {
 };
 
 var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale, false]);
+  return sample(gammaERP, [shape, scale]);
 };
 
 var deltaERP = function(v) {
