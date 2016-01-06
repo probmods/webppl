@@ -25,7 +25,7 @@ var util = require('./util');
 var erp = require('./erp');
 var enumerate = require('./inference/enumerate');
 var mcmc = require('./inference/mcmc');
-var raise = require('./inference/raise');
+var bdmc = require('./inference/bdmc');
 var initialize = require('./inference/initialize');
 var mhkernel = require('./inference/mhkernel');
 var asyncpf = require('./inference/asyncpf');
@@ -138,7 +138,7 @@ module.exports = function(env) {
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, asyncpf, mhkernel, mcmc, raise, initialize, incrementalmh, pmcmc,
+    enumerate, asyncpf, mhkernel, mcmc, bdmc, initialize, incrementalmh, pmcmc,
     smc, variational, rejection, headerUtils
   ];
   headerModules.forEach(function(mod) {
