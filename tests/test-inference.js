@@ -56,7 +56,8 @@ var tests = [
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      earlyExit: true
     }
   },
   {
@@ -535,14 +536,6 @@ var generateTestCases = function(seed) {
   };
 };
 
-function getRandomSeedFromEnv() {
-  if (process.env.RANDOM_SEED) {
-    var seed = parseInt(process.env.RANDOM_SEED);
-    util.assertValidRandomSeed(seed);
-    return seed;
-  }
-}
-
-var seed = getRandomSeedFromEnv() || Math.abs(seedrandom().int32());
+var seed = helpers.getRandomSeedFromEnv() || Math.abs(seedrandom().int32());
 console.log('Random seed: ' + seed);
 generateTestCases(seed);

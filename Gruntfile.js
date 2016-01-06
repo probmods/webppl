@@ -71,11 +71,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-clean');
 
-  grunt.registerTask('default', ['nodeunit', 'gjslint']);
+  grunt.registerTask('default', ['gjslint', 'nodeunit']);
   grunt.registerTask('test', ['nodeunit']);
   grunt.registerTask('lint', ['gjslint']);
   grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('fixstyle', ['fixjsstyle']);
+  grunt.registerTask('travis-phantomjs', ['compile', 'test-phantomjs']);
 
   grunt.registerTask('compile', 'Compile for the browser', function() {
     var pkgArg = '';
@@ -94,5 +95,15 @@ module.exports = function(grunt) {
 
   grunt.registerTask('test-browser', function() {
     open('tests/browser/index.html', process.env.BROWSER);
+  });
+
+  grunt.registerTask('test-phantomjs', function() {
+    try {
+      var output = execSync('phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html');
+      grunt.log.writeln(output);
+    } catch (e) {
+      grunt.log.writeln(e.output.join('\n'));
+      throw e;
+    }
   });
 };

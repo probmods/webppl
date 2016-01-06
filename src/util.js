@@ -58,6 +58,14 @@ function sum(xs) {
   }
 }
 
+function product(xs) {
+  var result = 1;
+  for (var i = 0, n = xs.length; i < n; i++) {
+    result *= xs[i];
+  }
+  return result;
+}
+
 function normalizeHist(hist) {
   var normHist = {};
   var Z = sum(_.values(hist));
@@ -220,6 +228,12 @@ function pipeline(fns) {
   return _.compose.apply(null, fns.reverse());
 }
 
+function warn(msg) {
+  if (!global.suppressWarnings) {
+    console.warn(msg)
+  }
+}
+
 module.exports = {
   random: random,
   seedRNG: seedRNG,
@@ -241,9 +255,11 @@ module.exports = {
   std: std,
   mergeDefaults: mergeDefaults,
   sum: sum,
+  product: product,
   asArray: asArray,
   serialize: serialize,
   deserialize: deserialize,
   timeif: timeif,
-  pipeline: pipeline
+  pipeline: pipeline,
+  warn: warn
 };
