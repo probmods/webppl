@@ -15,7 +15,11 @@
 // - erp.score(params, val) returns the log-probability of val under the distribution.
 //
 // optional:
-// - erp.support(params) gives an array of support elements.
+
+// - erp.support(params) gives either an array of support elements
+// - (for discrete distributions with finite support) or an object
+// - with 'lower' and 'upper' properties (for continuous distributions
+// - with bounded support).
 // - erp.grad(params, val) gives the gradient of score at val wrt params.
 // - erp.proposer is an erp for making mh proposals conditioned on the previous value
 
