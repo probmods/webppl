@@ -394,7 +394,7 @@ var tests = [
         }
       },
       constrainedSum: {
-        hist: { tol: 0.08 },
+        hist: { tol: 0.1 },
         args: {
           samples: 500,
           burn: 50,
