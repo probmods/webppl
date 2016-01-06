@@ -306,7 +306,7 @@ var tests = [
     func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
-      mean: { tol: 0.1 },
+      mean: { tol: 0.2 },
       std: { tol: 0.2 },
       MAP: { tol: 0.1, check: true },
       args: { samples: 1000, kernel: 'HMC' }
