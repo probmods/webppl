@@ -307,7 +307,7 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },
-      std: { tol: 0.1 },
+      std: { tol: 0.2 },
       MAP: { tol: 0.1, check: true },
       args: { samples: 1000, kernel: 'HMC' }
     },
@@ -364,10 +364,7 @@ var tests = [
           kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
-      gaussianMean: {
-        mean: { tol: 0.3 },
-        std: { tol: 0.3 }
-      },
+      gaussianMean: true,
       gaussianMeanVar: {
         args: {
           samples: 1000,
