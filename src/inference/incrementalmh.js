@@ -276,7 +276,7 @@ module.exports = function(env) {
     return true;
   }
 
-  // Checks whether two function are equivalent
+  // Checks whether two functions are equivalent
   var fnEquivCache = {};
   function fnsEqual(f1, f2) {
     // If the two functions are literally the same closure, then of course
@@ -284,6 +284,9 @@ module.exports = function(env) {
     if (f1 === f2) return true;
     // Otherwise, they're equivalent if they come from the same source location
     //    and the values of the variables they close over are the same.
+    // First, we check if the functions actually have this metadata. External header
+    //    functions do not, so we must return false, to ensure correct behavior.
+    if (f1.__lexid === undefined || f2.__lexid === undefined) return false;
     // We cache this check, because situations often arise where we're checking
     //    the same pair of functions over and over again.
     if (f1.__lexid === f2.__lexid) {
