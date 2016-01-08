@@ -277,36 +277,82 @@ function logGamma(xx) {
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
+// an implementation of Marsaglia & Tang, 2000:
+// A Simple Method for Generating Gamma Variables
 function gammaSample(params) {
-  var a = params[0];
-  var b = params[1];
-  if (a < 1) {
-    return gammaSample([1 + a, b]) * Math.pow(util.random(), 1 / a);
+  var shape = params[0];
+  var scale = params[1];
+  if (shape < 1) {
+    var r;
+    r = gammaSample([1 + shape, scale]) * Math.pow(util.random(), 1 / shape);
+    if (r === 0) {
+      util.warn('gamma sample underflow, rounded to nearest representable support value');
+      return Number.MIN_VALUE;
+    }
+    return r;
   }
   var x, v, u;
-  var d = a - 1 / 3;
+  var d = shape - 1 / 3;
   var c = 1 / Math.sqrt(9 * d);
   while (true) {
     do {
       x = gaussianSample([0, 1]);
       v = 1 + c * x;
     } while (v <= 0);
+
     v = v * v * v;
     u = util.random();
     if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
-      return b * d * v;
+      return scale * d * v;
     }
   }
+}
+
+function expGammaSample(params) {
+  var shape = params[0];
+  var scale = params[1];
+  if (shape < 1) {
+    var r;
+    r = gammaSample([1 + shape, scale]) + Math.log(util.random()) / shape;
+    if (r === -Infinity) {
+      util.warn('log gamma sample underflow, rounded to nearest representable support value');
+      return -Number.MAX_VALUE;
+    }
+    return r;
+  }
+  var x, v, u, log_v;
+  var d = shape - 1 / 3;
+  var c = 1 / Math.sqrt(9 * d);
+  while (true) {
+    do {
+      x = gaussianSample([0, 1]);
+      v = 1 + c * x;
+    } while (v <= 0);
+
+    log_v = 3 * Math.log(v);
+    v = v * v * v;
+    u = util.random();
+    if ((u < 1 - 0.331 * x * x * x * x) || (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v)))) {
+      return Math.log(scale) + Math.log(d) + log_v;
+    }
+  }
+}
+
+function expGammaScore(params, val) {
+  var shape = params[0];
+  var scale = params[1];
+  var x = val;
+  return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
 }
 
 // params are shape and scale
 var gammaERP = new ERP({
   sample: gammaSample,
   score: function(params, val) {
-    var a = params[0];
-    var b = params[1];
+    var shape = params[0];
+    var scale = params[1];
     var x = val;
-    return (a - 1) * Math.log(x) - x / b - logGamma(a) - a * Math.log(b);
+    return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
   }
 });
 
