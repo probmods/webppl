@@ -152,10 +152,8 @@ function std(a, mean) {
 
 function histExpectation(hist, func) {
   var f = func || _.identity;
-  return _.reduce(hist, function(acc, pair) {
-    var x = pair[0];
-    var p = pair[1];
-    return acc + p * f(x);
+  return _.reduce(hist, function(acc, obj) {
+    return acc + obj.prob * f(obj.val);
   }, 0);
 }
 
@@ -167,7 +165,7 @@ function histStd(hist) {
 }
 
 function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var hist = _.object(_.map(actualHist, function(p) { return [serialize(p[0]), p[1]]; }));
+  var hist = _.mapObject(actualHist, function(obj) { return obj.prob; });
   var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,

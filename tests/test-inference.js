@@ -305,7 +305,6 @@ var wpplRunInference = function(modelName, testDef) {
 
 var performTest = function(modelName, testDef, test) {
   var result = wpplRunInference(modelName, testDef);
-  result.hist = getHist(result.erp);
   var expectedResults = helpers.loadExpected(testDataDir, modelName);
 
   _.each(expectedResults, function(expected, testName) {
@@ -330,13 +329,13 @@ var getInferenceArgs = function(testDef, model) {
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
-    test.ok(util.histsApproximatelyEqual(result.hist, expected, args.tol));
+    test.ok(util.histsApproximatelyEqual(result.erp.hist, expected, args.tol));
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.erp.hist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {
@@ -353,14 +352,6 @@ var testFunctions = {
   store: function(test, result, expected, args) {
     helpers.testEqual(test, result.store, expected, 'store');
   }
-};
-
-var getHist = function(erp) {
-  var hist = [];
-  erp.support().forEach(function(value) {
-    hist.push([value, Math.exp(erp.score([], value))]);
-  });
-  return hist;
 };
 
 var generateTestCases = function(seed) {
