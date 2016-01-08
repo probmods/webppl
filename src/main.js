@@ -128,6 +128,14 @@ function applyCaching(asts) {
   });
 }
 
+function copyAst(ast) {
+  var ret = _.isArray(ast) ? [] : {};
+  _.each(ast, function(val, key) {
+    ret[key] = _.isObject(val) ? copyAst(val) : val;
+  });
+  return ret;
+}
+
 function compile(code, options) {
   var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
 
@@ -144,7 +152,7 @@ function compile(code, options) {
 
   function _compile() {
     var programAst = parse(code, extra.macros);
-    var asts = extra.asts.concat(programAst);
+    var asts = extra.asts.map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
     if (options.verbose && doCaching) {
