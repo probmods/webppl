@@ -1,4 +1,4 @@
-var util = require('../../util');
+var stats = require('../../statistics');
 var fs = require('fs');
 var os = require('os');
 
@@ -15,8 +15,8 @@ function geweke(traces, first, last, intervals) {
   for (var i = 0; i < traces.length / 2; i = i + Math.floor((traces.length / 2) / (intervals - 1))) {
     var firstSlice = traces.slice(i, i + Math.floor(first * (end - i)));
     var lastSlice = traces.slice(Math.floor(end - last * (end - i)), traces.length);
-    var mu = (util.mean(firstSlice) - util.mean(lastSlice));
-    var zscore = mu / Math.sqrt(Math.pow(util.std(firstSlice), 2) + Math.pow(util.std(lastSlice), 2));
+    var mu = (stats.mean(firstSlice) - stats.mean(lastSlice));
+    var zscore = mu / Math.sqrt(stats.variance(firstSlice) + stats.variance(lastSlice));
     zscores.push([i, zscore]);
   }
   return zscores;

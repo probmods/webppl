@@ -134,22 +134,6 @@ function cpsIterate(n, initial, func, cont) {
       function() { return cont(val); });
 }
 
-function expectation(a, func) {
-  assert.ok(a.length > 0);
-  var f = func || _.identity;
-  return _.reduce(a, function(acc, x) {
-    return acc + f(x);
-  }, 0) / a.length;
-}
-
-function std(a, mean) {
-  assert.ok(a.length > 0);
-  var m = (mean !== undefined) ? mean : expectation(a);
-  return Math.sqrt(expectation(a, function(x) {
-    return Math.pow(x - m, 2);
-  }));
-}
-
 function histExpectation(hist, func) {
   var f = func || _.identity;
   return _.reduce(hist, function(acc, obj) {
@@ -246,8 +230,6 @@ module.exports = {
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
-  expectation: expectation,
-  std: std,
   histExpectation: histExpectation,
   histStd: histStd,
   histsApproximatelyEqual: histsApproximatelyEqual,
