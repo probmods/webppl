@@ -6,6 +6,14 @@ QUnit.test('run', function(test) {
   });
 });
 
+QUnit.test('run twice', function(test) {
+  _.times(2, function() {
+    webppl.run('Enumerate(flip)', function(s, erp) {
+      test.ok(_.isEqual([false, true], erp.support().sort()));
+    });
+  });
+});
+
 QUnit.test('compile', function(test) {
   test.ok(_.isString(webppl.compile('1 + 1')));
 });
