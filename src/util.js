@@ -66,15 +66,6 @@ function product(xs) {
   return result;
 }
 
-function normalizeHist(hist) {
-  var normHist = {};
-  var Z = sum(_.values(hist));
-  _.each(hist, function(val, key) {
-    normHist[key] = hist[key] / Z;
-  });
-  return normHist;
-}
-
 var logHist = function(hist) {
   return _.mapObject(hist, function(x) {
     return {prob: Math.log(x.prob), val: x.val}
@@ -143,7 +134,22 @@ function cpsIterate(n, initial, func, cont) {
       function() { return cont(val); });
 }
 
-function histsApproximatelyEqual(hist, expectedHist, tolerance) {
+function histExpectation(hist, func) {
+  var f = func || _.identity;
+  return _.reduce(hist, function(acc, obj) {
+    return acc + obj.prob * f(obj.val);
+  }, 0);
+}
+
+function histStd(hist) {
+  var m = histExpectation(hist);
+  return Math.sqrt(histExpectation(hist, function(x) {
+    return Math.pow(x - m, 2);
+  }));
+}
+
+function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
+  var hist = _.mapObject(actualHist, function(obj) { return obj.prob; });
   var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,
@@ -157,32 +163,6 @@ function histsApproximatelyEqual(hist, expectedHist, tolerance) {
     console.log('Actual:', hist);
   }
   return allOk;
-}
-
-function expectation(hist, func) {
-  var f = func == undefined ? function(x) {return x;} : func;
-  if (_.isArray(hist)) {
-    return sum(hist) / hist.length;
-  } else {
-    var expectedValue = sum(_.mapObject(hist, function(v, x) {
-      return f(x) * v;
-    }));
-    return expectedValue;
-  }
-}
-
-function std(hist) {
-  var mu = expectation(hist);
-  if (_.isArray(hist)) {
-    var variance = expectation(hist.map(function(x) {
-      return Math.pow(x - mu, 2);
-    }));
-  } else {
-    var variance = sum(_.mapObject(hist, function(v, x) {
-      return v * Math.pow(mu - x, 2);
-    }));
-  }
-  return Math.sqrt(variance);
 }
 
 function mergeDefaults(options, defaults) {
@@ -250,18 +230,17 @@ module.exports = {
   cpsForEach: cpsForEach,
   cpsLoop: cpsLoop,
   cpsIterate: cpsIterate,
-  expectation: expectation,
-  gensym: gensym,
+  histExpectation: histExpectation,
+  histStd: histStd,
   histsApproximatelyEqual: histsApproximatelyEqual,
+  gensym: gensym,
   logsumexp: logsumexp,
   logHist: logHist,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   normalizeArray: normalizeArray,
-  normalizeHist: normalizeHist,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
-  std: std,
   mergeDefaults: mergeDefaults,
   sum: sum,
   product: product,
