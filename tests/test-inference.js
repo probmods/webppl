@@ -6,7 +6,6 @@ var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var erp = require('../src/erp');
 var helpers = require('./helpers');
 
 var testDataDir = './tests/test-data/stochastic/';

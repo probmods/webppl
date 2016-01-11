@@ -10,7 +10,6 @@ var seedrandom = require('seedrandom');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var erp = require('../src/erp');
 var helpers = require('./helpers');
 var statistics = require('../src/statistics');
 

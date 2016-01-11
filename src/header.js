@@ -22,7 +22,7 @@ var assert = require('assert');
 var _ = require('underscore');
 
 var util = require('./util');
-var erp = require('./erp');
+var erp = requireErp();
 var enumerate = require('./inference/enumerate');
 var mcmc = require('./inference/mcmc');
 var asyncpf = require('./inference/asyncpf');
@@ -34,6 +34,20 @@ var incrementalmh = require('./inference/incrementalmh');
 var headerUtils = require('./headerUtils');
 var Query = require('./query').Query;
 var ad = require('./ad');
+
+function requireErp() {
+  try {
+    return require('./erp');
+  } catch (e) {
+    if (e.code === 'MODULE_NOT_FOUND') {
+      console.log('ERROR: erp.js not found');
+      console.log('Run "./script/transformERP" and try again.');
+      process.exit();
+    } else {
+      throw e;
+    }
+  }
+}
 
 module.exports = function(env) {
 
