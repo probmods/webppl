@@ -13,6 +13,8 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
+  var mvErpNames = ['multivariateGaussian', 'dirichlet', 'dirichletDrift'];
+
   function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       steps: 5,
@@ -63,6 +65,9 @@ module.exports = function(env) {
       }
       val = ad.tapify(_val);
     } else {
+      if (_.contains(mvErpNames, erp.name)) {
+        throw 'Multivariate distributions are not yet supported by HMC.';
+      }
       val = prevChoice.val;
     }
 

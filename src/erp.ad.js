@@ -759,7 +759,8 @@ var dirichletDriftERP = new ERP({
   sample: dirichletERP.sample,
   score: dirichletERP.score,
   proposer: dirichletProposerERP,
-  isContinuous: true
+  // HACK: Avoid tapifying a vector as it's not yet supported.
+  isContinuous: false
 });
 
 function withImportanceDist(s, k, a, erp, importanceERP) {
