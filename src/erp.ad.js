@@ -658,6 +658,7 @@ function makeMarginalERP(marginal) {
   });
 
   dist.MAP = function() {return mapEst};
+  dist.hist = marginal;
   return dist;
 }
 
