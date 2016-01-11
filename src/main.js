@@ -71,8 +71,6 @@ function headerPackage() {
   // Create a pseudo package from the header.
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
-  // HACK: This could be problematic if the macros move within the
-  // ad.js package across versions.
   var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
   return { wppl: [code], macros: [headerMacroModule, adMacroModule] };
 }
