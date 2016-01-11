@@ -11,6 +11,7 @@
 var erp = require('../erp');
 var assert = require('assert');
 var util = require('../util')
+var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
@@ -21,7 +22,7 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.maxScore = maxScore === undefined ? 0 : maxScore
     this.incremental = incremental;
-    this.hist = {};
+    this.hist = new Histogram();
     this.numSamples = numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
@@ -63,18 +64,13 @@ module.exports = function(env) {
 
     if (this.scoreSoFar > this.threshold) {
       // Accept.
-      var r = util.serialize(retval);
-      if (this.hist[r] === undefined) {
-        this.hist[r] = { prob: 0, val: retval };
-      }
-      this.hist[r].prob += 1;
+      this.hist.add(retval);
       this.numSamples -= 1;
     }
 
     if (this.numSamples === 0) {
-      var dist = erp.makeMarginalERP(util.logHist(this.hist));
       env.coroutine = this.oldCoroutine;
-      return this.k(this.s, dist);
+      return this.k(this.s, this.hist.toERP());
     } else {
       return this.run();
     }
