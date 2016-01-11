@@ -1,0 +1,5 @@
+var model = function() {
+  var x = flip();
+  var y = gaussian(1, x ? 0.5 : 3);
+  return y;
+};

@@ -4,28 +4,27 @@ var _ = require('underscore');
 var util = require('../util');
 var erp = require('../erp');
 var Trace = require('../trace');
+
 var assert = require('assert');
 var Histogram = require('../aggregation').Histogram;
+var ad = require('../ad');
 
 module.exports = function(env) {
+
+  var kernels = require('./kernels')(env);
 
   function SMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
+      rejuvKernel: 'MH',
       finalRejuv: true
     });
 
-    if (!options.rejuvKernel) {
-      options.rejuvKernel = function(k, oldTrace, opts) {
-        var opts = _.clone(opts || {});
-        opts.permissive = options.particles === 1;
-        return MHKernel(k, oldTrace, opts);
-      };
-    }
-
+    this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
-    this.rejuvKernel = options.rejuvKernel;
+
+    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
@@ -37,23 +36,16 @@ module.exports = function(env) {
 
     this.step = 0;
 
-    var exitK = function(s) {
-      return wpplFn(s, env.exit, a);
-    };
-
     // Create initial particles.
     for (var i = 0; i < this.numParticles; i++) {
-      var trace = new Trace();
-      trace.saveContinuation(_.clone(s), exitK);
+      var trace = new Trace(wpplFn, s, env.exit, a);
       this.particles.push(new Particle(trace));
     }
 
     this.k = k;
     this.s = s;
-    this.a = a;
     this.coroutine = env.coroutine;
     env.coroutine = this;
-
   }
 
   SMC.prototype.run = function() {
@@ -62,9 +54,11 @@ module.exports = function(env) {
 
   SMC.prototype.sample = function(s, k, a, erp, params) {
     var importanceERP = erp.importanceERP || erp;
-    var val = importanceERP.sample(params);
-    var importanceScore = importanceERP.score(params, val);
-    var choiceScore = erp.score(params, val);
+    var _params = ad.untapify(params);
+    var _val = importanceERP.sample(_params);
+    var val = this.adRequired && importanceERP.isContinuous ? ad.tapify(_val) : _val;
+    var importanceScore = importanceERP.score(_params, _val);
+    var choiceScore = erp.score(_params, _val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
@@ -79,8 +73,8 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.trace.numFactors += 1;
     particle.trace.saveContinuation(s, k);
-    particle.trace.score += score;
-    particle.logWeight += score;
+    particle.trace.score = ad.add(particle.trace.score, score);
+    particle.logWeight += ad.untapify(score);
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
   };
@@ -94,8 +88,7 @@ module.exports = function(env) {
   };
 
   SMC.prototype.runCurrentParticle = function() {
-    var trace = this.currentParticle().trace;
-    return trace.k(trace.store);
+    return this.currentParticle().trace.continue();
   };
 
   SMC.prototype.advanceParticleIndex = function() {
@@ -177,7 +170,7 @@ module.exports = function(env) {
       kernelOptions.exitFactor = this.step;
     }
     var kernel = _.partial(this.rejuvKernel, _, _, kernelOptions);
-    var chain = repeatKernel(this.rejuvSteps, kernel);
+    var chain = kernels.repeat(this.rejuvSteps, kernel);
     return chain(function(trace) {
       particle.trace = trace;
       return cont();
@@ -271,11 +264,11 @@ module.exports = function(env) {
         function(particle, i, ps, k) {
           if (this.performFinalRejuv) {
             // Final rejuvenation.
-            var chain = repeatKernel(
+            var chain = kernels.repeat(
                 this.rejuvSteps,
-                sequenceKernels(
+                kernels.sequence(
                     this.rejuvKernel,
-                    tapKernel(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(function(trace) { hist.add(trace.value); })));
             return chain(k, particle.trace);
           } else {
             hist.add(particle.trace.value);

@@ -13,6 +13,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "ad.js": "^1.4.1",
     "amdefine": "^1.0.0",
     "ast-types": "^0.8.13",
     "escodegen": "^1.7.0",
@@ -44,7 +45,8 @@
     "through2": "^2.0.0"
   },
   "scripts": {
-    "test": "nodeunit tests/test-*.js"
+    "test": "nodeunit tests/test-*.js",
+    "postinstall": "./scripts/transformERP"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"

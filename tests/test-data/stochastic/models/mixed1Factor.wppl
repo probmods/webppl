@@ -1,0 +1,6 @@
+var model = function() {
+  var x = beta(1, 2);
+  var y = flip(x);
+  factor(2 * y * Math.log(x));
+  return y;
+};

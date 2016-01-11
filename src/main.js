@@ -70,8 +70,9 @@ function loadMacros(pkg) {
 function headerPackage() {
   // Create a pseudo package from the header.
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
-  var macroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
-  return { wppl: [code], macros: [macroModule] };
+  var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
+  var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
+  return { wppl: [code], macros: [headerMacroModule, adMacroModule] };
 }
 
 function packagesToPairs(packages) {
@@ -91,7 +92,7 @@ function packagesToPairs(packages) {
 
 function addHeaderMacrosToEachPair(pairs) {
   // This assumes that pair[0] is the content of the header.
-  assert.ok(pairs.length >= 1 && pairs[0].macros.length === 1);
+  assert.ok(pairs.length >= 1 && pairs[0].macros.length === 2);
   var headerMacros = pairs[0].macros[0];
   return pairs.map(function(pair) {
     return { code: pair.code, macros: pair.macros.concat(headerMacros) };

@@ -1,20 +1,23 @@
 'use strict';
 
 var _ = require('underscore');
-var assert = require('assert');
 var util = require('../util');
-var Query = require('../query').Query;
 var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
+  var Initialize = require('./initialize')(env);
+  var kernels = require('./kernels')(env);
+
   function MCMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
       samples: 100,
-      kernel: MHKernel,
+      kernel: 'MH',
       lag: 0,
       burn: 0
     });
+
+    options.kernel = kernels.parseOptions(options.kernel);
 
     var log = function(s) {
       if (options.verbose) {
@@ -22,7 +25,6 @@ module.exports = function(env) {
       }
     };
 
-    var acceptedCount = 0;
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
         new aggregation.Histogram();
@@ -30,92 +32,46 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
-      return Initialize(s, run, a, wpplFn);
+      return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
-    run = function(s, initialTrace) {
-      var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
+    run = function(initialTrace) {
+      initialTrace.info = { accepted: 0, total: 0 };
       var printCurrIter = makePrintCurrIteration(log);
-      var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
-      var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
-      var chain = sequenceKernels(
-          repeatKernel(options.burn, kernel),
-          repeatKernel(options.samples,
-              sequenceKernels(
-                  repeatKernel(options.lag + 1, kernel),
+      var collectSample = makeExtractValue(aggregator.add.bind(aggregator));
+      var kernel = kernels.sequence(options.kernel, printCurrIter);
+      var chain = kernels.sequence(
+          kernels.repeat(options.burn, kernel),
+          kernels.repeat(options.samples,
+              kernels.sequence(
+                  kernels.repeat(options.lag + 1, kernel),
                   collectSample)));
       return chain(finish, initialTrace);
     };
 
-    finish = function() {
-      var iterations = options.samples * (options.lag + 1) + options.burn;
-      log('Acceptance ratio: ' + acceptedCount / iterations);
+    finish = function(trace) {
+      log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
       return k(s, aggregator.toERP());
     };
 
     return initialize();
   }
 
-  function makeExtractValue(initialTrace, fn) {
-    var query = new Query();
-    if (initialTrace.value === env.query) {
-      query.addAll(env.query);
-    }
-    return tapKernel(function(trace) {
-      var value;
-      if (trace.value === env.query) {
-        if (trace.info.accepted) {
-          query.addAll(env.query);
-        }
-        value = query.getTable();
-      } else {
-        value = trace.value;
-      }
-      fn(value, trace.score);
+  function makeExtractValue(fn) {
+    return kernels.tap(function(trace) {
+      fn(trace.value, trace.score);
     });
   }
 
   function makePrintCurrIteration(log) {
     var i = 0;
-    return tapKernel(function() {
+    return kernels.tap(function() {
       log('Iteration: ' + i++);
     });
   }
 
-  function tapKernel(fn) {
-    return function(k, trace) {
-      fn(trace);
-      return k(trace);
-    };
-  }
-
-  function sequenceKernels() {
-    var kernels = arguments;
-    assert(kernels.length > 1);
-    if (kernels.length === 2) {
-      return function(k, trace1) {
-        return kernels[0](function(trace2) {
-          return kernels[1](k, trace2);
-        }, trace1);
-      };
-    } else {
-      return sequenceKernels(
-          kernels[0],
-          sequenceKernels.apply(null, _.rest(kernels)))
-    }
-  }
-
-  function repeatKernel(n, kernel) {
-    return function(k, trace) {
-      return util.cpsIterate(n, trace, kernel, k);
-    };
-  }
-
   return {
-    MCMC: MCMC,
-    tapKernel: tapKernel,
-    repeatKernel: repeatKernel,
-    sequenceKernels: sequenceKernels
+    MCMC: MCMC
   };
 
 };

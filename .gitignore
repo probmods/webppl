@@ -7,3 +7,4 @@ compiled/
 docs/_build
 docs/_static
 docs/_templates
+src/erp.js

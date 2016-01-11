@@ -5,6 +5,7 @@ Installation from GitHub
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
+    ./scripts/transformERP
     npm install
     npm install -g nodeunit grunt-cli
 

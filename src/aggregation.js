@@ -1,13 +1,16 @@
 'use strict';
 
+var _ = require('underscore');
 var erp = require('./erp');
 var util = require('./util');
+var ad = require('./ad');
 
 var Histogram = function() {
   this.hist = {};
 };
 
 Histogram.prototype.add = function(value) {
+  var value = untapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { prob: 0, val: value };
@@ -26,6 +29,7 @@ var MAP = function(retainSamples) {
 };
 
 MAP.prototype.add = function(value, score) {
+  var value = untapify(value);
   if (this.retainSamples) {
     this.samples.push(value);
   }
@@ -44,6 +48,16 @@ MAP.prototype.toERP = function() {
   }
   return erp;
 };
+
+// Recursively untapify objects. ad.js already does this for arrays,
+// here we extend that to other objects.
+function untapify(x) {
+  if (_.isObject(x) && !_.isArray(x) && !ad.isTape(x)) {
+    return _.mapObject(x, untapify);
+  } else {
+    return ad.untapify(x);
+  }
+}
 
 module.exports = {
   Histogram: Histogram,

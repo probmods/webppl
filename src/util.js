@@ -72,14 +72,6 @@ var logHist = function(hist) {
   });
 };
 
-
-function normalizeArray(xs) {
-  var Z = sum(xs);
-  return xs.map(function(x) {
-    return x / Z;
-  });
-}
-
 function logsumexp(a) {
   var m = Math.max.apply(null, a);
   var sum = 0;
@@ -238,7 +230,6 @@ module.exports = {
   logHist: logHist,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
-  normalizeArray: normalizeArray,
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,

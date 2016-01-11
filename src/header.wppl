@@ -353,6 +353,13 @@ var listStdev = function(l, mu) {
   return Math.sqrt(listVar(l, mu));
 };
 
+var normalize = function(xs) {
+  var Z = sum(xs);
+  return map(function(x) {
+    return x / Z;
+  }, xs);
+};
+
 var all = function(p, l) {
   return mapReduce1(and, p, l);
 };

@@ -3,13 +3,27 @@
 var _ = require('underscore');
 var assert = require('assert');
 var isErp = require('./erp').isErp;
+var ad = require('./ad');
 
-var Trace = function() {
+var Trace = function(wpplFn, s, k, a) {
+  // The program we're doing inference in, and the store, continuation
+  // and address required to run it.
+  this.wpplFn = wpplFn;
+  this.initialStore = s;
+  this.exitK = k; // env.exit
+  this.baseAddress = a;
+
   this.choices = [];
   this.addressMap = {}; // Maps addresses => choices.
   this.length = 0;
   this.score = 0;
   this.numFactors = 0; // The number of factors encountered so far.
+  // this.checkConsistency();
+};
+
+Trace.prototype.fresh = function() {
+  // Create a new trace using wpplFn etc. from this Trace.
+  return new Trace(this.wpplFn, this.initialStore, this.exitK, this.baseAddress);
 };
 
 Trace.prototype.choiceAtIndex = function(index) {
@@ -24,6 +38,16 @@ Trace.prototype.saveContinuation = function(s, k) {
   this.store = s;
   this.k = k;
   // this.checkConsistency();
+};
+
+Trace.prototype.continue = function() {
+  // If saveContinuation has been called continue, otherwise run from
+  // beginning.
+  if (this.k && this.store) {
+    return this.k(this.store);
+  } else {
+    return this.wpplFn(_.clone(this.initialStore), this.exitK, this.baseAddress);
+  }
 };
 
 Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
@@ -52,7 +76,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score += erp.score(params, val);
+  this.score = ad.add(this.score, erp.score(params, val));
   // this.checkConsistency();
 };
 
@@ -73,7 +97,7 @@ Trace.prototype.upto = function(i) {
   // from.
   assert(i < this.length);
 
-  var t = new Trace();
+  var t = this.fresh();
   t.choices = this.choices.slice(0, i);
   t.choices.forEach(function(choice) { t.addressMap[choice.address] = choice; });
   t.length = t.choices.length;
@@ -84,7 +108,7 @@ Trace.prototype.upto = function(i) {
 };
 
 Trace.prototype.copy = function() {
-  var t = new Trace();
+  var t = this.fresh();
   t.choices = this.choices.slice(0);
   t.addressMap = _.clone(this.addressMap);
   t.length = this.length;
@@ -99,6 +123,11 @@ Trace.prototype.copy = function() {
 };
 
 Trace.prototype.checkConsistency = function() {
+  assert(_.isFunction(this.wpplFn));
+  assert(_.isFunction(this.exitK));
+  assert(this.initialStore);
+  assert(this.baseAddress);
+  assert(this.k && this.store || !this.k && !this.store);
   assert(this.choices.length === this.length);
   assert(_.keys(this.addressMap).length === this.length);
   this.choices.forEach(function(choice) {

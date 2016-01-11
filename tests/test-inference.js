@@ -6,7 +6,6 @@ var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var erp = require('../src/erp');
 var helpers = require('./helpers');
 
 var testDataDir = './tests/test-data/stochastic/';
@@ -32,7 +31,13 @@ var tests = [
       exponential: true,
       binomial: true,
       poisson: true,
-      cauchy: true
+      cauchy: true,
+      mixed1: true,
+      mixed2: true,
+      mixed3: true,
+      mixed4: true,
+      bivariateGaussian: true,
+      indirectDependency: true
     }
   },
   {
@@ -178,6 +183,7 @@ var tests = [
       deterministic: { hist: { tol: 0 }, args: { particles: 100 } },
       store: { hist: { tol: 0 }, args: { particles: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 100 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
       varFactors1: { args: { particles: 5000 } },
       varFactors2: true,
@@ -189,7 +195,7 @@ var tests = [
     }
   },
   {
-    name: 'ParticleFilterRejuv',
+    name: 'ParticleFilterRejuvMH',
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
@@ -203,6 +209,7 @@ var tests = [
       deterministic: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
       varFactors1: true,
@@ -216,19 +223,48 @@ var tests = [
     }
   },
   {
+    name: 'ParticleFilterRejuvHMC',
+    func: 'SMC',
+    settings: {
+      hist: { tol: 0.1 },
+      logZ: { check: true, tol: 0.1 },
+      MAP: { tol: 0.1, check: true },
+      args: { particles: 1000, rejuvSteps: 10, rejuvKernel: 'HMC' }
+    },
+    models: {
+      simple: true,
+      deterministic: { hist: { tol: 0 } },
+      store: { hist: { tol: 0 } },
+      store2: { hist: { tol: 0 } },
+      drift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 }
+      }
+    }
+  },
+  {
     name: 'ParticleFilterAsMH',
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.1, check: true },
-      args: { particles: 1, rejuvSteps: 10000 }
+      args: { particles: 1, rejuvSteps: 10000, rejuvKernel: { MH: { permissive: true } } }
     },
     models: {
       simple: true,
       cache: true,
-      deterministic: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
-      store: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
-      store2: { hist: { tol: 0 }, args: { particles: 1, rejuvSteps: 100 } },
+      deterministic: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
+      store: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
+      store2: {
+        hist: { tol: 0 },
+        args: { particles: 1, rejuvSteps: 100, rejuvKernel: { MH: { permissive: true } } }
+      },
       geometric: true,
       importance: true,
       importance2: true,
@@ -250,6 +286,7 @@ var tests = [
       cache: true,
       deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
       store: { hist: { tol: 0 }, args: { samples: 100 } },
+      notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
       drift: {
@@ -261,6 +298,122 @@ var tests = [
       optionalErpParams: true,
       variableSupport: true,
       query: true
+    }
+  },
+  {
+    name: 'HMC',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      mean: { tol: 0.2 },
+      std: { tol: 0.2 },
+      MAP: { tol: 0.1, check: true },
+      args: { samples: 1000, kernel: 'HMC' }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } },
+      simple: true,
+      cache: true,
+      store: { hist: { tol: 0 } },
+      store2: { hist: { tol: 0 } },
+      geometric: true,
+      withCaching: true,
+      optionalErpParams: true,
+      variableSupport: true,
+      query: true,
+      mixed1: true,
+      mixed1Factor: true,
+      mixed2: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
+      mixed2Factor: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
+      mixed3: {
+        args: {
+          samples: 2000,
+          kernel: { HMC: { steps: 20, stepSize: 1 } }
+        }
+      },
+      mixed3Factor: {
+        args: {
+          samples: 2000,
+          kernel: { HMC: { steps: 20, stepSize: 1 } }
+        }
+      },
+      mixed4: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
+      mixed4Factor: {
+        args: {
+          samples: 6000,
+          burn: 1000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
+      gaussianMean: true,
+      gaussianMeanVar: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      bivariateGaussian: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      bivariateGaussianFactor: {
+        args: {
+          samples: 2000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      indirectDependency: {
+        args: {
+          samples: 1000,
+          burn: 100,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
+      },
+      constrainedSum: {
+        hist: { tol: 0.1 },
+        args: {
+          samples: 500,
+          burn: 50,
+          kernel: { HMC: { steps: 50, stepSize: 0.004 } }
+        }
+      }
+    }
+  },
+  {
+    name: 'HMConly',
+    func: 'MCMC',
+    settings: {
+      hist: { tol: 0.1 },
+      mean: { tol: 0.3 },
+      std: { tol: 0.3 },
+      args: { samples: 1000, kernel: 'HMConly' }
+    },
+    models: {
+      deterministic: { hist: { tol: 0 } },
+      gaussianMean: true
     }
   },
   {
@@ -283,7 +436,6 @@ var tests = [
       deterministic: { hist: { tol: 0 } }
     }
   }
-
 ];
 
 var wpplRunInference = function(modelName, testDef) {

@@ -1,0 +1,6 @@
+var model = function() {
+  // p([x, y]) = N([1, 2], [[1, 0.95], [0.95, 1]]);
+  var x = gaussian(1, 1);
+  var y = gaussian(1.05 + 0.95 * x, Math.sqrt(1 - Math.pow(0.95, 2)));
+  return y;
+};

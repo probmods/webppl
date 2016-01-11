@@ -22,11 +22,9 @@ var assert = require('assert');
 var _ = require('underscore');
 
 var util = require('./util');
-var erp = require('./erp');
+var erp = requireErp();
 var enumerate = require('./inference/enumerate');
 var mcmc = require('./inference/mcmc');
-var initialize = require('./inference/initialize');
-var mhkernel = require('./inference/mhkernel');
 var asyncpf = require('./inference/asyncpf');
 var pmcmc = require('./inference/pmcmc');
 var smc = require('./inference/smc');
@@ -35,7 +33,21 @@ var rejection = require('./inference/rejection');
 var incrementalmh = require('./inference/incrementalmh');
 var headerUtils = require('./headerUtils');
 var Query = require('./query').Query;
+var ad = require('./ad');
 
+function requireErp() {
+  try {
+    return require('./erp');
+  } catch (e) {
+    if (e.code === 'MODULE_NOT_FOUND') {
+      console.log('ERROR: erp.js not found');
+      console.log('Run "./script/transformERP" and try again.');
+      process.exit();
+    } else {
+      throw e;
+    }
+  }
+}
 
 module.exports = function(env) {
 
@@ -65,7 +77,7 @@ module.exports = function(env) {
   };
 
   env.factor = function(s, k, a, score) {
-    assert.ok(!isNaN(score));
+    assert.ok(!isNaN(ad.untapify(score)));
     return env.coroutine.factor(s, k, a, score);
   };
 
@@ -122,12 +134,13 @@ module.exports = function(env) {
   addExports({
     _: _,
     util: util,
-    assert: assert
+    assert: assert,
+    ad: ad
   });
 
   // Inference functions and header utils
   var headerModules = [
-    enumerate, asyncpf, mhkernel, mcmc, initialize, incrementalmh, pmcmc,
+    enumerate, asyncpf, mcmc, incrementalmh, pmcmc,
     smc, variational, rejection, headerUtils
   ];
   headerModules.forEach(function(mod) {
