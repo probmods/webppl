@@ -22,6 +22,22 @@ Histogram.prototype.toERP = function() {
   return erp.makeMarginalERP(util.logHist(this.hist));
 };
 
+var Distribution = function() {
+  this.dist = {};
+};
+
+Distribution.prototype.add = function(value, score) {
+  var k = util.serialize(value);
+  if (this.dist[k] === undefined) {
+    this.dist[k] = { prob: -Infinity, val: value };
+  }
+  this.dist[k].prob = util.logsumexp([this.dist[k].prob, score]);
+};
+
+Distribution.prototype.toERP = function() {
+  return erp.makeMarginalERP(this.dist);
+};
+
 var MAP = function(retainSamples) {
   this.max = { value: undefined, score: -Infinity };
   this.samples = [];
@@ -61,5 +77,6 @@ function untapify(x) {
 
 module.exports = {
   Histogram: Histogram,
+  Distribution: Distribution,
   MAP: MAP
 };
