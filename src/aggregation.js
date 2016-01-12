@@ -18,8 +18,17 @@ Histogram.prototype.add = function(value) {
   this.hist[k].prob += 1;
 };
 
+function normalizeHist(hist) {
+  var norm = _.reduce(hist, function(acc, obj) {
+    return acc + obj.prob;
+  }, 0);
+  return _.mapObject(hist, function(obj) {
+    return { val: obj.val, prob: obj.prob / norm };
+  });
+}
+
 Histogram.prototype.toERP = function() {
-  return erp.makeMarginalERP(util.logHist(this.hist));
+  return erp.makeMarginalERP(normalizeHist(this.hist));
 };
 
 var Distribution = function() {
@@ -34,8 +43,18 @@ Distribution.prototype.add = function(value, score) {
   this.dist[k].prob = util.logsumexp([this.dist[k].prob, score]);
 };
 
+function normalizeDist(dist) {
+  // Note, this also maps dist from log space into probability space.
+  var logNorm = _.reduce(dist, function(acc, obj) {
+    return util.logsumexp([acc, obj.prob]);
+  }, -Infinity);
+  return _.mapObject(dist, function(obj) {
+    return { val: obj.val, prob: Math.exp(obj.prob - logNorm) };
+  });
+}
+
 Distribution.prototype.toERP = function() {
-  return erp.makeMarginalERP(this.dist);
+  return erp.makeMarginalERP(normalizeDist(this.dist));
 };
 
 var MAP = function(retainSamples) {
