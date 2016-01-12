@@ -47,7 +47,7 @@ var MAP = function(retainSamples) {
 MAP.prototype.add = function(value, score) {
   var value = untapify(value);
   if (this.retainSamples) {
-    this.samples.push(value);
+    this.samples.push({ value: value, score: score });
   }
   if (score > this.max.score) {
     this.max.value = value;
