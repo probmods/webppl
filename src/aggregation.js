@@ -13,17 +13,17 @@ Histogram.prototype.add = function(value) {
   var value = untapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
-    this.hist[k] = { prob: 0, val: value };
+    this.hist[k] = { count: 0, val: value };
   }
-  this.hist[k].prob += 1;
+  this.hist[k].count += 1;
 };
 
 function normalizeHist(hist) {
-  var norm = _.reduce(hist, function(acc, obj) {
-    return acc + obj.prob;
+  var totalCount = _.reduce(hist, function(acc, obj) {
+    return acc + obj.count;
   }, 0);
   return _.mapObject(hist, function(obj) {
-    return { val: obj.val, prob: obj.prob / norm };
+    return { val: obj.val, prob: obj.count / totalCount };
   });
 }
 
@@ -38,18 +38,18 @@ var Distribution = function() {
 Distribution.prototype.add = function(value, score) {
   var k = util.serialize(value);
   if (this.dist[k] === undefined) {
-    this.dist[k] = { prob: -Infinity, val: value };
+    this.dist[k] = { score: -Infinity, val: value };
   }
-  this.dist[k].prob = util.logsumexp([this.dist[k].prob, score]);
+  this.dist[k].score = util.logsumexp([this.dist[k].score, score]);
 };
 
 function normalizeDist(dist) {
   // Note, this also maps dist from log space into probability space.
   var logNorm = _.reduce(dist, function(acc, obj) {
-    return util.logsumexp([acc, obj.prob]);
+    return util.logsumexp([acc, obj.score]);
   }, -Infinity);
   return _.mapObject(dist, function(obj) {
-    return { val: obj.val, prob: Math.exp(obj.prob - logNorm) };
+    return { val: obj.val, prob: Math.exp(obj.score - logNorm) };
   });
 }
 
