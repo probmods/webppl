@@ -621,13 +621,10 @@ function makeMarginalERP(marginal) {
     norm = util.logsumexp([norm, d.prob]);
     supp.push(d.val);
   }}
-  var mapEst = {val: undefined, prob: 0};
   for (v in marginal) {if (marginal.hasOwnProperty(v)) {
     var dd = marginal[v];
     var nprob = dd.prob - norm;
     var nprobS = Math.exp(nprob)
-    if (nprobS > mapEst.prob)
-      mapEst = {val: dd.val, prob: nprobS};
     marginal[v].prob = nprobS;
   }}
 
@@ -657,7 +654,6 @@ function makeMarginalERP(marginal) {
     name: 'marginal'
   });
 
-  dist.MAP = function() {return mapEst};
   dist.hist = marginal;
   return dist;
 }
