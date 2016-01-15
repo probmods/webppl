@@ -48,6 +48,7 @@ function compile(code, packages, verbose, outputFile) {
   var compileOptions = { extra: webppl.parsePackageCode(packages, verbose), verbose: verbose };
 
   compiledCode += (
+    webppl.runTrampoline.toString() + '\n' +
       printWebPPLValue.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +

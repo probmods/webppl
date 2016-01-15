@@ -47,16 +47,14 @@ function trampoline(node) {
   }
 }
 
-var driver = parse(
-    ['(function(p) {',
-     '  return function(s, k, a) {',
-     '    var trampoline = p(s, k, a);',
-     '    while (trampoline) {',
-     '      trampoline = trampoline();',
-     '    }',
-     '  }',
-     '})'].join('\n')
-    ).body[0].expression;
+
+var driver = parse(['(function (p) {',
+                    '  return function(s, k, a) {',
+                    '    var t = p(s, k, a);',
+                    '    runTrampoline(t);',
+                    '  }',
+                    '})'].join('\n')
+).body[0].expression;
 
 function trampolineMain(node) {
   return inProgram(function(node) {

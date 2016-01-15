@@ -90,7 +90,7 @@ var transformAstVarargs = compose(varargs, transformAstOptimize);
 var runVarargs = runOptimize;
 
 var transformAstTrampoline = compose(trampoline, transformAstVarargs);
-var runTrampoline = runVarargs;
+var _runTrampoline = runVarargs;
 
 var selectNamingPrimitives = function() {
   // Set global definitions
@@ -180,7 +180,9 @@ function runVarargsTest(test, code, expected) {
 
 function runTrampolineTest(test, code, expected) {
   selectTrampolinePrimitives();
-  return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
+  // NB: had to prefix runTrampoline with _, otherwise we've hidden the runTrampoline
+  // method
+  return runTest(test, code, expected, transformAstTrampoline, _runTrampoline);
 }
 
 function generateTestFunctions(allTests, testRunner) {

@@ -44,6 +44,20 @@ function webpplNaming(code) {
   return escodegen.generate(newProgramAst);
 }
 
+var runTrampoline = function(t) {
+  var lastPauseTime = Date.now();
+  while (t) {
+    var currTime = Date.now();
+    if (currTime - lastPauseTime > 100) {
+      return setTimeout(function() { runTrampoline(t) }, 0);
+    } else {
+      t = t();
+    }
+  }
+}
+
+global.runTrampoline = runTrampoline;
+
 global.webppl = {
   run: run,
   compile: compile,
