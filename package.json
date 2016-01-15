@@ -24,6 +24,7 @@
     "esutils": "^2.0.2",
     "git-rev-2": "^0.1.0",
     "immutable": "^3.7.5",
+    "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
     "numeric": "^1.2.6",
     "priorityqueuejs": "~1.0.0",
