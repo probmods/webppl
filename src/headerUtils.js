@@ -1,6 +1,7 @@
 'use strict';
 
 var serialize = require('./util').serialize
+var LRU = require('lru-cache');
 
 module.exports = function(env) {
 
@@ -13,25 +14,29 @@ module.exports = function(env) {
   // Caution: if f isn't deterministic weird stuff can happen, since
   // caching is across all uses of f, even in different execuation
   // paths.
-  function cache(s, k, a, f) {
-    var c = {};
+  function cache(s, k, a, f, maxSize) {
+    var c = LRU(maxSize);
     var cf = function(s, k, a) {
       var args = Array.prototype.slice.call(arguments, 3);
       var stringedArgs = serialize(args);
-      if (stringedArgs in c) {
-        return k(s, c[stringedArgs]);
+      if (c.has(stringedArgs)) {
+        return k(s, c.get(stringedArgs));
       } else {
         var newk = function(s, r) {
-          if (stringedArgs in c) {
+          if (c.has(stringedArgs)) {
             // This can happen when cache is used on recursive functions
             console.log('Already in cache:', stringedArgs);
-            if (serialize(c[stringedArgs]) !== serialize(r)) {
+            if (serialize(c.get(stringedArgs)) !== serialize(r)) {
               console.log('OLD AND NEW CACHE VALUE DIFFER!');
-              console.log('Old value:', c[stringedArgs]);
+              console.log('Old value:', c.get(stringedArgs));
               console.log('New value:', r);
             }
           }
-          c[stringedArgs] = r;
+          c.set(stringedArgs, r);
+          if (!maxSize && c.length === 1e4) {
+            console.log(c.length + ' function calls have been cached.');
+            console.log('The size of the cache can be limited by calling cache(f, maxSize).');
+          }
           return k(s, r);
         };
         return f.apply(this, [s, newk, a].concat(args));
