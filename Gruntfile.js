@@ -90,10 +90,17 @@ module.exports = function(grunt) {
   grunt.registerTask('travis-phantomjs', ['compile', 'test-phantomjs']);
 
   grunt.registerTask('compile', 'Compile for the browser', function() {
+    var taskArgs = (arguments.length > 0) ? ':' + _.toArray(arguments).join(':') : '';
+    grunt.task.run('browserify' + taskArgs, 'uglify');
+  });
+
+  grunt.registerTask('browserify', function() {
     child_process.execSync('mkdir -p compiled');
-    grunt.log.writeln('Running browserify');
     child_process.execSync('browserify' + browserifyArgs(arguments));
-    grunt.log.writeln('Running uglifyjs');
+  });
+
+  grunt.registerTask('uglify', function() {
+    child_process.execSync('mkdir -p compiled');
     child_process.execSync('uglifyjs compiled/webppl.js -b ascii_only=true,beautify=false > compiled/webppl.min.js');
   });
 
