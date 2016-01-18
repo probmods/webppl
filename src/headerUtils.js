@@ -15,7 +15,7 @@ module.exports = function(env) {
   // caching is across all uses of f, even in different execuation
   // paths.
   function cache(s, k, a, f, maxSize) {
-    var c = LRU(maxSize !== undefined ? maxSize : 1e4);
+    var c = LRU(maxSize);
     var cf = function(s, k, a) {
       var args = Array.prototype.slice.call(arguments, 3);
       var stringedArgs = serialize(args);
