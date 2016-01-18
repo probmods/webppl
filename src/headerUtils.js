@@ -33,6 +33,10 @@ module.exports = function(env) {
             }
           }
           c.set(stringedArgs, r);
+          if (!maxSize && c.length === 1e5) {
+            console.log(c.length + ' function calls have been cached.');
+            console.log('The size of the cache can be limited by calling cache(f, maxSize).');
+          }
           return k(s, r);
         };
         return f.apply(this, [s, newk, a].concat(args));
