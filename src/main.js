@@ -192,8 +192,6 @@ function runTrampoline(t) {
   }
 }
 
-global.runTrampoline = runTrampoline;
-
 module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
