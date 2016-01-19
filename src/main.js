@@ -186,18 +186,11 @@ global.webpplEval = function(s, k, a, code) {
   return eval.call(global, compiledCode)(s, k, a);
 };
 
-function runTrampoline(t) {
-  while (t) {
-    t = t();
-  }
-}
-
 module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
   parsePackageCode: parsePackageCode,
   run: run,
   compile: compile,
-  analyze: analyze,
-  runTrampoline: runTrampoline
+  analyze: analyze
 };
