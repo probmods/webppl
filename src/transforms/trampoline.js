@@ -9,6 +9,7 @@ var parse = require('esprima').parse;
 var fail = require('../syntax').fail;
 var inProgram = require('../syntax').inProgram;
 var isPrimitive = require('../syntax').isPrimitive;
+var util = require('../util');
 
 
 function thunkify(node) {
@@ -47,26 +48,47 @@ function trampoline(node) {
   }
 }
 
-var driver = parse(
-    ['(function(p) {',
-     '  return function(s, k, a) {',
-     '    var trampoline = p(s, k, a);',
-     '    while (trampoline) {',
-     '      trampoline = trampoline();',
-     '    }',
-     '  }',
-     '})'].join('\n')
-    ).body[0].expression;
+var cliTrampoline = function(t) {
+  while (t) {
+    t = t()
+  }
+};
+
+var webTrampoline = function f(t) {
+  var lastPauseTime = Date.now();
+  while (t) {
+    var currTime = Date.now();
+    if (currTime - lastPauseTime > 100) {
+      return setTimeout(function() { f(t) }, 0);
+    } else {
+      t = t();
+    }
+  }
+};
+
+var runner = util.runningInBrowser() ? webTrampoline : cliTrampoline;
+
+var driver = parse(['(function (p) {',
+                    '  var runTrampoline = ' + runner.toString(),
+                    '  return function(s, k, a) {',
+                    '    var t = p(s, k, a);',
+                    '    runTrampoline(t);',
+                    '  }',
+                    '})'].join('\n')
+).body[0].expression;
 
 function trampolineMain(node) {
-  return inProgram(function(node) {
+  var r = inProgram(function(node) {
     return build.callExpression(driver, [replace(node, {
       enter: skip,
       leave: trampoline
     })]);
   })(node, fail('trampoline', node));
+
+  return r;
 }
 
 module.exports = {
-  trampoline: trampolineMain
+  trampoline: trampolineMain,
+  runner: runner
 };

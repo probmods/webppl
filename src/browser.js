@@ -49,7 +49,8 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  analyze: analyze
+  analyze: analyze,
+  runTrampoline: require('./transforms/trampoline').runner
 };
 
 console.log('webppl loaded.');
