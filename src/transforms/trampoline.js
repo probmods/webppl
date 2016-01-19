@@ -48,50 +48,31 @@ function trampoline(node) {
   }
 }
 
-var trampolineRunners = {
-  cli: function(t) {
-    while (t) {
-      t = t()
-    }
-  },
-  web: function f(t) {
-    var lastPauseTime = Date.now();
-    while (t) {
-      var currTime = Date.now();
-      if (currTime - lastPauseTime > 100) {
-        return setTimeout(function() { f(t) }, 0);
-      } else {
-        t = t();
-      }
-    }
+
+function trampolineMainWrapper(options) {
+  // options must contain a runner key with a function value
+
+  var driver = parse(['(function (p) {',
+                      '  var runTrampoline = ' + options.runner.toString(),
+                      '  return function(s, k, a) {',
+                      '    var t = p(s, k, a);',
+                      '    runTrampoline(t);',
+                      '  }',
+                      '})'].join('\n')
+  ).body[0].expression;
+
+  return function trampolineMain(node) {
+    var r = inProgram(function(node) {
+      return build.callExpression(driver, [replace(node, {
+        enter: skip,
+        leave: trampoline
+      })]);
+    })(node, fail('trampoline', node));
+
+    return r;
   }
-};
-
-var runner = (typeof forceTrampoline == 'string') ?
-    trampolineRunners[forceTrampoline] :
-    (util.runningInBrowser() ? trampolineRunners['web'] : trampolineRunners['cli']);
-
-var driver = parse(['(function (p) {',
-                    '  var runTrampoline = ' + runner.toString(),
-                    '  return function(s, k, a) {',
-                    '    var t = p(s, k, a);',
-                    '    runTrampoline(t);',
-                    '  }',
-                    '})'].join('\n')
-).body[0].expression;
-
-function trampolineMain(node) {
-  var r = inProgram(function(node) {
-    return build.callExpression(driver, [replace(node, {
-      enter: skip,
-      leave: trampoline
-    })]);
-  })(node, fail('trampoline', node));
-
-  return r;
 }
 
 module.exports = {
-  trampoline: trampolineMain,
-  runner: runner
+  trampoline: trampolineMainWrapper
 };

@@ -47,13 +47,14 @@ function compile(code, packages, verbose, outputFile) {
 
   var compileOptions = { extra: webppl.parsePackageCode(packages, verbose), verbose: verbose };
 
+  var compiledBody = webppl.compile(code, compileOptions);
+
   compiledCode += (
-    webppl.runTrampoline.toString() + '\n' +
       printWebPPLValue.toString() + '\n' +
       'var topK = function(s, x){ \n' +
       " console.log('\\n* Program return value:\\n'); \n" +
       ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + webppl.compile(code, compileOptions) + '\n\n';
+  compiledCode += 'var main = ' + compiledBody + '\n\n';
   compiledCode += "main({}, topK, '');";
   // Write Javascript code to file
   fs.writeFile(

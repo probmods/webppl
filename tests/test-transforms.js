@@ -1,6 +1,7 @@
 'use strict';
 
-require('../src/main');
+var webppl = require('../src/main');
+
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
@@ -10,7 +11,7 @@ var naming = require('../src/transforms/naming').naming;
 var cps = require('../src/transforms/cps').cps;
 var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
-var trampoline = require('../src/transforms/trampoline').trampoline;
+var trampoline = require('../src/transforms/trampoline').trampoline({runner: webppl.trampolineRunners['cli']});
 var varargs = require('../src/transforms/varargs').varargs;
 
 var fooObj = {

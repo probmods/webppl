@@ -24,12 +24,24 @@ packages.forEach(function(pkg) {
 
 var extra = webppl.parsePackageCode(packages);
 
-function run(code, k, verbose) {
-  return webppl.run(code, k, { extra: extra, verbose: verbose });
+function run(code, k, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: extra},
+                                 _.defaults(options, { trampolineRunner: 'web' }))
+
+
+  return webppl.run(code, k, optionsExtended);
 }
 
-function compile(code, verbose) {
-  return webppl.compile(code, { extra: extra, verbose: verbose });
+function compile(code, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: extra},
+                                 _.defaults(options, { trampolineRunner: 'web' }));
+  return webppl.compile(code, optionsExtended);
 }
 
 function webpplCPS(code) {
@@ -50,7 +62,7 @@ global.webppl = {
   cps: webpplCPS,
   naming: webpplNaming,
   analyze: analyze,
-  runTrampoline: require('./transforms/trampoline').runner
+  runTrampoline: function(t) { webppl.getTrampolineRunner()(t) }
 };
 
 console.log('webppl loaded.');
