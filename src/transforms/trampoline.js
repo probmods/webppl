@@ -48,25 +48,28 @@ function trampoline(node) {
   }
 }
 
-var cliTrampoline = function(t) {
-  while (t) {
-    t = t()
-  }
-};
-
-var webTrampoline = function f(t) {
-  var lastPauseTime = Date.now();
-  while (t) {
-    var currTime = Date.now();
-    if (currTime - lastPauseTime > 100) {
-      return setTimeout(function() { f(t) }, 0);
-    } else {
-      t = t();
+var trampolineRunners = {
+  cli: function(t) {
+    while (t) {
+      t = t()
+    }
+  },
+  web: function f(t) {
+    var lastPauseTime = Date.now();
+    while (t) {
+      var currTime = Date.now();
+      if (currTime - lastPauseTime > 100) {
+        return setTimeout(function() { f(t) }, 0);
+      } else {
+        t = t();
+      }
     }
   }
 };
 
-var runner = util.runningInBrowser() ? webTrampoline : cliTrampoline;
+var runner = (typeof forceTrampoline == 'string') ?
+    trampolineRunners[forceTrampoline] :
+    (util.runningInBrowser() ? trampolineRunners['web'] : trampolineRunners['cli']);
 
 var driver = parse(['(function (p) {',
                     '  var runTrampoline = ' + runner.toString(),
