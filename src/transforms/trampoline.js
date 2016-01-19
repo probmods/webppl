@@ -54,12 +54,12 @@ var cliTrampoline = function(t) {
   }
 };
 
-var webTrampoline = function(t) {
+var webTrampoline = function f(t) {
   var lastPauseTime = Date.now();
   while (t) {
     var currTime = Date.now();
     if (currTime - lastPauseTime > 100) {
-      return setTimeout(function() { webTrampoline(t) }, 0);
+      return setTimeout(function() { f(t) }, 0);
     } else {
       t = t();
     }
