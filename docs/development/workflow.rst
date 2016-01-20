@@ -90,6 +90,23 @@ using the ``BROWSER`` environment variable. For example::
 
     BROWSER="Google Chrome" grunt test-browser
 
+Incremental Compilation
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Repeatedly making changes to the code and then testing the changes in
+the browser can be a slow process. `watchify`_ speeds up this process
+by performing an incremental compile whenever it detects changes to
+source files. To start `watchify`_ use::
+
+    npm install -g watchify
+    grunt watchify
+
+Note that `watchify`_ only updates ``compiled/webppl.js``. Before
+running the browser tests and deploying, create the minified version
+like so::
+
+    grunt uglify
+
 Packages
 ^^^^^^^^
 
@@ -102,3 +119,4 @@ Multiple packages can specified, separated by colons.
 
 .. _continuous integration tests: https://travis-ci.org/probmods/webppl
 .. _nodeunit documentation: https://github.com/caolan/nodeunit#command-line-options
+.. _watchify: https://github.com/substack/watchify
