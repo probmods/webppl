@@ -74,7 +74,14 @@ To compile webppl for use in browser, run::
     npm install -g browserify uglifyjs
     grunt compile
 
-Then, to run the browser tests use::
+The compiled code is written to ``compiled/webppl.js`` and a minified
+version is written to ``compiled/webppl.min.js``.
+
+Testing
+^^^^^^^
+
+To check that compilation was successful, run the browser tests
+using::
 
     grunt test-browser
 
@@ -82,6 +89,26 @@ The tests will run in the default browser. Specify a different browser
 using the ``BROWSER`` environment variable. For example::
 
     BROWSER="Google Chrome" grunt test-browser
+
+Incremental Compilation
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Repeatedly making changes to the code and then testing the changes in
+the browser can be a slow process. `watchify`_ speeds up this process
+by performing an incremental compile whenever it detects changes to
+source files. To start `watchify`_ use::
+
+    npm install -g watchify
+    grunt watchify
+
+Note that `watchify`_ only updates ``compiled/webppl.js``. Before
+running the browser tests and deploying, create the minified version
+like so::
+
+    grunt uglify
+
+Packages
+^^^^^^^^
 
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
@@ -92,3 +119,4 @@ Multiple packages can specified, separated by colons.
 
 .. _continuous integration tests: https://travis-ci.org/probmods/webppl
 .. _nodeunit documentation: https://github.com/caolan/nodeunit#command-line-options
+.. _watchify: https://github.com/substack/watchify
