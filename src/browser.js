@@ -62,7 +62,7 @@ global.webppl = {
   cps: webpplCPS,
   naming: webpplNaming,
   analyze: analyze,
-  runTrampoline: function(t) { webppl.getTrampolineRunner()(t) }
+  runTrampoline: function(t) { require('./transforms/trampoline').runner(t) }
 };
 
 console.log('webppl loaded.');

@@ -11,7 +11,7 @@ var naming = require('../src/transforms/naming').naming;
 var cps = require('../src/transforms/cps').cps;
 var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
-var trampoline = require('../src/transforms/trampoline').trampoline({runner: webppl.trampolineRunners['cli']});
+var trampoline = require('../src/transforms/trampoline').trampoline({runner: 'cli'});
 var varargs = require('../src/transforms/varargs').varargs;
 
 var fooObj = {

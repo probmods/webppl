@@ -137,32 +137,9 @@ function copyAst(ast) {
   return ret;
 }
 
-var trampolineRunners = {
-  cli: function(t) {
-    while (t) {
-      t = t()
-    }
-  },
-  web: function f(t) {
-    var lastPauseTime = Date.now();
-    while (t) {
-      var currTime = Date.now();
-      if (currTime - lastPauseTime > 100) {
-        return setTimeout(function() { f(t) }, 0);
-      } else {
-        t = t();
-      }
-    }
-  }
-};
-
-var trampolineRunner;
-
 function compile(code, options) {
   options = util.mergeDefaults(options, { verbose: false, generateCode: true, trampolineRunner: 'cli' });
   var extra = options.extra || parsePackageCode([], options.verbose);
-
-  trampolineRunner = trampolineRunners[options.trampolineRunner];
 
   var transforms = options.transforms || [
     thunkify,
@@ -171,7 +148,7 @@ function compile(code, options) {
     store,
     optimize,
     varargs,
-    trampoline({runner: trampolineRunner})
+    trampoline({runner: options.trampolineRunner})
   ];
 
   function _compile() {
@@ -216,6 +193,5 @@ module.exports = {
   run: run,
   compile: compile,
   analyze: analyze,
-  getTrampolineRunner: function() { return trampolineRunner },
-  trampolineRunners: trampolineRunners // provide this for test-transforms.js
+  getTrampolineRunner: function() { return require('./transforms/trampoline').runner }
 };
