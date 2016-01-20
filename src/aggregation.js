@@ -13,13 +13,48 @@ Histogram.prototype.add = function(value) {
   var value = untapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
-    this.hist[k] = { prob: 0, val: value };
+    this.hist[k] = { count: 0, val: value };
   }
-  this.hist[k].prob += 1;
+  this.hist[k].count += 1;
 };
 
+function normalizeHist(hist) {
+  var totalCount = _.reduce(hist, function(acc, obj) {
+    return acc + obj.count;
+  }, 0);
+  return _.mapObject(hist, function(obj) {
+    return { val: obj.val, prob: obj.count / totalCount };
+  });
+}
+
 Histogram.prototype.toERP = function() {
-  return erp.makeMarginalERP(util.logHist(this.hist));
+  return erp.makeMarginalERP(normalizeHist(this.hist));
+};
+
+var Distribution = function() {
+  this.dist = {};
+};
+
+Distribution.prototype.add = function(value, score) {
+  var k = util.serialize(value);
+  if (this.dist[k] === undefined) {
+    this.dist[k] = { score: -Infinity, val: value };
+  }
+  this.dist[k].score = util.logsumexp([this.dist[k].score, score]);
+};
+
+function normalizeDist(dist) {
+  // Note, this also maps dist from log space into probability space.
+  var logNorm = _.reduce(dist, function(acc, obj) {
+    return util.logsumexp([acc, obj.score]);
+  }, -Infinity);
+  return _.mapObject(dist, function(obj) {
+    return { val: obj.val, prob: Math.exp(obj.score - logNorm) };
+  });
+}
+
+Distribution.prototype.toERP = function() {
+  return erp.makeMarginalERP(normalizeDist(this.dist));
 };
 
 var MAP = function(retainSamples) {
@@ -31,7 +66,7 @@ var MAP = function(retainSamples) {
 MAP.prototype.add = function(value, score) {
   var value = untapify(value);
   if (this.retainSamples) {
-    this.samples.push(value);
+    this.samples.push({ value: value, score: score });
   }
   if (score > this.max.score) {
     this.max.value = value;
@@ -61,5 +96,6 @@ function untapify(x) {
 
 module.exports = {
   Histogram: Histogram,
+  Distribution: Distribution,
   MAP: MAP
 };

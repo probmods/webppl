@@ -66,12 +66,6 @@ function product(xs) {
   return result;
 }
 
-var logHist = function(hist) {
-  return _.mapObject(hist, function(x) {
-    return {prob: Math.log(x.prob), val: x.val}
-  });
-};
-
 function logsumexp(a) {
   var m = Math.max.apply(null, a);
   var sum = 0;
@@ -227,7 +221,6 @@ module.exports = {
   histsApproximatelyEqual: histsApproximatelyEqual,
   gensym: gensym,
   logsumexp: logsumexp,
-  logHist: logHist,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   prettyJSON: prettyJSON,

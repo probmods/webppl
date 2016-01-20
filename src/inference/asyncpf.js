@@ -8,7 +8,7 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var erp = require('../erp');
+var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
@@ -51,7 +51,7 @@ module.exports = function(env) {
 
     this.obsWeights = {};
     this.exitedParticles = 0;
-    this.hist = {};
+    this.hist = new Histogram();
 
     // Move old coroutine out of the way and install this as current handler.
     this.k = k;
@@ -163,14 +163,12 @@ module.exports = function(env) {
     this.activeParticle.weight += Math.log(this.activeParticle.multiplicity);
     this.exitedParticles += 1;
 
-    var k = util.serialize(retval);
-    if (this.hist[k] === undefined) this.hist[k] = {prob: 0, val: retval};
-    this.hist[k].prob += 1;
+    this.hist.add(retval);
 
     if (this.exitedParticles < this.numParticles) {
       return this.run();
     } else {
-      var dist = erp.makeMarginalERP(util.logHist(this.hist));
+      var dist = this.hist.toERP();
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];

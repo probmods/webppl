@@ -2,7 +2,7 @@
 
 var _ = require('underscore');
 var open = require('open');
-var execSync = require('child_process').execSync;
+var child_process = require('child_process');
 
 var jslintSettings = {
   options: {
@@ -66,6 +66,17 @@ module.exports = function(grunt) {
     clean: ['compiled/*.js']
   });
 
+  function browserifyArgs(args) {
+    var pkgArg = '';
+    if (args.length > 0) {
+      var requires = _.chain(_.toArray(args))
+          .map(function(name) { return ['--require', name]; })
+          .flatten().value();
+      pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
+    }
+    return pkgArg + ' -g brfs src/browser.js -o compiled/webppl.js';
+  }
+
   grunt.loadNpmTasks('grunt-gjslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
@@ -79,18 +90,28 @@ module.exports = function(grunt) {
   grunt.registerTask('travis-phantomjs', ['compile', 'test-phantomjs']);
 
   grunt.registerTask('compile', 'Compile for the browser', function() {
-    var pkgArg = '';
-    if (arguments.length > 0) {
-      var requires = _.chain(_.toArray(arguments))
-          .map(function(name) { return ['--require', '\"' + name + '\"']; })
-          .flatten().value();
-      pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
-    }
-    execSync('mkdir -p compiled');
-    grunt.log.writeln('Running browserify');
-    execSync('browserify' + pkgArg + ' -g brfs src/browser.js > compiled/webppl.js');
-    grunt.log.writeln('Running uglifyjs');
-    execSync('uglifyjs compiled/webppl.js -b ascii_only=true,beautify=false > compiled/webppl.min.js');
+    var taskArgs = (arguments.length > 0) ? ':' + _.toArray(arguments).join(':') : '';
+    grunt.task.run('browserify' + taskArgs, 'uglify');
+  });
+
+  grunt.registerTask('browserify', function() {
+    child_process.execSync('mkdir -p compiled');
+    child_process.execSync('browserify' + browserifyArgs(arguments));
+  });
+
+  grunt.registerTask('uglify', function() {
+    child_process.execSync('mkdir -p compiled');
+    child_process.execSync('uglifyjs compiled/webppl.js -b ascii_only=true,beautify=false > compiled/webppl.min.js');
+  });
+
+  grunt.registerTask('watchify', function() {
+    var done = this.async();
+    child_process.execSync('mkdir -p compiled');
+    var args = '-v' + browserifyArgs(arguments);
+    var p = child_process.spawn('watchify', args.split(' '));
+    p.stdout.on('data', grunt.log.writeln);
+    p.stderr.on('data', grunt.log.writeln);
+    p.on('close', done);
   });
 
   grunt.registerTask('test-browser', function() {
@@ -99,7 +120,8 @@ module.exports = function(grunt) {
 
   grunt.registerTask('test-phantomjs', function() {
     try {
-      var output = execSync('phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html');
+      var cmd = 'phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html';
+      var output = child_process.execSync(cmd);
       grunt.log.writeln(output);
     } catch (e) {
       grunt.log.writeln(e.output.join('\n'));

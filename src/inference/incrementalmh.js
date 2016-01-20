@@ -6,9 +6,9 @@
 var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
-var erp = require('../erp');
 var Hashtable = require('../hashtable').Hashtable
 var Query = require('../query').Query;
+var aggregation = require('../aggregation');
 
 module.exports = function(env) {
 
@@ -768,12 +768,10 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.onlyMAP = onlyMAP;
-    if (justSample)
-      this.returnSamps = [];
-    else
-      this.returnHist = {};
-    this.MAP = { val: undefined, score: -Infinity };
+    this.aggregator = (justSample || onlyMAP) ?
+        new aggregation.MAP(justSample) :
+        new aggregation.Histogram();
+
     this.totalIterations = numIterations;
     this.acceptedProps = 0;
     this.lag = lag;
@@ -902,22 +900,7 @@ module.exports = function(env) {
           if (val === env.query)
             val = this.query.getTable();
           // add val to hist:
-          if (!this.onlyMAP) {
-            if (this.returnSamps)
-              this.returnSamps.push({score: this.score, value: val})
-            else {
-              var stringifiedVal = util.serialize(val);
-              if (this.returnHist[stringifiedVal] === undefined) {
-                this.returnHist[stringifiedVal] = { prob: 0, val: val };
-              }
-              this.returnHist[stringifiedVal].prob += 1;
-            }
-          }
-          // also update the MAP
-          if (this.score > this.MAP.score) {
-            this.MAP.score = this.score;
-            this.MAP.value = val;
-          }
+          this.aggregator.add(val, this.score);
         }
 
         if (DEBUG >= 6) {
@@ -948,21 +931,6 @@ module.exports = function(env) {
         }
       }
     } else {
-      var hist;
-      if (this.returnSamps || this.onlyMAP) {
-        hist = {};
-        hist[util.serialize(this.MAP.value)] = { prob: 1, val: this.MAP.value };
-      } else {
-        hist = this.returnHist;
-      }
-      var dist = erp.makeMarginalERP(util.logHist(hist));
-      if (this.returnSamps) {
-        if (this.onlyMAP)
-          this.returnSamps.push(this.MAP);
-        dist.samples = this.returnSamps;
-      }
-      dist.MAP = this.MAP.value;
-
       // Reinstate previous coroutine:
       var k = this.k;
       env.coroutine = this.oldCoroutine;
@@ -973,7 +941,7 @@ module.exports = function(env) {
       }
 
       // Return by calling original continuation:
-      return k(this.oldStore, dist);
+      return k(this.oldStore, this.aggregator.toERP());
     }
   };
 
