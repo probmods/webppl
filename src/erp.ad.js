@@ -610,29 +610,15 @@ function multinomialSample(theta) {
   return k - 1;
 }
 
-// Make a discrete ERP from a {val: prob, etc.} object (unormalized).
+// Make a discrete ERP from a normalized {val: ..., prob: ...} object.
 function makeMarginalERP(marginal) {
-  assert.ok(_.size(marginal) > 0);
-  // Normalize distribution:
-  var norm = -Infinity;
-  var supp = [];
-  for (var v in marginal) {if (marginal.hasOwnProperty(v)) {
-    var d = marginal[v];
-    norm = util.logsumexp([norm, d.prob]);
-    supp.push(d.val);
-  }}
-  var mapEst = {val: undefined, prob: 0};
-  for (v in marginal) {if (marginal.hasOwnProperty(v)) {
-    var dd = marginal[v];
-    var nprob = dd.prob - norm;
-    var nprobS = Math.exp(nprob)
-    if (nprobS > mapEst.prob)
-      mapEst = {val: dd.val, prob: nprobS};
-    marginal[v].prob = nprobS;
-  }}
-
+  var norm = _.reduce(marginal, function(acc, obj) { return acc + obj.prob; }, 0);
+  assert.ok(Math.abs(1 - norm) < 1e-8, 'Expected marginal to be normalized.');
+  var support = _.map(marginal, function(obj) {
+    return obj.val;
+  });
   // Make an ERP from marginal:
-  var dist = new ERP({
+  return new ERP({
     sample: function(params) {
       var x = util.random();
       var probAccum = 0;
@@ -647,19 +633,16 @@ function makeMarginalERP(marginal) {
       return marginal[i].val;
     },
     score: function(params, val) {
-      var lk = marginal[util.serialize(val)];
-      return lk ? Math.log(lk.prob) : -Infinity;
+      var obj = marginal[util.serialize(val)];
+      return obj ? Math.log(obj.prob) : -Infinity;
     },
     support: function(params) {
-      return supp;
+      return support;
     },
     parameterized: false,
-    name: 'marginal'
+    name: 'marginal',
+    hist: marginal
   });
-
-  dist.MAP = function() {return mapEst};
-  dist.hist = marginal;
-  return dist;
 }
 
 // note: ps is expected to be normalized

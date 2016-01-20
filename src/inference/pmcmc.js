@@ -6,6 +6,7 @@
 var _ = require('underscore');
 var erp = require('../erp');
 var util = require('../util')
+var Histogram = require('../aggregation').Histogram;
 
 module.exports = function(env) {
 
@@ -34,7 +35,7 @@ module.exports = function(env) {
     this.address = a;
     this.numParticles = numParticles;
     this.resetParticles();
-    this.returnHist = {};
+    this.hist = new Histogram();
   }
 
   PMCMC.prototype.run = function() {
@@ -168,11 +169,7 @@ module.exports = function(env) {
       if (this.sweep > 0) {
         this.particles.concat(this.retainedParticle).forEach(
             function(particle) {
-              var k = util.serialize(particle.value);
-              if (this.returnHist[k] === undefined) {
-                this.returnHist[k] = {prob: 0, val: particle.value};
-              }
-              this.returnHist[k].prob += 1;
+              this.hist.add(particle.value);
             }.bind(this));
       }
 
@@ -188,13 +185,11 @@ module.exports = function(env) {
         return this.activeContinuationWithStore();
 
       } else {
-        var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
-
         // Reinstate previous coroutine:
         env.coroutine = this.oldCoroutine;
 
         // Return from particle filter by calling original continuation:
-        return this.k(this.oldStore, dist);
+        return this.k(this.oldStore, this.hist.toERP());
 
       }
     }
