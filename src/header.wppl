@@ -284,6 +284,7 @@ var ringBackward = function(l, n) {
   return _ringAround(l, n === undefined ? 1 : n);
 };
 
+// map through the cartesian product l1 * l2
 var mapPairs2 = function(f, l1, l2) {
   var res = map(function(a) {
     return map(function(b) {
@@ -293,6 +294,9 @@ var mapPairs2 = function(f, l1, l2) {
   return [].concat.apply([], res); // flatten
 };
 
+// map through all 2-combinations of elements in l
+// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
+// ['a','c'], and ['b','c']
 var mapPairsC = function(f, l) {
   var fn = function(l1, l2, acc) {
     return (l2.length === 0 ? acc :
@@ -306,6 +310,9 @@ var mapPairsC = function(f, l) {
   return fn(l, l.slice(1), []);
 };
 
+// map through all 2-tuples of elements in l
+// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
+// ['a','c'], ['b','a'], ['b','c'], ['c','a'], ['c','b']
 var mapPairsNC = function(f, l) {
   var res = mapPairs2(function(a, b) {
     return a === b ? undefined : f(a, b);
@@ -336,6 +343,7 @@ var reduce = function(fn, init, ar) {
   return helper(0);
 };
 
+// sugar for reduce(f, g(init), map(g,ar))
 var mapReduce = function(f, init, g, ar) {
   // specialized to above reduce
   return reduce(function(a, b) {return f(g(a), b);},
@@ -343,6 +351,7 @@ var mapReduce = function(f, init, g, ar) {
                 ar);
 };
 
+// sugar for reduce(f, g(last(ar)), map(g, butLast(ar)))
 var mapReduce1 = function(f, g, ar) {
   // specialized to above reduce
   return reduce(function(a, b) {return f(g(a), b);},
