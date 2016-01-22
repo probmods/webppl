@@ -240,28 +240,36 @@ var rest = function(xs) {
   return xs.slice(1);
 };
 
-var map = function(fn, ar) {
-  return ar.length === 0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
-};
-
-var map2 = function(f, l1, l2) {
-  return (l1.length === 0 || l2.length === 0 ?
-          [] :
-          [f(l1[0], l2[0])].concat(map2(f, l1.slice(1), l2.slice(1))));
-};
-
-var mapN = function(f, n) {
-  var fn = function(i, _acc) {return i === n ? _acc : fn(i + 1, snoc(_acc, f(i)))};
-  return fn(0, []);
+var map_helper = function(i, j, f) {
+  var n = j - i + 1;
+  if (n == 0) {
+    return []
+  } else if (n == 1) {
+    return [f(i)];
+  } else {
+    var n1 = Math.ceil(n / 2);
+    return map_helper(i, i + n1 - 1, f).concat(map_helper(i + n1, j, f));
+  }
 }
 
-var mapIndexed = function(f, l) {
-  var fn = function(ls, i, _acc) {
-    return ls.length === 0 ?
-        _acc :
-        fn(rest(ls), i + 1, snoc(_acc, f(i, first(ls))))
-  };
-  return fn(l, 0, []);
+// recursively split input array so that we only call
+// concat a logarithmic number of times
+var map = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(l[i]) })
+}
+
+// assumes that length l1 == length l2
+var map2 = function(fn, l1, l2) {
+  return map_helper(0, l1.length - 1, function(i) { return fn(l1[i], l2[i]) })
+}
+
+// sugar for map(f, [0,1,...,n-1])
+var mapN = function(fn, n) {
+  return map_helper(0, n - 1, function(i) { return fn(i) })
+}
+
+var mapIndexed = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
 }
 
 var _ringAround = function(l, n) {
