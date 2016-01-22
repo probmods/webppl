@@ -400,9 +400,19 @@ var zip = function(xs, ys) {
 };
 
 var filter = function(fn, ar) {
-  return ar.length === 0 ?
-      [] :
-      append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
+  var helper = function(i, j) {
+    var n = j - i + 1;
+    if (n == 0) {
+      return [];
+    } else if (n == 1) {
+      return (fn(ar[i]) ? [ar[i]] : []);
+    } else {
+      var n1 = Math.ceil(n / 2);
+      return helper(i, i + n1 - 1).concat(helper(i + n1, j));
+    }
+  }
+
+  return helper(0, ar.length - 1)
 };
 
 var find = function(f, ar) {
