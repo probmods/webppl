@@ -305,10 +305,14 @@ var mapPairsC = function(f, l) {
       return [];
     } else {
       // compute {f(i,j)} where j \in {i+1,...,n}
-      return mapN(function(k) {
-        var j = i + k + 1;
-        return f(l[i], l[j])
-      }, n - (i + 1)).concat(helper(i + 1))
+      var r = mapN(
+          function(k) {
+            var j = i + k + 1;
+            return f(l[i], l[j])
+          },
+          n - (i + 1));
+
+      return append(r, helper(i + 1))
     }
   }
 
