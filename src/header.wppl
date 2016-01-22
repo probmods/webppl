@@ -571,6 +571,7 @@ var everyOther = function(l) {
   return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
 };
 
+// FIXME: optimize
 var _merge = function(l1, l2, pred, key) {
   return (l1.length === 0 ?
           l2 :
@@ -581,6 +582,7 @@ var _merge = function(l1, l2, pred, key) {
             [l2[0]].concat(_merge(l1, l2.slice(1), pred, key)))));
 };
 
+// FIXME: optimize
 var _sort = function(l, pred, key) {
   return ((l.length <= 1) ?
           l :
