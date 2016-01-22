@@ -324,7 +324,16 @@ var mapObject = function(fn, obj) {
 };
 
 var reduce = function(fn, init, ar) {
-  return ar.length === 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return init
+    } else {
+      return fn(ar[i], helper(i + 1))
+    }
+  }
+
+  return helper(0);
 };
 
 var mapReduce = function(f, init, g, ar) {
