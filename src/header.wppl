@@ -416,7 +416,17 @@ var filter = function(fn, ar) {
 };
 
 var find = function(f, ar) {
-  return ar.length === 0 ? undefined : (f(ar[0]) ? ar[0] : find(f, ar.slice(1)));
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return undefined;
+    } else if (f(ar[i])) {
+      return ar[i];
+    } else {
+      return helper(i + 1);
+    }
+  }
+  return helper(0);
 };
 
 var remove = function(a, ar) {
