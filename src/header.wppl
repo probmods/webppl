@@ -298,16 +298,21 @@ var mapPairs2 = function(f, l1, l2) {
 // e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
 // ['a','c'], and ['b','c']
 var mapPairsC = function(f, l) {
-  var fn = function(l1, l2, acc) {
-    return (l2.length === 0 ? acc :
-            fn(l1.slice(1),
-               l2.slice(1),
-               acc.concat(map(function(b) {
-                 return f(l1[0], b);
-               }, l2)))
-    );
-  };
-  return fn(l, l.slice(1), []);
+  var n = l.length;
+
+  var helper = function(i) {
+    if (i === n) {
+      return [];
+    } else {
+      // compute {f(i,j)} where j \in {i+1,...,n}
+      return mapN(function(k) {
+        var j = i + k + 1;
+        return f(l[i], l[j])
+      }, n - (i + 1)).concat(helper(i + 1))
+    }
+  }
+
+  return helper(0);
 };
 
 // map through all 2-tuples of elements in l
