@@ -476,8 +476,21 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
-};
+  var helper = function(m) {
+    if (m == 0) {
+      return [];
+    } else if (m == 1) {
+      return [fn()];
+    } else {
+      var m1 = Math.ceil(m / 2),
+          m2 = m - m1;
+      return helper(m1).concat(helper(m2));
+    }
+  }
+
+  return helper(n);
+}
+
 
 var push = function(xs, x) {
   return xs.concat([x]);
