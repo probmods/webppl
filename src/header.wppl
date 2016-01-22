@@ -394,9 +394,9 @@ var any = function(p, l) {
 };
 
 var zip = function(xs, ys) {
-  return xs.length === 0 ?
-      [] :
-      [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
+  return map2(function(x, y) { return [x, y]},
+              xs,
+              ys)
 };
 
 var filter = function(fn, ar) {
