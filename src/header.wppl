@@ -455,9 +455,11 @@ var replaceAt = function(ar, i, x) {
 var drop = function(n, ar) {
   return n > ar.length ? [] : ar.slice(n);
 };
+
 var take = function(n, ar) {
   return n >= ar.length ? ar : ar.slice(0, n);
 };
+
 var dropWhile = function(p, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -466,9 +468,9 @@ var dropWhile = function(p, ar) {
     }
     return p(ar[i]) ? helper(i + 1) : i;
   }
-
   return ar.slice(helper(0));
 };
+
 var takeWhile = function(p, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -513,17 +515,21 @@ var maxWith = function(f, ar) {
   return fn(zip(ar, map(f, ar)), [-Infinity, -Infinity]);
 };
 
+// bin array into items satisfying a predicate p and items not satifying it
 var span = function(p, ar) {
-  var fn = function(ar, _ts, _fs) {
-    return (ar.length === 0 ?
+  var n = ar.length;
+  var helper = function(i, _ts, _fs) {
+    return (i === n ?
             [_ts, _fs] :
-            (p(ar[0]) ?
-             fn(ar.slice(1), snoc(_ts, ar[0]), _fs) :
-             fn(ar.slice(1), _ts, snoc(_fs, ar[0]))));
+            (p(ar[i]) ?
+             helper(i + 1, snoc(_ts, ar[i]), _fs) :
+             helper(i + 1, _ts, snoc(_fs, ar[i]))));
   };
-  return fn(ar, [], []);
+  return helper(0, [], []);
 };
 
+// group array items by a comparator
+// NB: there is still room for optimization here
 var groupBy = function(cmp, ar) {
   if (ar.length === 0) {
     return [];
