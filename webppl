@@ -18,13 +18,14 @@ function printWebPPLValue(x) {
   }
 }
 
-function run(code, packages, verbose) {
+function run(programFile, code, packages, verbose) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
   });
 
   webppl.run(
+      programFile,
       code,
       function(s, x) {
         console.log('\n* Program return value:\n');
@@ -118,7 +119,7 @@ function main() {
     util.seedRNG(seed);
   }
 
-  processCode(code, packages, argv.verbose, outputFile);
+  processCode(programFile, code, packages, argv.verbose, outputFile);
 }
 
 main();

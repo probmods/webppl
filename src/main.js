@@ -10,6 +10,7 @@ var _ = require('underscore');
 var sweet = require('sweet.js');
 
 var cps = require('./transforms/cps').cps;
+var addFilename = require('./transforms/addFilename').addFilename;
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var store = require('./transforms/store').store;
@@ -51,7 +52,12 @@ function concatPrograms(programs) {
 }
 
 function parse(code, macros) {
-  return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+  var compiled = sweet.compile(code, { 
+    readableNames: true, 
+    ast: true, 
+    modules: macros,
+  });
+  return compiled
 }
 
 function parseAllPairs(pairs) {
@@ -137,10 +143,11 @@ function copyAst(ast) {
   return ret;
 }
 
-function compile(code, options) {
+function compile(filename, code, options) {
   var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
 
   var extra = options.extra || parsePackageCode([], options.verbose);
+
   var transforms = options.transforms || [
     thunkify,
     naming,
@@ -153,6 +160,7 @@ function compile(code, options) {
 
   function _compile() {
     var programAst = parse(code, extra.macros);
+    programAst = addFilename(programAst, filename);
     var asts = extra.asts.map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
@@ -160,23 +168,35 @@ function compile(code, options) {
       console.log('Caching transform will be applied.');
     }
 
-    return util.pipeline([
+    var transformedAst = util.pipeline([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
-      util.pipeline(transforms),
-      options.generateCode ? escodegen.generate : _.identity
+      util.pipeline(transforms)
     ])(asts);
+
+    var codeAndMap = options.generateCode ? 
+      escodegen.generate(transformedAst, {
+        sourceMap: filename,
+        sourceMapWithCode: true,
+        sourceContent: code
+      }) : transformedAst
+
+    return codeAndMap
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
-function run(code, k, options) {
+function run(filename, code, k, options) {
   var options = options || {};
-  var compiledCode = compile(code, options);
+  var codeAndMap = compile(filename, code, options);
   util.timeif(options.verbose, 'run', function() {
-    eval.call(global, compiledCode)({}, k, '');
+    try {
+      eval.call(global, codeAndMap.code)({}, k, '');
+    } catch (exception) {
+      console.log(exception)
+    }
   });
 }
 
