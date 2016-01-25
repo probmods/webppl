@@ -338,12 +338,14 @@ var tests = [
         }
       },
       mixed3: {
+        hist: { tol: 0.15 },
         args: {
           samples: 2000,
           kernel: { HMC: { steps: 20, stepSize: 1 } }
         }
       },
       mixed3Factor: {
+        hist: { tol: 0.15 },
         args: {
           samples: 2000,
           kernel: { HMC: { steps: 20, stepSize: 1 } }
