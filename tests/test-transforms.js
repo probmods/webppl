@@ -549,7 +549,11 @@ var tests = {
 
     { name: 'testMember3',
       code: 'var a = [1,2]; a[1]',
-      expected: 2 }
+      expected: 2 },
+
+    { name: 'testMember4',
+      code: '(function() { return fooObj; })().bar',
+      expected: 1 }
 
   ],
 

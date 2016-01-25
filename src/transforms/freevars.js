@@ -93,6 +93,7 @@ function exit(node) {
             outerFreeVars[name] = true;
         }
       }
+      nodeStack.pop();
       return wrappedFn;
     default:
   }
