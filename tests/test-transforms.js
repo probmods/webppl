@@ -12,6 +12,7 @@ var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
 var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
+var freevars = require('../src/transforms/freevars').freevars;
 
 var fooObj = {
   bar: 1,
@@ -91,6 +92,35 @@ var runVarargs = runOptimize;
 
 var transformAstTrampoline = compose(trampoline, transformAstVarargs);
 var runTrampoline = runVarargs;
+
+var transformAstFreevars = compose(freevars, function(node) {
+  // By thunkifying we ensure that freevars is exercised (by
+  // identifying the free variables of the thunk) even when the test
+  // code doesn't contain any functions.
+  return thunkify(node, fail('transform', node));
+});
+function runFreevars(test, code, newCode, expected) {
+  check(test, code, newCode, expected, eval(newCode)());
+}
+
+var selectFreevarsPrimitives = function() {
+  // Set global definitions
+  plus = function(x, y) {
+    return (x + y);
+  };
+  minus = function(x, y) {
+    return (x - y);
+  };
+  times = function(x, y) {
+    return (x * y);
+  };
+  and = function(x, y) {
+    return (x && y);
+  };
+  plusTwo = function(x, y) {
+    return (x + 2);
+  };
+};
 
 var selectNamingPrimitives = function() {
   // Set global definitions
@@ -181,6 +211,11 @@ function runVarargsTest(test, code, expected) {
 function runTrampolineTest(test, code, expected) {
   selectTrampolinePrimitives();
   return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
+}
+
+function runFreevarsTest(test, code, expected) {
+  selectFreevarsPrimitives();
+  return runTest(test, code, expected, transformAstFreevars, runFreevars);
 }
 
 function generateTestFunctions(allTests, testRunner) {
@@ -635,3 +670,4 @@ exports.testOptimize = generateTestFunctions(tests, runOptimizeTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
+exports.testFreevars = generateTestFunctions(tests, runFreevarsTest);
