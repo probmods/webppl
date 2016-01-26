@@ -2,32 +2,32 @@ var inc = function(x) {
   return x + 1
 };
 
-var paste = function(x,y) {
-  return x + "-" + y;
+var paste = function(x, y) {
+  return x + '-' + y;
 };
 
-[map(inc,[]),
- map(inc,[0]),
- map(inc,[0,1]),
- map(inc,[0,1,2]),
- map(inc,[0,1,2,3]),
- map(inc,[0,1,2,3,4]),
+[map(inc, []),
+ map(inc, [0]),
+ map(inc, [0, 1]),
+ map(inc, [0, 1, 2]),
+ map(inc, [0, 1, 2, 3]),
+ map(inc, [0, 1, 2, 3, 4]),
  sum(map(inc, repeat(50000, function(x) { return 0 }))),
  sum(mapN(function(i) { return i }, 50000)),
- map(function(ar) { return map(inc, ar) }, [[0,1,2,3],
-                                             [4,5,6,7],
-                                            [8,9,10,11]]),
- mapPairs2(function(x,y) { return x + y }, [], [0,1,2]),
+ map(function(ar) { return map(inc, ar) }, [[0, 1, 2, 3],
+   [4, 5, 6, 7],
+                                            [8, 9, 10, 11]]),
+ mapPairs2(function(x, y) { return x + y }, [], [0, 1, 2]),
 
- mapPairs2(function(x,y) { return x + y }, [5], [0,1,2]),
- mapPairs2(paste, [0,1,2,3], [4,5,6]),
+ mapPairs2(function(x, y) { return x + y }, [5], [0, 1, 2]),
+ mapPairs2(paste, [0, 1, 2, 3], [4, 5, 6]),
  mapPairsC(paste, []),
- mapPairsC(paste, ['a','b']),
- mapPairsC(paste, ['a','b','c']),
- mapPairsC(paste, ['a','b','c','d']),
+ mapPairsC(paste, ['a', 'b']),
+ mapPairsC(paste, ['a', 'b', 'c']),
+ mapPairsC(paste, ['a', 'b', 'c', 'd']),
 
  mapPairsNC(paste, []),
- mapPairsNC(paste, ['a','b']),
- mapPairsNC(paste, ['a','b','c']),
- mapPairsNC(paste, ['a','b','c','d'])
+ mapPairsNC(paste, ['a', 'b']),
+ mapPairsNC(paste, ['a', 'b', 'c']),
+ mapPairsNC(paste, ['a', 'b', 'c', 'd'])
 ]
