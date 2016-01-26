@@ -38,7 +38,7 @@ var Distribution = function() {
 Distribution.prototype.add = function(value, score) {
   if (score === -Infinity) {
     return;
-  }  
+  }
   var k = util.serialize(value);
   if (this.dist[k] === undefined) {
     this.dist[k] = { score: -Infinity, val: value };
