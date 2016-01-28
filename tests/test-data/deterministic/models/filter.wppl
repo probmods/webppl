@@ -1,0 +1,7 @@
+[
+  filter(isEven, []),
+  filter(isEven, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+  filter(isOdd, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+  sum(filter(isEven, mapN(function(i) { return i }, 50000))),
+  sum(filter(isOdd, mapN(function(i) { return i }, 50000)))
+]
