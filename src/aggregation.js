@@ -35,6 +35,10 @@ var Distribution = function() {
   this.dist = {};
 };
 
+Object.defineProperties(Distribution.prototype, {
+  size: { get: function() { return _.size(this.dist); } }
+});
+
 Distribution.prototype.add = function(value, score) {
   if (score === -Infinity) {
     return;
