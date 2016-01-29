@@ -2,6 +2,7 @@
 
 'use strict';
 
+var _ = require('underscore');
 var fs = require('fs');
 var esprima = require('esprima');
 var escodegen = require('escodegen');
@@ -15,21 +16,24 @@ var analyze = require('./analysis/main').analyze;
 // This is populated by the bundle.js browserify transform.
 var packages = [];
 
-// Load JS and headers from packages.
-packages.forEach(function(pkg) {
-  console.log('package ' + pkg.name + ' loaded.');
-  if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
-  pkg.headers.forEach(webppl.requireHeaderWrapper);
+var load = _.once(function() {
+  // Load JS and headers from packages.
+  packages.forEach(function(pkg) {
+    console.log('package ' + pkg.name + ' loaded.');
+    if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
+    pkg.headers.forEach(webppl.requireHeaderWrapper);
+  });
+  var extra = webppl.parsePackageCode(packages);
+  console.log('webppl loaded.');
+  return extra;
 });
 
-var extra = webppl.parsePackageCode(packages);
-
 function run(code, k, verbose) {
-  return webppl.run(code, k, { extra: extra, verbose: verbose });
+  return webppl.run(code, k, { extra: load(), verbose: verbose });
 }
 
 function compile(code, verbose) {
-  return webppl.compile(code, { extra: extra, verbose: verbose });
+  return webppl.compile(code, { extra: load(), verbose: verbose });
 }
 
 function webpplCPS(code) {
@@ -52,5 +56,3 @@ global.webppl = {
   analyze: analyze,
   runTrampoline: require('./transforms/trampoline').runner
 };
-
-console.log('webppl loaded.');

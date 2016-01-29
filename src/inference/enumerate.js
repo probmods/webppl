@@ -129,6 +129,9 @@ module.exports = function(env) {
     if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {
       return this.nextInQueue();
     } else {
+      if (this.marginal.size === 0) {
+        throw 'All paths explored by Enumerate have probability zero.';
+      }
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;
       // Return from enumeration by calling original continuation with original store:

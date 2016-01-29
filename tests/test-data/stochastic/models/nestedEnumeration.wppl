@@ -1,0 +1,13 @@
+var marginal = Enumerate(function() {
+  var x = flip();
+  var y = flip();
+  factor((x | y) ? 0 : -Infinity);
+  return x;
+});
+
+var model = function() {
+  var x = sample(marginal);
+  var y = sample(marginal);
+  factor((x | y) ? 0 : -Infinity);
+  return x;
+};
