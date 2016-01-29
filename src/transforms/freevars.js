@@ -16,7 +16,6 @@ var makeGensym = require('../util').makeGensym;
 var genid = null;
 var boundVarsStack = null;
 var freeVarsStack = null;
-var nodeStack = null;
 
 var literalIdentifiers = {
   undefined: true,
@@ -24,20 +23,19 @@ var literalIdentifiers = {
   Infinity: true
 };
 
-function identifierIsVar(node) {
+function identifierIsVar(node, parent) {
   // esprima represents some special literals as Identifer nodes; skip those
   if (literalIdentifiers[node.name]) return false;
   // exprima also represents non-computed object member access with an
   //    Identifer node, so skip those as well.
-  var ntop = nodeStack[nodeStack.length - 1];
-  if (ntop.type === Syntax.MemberExpression && !ntop.computed &&
-      node === ntop.property) return false;
+  if (parent.type === Syntax.MemberExpression && !parent.computed &&
+      node === parent.property) return false;
   // Property keys in object literal expressions are also Identifer nodes
-  if (ntop.type === Syntax.Property && node === ntop.key) return false;
+  if (parent.type === Syntax.Property && node === parent.key) return false;
   return true;
 }
 
-function enter(node) {
+function enter(node, parent) {
   switch (node.type) {
     case Syntax.FunctionExpression:
       // Bind the formal parameters of the function
@@ -54,7 +52,7 @@ function enter(node) {
         boundVarsStack[boundVarsStack.length - 1][node.id.name] = true;
       break;
     case Syntax.Identifier:
-      if (boundVarsStack.length > 0 && identifierIsVar(node)) {
+      if (boundVarsStack.length > 0 && identifierIsVar(node, parent)) {
         // If the Identifier isn't already bound, then it's a free var
         if (!boundVarsStack[boundVarsStack.length - 1][node.name])
           freeVarsStack[freeVarsStack.length - 1][node.name] = true;
@@ -62,7 +60,6 @@ function enter(node) {
       break;
     default:
   }
-  nodeStack.push(node);
 }
 
 function exit(node) {
@@ -96,14 +93,12 @@ function exit(node) {
       return wrappedFn;
     default:
   }
-  nodeStack.pop();
 }
 
 function freevarsMain(node) {
   genid = makeGensym();
   boundVarsStack = [];
   freeVarsStack = [];
-  nodeStack = [];
 
   return replace(node, { enter: enter, leave: exit });
 }
