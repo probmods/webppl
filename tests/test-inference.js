@@ -50,13 +50,13 @@ var tests = [
       simple: true,
       upweight: true,
       incrementalBinomial: true,
-      deterministic: { hist: { tol: 0 } },
-      store: { hist: { tol: 0 } },
+      deterministic: { hist: { exact: true } },
+      store: { hist: { exact: true } },
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
       optionalErpParams: true,
-      earlyExit: true,
+      earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } }
     }
   },
