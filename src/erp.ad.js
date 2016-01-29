@@ -705,7 +705,7 @@ function gaussianProposalParams(params, prevVal) {
 }
 
 function dirichletProposalParams(params, prevVal) {
-  var concentration = 0.1;
+  var concentration = 10;
   var driftParams = params.map(function(x) {return concentration * x});
   return driftParams;
 }
