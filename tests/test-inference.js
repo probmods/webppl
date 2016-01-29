@@ -50,13 +50,15 @@ var tests = [
       simple: true,
       upweight: true,
       incrementalBinomial: true,
-      deterministic: { hist: { tol: 0 } },
-      store: { hist: { tol: 0 } },
+      deterministic: { hist: { exact: true } },
+      store: { hist: { exact: true } },
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
       optionalErpParams: true,
-      earlyExit: true
+      earlyExit: { hist: { exact: true } },
+      zeroProb: { hist: { exact: true } },
+      nestedEnumeration: true
     }
   },
   {
@@ -483,7 +485,11 @@ var getInferenceArgs = function(testDef, model) {
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
-    test.ok(util.histsApproximatelyEqual(result.erp.hist, expected, args.tol));
+    var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
+    var actual = _.mapObject(result.erp.hist, function(obj) { return obj.prob; });
+    var msg = ['Expected hist: ', util.serialize(expected),
+               ', actual: ', util.serialize(actual)].join('');
+    test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
     helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');
