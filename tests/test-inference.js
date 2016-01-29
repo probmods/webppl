@@ -57,7 +57,8 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       earlyExit: { hist: { exact: true } },
-      zeroProb: { hist: { exact: true } }
+      zeroProb: { hist: { exact: true } },
+      nestedEnumeration: true
     }
   },
   {
