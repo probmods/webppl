@@ -180,7 +180,6 @@ var trueF = function() {
   return true;
 };
 
-
 // Probability computations & calculations
 
 var MAP = function(erp) {
@@ -395,11 +394,22 @@ var normalize = function(xs) {
   }, xs);
 };
 
+// TODO: short circuiting
 var all = function(p, l) {
-  return mapReduce1(and, p, l);
+  if (l.length === 0) {
+    return true
+  } else {
+    return mapReduce1(and, p, l);
+  }
 };
+
+// TODO: short circuiting
 var any = function(p, l) {
-  return mapReduce1(or, p, l);
+  if (l.length === 0) {
+    return false
+  } else {
+    return mapReduce1(or, p, l);
+  }
 };
 
 var zip = function(xs, ys) {

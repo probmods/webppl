@@ -1,5 +1,6 @@
 {
   "result": [
+    "stop",
     "1-2-3-stop",
     6,
     "a--b-c--d-e-f--stop",
@@ -7,6 +8,15 @@
     3628800,
     1,
     "2-3-4-1",
-    "2-3-4"
+    "2-3-4",
+    true,
+    true,
+    false,
+    false,
+    false,
+    true,
+
+    true,
+    false
   ]
 }
