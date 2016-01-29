@@ -135,19 +135,14 @@ function histStd(hist) {
 }
 
 function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var hist = _.mapObject(actualHist, function(obj) { return obj.prob; });
   var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,
       function(expectedValue, key) {
-        var value = hist[key] || 0;
+        var value = actualHist[key] || 0;
         var testPassed = Math.abs(value - expectedValue) <= tolerance;
         allOk = allOk && testPassed;
       });
-  if (!allOk) {
-    console.log('Expected:', expectedHist);
-    console.log('Actual:', hist);
-  }
   return allOk;
 }
 
