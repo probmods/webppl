@@ -68,7 +68,6 @@ module.exports = function(env) {
   function makeVMCallback(opts) {
     var curIter = 0;
     return {
-      init: _.identity,
       iteration: function(trace) {
         opts.iteration(curIter++);
       },
