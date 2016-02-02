@@ -19,7 +19,8 @@ module.exports = function(env) {
 
     options.kernel = kernels.parseOptions(options.kernel);
 
-    var callbacks = options.verbose ? [makeVerboseModeCallback()] : [];
+    var callbacks = options.verbose ? [makeVMCallbackForPlatform()] : [];
+
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
         new aggregation.Histogram();
@@ -59,18 +60,57 @@ module.exports = function(env) {
     });
   }
 
-  var makeVerboseModeCallback = function() {
-    var i = 0;
+  // Callbacks.
+
+  function makeVMCallback(opts) {
+    var curIter = 0;
     return {
-      initialize: function() {},
+      init: _.identity,
       iteration: function(trace) {
-        console.log('Iteration: ' + (i++));
+        opts.iteration(curIter++);
       },
       finish: function(trace) {
-        console.log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
+        opts.finish(trace, curIter - 1);
       }
     };
-  };
+  }
+
+  function makeSimpleVMCallback() {
+    return makeVMCallback({
+      iteration: function(i) {
+        console.log(formatCurIteration(i));
+      },
+      finish: function(trace) {
+        console.log(formatAcceptanceRatio(trace));
+      }
+    });
+  }
+
+  // Node.js only.
+  function makeOverwritingVMCallback() {
+    var writeCurIter = function(i) {
+      process.stdout.write('\r' + formatCurIteration(i));
+    };
+    return makeVMCallback({
+      iteration: _.throttle(writeCurIter, 200, { trailing: false }),
+      finish: function(trace, i) {
+        writeCurIter(i);
+        console.log('\n' + formatAcceptanceRatio(trace));
+      }
+    });
+  }
+
+  function formatCurIteration(i) {
+    return 'Iteration: ' + i;
+  }
+
+  function formatAcceptanceRatio(trace) {
+    return 'Acceptance ratio: ' + (trace.info.accepted / trace.info.total);
+  }
+
+  function makeVMCallbackForPlatform() {
+    return util.runningInBrowser() ? makeSimpleVMCallback() : makeOverwritingVMCallback();
+  }
 
   return {
     MCMC: MCMC
