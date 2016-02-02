@@ -19,12 +19,7 @@ module.exports = function(env) {
 
     options.kernel = kernels.parseOptions(options.kernel);
 
-    var log = function(s) {
-      if (options.verbose) {
-        console.log(s);
-      }
-    };
-
+    var callbacks = options.verbose ? [makeVerboseModeCallback()] : [];
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
         new aggregation.Histogram();
@@ -32,14 +27,15 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
+      _.invoke(callbacks, 'initialize');
       return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
     run = function(initialTrace) {
       initialTrace.info = { accepted: 0, total: 0 };
-      var printCurrIter = makePrintCurrIteration(log);
+      var callback = kernels.tap(function(trace) { _.invoke(callbacks, 'iteration', trace); });
       var collectSample = makeExtractValue(aggregator.add.bind(aggregator));
-      var kernel = kernels.sequence(options.kernel, printCurrIter);
+      var kernel = kernels.sequence(options.kernel, callback);
       var chain = kernels.sequence(
           kernels.repeat(options.burn, kernel),
           kernels.repeat(options.samples,
@@ -50,7 +46,7 @@ module.exports = function(env) {
     };
 
     finish = function(trace) {
-      log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
+      _.invoke(callbacks, 'finish', trace);
       return k(s, aggregator.toERP());
     };
 
@@ -63,12 +59,18 @@ module.exports = function(env) {
     });
   }
 
-  function makePrintCurrIteration(log) {
+  var makeVerboseModeCallback = function() {
     var i = 0;
-    return kernels.tap(function() {
-      log('Iteration: ' + i++);
-    });
-  }
+    return {
+      initialize: function() {},
+      iteration: function(trace) {
+        console.log('Iteration: ' + (i++));
+      },
+      finish: function(trace) {
+        console.log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
+      }
+    };
+  };
 
   return {
     MCMC: MCMC
