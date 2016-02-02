@@ -14,12 +14,15 @@ module.exports = function(env) {
       samples: 100,
       kernel: 'MH',
       lag: 0,
-      burn: 0
+      burn: 0,
+      callbacks: []
     });
 
     options.kernel = kernels.parseOptions(options.kernel);
 
-    var callbacks = options.verbose ? [makeVMCallbackForPlatform()] : [];
+    var callbacks = options.verbose ?
+        [makeVMCallbackForPlatform()].concat(options.callbacks) :
+        options.callbacks;
 
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
