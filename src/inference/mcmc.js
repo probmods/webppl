@@ -14,16 +14,16 @@ module.exports = function(env) {
       samples: 100,
       kernel: 'MH',
       lag: 0,
-      burn: 0
+      burn: 0,
+      callbacks: []
     });
 
     options.kernel = kernels.parseOptions(options.kernel);
 
-    var log = function(s) {
-      if (options.verbose) {
-        console.log(s);
-      }
-    };
+    var callbacks = options.verbose ?
+        [makeVMCallbackForPlatform()].concat(options.callbacks) :
+        options.callbacks;
+    _.invoke(callbacks, 'setup', numIters(options));
 
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
@@ -32,14 +32,15 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
+      _.invoke(callbacks, 'initialize');
       return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
     run = function(initialTrace) {
       initialTrace.info = { accepted: 0, total: 0 };
-      var printCurrIter = makePrintCurrIteration(log);
+      var callback = kernels.tap(function(trace) { _.invoke(callbacks, 'iteration', trace); });
       var collectSample = makeExtractValue(aggregator.add.bind(aggregator));
-      var kernel = kernels.sequence(options.kernel, printCurrIter);
+      var kernel = kernels.sequence(options.kernel, callback);
       var chain = kernels.sequence(
           kernels.repeat(options.burn, kernel),
           kernels.repeat(options.samples,
@@ -50,7 +51,7 @@ module.exports = function(env) {
     };
 
     finish = function(trace) {
-      log('Acceptance ratio: ' + trace.info.accepted / trace.info.total);
+      _.invoke(callbacks, 'finish', trace);
       return k(s, aggregator.toERP());
     };
 
@@ -63,11 +64,54 @@ module.exports = function(env) {
     });
   }
 
-  function makePrintCurrIteration(log) {
-    var i = 0;
-    return kernels.tap(function() {
-      log('Iteration: ' + i++);
+  function numIters(opts) {
+    return opts.burn + (opts.lag + 1) * opts.samples;
+  }
+
+  // Callbacks.
+
+  function makeVMCallback(opts) {
+    var curIter = 0;
+    return {
+      iteration: function(trace) {
+        opts.iteration(trace, curIter++);
+      },
+      finish: function(trace) {
+        opts.finish(trace, curIter - 1);
+      }
+    };
+  }
+
+  function makeSimpleVMCallback() {
+    return makeVMCallback({
+      iteration: function(trace, i) {
+        console.log(formatOutput(trace, i));
+      },
+      finish: _.identity
     });
+  }
+
+  // Node.js only.
+  function makeOverwritingVMCallback() {
+    var writeCurIter = function(trace, i) {
+      process.stdout.write('\r' + formatOutput(trace, i));
+    };
+    return makeVMCallback({
+      iteration: _.throttle(writeCurIter, 200, { trailing: false }),
+      finish: function(trace, i) {
+        writeCurIter(trace, i);
+        console.log();
+      }
+    });
+  }
+
+  function formatOutput(trace, i) {
+    var ratio = (trace.info.accepted / trace.info.total).toFixed(4);
+    return 'Iteration: ' + i + ' | Acceptance ratio: ' + ratio;
+  }
+
+  function makeVMCallbackForPlatform() {
+    return util.runningInBrowser() ? makeSimpleVMCallback() : makeOverwritingVMCallback();
   }
 
   return {
