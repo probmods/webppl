@@ -1,0 +1,7 @@
+[
+  zip([], []),
+  zip(['a', 'b', 'c'], [1, 2, 3]),
+  sum(map(sum,
+          zip(repeat(50000, function() { return 0 }),
+              repeat(50000, function() { return 1 }))))
+]
