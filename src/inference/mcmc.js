@@ -69,7 +69,7 @@ module.exports = function(env) {
     var curIter = 0;
     return {
       iteration: function(trace) {
-        opts.iteration(curIter++);
+        opts.iteration(trace, curIter++);
       },
       finish: function(trace) {
         opts.finish(trace, curIter - 1);
@@ -79,35 +79,30 @@ module.exports = function(env) {
 
   function makeSimpleVMCallback() {
     return makeVMCallback({
-      iteration: function(i) {
-        console.log(formatCurIteration(i));
+      iteration: function(trace, i) {
+        console.log(formatOutput(trace, i));
       },
-      finish: function(trace) {
-        console.log(formatAcceptanceRatio(trace));
-      }
+      finish: _.identity
     });
   }
 
   // Node.js only.
   function makeOverwritingVMCallback() {
-    var writeCurIter = function(i) {
-      process.stdout.write('\r' + formatCurIteration(i));
+    var writeCurIter = function(trace, i) {
+      process.stdout.write('\r' + formatOutput(trace, i));
     };
     return makeVMCallback({
       iteration: _.throttle(writeCurIter, 200, { trailing: false }),
       finish: function(trace, i) {
-        writeCurIter(i);
-        console.log('\n' + formatAcceptanceRatio(trace));
+        writeCurIter(trace, i);
+        console.log();
       }
     });
   }
 
-  function formatCurIteration(i) {
-    return 'Iteration: ' + i;
-  }
-
-  function formatAcceptanceRatio(trace) {
-    return 'Acceptance ratio: ' + (trace.info.accepted / trace.info.total);
+  function formatOutput(trace, i) {
+    var ratio = (trace.info.accepted / trace.info.total).toFixed(4);
+    return 'Iteration: ' + i + ' | Acceptance ratio: ' + ratio;
   }
 
   function makeVMCallbackForPlatform() {
