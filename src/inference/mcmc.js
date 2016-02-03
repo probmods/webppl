@@ -23,6 +23,7 @@ module.exports = function(env) {
     var callbacks = options.verbose ?
         [makeVMCallbackForPlatform()].concat(options.callbacks) :
         options.callbacks;
+    _.invoke(callbacks, 'setup', numIters(options));
 
     var aggregator = (options.justSample || options.onlyMAP) ?
         new aggregation.MAP(options.justSample) :
@@ -61,6 +62,10 @@ module.exports = function(env) {
     return kernels.tap(function(trace) {
       fn(trace.value, trace.score);
     });
+  }
+
+  function numIters(opts) {
+    return opts.burn + (opts.lag + 1) * opts.samples;
   }
 
   // Callbacks.
