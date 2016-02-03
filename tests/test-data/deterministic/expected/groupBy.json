@@ -1,0 +1,8 @@
+{
+  "result": [
+    [[{"color": "red", "size": 2},{"color": "red", "size": 4}],
+     [{"color": "blue", "size": 1},{"color": "blue", "size": 3}]
+    ],
+    [10,10]
+  ]
+}
