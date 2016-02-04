@@ -10,7 +10,7 @@ var fail = require('../syntax').fail;
 var inProgram = require('../syntax').inProgram;
 var isPrimitive = require('../syntax').isPrimitive;
 var util = require('../util');
-
+var _ = require('underscore');
 
 function thunkify(node) {
   return build.functionExpression(
