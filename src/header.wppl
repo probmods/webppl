@@ -395,6 +395,8 @@ var normalize = function(xs) {
 };
 
 // TODO: short circuiting
+// (also, this form is uninuitive.. we should set p to be idF by default
+// as in sort)
 var all = function(p, l) {
   if (l.length === 0) {
     return true
