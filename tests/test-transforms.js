@@ -1,6 +1,7 @@
 'use strict';
 
-require('../src/main');
+var webppl = require('../src/main');
+
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
@@ -79,7 +80,13 @@ function runCps(test, code, newCode, expected) {
 
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
-  eval(newCode)({}, function(store, actual) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  if (newCode.indexOf('runTrampoline') > 0) {
+    f = f(require('../src/util').trampolineRunners.cli);
+  }
+  f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
 }
