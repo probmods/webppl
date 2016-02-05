@@ -16,7 +16,14 @@ function printWebPPLValue(x) {
   } else {
     console.log(x);
   }
-}
+};
+
+function topK(s,x) {
+  console.log('\n* Program return value:\n');
+  printWebPPLValue(x);
+};
+
+var cliRunner = require('./src/util').trampolineRunners.cli;
 
 function run(code, packages, verbose) {
   packages.forEach(function(pkg) {
@@ -36,6 +43,10 @@ function run(code, packages, verbose) {
       });
 }
 
+var lines = function(ar) {
+  return ar.join('\n')
+}
+
 function compile(code, packages, verbose, outputFile) {
   var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
   packages.forEach(function(pkg) {
@@ -49,13 +60,14 @@ function compile(code, packages, verbose, outputFile) {
 
   var compiledBody = webppl.compile(code, compileOptions);
 
-  compiledCode += (
-      printWebPPLValue.toString() + '\n' +
-      'var topK = function(s, x){ \n' +
-      " console.log('\\n* Program return value:\\n'); \n" +
-      ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + compiledBody + '\n\n';
-  compiledCode += "main({}, topK, '');";
+  compiledCode += lines([
+    'var __runner__ = ' + cliRunner.toString() + ';',
+    printWebPPLValue.toString() + ';',
+    topK.toString() + ';',
+    'var main = ' + compiledBody + '\n',
+    "main(__runner__)({}, topK, '');"
+  ])
+
   // Write Javascript code to file
   fs.writeFile(
       outputFile,

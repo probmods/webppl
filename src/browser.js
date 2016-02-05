@@ -28,9 +28,7 @@ function run(code, k, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: extra},
-                                 _.defaults(options, { trampolineRunner: 'web' }))
-
+  var optionsExtended = _.extend({extra: extra}, options);
 
   return webppl.run(code, k, optionsExtended);
 }
@@ -39,8 +37,7 @@ function compile(code, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: extra},
-                                 _.defaults(options, { trampolineRunner: 'web' }));
+  var optionsExtended = _.extend({extra: extra}, options);
   return webppl.compile(code, optionsExtended);
 }
 
@@ -61,8 +58,7 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  analyze: analyze,
-  runTrampoline: function(t) { require('./transforms/trampoline').runner(t) }
+  analyze: analyze
 };
 
 console.log('webppl loaded.');

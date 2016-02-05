@@ -48,58 +48,28 @@ function trampoline(node) {
   }
 }
 
-
-var trampolineRunners = {
-  cli: function(t) {
-    while (t) {
-      t = t()
+var driverFn = function(p) {
+  return function(runTrampoline) {
+    return function(s, k, a) {
+      var t = p(s, k, a);
+      runTrampoline(t);
     }
-  },
-  web: function f(t) {
-    var lastPauseTime = Date.now();
-    while (t) {
-      var currTime = Date.now();
-      if (currTime - lastPauseTime > 100) {
-        return setTimeout(function() { f(t) }, 0);
-      } else {
-        t = t();
-      }
-    }
-  }
-};
-
-function trampolineMainWrapper(options) {
-  // options must contain a runner key with a function value
-  if (options === undefined) {
-    options = {};
-  }
-  options = _.defaults(options,
-                       {runner: 'cli'});
-
-  var selectedTrampolineRunner = trampolineRunners[options.runner];
-  module.exports.runner = selectedTrampolineRunner;
-
-  var driver = parse(['(function (p) {',
-                      '  var runTrampoline = ' + selectedTrampolineRunner.toString(),
-                      '  return function(s, k, a) {',
-                      '    var t = p(s, k, a);',
-                      '    runTrampoline(t);',
-                      '  }',
-                      '})'].join('\n')
-  ).body[0].expression;
-
-  return function trampolineMain(node) {
-    var r = inProgram(function(node) {
-      return build.callExpression(driver, [replace(node, {
-        enter: skip,
-        leave: trampoline
-      })]);
-    })(node, fail('trampoline', node));
-
-    return r;
   }
 }
 
+var driver = parse('(' + driverFn.toString() + ')').body[0].expression;
+
+function trampolineMain(node) {
+  var r = inProgram(function(node) {
+    return build.callExpression(driver, [replace(node, {
+      enter: skip,
+      leave: trampoline
+    })]);
+  })(node, fail('trampoline', node));
+
+  return r;
+}
+
 module.exports = {
-  trampoline: trampolineMainWrapper
+  trampoline: trampolineMain
 };
