@@ -11,7 +11,7 @@ var naming = require('../src/transforms/naming').naming;
 var cps = require('../src/transforms/cps').cps;
 var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
-var trampoline = require('../src/transforms/trampoline').trampoline({runner: 'cli'});
+var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
 
 var fooObj = {
@@ -79,7 +79,13 @@ function runCps(test, code, newCode, expected) {
 
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
-  eval(newCode)({}, function(store, actual) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  if (newCode.indexOf('runTrampoline') > 0) {
+    f = f(require('../src/util').trampolineRunners.cli);
+  }
+  f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
 }
