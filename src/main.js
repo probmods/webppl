@@ -138,9 +138,9 @@ function copyAst(ast) {
 }
 
 function compile(code, options) {
-  var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
-
+  options = util.mergeDefaults(options, { verbose: false, generateCode: true });
   var extra = options.extra || parsePackageCode([], options.verbose);
+
   var transforms = options.transforms || [
     thunkify,
     naming,
@@ -172,25 +172,28 @@ function compile(code, options) {
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
+
 function run(code, k, options) {
-  var options = options || {};
+  options = _.defaults(options || {},
+                       {runner: util.runningInBrowser() ? 'web' : 'cli'});
+
+  var runner = util.trampolineRunners[options.runner];
   var compiledCode = compile(code, options);
+
   util.timeif(options.verbose, 'run', function() {
-    eval.call(global, compiledCode)({}, k, '');
+    eval.call(global, compiledCode)(runner)({}, k, '');
   });
 }
 
 // Make webppl eval available within webppl
-global.webpplEval = function(s, k, a, code) {
-  var compiledCode = compile(code);
-  return eval.call(global, compiledCode)(s, k, a);
-};
-
-function runTrampoline(t) {
-  while (t) {
-    t = t();
+// runner is one of 'cli','web'
+global.webpplEval = function(s, k, a, code, runner) {
+  if (runner === undefined) {
+    runner = util.runningInBrowser() ? 'web' : 'cli'
   }
-}
+  var compiledCode = compile(code);
+  return eval.call(global, compiledCode)(util.trampolineRunners[runner])(s, k, a);
+};
 
 module.exports = {
   requireHeader: requireHeader,
@@ -198,6 +201,5 @@ module.exports = {
   parsePackageCode: parsePackageCode,
   run: run,
   compile: compile,
-  analyze: analyze,
-  runTrampoline: runTrampoline
+  analyze: analyze
 };

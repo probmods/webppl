@@ -28,12 +28,21 @@ var load = _.once(function() {
   return extra;
 });
 
-function run(code, k, verbose) {
-  return webppl.run(code, k, { extra: load(), verbose: verbose });
+function run(code, k, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: load()}, options);
+
+  return webppl.run(code, k, optionsExtended);
 }
 
-function compile(code, verbose) {
-  return webppl.compile(code, { extra: load(), verbose: verbose });
+function compile(code, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: load()}, options);
+  return webppl.compile(code, optionsExtended);
 }
 
 function webpplCPS(code) {
@@ -53,6 +62,5 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  analyze: analyze,
-  runTrampoline: require('./transforms/trampoline').runner
+  analyze: analyze
 };
