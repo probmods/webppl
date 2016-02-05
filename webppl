@@ -66,7 +66,7 @@ function compile(code, packages, verbose, outputFile) {
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
     "main(__runner__)({}, topK, '');"
-  ])
+  ]);
 
   // Write Javascript code to file
   fs.writeFile(
