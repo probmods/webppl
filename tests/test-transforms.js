@@ -14,6 +14,7 @@ var optimize = require('../src/transforms/optimize').optimize;
 var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
 var freevars = require('../src/transforms/freevars').freevars;
+var util = require('../src/util');
 
 var fooObj = {
   bar: 1,
@@ -98,7 +99,7 @@ function runTrampoline(test, code, newCode, expected) {
   var f = eval(newCode);
   // the result of trampoline transform needs to be evaluated an extra time,
   // supplying the runner as an argument
-  f = f(require('../src/util').trampolineRunners.cli);
+  f = f(util.trampolineRunners.cli);
   f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');

@@ -23,7 +23,7 @@ function topK(s,x) {
   printWebPPLValue(x);
 };
 
-var cliRunner = require('./src/util').trampolineRunners.cli;
+var cliRunner = util.trampolineRunners.cli;
 
 function run(code, packages, verbose) {
   packages.forEach(function(pkg) {
