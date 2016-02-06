@@ -81,11 +81,6 @@ function runCps(test, code, newCode, expected) {
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
   var f = eval(newCode);
-  // the result of trampoline transform needs to be evaluated an extra time,
-  // supplying the runner as an argument
-  if (newCode.indexOf('runTrampoline') > 0) {
-    f = f(require('../src/util').trampolineRunners.cli);
-  }
   f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
@@ -98,7 +93,16 @@ var transformAstVarargs = compose(varargs, transformAstOptimize);
 var runVarargs = runOptimize;
 
 var transformAstTrampoline = compose(trampoline, transformAstVarargs);
-var runTrampoline = runVarargs;
+
+function runTrampoline(test, code, newCode, expected) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  f = f(require('../src/util').trampolineRunners.cli);
+  f({}, function(store, actual) {
+    check(test, code, newCode, expected, actual);
+  }, '');
+}
 
 var transformAstFreevars = compose(freevars, function(node) {
   // By thunkifying we ensure that freevars is exercised (by
