@@ -21,6 +21,7 @@ var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
+var printFriendlyStackTrace = require('./friendlyStackTrace');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -195,7 +196,7 @@ function run(filename, code, k, options) {
     try {
       eval.call(global, codeAndMap.code)({}, k, '');
     } catch (exception) {
-      console.log(exception)
+      printFriendlyStackTrace(exception, codeAndMap.map)
     }
   });
 }
