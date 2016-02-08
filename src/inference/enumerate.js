@@ -10,6 +10,7 @@ var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
 var Distribution = require('../aggregation/distribution');
+var ad = require('../ad');
 
 module.exports = function(env) {
 
@@ -81,7 +82,7 @@ module.exports = function(env) {
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          cc, value, this.score + dist.score(params, value), store);
+          cc, value, ad.add(this.score, dist.score(params, value)), store);
     }, this);
 
     // Call the next state on the queue
@@ -90,8 +91,8 @@ module.exports = function(env) {
 
   Enumerate.prototype.factor = function(s, cc, a, score) {
     // Update score and continue
-    this.score += score;
-    if (this.score === -Infinity) {
+    this.score = ad.add(this.score, score);
+    if (ad.untapify(this.score) === -Infinity) {
       return this.exit();
     }
     return cc(s);
@@ -106,7 +107,7 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + dist.score(params, value) + extraScore;
+            var score = ad.add(ad.add(env.coroutine.score, dist.score(params, value)), extraScore);
             env.coroutine.enqueueContinuation(cc, value, score, store);
             return nextK();
           }, a, value);

@@ -150,7 +150,11 @@ var tests = [
       varFactors1: true,
       varFactors2: true,
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
@@ -403,7 +407,11 @@ var tests = [
           burn: 50,
           kernel: { HMC: { steps: 50, stepSize: 0.004 } }
         }
-      }
+      },
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {

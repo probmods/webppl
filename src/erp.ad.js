@@ -612,7 +612,7 @@ function multinomialSample(theta) {
 
 // Make a discrete ERP from a normalized {val: ..., prob: ...} object.
 function makeMarginalERP(marginal) {
-  var norm = _.reduce(marginal, function(acc, obj) { return acc + obj.prob; }, 0);
+  var norm = _.reduce(marginal, function(acc, obj) { return acc + ad.untapify(obj.prob); }, 0);
   assert.ok(Math.abs(1 - norm) < 1e-8, 'Expected marginal to be normalized.');
   var support = _.map(marginal, function(obj) {
     return obj.val;
@@ -624,7 +624,7 @@ function makeMarginalERP(marginal) {
       var probAccum = 0;
       for (var i in marginal) {
         if (marginal.hasOwnProperty(i)) {
-          probAccum += marginal[i].prob;
+          probAccum += ad.untapify(marginal[i].prob);
           if (x < probAccum) {
             return marginal[i].val;
           }
