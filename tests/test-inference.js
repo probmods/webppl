@@ -58,7 +58,7 @@ var tests = [
       optionalErpParams: true,
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
-      nestedEnumeration: true
+      nestedEnumDiscrete: true
     }
   },
   {
@@ -151,6 +151,7 @@ var tests = [
       varFactors2: true,
       withCaching: true,
       optionalErpParams: true,
+      nestedEnumDiscrete: true,
       nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
       nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
       nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
