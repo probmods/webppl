@@ -197,7 +197,11 @@ var tests = [
       importance2: { args: { particles: 3000 } },
       importance3: true,
       withCaching: true,
-      optionalErpParams: true
+      optionalErpParams: true,
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
@@ -225,7 +229,11 @@ var tests = [
       importance3: true,
       withCaching: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
@@ -245,7 +253,11 @@ var tests = [
       drift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 }
-      }
+      },
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
@@ -276,7 +288,11 @@ var tests = [
       importance2: true,
       importance3: true,
       optionalErpParams: true,
-      variableSupport: true
+      variableSupport: true,
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
@@ -303,7 +319,11 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum4: { hist: { exact: true } }
     }
   },
   {
