@@ -1,6 +1,7 @@
 'use strict';
 
-require('../src/main');
+var webppl = require('../src/main');
+
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
@@ -13,6 +14,7 @@ var optimize = require('../src/transforms/optimize').optimize;
 var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
 var freevars = require('../src/transforms/freevars').freevars;
+var util = require('../src/util');
 
 var fooObj = {
   bar: 1,
@@ -79,7 +81,8 @@ function runCps(test, code, newCode, expected) {
 
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
-  eval(newCode)({}, function(store, actual) {
+  var f = eval(newCode);
+  f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
 }
@@ -91,7 +94,16 @@ var transformAstVarargs = compose(varargs, transformAstOptimize);
 var runVarargs = runOptimize;
 
 var transformAstTrampoline = compose(trampoline, transformAstVarargs);
-var runTrampoline = runVarargs;
+
+function runTrampoline(test, code, newCode, expected) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  f = f(util.trampolineRunners.cli);
+  f({}, function(store, actual) {
+    check(test, code, newCode, expected, actual);
+  }, '');
+}
 
 var transformAstFreevars = compose(freevars, function(node) {
   // By thunkifying we ensure that freevars is exercised (by
