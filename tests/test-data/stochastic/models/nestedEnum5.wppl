@@ -1,0 +1,18 @@
+var model = function() {
+  var x = uniform(0, 1);
+
+  var firstMarginal = Enumerate(function() {
+    var y = flip(x);
+    factor(!y ? 0 : -3);
+    return y;
+  });
+
+  var secondMarginal = Enumerate(function() {
+    var z = sample(firstMarginal);
+    factor(z ? 1 : -1);
+    return z;
+  });
+
+  var w = sample(secondMarginal);
+  return x * w;
+};
