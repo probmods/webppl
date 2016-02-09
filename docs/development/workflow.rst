@@ -12,26 +12,6 @@ Before committing changes, run grunt (which runs `tests`_ and
 If grunt doesn’t succeed, the `continuous integration tests`_ will fail
 as well.
 
-Modifying erp.ad.js
--------------------
-
-During development, it is necessary to transform ``src/erp.ad.js``
-after it has been modified by running::
-
-    ./scripts/transformERP
-
-This transforms ERP score functions in order to support automatic
-differentiation using `ad.js <https://github.com/iffsid/ad.js>`_.
-
-For performance reasons, not all code is transformed. All code
-relating to computing scores should therefore be implemented as some
-combination of the following:
-
-* Named functions where the name ends with ``Score`` or ``AD``. e.g.
-  ``function gaussianScore() {}``, ``function sumAD() {}``.
-* Anonymous functions defined as the ``score`` property of an object
-  literal. e.g. ``{ score: function() {} }``
-
 Tests
 -----
 

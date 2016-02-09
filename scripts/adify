@@ -4,10 +4,10 @@
 
 var fs = require('fs');
 var path = require('path');
-var adscorers = require('../src/transforms/adscorers').adscorers;
+var adify = require('../src/transforms/adify').adify;
 
 var inFile = path.join(__dirname, '../src/erp.ad.js');
 var outFile = path.join(__dirname, '../src/erp.js');
 
 var code = fs.readFileSync(inFile, 'utf8');
-fs.writeFileSync(outFile, adscorers(code));
+fs.writeFileSync(outFile, adify(code));
