@@ -2,11 +2,12 @@
 
 var serialize = require('./util').serialize
 var LRU = require('lru-cache');
+var ad = require('./ad');
 
 module.exports = function(env) {
 
   function display(s, k, a, x) {
-    return k(s, console.log(x));
+    return k(s, console.log(ad.untapify(x)));
   }
 
   // Caching for a wppl function f.
