@@ -93,9 +93,12 @@ function packagesToPairs(packages) {
 function addHeaderMacrosToEachPair(pairs) {
   // This assumes that pair[0] is the content of the header.
   assert.ok(pairs.length >= 1 && pairs[0].macros.length === 2);
-  var headerMacros = pairs[0].macros[0];
-  return pairs.map(function(pair) {
-    return { code: pair.code, macros: pair.macros.concat(headerMacros) };
+  var headerMacros = pairs[0].macros;
+  return pairs.map(function(pair, i) {
+    return {
+      code: pair.code,
+      macros: pair.macros.concat(i > 0 ? headerMacros : [])
+    };
   });
 }
 
