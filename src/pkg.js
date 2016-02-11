@@ -53,7 +53,12 @@ var read = function(name_or_path, paths, verbose) {
           name: name,
           js: isJsModule(candidate) && { identifier: toCamelCase(name), path: candidate },
           headers: _.map(manifest.headers, joinPath),
-          wppl: _.map(manifest.wppl, joinPath),
+          wppl: _.map(manifest.wppl, function(manifestPath) {
+            return {
+              rel: path.join(path.basename(candidate), manifestPath),
+              full: joinPath(manifestPath)
+            };
+          }),
           macros: _.map(manifest.macros, joinPath)
         };
       } else {
@@ -75,39 +80,53 @@ var load = function(pkg) {
   return {
     js: pkg.js,
     headers: pkg.headers,
-    wppl: pkg.wppl.map(function(fn) { return fs.readFileSync(fn); }),
+    wppl: pkg.wppl.map(function(path) {
+      return {
+        code: fs.readFileSync(path.full),
+        filename: path.full
+      };
+    }),
     macros: pkg.macros.map(function(fn) { return fs.readFileSync(fn); })
   };
 };
 
-var wrapWithQuotes = function(s) { return '"' + s + '"'; };
-var wrapWithRequire = function(s) { return 'require("' + s + '")'; };
-var wrapWithReadFile = function(s) { return 'fs.readFileSync("' + s + '", "utf8")'; };
+// Recursively transform a package (as returned by read) into an
+// expression which can be transformed by the browserify plugin.
 
-var wrappers = {
-  identifier: wrapWithQuotes,
-  name: wrapWithQuotes,
-  headers: wrapWithRequire,
-  path: wrapWithRequire,
-  wppl: wrapWithReadFile,
-  macros: wrapWithReadFile
+var stringify = function(obj) {
+  var kvs = _.chain(obj).mapObject(function(val, key) {
+    if (_.isArray(val)) {
+      return stringifyArray(val, wrappers[key]);
+    } else if (_.isBoolean(val)) {
+      return val.toString();
+    } else if (_.isObject(val)) {
+      return stringify(val);
+    } else {
+      return wrappers[key](val);
+    }
+  }).map(function(val, key) {
+    return key + ': ' + val;
+  }).value();
+  return '{' + kvs.join(', ') + '}';
 };
 
-// Recursively transform a package (as returned by read) into an expression
-// which can be transformed by the browserify plugin.
+var stringifyArray = function(arr, f) {
+  return '[' + arr.map(f).join(', ') + ']';
+};
 
-var stringify = function(obj, lastSeenKey) {
-  if (_.isArray(obj)) {
-    return '[' + obj.map(function(x) { return stringify(x, lastSeenKey); }).join(', ') + ']';
-  } else if (_.isObject(obj)) {
-    var s = _.map(obj, function(value, key) {
-      return key + ': ' + stringify(value, key) + '';
-    }).join(', ');
-    return '{ ' + s + ' }';
-  } else if (_.isString(obj)) {
-    return wrappers[lastSeenKey](obj);
-  }
-}
+var wrapWithRequire = function(path) { return 'require("' + path + '")'; };
+var wrapWithQuotes = function(s) { return '"' + s + '"'; };
+
+var wrappers = {
+  wppl: function(path) {
+    return '{ code: fs.readFileSync("' + path.full + '", "utf8"), filename: "' + path.rel + '" }';
+  },
+  macros: function(path) { return 'fs.readFileSync("' + path + '", "utf8")'; },
+  headers: wrapWithRequire,
+  identifier: wrapWithQuotes,
+  path: wrapWithRequire,
+  name: wrapWithQuotes
+};
 
 module.exports = {
   read: read,
