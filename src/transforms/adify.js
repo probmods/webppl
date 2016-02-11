@@ -1,11 +1,13 @@
 'use strict';
 
 var assert = require('assert');
+var path = require('path');
 var parse = require('esprima').parse;
 var replace = require('estraverse').replace;
 var generate = require('escodegen').generate;
 var build = require('ast-types').builders;
 var sweet = require('sweet.js');
+var _ = require('underscore');
 var util = require('../util');
 
 var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
@@ -64,11 +66,11 @@ function transform(ast) {
   });
 }
 
-function addAdRequire(ast) {
+function addAdRequire(ast, adRequirePath) {
   var body = ast.body;
   var useStrictNode = body[0];
   assert.ok(isUseStrictExpr(useStrictNode));
-  var requireNode = parse("var ad = require('./ad');").body[0];
+  var requireNode = parse("var ad = require('" + adRequirePath + "');").body[0];
   var rest = body.slice(1);
   return build.program([useStrictNode, requireNode].concat(rest));
 }
@@ -85,7 +87,7 @@ function removeUseAdExpressions(ast) {
   });
 }
 
-function adifyMain(code) {
+function adifyMain(code, adRequirePath) {
   return util.pipeline([
     parse,
     function(node) {
@@ -93,7 +95,7 @@ function adifyMain(code) {
           expandMacros(code) :
           transform(node);
     },
-    addAdRequire,
+    _.partial(addAdRequire, _, adRequirePath),
     removeUseAdExpressions,
     generate
   ])(code);

@@ -6,8 +6,34 @@ var fs = require('fs');
 var path = require('path');
 var adify = require('../src/transforms/adify').adify;
 
-var inFile = path.join(__dirname, '../src/erp.ad.js');
-var outFile = path.join(__dirname, '../src/erp.js');
+function findFiles(root, regex) {
+  function walk(dir) {
+    fs.readdirSync(dir).forEach(function(f) {
+      var p = path.join(dir, f);
+      if (fs.statSync(p).isDirectory()) {
+        walk(p);
+      } else if (f.match(regex)) {
+        matches.push(p);
+      }
+    });
+  }
+  var matches = [];
+  walk(root);
+  return matches;
+}
 
-var code = fs.readFileSync(inFile, 'utf8');
-fs.writeFileSync(outFile, adify(code));
+var root = path.join(__dirname, '..', 'src');
+var adregex = /\.ad\.js$/;
+
+function adRequirePath(srcFilename) {
+  var dir = path.parse(srcFilename).dir;
+  var adFileName = path.join(__dirname, '..', 'src', 'ad.js');
+  var adPath = path.normalize(path.parse(path.relative(dir, adFileName)).dir);
+  return adPath + path.sep + 'ad.js';
+}
+
+findFiles(root, adregex).forEach(function(inFile) {
+  var outFile = inFile.replace(adregex, '.js');
+  var code = fs.readFileSync(inFile, 'utf8');
+  fs.writeFileSync(outFile, adify(code, adRequirePath(inFile)));
+});
