@@ -1,13 +1,5 @@
 'use strict';
 
-var compile = function(code) {
-  return webppl.compile(code, {trampolineRunner: 'cli'});
-};
-
-var run = function(code) {
-  return webppl.run(code, {trampolineRunner: 'cli'});
-}
-
 QUnit.test('run', function(test) {
   webppl.run('Enumerate(flip)', function(s, erp) {
     test.ok(_.isEqual([false, true], erp.support().sort()));
@@ -23,7 +15,7 @@ QUnit.test('run twice', function(test) {
 });
 
 QUnit.test('compile', function(test) {
-  test.ok(_.isString(compile('1 + 1')));
+  test.ok(_.isString(webppl.compile('1 + 1')));
 });
 
 QUnit.test('cps', function(test) {
