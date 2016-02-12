@@ -12,6 +12,25 @@ Before committing changes, run grunt (which runs `tests`_ and
 If grunt doesn’t succeed, the `continuous integration tests`_ will fail
 as well.
 
+Modifying .ad.js files
+----------------------
+
+Files with names which end with ``.ad.js`` are transformed to use AD
+primitives when WebPPL is installed.
+
+During development it is necessary to run this transform after any
+such files have been modified. This is done with::
+
+    ./scripts/adify
+
+The scope of the transform is controlled with the ``'use ad'``
+directive. If this directive appears directly after the ``'use
+strict'`` directive at the top of a file, then the whole file will be
+transformed. Otherwise, those functions which include the directive
+before any other statements or expressions in their body will be
+transformed. Any function nested within a function which includes the
+directive will also be transformed.
+
 Tests
 -----
 
