@@ -1,4 +1,5 @@
-// A browserify plugin to include webppl packages in the browser bundle.
+// A browserify plugin to include packages and version information in
+// the browser bundle.
 
 'use strict';
 
@@ -12,12 +13,13 @@ var _ = require('underscore');
 
 var pkg = require('./pkg');
 var util = require('./util');
+var version = require('./version');
 
 var parseExpr = function(s) {
   return esprima.parse('(' + s + ')').body[0].expression;
 };
 
-var transform = function(code, opts) {
+var transform = function(code, version, opts) {
 
   var replace = _.partial(estraverse.replace, _, {
     enter: function(node, parent) {
@@ -32,6 +34,14 @@ var transform = function(code, opts) {
         });
 
         return { type: node.type, elements: exprs };
+      }
+
+      if (node.type === 'Literal' &&
+          node.value === '' &&
+          parent.type === 'VariableDeclarator' &&
+          parent.id.type === 'Identifier' &&
+          parent.id.name === 'version') {
+        return { type: node.type, value: version };
       }
 
     }
@@ -52,7 +62,9 @@ module.exports = function(file, opts) {
         next();
       },
       function(next) {
-        this.push(transform(code, opts));
-        next();
+        version.get(__dirname, function(ver) {
+          this.push(transform(code, ver.describe, opts));
+          next();
+        }.bind(this));
       });
 };
