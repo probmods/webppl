@@ -7,7 +7,7 @@ var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var util = require('./src/util');
 var parseArgs = require('minimist');
-var git = require('git-rev-2');
+var version = require('./src/version');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
@@ -87,16 +87,9 @@ function main() {
 
   // Print version if requested
   if (argv.version) {
-    git.branch(
-        __dirname,
-        function(err, branch) {
-          __dirname,
-          git.short(
-              function(err, shortName) {
-                console.log(branch, shortName, __dirname);
-              });
-        }
-    );
+    version.get(__dirname, function(ver) {
+      console.log(ver.branch, ver.short, __dirname);
+    });
     return;
   }
 
