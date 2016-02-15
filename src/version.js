@@ -5,9 +5,9 @@ function get(dirname, callback) {
       dirname,
       function(err, branch) {
         dirname,
-        git.short(
-            function(err, short) {
-              callback({ branch: branch, short: short });
+        git.describe(
+            function(err, describe) {
+              callback({ branch: branch, describe: describe });
             });
       });
 }

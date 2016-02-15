@@ -88,7 +88,7 @@ function main() {
   // Print version if requested
   if (argv.version) {
     version.get(__dirname, function(ver) {
-      console.log(ver.branch, ver.short, __dirname);
+      console.log(ver.branch, ver.describe, __dirname);
     });
     return;
   }
