@@ -394,9 +394,6 @@ var normalize = function(xs) {
   }, xs);
 };
 
-// TODO: short circuiting
-// (also, this form is uninuitive.. we should set p to be idF by default
-// as in sort)
 var all = function(p, l) {
   if (l.length === 0) {
     return true
@@ -405,7 +402,6 @@ var all = function(p, l) {
   }
 };
 
-// TODO: short circuiting
 var any = function(p, l) {
   if (l.length === 0) {
     return false
@@ -587,7 +583,6 @@ var everyOther = function(l) {
   return l.length <= 1 ? l : [l[0]].concat(everyOther(l.slice(2)));
 };
 
-// FIXME: optimize
 var _merge = function(l1, l2, pred, key) {
   return (l1.length === 0 ?
           l2 :
@@ -598,7 +593,6 @@ var _merge = function(l1, l2, pred, key) {
             [l2[0]].concat(_merge(l1, l2.slice(1), pred, key)))));
 };
 
-// FIXME: optimize
 var _sort = function(l, pred, key) {
   return ((l.length <= 1) ?
           l :
