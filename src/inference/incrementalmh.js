@@ -8,7 +8,8 @@ var assert = require('assert');
 var util = require('../util');
 var Hashtable = require('../hashtable').Hashtable
 var Query = require('../query').Query;
-var aggregation = require('../aggregation');
+var Histogram = require('../aggregation/histogram');
+var MAP = require('../aggregation/map');
 
 module.exports = function(env) {
 
@@ -769,8 +770,8 @@ module.exports = function(env) {
     this.a = a;
 
     this.aggregator = (justSample || onlyMAP) ?
-        new aggregation.MAP(justSample) :
-        new aggregation.Histogram();
+        new MAP(justSample) :
+        new Histogram();
 
     this.totalIterations = numIterations;
     this.acceptedProps = 0;

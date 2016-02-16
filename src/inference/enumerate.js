@@ -9,7 +9,7 @@
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
-var Distribution = require('../aggregation').Distribution;
+var Distribution = require('../aggregation/distribution');
 
 module.exports = function(env) {
 

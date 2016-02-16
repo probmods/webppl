@@ -11,7 +11,7 @@
 var erp = require('../erp');
 var assert = require('assert');
 var util = require('../util')
-var Histogram = require('../aggregation').Histogram;
+var Histogram = require('../aggregation/histogram');
 
 module.exports = function(env) {
 

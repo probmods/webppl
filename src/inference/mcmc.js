@@ -2,7 +2,8 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var aggregation = require('../aggregation');
+var Histogram = require('../aggregation/histogram');
+var MAP = require('../aggregation/map');
 
 module.exports = function(env) {
 
@@ -26,8 +27,8 @@ module.exports = function(env) {
     _.invoke(callbacks, 'setup', numIters(options));
 
     var aggregator = (options.justSample || options.onlyMAP) ?
-        new aggregation.MAP(options.justSample) :
-        new aggregation.Histogram();
+        new MAP(options.justSample) :
+        new Histogram();
 
     var initialize, run, finish;
 

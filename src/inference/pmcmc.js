@@ -6,7 +6,7 @@
 var _ = require('underscore');
 var erp = require('../erp');
 var util = require('../util')
-var Histogram = require('../aggregation').Histogram;
+var Histogram = require('../aggregation/histogram');
 
 module.exports = function(env) {
 
