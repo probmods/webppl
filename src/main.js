@@ -50,13 +50,13 @@ function concatPrograms(programs) {
   return programs.reduce(concat, emptyProgram);
 }
 
-function parse(code, macros) {
+function parse(code, macros, filename) {
   return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
 }
 
-function parseAllPairs(pairs) {
-  return pairs.map(function(pair) {
-    return parse(pair.code, pair.macros);
+function parseAll(bundles) {
+  return bundles.map(function(bundle) {
+    return parse(bundle.code, bundle.macros, bundle.filename);
   });
 }
 
@@ -72,32 +72,32 @@ function headerPackage() {
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
   var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
-  return { wppl: [code], macros: [headerMacroModule, adMacroModule] };
+  return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule, adMacroModule] };
 }
 
-function packagesToPairs(packages) {
-  // Transform an array of packages into an array of pairs. A pair
-  // contains a string of WebPPL code and an array of macros required
-  // to parse that code.
-
+function unpack(packages) {
+  // Flatten an array of packages into an array of code bundles. A
+  // bundle contains wppl source code, filename and associated macros.
+  //
   // Package :: { wppl: [String], macros: [LoadedMacroModule] }
-  // Pair :: { code: String, macros: [LoadedMacroModule] }
-
+  // Bundle :: { code: String, filename: String, macros: [LoadedMacroModule] }
+  //
   return _.chain(packages).map(function(pkg) {
     return pkg.wppl.map(function(wppl) {
-      return { code: wppl, macros: pkg.macros };
+      return { code: wppl.code, filename: wppl.filename, macros: pkg.macros };
     });
   }).flatten().value();
 }
 
-function addHeaderMacrosToEachPair(pairs) {
+function addHeaderMacrosToEachBundle(bundles) {
   // This assumes that pair[0] is the content of the header.
-  assert.ok(pairs.length >= 1 && pairs[0].macros.length === 2);
-  var headerMacros = pairs[0].macros;
-  return pairs.map(function(pair, i) {
+  assert.ok(bundles.length >= 1 && bundles[0].macros.length === 2);
+  var headerMacros = bundles[0].macros;
+  return bundles.map(function(bundle, i) {
     return {
-      code: pair.code,
-      macros: pair.macros.concat(i > 0 ? headerMacros : [])
+      code: bundle.code,
+      filename: bundle.filename,
+      macros: bundle.macros.concat(i > 0 ? headerMacros : [])
     };
   });
 }
@@ -115,9 +115,9 @@ function parsePackageCode(packages, verbose) {
     var macros = _.chain(allPackages).pluck('macros').flatten().value();
 
     var asts = util.pipeline([
-      packagesToPairs,
-      addHeaderMacrosToEachPair,
-      parseAllPairs
+      unpack,
+      addHeaderMacrosToEachBundle,
+      parseAll
     ])(allPackages);
 
     return { asts: asts, macros: macros };
@@ -141,7 +141,12 @@ function copyAst(ast) {
 }
 
 function compile(code, options) {
-  options = util.mergeDefaults(options, { verbose: false, generateCode: true });
+  options = util.mergeDefaults(options, {
+    verbose: false,
+    generateCode: true,
+    filename: 'webppl:program'
+  });
+
   var extra = options.extra || parsePackageCode([], options.verbose);
 
   var transforms = options.transforms || [
@@ -155,7 +160,7 @@ function compile(code, options) {
   ];
 
   function _compile() {
-    var programAst = parse(code, extra.macros);
+    var programAst = parse(code, extra.macros, options.filename);
     var asts = extra.asts.map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
