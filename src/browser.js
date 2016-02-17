@@ -13,7 +13,8 @@ var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
 var analyze = require('./analysis/main').analyze;
 
-// This is populated by the bundle.js browserify transform.
+// These are populated by the bundle.js browserify transform.
+var version = '';
 var packages = [];
 
 var load = _.once(function() {
@@ -24,7 +25,7 @@ var load = _.once(function() {
     pkg.headers.forEach(webppl.requireHeaderWrapper);
   });
   var extra = webppl.parsePackageCode(packages);
-  console.log('webppl loaded.');
+  console.log('webppl ' + version + ' loaded.');
   return extra;
 });
 
