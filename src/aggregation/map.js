@@ -13,6 +13,7 @@ var MAP = function(retainSamples) {
 
 MAP.prototype.add = function(value, score) {
   var value = ad.deepUntapify(value);
+  var score = ad.untapify(score);
   if (this.retainSamples) {
     this.samples.push({ value: value, score: score });
   }
