@@ -315,6 +315,7 @@ var tests = [
       optionalErpParams: true,
       variableSupport: true,
       query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
       mixed1: true,
       mixed1Factor: true,
       mixed2: {
