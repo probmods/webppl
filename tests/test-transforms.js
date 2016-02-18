@@ -1,6 +1,7 @@
 'use strict';
 
-require('../src/main');
+var webppl = require('../src/main');
+
 var _ = require('underscore');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
@@ -12,6 +13,8 @@ var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
 var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
+var freevars = require('../src/transforms/freevars').freevars;
+var util = require('../src/util');
 
 var fooObj = {
   bar: 1,
@@ -78,7 +81,8 @@ function runCps(test, code, newCode, expected) {
 
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
-  eval(newCode)({}, function(store, actual) {
+  var f = eval(newCode);
+  f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
 }
@@ -90,7 +94,45 @@ var transformAstVarargs = compose(varargs, transformAstOptimize);
 var runVarargs = runOptimize;
 
 var transformAstTrampoline = compose(trampoline, transformAstVarargs);
-var runTrampoline = runVarargs;
+
+function runTrampoline(test, code, newCode, expected) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  f = f(util.trampolineRunners.cli);
+  f({}, function(store, actual) {
+    check(test, code, newCode, expected, actual);
+  }, '');
+}
+
+var transformAstFreevars = compose(freevars, function(node) {
+  // By thunkifying we ensure that freevars is exercised (by
+  // identifying the free variables of the thunk) even when the test
+  // code doesn't contain any functions.
+  return thunkify(node, fail('transform', node));
+});
+function runFreevars(test, code, newCode, expected) {
+  check(test, code, newCode, expected, eval(newCode)());
+}
+
+var selectFreevarsPrimitives = function() {
+  // Set global definitions
+  plus = function(x, y) {
+    return (x + y);
+  };
+  minus = function(x, y) {
+    return (x - y);
+  };
+  times = function(x, y) {
+    return (x * y);
+  };
+  and = function(x, y) {
+    return (x && y);
+  };
+  plusTwo = function(x, y) {
+    return (x + 2);
+  };
+};
 
 var selectNamingPrimitives = function() {
   // Set global definitions
@@ -181,6 +223,11 @@ function runVarargsTest(test, code, expected) {
 function runTrampolineTest(test, code, expected) {
   selectTrampolinePrimitives();
   return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
+}
+
+function runFreevarsTest(test, code, expected) {
+  selectFreevarsPrimitives();
+  return runTest(test, code, expected, transformAstFreevars, runFreevars);
 }
 
 function generateTestFunctions(allTests, testRunner) {
@@ -514,7 +561,11 @@ var tests = {
 
     { name: 'testMember3',
       code: 'var a = [1,2]; a[1]',
-      expected: 2 }
+      expected: 2 },
+
+    { name: 'testMember4',
+      code: '(function() { return fooObj; })().bar',
+      expected: 1 }
 
   ],
 
@@ -635,3 +686,4 @@ exports.testOptimize = generateTestFunctions(tests, runOptimizeTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
+exports.testFreevars = generateTestFunctions(tests, runFreevarsTest);

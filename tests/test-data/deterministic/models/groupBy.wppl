@@ -1,0 +1,17 @@
+var balls4 = [{color: 'red', size: 2},
+      {color: 'red', size: 4},
+      {color: 'blue', size: 1},
+      {color: 'blue', size: 3}];
+
+var balls20k = append(
+    repeat(10, function() { return {color: 'red', size: 1} }),
+    repeat(10, function() { return {color: 'blue', size: 2} }));
+
+var colorCmp = function(a, b) { return a.color == b.color };
+
+var sizeCmp = function(a, b) { return a.size == b.size };
+
+[
+  groupBy(colorCmp, balls4),
+  map(function(x) { return x.length }, groupBy(colorCmp, balls20k))
+]

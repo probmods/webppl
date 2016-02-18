@@ -1,0 +1,7 @@
+[
+  takeWhile(isEven, []),
+  takeWhile(isEven, [0, 2, 4, 6]),
+  takeWhile(isEven, [0, 2, 4, 6, 7]),
+  takeWhile(isEven, mapN(function(k) { return k * 2}, 50000)).length,
+  takeWhile(isEven, mapN(function(k) { return k * 2}, 50000).concat([3, 4, 5])).length
+]

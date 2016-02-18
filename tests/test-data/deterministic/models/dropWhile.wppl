@@ -1,0 +1,6 @@
+[
+  dropWhile(isEven, []),
+  dropWhile(isEven, [0, 2, 4, 6]),
+  dropWhile(isEven, mapN(function(k) { return k * 2}, 50000)),
+  dropWhile(isEven, mapN(function(k) { return k * 2}, 50000).concat([3, 4, 5]))
+]

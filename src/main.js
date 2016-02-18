@@ -52,18 +52,13 @@ function concatPrograms(programs) {
   return programs.reduce(concat, emptyProgram);
 }
 
-function parse(code, macros) {
-  var compiled = sweet.compile(code, { 
-    readableNames: true, 
-    ast: true, 
-    modules: macros,
-  });
-  return compiled
+function parse(code, macros, filename) {
+  return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
 }
 
-function parseAllPairs(pairs) {
-  return pairs.map(function(pair) {
-    return parse(pair.code, pair.macros);
+function parseAll(bundles) {
+  return bundles.map(function(bundle) {
+    return parse(bundle.code, bundle.macros, bundle.filename);
   });
 }
 
@@ -79,30 +74,33 @@ function headerPackage() {
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
   var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
-  return { wppl: [code], macros: [headerMacroModule, adMacroModule] };
+  return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule, adMacroModule] };
 }
 
-function packagesToPairs(packages) {
-  // Transform an array of packages into an array of pairs. A pair
-  // contains a string of WebPPL code and an array of macros required
-  // to parse that code.
-
+function unpack(packages) {
+  // Flatten an array of packages into an array of code bundles. A
+  // bundle contains wppl source code, filename and associated macros.
+  //
   // Package :: { wppl: [String], macros: [LoadedMacroModule] }
-  // Pair :: { code: String, macros: [LoadedMacroModule] }
-
+  // Bundle :: { code: String, filename: String, macros: [LoadedMacroModule] }
+  //
   return _.chain(packages).map(function(pkg) {
     return pkg.wppl.map(function(wppl) {
-      return { code: wppl, macros: pkg.macros };
+      return { code: wppl.code, filename: wppl.filename, macros: pkg.macros };
     });
   }).flatten().value();
 }
 
-function addHeaderMacrosToEachPair(pairs) {
+function addHeaderMacrosToEachBundle(bundles) {
   // This assumes that pair[0] is the content of the header.
-  assert.ok(pairs.length >= 1 && pairs[0].macros.length === 2);
-  var headerMacros = pairs[0].macros[0];
-  return pairs.map(function(pair) {
-    return { code: pair.code, macros: pair.macros.concat(headerMacros) };
+  assert.ok(bundles.length >= 1 && bundles[0].macros.length === 2);
+  var headerMacros = bundles[0].macros;
+  return bundles.map(function(bundle, i) {
+    return {
+      code: bundle.code,
+      filename: bundle.filename,
+      macros: bundle.macros.concat(i > 0 ? headerMacros : [])
+    };
   });
 }
 
@@ -119,9 +117,9 @@ function parsePackageCode(packages, verbose) {
     var macros = _.chain(allPackages).pluck('macros').flatten().value();
 
     var asts = util.pipeline([
-      packagesToPairs,
-      addHeaderMacrosToEachPair,
-      parseAllPairs
+      unpack,
+      addHeaderMacrosToEachBundle,
+      parseAll
     ])(allPackages);
 
     return { asts: asts, macros: macros };
@@ -144,8 +142,17 @@ function copyAst(ast) {
   return ret;
 }
 
+<<<<<<< HEAD
 function compile(filename, code, options) {
   var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
+=======
+function compile(code, options) {
+  options = util.mergeDefaults(options, {
+    verbose: false,
+    generateCode: true,
+    filename: 'webppl:program'
+  });
+>>>>>>> upstream/dev
 
   var extra = options.extra || parsePackageCode([], options.verbose);
 
@@ -160,8 +167,12 @@ function compile(filename, code, options) {
   ];
 
   function _compile() {
+<<<<<<< HEAD
     var programAst = parse(code, extra.macros);
     programAst = addFilename(programAst, filename);
+=======
+    var programAst = parse(code, extra.macros, options.filename);
+>>>>>>> upstream/dev
     var asts = extra.asts.map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
@@ -189,6 +200,7 @@ function compile(filename, code, options) {
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
+<<<<<<< HEAD
 function run(filename, code, k, options) {
   var options = options || {};
   var codeAndMap = compile(filename, code, options);
@@ -198,20 +210,30 @@ function run(filename, code, k, options) {
     } catch (exception) {
       printFriendlyStackTrace(exception, codeAndMap.map)
     }
+=======
+
+function run(code, k, options) {
+  options = _.defaults(options || {},
+                       {runner: util.runningInBrowser() ? 'web' : 'cli'});
+
+  var runner = util.trampolineRunners[options.runner];
+  var compiledCode = compile(code, options);
+
+  util.timeif(options.verbose, 'run', function() {
+    eval.call(global, compiledCode)(runner)({}, k, '');
+>>>>>>> upstream/dev
   });
 }
 
 // Make webppl eval available within webppl
-global.webpplEval = function(s, k, a, code) {
-  var compiledCode = compile(code);
-  return eval.call(global, compiledCode)(s, k, a);
-};
-
-function runTrampoline(t) {
-  while (t) {
-    t = t();
+// runner is one of 'cli','web'
+global.webpplEval = function(s, k, a, code, runner) {
+  if (runner === undefined) {
+    runner = util.runningInBrowser() ? 'web' : 'cli'
   }
-}
+  var compiledCode = compile(code);
+  return eval.call(global, compiledCode)(util.trampolineRunners[runner])(s, k, a);
+};
 
 module.exports = {
   requireHeader: requireHeader,
@@ -219,6 +241,5 @@ module.exports = {
   parsePackageCode: parsePackageCode,
   run: run,
   compile: compile,
-  analyze: analyze,
-  runTrampoline: runTrampoline
+  analyze: analyze
 };

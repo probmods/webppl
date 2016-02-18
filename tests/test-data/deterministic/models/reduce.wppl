@@ -1,0 +1,32 @@
+var inc = function(x) {
+  return x + 1
+};
+
+var paste = function(x, y) {
+  return x + '-' + y;
+};
+
+var not = function(x) {
+  return !x;
+};
+
+[
+  reduce(paste, 'stop', []),
+  reduce(paste, 'stop', [1, 2, 3]),
+  reduce(function(x, acc) { return x.length + acc }, 0, [[1], [1, 2], [1, 2, 3]]),
+  reduce(function(x, acc) { return paste(reduce(paste, '', x), acc) }, 'stop', [['a'], ['b', 'c'], ['d', 'e', 'f']]),
+  sum(repeat(50000, function() { return 1 })),
+  product([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+  mapReduce(paste, 0, inc, []),
+  mapReduce(paste, 0, inc, [1, 2, 3]),
+  mapReduce1(paste, inc, [1, 2, 3]),
+  all(idF, []),
+  all(idF, repeat(50000, trueF)),
+  all(idF, cons(repeat(50000, trueF), false)),
+
+  any(idF, []),
+  any(idF, repeat(50000, falseF)),
+  any(idF, append(repeat(50000, falseF), [true])),
+  all(isEven, repeat(100, function() { return uniformDraw([0, 2, 4, 6, 8]) })),
+  any(isOdd, repeat(100, function() { return uniformDraw([0, 2, 4, 6, 8]) }))
+]

@@ -180,7 +180,6 @@ var trueF = function() {
   return true;
 };
 
-
 // Probability computations & calculations
 
 var MAP = function(erp) {
@@ -240,28 +239,36 @@ var rest = function(xs) {
   return xs.slice(1);
 };
 
-var map = function(fn, ar) {
-  return ar.length === 0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
-};
-
-var map2 = function(f, l1, l2) {
-  return (l1.length === 0 || l2.length === 0 ?
-          [] :
-          [f(l1[0], l2[0])].concat(map2(f, l1.slice(1), l2.slice(1))));
-};
-
-var mapN = function(f, n) {
-  var fn = function(i, _acc) {return i === n ? _acc : fn(i + 1, snoc(_acc, f(i)))};
-  return fn(0, []);
+var map_helper = function(i, j, f) {
+  var n = j - i + 1;
+  if (n == 0) {
+    return []
+  } else if (n == 1) {
+    return [f(i)];
+  } else {
+    var n1 = Math.ceil(n / 2);
+    return map_helper(i, i + n1 - 1, f).concat(map_helper(i + n1, j, f));
+  }
 }
 
-var mapIndexed = function(f, l) {
-  var fn = function(ls, i, _acc) {
-    return ls.length === 0 ?
-        _acc :
-        fn(rest(ls), i + 1, snoc(_acc, f(i, first(ls))))
-  };
-  return fn(l, 0, []);
+// recursively split input array so that we only call
+// concat a logarithmic number of times
+var map = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(l[i]) })
+}
+
+// assumes that length l1 == length l2
+var map2 = function(fn, l1, l2) {
+  return map_helper(0, l1.length - 1, function(i) { return fn(l1[i], l2[i]) })
+}
+
+// sugar for map(f, [0,1,...,n-1])
+var mapN = function(fn, n) {
+  return map_helper(0, n - 1, function(i) { return fn(i) })
+}
+
+var mapIndexed = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
 }
 
 var _ringAround = function(l, n) {
@@ -276,6 +283,7 @@ var ringBackward = function(l, n) {
   return _ringAround(l, n === undefined ? 1 : n);
 };
 
+// map through the cartesian product l1 * l2
 var mapPairs2 = function(f, l1, l2) {
   var res = map(function(a) {
     return map(function(b) {
@@ -285,19 +293,34 @@ var mapPairs2 = function(f, l1, l2) {
   return [].concat.apply([], res); // flatten
 };
 
+// map through all 2-combinations of elements in l
+// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
+// ['a','c'], and ['b','c']
 var mapPairsC = function(f, l) {
-  var fn = function(l1, l2, acc) {
-    return (l2.length === 0 ? acc :
-            fn(l1.slice(1),
-               l2.slice(1),
-               acc.concat(map(function(b) {
-                 return f(l1[0], b);
-               }, l2)))
-    );
-  };
-  return fn(l, l.slice(1), []);
+  var n = l.length;
+
+  var helper = function(i) {
+    if (i === n) {
+      return [];
+    } else {
+      // compute {f(i,j)} where j \in {i+1,...,n}
+      var r = mapN(
+          function(k) {
+            var j = i + k + 1;
+            return f(l[i], l[j])
+          },
+          n - (i + 1));
+
+      return append(r, helper(i + 1))
+    }
+  }
+
+  return helper(0);
 };
 
+// map through all 2-tuples of elements in l
+// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
+// ['a','c'], ['b','a'], ['b','c'], ['c','a'], ['c','b']
 var mapPairsNC = function(f, l) {
   var res = mapPairs2(function(a, b) {
     return a === b ? undefined : f(a, b);
@@ -316,9 +339,19 @@ var mapObject = function(fn, obj) {
 };
 
 var reduce = function(fn, init, ar) {
-  return ar.length === 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return init
+    } else {
+      return fn(ar[i], helper(i + 1))
+    }
+  }
+
+  return helper(0);
 };
 
+// sugar for reduce(f, g(init), map(g,ar))
 var mapReduce = function(f, init, g, ar) {
   // specialized to above reduce
   return reduce(function(a, b) {return f(g(a), b);},
@@ -326,6 +359,7 @@ var mapReduce = function(f, init, g, ar) {
                 ar);
 };
 
+// sugar for reduce(f, g(last(ar)), map(g, butLast(ar)))
 var mapReduce1 = function(f, g, ar) {
   // specialized to above reduce
   return reduce(function(a, b) {return f(g(a), b);},
@@ -361,26 +395,55 @@ var normalize = function(xs) {
 };
 
 var all = function(p, l) {
-  return mapReduce1(and, p, l);
+  if (l.length === 0) {
+    return true
+  } else {
+    return mapReduce1(and, p, l);
+  }
 };
+
 var any = function(p, l) {
-  return mapReduce1(or, p, l);
+  if (l.length === 0) {
+    return false
+  } else {
+    return mapReduce1(or, p, l);
+  }
 };
 
 var zip = function(xs, ys) {
-  return xs.length === 0 ?
-      [] :
-      [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
+  return map2(function(x, y) { return [x, y]},
+              xs,
+              ys)
 };
 
 var filter = function(fn, ar) {
-  return ar.length === 0 ?
-      [] :
-      append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
+  var helper = function(i, j) {
+    var n = j - i + 1;
+    if (n == 0) {
+      return [];
+    } else if (n == 1) {
+      return (fn(ar[i]) ? [ar[i]] : []);
+    } else {
+      var n1 = Math.ceil(n / 2);
+      return helper(i, i + n1 - 1).concat(helper(i + n1, j));
+    }
+  }
+
+  return helper(0, ar.length - 1)
 };
 
 var find = function(f, ar) {
-  return ar.length === 0 ? undefined : (f(ar[0]) ? ar[0] : find(f, ar.slice(1)));
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return undefined;
+    } else if (f(ar[i])) {
+      return ar[i];
+    } else {
+      return helper(i + 1);
+    }
+  }
+  return helper(0);
 };
 
 var remove = function(a, ar) {
@@ -404,14 +467,32 @@ var replaceAt = function(ar, i, x) {
 var drop = function(n, ar) {
   return n > ar.length ? [] : ar.slice(n);
 };
+
 var take = function(n, ar) {
   return n >= ar.length ? ar : ar.slice(0, n);
 };
+
 var dropWhile = function(p, ar) {
-  return p(ar[0]) ? dropWhile(p, ar.slice(1)) : ar;
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return n;
+    }
+    return p(ar[i]) ? helper(i + 1) : i;
+  }
+  return ar.slice(helper(0));
 };
+
 var takeWhile = function(p, ar) {
-  return p(ar[0]) ? cons(ar[0], takeWhile(p, ar.slice(1))) : [];
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return n;
+    }
+    return p(ar[i]) ? helper(i + 1) : i;
+  }
+
+  return ar.slice(0, helper(0));
 };
 
 var indexOf = function(x, xs) {
@@ -446,17 +527,21 @@ var maxWith = function(f, ar) {
   return fn(zip(ar, map(f, ar)), [-Infinity, -Infinity]);
 };
 
+// bin array into items satisfying a predicate p and items not satifying it
 var span = function(p, ar) {
-  var fn = function(ar, _ts, _fs) {
-    return (ar.length === 0 ?
+  var n = ar.length;
+  var helper = function(i, _ts, _fs) {
+    return (i === n ?
             [_ts, _fs] :
-            (p(ar[0]) ?
-             fn(ar.slice(1), snoc(_ts, ar[0]), _fs) :
-             fn(ar.slice(1), _ts, snoc(_fs, ar[0]))));
+            (p(ar[i]) ?
+             helper(i + 1, snoc(_ts, ar[i]), _fs) :
+             helper(i + 1, _ts, snoc(_fs, ar[i]))));
   };
-  return fn(ar, [], []);
+  return helper(0, [], []);
 };
 
+// group array items by a comparator
+// NB: there is still room for optimization here
 var groupBy = function(cmp, ar) {
   if (ar.length === 0) {
     return [];
@@ -468,8 +553,21 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
-};
+  var helper = function(m) {
+    if (m == 0) {
+      return [];
+    } else if (m == 1) {
+      return [fn()];
+    } else {
+      var m1 = Math.ceil(m / 2),
+          m2 = m - m1;
+      return helper(m1).concat(helper(m2));
+    }
+  }
+
+  return helper(n);
+}
+
 
 var push = function(xs, x) {
   return xs.concat([x]);

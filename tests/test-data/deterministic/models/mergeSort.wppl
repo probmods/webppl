@@ -1,0 +1,26 @@
+var iota10k = mapN(idF, 10000);
+var iota10kR = map(function(x) { return 10000 - 1 - x }, iota10k);
+
+var records = mapN(
+    function(k) {
+      return {'brand': isEven(k) ? 'coke' : 'pepsi',
+        'price': 10000 - 1 - k
+      }
+    },
+    10000
+    );
+
+[
+  _merge([1, 5, 6], [2, 4, 7], lt, idF),
+  _merge([], [2, 4, 7], lt, idF),
+  _merge([6, 5, 1], [7, 4, 2], gt, idF),
+  _sort([0, 1, 9, 7, 2, 3, 5, 6, 4, 8], lt, idF),
+  all(idF, map2(eq,
+                _sort(iota10k, gt, idF),
+                iota10kR)),
+  all(idF,
+      map2(eq,
+           map(function(x) { return x.price },
+               sort(records, lt, function(obj) { return obj.price })),
+           iota10k))
+]

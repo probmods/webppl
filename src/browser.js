@@ -2,6 +2,7 @@
 
 'use strict';
 
+var _ = require('underscore');
 var fs = require('fs');
 var esprima = require('esprima');
 var escodegen = require('escodegen');
@@ -12,24 +13,37 @@ var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
 var analyze = require('./analysis/main').analyze;
 
-// This is populated by the bundle.js browserify transform.
+// These are populated by the bundle.js browserify transform.
+var version = '';
 var packages = [];
 
-// Load JS and headers from packages.
-packages.forEach(function(pkg) {
-  console.log('package ' + pkg.name + ' loaded.');
-  if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
-  pkg.headers.forEach(webppl.requireHeaderWrapper);
+var load = _.once(function() {
+  // Load JS and headers from packages.
+  packages.forEach(function(pkg) {
+    console.log('package ' + pkg.name + ' loaded.');
+    if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
+    pkg.headers.forEach(webppl.requireHeaderWrapper);
+  });
+  var extra = webppl.parsePackageCode(packages);
+  console.log('webppl ' + version + ' loaded.');
+  return extra;
 });
 
-var extra = webppl.parsePackageCode(packages);
+function run(code, k, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: load()}, options);
 
-function run(code, k, verbose) {
-  return webppl.run(code, k, { extra: extra, verbose: verbose });
+  return webppl.run(code, k, optionsExtended);
 }
 
-function compile(code, verbose) {
-  return webppl.compile(code, { extra: extra, verbose: verbose });
+function compile(code, options) {
+  if (options === undefined) {
+    options = {};
+  }
+  var optionsExtended = _.extend({extra: load()}, options);
+  return webppl.compile(code, optionsExtended);
 }
 
 function webpplCPS(code) {
@@ -49,8 +63,5 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  analyze: analyze,
-  runTrampoline: require('./transforms/trampoline').runner
+  analyze: analyze
 };
-
-console.log('webppl loaded.');

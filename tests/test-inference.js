@@ -50,13 +50,15 @@ var tests = [
       simple: true,
       upweight: true,
       incrementalBinomial: true,
-      deterministic: { hist: { tol: 0 } },
-      store: { hist: { tol: 0 } },
+      deterministic: { hist: { exact: true } },
+      store: { hist: { exact: true } },
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
       optionalErpParams: true,
-      earlyExit: true
+      earlyExit: { hist: { exact: true } },
+      zeroProb: { hist: { exact: true } },
+      nestedEnumeration: true
     }
   },
   {
@@ -76,7 +78,8 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] }
     }
   },
   {
@@ -84,16 +87,6 @@ var tests = [
     func: 'IncrementalMH',
     settings: {
       args: [100, { justSample: true }]
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
-    }
-  },
-  {
-    name: 'IMHonlyMAP',
-    func: 'IncrementalMH',
-    settings: {
-      args: [100, { onlyMAP: true }]
     },
     models: {
       deterministic: { hist: { tol: 0 } }
@@ -297,7 +290,8 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } }
     }
   },
   {
@@ -321,6 +315,7 @@ var tests = [
       optionalErpParams: true,
       variableSupport: true,
       query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
       mixed1: true,
       mixed1Factor: true,
       mixed2: {
@@ -338,12 +333,14 @@ var tests = [
         }
       },
       mixed3: {
+        hist: { tol: 0.15 },
         args: {
           samples: 2000,
           kernel: { HMC: { steps: 20, stepSize: 1 } }
         }
       },
       mixed3Factor: {
+        hist: { tol: 0.15 },
         args: {
           samples: 2000,
           kernel: { HMC: { steps: 20, stepSize: 1 } }
@@ -417,16 +414,6 @@ var tests = [
     }
   },
   {
-    name: 'MHonlyMAP',
-    func: 'MCMC',
-    settings: {
-      args: { samples: 100, onlyMAP: true }
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
-    }
-  },
-  {
     name: 'MHjustSample',
     func: 'MCMC',
     settings: {
@@ -481,7 +468,11 @@ var getInferenceArgs = function(testDef, model) {
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
-    test.ok(util.histsApproximatelyEqual(result.erp.hist, expected, args.tol));
+    var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
+    var actual = _.mapObject(result.erp.hist, function(obj) { return obj.prob; });
+    var msg = ['Expected hist: ', util.serialize(expected),
+               ', actual: ', util.serialize(actual)].join('');
+    test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
     helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');

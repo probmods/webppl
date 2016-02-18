@@ -7,6 +7,35 @@ var node_util = require('util')
 
 var rng = Math.random;
 
+var trampolineRunners = {
+  web: function f(t) {
+    var lastPauseTime = Date.now();
+
+    if (f.__cancel__) {
+      f.__cancel__ = false;
+    } else {
+      while (t) {
+        var currTime = Date.now();
+        if (currTime - lastPauseTime > 100) {
+          // NB: return is crucial here as it exits the while loop
+          // and i'm using return rather than break because we might
+          // one day want to cancel the timer
+          return setTimeout(function() { f(t) }, 0);
+        } else {
+          t = t();
+        }
+      }
+    }
+  },
+  cli: function(t) {
+    while (t) {
+      t = t()
+    }
+  }
+}
+
+
+
 function random() {
   return rng();
 }
@@ -136,19 +165,14 @@ function histStd(hist) {
 }
 
 function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var hist = _.mapObject(actualHist, function(obj) { return obj.prob; });
   var allOk = (expectedHist !== undefined);
   _.each(
       expectedHist,
       function(expectedValue, key) {
-        var value = hist[key] || 0;
+        var value = actualHist[key] || 0;
         var testPassed = Math.abs(value - expectedValue) <= tolerance;
         allOk = allOk && testPassed;
       });
-  if (!allOk) {
-    console.log('Expected:', expectedHist);
-    console.log('Actual:', hist);
-  }
   return allOk;
 }
 
@@ -214,6 +238,7 @@ function warn(msg) {
 }
 
 module.exports = {
+  trampolineRunners: trampolineRunners,
   random: random,
   seedRNG: seedRNG,
   resetRNG: resetRNG,
