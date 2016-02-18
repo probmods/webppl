@@ -78,7 +78,8 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] }
     }
   },
   {
@@ -86,16 +87,6 @@ var tests = [
     func: 'IncrementalMH',
     settings: {
       args: [100, { justSample: true }]
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
-    }
-  },
-  {
-    name: 'IMHonlyMAP',
-    func: 'IncrementalMH',
-    settings: {
-      args: [100, { onlyMAP: true }]
     },
     models: {
       deterministic: { hist: { tol: 0 } }
@@ -299,7 +290,8 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      query: true
+      query: true,
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } }
     }
   },
   {
@@ -418,16 +410,6 @@ var tests = [
     models: {
       deterministic: { hist: { tol: 0 } },
       gaussianMean: true
-    }
-  },
-  {
-    name: 'MHonlyMAP',
-    func: 'MCMC',
-    settings: {
-      args: { samples: 100, onlyMAP: true }
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
     }
   },
   {
