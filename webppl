@@ -25,11 +25,7 @@ function topK(s,x) {
 
 var cliRunner = util.trampolineRunners.cli;
 
-<<<<<<< HEAD
-function run(programFile, code, packages, verbose) {
-=======
 function run(code, packages, verbose, programFile) {
->>>>>>> upstream/dev
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
@@ -134,11 +130,7 @@ function main() {
     util.seedRNG(seed);
   }
 
-<<<<<<< HEAD
-  processCode(programFile, code, packages, argv.verbose, outputFile);
-=======
   processCode(code, packages, argv.verbose, programFile, outputFile);
->>>>>>> upstream/dev
 }
 
 main();

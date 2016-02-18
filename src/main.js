@@ -53,7 +53,7 @@ function concatPrograms(programs) {
 }
 
 function parse(code, macros, filename) {
-  return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+  return addFileName(sweet.compile(code, { readableNames: true, ast: true, modules: macros }));
 }
 
 function parseAll(bundles) {
@@ -142,17 +142,12 @@ function copyAst(ast) {
   return ret;
 }
 
-<<<<<<< HEAD
-function compile(filename, code, options) {
-  var options = util.mergeDefaults(options, { verbose: false, generateCode: true });
-=======
 function compile(code, options) {
   options = util.mergeDefaults(options, {
     verbose: false,
     generateCode: true,
     filename: 'webppl:program'
   });
->>>>>>> upstream/dev
 
   var extra = options.extra || parsePackageCode([], options.verbose);
 
@@ -167,12 +162,7 @@ function compile(code, options) {
   ];
 
   function _compile() {
-<<<<<<< HEAD
-    var programAst = parse(code, extra.macros);
-    programAst = addFilename(programAst, filename);
-=======
     var programAst = parse(code, extra.macros, options.filename);
->>>>>>> upstream/dev
     var asts = extra.asts.map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
@@ -200,28 +190,19 @@ function compile(code, options) {
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
-<<<<<<< HEAD
-function run(filename, code, k, options) {
-  var options = options || {};
-  var codeAndMap = compile(filename, code, options);
-  util.timeif(options.verbose, 'run', function() {
-    try {
-      eval.call(global, codeAndMap.code)({}, k, '');
-    } catch (exception) {
-      printFriendlyStackTrace(exception, codeAndMap.map)
-    }
-=======
-
 function run(code, k, options) {
   options = _.defaults(options || {},
                        {runner: util.runningInBrowser() ? 'web' : 'cli'});
 
   var runner = util.trampolineRunners[options.runner];
-  var compiledCode = compile(code, options);
+  var codeWithMap = compile(code, options);
 
   util.timeif(options.verbose, 'run', function() {
-    eval.call(global, compiledCode)(runner)({}, k, '');
->>>>>>> upstream/dev
+    try {
+      eval.call(global, codeWithMap.code)(runner)({}, k, '');
+    } catch (exception) {
+      printFriendlyStackTrace(exception, codeWithMap.map)
+    }
   });
 }
 
