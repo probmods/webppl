@@ -1,0 +1,14 @@
+var logistic = function(z) {
+  return 1 / (1 + Math.exp(-z));
+};
+
+var model = function() {
+  var x = logistic(gaussian(3, 2));
+  var marginal = Enumerate(function() {
+    var z = flip(x);
+    factor(!z ? 0 : -2);
+    return z;
+  });
+  var y = sample(marginal);
+  return x * y;
+};

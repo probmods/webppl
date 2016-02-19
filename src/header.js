@@ -21,31 +21,27 @@
 var assert = require('assert');
 var _ = require('underscore');
 
-var util = require('./util');
-var erp = requireErp();
-var enumerate = require('./inference/enumerate');
-var mcmc = require('./inference/mcmc');
-var asyncpf = require('./inference/asyncpf');
-var pmcmc = require('./inference/pmcmc');
-var smc = require('./inference/smc');
-var variational = require('./inference/variational');
-var rejection = require('./inference/rejection');
-var incrementalmh = require('./inference/incrementalmh');
-var headerUtils = require('./headerUtils');
-var Query = require('./query').Query;
-var ad = require('./ad');
-
-function requireErp() {
-  try {
-    return require('./erp');
-  } catch (e) {
-    if (e.code === 'MODULE_NOT_FOUND') {
-      console.log('ERROR: erp.js not found');
-      console.log('Run "./script/transformERP" and try again.');
-      process.exit();
-    } else {
-      throw e;
-    }
+try {
+  var util = require('./util');
+  var erp = require('./erp');
+  var enumerate = require('./inference/enumerate');
+  var mcmc = require('./inference/mcmc');
+  var asyncpf = require('./inference/asyncpf');
+  var pmcmc = require('./inference/pmcmc');
+  var smc = require('./inference/smc');
+  var variational = require('./inference/variational');
+  var rejection = require('./inference/rejection');
+  var incrementalmh = require('./inference/incrementalmh');
+  var headerUtils = require('./headerUtils');
+  var Query = require('./query').Query;
+  var ad = require('./ad');
+} catch (e) {
+  if (e.code === 'MODULE_NOT_FOUND') {
+    console.error(e.message);
+    console.error('Run ./script/adify and try again.');
+    process.exit();
+  } else {
+    throw e;
   }
 }
 

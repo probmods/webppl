@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var fs = require('fs');
+var path = require('path');
+var adify = require('../src/transforms/adify').adify;
+
+function findFiles(root, regex) {
+  function walk(dir) {
+    fs.readdirSync(dir).forEach(function(f) {
+      var p = path.join(dir, f);
+      if (fs.statSync(p).isDirectory()) {
+        walk(p);
+      } else if (f.match(regex)) {
+        matches.push(p);
+      }
+    });
+  }
+  var matches = [];
+  walk(root);
+  return matches;
+}
+
+var root = path.join(__dirname, '..', 'src');
+var adregex = /\.ad\.js$/;
+
+function adRequirePath(srcFilename) {
+  var dir = path.dirname(srcFilename);
+  var adFileName = path.join(__dirname, '..', 'src', 'ad.js');
+  var adPath = path.normalize(path.dirname(path.relative(dir, adFileName)));
+  return adPath + path.sep + 'ad.js';
+}
+
+findFiles(root, adregex).forEach(function(inFile) {
+  var outFile = inFile.replace(adregex, '.js');
+  var code = fs.readFileSync(inFile, 'utf8');
+  fs.writeFileSync(outFile, adify(code, adRequirePath(inFile)));
+});

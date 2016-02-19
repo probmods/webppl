@@ -12,25 +12,24 @@ Before committing changes, run grunt (which runs `tests`_ and
 If grunt doesn’t succeed, the `continuous integration tests`_ will fail
 as well.
 
-Modifying erp.ad.js
--------------------
+Modifying .ad.js files
+----------------------
 
-During development, it is necessary to transform ``src/erp.ad.js``
-after it has been modified by running::
+Files with names which end with ``.ad.js`` are transformed to use AD
+primitives when WebPPL is installed.
 
-    ./scripts/transformERP
+During development it is necessary to run this transform after any
+such files have been modified. This is done with::
 
-This transforms ERP score functions in order to support automatic
-differentiation using `ad.js <https://github.com/iffsid/ad.js>`_.
+    ./scripts/adify
 
-For performance reasons, not all code is transformed. All code
-relating to computing scores should therefore be implemented as some
-combination of the following:
-
-* Named functions where the name ends with ``Score`` or ``AD``. e.g.
-  ``function gaussianScore() {}``, ``function sumAD() {}``.
-* Anonymous functions defined as the ``score`` property of an object
-  literal. e.g. ``{ score: function() {} }``
+The scope of the transform is controlled with the ``'use ad'``
+directive. If this directive appears directly after the ``'use
+strict'`` directive at the top of a file, then the whole file will be
+transformed. Otherwise, those functions which include the directive
+before any other statements or expressions in their body will be
+transformed. Any function nested within a function which includes the
+directive will also be transformed.
 
 Tests
 -----
