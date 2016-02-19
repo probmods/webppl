@@ -22,7 +22,7 @@
     "estemplate": "^0.4.0",
     "estraverse": "^4.1.0",
     "esutils": "^2.0.2",
-    "git-rev-2": "^0.1.0",
+    "git-rev-2": "yanatan16/git-rev#bfc97b3d",
     "immutable": "^3.7.5",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",

@@ -7,7 +7,7 @@ var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var util = require('./src/util');
 var parseArgs = require('minimist');
-var git = require('git-rev-2');
+var version = require('./src/version');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
@@ -25,7 +25,7 @@ function topK(s,x) {
 
 var cliRunner = util.trampolineRunners.cli;
 
-function run(code, packages, verbose) {
+function run(code, packages, verbose, programFile) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
@@ -39,6 +39,7 @@ function run(code, packages, verbose) {
       },
       {
         extra: webppl.parsePackageCode(packages, verbose),
+        filename: programFile,
         verbose: verbose
       });
 }
@@ -47,7 +48,7 @@ var lines = function(ar) {
   return ar.join('\n')
 }
 
-function compile(code, packages, verbose, outputFile) {
+function compile(code, packages, verbose, programFile, outputFile) {
   var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
   packages.forEach(function(pkg) {
     if (pkg.js) { compiledCode += 'var ' + pkg.js.identifier + ' = require("' + pkg.js.path + '");\n'; }
@@ -56,7 +57,11 @@ function compile(code, packages, verbose, outputFile) {
     });
   });
 
-  var compileOptions = { extra: webppl.parsePackageCode(packages, verbose), verbose: verbose };
+  var compileOptions = {
+    extra: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose
+  };
 
   var compiledBody = webppl.compile(code, compileOptions);
 
@@ -87,16 +92,9 @@ function main() {
 
   // Print version if requested
   if (argv.version) {
-    git.branch(
-        __dirname,
-        function(err, branch) {
-          __dirname,
-          git.short(
-              function(err, shortName) {
-                console.log(branch, shortName, __dirname);
-              });
-        }
-    );
+    version.get(__dirname, function(ver) {
+      console.log(ver.branch, ver.describe, __dirname);
+    });
     return;
   }
 
@@ -131,7 +129,7 @@ function main() {
     util.seedRNG(seed);
   }
 
-  processCode(code, packages, argv.verbose, outputFile);
+  processCode(code, packages, argv.verbose, programFile, outputFile);
 }
 
 main();

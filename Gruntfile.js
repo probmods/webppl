@@ -68,12 +68,10 @@ module.exports = function(grunt) {
 
   function browserifyArgs(args) {
     var pkgArg = '';
-    if (args.length > 0) {
-      var requires = _.chain(_.toArray(args))
-          .map(function(name) { return ['--require', name]; })
-          .flatten().value();
-      pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
-    }
+    var requires = _.chain(_.toArray(args))
+        .map(function(name) { return ['--require', name]; })
+        .flatten().value();
+    pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
     return pkgArg + ' -g brfs src/browser.js -o compiled/webppl.js';
   }
 
