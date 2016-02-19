@@ -91,7 +91,7 @@ module.exports = function(env) {
 
   Enumerate.prototype.factor = function(s, cc, a, score) {
     // Update score and continue
-    this.score = this.score + score;
+    this.score += score;
     if (this.score === -Infinity) {
       return this.exit();
     }
