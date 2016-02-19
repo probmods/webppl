@@ -263,7 +263,7 @@ function sumAD(xs) {
 
 var discreteERP = new ERP({
   sample: function(params) {
-    return multinomialSample(params[0]);
+    return discreteSample(params[0]);
   },
   score: function(params, val) {
     var probs = params[0];
@@ -500,6 +500,34 @@ var binomialERP = new ERP({
   }
 });
 
+function multinomialSample(params) {
+  var theta = params[0];
+  var n = params[1];
+  var thetaSum = util.sum(theta);
+  var k = theta.length;
+  for (var i = 0, a = new Array(k); i < k;) a[i++] = 0; // initialize array of 0s
+  for (var j = 0; j < n; j++) {
+    a[discreteSample(theta)]++;
+  }
+  return a;
+};
+
+var multinomialERP = new ERP({
+  sample: multinomialSample,
+  score: function(params, val) {
+    var probs = params[0];
+    var n = params[1];
+    var x = [];
+    var y = [];
+    for (var i = 0; i<probs.length; i++){
+      x[i] = lnfactAD(val[i])
+      y[i] = val[i] * Math.log(probs[i])
+    }
+    return (lnfactAD(n) - sumAD(x) + sumAD(y));
+  },
+  isContinuous: false
+});
+
 function factAD(x) {
   var t = 1;
   while (x > 1) {
@@ -596,7 +624,7 @@ var dirichletERP = new ERP({
   isContinuous: false
 });
 
-function multinomialSample(theta) {
+function discreteSample(theta) {
   var thetaSum = util.sum(theta);
   var x = util.random() * thetaSum;
   var k = theta.length;
@@ -651,7 +679,7 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
   vs.forEach(function(v, i) {dist[util.serialize(v)] = {val: v, prob: ps[i]}})
   var categoricalSample = vs.length === 1 ?
       function(params) { return vs[0]; } :
-      function(params) { return vs[multinomialSample(ps)]; };
+      function(params) { return vs[discreteSample(ps)]; };
   return new ERP(_.extendOwn({
     sample: categoricalSample,
     score: function(params, val) {
@@ -777,9 +805,11 @@ module.exports = setErpNames({
   binomialERP: binomialERP,
   dirichletERP: dirichletERP,
   discreteERP: discreteERP,
+  multinomialERP: multinomialERP,
   exponentialERP: exponentialERP,
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
+  discreteSample: discreteSample,
   multinomialSample: multinomialSample,
   multivariateGaussianERP: multivariateGaussianERP,
   cauchyERP: cauchyERP,
