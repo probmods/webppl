@@ -17,7 +17,11 @@ var discrete = function(ps) {
 
 var categorical = function(ps, vs) {
   return vs[discrete(ps)];
-}
+};
+
+var multinomial = function(ps, n) {
+  return sample(multinomialERP, [ps, n]);
+};
 
 var gaussian = function(mu, sigma) {
   return sample(gaussianERP, [mu, sigma]);

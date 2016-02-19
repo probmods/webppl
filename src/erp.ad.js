@@ -525,8 +525,32 @@ var multinomialERP = new ERP({
     }
     return (lnfactAD(n) - sumAD(x) + sumAD(y));
   },
-  isContinuous: false
+  support: function(params) {
+    var probs = params[0];
+    var k = params[1];
+    return _.map(multiCombinations(k, probs, [], 0), function(l){
+        return countCombinations(l, probs.length)
+    })
+  }
 });
+
+// combinations of k elements from states, with repetitions
+function multiCombinations(k, states, got, pos) {
+  var support = [];
+  if (got.length == k) {
+    return [_.clone(got)];
+  }
+  for (var i = pos; i < states.length; i++) {
+    got.push(i);
+    support = support.concat(multiCombinations(k, states, got, i));
+    got.pop();
+  }
+  return support;
+};
+
+function countCombinations(samples,n){
+  return _.values(_.defaults(_.countBy(samples), _.object(_.map(_.range(n), function(i){return [i,0]}))));
+};
 
 function factAD(x) {
   var t = 1;
