@@ -1,6 +1,7 @@
 var stackTrace = require('stack-trace')
 var SourceMap = require('source-map')
 var colors = require('colors/safe')
+var fs = require('fs')
 
 function repeatString(string, count) {
   return Array(count).join(string);
@@ -41,6 +42,10 @@ function getContextMessage(source, lineNumber, columnNumber) {
 }
 
 function printFriendlyStackTrace(error, sourceMap) {  
+  var parsedMap = JSON.parse(sourceMap)
+  var headerSource = fs.readFileSync('src/header.wppl')
+  parsedMap.sourcesContent = [headerSource]
+  debugger;
   var mapConsumer = new SourceMap.SourceMapConsumer(JSON.parse(sourceMap))
   var firstStackFrame = stackTrace.parse(error)[0];
 
@@ -48,6 +53,8 @@ function printFriendlyStackTrace(error, sourceMap) {
     line: firstStackFrame.lineNumber,
     column: firstStackFrame.columnNumber - 1
   })
+
+  console.log('error', error)
 
   console.log('\n' + colors.bold(error.toString()))
   console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n')

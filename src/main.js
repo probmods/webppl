@@ -53,7 +53,9 @@ function concatPrograms(programs) {
 }
 
 function parse(code, macros, filename) {
-  return addFileName(sweet.compile(code, { readableNames: true, ast: true, modules: macros }));
+  var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros })
+  var withFilename = addFilename(compiled, filename)
+  return withFilename;
 }
 
 function parseAll(bundles) {
@@ -179,9 +181,9 @@ function compile(code, options) {
 
     var codeAndMap = options.generateCode ? 
       escodegen.generate(transformedAst, {
-        sourceMap: filename,
+        sourceMap: true,
         sourceMapWithCode: true,
-        sourceContent: code
+        // sourceContent: code
       }) : transformedAst
 
     return codeAndMap

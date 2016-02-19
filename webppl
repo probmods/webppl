@@ -31,8 +31,9 @@ function run(code, packages, verbose, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
+  console.log('programFile', programFile)
+
   webppl.run(
-      programFile,
       code,
       function(s, x) {
         console.log('\n* Program return value:\n');
