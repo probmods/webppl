@@ -5,6 +5,7 @@
 // Q is the queue object to use. It should have enq, deq, and size methods.
 
 'use strict';
+'use ad';
 
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
@@ -123,7 +124,7 @@ module.exports = function(env) {
     this.marginal.add(retval, this.score);
 
     // Increment the completed execution counter
-    this.numCompletedExecutions++;
+    this.numCompletedExecutions += 1;
 
     // If anything is left in queue do it:
     if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {

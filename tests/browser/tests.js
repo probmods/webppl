@@ -1,29 +1,25 @@
 'use strict';
 
-var compile = function(code) {
-  return webppl.compile(code, {trampolineRunner: 'cli'});
-};
-
-var run = function(code) {
-  return webppl.run(code, {trampolineRunner: 'cli'});
-}
-
 QUnit.test('run', function(test) {
+  var done = test.async();
   webppl.run('Enumerate(flip)', function(s, erp) {
     test.ok(_.isEqual([false, true], erp.support().sort()));
+    done();
   });
 });
 
 QUnit.test('run twice', function(test) {
+  var done = test.async(2);
   _.times(2, function() {
     webppl.run('Enumerate(flip)', function(s, erp) {
       test.ok(_.isEqual([false, true], erp.support().sort()));
+      done();
     });
   });
 });
 
 QUnit.test('compile', function(test) {
-  test.ok(_.isString(compile('1 + 1')));
+  test.ok(_.isString(webppl.compile('1 + 1')));
 });
 
 QUnit.test('cps', function(test) {

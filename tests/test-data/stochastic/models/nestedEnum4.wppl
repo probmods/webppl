@@ -1,0 +1,11 @@
+var model = function() {
+  var x = uniform(0, 1);
+  var marginal = Enumerate(function() {
+    var z = flip(x);
+    factor(z ? 0 : -Infinity);
+    assert.ok(z);
+    return z;
+  });
+  var y = sample(marginal);
+  return y;
+};
