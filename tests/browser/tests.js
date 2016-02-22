@@ -1,15 +1,19 @@
 'use strict';
 
 QUnit.test('run', function(test) {
+  var done = test.async();
   webppl.run('Enumerate(flip)', function(s, erp) {
     test.ok(_.isEqual([false, true], erp.support().sort()));
+    done();
   });
 });
 
 QUnit.test('run twice', function(test) {
+  var done = test.async(2);
   _.times(2, function() {
     webppl.run('Enumerate(flip)', function(s, erp) {
       test.ok(_.isEqual([false, true], erp.support().sort()));
+      done();
     });
   });
 });
