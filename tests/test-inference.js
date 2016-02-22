@@ -427,22 +427,22 @@ var tests = [
           kernel: { HMC: { steps: 50, stepSize: 0.004 } }
         }
       },
-      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
+      nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
+      nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum4: { hist: { exact: true } },
-      nestedEnum5: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum6: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum7: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum5: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
+      nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
+      nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum8: {
-        mean: { tol: 0.05 },
-        std: { tol: 0.05 },
+        mean: { tol: 0.075 },
+        std: { tol: 0.075 },
         args: {
           samples: 2000,
           kernel: { HMC: { steps: 20, stepSize: 0.2 } }
         }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.075 } }
     }
   },
   {
