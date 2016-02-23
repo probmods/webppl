@@ -54,7 +54,7 @@ function concatPrograms(programs) {
 
 function parse(code, macros, filename) {
   var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros })
-  var withFilename = addFilename(compiled, filename)
+  var withFilename = addFilename(compiled, filename);
   return withFilename;
 }
 
@@ -180,12 +180,13 @@ function compile(code, options) {
     ])(asts);
 
     var codeAndMap = options.generateCode ? 
-      escodegen.generate(transformedAst, {
-        sourceMap: true,
+      escodegen.generate(transformedAst, { 
+        sourceMap: true, 
         sourceMapWithCode: true,
-        // sourceContent: code
       }) : transformedAst
 
+    codeAndMap.map = JSON.parse(codeAndMap.map)
+    codeAndMap.map.sourcesContent = [fs.readFileSync('src/header.wppl', 'utf8'), code]
     return codeAndMap
   };
 
@@ -201,6 +202,7 @@ function run(code, k, options) {
 
   util.timeif(options.verbose, 'run', function() {
     try {
+      debugger;
       eval.call(global, codeWithMap.code)(runner)({}, k, '');
     } catch (exception) {
       printFriendlyStackTrace(exception, codeWithMap.map)

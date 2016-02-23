@@ -42,19 +42,16 @@ function getContextMessage(source, lineNumber, columnNumber) {
 }
 
 function printFriendlyStackTrace(error, sourceMap) {  
-  var parsedMap = JSON.parse(sourceMap)
-  var headerSource = fs.readFileSync('src/header.wppl')
-  parsedMap.sourcesContent = [headerSource]
+  // var headerSource = fs.readFileSync('src/header.wppl')
+  // parsedMap.sourcesContent = [headerSource]
   debugger;
-  var mapConsumer = new SourceMap.SourceMapConsumer(JSON.parse(sourceMap))
+  var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap)
   var firstStackFrame = stackTrace.parse(error)[0];
 
   var originalPosition = mapConsumer.originalPositionFor({
     line: firstStackFrame.lineNumber,
     column: firstStackFrame.columnNumber - 1
   })
-
-  console.log('error', error)
 
   console.log('\n' + colors.bold(error.toString()))
   console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n')
