@@ -431,7 +431,7 @@ var tests = [
       nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum4: { hist: { exact: true } },
-      nestedEnum5: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
+      nestedEnum5: { mean: { tol: 0.085 }, std: { tol: 0.075 } },
       nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.075 } },
       nestedEnum8: {
