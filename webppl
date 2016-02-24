@@ -38,7 +38,7 @@ function run(code, packages, verbose, programFile) {
         printWebPPLValue(x);
       },
       {
-        extra: webppl.parsePackageCode(packages, verbose),
+        bundles: webppl.parsePackageCode(packages, verbose),
         filename: programFile,
         verbose: verbose
       });
@@ -58,7 +58,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
   });
 
   var compileOptions = {
-    extra: webppl.parsePackageCode(packages, verbose),
+    bundles: webppl.parsePackageCode(packages, verbose),
     filename: programFile,
     verbose: verbose
   };

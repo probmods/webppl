@@ -24,16 +24,16 @@ var load = _.once(function() {
     if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
     pkg.headers.forEach(webppl.requireHeaderWrapper);
   });
-  var extra = webppl.parsePackageCode(packages);
+  var bundles = webppl.parsePackageCode(packages);
   console.log('webppl ' + version + ' loaded.');
-  return extra;
+  return bundles;
 });
 
 function run(code, k, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: load()}, options);
+  var optionsExtended = _.extend({bundles: load()}, options);
 
   return webppl.run(code, k, optionsExtended);
 }
@@ -42,7 +42,7 @@ function compile(code, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: load()}, options);
+  var optionsExtended = _.extend({bundles: load()}, options);
   return webppl.compile(code, optionsExtended);
 }
 
