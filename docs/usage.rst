@@ -16,3 +16,12 @@ Compiling webppl programs to Javascript::
 The compiled file can be run using nodejs::
 
     node geometric.js
+
+To use webppl in web pages, include the compiled file::
+
+    <script src="webppl.js"></script>
+    <script>webppl.run(...)</script>
+
+We also provide an in-browser editor for webppl code. See the documentation for webppl-editor_
+
+.. _webppl-editor: https://github.com/probmods/webppl-editor
