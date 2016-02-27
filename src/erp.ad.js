@@ -532,7 +532,7 @@ function multinomialSample(params) {
     a[discreteSample(theta)]++;
   }
   return a;
-};
+}
 
 var multinomialERP = new ERP({
   sample: multinomialSample,
@@ -545,19 +545,19 @@ var multinomialERP = new ERP({
     var x = [];
     var y = [];
     for (var i = 0; i<probs.length; i++){
-      x[i] = lnfact(val[i])
-      y[i] = val[i] * Math.log(probs[i])
+      x[i] = lnfact(val[i]);
+      y[i] = val[i] * Math.log(probs[i]);
     }
-    return (lnfact(n) - sum(x) + sum(y));
+    return lnfact(n) - sum(x) + sum(y);
   },
   support: function(params) {
     var probs = params[0];
     var k = params[1];
-    return _.map(multiCombinations(k, probs, [], 0), function(l){
-        return countCombinations(l, probs.length)
-    })
+    return _.map(
+      multiCombinations(k, probs, [], 0),
+      function(l){ return countCombinations(l, probs.length); });
   }
-});
+})
 
 // combinations of k elements from states, with repetitions
 function multiCombinations(k, states, got, pos) {
@@ -573,9 +573,9 @@ function multiCombinations(k, states, got, pos) {
   return support;
 };
 
-function countCombinations(samples,n){
-  return _.values(_.defaults(_.countBy(samples), _.object(_.map(_.range(n), function(i){return [i,0]}))));
-};
+function countCombinations(samples, n){
+  return _.values(_.defaults(_.countBy(samples), _.object(_.map(_.range(n), function(i){return [i ,0]}))));
+}
 
 
 function fact(x) {
