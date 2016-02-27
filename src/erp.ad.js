@@ -539,6 +539,9 @@ var multinomialERP = new ERP({
   score: function(params, val) {
     var probs = params[0];
     var n = params[1];
+    if (sum(val) != n) {
+      return -Infinity;
+    }
     var x = [];
     var y = [];
     for (var i = 0; i<probs.length; i++){
