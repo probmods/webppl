@@ -515,13 +515,20 @@ var binomialERP = new ERP({
   }
 });
 
+function zeros(n) {
+  var a = new Array(n);
+  for (var i = 0; i < n; i++) {
+    a[i] = 0;
+  }
+  return a;
+}
+
 function multinomialSample(params) {
   var theta = params[0];
   var n = params[1];
   var thetaSum = util.sum(theta);
-  var k = theta.length;
-  for (var i = 0, a = new Array(k); i < k;) a[i++] = 0; // initialize array of 0s
-  for (var j = 0; j < n; j++) {
+  var a = zeros(theta.length);
+  for (var i = 0; i < n; i++) {
     a[discreteSample(theta)]++;
   }
   return a;
