@@ -554,27 +554,37 @@ var multinomialERP = new ERP({
     var probs = params[0];
     var k = params[1];
     return _.map(
-      multiCombinations(k, probs, [], 0),
-      function(l){ return countCombinations(l, probs.length); });
+      allDiscreteCombinations(k, probs, [], 0), // support of repeat(k, discrete(probs))
+      function(l){ return buildHistogramFromCombinations(l, probs); }); // convert to histogram
   }
 })
 
-// combinations of k elements from states, with repetitions
-function multiCombinations(k, states, got, pos) {
+// combinations of k (discrete) samples from states
+function allDiscreteCombinations(k, states, got, pos) {
   var support = [];
   if (got.length == k) {
     return [_.clone(got)];
   }
   for (var i = pos; i < states.length; i++) {
     got.push(i);
-    support = support.concat(multiCombinations(k, states, got, i));
+    support = support.concat(allDiscreteCombinations(k, states, got, i));
     got.pop();
   }
   return support;
 };
 
-function countCombinations(samples, n){
-  return _.values(_.defaults(_.countBy(samples), _.object(_.map(_.range(n), function(i){return [i ,0]}))));
+function buildHistogramFromCombinations(samples, states){
+  var n = states.length // number of possible states
+  var initializedArray = _.object(
+        _.map(
+          _.range(n), 
+          function(i){ return [i ,0] })
+        )
+  return _.values(
+    _.defaults( // merge with initialized object so there are 0s for non-sampled states
+      _.countBy(samples), // count up samples
+      initializedArray
+      ));
 }
 
 
