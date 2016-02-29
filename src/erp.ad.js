@@ -552,12 +552,13 @@ var multinomialERP = new ERP({
   },
   support: function(params) {
     var probs = params[0];
-    var k = params[1];
-    return _.map(
-      allDiscreteCombinations(k, probs, [], 0), // support of repeat(k, discrete(probs))
-      function(l){ return buildHistogramFromCombinations(l, probs); }); // convert to histogram
+    var k = params[1];    
+    var combinations = allDiscreteCombinations(k, probs, [], 0);  // support of repeat(k, discrete(probs))
+    var toHist = function(l){ return buildHistogramFromCombinations(l, probs); };
+    var hists = combinations.map(toHist);
+    return hists;
   }
-})
+});
 
 // combinations of k (discrete) samples from states
 function allDiscreteCombinations(k, states, got, pos) {
@@ -571,20 +572,19 @@ function allDiscreteCombinations(k, states, got, pos) {
     got.pop();
   }
   return support;
-};
+}
 
-function buildHistogramFromCombinations(samples, states){
-  var n = states.length // number of possible states
-  var initializedArray = _.object(
-        _.map(
-          _.range(n), 
-          function(i){ return [i ,0] })
-        )
-  return _.values(
-    _.defaults( // merge with initialized object so there are 0s for non-sampled states
-      _.countBy(samples), // count up samples
-      initializedArray
-      ));
+function buildHistogramFromCombinations(samples, states) {
+  var stateIndices = _.range(states.length);
+  // Build default histogram that has 0 for all state indices
+  var zeroHist = (_.chain(stateIndices)
+                   .map(function(i){return [i, 0];})
+                   .object()
+                   .value());
+  // Now build actual histogram, keeping 0s for unsampled states
+  var hist = _.defaults(_.countBy(samples), zeroHist);
+  var array = _.sortBy(hist, function(val, key){ return key; });
+  return array;
 }
 
 
