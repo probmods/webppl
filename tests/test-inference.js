@@ -30,6 +30,7 @@ var tests = [
       beta: true,
       exponential: true,
       binomial: true,
+      multinomial: true,
       poisson: true,
       cauchy: true,
       mixed1: true,

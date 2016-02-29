@@ -120,7 +120,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = erp.multinomialSample(weights);
+      j = erp.discreteSample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 

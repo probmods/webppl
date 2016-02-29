@@ -269,7 +269,7 @@ function sum(xs) {
 
 var discreteERP = new ERP({
   sample: function(params) {
-    return multinomialSample(params[0]);
+    return discreteSample(params[0]);
   },
   score: function(params, val) {
     'use ad';
@@ -515,6 +515,79 @@ var binomialERP = new ERP({
   }
 });
 
+function zeros(n) {
+  var a = new Array(n);
+  for (var i = 0; i < n; i++) {
+    a[i] = 0;
+  }
+  return a;
+}
+
+function multinomialSample(params) {
+  var theta = params[0];
+  var n = params[1];
+  var thetaSum = util.sum(theta);
+  var a = zeros(theta.length);
+  for (var i = 0; i < n; i++) {
+    a[discreteSample(theta)]++;
+  }
+  return a;
+}
+
+var multinomialERP = new ERP({
+  sample: multinomialSample,
+  score: function(params, val) {
+    var probs = params[0];
+    var n = params[1];
+    if (sum(val) != n) {
+      return -Infinity;
+    }
+    var x = [];
+    var y = [];
+    for (var i = 0; i<probs.length; i++){
+      x[i] = lnfact(val[i]);
+      y[i] = val[i] * Math.log(probs[i]);
+    }
+    return lnfact(n) - sum(x) + sum(y);
+  },
+  support: function(params) {
+    var probs = params[0];
+    var k = params[1];    
+    var combinations = allDiscreteCombinations(k, probs, [], 0);  // support of repeat(k, discrete(probs))
+    var toHist = function(l){ return buildHistogramFromCombinations(l, probs); };
+    var hists = combinations.map(toHist);
+    return hists;
+  }
+});
+
+// combinations of k (discrete) samples from states
+function allDiscreteCombinations(k, states, got, pos) {
+  var support = [];
+  if (got.length == k) {
+    return [_.clone(got)];
+  }
+  for (var i = pos; i < states.length; i++) {
+    got.push(i);
+    support = support.concat(allDiscreteCombinations(k, states, got, i));
+    got.pop();
+  }
+  return support;
+}
+
+function buildHistogramFromCombinations(samples, states) {
+  var stateIndices = _.range(states.length);
+  // Build default histogram that has 0 for all state indices
+  var zeroHist = (_.chain(stateIndices)
+                   .map(function(i){return [i, 0];})
+                   .object()
+                   .value());
+  // Now build actual histogram, keeping 0s for unsampled states
+  var hist = _.defaults(_.countBy(samples), zeroHist);
+  var array = _.sortBy(hist, function(val, key){ return key; });
+  return array;
+}
+
+
 function fact(x) {
   'use ad';
   var t = 1;
@@ -614,7 +687,7 @@ var dirichletERP = new ERP({
   isContinuous: false
 });
 
-function multinomialSample(theta) {
+function discreteSample(theta) {
   var thetaSum = util.sum(theta);
   var x = util.random() * thetaSum;
   var k = theta.length;
@@ -670,7 +743,7 @@ var makeCategoricalERP = function(ps, vs, extraParams) {
   vs.forEach(function(v, i) {dist[util.serialize(v)] = {val: v, prob: ps[i]}})
   var categoricalSample = vs.length === 1 ?
       function(params) { return vs[0]; } :
-      function(params) { return vs[multinomialSample(ps)]; };
+      function(params) { return vs[discreteSample(ps)]; };
   return new ERP(_.extendOwn({
     sample: categoricalSample,
     score: function(params, val) {
@@ -799,9 +872,11 @@ module.exports = setErpNames({
   binomialERP: binomialERP,
   dirichletERP: dirichletERP,
   discreteERP: discreteERP,
+  multinomialERP: multinomialERP,
   exponentialERP: exponentialERP,
   gammaERP: gammaERP,
   gaussianERP: gaussianERP,
+  discreteSample: discreteSample,
   multinomialSample: multinomialSample,
   multivariateGaussianERP: multivariateGaussianERP,
   cauchyERP: cauchyERP,

@@ -132,7 +132,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = erp.multinomialSample(newWeights);
+      j = erp.discreteSample(newWeights);
       newParticles.push(particles[j].copy());
     }
 
