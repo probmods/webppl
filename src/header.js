@@ -68,8 +68,8 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, dist, params) {
-    return env.coroutine.sample(s, k, a, dist, params);
+  env.sample = function(s, k, a, erp, params) {
+    return env.coroutine.sample(s, k, a, erp, params);
   };
 
   env.factor = function(s, k, a, score) {
@@ -77,9 +77,9 @@ module.exports = function(env) {
     return env.coroutine.factor(s, k, a, score);
   };
 
-  env.sampleWithFactor = function(s, k, a, dist, params, scoreFn) {
+  env.sampleWithFactor = function(s, k, a, erp, params, scoreFn) {
     if (typeof env.coroutine.sampleWithFactor === 'function') {
-      return env.coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
+      return env.coroutine.sampleWithFactor(s, k, a, erp, params, scoreFn);
     } else {
       var sampleK = function(s, v) {
         var scoreK = function(s, sc) {
@@ -90,7 +90,7 @@ module.exports = function(env) {
         };
         return scoreFn(s, scoreK, a + 'swf1', v);
       };
-      return env.sample(s, sampleK, a, dist, params);
+      return env.sample(s, sampleK, a, erp, params);
     }
   };
 

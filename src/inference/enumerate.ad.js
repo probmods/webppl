@@ -58,31 +58,31 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(dist, params) {
+  var getSupport = function(erp, params) {
     // Find support of this erp:
-    if (dist.isContinuous || !dist.support) {
-      console.error(dist, params);
+    if (erp.isContinuous || !erp.support) {
+      console.error(erp, params);
       throw 'Enumerate can only be used with ERPs that have finite support.';
     }
-    var supp = dist.support(params);
+    var supp = erp.support(params);
 
     // Check that support is non-empty
     if (supp.length === 0) {
-      console.error(dist, params);
+      console.error(erp, params);
       throw 'Enumerate encountered ERP with empty support!';
     }
 
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, cc, a, dist, params) {
-    var support = getSupport(dist, params);
+  Enumerate.prototype.sample = function(store, cc, a, erp, params) {
+    var support = getSupport(erp, params);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          cc, value, this.score + dist.score(params, value), store);
+          cc, value, this.score + erp.score(params, value), store);
     }, this);
 
     // Call the next state on the queue
@@ -98,8 +98,8 @@ module.exports = function(env) {
     return cc(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(store, cc, a, dist, params, scoreFn) {
-    var support = getSupport(dist, params);
+  Enumerate.prototype.sampleWithFactor = function(store, cc, a, erp, params, scoreFn) {
+    var support = getSupport(erp, params);
 
     // Allows extra factors to be taken into account in making
     // exploration decisions:
@@ -107,7 +107,7 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + dist.score(params, value) + extraScore;
+            var score = env.coroutine.score + erp.score(params, value) + extraScore;
             env.coroutine.enqueueContinuation(cc, value, score, store);
             return nextK();
           }, a, value);
