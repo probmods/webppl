@@ -455,7 +455,7 @@ module.exports = function(env) {
       }
     }
     // Check store for changes
-    if (!storesEqual(this.store, s)) {
+    if (!storesEqual(this.inStore, s)) {
       this.needsUpdate = true;
       updateProperty(this, 'inStore', _.clone(s));
     }
