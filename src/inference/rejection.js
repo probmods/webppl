@@ -24,9 +24,13 @@ module.exports = function(env) {
     this.maxScore = (maxScore === undefined) ? 0 : maxScore;
     this.incremental = incremental;
     this.hist = new Histogram();
-    this.numSamples = (numSamples === undefined || numSamples <= 0) ? 1 : numSamples;
+    this.numSamples = (numSamples === undefined) ? 1 : numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
+
+    if (!_.isNumber(numSamples) || numSamples <= 0) {
+      throw 'numSamples should be a positive integer.';
+    }
 
     if (this.incremental) {
       assert(this.maxScore <= 0, 'maxScore cannot be positive for incremental rejection.');
