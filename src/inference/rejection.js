@@ -23,7 +23,7 @@ module.exports = function(env) {
     this.maxScore = maxScore === undefined ? 0 : maxScore
     this.incremental = incremental;
     this.hist = new Histogram();
-    this.numSamples = numSamples;
+    this.numSamples = (numSamples === undefined || numSamples <= 0) ? 1 : numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
