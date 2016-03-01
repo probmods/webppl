@@ -101,7 +101,7 @@ module.exports = function(env) {
   env.incrementalize = function(s, k, a, fn, args) {
     args = args || [];
     return env.coroutine.incrementalize(s, k, a, fn, args);
-  }
+  };
 
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
