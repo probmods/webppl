@@ -1,3 +1,4 @@
+'use strict';
 
 // Inference query table
 // Simple abstraction over js objects that provides a

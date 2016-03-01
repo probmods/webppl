@@ -1,3 +1,5 @@
+'use strict';
+
 var git = require('git-rev-2');
 
 function get(dirname, callback) {
