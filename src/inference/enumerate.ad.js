@@ -75,30 +75,30 @@ module.exports = function(env) {
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, cc, a, erp, params) {
+  Enumerate.prototype.sample = function(store, k, a, erp, params) {
     var support = getSupport(erp, params);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          cc, value, this.score + erp.score(params, value), store);
+          k, value, this.score + erp.score(params, value), store);
     }, this);
 
     // Call the next state on the queue
     return this.nextInQueue();
   };
 
-  Enumerate.prototype.factor = function(s, cc, a, score) {
+  Enumerate.prototype.factor = function(s, k, a, score) {
     // Update score and continue
     this.score += score;
     if (this.score === -Infinity) {
       return this.exit();
     }
-    return cc(s);
+    return k(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(store, cc, a, erp, params, scoreFn) {
+  Enumerate.prototype.sampleWithFactor = function(store, k, a, erp, params, scoreFn) {
     var support = getSupport(erp, params);
 
     // Allows extra factors to be taken into account in making
@@ -108,7 +108,7 @@ module.exports = function(env) {
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
             var score = env.coroutine.score + erp.score(params, value) + extraScore;
-            env.coroutine.enqueueContinuation(cc, value, score, store);
+            env.coroutine.enqueueContinuation(k, value, score, store);
             return nextK();
           }, a, value);
         },
@@ -143,36 +143,36 @@ module.exports = function(env) {
   Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-  function enuPriority(s, cc, a, wpplFn, maxExecutions) {
+  function enuPriority(s, k, a, wpplFn, maxExecutions) {
     var q = new PriorityQueue(function(a, b) {
       return a.score - b.score;
     });
-    return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
   }
 
-  function enuFilo(s, cc, a, wpplFn, maxExecutions) {
+  function enuFilo(s, k, a, wpplFn, maxExecutions) {
     var q = [];
     q.size = function() {
       return q.length;
     };
     q.enq = q.push;
     q.deq = q.pop;
-    return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
   }
 
-  function enuFifo(s, cc, a, wpplFn, maxExecutions) {
+  function enuFifo(s, k, a, wpplFn, maxExecutions) {
     var q = [];
     q.size = function() {
       return q.length;
     };
     q.enq = q.push;
     q.deq = q.shift;
-    return new Enumerate(s, cc, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
   }
 
-  function enuDefault(s, cc, a, wpplFn, maxExecutions) {
+  function enuDefault(s, k, a, wpplFn, maxExecutions) {
     var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
-    return enu(s, cc, a, wpplFn, maxExecutions);
+    return enu(s, k, a, wpplFn, maxExecutions);
   }
 
   return {
