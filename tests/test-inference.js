@@ -341,7 +341,7 @@ var tests = [
       cache: true,
       store: { hist: { tol: 0 } },
       store2: { hist: { tol: 0 } },
-      geometric: true,
+      geometric: { samples: 5000, kernel: 'HMC' },
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
