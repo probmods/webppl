@@ -143,16 +143,16 @@ var tests = [
       varFactors2: true,
       withCaching: true,
       optionalErpParams: true,
-      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum4: { hist: { exact: true } },
-      nestedEnum5: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum6: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum7: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum8: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum5: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumDiscrete: true,
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
   },
   {
@@ -196,15 +196,15 @@ var tests = [
       importance3: true,
       withCaching: true,
       optionalErpParams: true,
-      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum4: { hist: { exact: true } },
-      nestedEnum5: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum6: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum7: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum8: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnum5: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
   },
   {
@@ -233,7 +233,7 @@ var tests = [
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
   },
   {
@@ -254,7 +254,7 @@ var tests = [
         mean: { tol: 0.3 },
         std: { tol: 0.3 }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
   },
   {
@@ -314,15 +314,15 @@ var tests = [
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
-      nestedEnum1: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum2: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum3: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
+      nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum4: { hist: { exact: true } },
-      nestedEnum5: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum6: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum7: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnum8: { mean: { tol: 0.05 }, std: { tol: 0.05 } },
-      nestedEnumWithFactor: { mean: { tol: 0.05 }, std: { tol: 0.05 } }
+      nestedEnum5: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
     }
   },
   {
@@ -341,7 +341,7 @@ var tests = [
       cache: true,
       store: { hist: { tol: 0 } },
       store2: { hist: { tol: 0 } },
-      geometric: true,
+      geometric: { samples: 5000, kernel: 'HMC' },
       withCaching: true,
       optionalErpParams: true,
       variableSupport: true,
