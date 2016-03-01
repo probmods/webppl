@@ -1,3 +1,5 @@
+'use strict';
+
 var _ = require('underscore');
 var ad = require('ad.js')({ mode: 'r', noHigher: true });
 
