@@ -123,11 +123,18 @@ module.exports = function(env) {
     }
   };
 
-  ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
+  ERPNode.prototype.registerInputChanges = function(s, k, erp, params) {
     updateProperty(this, 'store', _.clone(s));
     updateProperty(this, 'continuation', k);
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
+    // Check if ERP has changed
+    // TODO: Have ERPs provide 'equal' method to check whether they represent
+    //    the same distribution, even though they may refer to different objects.
+    if (erp !== this.erp) {
+      this.needsUpdate = true;
+      updateProperty(this, 'erp', erp);
+    }
     // Check params for changes
     if (!paramsEqual(params, this.params)) {
       this.needsUpdate = true;
