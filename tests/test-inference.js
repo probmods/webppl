@@ -80,7 +80,16 @@ var tests = [
       optionalErpParams: true,
       variableSupport: true,
       query: true,
-      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] }
+      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] },
+      nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum4: { hist: { exact: true } },
+      nestedEnum5: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
     }
   },
   {
