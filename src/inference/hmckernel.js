@@ -170,7 +170,7 @@ module.exports = function(env) {
       assert(!this.trace.isComplete());
     }
     var cont = this.positionStepCont;
-    this.thisPositionStepCont = undefined;
+    this.positionStepCont = undefined;
     return cont(this.trace);
   };
 
