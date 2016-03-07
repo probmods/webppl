@@ -6,8 +6,9 @@ var path = require('path');
 var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var util = require('./src/util');
+var pkginfo = require('./src/pkginfo');
+var git = require('./src/git');
 var parseArgs = require('minimist');
-var version = require('./src/version');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
@@ -92,9 +93,8 @@ function main() {
 
   // Print version if requested
   if (argv.version) {
-    version.get(__dirname, function(ver) {
-      console.log(ver.branch, ver.describe, __dirname);
-    });
+    var dir = __dirname;
+    console.log(_.filter([git.branch(dir), pkginfo.version(), dir]).join(' '));
     return;
   }
 
