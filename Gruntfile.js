@@ -63,7 +63,13 @@ module.exports = function(grunt) {
     },
     gjslint: jslintSettings,
     fixjsstyle: jslintSettings,
-    clean: ['compiled/*.js']
+    clean: ['compiled/*.js'],
+    watch: {
+      ad: {
+        files: ['**/*.ad.js'],
+        tasks: ['adify']
+      }
+    }
   });
 
   function browserifyArgs(args) {
@@ -79,6 +85,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-watch');
 
   grunt.registerTask('default', ['gjslint', 'nodeunit']);
   grunt.registerTask('test', ['nodeunit']);
@@ -86,6 +93,11 @@ module.exports = function(grunt) {
   grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('fixstyle', ['fixjsstyle']);
   grunt.registerTask('travis-phantomjs', ['compile', 'test-phantomjs']);
+
+  grunt.registerTask('adify', function() {
+    var output = child_process.execSync('scripts/adify');
+    grunt.log.writeln(output);
+  });
 
   grunt.registerTask('compile', 'Compile for the browser', function() {
     var taskArgs = (arguments.length > 0) ? ':' + _.toArray(arguments).join(':') : '';

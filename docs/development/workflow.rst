@@ -19,7 +19,13 @@ Files with names which end with ``.ad.js`` are transformed to use AD
 primitives when WebPPL is installed.
 
 During development it is necessary to run this transform after any
-such files have been modified. This is done with::
+such files have been modified. A grunt task is provided that will
+monitor the file system and run the transform when any ``.ad.js``
+files are updated. Start the task with::
+
+    grunt watch
+
+Alternatively, the transform can be run directly with::
 
     ./scripts/adify
 
