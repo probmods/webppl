@@ -12,8 +12,8 @@ var escodegen = require('escodegen');
 var _ = require('underscore');
 
 var pkg = require('./pkg');
+var pkginfo = require('./pkginfo');
 var util = require('./util');
-var version = require('./version');
 
 var parseExpr = function(s) {
   return esprima.parse('(' + s + ')').body[0].expression;
@@ -62,9 +62,7 @@ module.exports = function(file, opts) {
         next();
       },
       function(next) {
-        version.get(__dirname, function(ver) {
-          this.push(transform(code, ver.describe, opts));
-          next();
-        }.bind(this));
+        this.push(transform(code, pkginfo.version(), opts));
+        next();
       });
 };
