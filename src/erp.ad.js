@@ -800,7 +800,7 @@ function gaussianProposalParams(params, prevVal) {
 
 function dirichletProposalParams(params, prevVal) {
   var concentration = 10;
-  var driftParams = params.map(function(x) {return concentration * x});
+  var driftParams = prevVal.map(function(x) {return concentration * x});
   return driftParams;
 }
 
