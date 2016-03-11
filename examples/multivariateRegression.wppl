@@ -27,4 +27,4 @@ var model = function() {
   return f([5, 4])
 }
 
-MH(model, 100000)
+MH(model, 10000)
