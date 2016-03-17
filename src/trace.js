@@ -76,7 +76,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score = ad.add(this.score, erp.score(params, val));
+  this.score = ad.scalar.add(this.score, erp.score(params, val));
   // this.checkConsistency();
 };
 

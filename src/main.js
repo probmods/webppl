@@ -72,7 +72,7 @@ function headerPackage() {
   // Create a pseudo package from the header.
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
-  var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
+  var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/adnn/ad/macros.sjs', 'utf8');
   return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule, adMacroModule] };
 }
 

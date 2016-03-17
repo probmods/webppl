@@ -54,9 +54,9 @@ module.exports = function(env) {
 
   SMC.prototype.sample = function(s, k, a, erp, params) {
     var importanceERP = erp.importanceERP || erp;
-    var _params = ad.untapify(params);
+    var _params = ad.valueRec(params);
     var _val = importanceERP.sample(_params);
-    var val = this.adRequired && importanceERP.isContinuous ? ad.tapify(_val) : _val;
+    var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
     var importanceScore = importanceERP.score(_params, _val);
     var choiceScore = erp.score(_params, _val);
     var particle = this.currentParticle();
@@ -73,8 +73,8 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.trace.numFactors += 1;
     particle.trace.saveContinuation(s, k);
-    particle.trace.score = ad.add(particle.trace.score, score);
-    particle.logWeight += ad.untapify(score);
+    particle.trace.score = ad.scalar.add(particle.trace.score, score);
+    particle.logWeight += ad.value(score);
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
   };

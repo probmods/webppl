@@ -1,20 +1,20 @@
 'use strict';
 
 var _ = require('underscore');
-var ad = require('ad.js')({ mode: 'r', noHigher: true });
+var ad = require('adnn/ad');
 
-ad.isTape = function(obj) {
-  return _.has(obj, 'primal');
-};
-
-// Recursively untapify objects. ad.js already does this for arrays,
-// here we extend that to other objects.
-ad.deepUntapify = function(x) {
-  if (_.isObject(x) && !_.isArray(x) && !ad.isTape(x)) {
-    return _.mapObject(x, ad.deepUntapify);
+var valueRec = function(x) {
+  if (ad.isLifted(x)) {
+    return x.x;
+  } else if (_.isArray(x)) {
+    return _.map(x, valueRec);
+  } else if (_.isObject(x) && !_.isFunction(x)) {
+    return _.mapObject(x, valueRec);
   } else {
-    return ad.untapify(x);
+    return x;
   }
 };
+
+ad.valueRec = valueRec;
 
 module.exports = ad;
