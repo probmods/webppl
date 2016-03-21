@@ -43,7 +43,7 @@ module.exports = function(env) {
 
     var val;
     if (erp.isContinuous) {
-      var prevVal = ad.untapify(prevChoice.val);
+      var prevVal = ad.value(prevChoice.val);
       var _val = prevVal + this.stepSize * this.momentum[a];
 
       // Handle constraints.
@@ -63,7 +63,7 @@ module.exports = function(env) {
           }
         }
       }
-      val = ad.tapify(_val);
+      val = ad.lift(_val);
     } else {
       if (_.contains(mvErpNames, erp.name)) {
         throw 'Multivariate distributions are not yet supported by HMC.';
@@ -77,7 +77,7 @@ module.exports = function(env) {
 
   HMCKernel.prototype.factor = function(s, k, a, score) {
     this.trace.numFactors += 1;
-    this.trace.score = ad.add(this.trace.score, score);
+    this.trace.score = ad.scalar.add(this.trace.score, score);
 
     if (this.trace.numFactors === this.exitFactor) {
       this.trace.saveContinuation(s, k);
@@ -88,6 +88,14 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.run = function() {
+
+    // Zero derivatives left over from previous HMC iterations, or
+    // from the rejuvenation of a particle which shares parts of the
+    // ad graph which this trace.
+    if (ad.isLifted(this.oldTrace.score)) {
+      this.oldTrace.score.zeroDerivatives();
+    }
+
     // Initialize momentum.
     this.momentum = sampleMomentum(this.oldTrace);
 
@@ -167,18 +175,22 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.momentumStep = function(trace, scaleFactor) {
-    // Compute gradient of score w.r.t. the continuous variables.
-    ad.yGradientR(trace.score);
-    var stepSize = this.stepSize * scaleFactor;
-    _.each(trace.choices, function(choice) {
-      if (choice.erp.isContinuous) {
-        this.momentum[choice.address] += stepSize * choice.val.sensitivity;
-      }
-    }, this);
+    if (ad.isLifted(trace.score)) {
+
+      // Compute gradient of score w.r.t. the continuous variables.
+      trace.score.backprop();
+
+      var stepSize = this.stepSize * scaleFactor;
+      _.each(trace.choices, function(choice) {
+        if (choice.erp.isContinuous) {
+          this.momentum[choice.address] += stepSize * ad.derivative(choice.val);
+        }
+      }, this);
+    }
   };
 
   function computeH(trace, momentum) {
-    var score = ad.untapify(trace.score);
+    var score = ad.value(trace.score);
     var kinetic = 0.5 * _.reduce(momentum, function(memo, p) { return memo + p * p; }, 0);
     return score - kinetic;
   }

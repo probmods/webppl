@@ -10,7 +10,7 @@ var sweet = require('sweet.js');
 var _ = require('underscore');
 var util = require('../util');
 
-var adMacros = sweet.loadNodeModule(null, 'ad.js/macros');
+var adMacros = sweet.loadNodeModule(null, 'adnn/ad/macros.sjs');
 var sweetOptions = { modules: adMacros, readableNames: true, ast: true };
 
 function expandMacros(code) {

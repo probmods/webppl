@@ -250,6 +250,8 @@ var tests = [
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
+      mean: { tol: 0.2 },
+      std: { tol: 0.2 },
       logZ: { check: true, tol: 0.1 },
       MAP: { tol: 0.1, check: true },
       args: { particles: 1000, rejuvSteps: 10, rejuvKernel: 'HMC' }
@@ -263,7 +265,9 @@ var tests = [
         mean: { tol: 0.3 },
         std: { tol: 0.3 }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      gaussianMean: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
+      gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } }
     }
   },
   {
