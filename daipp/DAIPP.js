@@ -2,9 +2,7 @@
 
 //FIXME: need cache,
 
-//this one takes an object or value and turns it into a vector.
-var ListRNN = nn.mlp(2*latentSize, [{nOut: latentSize}])
-ListRNN.setTraining(true)
+//val2vec takes an object and turns it into a vector.
 val2vec(val) {
   //NOTE: fixed dim arrays should be upgraded to tensor by hand.
   //NOTE: integers initially treated as real, but could treat as Enum or one-hot.
@@ -17,16 +15,23 @@ val2vec(val) {
       val = ad.Tensor(val)
     case "tensor":
       //tensors are re-shaped and pushed through an MLP to get right dim
-      //TODO: need to have an MLP of the appropriate dimension... cache them?
-      return MLP(Tensor.flatten(val))
+      return tensorAdaptor(val.dimensions).eval(val)
     case "array":
       //arrays are handled inductively
-      return val.reduce(function(vec, next){return ListRNN.eval(nn.tensor.concat(vec,val2vec(next)))})
+      var arrayRNN = tensorAdaptor([2*latentSize],'arrayRNN')
+      return val.reduce(function(vec, next){return arrayRNN.eval(nn.tensor.concat(vec,val2vec(next)))})
     default:
       //default case: treat as enum type and memoize embedding vector.
       return getConstant(val)
   }
 }
+
+var tensorAdaptor = cache(function(size,name){
+  var flatlength = size.cumProd() //TODO: cumProd
+  var net = nn.seq([nn.flatten, nn.mlp(flatlength, [{nOut: latentSize}])]) //TODO:flatten?
+  net.setTraining(true)
+  return net
+})
 
 var getConstant = cache(function(val) {
   return nn.constantparams([latentSize])
@@ -43,13 +48,29 @@ This goes from a vector (created from context etc) to an importance distribution
 ERPtype is the name of an ERP.
 This function is responsible for deciding which importance ERP to use, and it’s params. Returns [guideERP, guideParams].
 */
+vec2importanceERP(vec,ERPtype) {
+   if(ERPtype == 'Bernoulli') {
+      //importance ERP is Bernoulli, param is single bounded real
+      var theta = makeAdaptorNet([{dim:[1], dom:[0,1]}],'Bernoulli').eval(vec)
+      //FIXME: deal with domain re-scaling to [0,1]
+      return [BernoulliERP, theta]
+    } else if(ERPtype == 'Gaussian') {
+      //importance ERP is mixture of Gaussians, params are means and logvars for the components
+      var ncomponents = 2
+      var meansAndLogVars = makeAdaptorNet([[ncomponents],[ncomponents]],'GMM').eval(vec)
+      return [GaussianMixtureERP, meansAndLogVars]
+    } else if(ERPtype == 'Dirichlet') {
+      //importance ERP is??
+    }
+  //otherwise throw an error....
+}
 
 //This function creates an adaptor network that goes from the fixed-size predict vector to whatever size and shape are needed in the importance ERPs... if domains are provided on the return tensors then a rescaling function is applied.
 //sizes is an array of tensor shapes. if a shape is an array it is assumed to be the tensor dims and the domain unbounded; if it is an object, it is assumed to have fields for dim and domain bounds.
 //eg. [{dim:[1],dom:[0,Infinity]}, [2,2]] means ERP params will be a singleton tensor scaled to positive reals and an unbounded 2x2 matrix tensor.
 //name arg is just there so that different ERPs with same shape params can get different adaptors.
 //NOTE: this assumes params to importance ERPs are always tensor...
-var makeAdaptorNet = cache(function(name,sizes) {
+var makeAdaptorNet = cache(function(sizes,name) {
   var nets = []
   for(size in sizes) {
     var dim = (sizes.dim==null)?sizes:sizes.dim
@@ -65,23 +86,6 @@ var makeAdaptorNet = cache(function(name,sizes) {
   }
   return nets
 })
-
-vec2importanceERP(vec,ERPtype) {
-   if(ERPtype == 'Bernoulli') {
-      //importance ERP is Bernoulli, param is single bounded real
-      var theta = makeAdaptorNet('Bernoulli',[{dim:[1], dom:[0,1]}]).eval(vec)
-      //FIXME: deal with domain re-scaling to [0,1]
-      return [BernoulliERP, theta]
-    } else if(ERPtype == 'Gaussian') {
-      //importance ERP is mixture of Gaussians, params are means and logvars for the components
-      var ncomponents = 2
-      var meansAndLogVars = makeAdaptorNet('GMM',[[ncomponents],[ncomponents]]).eval(vec)
-      return [GaussianMixtureERP, meansAndLogVars]
-    } else if(ERPtype == 'Dirichlet') {
-      //importance ERP is??
-    }
-
-}
 
 
 /*
