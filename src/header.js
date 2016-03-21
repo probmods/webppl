@@ -20,6 +20,7 @@
 
 var assert = require('assert');
 var _ = require('underscore');
+var nn = require('adnn/nn');
 
 try {
   var util = require('./util');
@@ -142,7 +143,9 @@ module.exports = function(env) {
     _: _,
     util: util,
     assert: assert,
-    ad: ad
+    ad: ad,
+    nn: nn,
+    T: ad.tensor
   });
 
   // Inference functions and header utils
