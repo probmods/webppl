@@ -161,7 +161,7 @@ ad.tensor.sumreduce = ad.newUnaryFunction({
   forward: function(a) {
     return a.sumreduce();
   },
-  backward(a) {
+  backward: function(a) {
     var n = a.x.length;
     for (var i = 0; i < n; i++) {
       a.dx.data[i] += this.dx;
