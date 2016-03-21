@@ -1,6 +1,10 @@
 'use strict';
 
+var _ = require('underscore');
 var serialize = require('./util').serialize
+var Tensor = require('./tensor');
+var fs = require('fs');
+var child_process = require('child_process');
 var LRU = require('lru-cache');
 var ad = require('./ad');
 
@@ -62,11 +66,42 @@ module.exports = function(env) {
     }
   };
 
+  var Vector = function(s, k, a, arr) {
+    return k(s, new Tensor([arr.length, 1]).fromFlatArray(arr));
+  };
+
+  var Matrix = function(s, k, a, arr) {
+    return k(s, new Tensor([arr.length, arr[0].length]).fromArray(arr));
+  };
+
+  var zeros = function(s, k, a, dims) {
+    return k(s, new Tensor(dims));
+  };
+
+  // Provides a convinient wrapper around the primitive getParam.
+  // Will be simplified once all params are tensor valued.
+  var param = function(s, k, a, arg1, arg2, arg3) {
+    return getParam(s, k, a, function() {
+      // TODO: Init. from Gaussian.
+      if (_.isArray(arg1)) {
+        // param(dims, mean, std)
+        return new Tensor(arg1).fill(arg2);
+      } else {
+        // param(mean, std)
+        return arg1;
+      }
+    });
+  };
+
   return {
     display: display,
     cache: cache,
     apply: apply,
-    _Fn: _Fn
+    _Fn: _Fn,
+    Vector: Vector,
+    Matrix: Matrix,
+    zeros: zeros,
+    param: param
   };
 
 };

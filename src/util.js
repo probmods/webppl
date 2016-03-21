@@ -123,18 +123,20 @@ function cpsForEach(func, cont, xs, i) {
   }
 }
 
-function cpsLoop(n, func, cont, i) {
-  assert(_.isNumber(n), 'Number expected.');
-  i = (i === undefined) ? 0 : i;
-  if (i === n) {
-    return cont();
-  } else {
-    return func(i, function() {
-      return function() { // insert trampoline step
-        return cpsLoop(n, func, cont, i + 1);
-      };
-    });
+function cpsLoop(n, func, cont, ctx) {
+  function loop(i) {
+    if (i === n) {
+      return cont.call(ctx);
+    } else {
+      return func.call(ctx, i, function() {
+        return function() { // insert trampoline step
+          return loop(i + 1);
+        };
+      });
+    }
   }
+  assert(_.isNumber(n), 'Number expected.');
+  return loop(0);
 }
 
 function cpsIterate(n, initial, func, cont) {

@@ -29,9 +29,9 @@ try {
   var asyncpf = require('./inference/asyncpf');
   var pmcmc = require('./inference/pmcmc');
   var smc = require('./inference/smc');
-  var variational = require('./inference/variational');
   var rejection = require('./inference/rejection');
   var incrementalmh = require('./inference/incrementalmh');
+  var optimize = require('./inference/optimize');
   var headerUtils = require('./headerUtils');
   var Query = require('./query').Query;
   var ad = require('./ad');
@@ -63,13 +63,16 @@ module.exports = function(env) {
     incrementalize: function(s, k, a, fn, args) {
       var args = [s, k, a].concat(args);
       return fn.apply(global, args);
+    },
+    getParam: function(s, k, a, initFn) {
+      return k(s, initFn());
     }
   };
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, erp, params) {
-    return env.coroutine.sample(s, k, a, erp, params);
+  env.sample = function(s, k, a, erp, params, options) {
+    return env.coroutine.sample(s, k, a, erp, params, options);
   };
 
   env.factor = function(s, k, a, score) {
@@ -103,6 +106,13 @@ module.exports = function(env) {
     return env.coroutine.incrementalize(s, k, a, fn, args);
   };
 
+  env.getParam = function() {
+    // If the current coroutine doesn't implement getParam, use the
+    // default.
+    var getParam = env.coroutine.getParam || env.defaultCoroutine.getParam;
+    return getParam.apply(env.coroutine, arguments);
+  };
+
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
 
@@ -123,7 +133,8 @@ module.exports = function(env) {
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
     incrementalize: env.incrementalize,
-    query: env.query
+    query: env.query,
+    getParam: env.getParam
   });
 
   // Modules we want to use from webppl
@@ -137,7 +148,7 @@ module.exports = function(env) {
   // Inference functions and header utils
   var headerModules = [
     enumerate, asyncpf, mcmc, incrementalmh, pmcmc,
-    smc, variational, rejection, headerUtils
+    smc, rejection, optimize, headerUtils
   ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));

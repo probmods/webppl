@@ -67,9 +67,9 @@ var gamma = function(shape, scale) {
   return sample(gammaERP, [shape, scale]);
 };
 
-var deltaERP = function(v) {
-  return _top.makeCategoricalERP([1.0], [v]);
-};
+// var deltaERP = function(v) {
+//   return _top.makeCategoricalERP([1.0], [v]);
+// };
 
 var categoricalERP = function(ps, vs, extraParams) {
   return _top.makeCategoricalERP(ps, vs, extraParams);

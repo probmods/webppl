@@ -20,12 +20,11 @@
 // - (for discrete distributions with finite support) or an object
 // - with 'lower' and 'upper' properties (for continuous distributions
 // - with bounded support).
-// - erp.grad(params, val) gives the gradient of score at val wrt params.
 // - erp.proposer is an erp for making mh proposals conditioned on the previous value
 
 'use strict';
 
-var numeric = require('numeric');
+var Tensor = require('./tensor');
 var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
@@ -165,15 +164,50 @@ var bernoulliERP = new ERP({
   },
   support: function(params) {
     return [true, false];
-  },
-  grad: function(params, val) {
-    //FIXME: check domain
-    var weight = params[0];
-    return val ? [1 / weight] : [-1 / weight];
   }
 });
 
+// TODO: Fix that the following return NaN rather than -Infinity.
+// mvBernoulliERP.score([Vector([1, 0])], Vector([0, 0]));
 
+// TODO: The support here is {0, 1}^n rather than {true, false} as in
+// the univariate case.
+
+function mvBernoulliScore(params, x) {
+  var p = params[0];
+
+  assert.ok(ad.value(p).rank === 2);
+  assert.ok(ad.value(p).dims[1] === 1);
+  assert.ok(ad.value(x).rank === 2);
+  assert.ok(ad.value(x).dims[1] === 1);
+  assert.ok(ad.value(x).dims[0] === ad.value(p).dims[0]);
+
+  var logp = ad.tensor.log(p);
+  var xSub1 = ad.tensor.sub(x, 1);
+  var pSub1 = ad.tensor.sub(p, 1);
+
+  return ad.tensor.sumreduce(ad.tensor.sub(
+    ad.tensor.mul(x, logp),
+    ad.tensor.mul(xSub1, ad.tensor.log(ad.tensor.neg(pSub1)))
+  ));
+}
+
+var mvBernoulliERP = new ERP({
+  sample: function(params) {
+    var p = params[0];
+    assert.ok(p.rank === 2);
+    assert.ok(p.dims[1] === 1);
+    var d = p.dims[0];
+    var x = new Tensor([d, 1]);
+    var n = x.length;
+    while (n--) {
+      x.data[n] = util.random() < p.data[n];
+    }
+    return x;
+  },
+  score: mvBernoulliScore,
+  isContinuous: false
+});
 
 var randomIntegerERP = new ERP({
   sample: function(params) {
@@ -214,36 +248,242 @@ function gaussianScore(params, x) {
 var gaussianERP = new ERP({
   sample: gaussianSample,
   score: gaussianScore,
+  baseParams: function() {
+    return [0, 1];
+  },
+  transform: function(x, params) {
+    // Transform a sample x from the base distribution to the
+    // distribution described by params.
+    var mu = params[0];
+    var sigma = params[1];
+    return ad.scalar.add(ad.scalar.mul(sigma, x), mu);
+  },
   isContinuous: true
 });
 
-function multivariateGaussianSample(params) {
+function mvGaussianSample(params) {
   var mu = params[0];
   var cov = params[1];
-  var xs = mu.map(function() {return gaussianSample([0, 1]);});
-  var svd = numeric.svd(cov);
-  var scaledV = numeric.transpose(svd.V).map(function(x) {
-    return numeric.mul(numeric.sqrt(svd.S), x);
-  });
-  xs = numeric.dot(xs, numeric.transpose(scaledV));
-  return numeric.add(xs, mu);
+  assert.ok(mu.rank === 2);
+  assert.ok(mu.dims[1] === 1);
+  assert.ok(cov.rank === 2);
+  assert.ok(cov.dims[0] === cov.dims[1]);
+  assert.ok(mu.dims[0] === cov.dims[0]);
+  var d = mu.dims[0];
+  var z = new Tensor([d, 1]);
+  for (var i = 0; i < d; i++) {
+    z.data[i] = gaussianSample([0, 1]);
+  }
+  var L = cov.cholesky();
+  return L.dot(z).add(mu);
 }
 
-function multivariateGaussianScore(params, x) {
+function mvGaussianScore(params, x) {
   var mu = params[0];
   var cov = params[1];
-  var n = mu.length;
-  var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
-  var xSubMu = numeric.sub(x, mu);
-  var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
-  return -0.5 * (coeffs + exponents);
+  var _mu = ad.value(mu);
+  var _cov = ad.value(cov);
+  assert.ok(_mu.rank === 2);
+  assert.ok(_mu.dims[1] === 1);
+  assert.ok(_cov.rank === 2);
+  assert.ok(_cov.dims[0] === _cov.dims[1]);
+  assert.ok(_mu.dims[0] === _cov.dims[0]);
+  var d = _mu.dims[0];
+  var dLog2Pi = d * LOG_2PI;
+  var logDetCov = ad.scalar.log(ad.tensor.det(cov));
+  var z = ad.tensor.sub(x, mu);
+  var zT = ad.tensor.transpose(z);
+  var prec = ad.tensor.inv(cov);
+  return ad.scalar.mul(-0.5, ad.scalar.add(
+    dLog2Pi, ad.scalar.add(
+      logDetCov,
+      ad.tensorEntry(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
 }
 
 var multivariateGaussianERP = new ERP({
-  sample: multivariateGaussianSample,
-  score: multivariateGaussianScore,
-  // HACK: Avoid tapifying a matrix as it's not yet supported.
+  sample: mvGaussianSample,
+  score: mvGaussianScore,
+  continuous: true
+});
+
+function diagCovGaussianSample(params) {
+  var mu = params[0];
+  var sigma = params[1];
+  assert.strictEqual(mu.rank, 2);
+  assert.strictEqual(sigma.rank, 2);
+  assert.strictEqual(mu.dims[1], 1);
+  assert.strictEqual(sigma.dims[1], 1);
+  assert.strictEqual(mu.dims[0], sigma.dims[0]);
+  var d = mu.dims[0];
+
+  var x = new Tensor([d, 1]);
+  var n = x.length;
+  while (n--) {
+    x.data[n] = gaussianSample([mu.data[n], sigma.data[n]]);
+  }
+  return x;
+}
+
+function diagCovGaussianScore(params, x) {
+  var mu = params[0];
+  var sigma = params[1];
+  var _mu = ad.value(mu);
+  var _sigma = ad.value(sigma);
+
+  assert.strictEqual(_mu.rank, 2);
+  assert.strictEqual(_sigma.rank, 2);
+  assert.strictEqual(_mu.dims[1], 1);
+  assert.strictEqual(_sigma.dims[1], 1);
+  assert.strictEqual(_mu.dims[0], _sigma.dims[0]);
+
+  var d = _mu.dims[0];
+
+  var dLog2Pi = d * LOG_2PI;
+  var logDetCov = ad.scalar.mul(2, ad.tensor.sumreduce(ad.tensor.log(sigma)));
+  var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
+
+  return ad.scalar.mul(-0.5, ad.scalar.add(
+    dLog2Pi, ad.scalar.add(
+      logDetCov,
+      ad.tensor.sumreduce(ad.tensor.mul(z, z)))));
+}
+
+var diagCovGaussianERP = new ERP({
+  sample: diagCovGaussianSample,
+  score: diagCovGaussianScore,
+  baseParams: function(params) {
+    var d = params[0].dims[0];
+    var mu = new Tensor([d, 1]);
+    var sigma = new Tensor([d, 1]).fill(1);
+    return [mu, sigma];
+  },
+  transform: function(x, params) {
+    var mu = params[0];
+    var sigma = params[1];
+    return ad.tensor.add(ad.tensor.mul(sigma, x), mu);
+  },
   isContinuous: false
+});
+
+// TODO: Don't export this from here. I think we'll want to call it
+// from wppl code, so move elsewhere.
+var logistic = function(x) {
+  // Map a d dimensional vector onto the d simplex.
+  var d = ad.value(x).dims[0];
+  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
+  // Numeric stability.
+  // TODO: Make this less messy.
+  // There's no Tensor max. Can't use Math.max.apply as Math.max is
+  // rewritten to use ad. The ad version only takes 2 args.
+  var max = ad.value(u).toFlatArray().reduce(function(a, b) { return Math.max(a, b); });
+  var v = ad.tensor.exp(ad.tensor.sub(u, max));
+  var ret = ad.tensor.div(v, ad.tensor.sumreduce(v));
+  return ret;
+};
+
+// TODO: Generalize to allow correlations.
+
+var logisticNormalERP = new ERP({
+  sample: function(params) {
+    return logistic(diagCovGaussianSample(params));
+  },
+
+  score: function(params, val) {
+    var mu = params[0];
+    var sigma = params[1];
+    var _mu = ad.value(mu);
+    var _sigma = ad.value(sigma);
+    var _val = ad.value(val);
+
+    assert.ok(_val.dims[0] - 1 === _mu.dims[0]);
+
+    var d = _mu.dims[0];
+
+    var u = ad.tensor.reshape(ad.tensor.range(val, 0, d), [d, 1]);
+
+    var u_last = ad.tensorEntry(val, d);
+    var inv = ad.tensor.log(ad.tensor.div(u, u_last));
+
+    var normScore = diagCovGaussianScore(params, inv);
+
+    return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
+
+  },
+  baseERP: diagCovGaussianERP,
+  baseParams: diagCovGaussianERP.baseParams,
+  transform: function(x, params) {
+    return logistic(diagCovGaussianERP.transform(x, params));
+  },
+  isContinuous: true
+});
+
+function matrixGaussianScore(params, x) {
+  var _x = ad.value(x);
+  var mu = params[0];
+  var sigma = params[1];
+  var dims = params[2];
+
+  assert.ok(_.isNumber(mu));
+  assert.ok(_.isNumber(sigma));
+  assert.ok(_.isArray(dims));
+  assert.strictEqual(dims.length, 2);
+  assert.ok(_.isEqual(dims, _x.dims));
+
+  var d = _x.length;
+  var dLog2Pi = d * LOG_2PI;
+  var _2dLogSigma = ad.scalar.mul(2 * d, ad.scalar.log(sigma));
+  var sigma2 = ad.scalar.pow(sigma, 2);
+  var xSubMu = ad.tensor.sub(x, mu);
+  var z = ad.scalar.div(ad.tensor.sumreduce(ad.tensor.mul(xSubMu, xSubMu)), sigma2);
+
+  return ad.scalar.mul(-0.5, ad.scalar.sum(dLog2Pi, _2dLogSigma, z));
+}
+
+// params: [mean, cov, [rows, cols]]
+
+// Currently only supports the case where each dim is an independent
+// Gaussian and mu and sigma are shared by all dims.
+
+// It might be useful to extend this to allow mean to be a matrix etc.
+
+var matrixGaussianERP = new ERP({
+  sample: function(params) {
+    var mu = params[0];
+    var sigma = params[1];
+    var dims = params[2];
+
+    assert.ok(_.isNumber(mu));
+    assert.ok(_.isNumber(sigma));
+    assert.strictEqual(dims.length, 2);
+
+    var x = new Tensor(dims);
+    var n = x.length;
+    while (n--) {
+      x.data[n] = gaussianSample([mu, sigma]);
+    }
+    return x;
+  },
+  score: matrixGaussianScore,
+  isContinuous: true
+});
+
+var deltaERP = new ERP({
+  sample: function(params) {
+    return params[0];
+  },
+  score: function(params, x) {
+    // We really need a generic equality check here, but I might get
+    // away with this for VI for now. Don't want to serialize as with
+    // categorical as that's too slow for large matrices. matrices.
+    assert.ok(params[0] === x);
+    return 0;
+  },
+  baseParams: function() {
+    return [];
+  },
+  transform: function(x, params) {
+    return params[0];
+  }
 });
 
 var cauchyERP = new ERP({
@@ -267,21 +507,53 @@ function sum(xs) {
   return xs.reduce(function(a, b) { return a + b; }, 0);
 };
 
+function discreteScore(params, val) {
+  var probs = params[0];
+  var _probs = ad.value(probs);
+  assert.ok(_probs.rank === 2);
+  assert.ok(_probs.dims[1] === 1); // i.e. vector
+  var d = _probs.dims[0];
+  var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < d);
+  return inSupport ?
+      ad.scalar.log(ad.scalar.div(ad.tensorEntry(probs, val), ad.tensor.sumreduce(probs))) :
+      -Infinity;
+}
+
 var discreteERP = new ERP({
   sample: function(params) {
-    return discreteSample(params[0]);
+    return discreteSample(params[0].data);
   },
-  score: function(params, val) {
-    'use ad';
-    var probs = params[0];
-    var stop = probs.length;
-    var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < stop);
-    return inSupport ? Math.log(probs[val] / sum(probs)) : -Infinity;
-  },
+  score: discreteScore,
   support: function(params) {
-    return _.range(params[0].length);
+    return _.range(ad.value(params[0]).length);
   }
 });
+
+
+var discreteOneHotERP = new ERP({
+  sample: function(params) {
+    var ps = params[0];
+    var i = multinomialSample(ps.data);
+    var d = ps.length;
+    var x = new Tensor([d, 1]);
+    x.data[i] = 1;
+    return x;
+  },
+  score: function(params, x) {
+    var ps = params[0];
+    return ad.scalar.log(ad.tensor.sumreduce(ad.tensor.mul(ps, x)));
+  },
+  support: function(params) {
+    var ps = ad.value(params[0]);
+    var d = ps.length;
+    return _.range(d).map(function(i) {
+      var x = new Tensor([d, 1]);
+      x.data[i] = 1;
+      return x;
+    });
+  }
+});
+
 
 var gammaCof = [
   76.18009172947146,
@@ -552,7 +824,7 @@ var multinomialERP = new ERP({
   },
   support: function(params) {
     var probs = params[0];
-    var k = params[1];    
+    var k = params[1];
     var combinations = allDiscreteCombinations(k, probs, [], 0);  // support of repeat(k, discrete(probs))
     var toHist = function(l){ return buildHistogramFromCombinations(l, probs); };
     var hists = combinations.map(toHist);
@@ -650,41 +922,49 @@ var poissonERP = new ERP({
 });
 
 function dirichletSample(params) {
-  var alpha = params;
+  var alpha = params[0];
+  assert.ok(alpha.rank === 2);
+  assert.ok(alpha.dims[1] === 1); // i.e. vector
+  var d = alpha.dims[0];
   var ssum = 0;
-  var theta = [];
+  var theta = new Tensor([d, 1]);
   var t;
-  for (var i = 0; i < alpha.length; i++) {
-    t = gammaSample([alpha[i], 1]);
-    theta[i] = t;
-    ssum = ssum + t;
+  for (var i = 0; i < d; i++) {
+    t = gammaSample([alpha.data[i], 1]);
+    theta.data[i] = t;
+    ssum += t;
   }
-  for (var j = 0; j < theta.length; j++) {
-    theta[j] /= ssum;
+  for (var j = 0; j < d; j++) {
+    theta.data[j] /= ssum;
   }
   return theta;
 }
 
 function dirichletScore(params, val) {
-  var alpha = params;
-  var theta = val;
-  var asum = 0;
-  for (var i = 0; i < alpha.length; i++) {
-    asum += alpha[i];
-  }
-  var logp = logGamma(asum);
-  for (var j = 0; j < alpha.length; j++) {
-    logp += (alpha[j] - 1) * Math.log(theta[j]);
-    logp -= logGamma(alpha[j]);
-  }
-  return logp;
+  var alpha = params[0];
+  var _alpha = ad.value(alpha);
+  var _val = ad.value(val);
+
+  assert.ok(_alpha.rank === 2);
+  assert.ok(_alpha.dims[1] === 1); // i.e. vector
+  assert.ok(_val.rank === 2);
+  assert.ok(_val.dims[1] === 1); // i.e. vector
+  assert.ok(_alpha.dims[0] === _val.dims[0]);
+
+  return ad.scalar.add(
+    ad.tensor.sumreduce(
+      ad.tensor.sub(
+        ad.tensor.mul(
+          ad.tensor.sub(alpha, 1),
+          ad.tensor.log(val)),
+        ad.tensor.logGamma(alpha))),
+    ad.scalar.logGamma(ad.tensor.sumreduce(alpha)));
 }
 
 var dirichletERP = new ERP({
   sample: dirichletSample,
   score: dirichletScore,
-  // HACK: Avoid tapifying a vector as it's not yet supported.
-  isContinuous: false
+  isContinuous: true
 });
 
 function discreteSample(theta) {
@@ -868,10 +1148,13 @@ module.exports = setErpNames({
   serializeERP: serializeERP,
   deserializeERP: deserializeERP,
   bernoulliERP: bernoulliERP,
+  mvBernoulliERP: mvBernoulliERP,
   betaERP: betaERP,
   binomialERP: binomialERP,
+  deltaERP: deltaERP,
   dirichletERP: dirichletERP,
   discreteERP: discreteERP,
+  discreteOneHotERP: discreteOneHotERP,
   multinomialERP: multinomialERP,
   exponentialERP: exponentialERP,
   gammaERP: gammaERP,
@@ -879,6 +1162,10 @@ module.exports = setErpNames({
   discreteSample: discreteSample,
   multinomialSample: multinomialSample,
   multivariateGaussianERP: multivariateGaussianERP,
+  diagCovGaussianERP: diagCovGaussianERP,
+  matrixGaussianERP: matrixGaussianERP,
+  logisticNormalERP: logisticNormalERP,
+  logistic: logistic,
   cauchyERP: cauchyERP,
   poissonERP: poissonERP,
   randomIntegerERP: randomIntegerERP,

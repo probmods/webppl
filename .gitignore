@@ -9,4 +9,5 @@ docs/_static
 docs/_templates
 src/erp.js
 src/inference/enumerate.js
+src/inference/elbo.js
 src/aggregation/distribution.js
