@@ -1,0 +1,81 @@
+/*
+WebPPL functions to manage the context and prediction networks.
+
+These should be used to annotate the target program as so:
+  Insert an initContext at start of thunk to initialize.
+  Insert updateContext after each sample statement.
+  Optional to do updateContext at other places (after primitives, fn returns).
+  At sample statements guide as so: `sample(origERP, origParams, {guide: DAIPPguide(ERPtype, origParams)})`.
+It should be possible for the daipp package to provide macros that do most of this....
+
+Two key helper functions are in a corresponding DAIPP.js file:
+daipp.val2vec embeds js objects into vectors,
+daipp.vec2importanceERP chooses an importance ERP ad generates its params.
+
+Also need:
+getRelativeAddress()
+adnn functions
+*/
+
+
+
+
+var latentSize = 10 //This is the dimension output by embedData and of context vector.
+
+
+//A function used to initialize the context, given some data (or a summary of data)
+var initNet = nn.mlp(latentSize, [
+    {nOut: latentSize, activation: nn.tanh},
+    {nOut: latentSize}
+  ])
+initNet.setTraining(true)
+var initContext = function(data) {
+  var dataVec = daipp.val2vec(data)
+
+  var context = initNet.eval(dataVec)
+
+  globalStore.context = context
+
+  return
+}
+
+//A function used to update the context upon getting a sampled (or deterministic) value
+//TODO: make deeper? use GRU / LSTM?
+//TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
+var updateNet = nn.mlp(3*latentSize, [
+    {nOut: latentSize, activation: nn.tanh},
+    {nOut: latentSize}
+  ])
+updateNet.setTraining(true)
+var updateContext = function(val) {
+  var dataVec = daipp.val2vec(val)
+  var address = getRelativeAddress() //FIXME: need a header fn to grab address from start of inference thunk...
+  var addressVec = daipp.val2vec(address)
+  var context = globalStore.context
+
+  var newContext = updateNet.eval(ad.tensor.concat(context, addressVec, dataVec))
+
+  globalStore.context = newContext
+
+  return
+}
+
+//A function to predict the params of the importance distribution at a sample statement.
+//Takes the sigature of the domain of the original ERP.
+var predictNet = nn.mlp(3*latentSize, [
+    {nOut: latentSize, activation: nn.tanh},
+    {nOut: latentSize}
+  ])
+predictNet.setTraining(true)
+var DAIPPguide = function(ERPtype, val) {
+  var dataVec = daipp.val2vec(val)
+  var address = getRelativeAddress()
+  var addressVec = daipp.val2vec(address)
+  var context = globalStore.context
+
+  //merge the val, context, address together
+  var predict = predictNet.eval(ad.tensor.concat(context, addressVec, datavec))
+
+  //generate params as appropriate to ERPtype
+  return daipp.vec2importanceERP(predict, ERPtype)
+}
