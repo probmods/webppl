@@ -10,4 +10,5 @@ docs/_templates
 src/erp.js
 src/inference/enumerate.js
 src/inference/elbo.js
+src/inference/eubo.js
 src/aggregation/distribution.js

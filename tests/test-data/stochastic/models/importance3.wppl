@@ -2,6 +2,9 @@ var FairCoin = bernoulliERP.withParameters([0.5]);
 var BentCoin = bernoulliERP.withParameters([0.2]);
 
 var model = function() {
-  var x = sample(withImportanceDist(FairCoin, BentCoin));
+  var x = sample(FairCoin, [], {
+    guide: [BentCoin, []]
+  });
+
   return x;
 };

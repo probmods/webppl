@@ -1,12 +1,10 @@
-var makeCoin = function(p) {
-  return Enumerate(function() {return flip(p);});
-};
-
-var FairCoin = makeCoin(.5);
-
 var model = function() {
-  var x = sample(withImportanceDist(FairCoin, makeCoin(.2)));
-  var y = sample(withImportanceDist(FairCoin, makeCoin(.7)));
+  var x = sample(bernoulliERP, [.5], {
+    guide: [bernoulliERP, [.2]]
+  });
+  var y = sample(bernoulliERP, [.5], {
+    guide: [bernoulliERP, [.7]]
+  });
   factor((x || y) ? 0 : -Infinity);
   return [x, y];
 };

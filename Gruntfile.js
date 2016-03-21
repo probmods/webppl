@@ -16,7 +16,7 @@ var jslintSettings = {
     src: [
       'Gruntfile.js',
       'src/header.wppl',
-      'src/**/!(erp|enumerate|elbo|distribution).js'
+      'src/**/!(erp|enumerate|elbo|eubo|distribution).js'
     ]
   },
   test: {

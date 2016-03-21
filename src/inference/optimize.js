@@ -17,7 +17,8 @@ var optMethods = require('./optMethods');
 module.exports = function(env) {
 
   var estimators = {
-    ELBO: require('./elbo')(env)
+    ELBO: require('./elbo')(env),
+    EUBO: require('./eubo')(env)
   };
 
   // Example usage:
@@ -64,6 +65,7 @@ module.exports = function(env) {
 
           return estimator(params, function(grad) {
             optimizer(params, grad);
+            console.log(params);
             return next();
           });
 
@@ -91,7 +93,6 @@ module.exports = function(env) {
       var key = _.keys(obj)[0];
       args = [key, obj[key]];
     }
-    console.log(args);
     return cont.apply(null, args);
   }
 

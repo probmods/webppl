@@ -18,7 +18,9 @@ module.exports = function(env) {
       particles: 100,
       rejuvSteps: 0,
       rejuvKernel: 'MH',
-      finalRejuv: true
+      finalRejuv: true,
+      saveTraces: false,
+      ignoreGuide: false
     });
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -29,6 +31,9 @@ module.exports = function(env) {
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
+    this.saveTraces = options.saveTraces;
+    this.ignoreGuide = options.ignoreGuide;
+    this.params = _.has(options, 'params') ? _.clone(options.params) : {};
 
     this.particles = [];
     this.completeParticles = [];
@@ -42,8 +47,10 @@ module.exports = function(env) {
       this.particles.push(new Particle(trace));
     }
 
-    this.k = k;
     this.s = s;
+    this.k = k;
+    this.a = a;
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -52,19 +59,33 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp, params) {
-    var importanceERP = erp.importanceERP || erp;
+  SMC.prototype.sample = function(s, k, a, erp, params, options) {
+    var _val, choiceScore, importanceScore;
     var _params = ad.valueRec(params);
-    var _val = importanceERP.sample(_params);
-    var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
-    var importanceScore = importanceERP.score(_params, _val);
-    var choiceScore = erp.score(_params, _val);
-    var particle = this.currentParticle();
-    // Optimization: Choices are not required for PF without rejuvenation.
-    if (this.performRejuv) {
-      particle.trace.addChoice(erp, params, val, a, s, k);
+
+    if (options && _.has(options, 'guide') && !this.ignoreGuide) {
+      // Guide available.
+      var importanceERP = options.guide[0];
+      var importanceParams = options.guide[1];
+      var _importanceParams = ad.valueRec(importanceParams);
+      _val = importanceERP.sample(_importanceParams);
+      choiceScore = erp.score(_params, _val);
+      importanceScore = importanceERP.score(_importanceParams, _val);
+    } else {
+      // No guide, sample from prior.
+      _val = erp.sample(_params);
+      choiceScore = importanceScore = erp.score(_params, _val);
     }
+
+    var particle = this.currentParticle();
     particle.logWeight += choiceScore - importanceScore;
+
+    var val = this.adRequired && erp.isContinuous ? ad.lift(_val) : _val;
+    // Optimization: Choices are not required for PF without rejuvenation.
+    if (this.performRejuv || this.saveTraces) {
+      var address = this.saveTraces ? this.relativeAddress(a) : a;
+      particle.trace.addChoice(erp, params, val, address, s, k);
+    }
     return k(s, val);
   };
 
@@ -78,6 +99,35 @@ module.exports = function(env) {
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
   };
+
+  SMC.prototype.getParam = function(s, k, a, initFn) {
+
+    if (this.ignoreGuide) {
+      return env.defaultCoroutine.getParam(s, k, a, initFn);
+    }
+
+    // This differs from the implementation in ELBO in that:
+
+    // 1. Fresh parameters are discarded when the coroutine exits.
+    // 2. We don't need to track paramsSeen.
+
+    // Note, that these params are not passed to rejuvenation kernels.
+
+    var rel = this.relativeAddress(a);
+    var _val;
+    if (_.has(this.params, rel)) {
+      _val = this.params[rel];
+    } else {
+      this.params[rel] = _val = initFn();
+    }
+    var val = ad.lift(_val);
+    return k(s, val);
+  };
+
+  SMC.prototype.relativeAddress = function(address) {
+    assert.ok(address.startsWith(this.a));
+    return address.slice(this.a.length);
+  },
 
   SMC.prototype.atLastParticle = function() {
     return this.particleIndex === this.particles.length - 1;
@@ -258,6 +308,15 @@ module.exports = function(env) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
     var hist = new Histogram();
+    var traces = [];
+
+    var aggregate = function(trace) {
+      hist.add(trace.value);
+      if (this.saveTraces) {
+        traces.push(trace);
+      }
+    }.bind(this);
+
     var logAvgW = _.first(this.completeParticles).logWeight;
 
     return util.cpsForEach(
@@ -268,16 +327,17 @@ module.exports = function(env) {
                 this.rejuvSteps,
                 kernels.sequence(
                     this.rejuvKernel,
-                    kernels.tap(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(aggregate)));
             return chain(k, particle.trace);
           } else {
-            hist.add(particle.trace.value);
+            aggregate(particle.trace);
             return k();
           }
         }.bind(this),
         function() {
           var dist = hist.toERP();
           dist.normalizationConstant = logAvgW;
+          dist.traces = traces;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
         }.bind(this),
