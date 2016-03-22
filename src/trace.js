@@ -122,6 +122,29 @@ Trace.prototype.copy = function() {
   return t;
 };
 
+// One alternative to this is to relativize addresses in `addChoice`.
+// The downside of that approach is that we'll do a lot of unnecessary
+// work in cases where the trace is not used for tutorial traning.
+
+Trace.prototype.relativizeAddresses = function() {
+  // Modify all choice addresses to be relative to the base address.
+
+  // TODO: Re-evaluate the decision to do this in-place. (Since
+  // choices are shared across traces, this is a non-local mutation.)
+  var baseAddressLength = this.baseAddress.length;
+  var newAddressMap = {};
+  this.choices.forEach(function(choice) {
+    if (choice.address.startsWith(this.baseAddress)) {
+      var rel = choice.address.slice(baseAddressLength);
+      choice.address = rel;
+      newAddressMap[rel] = choice;
+    } else {
+      newAddressMap[choice.address] = choice;
+    }
+  }, this);
+  this.addressMap = newAddressMap;
+};
+
 Trace.prototype.checkConsistency = function() {
   assert(_.isFunction(this.wpplFn));
   assert(_.isFunction(this.exitK));

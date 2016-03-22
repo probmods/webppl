@@ -106,7 +106,7 @@ module.exports = function(env) {
 
       var guideErp = options.guide[0];
       var guideParams = options.guide[1];
-      var rel = this.relativeAddress(a);
+      var rel = env.getRelativeAddress(a);
       var guideVal = this.trace.findChoice(rel).val;
       assert.notStrictEqual(guideVal, undefined);
       this.logq += guideErp.score(guideParams, guideVal);
@@ -121,7 +121,7 @@ module.exports = function(env) {
 
     getParam: function(s, k, a, initFn) {
       var _val;
-      var rel = this.relativeAddress(a);
+      var rel = env.getRelativeAddress(a);
       if (_.has(this.params, rel)) {
         _val = this.params[rel];
       } else {
@@ -130,11 +130,6 @@ module.exports = function(env) {
       var val = ad.lift(_val);
       this.paramsSeen[rel] = val;
       return k(s, val);
-    },
-
-    relativeAddress: function(address) {
-      assert.ok(address.startsWith(this.a));
-      return address.slice(this.a.length);
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,

@@ -83,8 +83,7 @@ module.exports = function(env) {
     var val = this.adRequired && erp.isContinuous ? ad.lift(_val) : _val;
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv || this.saveTraces) {
-      var address = this.saveTraces ? this.relativeAddress(a) : a;
-      particle.trace.addChoice(erp, params, val, address, s, k);
+      particle.trace.addChoice(erp, params, val, a, s, k);
     }
     return k(s, val);
   };
@@ -113,7 +112,7 @@ module.exports = function(env) {
 
     // Note, that these params are not passed to rejuvenation kernels.
 
-    var rel = this.relativeAddress(a);
+    var rel = env.getRelativeAddress(a);
     var _val;
     if (_.has(this.params, rel)) {
       _val = this.params[rel];
@@ -123,11 +122,6 @@ module.exports = function(env) {
     var val = ad.lift(_val);
     return k(s, val);
   };
-
-  SMC.prototype.relativeAddress = function(address) {
-    assert.ok(address.startsWith(this.a));
-    return address.slice(this.a.length);
-  },
 
   SMC.prototype.atLastParticle = function() {
     return this.particleIndex === this.particles.length - 1;
@@ -337,6 +331,7 @@ module.exports = function(env) {
         function() {
           var dist = hist.toERP();
           dist.normalizationConstant = logAvgW;
+          traces.forEach(function(trace) { trace.relativizeAddresses(); });
           dist.traces = traces;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
