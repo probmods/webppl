@@ -109,6 +109,7 @@ module.exports = function(env) {
       var rel = env.getRelativeAddress(a);
       var guideVal = this.trace.findChoice(rel).val;
       assert.notStrictEqual(guideVal, undefined);
+      assert.ok(!ad.isLifted(guideVal), 'Unexpected AD node in example trace.');
       this.logq += guideErp.score(guideParams, guideVal);
       return k(s, guideVal);
     },
