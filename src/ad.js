@@ -9,11 +9,11 @@ var valueRec = function(x) {
   } else if (_.isArray(x)) {
     return _.map(x, valueRec);
   } else if (_.isObject(x) && !_.isFunction(x)) {
-  	// Ensure prototype chain is preserved
-  	var proto = Object.getPrototypeOf(x);
-  	var y = _.mapObject(x, valueRec);
-  	Object.setPrototypeOf(y, proto);
-  	return y;
+    // Ensure prototype chain is preserved
+    var proto = Object.getPrototypeOf(x);
+    var y = _.mapObject(x, valueRec);
+    Object.setPrototypeOf(y, proto);
+    return y;
   } else {
     return x;
   }
