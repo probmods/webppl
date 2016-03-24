@@ -12,7 +12,7 @@ var valueRec = function(x) {
     // Ensure prototype chain is preserved
     var proto = Object.getPrototypeOf(x);
     var y = _.mapObject(x, valueRec);
-    Object.setPrototypeOf(y, proto);
+    return _.extendOwn(Object.create(proto), y);
     return y;
   } else {
     return x;
