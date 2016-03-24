@@ -6,6 +6,12 @@ var Tensor = require('./tensor');
 var util = require('./util');
 var special = require('./special');
 
+// TODO: Handle tensors.
+
+// This requires preserving the prototype (see #384) and handling
+// Float64Arrays. We can /consider/ switching all the (params &&
+// params.map(ad.value)) to ad.valueRec(params) once this is done.
+
 var valueRec = function(x) {
   if (ad.isLifted(x)) {
     return x.x;

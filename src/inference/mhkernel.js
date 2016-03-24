@@ -67,7 +67,7 @@ module.exports = function(env) {
       assert(prevChoice);
       var proposalErp = erp.proposer || erp;
       var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
-      _val = proposalErp.sample(ad.valueRec(proposalParams));
+      _val = proposalErp.sample(proposalParams && proposalParams.map(ad.value));
       val = this.adRequired && proposalErp.isContinuous ? ad.lift(_val) : _val;
       // Optimization: Bail early if same value is re-sampled.
       if (!proposalErp.isContinuous && prevChoice.val === val) {
@@ -78,7 +78,7 @@ module.exports = function(env) {
         val = prevChoice.val; // Will be a tape if continuous.
         this.reused[a] = true;
       } else {
-        _val = erp.sample(ad.valueRec(params));
+        _val = erp.sample(params && params.map(ad.value));
         val = this.adRequired && erp.isContinuous ? ad.lift(_val) : _val;
       }
     }

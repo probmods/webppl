@@ -61,13 +61,13 @@ module.exports = function(env) {
 
   SMC.prototype.sample = function(s, k, a, erp, params, options) {
     var _val, choiceScore, importanceScore;
-    var _params = ad.valueRec(params);
+    var _params = params && params.map(ad.value);
 
     if (options && _.has(options, 'guide') && !this.ignoreGuide) {
       // Guide available.
       var importanceERP = options.guide[0];
       var importanceParams = options.guide[1];
-      var _importanceParams = ad.valueRec(importanceParams);
+      var _importanceParams = importanceParams && importanceParams.map(ad.value);
       _val = importanceERP.sample(_importanceParams);
       choiceScore = erp.score(_params, _val);
       importanceScore = importanceERP.score(_importanceParams, _val);
