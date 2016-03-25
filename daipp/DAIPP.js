@@ -97,11 +97,9 @@ function vec2dist(vec, ERP) {
       // FIXME: Need to write GaussianMixtureERP
       // (dritchie: I have some code for this @ https://github.com/dritchie/webppl/blob/variational-neural/src/erp.js)
       return [GaussianMixtureERP, meansAndLogVars];
-    } else if (ERP === erp.dirichletERP) {
-      //FIXME: importance ERP is??
-    }
+    } 
+  // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
   //otherwise throw an error....
-  // TODO: What about beta, gamma, etc.?
 }
 
 // This function creates an adaptor network that goes from the fixed-size predict vector to whatever size and shape are needed

@@ -43,7 +43,7 @@ var updateNet = nn.mlp(3*daipp.latentSize, [
 updateNet.setTraining(true)
 var updateContext = function(val) {
   var dataVec = daipp.val2vec(val)
-  var address = getRelativeAddress() //FIXME: need a header fn to grab address from start of inference thunk...
+  var address = getRelativeAddress()
   var addressVec = daipp.val2vec(address)
   var context = globalStore.context
 
@@ -61,7 +61,7 @@ var predictNet = nn.mlp(3*daipp.latentSize, [
     {nOut: daipp.latentSize}
   ])
 predictNet.setTraining(true)
-var DAIPPguide = function(ERPtype, val) {
+var DAIPPguide = function(ERP, val) {
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
   var addressVec = daipp.val2vec(address)
@@ -70,6 +70,6 @@ var DAIPPguide = function(ERPtype, val) {
   //merge the val, context, address together
   var predict = predictNet.eval(ad.tensor.concat(context, addressVec, datavec))
 
-  //generate params as appropriate to ERPtype
-  return daipp.vec2dist(predict, ERPtype)
+  //generate params as appropriate to ERP
+  return daipp.vec2dist(predict, ERP)
 }
