@@ -89,18 +89,17 @@ function vec2importanceERP(vec, ERP) {
    if (ERP === erp.bernoulliERP) {
       //importance ERP is Bernoulli, param is single bounded real
       var theta = makeAdaptorNet([{dim:[1], dom:[0,1]}], 'Bernoulli').eval(vec)
-      //FIXME: deal with domain re-scaling to [0,1]
-      return [BernoulliERP, theta];
+      return [erp.bernoulliERP, theta];
     } else if (ERPtype === erp.gaussianERP) {
       //importance ERP is mixture of Gaussians, params are means and logvars for the components
       // TODO: How to set ncomponents?
       var ncomponents = 2;
       var meansAndLogVars = makeAdaptorNet([[ncomponents], [ncomponents]], 'GMM').eval(vec);
-      // TODO: Need to write GaussianMixtureERP
+      // FIXME: Need to write GaussianMixtureERP
       // (dritchie: I have some code for this @ https://github.com/dritchie/webppl/blob/variational-neural/src/erp.js)
       return [GaussianMixtureERP, meansAndLogVars];
     } else if (ERP === erp.dirichletERP) {
-      //importance ERP is??
+      //FIXME: importance ERP is??
     }
   //otherwise throw an error....
   // TODO: What about beta, gamma, etc.?
@@ -123,9 +122,7 @@ var makeAdaptorNet = cache(function(sizes, name) {
     // TODO: Should this be an MLP with a hidden layer + activation?
     var net = nn.linear(latentSize, flatlength);
     if (size.dom != null){
-      // FIXME: rescaling to enforce domain bounds
-      var squishnet = ???;
-      net = nn.sequence([net, squishnet]);
+      net = nn.sequence([net, getSquishnet(size.dom[0],size.dom[1])]);
     }
     net = nn.sequence([net, nn.reshape([dim)]);
     net.setTraining(true);
@@ -133,6 +130,14 @@ var makeAdaptorNet = cache(function(sizes, name) {
   }
   return nets;
 })
+
+//helper to squish return vals into range [a,b]
+//FIXME: deal with Infinity bounds.
+function getSquishnet(a,b) {
+  //FIXME: is this right? need to lift / resize a and b?
+  adfun = function(x){return ad.tensor.plus(a,ad.tensor.mul(b-a, ad.tensor.sigmoid(x)))}
+  return nn.lift(adfun)
+}
 
 // Caching.
 //TODO: should this be in utils?
