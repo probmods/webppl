@@ -17,16 +17,10 @@ getRelativeAddress()
 adnn functions
 */
 
-
-
-
-var latentSize = 10 //This is the dimension output by embedData and of context vector.
-
-
 //A function used to initialize the context, given some data (or a summary of data)
-var initNet = nn.mlp(latentSize, [
-    {nOut: latentSize, activation: nn.tanh},
-    {nOut: latentSize}
+var initNet = nn.mlp(daipp.latentSize, [
+    {nOut: daipp.latentSize, activation: nn.tanh},
+    {nOut: daipp.latentSize}
   ])
 initNet.setTraining(true)
 var initContext = function(data) {
@@ -40,11 +34,11 @@ var initContext = function(data) {
 }
 
 //A function used to update the context upon getting a sampled (or deterministic) value
-//TODO: make deeper? use GRU / LSTM?
+//TODO: make deeper? use GRU / LSTM? ResNet?
 //TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
-var updateNet = nn.mlp(3*latentSize, [
-    {nOut: latentSize, activation: nn.tanh},
-    {nOut: latentSize}
+var updateNet = nn.mlp(3*daipp.latentSize, [
+    {nOut: daipp.latentSize, activation: nn.tanh},
+    {nOut: daipp.latentSize}
   ])
 updateNet.setTraining(true)
 var updateContext = function(val) {
@@ -62,9 +56,9 @@ var updateContext = function(val) {
 
 //A function to predict the params of the importance distribution at a sample statement.
 //Takes the sigature of the domain of the original ERP.
-var predictNet = nn.mlp(3*latentSize, [
-    {nOut: latentSize, activation: nn.tanh},
-    {nOut: latentSize}
+var predictNet = nn.mlp(3*daipp.latentSize, [
+    {nOut: daipp.latentSize, activation: nn.tanh},
+    {nOut: daipp.latentSize}
   ])
 predictNet.setTraining(true)
 var DAIPPguide = function(ERPtype, val) {

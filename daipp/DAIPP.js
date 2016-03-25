@@ -5,6 +5,8 @@ var erp = require('src/erp.js') //FIXME: right require?
 var LRU = require('lru-cache');
 var serialize = require('./util').serialize
 
+//this sets the size of the context network throughout daipp
+var latentSize = 10
 
 function cumProd(dims) {
   var size = 1;
@@ -12,9 +14,6 @@ function cumProd(dims) {
   while (n--) size *= dims[n];
   return size;
 }
-
-//FIXME: latentSize should agree with DAIPP.wppl
-var latentSize = 10
 
 //val2vec takes an object and turns it into a vector.
 function val2vec(val) {
@@ -161,6 +160,7 @@ function cache(f, maxSize) {
 }
 
 module.exports = {
+  latentSize: latentSize,
   val2vec: val2vec,
   vec2importanceERP: vec2importanceERP
 }
