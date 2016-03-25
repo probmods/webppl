@@ -1,6 +1,6 @@
 //Two key helper functions, that go between program values and network.
 
-//FIXME: need cache,
+//FIXME: need cache in js, 
 
 //val2vec takes an object and turns it into a vector.
 val2vec(val) {
@@ -20,9 +20,15 @@ val2vec(val) {
       //arrays are handled inductively
       var arrayRNN = tensorAdaptor([2*latentSize],'arrayRNN')
       return val.reduce(function(vec, next){return arrayRNN.eval(nn.tensor.concat(vec,val2vec(next)))})
+    case "object":
+      //TODO: inductive on objects?
+    case "function":
+      //TODO: how should we treat functions? ignore them? treat as single function vector?
     default:
       //default case: treat as enum type and memoize embedding vector.
+      //this catches, boolean, string, symbol, etc.
       return getConstant(val)
+
   }
 }
 
@@ -39,6 +45,7 @@ var getConstant = cache(function(val) {
 
 betterTypeOf(val) {
   var type = typeof val
+  if(type==="object" && val==null) {type = "null"}
   if(type==="object" && Array.isArray(val)) {type = "array"}
   if(type==="object" && instanceof ad.Tensor) {type = "tensor"}
 }
