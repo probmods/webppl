@@ -32,7 +32,7 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var _val = erp.sample(ad.valueRec(params));
+    var _val = erp.sample(params && params.map(ad.value));
     var val = this.ad && erp.isContinuous ? ad.lift(_val) : _val;
     this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);

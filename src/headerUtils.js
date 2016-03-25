@@ -93,6 +93,10 @@ module.exports = function(env) {
     });
   };
 
+  function getRelativeAddress(s, k, a) {
+    return k(s, env.getRelativeAddress(a));
+  }
+
   return {
     display: display,
     cache: cache,
@@ -101,7 +105,8 @@ module.exports = function(env) {
     Vector: Vector,
     Matrix: Matrix,
     zeros: zeros,
-    param: param
+    param: param,
+    getRelativeAddress: getRelativeAddress
   };
 
 };
