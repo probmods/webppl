@@ -1,6 +1,9 @@
 var Tensor = require('adnn/tensor');
 var ad = require('adnn/ad');
 var nn = require('adnn/nn');
+var erp = require('src/erp.js') //FIXME: right require?
+var LRU = require('lru-cache');
+var serialize = require('./util').serialize
 
 
 function cumProd(dims) {
@@ -10,37 +13,39 @@ function cumProd(dims) {
   return size;
 }
 
-//Two key helper functions, that go between program values and network.
-
-//FIXME: need cache, latentSize,
+//FIXME: latentSize should agree with DAIPP.wppl
+var latentSize = 10
 
 //val2vec takes an object and turns it into a vector.
 function val2vec(val) {
   //NOTE: Number arrays (w/ fixed dim?) should be upgraded to tensor by hand
-  //NOTE: integers initially treated as real, but could treat as Enum or one-hot.
-  //NOTE: make sure null embeds to something sensible.
   //TODO: cache this for speed? we are likely to see the same values may times, especially for structured objects, eg address vectors.
 
   switch(betterTypeOf(val)) {
     case 'number':
-      //numbers (currently real and integer) are upgraded to tensor
+      //numbers are upgraded to tensor.
+      //NOTE: integers currently treated as real, but could treat as Enum or one-hot.
       val = new Tensor([1]).fill(val);
     case 'tensor':
       //tensors are re-shaped and pushed through an MLP to get right dim
       return tensorAdaptor(val.length).eval(val);
     case 'array':
       //arrays are handled inductively
-      // TODO: What about empty arrays?
+      // FIXME: What about empty arrays?
       var arrayRNN = tensorAdaptor([2*latentSize], 'arrayRNN');
       return val.reduce(function(vec, next){return arrayRNN.eval(ad.tensor.concat(vec, val2vec(next)))});
+    case "function":
+        //TODO: functions currently treated as object, so interesting things happen only if they provide an embed2vec... is there a smart default?
     case "object":
-      //TODO: check if object provides embed2vec method, if so call it:
-      if (val hasOwn embed2vec) {
-        return val.embed2vec(this, latentSize) //embed2vec methods take vec dim and callback to val2vec, return ebedding vector.
+      //check if object provides embed2vec method, if so call it.
+      //embed2vec methods take vec dim and callback to val2vec, return ebedding vector.
+      //TODO: handle tensors by adding embed2vec method to tensor class? arrays?
+      if (val.embed2vec !== null) {
+        return val.embed2vec(this, latentSize)
       }
       //otherwise treat as enum: only equal objects have same vec.
-    case "function":
-      //TODO: how should we treat functions? ignore them? treat as single function vector?
+    case "null":
+      val = "iamnull" //just in case cache doesn't deal properly with null key.
     default:
       //default case: treat as enum type and memoize embedding vector.
       //this catches, boolean, string, symbol, etc.
@@ -75,17 +80,16 @@ function betterTypeOf(val) {
 
 /*
 This goes from a vector (created from context etc) to an importance distribution.
-ERPtype is the name of an ERP.
+ERP is the target ERP.
 This function is responsible for deciding which importance ERP to use, and it’s params. Returns [guideERP, guideParams].
 */
-// TODO: Why not have ERPtype actually be an ERP object?
-function vec2importanceERP(vec, ERPtype) {
-   if (ERPtype === 'Bernoulli') {
+function vec2importanceERP(vec, ERP) {
+   if (ERP === erp.bernoulliERP) {
       //importance ERP is Bernoulli, param is single bounded real
       var theta = makeAdaptorNet([{dim:[1], dom:[0,1]}], 'Bernoulli').eval(vec)
       //FIXME: deal with domain re-scaling to [0,1]
       return [BernoulliERP, theta];
-    } else if (ERPtype == 'Gaussian') {
+    } else if (ERPtype === erp.gaussianERP) {
       //importance ERP is mixture of Gaussians, params are means and logvars for the components
       // TODO: How to set ncomponents?
       var ncomponents = 2;
@@ -93,7 +97,7 @@ function vec2importanceERP(vec, ERPtype) {
       // TODO: Need to write GaussianMixtureERP
       // (dritchie: I have some code for this @ https://github.com/dritchie/webppl/blob/variational-neural/src/erp.js)
       return [GaussianMixtureERP, meansAndLogVars];
-    } else if (ERPtype == 'Dirichlet') {
+    } else if (ERP === erp.dirichletERP) {
       //importance ERP is??
     }
   //otherwise throw an error....
@@ -117,7 +121,7 @@ var makeAdaptorNet = cache(function(sizes, name) {
     // TODO: Should this be an MLP with a hidden layer + activation?
     var net = nn.linear(latentSize, flatlength);
     if (size.dom != null){
-      // TODO: rescaling to enforce domain bounds
+      // FIXME: rescaling to enforce domain bounds
       var squishnet = ???;
       net = nn.sequence([net, squishnet]);
     }
@@ -128,17 +132,24 @@ var makeAdaptorNet = cache(function(sizes, name) {
   return nets;
 })
 
-/*
-A future, more flexible version of generateImportanceERP could take an ERPtype which is an object describing the signature of
-   the return value from the original ERP. Some type signatures:
-{type: 'Boolean'}
-{type: 'Real', domain: [min, max]}
-Also probably want to support Tensor, Simplex, ...?
-
-Eventually need to get consistent with new ERP/sample interface. once ERPs are distributions (that don't directly take params)
-   the return value here can just be the importance ERP, with params already taken into account.
-*/
-
+// Caching.
+//TODO: should this be in utils?
+function cache(f, maxSize) {
+  var c = LRU(maxSize);
+  var cf = function() {
+    var args = Array.prototype.slice.call(arguments);
+    var stringedArgs = serialize(args);
+    if (c.has(stringedArgs)) {
+      return c.get(stringedArgs);
+    } else {
+      //TODO: check for recursion, cahce size, etc?
+      var r = f.apply(this, args);
+      c.set(stringedArgs, r);
+      return r
+    }
+  }
+  return cf
+}
 
 module.exports = {
   val2vec: val2vec,
