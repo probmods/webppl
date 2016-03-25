@@ -31,9 +31,11 @@ function val2vec(val) {
       return tensorAdaptor(val.length).eval(val);
     case 'array':
       //arrays are handled inductively
-      // FIXME: What about empty arrays?
+      var initvec = val2vec("emptyarrayvec");
       var arrayRNN = tensorAdaptor([2*latentSize], 'arrayRNN');
-      return val.reduce(function(vec, next){return arrayRNN.eval(ad.tensor.concat(vec, val2vec(next)))});
+      return val.reduce(function(vec, next){
+                          return arrayRNN.eval(ad.tensor.concat(vec, val2vec(next)))},
+                        initvec);
     case "function":
         //TODO: functions currently treated as object, so interesting things happen only if they provide an embed2vec... is there a smart default?
     case "object":
