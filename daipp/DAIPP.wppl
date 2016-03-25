@@ -10,7 +10,7 @@ It should be possible for the daipp package to provide macros that do most of th
 
 Two key helper functions are in a corresponding DAIPP.js file:
 daipp.val2vec embeds js objects into vectors,
-daipp.vec2importanceERP chooses an importance ERP ad generates its params.
+daipp.vec2dist chooses an importance ERP ad generates its params.
 
 Also need:
 getRelativeAddress()
@@ -71,5 +71,5 @@ var DAIPPguide = function(ERPtype, val) {
   var predict = predictNet.eval(ad.tensor.concat(context, addressVec, datavec))
 
   //generate params as appropriate to ERPtype
-  return daipp.vec2importanceERP(predict, ERPtype)
+  return daipp.vec2dist(predict, ERPtype)
 }

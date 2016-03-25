@@ -84,7 +84,7 @@ This goes from a vector (created from context etc) to an importance distribution
 ERP is the target ERP.
 This function is responsible for deciding which importance ERP to use, and it’s params. Returns [guideERP, guideParams].
 */
-function vec2importanceERP(vec, ERP) {
+function vec2dist(vec, ERP) {
    if (ERP === erp.bernoulliERP) {
       //importance ERP is Bernoulli, param is single bounded real
       var theta = makeAdaptorNet([{dim:[1], dom:[0,1]}], 'Bernoulli').eval(vec)
@@ -162,5 +162,5 @@ function cache(f, maxSize) {
 module.exports = {
   latentSize: latentSize,
   val2vec: val2vec,
-  vec2importanceERP: vec2importanceERP
+  vec2dist: vec2dist
 }
