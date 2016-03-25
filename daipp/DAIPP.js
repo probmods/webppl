@@ -134,8 +134,10 @@ var makeAdaptorNet = cache(function(sizes, name) {
 //helper to squish return vals into range [a,b]
 //FIXME: deal with Infinity bounds.
 function getSquishnet(a,b) {
-  //FIXME: is this right? need to lift / resize a and b?
-  adfun = function(x){return ad.tensor.plus(a,ad.tensor.mul(b-a, ad.tensor.sigmoid(x)))}
+  adfun = function(x){
+    var y = ad.tensor.sigmoid(x);
+    return  y.mul(b-a).add(a)
+  }
   return nn.lift(adfun)
 }
 
