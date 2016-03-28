@@ -6,12 +6,12 @@ var Tensor = require('./tensor');
 var util = require('./util');
 var special = require('./special');
 
-// TODO: Handle tensors.
+// TODO: Get this stuff into adnn?
 
+// TODO: Handle tensors.
 // This requires preserving the prototype (see #384) and handling
 // Float64Arrays. We can /consider/ switching all the (params &&
 // params.map(ad.value)) to ad.valueRec(params) once this is done.
-
 var valueRec = function(x) {
   if (ad.isLifted(x)) {
     return x.x;
@@ -236,6 +236,51 @@ ad.tensor.sub = ad.newBinaryFunction({
     } else if (typeof b.x === 'number') {
       for (i = 0; i < n; i++) {
         b.dx -= this.dx.data[i];
+      }
+    } else {
+      throw 'Unknown type.';
+    }
+  }
+});
+
+ad.tensor._mul = ad.tensor.mul;
+
+// This version supports the case where b is a scalar. a is always a
+// tensor.
+ad.tensor.mul = ad.newBinaryFunction({
+  OutputType: Tensor,
+  name: 'mul',
+  forward: function(a, b) {
+    return a.mul(b);
+  },
+  backward1: function(a, b) {
+    var n = a.x.length;
+    var _b = ad.value(b);
+    var i;
+    if (_b instanceof Tensor) {
+      for (i = 0; i < n; i++) {
+        a.dx.data[i] += this.dx.data[i] * _b.data[i];
+      }
+    } else if (typeof _b === 'number') {
+      for (i = 0; i < n; i++) {
+        a.dx.data[i] += this.dx.data[i] * _b;
+      }
+    } else {
+      throw 'Unknown type.';
+    }
+  },
+  backward2: function(a, b) {
+    var i;
+    var _a = ad.value(a);
+    var n = _a.length;
+    if (b.x instanceof Tensor) {
+      for (i = 0; i < n; i++) {
+        var b_i = b.x.data[i];
+        b.dx.data[i] += this.dx.data[i] * _a.data[i];
+      }
+    } else if (typeof b.x === 'number') {
+      for (i = 0; i < n; i++) {
+        b.dx += this.dx.data[i] * _a.data[i];
       }
     } else {
       throw 'Unknown type.';

@@ -11,22 +11,21 @@ It should be possible for the daipp package to provide macros that do most of th
 Two key helper functions are in a corresponding DAIPP.js file:
 daipp.val2vec embeds js objects into vectors,
 daipp.vec2dist chooses an importance ERP ad generates its params.
-
-Also need:
-getRelativeAddress()
-adnn functions
 */
 
+
 //A function used to initialize the context, given some data (or a summary of data)
+// dritchie: It's not clear to me why we really need another net here? Why not let the initial
+//    context be the output of val2vec?
 var initNet = nn.mlp(daipp.latentSize, [
-    {nOut: daipp.latentSize, activation: nn.tanh},
-    {nOut: daipp.latentSize}
-  ])
+  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize}
+], 'initNet');
 initNet.setTraining(true)
 var initContext = function(data) {
   var dataVec = daipp.val2vec(data)
 
-  var context = initNet.eval(dataVec)
+  var context = daipp.nneval(initNet, dataVec);
 
   globalStore.context = context
 
@@ -37,9 +36,9 @@ var initContext = function(data) {
 //TODO: make deeper? use GRU / LSTM? ResNet?
 //TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
 var updateNet = nn.mlp(3*daipp.latentSize, [
-    {nOut: daipp.latentSize, activation: nn.tanh},
-    {nOut: daipp.latentSize}
-  ])
+  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize}
+], 'updateNet');
 updateNet.setTraining(true)
 var updateContext = function(val) {
   var dataVec = daipp.val2vec(val)
@@ -47,7 +46,7 @@ var updateContext = function(val) {
   var addressVec = daipp.val2vec(address)
   var context = globalStore.context
 
-  var newContext = updateNet.eval(ad.tensor.concat(context, addressVec, dataVec))
+  var newContext = daipp.nneval(updateNet, ad.tensor.concat(context, addressVec, dataVec));
 
   globalStore.context = newContext
 
@@ -56,10 +55,12 @@ var updateContext = function(val) {
 
 //A function to predict the params of the importance distribution at a sample statement.
 //Takes the sigature of the domain of the original ERP.
+// dritchie: Am I correct that 'val' here is the original params for the ERP? If so,
+//    we probably want to manually lift this array to Tensor, right?
 var predictNet = nn.mlp(3*daipp.latentSize, [
-    {nOut: daipp.latentSize, activation: nn.tanh},
-    {nOut: daipp.latentSize}
-  ])
+  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize}
+], 'predictNet');
 predictNet.setTraining(true)
 var DAIPPguide = function(ERP, val) {
   var dataVec = daipp.val2vec(val)
@@ -68,7 +69,7 @@ var DAIPPguide = function(ERP, val) {
   var context = globalStore.context
 
   //merge the val, context, address together
-  var predict = predictNet.eval(ad.tensor.concat(context, addressVec, datavec))
+  var predict = daipp.nneval(predictNet, ad.tensor.concat(context, addressVec, datavec));
 
   //generate params as appropriate to ERP
   return daipp.vec2dist(predict, ERP)

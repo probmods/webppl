@@ -5,6 +5,10 @@ var _ = require('underscore');
 var util = require('../util');
 var generic = require('../generic');
 
+// TODO: Implement AdaDelta: http://arxiv.org/abs/1212.5701
+// (dritchie: I've found this to be the best overall method, for my
+//    tutorial training experiments on procedural models, anyway)
+
 module.exports = {
   gd: function(options) {
     var options = util.mergeDefaults(options, { stepSize: 0.1 });
