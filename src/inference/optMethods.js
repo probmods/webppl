@@ -13,12 +13,12 @@ module.exports = {
   gd: function(options) {
     var options = util.mergeDefaults(options, { stepSize: 0.1 });
     var stepSize = options.stepSize;
-    return _.extendOwn(function(params, grad) {
+    return function(params, grad) {
       _.each(grad, function(g, a) {
         assert(_.has(params, a));
         params[a] = generic.sub(params[a], generic.scalarMul(g, stepSize));
       });
-    }, { options: options });
+    };
   },
   // TODO: The next 3 methods each avoid division by zero in different ways. Unify?
   adagrad: function(options) {
@@ -27,7 +27,7 @@ module.exports = {
     // State.
     // Map from a to running sum of grad^2.
     var g2 = Object.create(null);
-    return _.extendOwn(function(params, grad) {
+    return function(params, grad) {
       _.each(grad, function(g, a) {
         assert(_.has(params, a));
         if (!_.has(g2, a)) {
@@ -37,7 +37,7 @@ module.exports = {
         g2[a] = generic.add(g2[a], generic.mul(g, g));
         params[a] = generic.sub(params[a], generic.scalarMul(generic.div(g, generic.sqrt(g2[a])), stepSize));
       });
-    }, { options: options });
+    };
   },
   // TODO: Make it possible to specify params such as decayRate from within programs.
   rmsprop: function(options) {
@@ -45,7 +45,7 @@ module.exports = {
     var stepSize = options.stepSize;
     var decayRate = options.decayRate;
     var g2 = Object.create(null);
-    return _.extendOwn(function(params, grad) {
+    return function(params, grad) {
       _.each(grad, function(g, a) {
         assert(_.has(params, a));
         if (!_.has(g2, a)) {
@@ -56,7 +56,7 @@ module.exports = {
             params[a],
             generic.scalarMul(generic.div(g, generic.sqrt(generic.scalarAdd(g2[a], 1e-8))), stepSize));
       });
-    }, { options: options });
+    };
   },
   adam: function(options) {
     var options = util.mergeDefaults(options, {
@@ -75,7 +75,7 @@ module.exports = {
     var v = Object.create(null);
     var t = 0;
 
-    return _.extendOwn(function(params, grad) {
+    return function(params, grad) {
       t += 1;
 
       _.each(grad, function(g, a) {
@@ -94,6 +94,6 @@ module.exports = {
             params[a],
             generic.scalarMul(generic.div(m[a], generic.scalarAdd(generic.sqrt(v[a]), eps)), alpha_t));
       });
-    }, { options: options });
+    };
   }
 };
