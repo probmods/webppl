@@ -184,6 +184,9 @@ module.exports = function(env) {
 
   };
 
+  // TODO: Duplicated in eubo.ad.js, so extract. Could also include
+  // the logic required to (deep)clone a params object.
+
   // Arithmetic on param/grad objects.
 
   function addEqG(g, h) {
