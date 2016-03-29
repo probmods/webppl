@@ -33,6 +33,7 @@ module.exports = function(env) {
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
+    // TODO: Slightly deeper clone, as in Optimize?
     this.params = _.has(options, 'params') ? _.clone(options.params) : {};
 
     this.particles = [];
@@ -97,30 +98,6 @@ module.exports = function(env) {
     particle.logWeight += ad.value(score);
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
-  };
-
-  SMC.prototype.getParam = function(s, k, a, initFn) {
-
-    if (this.ignoreGuide) {
-      return env.defaultCoroutine.getParam(s, k, a, initFn);
-    }
-
-    // This differs from the implementation in ELBO in that:
-
-    // 1. Fresh parameters are discarded when the coroutine exits.
-    // 2. We don't need to track paramsSeen.
-
-    // Note, that these params are not passed to rejuvenation kernels.
-
-    var rel = env.getRelativeAddress(a);
-    var _val;
-    if (_.has(this.params, rel)) {
-      _val = this.params[rel];
-    } else {
-      this.params[rel] = _val = initFn();
-    }
-    var val = ad.lift(_val);
-    return k(s, val);
   };
 
   SMC.prototype.atLastParticle = function() {

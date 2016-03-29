@@ -35,6 +35,11 @@ function nneval(nn, arg) {
   // This also needs to incorporate the base address of the current coroutine, so that the parameter
   //    relative addressing scheme works, and also so nested inference works with DAIPP.
 
+  // registerParams is made globally available in the WebPPL header.
+  if (nn.getParameters().length > 0) {
+    registerParams(nn.name, nn.getParameters, nn.setParameters);
+  }
+
   // Fast version, assuming all nets take at most one argument
   return nn.eval(arg);
 

@@ -91,11 +91,11 @@ module.exports = function(env) {
         var objective = this.logr * scoreDiff + this.logq - this.logp;
         objective.backprop();
 
-        var grad = _.mapObject(this.paramsSeen, function(param) {
-          return ad.derivative(param);
+        var grads = _.mapObject(this.paramsSeen, function(params) {
+          return params.map(ad.derivative);
         });
 
-        return cont(grad);
+        return cont(grads);
 
       }.bind(this), this.a);
 
@@ -162,23 +162,6 @@ module.exports = function(env) {
       return k(s);
     },
 
-    // Fetch the parameter for the current (relative) address. If the
-    // parameter doesn't exist, call the JS function `initFn` to get
-    // the initial value.
-
-    getParam: function(s, k, a, initFn) {
-      var _val;
-      var rel = env.getRelativeAddress(a);
-      if (_.has(this.params, rel)) {
-        _val = this.params[rel];
-      } else {
-        this.params[rel] = _val = initFn();
-      }
-      var val = ad.lift(_val);
-      this.paramsSeen[rel] = val;
-      return k(s, val);
-    },
-
     incrementalize: env.defaultCoroutine.incrementalize,
     constructor: ELBO
 
@@ -194,18 +177,25 @@ module.exports = function(env) {
 
     // TODO: Update tensors in-place to minimize allocation.
 
-    _.each(h, function(val, a) {
+    _.each(h, function(hs, a) {
       if (!_.has(g, a)) {
-        g[a] = generic.zerosLike(val);
+        g[a] = hs;
+      } else {
+        var gs = g[a];
+        assert.strictEqual(gs.length, hs.length);
+        for (var i = 0; i < gs.length; i++) {
+          gs[i] = generic.add(gs[i], hs[i]);
+        }
       }
-      g[a] = generic.add(g[a], val);
     });
   }
 
   function divEqG(g, s) {
     // In-place division by a scalar.
-    _.each(g, function(val, a) {
-      g[a] = generic.scalarDiv(val, s);
+    _.each(g, function(gs) {
+      for (var i = 0; i < gs.length; i++) {
+        gs[i] = generic.scalarDiv(gs[i], s);
+      }
     });
   }
 

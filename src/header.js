@@ -64,9 +64,6 @@ module.exports = function(env) {
     incrementalize: function(s, k, a, fn, args) {
       var args = [s, k, a].concat(args);
       return fn.apply(global, args);
-    },
-    getParam: function(s, k, a, initFn) {
-      return k(s, initFn());
     }
   };
 
@@ -107,13 +104,6 @@ module.exports = function(env) {
     return env.coroutine.incrementalize(s, k, a, fn, args);
   };
 
-  env.getParam = function() {
-    // If the current coroutine doesn't implement getParam, use the
-    // default.
-    var getParam = env.coroutine.getParam || env.defaultCoroutine.getParam;
-    return getParam.apply(env.coroutine, arguments);
-  };
-
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
 
@@ -145,6 +135,34 @@ module.exports = function(env) {
     return address.slice(baseAddress.length);
   };
 
+  env.registerParams = function(name, getParams, setParams) {
+    if (env.coroutine.params === undefined) {
+      throw 'Cannot register params with current coroutine.';
+    }
+
+    var params;
+
+    if (!_.has(env.coroutine.params, name)) {
+      // New params: get values and add to params obj.
+      var _params = getParams().map(ad.value);
+      env.coroutine.params[name] = _params;
+      params = _params.map(ad.lift);
+    } else {
+      // Params already registered, fetch values and lift.
+      params = env.coroutine.params[name].map(ad.lift);
+      if (setParams) {
+        setParams(params);
+      }
+    }
+
+    if (env.coroutine.paramsSeen) {
+      // Register that these params should be updated this execution.
+      env.coroutine.paramsSeen[name] = params;
+    }
+
+    return params;
+  };
+
   // Exports
 
   var exports = {
@@ -161,8 +179,7 @@ module.exports = function(env) {
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
     incrementalize: env.incrementalize,
-    query: env.query,
-    getParam: env.getParam
+    query: env.query
   });
 
   // Modules we want to use from webppl
@@ -186,6 +203,9 @@ module.exports = function(env) {
 
   // Random primitives
   addExports(erp);
+
+  // TODO: Come up with a better way to get at this from packages. i.e. daipp.
+  addExports({registerParams: env.registerParams});
 
   return exports;
 

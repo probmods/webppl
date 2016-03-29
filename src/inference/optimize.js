@@ -54,7 +54,9 @@ module.exports = function(env) {
 
     // TODO: We'll need to deep copy the input parameters once updates
     // modify parameters in-place.
-    var params = _.clone(options.params);
+    var params = _.mapObject(options.params, function(arr) {
+      return arr.slice();
+    });
 
     // Main loop.
     return util.cpsLoop(

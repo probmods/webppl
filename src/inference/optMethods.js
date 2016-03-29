@@ -9,14 +9,21 @@ var generic = require('../generic');
 // (dritchie: I've found this to be the best overall method, for my
 //    tutorial training experiments on procedural models, anyway)
 
+// TODO: Make adagrad, rmsprop & adam work with arrays of params per
+// name/address.
+
 module.exports = {
   gd: function(options) {
-    var options = util.mergeDefaults(options, { stepSize: 0.1 });
+    options = util.mergeDefaults(options, { stepSize: 0.1 });
     var stepSize = options.stepSize;
-    return function(params, grad) {
-      _.each(grad, function(g, a) {
-        assert(_.has(params, a));
-        params[a] = generic.sub(params[a], generic.scalarMul(g, stepSize));
+    return function(paramObj, gradObj) {
+      _.each(gradObj, function(grads, name) {
+        assert.ok(_.has(paramObj, name));
+        var params = paramObj[name];
+        assert.strictEqual(params.length, grads.length);
+        for (var i = 0; i < grads.length; i++) {
+          params[i] = generic.sub(params[i], generic.scalarMul(grads[i], stepSize));
+        }
       });
     };
   },

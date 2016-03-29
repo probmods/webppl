@@ -78,19 +78,25 @@ module.exports = function(env) {
     return k(s, new Tensor(dims));
   };
 
-  // Provides a convinient wrapper around the primitive getParam.
+  // Provides a convinient wrapper around the primitive registerParams.
   // Will be simplified once all params are tensor valued.
   var param = function(s, k, a, arg1, arg2, arg3) {
-    return getParam(s, k, a, function() {
+    var name = env.getRelativeAddress(a);
+    var params = env.registerParams(name, function() {
+      var val;
       // TODO: Init. from Gaussian.
       if (_.isArray(arg1)) {
         // param(dims, mean, std)
-        return new Tensor(arg1).fill(arg2);
+        val = new Tensor(arg1).fill(arg2);
       } else {
         // param(mean, std)
-        return arg1;
+        val = arg1;
       }
+      // Wrap as `registerParams` tracks an array of parameters for
+      // each name/address.
+      return [val];
     });
+    return k(s, params[0]);
   };
 
   function getRelativeAddress(s, k, a) {
