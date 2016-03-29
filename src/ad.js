@@ -279,7 +279,6 @@ ad.tensor.mul = ad.newBinaryFunction({
     var n = _a.length;
     if (b.x instanceof Tensor) {
       for (i = 0; i < n; i++) {
-        var b_i = b.x.data[i];
         b.dx.data[i] += this.dx.data[i] * _a.data[i];
       }
     } else if (typeof b.x === 'number') {
