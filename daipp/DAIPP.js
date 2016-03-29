@@ -132,7 +132,7 @@ function vec2dist(vec, ERP) {
       var ncomponents = 2;
       guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
       guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
-    } 
+    }
   // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
   //otherwise throw an error....
   return [
@@ -140,7 +140,7 @@ function vec2dist(vec, ERP) {
     guideParamNets.map(function(net) {
       // dritchie: Extract scalars from singleton tensors? (see comment on makeParamAdaptorNets below)
       return nneval(net, vec);
-    });
+    })
   ];
 }
 
@@ -167,7 +167,7 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
       net = nn.sequence([net, getSquishnet(size.dom[0], size.dom[1])]);
     }
     var netname = name + '_' + i;
-    net = nn.sequence([net, nn.reshape([dim)], netname);
+    net = nn.sequence([net, nn.reshape([dim], netname)]);
     net.setTraining(true);
     nets.push(net);
   }

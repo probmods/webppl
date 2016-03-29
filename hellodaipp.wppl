@@ -1,0 +1,32 @@
+//run with: ./webppl hellodaipp.wppl --require ./DAIPP
+
+var data = [1.2]
+
+var model = function() {
+
+  initContext(data);   //initialize the context, incorporating the observation(s)
+
+  var priormv = [5, 1]
+
+  var x = sample(gaussianERP, priormv, {
+    guide: DAIPPguide(gaussianERP, priormv) //generate guide ERP and params
+  });
+  updateContext(x) //update context given sampled value
+
+  factor(gaussianERP.score(data[0], [x,1]))
+
+  return x;
+
+};
+
+
+// Tutorial training.
+// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+// var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+
+
+// VI.
+var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.1}}, estimator: 'ELBO'});
+
+// Optimized params.
+params;
