@@ -1,4 +1,4 @@
-//run with: ./webppl hellodaipp.wppl --require ./DAIPP
+//run with: ./webppl hellodaipp.wppl --require ./daipp
 
 var data = [1.2]
 

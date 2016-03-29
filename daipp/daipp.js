@@ -5,7 +5,7 @@ var ad = require('../src/ad.js'); // Get Paul's extra functions
 var nn = require('adnn/nn');
 var erp = require('../src/erp.js');
 var LRU = require('lru-cache');
-var serialize = require('./util').serialize;
+var serialize = require('../src/util').serialize;
 
 //this sets the size of the context network throughout daipp
 var latentSize = 10
