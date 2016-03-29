@@ -65,6 +65,7 @@ predictNet.setTraining(true)
 var DAIPPguide = function(ERP, val) {
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
+  //TODO: at the moment the address will be a single string, so val2vec will learn a separate embedding per address. we may want to split the string into an array (of syntax sites); in that case val2vec will use an RNN along the array, making related addresses have related vectors.
   var addressVec = daipp.val2vec(address)
   var context = globalStore.context
 
