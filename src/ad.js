@@ -18,7 +18,11 @@ var valueRec = function(x) {
   } else if (_.isArray(x)) {
     return _.map(x, valueRec);
   } else if (_.isObject(x) && !_.isFunction(x)) {
-    return _.mapObject(x, valueRec);
+    // Ensure prototype chain is preserved
+    var proto = Object.getPrototypeOf(x);
+    var y = _.mapObject(x, valueRec);
+    return _.extendOwn(Object.create(proto), y);
+    return y;
   } else {
     return x;
   }
