@@ -70,7 +70,7 @@ var DAIPPguide = function(ERP, val) {
   var context = globalStore.context
 
   //merge the val, context, address together
-  var predict = daipp.nneval(predictNet, ad.tensor.concat(context, addressVec, datavec));
+  var predict = daipp.nneval(predictNet, ad.tensor.concat(context, addressVec, dataVec));
 
   //generate params as appropriate to ERP
   return daipp.vec2dist(predict, ERP)
