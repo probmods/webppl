@@ -26,7 +26,7 @@ var model = function() {
 
 
 // VI.
-var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.1}}, estimator: 'ELBO'});
+var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.01}}, estimator: 'ELBO'});
 
 // Optimized params.
 params;
