@@ -171,11 +171,11 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
   var nets = [];
   for (var i = 0; i < sizes.length; i++) {
     var size = sizes[i];
-    var dim = (size.dim==null) ? size : size.dim;
+    var dim = (size.dim === undefined) ? size : size.dim;
     var flatlength = cumProd(dim);
     // dritchie: Should this be an MLP with a hidden layer + activation?
     var net = nn.linear(latentSize, flatlength);
-    if (size.dom != null){
+    if (size.dom !== undefined){
       net = nn.sequence([net, getSquishnet(size.dom[0], size.dom[1])]);
     }
     var netname = name + '_' + i;
