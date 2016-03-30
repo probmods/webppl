@@ -135,9 +135,10 @@ function vec2dist(vec, ERP) {
     // Guide with single Gaussian until we have mixture ERP.
     guideERP = erp.gaussianERP;
     guideParamNets = makeParamAdaptorNets([[1], {dim: [1], dom: [0, Infinity]}], 'Gaussian');
+  } else {
+    throw 'daipp: Unhandled ERP type in vec2dist: ' + ERP.name;
   }
   // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
-  //otherwise throw an error....
   return [
     guideERP,
     guideParamNets.map(function(net) {
