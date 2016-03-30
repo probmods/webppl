@@ -13,6 +13,7 @@ var model = function() {
   });
   updateContext(x) //update context given sampled value
 
+  display(x);
   factor(gaussianERP.score([x,1], data[0]));
 
   return x;
@@ -29,4 +30,5 @@ var model = function() {
 var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.01}}, estimator: 'ELBO'});
 
 // Optimized params.
-params;
+//params;
+'done';
