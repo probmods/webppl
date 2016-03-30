@@ -129,9 +129,12 @@ function vec2dist(vec, ERP) {
   } else if (ERP === erp.gaussianERP) {
     //importance ERP is mixture of Gaussians, params are means and logvars for the components
     // TODO: How to set ncomponents?
-    var ncomponents = 2;
-    guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
-    guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
+    //var ncomponents = 2;
+    //guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
+    //guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
+    // Guide with single Gaussian until we have mixture ERP.
+    guideERP = erp.gaussianERP;
+    guideParamNets = makeParamAdaptorNets([[1], {dim: [1], dom: [0, Infinity]}], 'Gaussian');
   }
   // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
   //otherwise throw an error....
@@ -167,7 +170,10 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
       net = nn.sequence([net, getSquishnet(size.dom[0], size.dom[1])]);
     }
     var netname = name + '_' + i;
-    net = nn.sequence([net, nn.reshape([dim], netname)]);
+    // TODO: Add reshape net.
+    // nn.reshape exists but is a net not a function.
+    //net = nn.sequence([net, nn.reshape([dim], netname)]);
+    net.name = netname;
     net.setTraining(true);
     nets.push(net);
   }
