@@ -13,7 +13,7 @@ var model = function() {
   });
   updateContext(x) //update context given sampled value
 
-  factor(gaussianERP.score(data[0], [x,1]))
+  factor(gaussianERP.score([x,1], data[0]));
 
   return x;
 
