@@ -9,7 +9,7 @@ var generic = require('../generic');
 // (dritchie: I've found this to be the best overall method, for my
 //    tutorial training experiments on procedural models, anyway)
 
-// TODO: Make adagrad, rmsprop & adam work with arrays of params per
+// TODO: Make rmsprop & adam work with arrays of params per
 // name/address.
 
 module.exports = {
@@ -29,20 +29,27 @@ module.exports = {
   },
   // TODO: The next 3 methods each avoid division by zero in different ways. Unify?
   adagrad: function(options) {
-    var options = util.mergeDefaults(options, { stepSize: 0.001 });
+    options = util.mergeDefaults(options, { stepSize: 0.001 });
     var stepSize = options.stepSize;
     // State.
     // Map from a to running sum of grad^2.
-    var g2 = Object.create(null);
-    return function(params, grad) {
-      _.each(grad, function(g, a) {
-        assert(_.has(params, a));
-        if (!_.has(g2, a)) {
-          // Start with small non-zero g2 to avoid divide by zero.
-          g2[a] = generic.scalarMul(generic.onesLike(g), 0.001);
+    var g2Obj = Object.create(null);
+    return function(paramObj, gradObj) {
+      _.each(gradObj, function(grads, name) {
+        var params = paramObj[name];
+        assert.ok(params);
+        assert.strictEqual(params.length, grads.length);
+        if (!_.has(g2Obj, name)) {
+          g2Obj[name] = grads.map(function(g) {
+            // Start with small non-zero g2 to avoid divide by zero.
+            return generic.scalarMul(generic.onesLike(g), 0.001);
+          });
         }
-        g2[a] = generic.add(g2[a], generic.mul(g, g));
-        params[a] = generic.sub(params[a], generic.scalarMul(generic.div(g, generic.sqrt(g2[a])), stepSize));
+        var g2 = g2Obj[name];
+        for (var i = 0; i < grads.length; i++) {
+          g2[i] = generic.add(g2[i], generic.mul(grads[i], grads[i]));
+          params[i] = generic.sub(params[i], generic.scalarMul(generic.div(grads[i], generic.sqrt(g2[i])), stepSize));
+        }
       });
     };
   },
