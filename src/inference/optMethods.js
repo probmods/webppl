@@ -12,6 +12,13 @@ var generic = require('../generic');
 // TODO: Make rmsprop & adam work with arrays of params per
 // name/address.
 
+// TODO: It's not ideal that these methods are so tightly coupled with
+// the strategy we happen to use to store parameters. It might be
+// worth the small overhead of maintaining flatter versions of
+// params/paramsSeen (similar to what we had before) or alternatively
+// just flatten the existing params/grads before passing them to an
+// optimization method.
+
 module.exports = {
   gd: function(options) {
     options = util.mergeDefaults(options, { stepSize: 0.1 });
