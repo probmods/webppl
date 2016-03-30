@@ -142,9 +142,18 @@ function vec2dist(vec, ERP) {
     guideERP,
     guideParamNets.map(function(net) {
       // dritchie: Extract scalars from singleton tensors? (see comment on makeParamAdaptorNets below)
-      return nneval(net, vec);
+      // paul: the mismatch between tensor valued guide params and
+      // scalar valued erp params isn't specific to daipp. we might
+      // consider moving this into erps.
+      var out = nneval(net, vec);
+      var _out = ad.value(out);
+      return (_out instanceof Tensor) && isSingleton(_out) ? ad.tensorEntry(out, 0) : out;
     })
   ];
+}
+
+function isSingleton(t) {
+  return t.rank === 1 && t.dims[0] === 1;
 }
 
 // This function creates an adaptor network that goes from the fixed-size predict vector to whatever size and shape are needed
