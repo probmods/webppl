@@ -76,7 +76,7 @@ function val2vec(val) {
       //check if object provides embed2vec method, if so call it.
       //embed2vec methods take vec dim and callback to val2vec, return ebedding vector.
       //TODO: handle tensors by adding embed2vec method to tensor class? arrays?
-      if (val.embed2vec !== null) {
+      if (val.embed2vec !== undefined) {
         return val.embed2vec(val2vec, latentSize)
       }
       //otherwise treat as enum: only equal objects have same vec.
