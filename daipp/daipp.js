@@ -122,17 +122,17 @@ This function is responsible for deciding which importance ERP to use, and it’
 */
 function vec2dist(vec, ERP) {
   var guideERP, guideParamNets;
-   if (ERP === erp.bernoulliERP) {
-      //importance ERP is Bernoulli, param is single bounded real
-      guideERP = erp.bernoulliERP; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
-      guideParamNets = makeParamAdaptorNets([{dim:[1], dom:[0,1]}], 'Bernoulli');
-    } else if (ERP === erp.gaussianERP) {
-      //importance ERP is mixture of Gaussians, params are means and logvars for the components
-      // TODO: How to set ncomponents?
-      var ncomponents = 2;
-      guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
-      guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
-    }
+  if (ERP === erp.bernoulliERP) {
+    //importance ERP is Bernoulli, param is single bounded real
+    guideERP = erp.bernoulliERP; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
+    guideParamNets = makeParamAdaptorNets([{dim:[1], dom:[0,1]}], 'Bernoulli');
+  } else if (ERP === erp.gaussianERP) {
+    //importance ERP is mixture of Gaussians, params are means and logvars for the components
+    // TODO: How to set ncomponents?
+    var ncomponents = 2;
+    guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
+    guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
+  }
   // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
   //otherwise throw an error....
   return [
