@@ -65,7 +65,7 @@ function val2vec(val) {
     case 'array':
       //arrays are handled inductively
       var initvec = val2vec("emptyarrayvec");
-      var arrayRNN = tensorAdaptor([2*latentSize], 'arrayRNN');
+      var arrayRNN = tensorAdaptor(2*latentSize, 'arrayRNN');
       return val.reduce(function(vec, next){
                           return nneval(arrayRNN, ad.tensor.concat(vec, val2vec(next)));
                         },
