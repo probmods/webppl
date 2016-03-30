@@ -37,7 +37,7 @@ function nneval(nn, arg) {
 
   // registerParams is made globally available in the WebPPL header.
   if (nn.getParameters().length > 0) {
-    registerParams(nn.name, nn.getParameters, nn.setParameters);
+    registerParams(nn.name, nn.getParameters.bind(nn), nn.setParameters.bind(nn));
   }
 
   // Fast version, assuming all nets take at most one argument
