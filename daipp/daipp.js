@@ -103,16 +103,15 @@ var getConstant = cache(function(val) {
 
 function betterTypeOf(val) {
   var type = typeof val
-  if (type === "object" && val === null) {
-    type = "null";
+  if (type === 'object' && val === null) {
+    return 'null';
+  } else if (type === 'object' && Array.isArray(val)) {
+    return 'array';
+  } else if (type === 'object' && val instanceof Tensor) {
+    return 'tensor';
+  } else {
+    return type;
   }
-  if (type === 'object' && Array.isArray(val)) {
-    type = "array";
-  }
-  if (type === 'object' && val instanceof Tensor) {
-    type = 'tensor';
-  }
-  return type;
 }
 
 /*
