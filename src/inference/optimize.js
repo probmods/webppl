@@ -67,7 +67,6 @@ module.exports = function(env) {
 
           return estimator(params, function(grad) {
             optimizer(params, grad);
-            console.log(params);
             return next();
           });
 
