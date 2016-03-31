@@ -23,11 +23,11 @@ such files have been modified. A grunt task is provided that will
 monitor the file system and run the transform when any ``.ad.js``
 files are updated. Start the task with::
 
-    grunt watch
+    grunt build-watch
 
 Alternatively, the transform can be run directly with::
 
-    ./scripts/adify
+    grunt build
 
 The scope of the transform is controlled with the ``'use ad'``
 directive. If this directive appears directly after the ``'use
@@ -71,16 +71,16 @@ many of them automatically using::
 
     grunt fixjsstyle
 
-Compiling for browser
----------------------
+Browser version
+---------------
 
-To compile webppl for use in browser, run::
+To generate a version of webppl for in-browser use, run::
 
     npm install -g browserify uglifyjs
-    grunt compile
+    grunt bundle
 
-The compiled code is written to ``compiled/webppl.js`` and a minified
-version is written to ``compiled/webppl.min.js``.
+The output is written to ``bundle/webppl.js`` and a minified version
+is written to ``bundle/webppl.min.js``.
 
 Testing
 ^^^^^^^
@@ -104,11 +104,10 @@ by performing an incremental compile whenever it detects changes to
 source files. To start `watchify`_ use::
 
     npm install -g watchify
-    grunt watchify
+    grunt browserify-watch
 
-Note that `watchify`_ only updates ``compiled/webppl.js``. Before
-running the browser tests and deploying, create the minified version
-like so::
+Note that this task only updates ``bundle/webppl.js``. Before running
+the browser tests and deploying, create the minified version like so::
 
     grunt uglify
 
@@ -118,7 +117,7 @@ Packages
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
 
-    grunt compile:path/to/webppl-viz
+    grunt bundle:path/to/webppl-viz
 
 Multiple packages can specified, separated by colons.
 
