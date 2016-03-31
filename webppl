@@ -32,17 +32,11 @@ function run(code, packages, verbose, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  webppl.run(
-      code,
-      function(s, x) {
-        console.log('\n* Program return value:\n');
-        printWebPPLValue(x);
-      },
-      {
-        bundles: webppl.parsePackageCode(packages, verbose),
-        filename: programFile,
-        verbose: verbose
-      });
+  webppl.run(code, topK, {
+    bundles: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose
+  });
 }
 
 var lines = function(ar) {
