@@ -17,8 +17,8 @@ The compiled file can be run using nodejs::
 
     node geometric.js
 
-To use webppl in web pages, include the `browserified package
-<development/workflow.html#compiling-for-browser>`_::
+To use webppl in web pages, include the `browser bundle
+<development/workflow.html#browser-version>`_::
 
     <script src="webppl.js"></script>
     <script>webppl.run(...)</script>

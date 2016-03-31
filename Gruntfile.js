@@ -63,11 +63,11 @@ module.exports = function(grunt) {
     },
     gjslint: jslintSettings,
     fixjsstyle: jslintSettings,
-    clean: ['compiled/*.js'],
+    clean: ['bundle/*.js'],
     watch: {
       ad: {
         files: ['**/*.ad.js'],
-        tasks: ['adify']
+        tasks: ['build']
       }
     }
   });
@@ -78,7 +78,7 @@ module.exports = function(grunt) {
         .map(function(name) { return ['--require', name]; })
         .flatten().value();
     pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
-    return pkgArg + ' -g brfs src/browser.js -o compiled/webppl.js';
+    return pkgArg + ' -g brfs src/browser.js -o bundle/webppl.js';
   }
 
   grunt.loadNpmTasks('grunt-gjslint');
@@ -92,31 +92,28 @@ module.exports = function(grunt) {
   grunt.registerTask('lint', ['gjslint']);
   grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('fixstyle', ['fixjsstyle']);
-  grunt.registerTask('travis-phantomjs', ['compile', 'test-phantomjs']);
+  grunt.registerTask('travis-phantomjs', ['bundle', 'test-phantomjs']);
 
-  grunt.registerTask('adify', function() {
+  grunt.registerTask('build', 'Build WebPPL.', function() {
     var output = child_process.execSync('scripts/adify');
     grunt.log.writeln(output);
   });
 
-  grunt.registerTask('compile', 'Compile for the browser', function() {
+  grunt.registerTask('build-watch', 'Run the build task on fs changes.', ['watch']);
+
+  grunt.registerTask('bundle', 'Create browser bundle.', function() {
     var taskArgs = (arguments.length > 0) ? ':' + _.toArray(arguments).join(':') : '';
     grunt.task.run('browserify' + taskArgs, 'uglify');
   });
 
-  grunt.registerTask('browserify', function() {
-    child_process.execSync('mkdir -p compiled');
+  grunt.registerTask('browserify', 'Generate "bundle/webppl.js".', function() {
+    child_process.execSync('mkdir -p bundle');
     child_process.execSync('browserify' + browserifyArgs(arguments));
   });
 
-  grunt.registerTask('uglify', function() {
-    child_process.execSync('mkdir -p compiled');
-    child_process.execSync('uglifyjs compiled/webppl.js -b ascii_only=true,beautify=false > compiled/webppl.min.js');
-  });
-
-  grunt.registerTask('watchify', function() {
+  grunt.registerTask('browserify-watch', 'Run the browserify task on fs changes.', function() {
     var done = this.async();
-    child_process.execSync('mkdir -p compiled');
+    child_process.execSync('mkdir -p bundle');
     var args = '-v' + browserifyArgs(arguments);
     var p = child_process.spawn('watchify', args.split(' '));
     p.stdout.on('data', grunt.log.writeln);
@@ -124,11 +121,16 @@ module.exports = function(grunt) {
     p.on('close', done);
   });
 
-  grunt.registerTask('test-browser', function() {
+  grunt.registerTask('uglify', 'Generate "bundle/webppl.min.js".', function() {
+    child_process.execSync('mkdir -p bundle');
+    child_process.execSync('uglifyjs bundle/webppl.js -b ascii_only=true,beautify=false > bundle/webppl.min.js');
+  });
+
+  grunt.registerTask('test-browser', 'Run browser tests in default browser.', function() {
     open('tests/browser/index.html', process.env.BROWSER);
   });
 
-  grunt.registerTask('test-phantomjs', function() {
+  grunt.registerTask('test-phantomjs', 'Run browser tests in phantomjs.', function() {
     try {
       var cmd = 'phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html';
       var output = child_process.execSync(cmd);

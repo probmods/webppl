@@ -3,7 +3,7 @@
 *.swp
 node_modules
 npm-debug.log
-compiled/
+bundle/
 docs/_build
 docs/_static
 docs/_templates
