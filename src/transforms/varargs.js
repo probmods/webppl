@@ -13,23 +13,26 @@ function makeArgumentsIdentifier() {
   return '_arguments' + argumentsIdCounter;
 }
 
-function findEnclosingFunctionNode(node) {
-  var ancestor = node;
-  while (ancestor !== undefined) {
-    if (ancestor.type === 'FunctionExpression') {
-      break;
-    }
-    ancestor = ancestor.parentNode;
+var fnStack = [];
+
+function pushFn(node) {
+  if (node.type === Syntax.FunctionExpression) {
+    fnStack.push(node);
   }
-  if (ancestor === undefined) {
-    throw 'Used "arguments" outside of function context!';
-  }
-  return ancestor;
 }
 
-function addParents(node, parent) {
-  node.parentNode = parent;
-  return node;
+function popFn(node) {
+  if (node.type === Syntax.FunctionExpression) {
+    assert.strictEqual(node, fnStack[fnStack.length - 1]);
+    fnStack.pop();
+  }
+}
+
+function getEnclosingFunctionNode() {
+  if (fnStack.length === 0) {
+    throw 'Used "arguments" outside of function context!';
+  }
+  return fnStack[fnStack.length - 1];
 }
 
 function varargs(node) {
@@ -47,7 +50,7 @@ function varargs(node) {
       if (node.name !== 'arguments') {
         return node;
       }
-      var functionNode = findEnclosingFunctionNode(node);
+      var functionNode = getEnclosingFunctionNode();
       var argumentsId = functionNode.argumentsId || makeArgumentsIdentifier();
       node.name = argumentsId;
       if (functionNode.argumentsId === undefined) {
@@ -65,13 +68,20 @@ function varargs(node) {
 
   }
 
+
 }
 
 function varargsMain(node) {
   node = estraverse.replace(
       node, {
-        enter: addParents,
-        leave: varargs
+        enter: function(node) {
+          pushFn(node);
+        },
+        leave: function(node) {
+          var ret = varargs(node);
+          popFn(node);
+          return ret;
+        }
       });
   return node;
 }

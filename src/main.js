@@ -147,10 +147,10 @@ function compile(code, options) {
   var transforms = options.transforms || [
     thunkify,
     naming,
+    varargs,
     cps,
     store,
     optimize,
-    varargs,
     trampoline
   ];
 
