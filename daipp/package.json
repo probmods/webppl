@@ -1,7 +1,7 @@
 {
   "name": "daipp",
   "webppl": {
-    "wppl": ["daipp.wppl"]
+    "wppl": ["daipp.wppl", "helpers.wppl"]
   },
   "main": "daipp.js"
 }
