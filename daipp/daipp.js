@@ -191,10 +191,11 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
     if (size.dom !== undefined){
       net = nn.sequence([net, getSquishnet(size.dom[0], size.dom[1])]);
     }
+    // Only do reshape if dim has rank > 1
+    if (dim.length > 1) {
+      net = nn.sequence([net, nn.reshape(dim)]);
+    }
     var netname = name + '_' + i;
-    // TODO: Add reshape net.
-    // nn.reshape exists but is a net not a function.
-    //net = nn.sequence([net, nn.reshape([dim], netname)]);
     net.name = netname;
     net.setTraining(true);
     nets.push(net);
