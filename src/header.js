@@ -143,22 +143,43 @@ module.exports = function(env) {
 
     var params;
 
+    // TODO: Clean-up. Tricky to understand as written.
+
     if (!_.has(env.coroutine.params, name)) {
+
       // New params: get values and add to params obj.
       var _params = getParams().map(ad.value);
       env.coroutine.params[name] = _params;
       params = _params.map(ad.lift);
-    } else {
-      // Params already registered, fetch values and lift.
-      params = env.coroutine.params[name].map(ad.lift);
+
+      if (env.coroutine.paramsSeen) {
+        // Register that these params should be updated this execution.
+        env.coroutine.paramsSeen[name] = params;
+      }
+
+      // Callback with existing params.
       if (setParams) {
         setParams(params);
       }
-    }
 
-    if (env.coroutine.paramsSeen) {
-      // Register that these params should be updated this execution.
-      env.coroutine.paramsSeen[name] = params;
+    } else if (env.coroutine.paramsSeen && _.has(env.coroutine.paramsSeen, name)) {
+      // We've already lifted these params during this execution.
+      // Re-use ad graph nodes.
+      params = env.coroutine.paramsSeen[name];
+
+    } else {
+      // Fetch values and lift.
+      params = env.coroutine.params[name].map(ad.lift);
+
+      if (env.coroutine.paramsSeen) {
+        // Register that these params should be updated this execution.
+        env.coroutine.paramsSeen[name] = params;
+      }
+
+      // Callback with existing params.
+      if (setParams) {
+        setParams(params);
+      }
     }
 
     return params;
