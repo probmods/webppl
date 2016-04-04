@@ -58,10 +58,13 @@ function val2vec(val) {
     case 'number':
       //numbers are upgraded to tensor.
       //NOTE: integers currently treated as real, but could treat as Enum or one-hot.
-      val = new Tensor([1]).fill(val);
+      //NOTE: number may be lifted.
+      val = ad.scalarsToTensor(val);
     case 'tensor':
       //tensors are re-shaped and pushed through an MLP to get right dim
-      return nneval(tensorAdaptor(val.length, 'tensor_'+val.length), val);
+      //NOTE: tensor may be lifted.
+      var len = ad.value(val).length;
+      return nneval(tensorAdaptor(len, 'tensor_'+len), val);
     case 'array':
       //arrays are handled inductively
       var initvec = val2vec("emptyarrayvec");
@@ -113,6 +116,8 @@ function betterTypeOf(val) {
   var type = typeof val
   if (type === 'object' && val === null) {
     return 'null';
+  } else if (type === 'object' && ad.isLifted(val)) {
+    return betterTypeOf(ad.value(val));
   } else if (type === 'object' && Array.isArray(val)) {
     return 'array';
   } else if (type === 'object' && val instanceof Tensor) {
