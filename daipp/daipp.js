@@ -98,7 +98,9 @@ var tensorAdaptor = cache(function(length, name){
 
 var getConstant = cache(function(val) {
   var name = serialize(val);
-  return nn.constantparams([latentSize], name);
+  var net = nn.constantparams([latentSize], name);
+  net.setTraining(true);
+  return net;
 });
 
 function betterTypeOf(val) {
