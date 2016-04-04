@@ -1,0 +1,43 @@
+var data = [1.2]
+
+var model = function() {
+
+  initContext(data);   //initialize the context, incorporating the observation(s)
+
+  var priormv = [5, 1]
+
+  var x = sample(gaussianERP, priormv, {
+    guide: DAIPPguide(gaussianERP, priormv) //generate guide ERP and params
+  });
+  //updateContext(x) //update context given sampled value
+
+  factor(gaussianERP.score([x,1], data[0]));
+
+  return x;
+
+};
+
+
+//var erp = SMC(model, {particles: 10, saveTraces: true, ignoreGuide: true});
+
+//console.log(_.pluck(erp.traces, 'choices'));
+//assert.ok(false);
+
+//var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+
+
+// VI.
+var params = Optimize(model, {steps: 1000, method: {gd: {stepSize: 0.01}}, estimator: 'ELBO'});
+
+// Optimized params.
+//params;
+
+var marginal = SampleGuide(model, {samples: 1000, params: params});
+
+var mean = expectation(marginal);
+var sd = std(marginal, mean);
+
+testWithinTol(mean, 3.1, 0.1);
+testWithinTol(sd, 0.5, 0.1);
+
+'done';

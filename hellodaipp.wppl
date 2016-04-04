@@ -34,10 +34,4 @@ var params = Optimize(model, {steps: 1000, method: {gd: {stepSize: 0.01}}, estim
 
 var erp = SampleGuide(model, {samples: 1000, params: params});
 
-// TODO: Figure out how to reuse webppl's inference testing
-// infrastructure from a package.
-var mean = expectation(erp);
-testWithinTol(mean, 3.1, 0.1);
-testWithinTol(std(erp, mean), 0.5, 0.1);
-
 'done';

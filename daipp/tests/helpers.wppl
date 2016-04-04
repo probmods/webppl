@@ -1,0 +1,20 @@
+var termColor = function(code) {
+  return function(text) {
+    return ['\033[' + code + 'm', text, '\033[0m'].join('');
+  };
+};
+
+var termRed = termColor(31);
+var termGreen = termColor(32);
+
+var testWithinTol = function(actual, expected, tol) {
+  var msg = 'Expected: ' + expected + ', actual: ' + actual;
+  var pass = Math.abs(actual - expected) < tol;
+  console.log((pass ? termGreen('PASS') : termRed('FAIL')), '|', msg);
+};
+
+var std = function(erp, mean) {
+  return expectation(erp, function(x) {
+    return Math.pow(x - mean, 2);
+  });
+};

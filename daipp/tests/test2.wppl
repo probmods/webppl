@@ -1,0 +1,33 @@
+var data = [true]
+
+var model = function() {
+
+  initContext(data);   //initialize the context, incorporating the observation(s)
+
+  var priorweight = [0.4]
+
+  var x = sample(bernoulliERP, priorweight, {
+    guide: DAIPPguide(bernoulliERP, priorweight) //generate guide ERP and params
+  });
+  //updateContext(x) //update context given sampled value
+
+  factor(bernoulliERP.score([x ? 0.75 : 0.25], data[0]));
+
+  return x;
+
+};
+
+
+// VI.
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
+
+// Optimized params.
+//params;
+
+var erp = SampleGuide(model, {samples: 1000, params: params});
+
+var pTrue = Math.exp(erp.score([], true));
+
+testWithinTol(pTrue, 0.667, 0.1);
+
+'done';
