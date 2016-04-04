@@ -13,6 +13,7 @@ var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
 var optMethods = require('./optMethods');
+var generic = require('../generic');
 
 module.exports = function(env) {
 
@@ -66,6 +67,7 @@ module.exports = function(env) {
         function(i, next) {
 
           return estimator(params, function(grad) {
+            checkGradients(grad);
             optimizer(params, grad);
             return next();
           });
@@ -77,6 +79,17 @@ module.exports = function(env) {
           return k(s, params);
         });
 
+  }
+
+  function checkGradients(grad) {
+    // Emit warning when component of gradient is zero.
+    _.each(grad, function(arr, name) {
+      _.each(arr, function(g, i) {
+        if (generic.allZero(g)) {
+          console.warn('Gradient for param ' + name + ':' + i + ' is zero.');
+        }
+      });
+    });
   }
 
   // 'gd' => cont('gd', {})
