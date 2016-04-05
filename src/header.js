@@ -137,56 +137,66 @@ module.exports = function(env) {
   };
 
   env.registerParams = function(name, getParams, setParams) {
-    if (env.coroutine.params === undefined) {
+
+    // getParams is expected to be a function which is used to
+    // initialize parameters the first time they are encoutered. At
+    // present I consider it to be `registerParams` responsibility to
+    // perform lifting of params, so ideally `getParams` would not
+    // return lifted params. However, in the case of NN, `getParams`
+    // returns params already lifted. Hence, `getParams()` is replaced
+    // with `getParams().map(ad.value)` throughout this function.
+
+    // TODO: Don't lift params if the current coroutine isn't tracking
+    // paramsSeen?
+
+    var paramStore = env.coroutine.params;
+    var paramsSeen = env.coroutine.paramsSeen;
+
+    if (paramStore === undefined) {
+
       // Some coroutines ignore the guide when sampling (e.g. MH as
       // rejuv kernel) but still have to execute it while executing
       // the target. To ensure the guide doesn't error out, we return
       // something sensible from registerParams in such cases.
+
       return getParams().map(ad.value);
-    }
 
-    var params;
+    } else if (paramsSeen && _.has(paramsSeen, name)) {
 
-    // TODO: Clean-up. Tricky to understand as written.
-
-    if (!_.has(env.coroutine.params, name)) {
-
-      // New params: get values and add to params obj.
-      var _params = getParams().map(ad.value);
-      env.coroutine.params[name] = _params;
-      params = _params.map(ad.lift);
-
-      if (env.coroutine.paramsSeen) {
-        // Register that these params should be updated this execution.
-        env.coroutine.paramsSeen[name] = params;
-      }
-
-      // Callback with existing params.
-      if (setParams) {
-        setParams(params);
-      }
-
-    } else if (env.coroutine.paramsSeen && _.has(env.coroutine.paramsSeen, name)) {
       // We've already lifted these params during this execution.
       // Re-use ad graph nodes.
-      params = env.coroutine.paramsSeen[name];
+
+      return paramsSeen[name];
 
     } else {
-      // Fetch values and lift.
-      params = env.coroutine.params[name].map(ad.lift);
 
-      if (env.coroutine.paramsSeen) {
-        // Register that these params should be updated this execution.
-        env.coroutine.paramsSeen[name] = params;
+      // This is the first time we've encounter these params during
+      // this execution. we will lift params at this point.
+
+      var params;
+
+      if (_.has(paramStore, name)) {
+        // Seen on previous execution. Fetch from store and lift.
+        params = paramStore[name].map(ad.lift);
+      } else {
+        // Never seen. Fetch initial values, add to store and lift.
+        var _params = getParams().map(ad.value);
+        paramStore[name] = _params;
+        params = _params.map(ad.lift);
       }
 
-      // Callback with existing params.
+      if (paramsSeen) {
+        paramsSeen[name] = params;
+      }
+
+      // Callback with the fresh ad graph nodes.
       if (setParams) {
         setParams(params);
       }
+
+      return params;
     }
 
-    return params;
   };
 
   // Exports
