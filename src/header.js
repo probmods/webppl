@@ -138,7 +138,11 @@ module.exports = function(env) {
 
   env.registerParams = function(name, getParams, setParams) {
     if (env.coroutine.params === undefined) {
-      throw 'Cannot register params with current coroutine.';
+      // Some coroutines ignore the guide when sampling (e.g. MH as
+      // rejuv kernel) but still have to execute it while executing
+      // the target. To ensure the guide doesn't error out, we return
+      // something sensible from registerParams in such cases.
+      return getParams().map(ad.value);
     }
 
     var params;
