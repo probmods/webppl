@@ -79,8 +79,8 @@ var DAIPPguide = function(ERP, val) {
   return daipp.vec2dist(predict, ERP)
 }
 
-var sampleDaipp(ERP,params) {
-  var val = sample(origERP, origParams, {guide: DAIPPguide(origERP, origParams)})
+var sampleDaipp = function(ERP,params) {
+  var val = sample(ERP, params, {guide: DAIPPguide(ERP, params)})
   updateContext(val)
   return val
 }

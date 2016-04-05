@@ -1,0 +1,49 @@
+/*
+This is a simple "explaining away" bayes net. It allows us to test whether the context network learns
+to pass along the relevant (summary of) previous choices.
+
+run with: ./webppl examples/simpleqmr.wppl --require ./daipp
+*/
+
+var data = [true, false]
+
+var noisyOr = function(causes,causalPowers,baserate){
+  var e = 1-(1-baserate)*product(map2(function(c,cp){return c?(1-cp):1},causes,causalPowers))
+  return sampleDaipp(bernoulliERP,[e])
+}
+
+var model = function() {
+
+  initContext(data);   //initialize the context, incorporating the observation(s)
+
+  var c1=sampleDaipp(bernoulliERP,[0.1])
+  var c2=sampleDaipp(bernoulliERP,[0.1])
+  var c3=sampleDaipp(bernoulliERP,[0.1])
+
+  var e1 = noisyOr([c1,c3],[0.1,0.1],0.1)
+  var e2 = noisyOr([c2,c3],[0.1,0.1],0.1)
+
+  factor(e1==data[0]?0:-Infinity);
+  factor(e2==data[1]?0:-Infinity);
+
+  // display([c1,c2,c3])
+
+  return [c1,c2,c3];
+
+};
+
+
+// Tutorial training.
+// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+// var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+
+
+// VI.
+var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.01}}, estimator: 'ELBO'});
+
+// Optimized params.
+//params;
+
+var erp = SampleGuide(model, {samples: 1000, params: params});
+
+'done';
