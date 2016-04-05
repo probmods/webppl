@@ -5,8 +5,11 @@ These should be used to annotate the target program as so:
   Insert an initContext at start of thunk to initialize.
   Insert updateContext after each sample statement.
   Optional to do updateContext at other places (after primitives, fn returns).
-  At sample statements guide as so: `sample(origERP, origParams, {guide: DAIPPguide(ERPtype, origParams)})`.
-It should be possible for the daipp package to provide macros that do most of this....
+  At sample statements guide as so: `sample(origERP, origParams, {guide: DAIPPguide(origERP, origParams)})`.
+This file provides a simple helper function sampleDaipp that replaces sample and expands to the
+  right guide+update code for known ERPs.
+  It should be possible for the daipp package to provide a macro that replaces sample with sampleDaipp and
+  inserts initContext at the start of the model fn.
 
 Two key helper functions are in a corresponding DAIPP.js file:
 daipp.val2vec embeds js objects into vectors,
@@ -74,4 +77,10 @@ var DAIPPguide = function(ERP, val) {
 
   //generate params as appropriate to ERP
   return daipp.vec2dist(predict, ERP)
+}
+
+var sampleDaipp(ERP,params) {
+  var val = sample(origERP, origParams, {guide: DAIPPguide(origERP, origParams)})
+  updateContext(val)
+  return val
 }
