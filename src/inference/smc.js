@@ -33,6 +33,9 @@ module.exports = function(env) {
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
+    // TODO: Return these params? (Even though SMC doesn't modify
+    // params, it may encounter new params, causing them to be
+    // initialized.)
     // TODO: Slightly deeper clone, as in Optimize?
     this.params = _.has(options, 'params') ? _.clone(options.params) : {};
 
