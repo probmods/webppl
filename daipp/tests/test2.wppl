@@ -21,9 +21,6 @@ var model = function() {
 // VI.
 var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
 
-// Optimized params.
-//params;
-
 var erp = SampleGuide(model, {samples: 1000, params: params});
 
 var pTrue = Math.exp(erp.score([], true));
