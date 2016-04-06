@@ -125,21 +125,6 @@ module.exports = function(env) {
       return k(s);
     },
 
-    // This is identical to the implementation in ELBO.
-
-    getParam: function(s, k, a, initFn) {
-      var _val;
-      var rel = env.getRelativeAddress(a);
-      if (_.has(this.params, rel)) {
-        _val = this.params[rel];
-      } else {
-        this.params[rel] = _val = initFn();
-      }
-      var val = ad.lift(_val);
-      this.paramsSeen[rel] = val;
-      return k(s, val);
-    },
-
     incrementalize: env.defaultCoroutine.incrementalize,
     constructor: EUBO
 
