@@ -86,10 +86,18 @@ module.exports = function(env) {
     _.each(grad, function(arr, name) {
       _.each(arr, function(g, i) {
         if (generic.allZero(g)) {
-          console.warn('Gradient for param ' + name + ':' + i + ' is zero.');
+          logGradWarning(name, i, 'zero');
+        }
+        if (!generic.allFinite(g)) {
+          // Catches NaN, ±Infinity.
+          logGradWarning(name, i, 'not finite');
         }
       });
     });
+  }
+
+  function logGradWarning(name, i, problem) {
+    console.warn('Gradient for param ' + name + ':' + i + ' is ' + problem + '.');
   }
 
   // 'gd' => cont('gd', {})

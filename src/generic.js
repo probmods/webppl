@@ -12,6 +12,10 @@ function allZero(x) {
   return _.isNumber(x) ? x === 0 : !x.anyreduce();
 }
 
+function allFinite(x) {
+  return _.isNumber(x) ? _.isFinite(x) : x.data.every(_.isFinite);
+}
+
 function zerosLike(x) {
   return _.isNumber(x) ? 0 : new Tensor(x.dims);
 }
@@ -69,6 +73,7 @@ function sqrt(a) {
 
 module.exports = {
   allZero: allZero,
+  allFinite: allFinite,
   zerosLike: zerosLike,
   onesLike: onesLike,
   add: add,
