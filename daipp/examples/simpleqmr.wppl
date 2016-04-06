@@ -5,28 +5,33 @@ to pass along the relevant (summary of) previous choices.
 run with: ./webppl examples/simpleqmr.wppl --require ./daipp
 */
 
-var data = [true, false]
+var data = [true, true]
 
-var noisyOr = function(causes,causalPowers,baserate){
-  var e = 1-(1-baserate)*product(map2(function(c,cp){return c?(1-cp):1},causes,causalPowers))
-  return sampleDaipp(bernoulliERP,[e])
+var strengthParam = 0.8
+var backgroundParam = 0.05
+var noisyOrProb = function(causes,causalPowers,baserate){
+  return 1-(1-baserate)*product(map2(function(c,cp){return c?(1-cp):1},causes,causalPowers))
+}
+
+var observe = function(erp,val,params){
+  factor(erp.score(val,params))
 }
 
 var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var c1=sampleDaipp(bernoulliERP,[0.1])
-  var c2=sampleDaipp(bernoulliERP,[0.1])
-  var c3=sampleDaipp(bernoulliERP,[0.1])
+  var c1=sampleDaipp(bernoulliERP,[0.5])
+  var c2=sampleDaipp(bernoulliERP,[0.5])
+  var c3=sampleDaipp(bernoulliERP,[0.5])
 
-  var e1 = noisyOr([c1,c3],[0.1,0.1],0.1)
-  var e2 = noisyOr([c2,c3],[0.1,0.1],0.1)
+  // var e1 = noisyOr([c1,c3],[0.1,0.1],0.1)
+  // var e2 = noisyOr([c2,c3],[0.1,0.1],0.1)
+  // factor(e1==data[0]?0:-Infinity);
+  // factor(e2==data[1]?0:-Infinity);
 
-  factor(e1==data[0]?0:-Infinity);
-  factor(e2==data[1]?0:-Infinity);
-
-  // display([c1,c2,c3])
+  observe(bernoulliERP,data[0],[noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)])
+  observe(bernoulliERP,data[1],[noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)])
 
   return [c1,c2,c3];
 
@@ -39,11 +44,12 @@ var model = function() {
 
 
 // VI.
-var params = Optimize(model, {steps: 100, method: {gd: {stepSize: 0.01}}, estimator: 'ELBO'});
+var params = Optimize(model, {steps: 10, method: {gd: {stepSize: 0.01}}, estimator: {ELBO: {samples: 1}}});
 
 // Optimized params.
 //params;
 
-var erp = SampleGuide(model, {samples: 1000, params: params});
+var erp = SampleGuide(model, {samples: 1, params: params});
 
+display(erp)
 'done';

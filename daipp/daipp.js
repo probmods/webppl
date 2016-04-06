@@ -67,6 +67,7 @@ function val2vec(val) {
       return nneval(tensorAdaptor(len, 'tensor_'+len), val);
     case 'array':
       //arrays are handled inductively
+      //TODO: change init so that an array with one elt gets the same vec as the elt?
       var initvec = val2vec("emptyarrayvec");
       var arrayRNN = tensorAdaptor(2*latentSize, 'arrayRNN');
       return val.reduce(function(vec, next){
