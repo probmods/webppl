@@ -76,7 +76,7 @@ module.exports = function(env) {
               assert.ok(_.has(paramObj, name));
               var params = paramObj[name];
               assert.strictEqual(params.length, grads.length);
-              optimizer(params, grads, name);
+              optimizer(params, grads, i, name);
             });
 
             return next();

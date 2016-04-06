@@ -9,16 +9,13 @@ var generic = require('../generic');
 // (dritchie: I've found this to be the best overall method, for my
 //    tutorial training experiments on procedural models, anyway)
 
-// TODO: Make rmsprop & adam work with arrays of params per
-// name/address.
-
 module.exports = {
 
   gd: function(options) {
     options = util.mergeDefaults(options, {stepSize: 0.1});
     var stepSize = options.stepSize;
 
-    return function(params, grads, name) {
+    return function(params, grads, step, name) {
       for (var i = 0; i < grads.length; i++) {
         params[i] = generic.sub(params[i], generic.scalarMul(grads[i], stepSize));
       }
@@ -33,7 +30,7 @@ module.exports = {
     // Map from name to an array of running sums of grad^2.
     var g2Obj = {};
 
-    return function(params, grads, name) {
+    return function(params, grads, step, name) {
       if (!_.has(g2Obj, name)) {
         g2Obj[name] = grads.map(function(g) {
           // Start with small non-zero g2 to avoid divide by zero.
@@ -49,27 +46,39 @@ module.exports = {
     };
   },
 
-  // TODO: Make it possible to specify params such as decayRate from within programs.
   rmsprop: function(options) {
-    var options = util.mergeDefaults(options, { stepSize: 0.001, decayRate: 0.9 });
+    options = util.mergeDefaults(options, {stepSize: 0.001, decayRate: 0.9});
     var stepSize = options.stepSize;
     var decayRate = options.decayRate;
-    var g2 = Object.create(null);
-    return function(params, grad) {
-      _.each(grad, function(g, a) {
-        assert(_.has(params, a));
-        if (!_.has(g2, a)) {
-          g2[a] = generic.zerosLike(g);
-        }
-        g2[a] = generic.add(generic.scalarMul(g2[a], decayRate), generic.scalarMul(generic.mul(g, g), 1 - decayRate));
-        params[a] = generic.sub(
-            params[a],
-            generic.scalarMul(generic.div(g, generic.sqrt(generic.scalarAdd(g2[a], 1e-8))), stepSize));
-      });
+
+    var g2Obj = {};
+
+    return function(params, grads, step, name) {
+      if (!_.has(g2Obj, name)) {
+        g2Obj[name] = grads.map(function(g) {
+          return generic.zerosLike(g);
+        });
+      }
+
+      var g2 = g2Obj[name];
+      for (var i = 0; i < grads.length; i++) {
+
+        g2[i] = generic.add(generic.scalarMul(g2[i], decayRate),
+                            generic.scalarMul(generic.mul(grads[i], grads[i]), 1 - decayRate));
+
+        params[i] = generic.sub(
+            params[i],
+            generic.scalarMul(
+                generic.div(
+                    grads[i],
+                    generic.sqrt(generic.scalarAdd(g2[i], 1e-8))),
+                stepSize));
+      }
     };
   },
+
   adam: function(options) {
-    var options = util.mergeDefaults(options, {
+    options = util.mergeDefaults(options, {
       stepSize: 0.001, // alpha
       decayRate1: 0.9, // beta1
       decayRate2: 0.999, // beta2
@@ -81,29 +90,37 @@ module.exports = {
     var decayRate2 = options.decayRate2;
     var eps = options.eps;
 
-    var m = Object.create(null);
-    var v = Object.create(null);
-    var t = 0;
+    var mObj = {};
+    var vObj = {};
 
-    return function(params, grad) {
-      t += 1;
+    return function(params, grads, step, name) {
+      // We want t=1 on the first iteration. step starts at zero.
+      var t = step + 1;
 
-      _.each(grad, function(g, a) {
-        assert(_.has(params, a));
-        if (!_.has(m, a)) {
-          m[a] = generic.zerosLike(g);
-          v[a] = generic.zerosLike(g);
-        }
-        m[a] = generic.add(generic.scalarMul(m[a], decayRate1), generic.scalarMul(g, 1 - decayRate1));
-        v[a] = generic.add(generic.scalarMul(v[a], decayRate2), generic.scalarMul(generic.mul(g, g), 1 - decayRate2));
-        //var mHat = scalarDiv(m[a], 1 - Math.pow(decayRate1, t));
-        //var vHat = scalarDiv(v[a], 1 - Math.pow(decayRate2, t));
-        //params[a] = sub(params[a], scalarMul(div(mHat, scalarAdd(sqrt(vHat), eps)), stepSize));
+      if (!_.has(mObj, name)) {
+        mObj[name] = grads.map(generic.zerosLike);
+        vObj[name] = grads.map(generic.zerosLike);
+      }
+
+      var m = mObj[name];
+      var v = vObj[name];
+
+      for (var i = 0; i < grads.length; i++) {
+        m[i] = generic.add(generic.scalarMul(m[i], decayRate1),
+                           generic.scalarMul(grads[i], 1 - decayRate1));
+        v[i] = generic.add(generic.scalarMul(v[i], decayRate2),
+                           generic.scalarMul(generic.mul(grads[i], grads[i]), 1 - decayRate2));
+
         var alpha_t = stepSize * Math.sqrt(1 - Math.pow(decayRate2, t)) / (1 - Math.pow(decayRate1, t));
-        params[a] = generic.sub(
-            params[a],
-            generic.scalarMul(generic.div(m[a], generic.scalarAdd(generic.sqrt(v[a]), eps)), alpha_t));
-      });
+        params[i] = generic.sub(
+            params[i],
+            generic.scalarMul(
+                generic.div(
+                    m[i],
+                    generic.scalarAdd(generic.sqrt(v[i]), eps)),
+                alpha_t));
+      }
     };
   }
+
 };
