@@ -91,10 +91,10 @@ module.exports = function(env) {
 
   }
 
-  function checkGradients(grad) {
+  function checkGradients(gradObj) {
     // Emit warning when component of gradient is zero.
-    _.each(grad, function(arr, name) {
-      _.each(arr, function(g, i) {
+    _.each(gradObj, function(grads, name) {
+      _.each(grads, function(g, i) {
         if (generic.allZero(g)) {
           logGradWarning(name, i, 'zero');
         }
