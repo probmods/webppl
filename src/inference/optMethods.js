@@ -12,54 +12,43 @@ var generic = require('../generic');
 // TODO: Make rmsprop & adam work with arrays of params per
 // name/address.
 
-// TODO: It's not ideal that these methods are so tightly coupled with
-// the strategy we happen to use to store parameters. It might be
-// worth the small overhead of maintaining flatter versions of
-// params/paramsSeen (similar to what we had before) or alternatively
-// just flatten the existing params/grads before passing them to an
-// optimization method.
-
 module.exports = {
+
   gd: function(options) {
-    options = util.mergeDefaults(options, { stepSize: 0.1 });
+    options = util.mergeDefaults(options, {stepSize: 0.1});
     var stepSize = options.stepSize;
-    return function(paramObj, gradObj) {
-      _.each(gradObj, function(grads, name) {
-        assert.ok(_.has(paramObj, name));
-        var params = paramObj[name];
-        assert.strictEqual(params.length, grads.length);
-        for (var i = 0; i < grads.length; i++) {
-          params[i] = generic.sub(params[i], generic.scalarMul(grads[i], stepSize));
-        }
-      });
+
+    return function(params, grads, name) {
+      for (var i = 0; i < grads.length; i++) {
+        params[i] = generic.sub(params[i], generic.scalarMul(grads[i], stepSize));
+      }
     };
   },
+
   // TODO: The next 3 methods each avoid division by zero in different ways. Unify?
   adagrad: function(options) {
-    options = util.mergeDefaults(options, { stepSize: 0.001 });
+    options = util.mergeDefaults(options, {stepSize: 0.001});
     var stepSize = options.stepSize;
     // State.
-    // Map from a to running sum of grad^2.
-    var g2Obj = Object.create(null);
-    return function(paramObj, gradObj) {
-      _.each(gradObj, function(grads, name) {
-        var params = paramObj[name];
-        assert.ok(params);
-        assert.strictEqual(params.length, grads.length);
-        if (!_.has(g2Obj, name)) {
-          g2Obj[name] = grads.map(function(g) {
-            // Start with small non-zero g2 to avoid divide by zero.
-            return generic.scalarMul(generic.onesLike(g), 0.001);
-          });
-        }
-        var g2 = g2Obj[name];
-        for (var i = 0; i < grads.length; i++) {
-          g2[i] = generic.add(g2[i], generic.mul(grads[i], grads[i]));
-          params[i] = generic.sub(params[i], generic.scalarMul(generic.div(grads[i], generic.sqrt(g2[i])), stepSize));
-        }
-      });
+    // Map from name to an array of running sums of grad^2.
+    var g2Obj = {};
+
+    return function(params, grads, name) {
+      if (!_.has(g2Obj, name)) {
+        g2Obj[name] = grads.map(function(g) {
+          // Start with small non-zero g2 to avoid divide by zero.
+          return generic.scalarMul(generic.onesLike(g), 0.001);
+        });
+      }
+
+      var g2 = g2Obj[name];
+      for (var i = 0; i < grads.length; i++) {
+        g2[i] = generic.add(g2[i], generic.mul(grads[i], grads[i]));
+        params[i] = generic.sub(params[i], generic.scalarMul(generic.div(grads[i], generic.sqrt(g2[i])), stepSize));
+      }
     };
   },
+
   // TODO: Make it possible to specify params such as decayRate from within programs.
   rmsprop: function(options) {
     var options = util.mergeDefaults(options, { stepSize: 0.001, decayRate: 0.9 });

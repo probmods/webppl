@@ -56,7 +56,7 @@ module.exports = function(env) {
 
     // TODO: We'll need to deep copy the input parameters once updates
     // modify parameters in-place.
-    var params = _.mapObject(options.params, function(arr) {
+    var paramObj = _.mapObject(options.params, function(arr) {
       return arr.slice();
     });
 
@@ -67,11 +67,18 @@ module.exports = function(env) {
         // Loop body.
         function(i, next) {
 
-          return estimator(params, function(grad) {
+          return estimator(paramObj, function(gradObj) {
             if (options.debug) {
-              checkGradients(grad);
+              checkGradients(gradObj);
             }
-            optimizer(params, grad);
+
+            _.each(gradObj, function(grads, name) {
+              assert.ok(_.has(paramObj, name));
+              var params = paramObj[name];
+              assert.strictEqual(params.length, grads.length);
+              optimizer(params, grads, name);
+            });
+
             return next();
           });
 
@@ -79,7 +86,7 @@ module.exports = function(env) {
 
         // Loop continuation.
         function() {
-          return k(s, params);
+          return k(s, paramObj);
         });
 
   }
