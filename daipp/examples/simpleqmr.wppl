@@ -14,7 +14,7 @@ var noisyOrProb = function(causes,causalPowers,baserate){
 }
 
 var observe = function(erp,val,params){
-  factor(erp.score(val,params))
+  factor(erp.score(params, val))
 }
 
 var model = function() {
@@ -24,11 +24,6 @@ var model = function() {
   var c1=sampleDaipp(bernoulliERP,[0.5])
   var c2=sampleDaipp(bernoulliERP,[0.5])
   var c3=sampleDaipp(bernoulliERP,[0.5])
-
-  // var e1 = noisyOr([c1,c3],[0.1,0.1],0.1)
-  // var e2 = noisyOr([c2,c3],[0.1,0.1],0.1)
-  // factor(e1==data[0]?0:-Infinity);
-  // factor(e2==data[1]?0:-Infinity);
 
   observe(bernoulliERP,data[0],[noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)])
   observe(bernoulliERP,data[1],[noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)])
@@ -42,14 +37,8 @@ var model = function() {
 // var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
 // var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
 
-
 // VI.
-var params = Optimize(model, {steps: 10, method: {gd: {stepSize: 0.01}}, estimator: {ELBO: {samples: 1}}});
 
-// Optimized params.
-//params;
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
 
-var erp = SampleGuide(model, {samples: 1, params: params});
-
-display(erp)
-'done';
+SampleGuide(model, {samples: 1000, params: params});
