@@ -40,7 +40,8 @@ module.exports = function(env) {
       params: {},
       method: 'gd',
       estimator: 'ELBO',
-      steps: 1
+      steps: 1,
+      debug: true               // TODO: Switch default before merging.
     });
 
     // Create a (cps) function which takes parameters to gradient
@@ -67,7 +68,9 @@ module.exports = function(env) {
         function(i, next) {
 
           return estimator(params, function(grad) {
-            checkGradients(grad);
+            if (options.debug) {
+              checkGradients(grad);
+            }
             optimizer(params, grad);
             return next();
           });
