@@ -20,7 +20,8 @@ module.exports = function(env) {
       rejuvKernel: 'MH',
       finalRejuv: true,
       saveTraces: false,
-      ignoreGuide: false
+      ignoreGuide: false,
+      params: {}
     });
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -36,8 +37,9 @@ module.exports = function(env) {
     // TODO: Return these params? (Even though SMC doesn't modify
     // params, it may encounter new params, causing them to be
     // initialized.)
-    // TODO: Slightly deeper clone, as in Optimize?
-    this.params = _.has(options, 'params') ? _.clone(options.params) : {};
+    this.params = _.mapObject(options.params, function(arr) {
+      return arr.slice();
+    });
 
     this.particles = [];
     this.completeParticles = [];
