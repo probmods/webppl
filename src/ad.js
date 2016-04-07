@@ -30,30 +30,30 @@ var valueRec = function(x) {
 
 ad.valueRec = valueRec;
 
-ad.tensor.reshape = ad.newFunction({
-  OutputType: Tensor,
-  name: 'reshape',
-  forward: function(t, shape) {
-    t = ad.isLifted(t) ? t.x : t;
-    if (t.length !== util.product(shape)) {
-      throw 'Size mismatch in reshape.';
-    }
-    // This does the conservative thing of copying the data. (Similar
-    // to transpose.) Is that necessary?
-    return new Tensor(shape).fromFlatArray(t.data);
-  },
-  backward: function(t, shape) {
-    if (ad.isLifted(t)) {
-      var n = t.x.length;
-      while (n--) {
-        t.dx.data[n] += this.dx.data[n];
-      }
-    }
-  },
-  getParents: function(t, shape) {
-    return ad.isLifted(t) ? [t] : [];
-  }
-});
+// ad.tensor.reshape = ad.newFunction({
+//   OutputType: Tensor,
+//   name: 'reshape',
+//   forward: function(t, shape) {
+//     t = ad.isLifted(t) ? t.x : t;
+//     if (t.length !== util.product(shape)) {
+//       throw 'Size mismatch in reshape.';
+//     }
+//     // This does the conservative thing of copying the data. (Similar
+//     // to transpose.) Is that necessary?
+//     return new Tensor(shape).fromFlatArray(t.data);
+//   },
+//   backward: function(t, shape) {
+//     if (ad.isLifted(t)) {
+//       var n = t.x.length;
+//       while (n--) {
+//         t.dx.data[n] += this.dx.data[n];
+//       }
+//     }
+//   },
+//   getParents: function(t, shape) {
+//     return ad.isLifted(t) ? [t] : [];
+//   }
+// });
 
 ad.tensor.transpose = ad.newUnaryFunction({
   OutputType: Tensor,
