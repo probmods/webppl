@@ -1,0 +1,37 @@
+// This is the same data/model as webppl/examples/linearRegression.wppl
+
+var xs = map(Vector, [[0], [1], [2], [3]]);
+var ys = [0, 1, 4, 6];
+
+var model = function() {
+
+  initContext([xs, ys]);
+
+  var m = sampleDaipp(diagCovGaussianERP, [Vector([0]), Vector([2])]);
+  var b = sampleDaipp(gaussianERP, [0, 2]);
+  var sigma = sampleDaipp(gammaERP, [1, 1]);
+  //var sigma = 0.8;
+
+  var f = function(x) {
+    return T.sumreduce(T.mul(m, x)) + b;
+  };
+
+  map2(
+      function(x, y) {
+        factor(gaussianERP.score([f(x), sigma], y));
+      },
+      xs,
+      ys);
+
+  return [m, b, sigma];
+};
+
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.01}}, estimator: 'ELBO'});
+var marginal = SampleGuide(model, {samples: 1000, params: params});
+
+var E_m = expectation(marginal, function(x) { return x[0].data[0]; });
+var E_b = expectation(marginal, second);
+var E_sigma = expectation(marginal, third);
+
+// Expected to be approx. [2, -0.2, 0.8]
+[E_m, E_b, E_sigma];
