@@ -24,8 +24,8 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
-    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
+    this.adRequired = this.performRejuv && this.rejuvKernel.adRequired;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
