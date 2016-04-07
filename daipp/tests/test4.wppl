@@ -6,10 +6,7 @@ var model = function() {
 
   var priormv = [5, 1]
 
-  var x = sample(gaussianERP, priormv, {
-    guide: DAIPPguide(gaussianERP, priormv) //generate guide ERP and params
-  });
-  //updateContext(x) //update context given sampled value
+  var x = sampleDaipp(gaussianERP, priormv);
 
   factor(gaussianERP.score([x,1], data[0]));
 
