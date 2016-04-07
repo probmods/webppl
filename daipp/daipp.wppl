@@ -57,9 +57,20 @@ var updateContext = function(val) {
 }
 
 //A function to predict the params of the importance distribution at a sample statement.
-//Takes the sigature of the domain of the original ERP.
-// dritchie: Am I correct that 'val' here is the original params for the ERP? If so,
-//    we probably want to manually lift this array to Tensor, right?
+
+// `ERP` is the erp we're guiding.
+// `val` will usually (by default) be the original ERP params, but we
+// want to maintain the flexibility to put in other info.
+
+// paul, paraphrasing noah:
+// when `val` is the original ERP params, we want to treat them as a
+// tensor (so that they get minimally mangled).... simplest is
+// probably just to upgrade them to tensor in the webppl program
+// before calling DAIPPguide. so something like: `DAIPPguide(ERP,
+// ad.tensor(params))`.
+
+// paul: note that params isn't necessarily an array of reals.
+
 var predictNet = nn.mlp(3*daipp.latentSize, [
   {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
