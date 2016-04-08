@@ -554,28 +554,6 @@ var discreteOneHotERP = new ERP({
   }
 });
 
-
-var gammaCof = [
-  76.18009172947146,
-  -86.50532032941677,
-  24.01409824083091,
-  -1.231739572450155,
-  0.1208650973866179e-2,
-  -0.5395239384953e-5];
-
-function logGamma(xx) {
-  'use ad';
-  var x = xx - 1.0;
-  var tmp = x + 5.5;
-  tmp -= (x + 0.5) * Math.log(tmp);
-  var ser = 1.000000000190015;
-  for (var j = 0; j <= 5; j++) {
-    x += 1;
-    ser += gammaCof[j] / x;
-  }
-  return -tmp + Math.log(2.5066282746310005 * ser);
-}
-
 // an implementation of Marsaglia & Tang, 2000:
 // A Simple Method for Generating Gamma Variables
 function gammaSample(params) {
@@ -642,7 +620,7 @@ function expGammaScore(params, val) {
   var shape = params[0];
   var scale = params[1];
   var x = val;
-  return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
+  return (shape - 1) * x - Math.exp(x) / scale - Math.logGamma(shape) - shape * Math.log(scale);
 }
 
 // params are shape and scale
@@ -653,7 +631,7 @@ var gammaERP = new ERP({
     var shape = params[0];
     var scale = params[1];
     var x = val;
-    return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
+    return (shape - 1) * Math.log(x) - x / scale - Math.logGamma(shape) - shape * Math.log(scale);
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -680,7 +658,7 @@ var exponentialERP = new ERP({
 
 function logBeta(a, b) {
   'use ad';
-  return logGamma(a) + logGamma(b) - logGamma(a + b);
+  return Math.logGamma(a) + Math.logGamma(b) - Math.logGamma(a + b);
 }
 
 function betaSample(params) {

@@ -5,17 +5,10 @@ var model = function() {
   initContext(data);
 
   var priorss = [1, 1];
-  var tau = sample(gammaERP, priorss, {
-    guide: DAIPPguide(gammaERP, priorss)
-  });
-  updateContext(tau);
-
+  var tau = sampleDaipp(gammaERP, priorss);
 
   var priormv = [0, 1 / Math.sqrt(tau)];
-  var mu = sample(gaussianERP, priormv, {
-    guide: DAIPPguide(gaussianERP, priormv)
-  });
-  //updateContext(mu);
+  var mu = sampleDaipp(gaussianERP, priormv);
 
   factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], data[0]));
   factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], data[1]));

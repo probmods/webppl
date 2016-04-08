@@ -86,7 +86,9 @@ module.exports = function(env) {
         assert.ok(typeof scoreDiff === 'number');
 
         // TODO: Without reparameterization, the expectation of the
-        // gradient of log q is zero.
+        // gradient of log q is zero. Optimize by removing this term
+        // when not using reparm trick. Can we test for this with
+        // `logq !== logr`?
 
         var objective = this.logr * scoreDiff + this.logq - this.logp;
         objective.backprop();

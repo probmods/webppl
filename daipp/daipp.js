@@ -130,10 +130,10 @@ function betterTypeOf(val) {
 
 /*
 This goes from a vector (created from context etc) to an importance distribution.
-ERP is the target ERP.
+ERP + params is the target distribution
 This function is responsible for deciding which importance ERP to use, and it’s params. Returns [guideERP, guideParams].
 */
-function vec2dist(vec, ERP) {
+function vec2dist(vec, ERP, params) {
   var guideERP, guideParamNets;
   if (ERP === erp.bernoulliERP) {
     //importance ERP is Bernoulli, param is single bounded real
@@ -151,6 +151,10 @@ function vec2dist(vec, ERP) {
   } else if (ERP === erp.gammaERP) {
     guideERP = erp.gammaERP;
     guideParamNets = makeParamAdaptorNets([{dim: [1], dom: [0, Infinity]}, {dim: [1], dom: [0, Infinity]}], 'Gamma');
+  } else if (ERP === erp.diagCovGaussianERP) {
+    guideERP = ERP;
+    var erpDim = ad.value(params[0]).length;
+    guideParamNets = makeParamAdaptorNets([[erpDim, 1], {dim: [erpDim, 1], dom: [0, Infinity]}], 'diagCovGaussianERP');
   } else {
     throw 'daipp: Unhandled ERP type in vec2dist: ' + ERP.name;
   }
@@ -209,6 +213,11 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
 
 //helper to squish return vals into range [a,b]
 // dritchie: here I'm using Paul's add and mul functions which work on (Tensor, scalar) args
+
+// paul: i previously ran into a case where it appeared that
+// constraining a parameter to [0,Inf] with soft-plus rather then exp
+// was more stable during optimization. we might consider trying that
+// here?
 var getSquishnet = cache(function(a, b) {
   assert(!(a === -Infinity && b === Infinity)); // Should use no bounds, in this case
   var adfun;

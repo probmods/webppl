@@ -57,15 +57,31 @@ var updateContext = function(val) {
 }
 
 //A function to predict the params of the importance distribution at a sample statement.
-//Takes the sigature of the domain of the original ERP.
-// dritchie: Am I correct that 'val' here is the original params for the ERP? If so,
-//    we probably want to manually lift this array to Tensor, right?
+
+// `ERP` + `params` is the distribution we're guiding.
+// `val` will usually (by default) be the original ERP params (so
+// params === val), but we want to maintain the flexibility to put in
+// other info.
+
+// paul, paraphrasing noah:
+// when `val` is the original ERP params, we want to treat them as a
+// tensor (so that they get minimally mangled).... simplest is
+// probably just to upgrade them to tensor in the webppl program
+// before calling DAIPPguide. so something like: `DAIPPguide(ERP,
+// ad.tensor(params))`.
+
+// paul: note that params isn't necessarily an array of reals.
+
 var predictNet = nn.mlp(3*daipp.latentSize, [
   {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
 ], 'predictNet');
 predictNet.setTraining(true)
-var DAIPPguide = function(ERP, val) {
+
+var DAIPPguide = function(ERP, params, val) {
+  // TODO: Once the ERP interface is changed (#246) I expect we can
+  // revert to just passing ERP and val into DAIPPguide.
+
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
   //TODO: at the moment the address will be a single string, so val2vec will learn a separate embedding per address. we may want to split the string into an array (of syntax sites); in that case val2vec will use an RNN along the array, making related addresses have related vectors.
@@ -77,11 +93,11 @@ var DAIPPguide = function(ERP, val) {
   var predict = daipp.nneval(predictNet, ad.tensor.concat(context, addressVec, dataVec));
 
   //generate params as appropriate to ERP
-  return daipp.vec2dist(predict, ERP)
+  return daipp.vec2dist(predict, ERP, params)
 }
 
 var sampleDaipp = function(ERP,params) {
-  var val = sample(ERP, params, {guide: DAIPPguide(ERP, params)})
+  var val = sample(ERP, params, {guide: DAIPPguide(ERP, params, params)})
   updateContext(val)
   return val
 }
