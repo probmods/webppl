@@ -21,9 +21,9 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var c1=sampleDaipp(bernoulliERP,[0.5])
-  var c2=sampleDaipp(bernoulliERP,[0.5])
-  var c3=sampleDaipp(bernoulliERP,[0.5])
+  var c1=sampleDaipp(bernoulliERP,[0.1])
+  var c2=sampleDaipp(bernoulliERP,[0.1])
+  var c3=sampleDaipp(bernoulliERP,[0.1])
 
   observe(bernoulliERP,data[0],[noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)])
   observe(bernoulliERP,data[1],[noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)])
@@ -34,11 +34,24 @@ var model = function() {
 
 
 // Tutorial training.
-// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
-// var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+display(erp.hist)
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
 
 // VI.
-
-var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
+// var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
 
 SampleGuide(model, {samples: 1000, params: params});
+//params
+
+// Enumerate(model)
+// Exact solution:
+// ERP:
+//     [false,false,true] : 0.6450786794468975
+//     [false,true,true] : 0.08512560900245762
+//     [true,false,true] : 0.08512560900245762
+//     [true,true,false] : 0.07167540882743312
+//     [false,true,false] : 0.039819671570796154
+//     [true,false,false] : 0.039819671570796154
+//     [false,false,false] : 0.02212203976155343
+//     [true,true,true] : 0.011233310817608262
