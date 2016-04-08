@@ -24,8 +24,8 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
-    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
+    this.adRequired = this.performRejuv && this.rejuvKernel.adRequired;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
@@ -258,6 +258,9 @@ module.exports = function(env) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
     var hist = new Histogram();
+    var addToHist = this.adRequired ?
+        function(value) { hist.add(ad.valueRec(value)); } :
+        hist.add.bind(hist);
     var logAvgW = _.first(this.completeParticles).logWeight;
 
     return util.cpsForEach(
@@ -268,10 +271,10 @@ module.exports = function(env) {
                 this.rejuvSteps,
                 kernels.sequence(
                     this.rejuvKernel,
-                    kernels.tap(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(function(trace) { addToHist(trace.value); })));
             return chain(k, particle.trace);
           } else {
-            hist.add(particle.trace.value);
+            addToHist(particle.trace.value);
             return k();
           }
         }.bind(this),
