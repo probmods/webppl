@@ -232,6 +232,10 @@ function warn(msg) {
   }
 }
 
+function jsnew(ctor, arg) {
+  return new ctor(arg);
+}
+
 module.exports = {
   trampolineRunners: trampolineRunners,
   random: random,
@@ -258,5 +262,6 @@ module.exports = {
   deserialize: deserialize,
   timeif: timeif,
   pipeline: pipeline,
-  warn: warn
+  warn: warn,
+  jsnew: jsnew
 };

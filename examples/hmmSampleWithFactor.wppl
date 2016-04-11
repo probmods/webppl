@@ -10,7 +10,7 @@ var trueObs = [false, false, false]
 
 var hmmRecur = function(n, states, observations) {
   var newState = transition(states[states.length - 1])
-  var newObs = sampleWithFactor(observe(newState), [],
+  var newObs = sampleWithFactor(observe(newState),
                                 function(v) {return v == trueObs[observations.length] ? 0 : -Infinity})
   var newStates = states.concat([newState])
   var newObservations = observations.concat([newObs])

@@ -43,8 +43,8 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
-  Rejection.prototype.sample = function(s, k, a, erp, params) {
-    return k(s, erp.sample(params));
+  Rejection.prototype.sample = function(s, k, a, erp) {
+    return k(s, erp.sample());
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {

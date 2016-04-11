@@ -529,16 +529,16 @@ var getInferenceArgs = function(testDef, model) {
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.erp.hist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.erp.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.erp.params.dist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.erp.hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.erp.params.dist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {

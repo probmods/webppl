@@ -83,8 +83,8 @@ module.exports = function(env) {
     return p.continuation(p.store);
   };
 
-  AsyncPF.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+  AsyncPF.prototype.sample = function(s, cc, a, erp) {
+    return cc(s, erp.sample());
   };
 
   AsyncPF.prototype.factor = function(s, cc, a, score) {

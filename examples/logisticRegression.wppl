@@ -15,7 +15,7 @@ var model = function() {
 
   map2(
       function(x, label) {
-        factor(bernoulliERP.score([sigmoid(x)], label))
+        factor(bernoulliERP({p: sigmoid(x)}).score(label))
       },
       xs,
       labels)

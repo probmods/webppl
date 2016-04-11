@@ -52,19 +52,18 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp, params) {
+  SMC.prototype.sample = function(s, k, a, erp) {
     var importanceERP = erp.importanceERP || erp;
-    var _params = ad.valueRec(params);
-    var _val = importanceERP.sample(_params);
+    var _val = importanceERP.sample();
     var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
-    var importanceScore = importanceERP.score(_params, _val);
-    var choiceScore = erp.score(_params, _val);
+    var importanceScore = importanceERP.score(_val);
+    var choiceScore = erp.score(_val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
-      particle.trace.addChoice(erp, params, val, a, s, k);
+      particle.trace.addChoice(erp, val, a, s, k);
     }
-    particle.logWeight += choiceScore - importanceScore;
+    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
     return k(s, val);
   };
 

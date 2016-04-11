@@ -2,17 +2,36 @@
 
 // ERPs
 
+erpCtor uniform, uniformERP;
+erpCtor bernoulli, bernoulliERP;
+erpCtor randomInteger, randomIntegerERP;
+erpCtor gaussian, gaussianERP;
+erpCtor gaussianDrift, gaussianDriftERP;
+erpCtor multivariateGaussian, multivariateGaussianERP;
+erpCtor cauchy, cauchyERP;
+erpCtor discrete, discreteERP;
+erpCtor gamma, gammaERP;
+erpCtor exponential, exponentialERP;
+erpCtor beta, betaERP;
+erpCtor binomial, binomialERP;
+erpCtor multinomial, multinomialERP;
+erpCtor poisson, poissonERP;
+erpCtor dirichlet, dirichletERP;
+erpCtor dirichletDrift, dirichletDriftERP;
+erpCtor marginal, marginalERP;
+erpCtor categorical, categoricalERP;
+
 var flip = function(theta) {
   var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP, [theta]);
+  return sample(bernoulliERP({p: theta}));
 };
 
 var randomInteger = function(n) {
-  return sample(randomIntegerERP, [n]);
+  return sample(randomIntegerERP({n: n}));
 };
 
 var discrete = function(ps) {
-  return sample(discreteERP, [ps]);
+  return sample(discreteERP({ps: ps}));
 };
 
 var categorical = function(ps, vs) {
@@ -20,71 +39,67 @@ var categorical = function(ps, vs) {
 };
 
 var multinomial = function(ps, n) {
-  return sample(multinomialERP, [ps, n]);
+  return sample(multinomialERP({ps: ps, n: n}));
 };
 
 var gaussian = function(mu, sigma) {
-  return sample(gaussianERP, [mu, sigma]);
+  return sample(gaussianERP({mu: mu, sigma: sigma}));
 };
 
 var multivariateGaussian = function(mu, cov) {
-  return sample(multivariateGaussianERP, [mu, cov]);
+  return sample(multivariateGaussianERP({mu: mu, cov: cov}));
 };
 
 var cauchy = function(location, scale) {
-  return sample(cauchyERP, [location, scale]);
+  return sample(cauchyERP({location: location, scale: scale}));
 };
 
 var uniform = function(a, b) {
-  return sample(uniformERP, [a, b]);
+  return sample(uniformERP({a: a, b: b}));
 };
 
 var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP, [l.length])];
+  return l[sample(randomIntegerERP({n: l.length}))];
 };
 
 var dirichlet = function(alpha) {
-  return sample(dirichletERP, alpha);
+  return sample(dirichletERP({alpha: alpha}));
 };
 
 var poisson = function(mu) {
-  return sample(poissonERP, [mu]);
+  return sample(poissonERP({mu: mu}));
 };
 
 var binomial = function(p, n) {
-  return sample(binomialERP, [p, n]);
+  return sample(binomialERP({p: p, n: n}));
 };
 
 var beta = function(a, b) {
-  return sample(betaERP, [a, b]);
+  return sample(betaERP({a: a, b: b}));
 };
 
 var exponential = function(a) {
-  return sample(exponentialERP, [a]);
+  return sample(exponentialERP({a: a}));
 };
 
 var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale]);
+  return sample(gammaERP({shape: shape, scale: scale}));
 };
 
-var deltaERP = function(v) {
-  return _top.makeCategoricalERP([1.0], [v]);
+var deltaERP = function(params) {
+  return categoricalERP({ps: [1.0], vs: [params.v]});
 };
 
-var categoricalERP = function(ps, vs, extraParams) {
-  return _top.makeCategoricalERP(ps, vs, extraParams);
-};
-
-var multiplexERP = function(vs, erps) {
-  return _top.makeMultiplexERP(vs, erps);
-};
-
-var serializeERP = function(erp) {
-  return _top.serializeERP(erp);
+var serializeERP = function(e) {
+  return erp.serializeERP(e);
 };
 
 var deserializeERP = function(JSONString) {
-  return _top.deserializeERP(JSONString);
+  return erp.deserializeERP(JSONString);
+};
+
+var withImportanceDist = function(e, importanceERP) {
+  return erp.withImportanceDist(e, importanceERP);
 };
 
 // XRPs
@@ -95,7 +110,7 @@ var makeBetaBernoulli = function(pseudocounts) {
   globalStore[bbname] = pseudocounts;
   return function() {
     var pc = globalStore[bbname];  // get current sufficient stats
-    var val = sample(bernoulliERP, [pc[0] / (pc[0] + pc[1])]);  // sample from predictive.
+    var val = sample(bernoulliERP({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
     globalStore[bbname] = [pc[0] + val, pc[1] + !val];  // update sufficient stats
     return val;
   };
@@ -115,7 +130,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   return function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(discreteERP({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
