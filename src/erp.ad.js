@@ -224,9 +224,7 @@ _.extendOwn(randomInteger.prototype, finiteSupport, {
 });
 
 
-function gaussianSample(params) {
-  var mu = params[0];
-  var sigma = params[1];
+function gaussianSample(mu, sigma) {
   var u, v, x, y, q;
   do {
     u = 1 - util.random();
@@ -238,10 +236,8 @@ function gaussianSample(params) {
   return mu + sigma * v / u;
 }
 
-function gaussianScore(params, x) {
+function gaussianScore(mu, sigma, x) {
   'use ad';
-  var mu = params[0];
-  var sigma = params[1];
   return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
@@ -254,10 +250,10 @@ gaussian.prototype.constructor = gaussian;
 
 _.extendOwn(gaussian.prototype, continuousSupport, {
   sample: function() {
-    return gaussianSample([ad.value(this.params.mu), ad.value(this.params.sigma)]);
+    return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
   },
   score: function(x) {
-    return gaussianScore([this.params.mu, this.params.sigma], x);
+    return gaussianScore(this.params.mu, this.params.sigma, x);
   }
 });
 
@@ -276,10 +272,8 @@ _.extendOwn(gaussianDrift.prototype, {
 });
 
 
-function multivariateGaussianSample(params) {
-  var mu = params[0];
-  var cov = params[1];
-  var xs = mu.map(function() {return gaussianSample([0, 1]);});
+function multivariateGaussianSample(mu, cov) {
+  var xs = mu.map(function() {return gaussianSample(0, 1);});
   var svd = numeric.svd(cov);
   var scaledV = numeric.transpose(svd.V).map(function(x) {
     return numeric.mul(numeric.sqrt(svd.S), x);
@@ -288,9 +282,7 @@ function multivariateGaussianSample(params) {
   return numeric.add(xs, mu);
 }
 
-function multivariateGaussianScore(params, x) {
-  var mu = params[0];
-  var cov = params[1];
+function multivariateGaussianScore(mu, cov, x) {
   var n = mu.length;
   var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
   var xSubMu = numeric.sub(x, mu);
@@ -307,10 +299,10 @@ multivariateGaussian.prototype.constructor = multivariateGaussian;
 
 _.extendOwn(multivariateGaussian.prototype, {
   sample: function() {
-    return multivariateGaussianSample([this.params.mu, this.params.cov]);
+    return multivariateGaussianSample(this.params.mu, this.params.cov);
   },
   score: function(val) {
-    return multivariateGaussianScore([this.params.mu, this.params.cov], val);
+    return multivariateGaussianScore(this.params.mu, this.params.cov, val);
   }
 });
 
@@ -386,12 +378,10 @@ function logGamma(xx) {
 
 // an implementation of Marsaglia & Tang, 2000:
 // A Simple Method for Generating Gamma Variables
-function gammaSample(params) {
-  var shape = params[0];
-  var scale = params[1];
+function gammaSample(shape, scale) {
   if (shape < 1) {
     var r;
-    r = gammaSample([1 + shape, scale]) * Math.pow(util.random(), 1 / shape);
+    r = gammaSample(1 + shape, scale) * Math.pow(util.random(), 1 / shape);
     if (r === 0) {
       util.warn('gamma sample underflow, rounded to nearest representable support value');
       return Number.MIN_VALUE;
@@ -403,7 +393,7 @@ function gammaSample(params) {
   var c = 1 / Math.sqrt(9 * d);
   while (true) {
     do {
-      x = gaussianSample([0, 1]);
+      x = gaussianSample(0, 1);
       v = 1 + c * x;
     } while (v <= 0);
 
@@ -415,12 +405,10 @@ function gammaSample(params) {
   }
 }
 
-function expGammaSample(params) {
-  var shape = params[0];
-  var scale = params[1];
+function expGammaSample(shape, scale) {
   if (shape < 1) {
     var r;
-    r = gammaSample([1 + shape, scale]) + Math.log(util.random()) / shape;
+    r = gammaSample(1 + shape, scale) + Math.log(util.random()) / shape;
     if (r === -Infinity) {
       util.warn('log gamma sample underflow, rounded to nearest representable support value');
       return -Number.MAX_VALUE;
@@ -432,7 +420,7 @@ function expGammaSample(params) {
   var c = 1 / Math.sqrt(9 * d);
   while (true) {
     do {
-      x = gaussianSample([0, 1]);
+      x = gaussianSample(0, 1);
       v = 1 + c * x;
     } while (v <= 0);
 
@@ -445,10 +433,8 @@ function expGammaSample(params) {
   }
 }
 
-function expGammaScore(params, val) {
+function expGammaScore(shape, scale, val) {
   'use ad';
-  var shape = params[0];
-  var scale = params[1];
   var x = val;
   return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
 }
@@ -463,7 +449,7 @@ gamma.prototype.constructor = gamma;
 
 _.extendOwn(gamma.prototype, continuousSupport, {
   sample: function() {
-    return gammaSample([ad.value(this.params.shape), ad.value(this.params.scale)]);
+    return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
   },
   score: function(x) {
     'use ad';
@@ -512,7 +498,7 @@ beta.prototype.constructor = beta;
 
 _.extendOwn(beta.prototype, continuousSupport, {
   sample: function() {
-    return betaSample([ad.value(this.params.a), ad.value(this.params.b)]);
+    return betaSample(ad.value(this.params.a), ad.value(this.params.b));
   },
   score: function(x) {
     'use ad';
@@ -525,11 +511,9 @@ _.extendOwn(beta.prototype, continuousSupport, {
   }
 });
 
-function betaSample(params) {
-  var a = params[0];
-  var b = params[1];
-  var x = gammaSample([a, 1]);
-  return x / (x + gammaSample([b, 1]));
+function betaSample(a, b) {
+  var x = gammaSample(a, 1);
+  return x / (x + gammaSample(b, 1));
 }
 
 
@@ -545,16 +529,14 @@ function binomialG(x) {
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
 
-function binomialSample(params) {
-  var p = params[0];
-  var n = params[1];
+function binomialSample(p, n) {
   var k = 0;
   var N = 10;
   var a, b;
   while (n > N) {
     a = 1 + n / 2;
     b = 1 + n - a;
-    var x = betaSample([a, b]);
+    var x = betaSample(a, b);
     if (x >= p) {
       n = a - 1;
       p /= x;
@@ -584,7 +566,7 @@ binomial.prototype.constructor = binomial;
 
 _.extendOwn(binomial.prototype, finiteSupport, {
   sample: function() {
-    return binomialSample([ad.value(this.params.p), this.params.n]);
+    return binomialSample(ad.value(this.params.p), this.params.n);
   },
   score: function(val) {
     'use ad';
@@ -610,7 +592,7 @@ _.extendOwn(binomial.prototype, finiteSupport, {
       var z = num / den;
       var invsd = Math.sqrt(z);
       z = d2 * invsd;
-      return gaussianScore([0, 1], z) + Math.log(invsd);
+      return gaussianScore(0, 1, z) + Math.log(invsd);
     } else {
       // exact formula
       return (lnfact(n) - lnfact(n - val) - lnfact(val) +
@@ -631,9 +613,7 @@ function zeros(n) {
   return a;
 }
 
-function multinomialSample(params) {
-  var theta = params[0];
-  var n = params[1];
+function multinomialSample(theta, n) {
   var thetaSum = util.sum(theta);
   var a = zeros(theta.length);
   for (var i = 0; i < n; i++) {
@@ -651,7 +631,7 @@ multinomial.prototype.constructor = multinomial;
 
 _.extendOwn(multinomial.prototype, finiteSupport, {
   sample: function() {
-    return multinomialSample([this.params.ps.map(ad.value), this.params.n]);
+    return multinomialSample(this.params.ps.map(ad.value), this.params.n);
   },
   score: function(val) {
     if (sum(val) != this.params.n) {
@@ -746,9 +726,9 @@ _.extendOwn(poisson.prototype, {
     var mu = ad.value(this.params.mu);
     while (mu > 10) {
       var m = 7 / 8 * mu;
-      var x = gammaSample([m, 1]);
+      var x = gammaSample(m, 1);
       if (x > mu) {
-        return (k + binomialSample([mu / x, m - 1])) || 0;
+        return (k + binomialSample(mu / x, m - 1)) || 0;
       } else {
         mu -= x;
         k += m;
@@ -769,13 +749,12 @@ _.extendOwn(poisson.prototype, {
 });
 
 
-function dirichletSample(params) {
-  var alpha = params;
+function dirichletSample(alpha) {
   var ssum = 0;
   var theta = [];
   var t;
   for (var i = 0; i < alpha.length; i++) {
-    t = gammaSample([alpha[i], 1]);
+    t = gammaSample(alpha[i], 1);
     theta[i] = t;
     ssum = ssum + t;
   }
@@ -785,8 +764,7 @@ function dirichletSample(params) {
   return theta;
 }
 
-function dirichletScore(params, val) {
-  var alpha = params;
+function dirichletScore(alpha, val) {
   var theta = val;
   var asum = 0;
   for (var i = 0; i < alpha.length; i++) {

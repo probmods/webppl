@@ -132,7 +132,7 @@ module.exports = function(env) {
     var momentum = {};
     _.each(trace.choices, function(choice) {
       if (choice.erp.isContinuous) {
-        momentum[choice.address] = erp.gaussianSample([0, 1]);
+        momentum[choice.address] = erp.gaussianSample(0, 1);
       }
     });
     return momentum;
