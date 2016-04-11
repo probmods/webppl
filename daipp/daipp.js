@@ -213,22 +213,21 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
 
 //helper to squish return vals into range [a,b]
 // dritchie: here I'm using Paul's add and mul functions which work on (Tensor, scalar) args
-
-// paul: i previously ran into a case where it appeared that
-// constraining a parameter to [0,Inf] with soft-plus rather then exp
-// was more stable during optimization. we might consider trying that
-// here?
 var getSquishnet = cache(function(a, b) {
   assert(!(a === -Infinity && b === Infinity)); // Should use no bounds, in this case
   var adfun;
   if (a === -Infinity) {
     adfun = function(x) {
-      var y = ad.tensor.exp(x);
+      // Use soft-plus instead of exp
+      // var y = ad.tensor.exp(x);
+      var y = ad.tensor.log(ad.tensor.add(ad.tensor.exp(x), 1));
       return ad.tensor.add(ad.tensor.neg(y), b);
     };
   } else if (b === Infinity) {
     adfun = function(x) {
-      var y = ad.tensor.exp(x);
+      // Use soft-plus instead of exp
+      // var y = ad.tensor.exp(x);
+      var y = ad.tensor.log(ad.tensor.add(ad.tensor.exp(x), 1));
       return ad.tensor.add(y, a);
     };
   } else {
