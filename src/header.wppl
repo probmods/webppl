@@ -38,24 +38,29 @@ var categorical = function(ps, vs) {
   return vs[discrete(ps)];
 };
 
-var multinomial = function(ps, n) {
-  return sample(multinomialERP({ps: ps, n: n}));
+var multinomial = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  return sample(multinomialERP(params));
 };
 
-var gaussian = function(mu, sigma) {
-  return sample(gaussianERP({mu: mu, sigma: sigma}));
+var gaussian = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(gaussianERP(params));
 };
 
-var multivariateGaussian = function(mu, cov) {
-  return sample(multivariateGaussianERP({mu: mu, cov: cov}));
+var multivariateGaussian = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  return sample(multivariateGaussianERP(params));
 };
 
-var cauchy = function(location, scale) {
-  return sample(cauchyERP({location: location, scale: scale}));
+var cauchy = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  return sample(cauchyERP(params));
 };
 
-var uniform = function(a, b) {
-  return sample(uniformERP({a: a, b: b}));
+var uniform = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(uniformERP(params));
 };
 
 var uniformDraw = function(l) {
@@ -70,20 +75,23 @@ var poisson = function(mu) {
   return sample(poissonERP({mu: mu}));
 };
 
-var binomial = function(p, n) {
-  return sample(binomialERP({p: p, n: n}));
+var binomial = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  return sample(binomialERP(params));
 };
 
-var beta = function(a, b) {
-  return sample(betaERP({a: a, b: b}));
+var beta = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(betaERP(params));
 };
 
 var exponential = function(a) {
   return sample(exponentialERP({a: a}));
 };
 
-var gamma = function(shape, scale) {
-  return sample(gammaERP({shape: shape, scale: scale}));
+var gamma = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  return sample(gammaERP(params));
 };
 
 var deltaERP = function(params) {

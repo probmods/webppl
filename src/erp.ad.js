@@ -105,6 +105,10 @@ var deserializeERP = function(JSONString) {
   return new categorical({ps: obj.probs, vs: obj.support});
 };
 
+function isParams(x) {
+  return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x);
+}
+
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
@@ -957,5 +961,6 @@ module.exports = {
   withImportanceDist: withImportanceDist,
   isErp: isErp,
   isErpWithSupport: isErpWithSupport,
-  isEqual: isEqual
+  isEqual: isEqual,
+  isParams: isParams
 };
