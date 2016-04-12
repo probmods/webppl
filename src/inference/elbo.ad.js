@@ -22,6 +22,8 @@ var Tensor = require('../tensor');
 
 module.exports = function(env) {
 
+  var headerUtils = require('../headerUtils')(env);
+
   function ELBO(wpplFn, s, a, options, params, cont) {
     this.opts = util.mergeDefaults(options, {
       samples: 1
@@ -165,6 +167,44 @@ module.exports = function(env) {
       'use ad';
       this.logp += score;
       return k(s);
+    },
+
+    // TODO: Instead of reimplementing the forEach/map here, could
+    // coroutines just implement before and after hooks for mapData?
+
+    mapData: function(s, k, a, data, obsFn, options) {
+      options = util.mergeDefaults(options, {
+        batchSize: 1
+      });
+
+      var numBatches = data.length / options.batchSize;
+      var miniBatch = [];
+      var batchAddresses = [];
+
+      // TODO: Don't sample if data.length === options.batchSize?
+
+      for (var i = 0; i < options.batchSize; i++) {
+        var randIndex = Math.floor(util.random() * data.length);
+        miniBatch.push(data[randIndex]);
+        batchAddresses.push(randIndex);
+      }
+
+      var logp0 = this.logp;
+      var logq0 = this.logq;
+      var logr0 = this.logr;
+
+      return headerUtils.wpplCpsForEachWithAddresses(s, function(s) {
+        'use ad';
+
+        // Compute score corrections to account for the fact we only
+        // looked at a subset of the data.
+        this.logp += (numBatches - 1) * (this.logp - logp0);
+        this.logq += (numBatches - 1) * (this.logq - logq0);
+        this.logr += (numBatches - 1) * (this.logr - logr0);
+
+        return k(s);
+
+      }.bind(this), a.concat('_$'), miniBatch, batchAddresses, obsFn);
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,

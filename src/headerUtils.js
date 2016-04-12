@@ -103,6 +103,35 @@ module.exports = function(env) {
     return k(s, env.getRelativeAddress(a));
   }
 
+  function mapData(s, k, a, data, obsFn, options) {
+    // TODO: Make this a map rather than a forEach.
+
+    // Do we need to make sure we construct the return array in a way
+    // which plays nicely with coroutines that fork the execution on
+    // random choices? Also, scaling: #174.
+
+    if (env.coroutine.mapData) {
+      return env.coroutine.mapData.apply(env.coroutine, arguments);
+    } else {
+      return wpplCpsForEachWithAddresses(s, function(s) {
+        return k(s);
+      }, a.concat('_$'), data, _.range(data.length), obsFn);
+    }
+  }
+
+  function wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i) {
+    i = (i === undefined) ? 0 : i;
+    if (i === arr.length) {
+      return k(s);
+    } else {
+      return f(s, function(s) {
+        return function() {
+          return wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i + 1);
+        };
+      }, a.concat('_$$' + add[i]), arr[i]);
+    }
+  }
+
   return {
     display: display,
     cache: cache,
@@ -112,7 +141,9 @@ module.exports = function(env) {
     Matrix: Matrix,
     zeros: zeros,
     param: param,
-    getRelativeAddress: getRelativeAddress
+    getRelativeAddress: getRelativeAddress,
+    mapData: mapData,
+    wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses
   };
 
 };

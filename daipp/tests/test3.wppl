@@ -10,8 +10,11 @@ var model = function() {
   var priormv = [0, 1 / Math.sqrt(tau)];
   var mu = sampleDaipp(gaussianERP, priormv);
 
-  factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], data[0]));
-  factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], data[1]));
+  var d = mapData(data, function(datum) {
+
+    factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], datum));
+
+  });
 
   return [mu, tau];
 };
