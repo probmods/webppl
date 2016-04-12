@@ -1,0 +1,96 @@
+var data = [];
+
+var model = function() {
+
+  initContext(data);
+
+  // The section of the guide program - from its beginning in
+  // initContext upto the guide params for the global choices (below)
+  // - is what we're calling the 'global model'?
+
+
+
+  // Global choices | begin
+
+  // var theta = sampleDaipp(erp);
+  // ...
+
+  // Global choices | end
+
+  // During sleep: global choices are sampled from the guide. (No
+  // importance weighting.)
+
+  mapData(data, function(datum) {
+
+    // This is the 'observation function'?
+
+    // At this point, the context is always the context in which
+    // mapData is called? Then...
+
+    updateContext(datum);
+
+    // The 'recognition model' is the part of the guide that goes from
+    // a datum (above) to guide params for the following local
+    // choices? (Note that the global and recognition models share
+    // lots of parameters.)
+
+
+
+    // Local choices | start
+
+    // var z = sampleDaipp(erp);
+    // ...
+
+    // Local choices | end
+
+    // During sleep: local choices are sampled from the target.
+
+
+
+
+
+    // Observe data
+
+    // During wake (VI) observe(erp, datum) is
+    // factor(erp.score(datum)) as usual.
+
+    // During sleep we ignore datum and instead sample from `erp`?
+
+    // var d = observe(erp, datum);
+    // return d; // or returnData?
+
+
+
+
+
+    // Then:
+
+    // For sleep: Use the trace sampled as described above + the
+    // sampled (fantasy) data to optimized the guide with TT?
+
+    // To make this work we need to:
+
+    // 1. Capture the fantasy data. (As the value returned by
+    // mapData? Or in `observe`?)
+
+    // 2. Pass the fantasy data into `Optimize` (along with the
+    // traces) and arrange things such that mapData calls the
+    // observation function with the fantasy data, rather than the
+    // training data? (So that the recognition model is trained on
+    // fantasies.)
+
+    // 3. There's some book keeping to do if we have multiple (perhaps
+    // nested) calls to mapData?
+
+
+
+    // So sleep encourages the global model to keep doing what it's
+    // doing, and the recognition model to be a good model of the
+    // 'conditional prior'?
+
+
+  });
+
+  // return something;
+
+};
