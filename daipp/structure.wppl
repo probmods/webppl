@@ -2,17 +2,17 @@ var data = [];
 
 var model = function() {
 
-  initContext(data);
+  //We may want to just do mean field on the global model.
+  //  Make the sampleDAIPP helper do mean field as default if context is not initialized?
+  //If we do want neural guides (to capture correlations) we init here, but probably with
+  //  either a zero vector or some compact summary of the data.
+  initContext(dataSummary);
 
-  // The section of the guide program - from its beginning in
-  // initContext upto the guide params for the global choices (below)
-  // - is what we're calling the 'global model'?
-
-
+  // The section of the program outside of mapData is what we're calling the 'global model'.
 
   // Global choices | begin
 
-  // var theta = sampleDaipp(erp);
+  var theta = sampleDaipp(erp);
   // ...
 
   // Global choices | end
@@ -20,25 +20,29 @@ var model = function() {
   // During sleep: global choices are sampled from the guide. (No
   // importance weighting.)
 
+  //store the "global context" if we're using it:
+  var globalContext = globalStore.context;
+
   mapData(data, function(datum) {
 
-    // This is the 'observation function'?
+    // This is the 'observation function'
 
-    // At this point, the context is always the context in which
-    // mapData is called? Then...
-
+    // At this point, we reinstall the context in which
+    // mapData is called and then incorporate the datum:
+    globalStore.context = globalContext;
     updateContext(datum);
+    // If there's no intsresting action in the global guide, then we could just
+    //   initContext(datum) here.
 
     // The 'recognition model' is the part of the guide that goes from
     // a datum (above) to guide params for the following local
-    // choices? (Note that the global and recognition models share
-    // lots of parameters.)
-
-
+    // choices.
+    // (Note that the global and recognition models share
+    // lots of parameters. We may want to correct that?)
 
     // Local choices | start
 
-    // var z = sampleDaipp(erp);
+    var z = sampleDaipp(erp);
     // ...
 
     // Local choices | end
@@ -47,50 +51,46 @@ var model = function() {
 
 
 
-
-
     // Observe data
+    d = observe(erp,datum)
 
     // During wake (VI) observe(erp, datum) is
-    // factor(erp.score(datum)) as usual.
+    // factor(erp.score(datum)) as usual (but returns value datum).
 
-    // During sleep we ignore datum and instead sample from `erp`?
+    // During sleep observe(erp, datum) is sample(erp).
 
-    // var d = observe(erp, datum);
-    // return d; // or returnData?
+    //NOTE: during sleep we'll need to get the datum in the same format that it is passed
+    //  in during wake. If there are multiple observe calls we may need an observeData(...) helper
+    //  to register the sampled data in the right format.
 
-
-
-
-
-    // Then:
-
-    // For sleep: Use the trace sampled as described above + the
-    // sampled (fantasy) data to optimized the guide with TT?
-
-    // To make this work we need to:
-
-    // 1. Capture the fantasy data. (As the value returned by
-    // mapData? Or in `observe`?)
-
-    // 2. Pass the fantasy data into `Optimize` (along with the
-    // traces) and arrange things such that mapData calls the
-    // observation function with the fantasy data, rather than the
-    // training data? (So that the recognition model is trained on
-    // fantasies.)
-
-    // 3. There's some book keeping to do if we have multiple (perhaps
-    // nested) calls to mapData?
-
-
-
-    // So sleep encourages the global model to keep doing what it's
-    // doing, and the recognition model to be a good model of the
-    // 'conditional prior'?
-
+    return z; //or whatever.
 
   });
 
-  // return something;
+  return somethingInterestingAboutThetaOrZ;
 
 };
+
+
+// For sleep:
+//Each sleep step samples a "fantacy trace" of global+local as described above.
+//It then uses the fantasy trace plus the fantasy datum to optimized the (local) guide with TT.
+
+// To make this work we need to:
+
+// 1. Capture the fantasy data. (As the value returned by `observe` or `observeData`.)
+
+// 2. Pass the fantasy data into `Optimize` (along with the
+// fantasy trace) and arrange things such that mapData calls the
+// observation function with the fantasy data, rather than the
+// training data (so that the recognition model is trained on
+// fantasies).
+
+// So sleep encourages the recognition model to be a good model of the
+// 'conditional prior' (aka the posterior for fantasy data). (And the global model
+// to keep doing what it's doing.)
+
+
+
+// There's some book keeping to do if we have multiple (perhaps
+// nested) calls to mapData? Let's assume for now that this doesn't happen!
