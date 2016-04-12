@@ -45,6 +45,7 @@ module.exports = function(env) {
 
     run: function() {
 
+      var elbo = 0;
       var grad = {};
 
       return util.cpsLoop(
@@ -52,8 +53,9 @@ module.exports = function(env) {
 
         // Loop body.
         function(i, next) {
-          return this.estimateGradient(function(g) {
+          return this.estimateGradient(function(g, elbo_i) {
             addEqG(grad, g); // Accumulate gradient estimates.
+            elbo += elbo_i;
             return next();
           });
         },
@@ -61,8 +63,9 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           divEqG(grad, this.opts.samples);
+          elbo /= this.opts.samples;
           env.coroutine = this.coroutine;
-          return this.cont(grad);
+          return this.cont(grad, elbo);
         },
 
         this);
@@ -97,7 +100,7 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads);
+        return cont(grads, -scoreDiff);
 
       }.bind(this), this.a);
 

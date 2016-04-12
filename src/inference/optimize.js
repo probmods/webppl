@@ -41,7 +41,8 @@ module.exports = function(env) {
       method: 'gd',
       estimator: 'ELBO',
       steps: 1,
-      debug: true               // TODO: Switch default before merging.
+      debug: true,              // TODO: Switch default before merging.
+      verbose: true
     });
 
     // Create a (cps) function which takes parameters to gradient
@@ -60,6 +61,10 @@ module.exports = function(env) {
       return arr.slice();
     });
 
+    var showProgress = _.throttle(function(i, objective) {
+      console.log('Iteration ' + i + ': ' + objective);
+    }, 200, { trailing: false });
+
     // Main loop.
     return util.cpsLoop(
         options.steps,
@@ -67,9 +72,13 @@ module.exports = function(env) {
         // Loop body.
         function(i, next) {
 
-          return estimator(paramObj, function(gradObj) {
+          return estimator(paramObj, function(gradObj, objective) {
             if (options.debug) {
               checkGradients(gradObj);
+            }
+
+            if (options.verbose) {
+              showProgress(i, objective);
             }
 
             _.each(gradObj, function(grads, name) {

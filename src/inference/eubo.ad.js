@@ -51,6 +51,7 @@ module.exports = function(env) {
 
     run: function() {
 
+      var eubo = 0;
       var grad = {};
       var traces = sampleMiniBatch(this.traces, this.opts.miniBatchSize);
 
@@ -58,8 +59,9 @@ module.exports = function(env) {
 
         // Body.
         function(trace, i, traces, next) {
-          return this.estimateGradient(trace, function(g) {
+          return this.estimateGradient(trace, function(g, eubo_i) {
             addEqG(grad, g); // Accumulate gradient estimates.
+            eubo += eubo_i;
             return next();
           });
         }.bind(this),
@@ -67,8 +69,9 @@ module.exports = function(env) {
         // Continuation.
         function() {
           divEqG(grad, traces.length);
+          eubo /= traces.length;
           env.coroutine = this.coroutine;
-          return this.cont(grad);
+          return this.cont(grad, eubo);
         }.bind(this),
 
         traces);
@@ -98,7 +101,7 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads);
+        return cont(grads, -ad.value(objective));
 
       }.bind(this), this.a);
 
