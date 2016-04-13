@@ -1,0 +1,83 @@
+
+var forEach2 = function(xs, f) {
+  map(function(i) {
+    return f(xs[i], i);
+  }, _.range(xs.length));
+  return;
+};
+
+var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
+
+  // Is this how we want to initialize the context?
+  initContext(corpus);
+
+  var topics = repeat(numTopics, function() {
+    return sampleDaipp(dirichletERP, [eta]);
+  });
+
+  mapData(corpus, function(doc) {
+    
+    var topicDist = sampleDaipp(dirichletERP, [alpha]);
+
+    // Note, that this forEach should not use mini-batches.
+    forEach2(doc, function(count, word) {
+
+      if (count > 0) {
+        var marginal = Enumerate(function() {
+          var z = sample(discreteERP, [topicDist]);
+          var topic = topics[z];
+          return sample(discreteERP, [topic]);
+        });
+
+        // More efficient summing out of z by moving the factor inside
+        // Enumerate.
+
+        // e.g. On bars2 this reduces run time for 200 steps from
+        // ~8.8s to ~6.7s.
+
+        // This needs a version of Enumerate which doesn't normalize
+        // its result. (Change `normalize` in discribution.ad.js and
+        // remove the check in `makeMarginalERP` in erp.ad.js.)
+
+        // var marginal = Enumerate(function() {
+        //   var z = sample(discreteERP, [topicDist]);
+        //   var topic = topics[z];
+        //   factor(discreteERP.score([topic], word));
+        //   return word;
+        // });
+
+        factor(count * marginal.score([], word));
+      }
+
+    });
+
+  });
+
+  return topics;
+
+};
+
+
+// Each document is represented by an array of word counts. Therefore
+// doc.length == vocabSize, and sum(doc) = no. of words in doc.
+
+var bars = readJSON('daipp/examples/data/bars2.json');
+
+var vocabSize = 4; // V
+var numTopics = 4; // K
+
+// Parameter for prior on topic proportions.
+var alpha = Vector(repeat(numTopics, constF(0.1)));
+// Parameter for prior on topics.
+var eta = Vector(repeat(vocabSize, constF(0.1)));
+
+var model = function() {
+  return lda(bars, vocabSize, numTopics, alpha, eta);
+};
+
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.01}}, estimator: 'ELBO'});
+SampleGuide(model, {samples: 1000, params: params});
+
+// TODO: evaluate how good the result is
+
+

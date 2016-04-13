@@ -163,6 +163,10 @@ module.exports = function(env) {
     }
   }
 
+  var readJSON = function(s, k, a, fn) {
+    return k(s, JSON.parse(fs.readFileSync(fn, 'utf-8')));
+  };
+
   function writeJSON(s, k, a, fn, obj) {
     return k(s, fs.writeFileSync(fn, JSON.stringify(obj)));
   }
@@ -179,6 +183,7 @@ module.exports = function(env) {
     getRelativeAddress: getRelativeAddress,
     mapData: mapData,
     wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses,
+    readJSON: readJSON,
     writeJSON: writeJSON
   };
 
