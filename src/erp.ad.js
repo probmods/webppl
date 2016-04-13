@@ -371,14 +371,18 @@ var logistic = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
   var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
-  // Numeric stability.
-  // TODO: Make this less messy.
-  // There's no Tensor max. Can't use Math.max.apply as Math.max is
-  // rewritten to use ad. The ad version only takes 2 args.
-  var max = ad.value(u).toFlatArray().reduce(function(a, b) { return Math.max(a, b); });
-  var v = ad.tensor.exp(ad.tensor.sub(u, max));
-  var ret = ad.tensor.div(v, ad.tensor.sumreduce(v));
-  return ret;
+
+  // // Numeric stability.
+  // // TODO: Make this less messy.
+  // // There's no Tensor max. Can't use Math.max.apply as Math.max is
+  // // rewritten to use ad. The ad version only takes 2 args.
+  // var max = ad.value(u).toFlatArray().reduce(function(a, b) { return Math.max(a, b); });
+  // var v = ad.tensor.exp(ad.tensor.sub(u, max));
+  // var ret = ad.tensor.div(v, ad.tensor.sumreduce(v));
+  // return ret;
+
+  // Use new softmax function here instead
+  return ad.tensor.softmax(u);
 };
 
 // TODO: Generalize to allow correlations.
