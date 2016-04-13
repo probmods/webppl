@@ -1,0 +1,144 @@
+var data = [1, 2];
+
+var model = function() {
+
+  initContext(data);
+
+  var priorss = [1, 1];
+  var tau = sampleDaipp(gammaERP, priorss);
+
+  var priormv = [0, 1 / Math.sqrt(tau)];
+  var mu = sampleDaipp(gaussianERP, priormv);
+
+  var d = mapData(data, function(datum) {
+
+    factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], datum));
+
+  });
+
+  return [mu, tau];
+};
+
+// This is supposed to be a proto-wakey-sleepy-epoch.
+
+// Q. How are we going to stitch VI/TT together in the final thing?
+
+// Q. When alternating between optimizing two different objectives,
+// what do we do with the state maintained by the optimization
+// methods?
+
+var improveParams = function(params) {
+
+  // `evaluateGuide` is an attempt to compute importance weights
+  // (using a stripped down version of SMC) for a single datum. It
+  // currently assumes there's a single `factor` statement
+  // corresponding to the observation for each datum.
+
+  // Q. Does it compute the right thing?
+
+  // Q. It seems to me that we want to evaluate a single datum at a
+  // time, right? If we were to consider multiple data in an SMC
+  // setting, then the estimates for each datum would interact. e.g.
+  // If we do really poorly on the first datum, then the particle set
+  // might collapse onto a single particle, and that will affect what
+  // happens for the next datum?
+
+  // datumIndex controls which data point will be mapped over by
+  // mapData during evaluation.
+
+  // TODO: Compute importance weights for the mini-batch we're about
+  // to use for optimization?
+
+  var weights1 = evaluateGuide(model, {datumIndex: 0, params: params});
+  var weights2 = evaluateGuide(model, {datumIndex: 1, params: params});
+
+  display(listVar(weights1));
+  display(listVar(weights2));
+  display('--------------------');
+
+  // Do a few optimization steps.
+
+  return Optimize(model, {
+    params: params,
+    steps: 50,
+    method: {gd: {stepSize: 0.001}},
+    estimator: {ELBO: {samples: 100}},
+    verbose: false
+  });
+};
+
+var iterate = function(fn, initialVal, n) {
+  var iter = function(i, val) {
+    return  (i < n) ? iter(i + 1, fn(val)) : val;
+  };
+  return iter(0, initialVal);
+};
+
+iterate(improveParams, {}, 20);
+
+'done';
+
+// Example output:
+
+// Processing daipp/examples/evaluation.wppl
+// 12.592528711785956
+// 12.398183896840061
+// --------------------
+// Gradient for param "_139_131_127":0 is zero.
+// 8.235067594062876
+// 7.641660924319535
+// --------------------
+// 7.366864257043168
+// 4.772882241261843
+// --------------------
+// 3.6109390850599676
+// 3.877226490801553
+// --------------------
+// 4.430682091406637
+// 3.6791702674412106
+// --------------------
+// 1.9600348610003897
+// 1.158616106102913
+// --------------------
+// 1.795602891670491
+// 1.469373693284604
+// --------------------
+// 0.93632260409096
+// 2.1753599780278563
+// --------------------
+// 0.9039775084512662
+// 1.0163774952021825
+// --------------------
+// 1.2548098651656863
+// 2.058261160647408
+// --------------------
+// 1.509674943364001
+// 0.7639275504999027
+// --------------------
+// 1.637326554662264
+// 0.7977176114377957
+// --------------------
+// 1.225055797784414
+// 1.2382877060860968
+// --------------------
+// 0.7835643239664636
+// 0.8749610293809279
+// --------------------
+// 2.6470624285029265
+// 1.0906896385057998
+// --------------------
+// 0.9959893437339931
+// 0.47977270681447565
+// --------------------
+// 2.072324475429688
+// 0.3188945245902764
+// --------------------
+// 1.004794695609142
+// 0.5329657673905979
+// --------------------
+// 0.8486200456694413
+// 0.4603851854487865
+// --------------------
+// 1.3004357341505255
+// 0.37508639005158817
+// --------------------
