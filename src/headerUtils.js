@@ -7,6 +7,8 @@ var fs = require('fs');
 var child_process = require('child_process');
 var LRU = require('lru-cache');
 var ad = require('./ad');
+var assert = require('assert');
+var util = require('./util');
 
 module.exports = function(env) {
 
@@ -103,20 +105,47 @@ module.exports = function(env) {
     return k(s, env.getRelativeAddress(a));
   }
 
+  var mapDataIndices = {};
+
+  // TODO: Turn this into a map rather than a forEach.
+
+  // Do we need to make sure we construct the return array in a way
+  // that plays nicely with coroutines that fork the execution on
+  // random choices? Also, scaling: #174.
+
   function mapData(s, k, a, data, obsFn, options) {
-    // TODO: Make this a map rather than a forEach.
 
-    // Do we need to make sure we construct the return array in a way
-    // which plays nicely with coroutines that fork the execution on
-    // random choices? Also, scaling: #174.
+    options = util.mergeDefaults(options, {batchSize: data.length});
 
-    if (env.coroutine.mapData) {
-      return env.coroutine.mapData.apply(env.coroutine, arguments);
-    } else {
-      return wpplCpsForEachWithAddresses(s, function(s) {
-        return k(s);
-      }, a.concat('_$'), data, _.range(data.length), obsFn);
+    if (options.batchSize <= 0 || options.batchSize > data.length) {
+      throw 'Invalid batchSize in mapData.';
     }
+
+    var rel = env.getRelativeAddress(a);
+
+    // Query the coroutine to determine the subset of the data to map
+    // over. The indices of the data used on the previous invocation
+    // are passed, allowing the same mini-batch to be used across
+    // steps/inference algorithms.
+    var ix = env.coroutine.mapDataFetch ?
+        env.coroutine.mapDataFetch(mapDataIndices[rel], data, options, rel) :
+        // The empty array stands for all indices, in order. i.e.
+        // `_.range(data.length)`
+        [];
+
+    assert.ok(_.isArray(ix));
+    assert.ok(ix.length >= 0);
+
+    mapDataIndices[rel] = ix;
+
+    var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
+
+    return wpplCpsForEachWithAddresses(s, function(s) {
+      if (env.coroutine.mapDataFinal) {
+        env.coroutine.mapDataFinal();
+      }
+      return k(s);
+    }, a, batch, ix, obsFn);
   }
 
   function wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i) {
@@ -128,6 +157,8 @@ module.exports = function(env) {
         return function() {
           return wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i + 1);
         };
+        // TODO: Do we still need indices in the addresses now we have
+        // access to them in mapData?
       }, a.concat('_$$' + add[i]), arr[i]);
     }
   }

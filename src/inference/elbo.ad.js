@@ -169,42 +169,55 @@ module.exports = function(env) {
       return k(s);
     },
 
-    // TODO: Instead of reimplementing the forEach/map here, could
-    // coroutines just implement before and after hooks for mapData?
+    mapDataFetch: function(ixprev, data, options, address) {
 
-    mapData: function(s, k, a, data, obsFn, options) {
-      options = util.mergeDefaults(options, {
-        batchSize: 1
-      });
+      // `ixprev` is an array of the indices used by the last
+      // invocation of this mapData. This will be undefined the on the
+      // first call to a particular mapData. The empty array stands
+      // for all indices.
 
-      var numBatches = data.length / options.batchSize;
-      var miniBatch = [];
-      var batchAddresses = [];
+      assert.strictEqual(this.mapDataMultiplier, undefined);
+      assert.strictEqual(this.logp0, undefined);
+      assert.strictEqual(this.logq0, undefined);
+      assert.strictEqual(this.logr0, undefined);
 
-      // TODO: Don't sample if data.length === options.batchSize?
+      // TODO: When used as part of wakey/sleepy we want to use the
+      // same mini-batch for all steps in a particular call to
+      // `Optimize`.
 
-      for (var i = 0; i < options.batchSize; i++) {
-        var randIndex = Math.floor(util.random() * data.length);
-        miniBatch.push(data[randIndex]);
-        batchAddresses.push(randIndex);
-      }
+      // Choose data uniformly at random if mini-batch is requested.
+      // Otherwise, use all the data.
+      var ix = options.batchSize < data.length ?
+            _.times(options.batchSize, function() {
+              return Math.floor(util.random() * data.length);
+            }) : [];
 
-      var logp0 = this.logp;
-      var logq0 = this.logq;
-      var logr0 = this.logr;
+      // Store the info needed to compute the correction to account
+      // for the fact we only looked as a subset of the data.
 
-      return headerUtils.wpplCpsForEachWithAddresses(s, function(s) {
-        'use ad';
+      // This assumes we don't have nested calls to `mapData`. Once we
+      // do we can use `address` (the relative address of the mapData
+      // call) for book-keeping?
 
-        // Compute score corrections to account for the fact we only
-        // looked at a subset of the data.
-        this.logp += (numBatches - 1) * (this.logp - logp0);
-        this.logq += (numBatches - 1) * (this.logq - logq0);
-        this.logr += (numBatches - 1) * (this.logr - logr0);
+      this.mapDataMultiplier = data.length / options.batchSize;
+      this.logp0 = this.logp;
+      this.logq0 = this.logq;
+      this.logr0 = this.logr;
 
-        return k(s);
+      return ix;
+    },
 
-      }.bind(this), a.concat('_$'), miniBatch, batchAddresses, obsFn);
+    mapDataFinal: function() {
+      'use ad';
+      assert.ok(this.mapDataMultiplier);
+      assert.ok(this.logp0);
+      assert.ok(this.logq0);
+      assert.ok(this.logr0);
+      var m = this.mapDataMultiplier - 1;
+      this.logp += m * (this.logp - this.logp0);
+      this.logq += m * (this.logq - this.logq0);
+      this.logr += m * (this.logr - this.logr0);
+      this.mapDataMultiplier = this.logp0 = this.logq0 = this.logr0 = undefined;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
