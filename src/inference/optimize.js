@@ -72,7 +72,7 @@ module.exports = function(env) {
         // Loop body.
         function(i, next) {
 
-          return estimator(paramObj, function(gradObj, objective) {
+          return estimator(paramObj, i, function(gradObj, objective) {
             if (options.debug) {
               checkGradients(gradObj);
             }

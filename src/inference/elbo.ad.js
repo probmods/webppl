@@ -24,15 +24,17 @@ module.exports = function(env) {
 
   var headerUtils = require('../headerUtils')(env);
 
-  function ELBO(wpplFn, s, a, options, params, cont) {
+  function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1
+      samples: 1,
+      persistentBatches: false
     });
 
     // The current values of all initialized parameters.
     // (Scalars/tensors, not their AD nodes.)
     this.params = params;
 
+    this.step = step;
     this.cont = cont;
 
     this.wpplFn = wpplFn;
@@ -55,6 +57,7 @@ module.exports = function(env) {
 
         // Loop body.
         function(i, next) {
+          this.iter = i;
           return this.estimateGradient(function(g, elbo_i) {
             addEqG(grad, g); // Accumulate gradient estimates.
             elbo += elbo_i;
@@ -181,16 +184,20 @@ module.exports = function(env) {
       assert.strictEqual(this.logq0, undefined);
       assert.strictEqual(this.logr0, undefined);
 
-      // TODO: When used as part of wakey/sleepy we want to use the
-      // same mini-batch for all steps in a particular call to
-      // `Optimize`.
+      // If `persistentBatches` is enabled then we only draw a fresh
+      // mini-batch on the first execution (sample) of the first step
+      // of `Optimize`. This is the behavior Noah described for an
+      // 'epoch' of wakey/sleepy.
 
-      // Choose data uniformly at random if mini-batch is requested.
-      // Otherwise, use all the data.
-      var ix = options.batchSize < data.length ?
+      var drawMiniBatch = options.batchSize < data.length &&
+            !this.opts.persistentBatches || (this.step === 0 && this.iter === 0);
+
+      // Choose data uniformly at random if drawing a fresh
+      // mini-batch. Otherwise, use the previous mini-batch.
+      var ix = drawMiniBatch ?
             _.times(options.batchSize, function() {
               return Math.floor(util.random() * data.length);
-            }) : [];
+            }) : ixprev;
 
       // Store the info needed to compute the correction to account
       // for the fact we only looked as a subset of the data.

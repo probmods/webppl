@@ -20,7 +20,7 @@ var Tensor = require('../tensor');
 
 module.exports = function(env) {
 
-  function EUBO(wpplFn, s, a, options, params, cont) {
+  function EUBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
       miniBatchSize: 1
     });
