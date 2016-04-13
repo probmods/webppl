@@ -155,6 +155,10 @@ function vec2dist(vec, ERP, params) {
     guideERP = ERP;
     var erpDim = ad.value(params[0]).length;
     guideParamNets = makeParamAdaptorNets([[erpDim, 1], {dim: [erpDim, 1], dom: [0, Infinity]}], 'diagCovGaussianERP');
+  } else if (ERP === erp.dirichletERP) {
+    guideERP = erp.logisticNormalERP;
+    var erpDim = ad.value(params[0]).length;
+    guideParamNets = makeParamAdaptorNets([[erpDim-1, 1], {dim: [erpDim-1, 1], dom: [0, Infinity]}], 'Dirichlet');
   } else {
     throw 'daipp: Unhandled ERP type in vec2dist: ' + ERP.name;
   }
