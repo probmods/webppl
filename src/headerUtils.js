@@ -163,6 +163,10 @@ module.exports = function(env) {
     }
   }
 
+  function writeJSON(s, k, a, fn, obj) {
+    return k(s, fs.writeFileSync(fn, JSON.stringify(obj)));
+  }
+
   return {
     display: display,
     cache: cache,
@@ -174,7 +178,8 @@ module.exports = function(env) {
     param: param,
     getRelativeAddress: getRelativeAddress,
     mapData: mapData,
-    wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses
+    wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses,
+    writeJSON: writeJSON
   };
 
 };

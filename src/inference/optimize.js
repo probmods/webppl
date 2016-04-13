@@ -42,7 +42,8 @@ module.exports = function(env) {
       estimator: 'ELBO',
       steps: 1,
       debug: true,              // TODO: Switch default before merging.
-      verbose: true
+      verbose: true,
+      onFinish: function(s, k, a) { return k(s); }
     });
 
     // Create a (cps) function which takes parameters to gradient
@@ -65,6 +66,8 @@ module.exports = function(env) {
       console.log('Iteration ' + i + ': ' + objective);
     }, 200, { trailing: false });
 
+    var history = [];
+
     // Main loop.
     return util.cpsLoop(
         options.steps,
@@ -81,6 +84,8 @@ module.exports = function(env) {
               showProgress(i, objective);
             }
 
+            history.push(objective);
+
             _.each(gradObj, function(grads, name) {
               assert.ok(_.has(paramObj, name));
               var params = paramObj[name];
@@ -95,7 +100,9 @@ module.exports = function(env) {
 
         // Loop continuation.
         function() {
-          return k(s, paramObj);
+          return options.onFinish(s, function(s) {
+            return k(s, paramObj);
+          }, a, {history: history});
         });
 
   }
