@@ -130,7 +130,7 @@ function isParams(x) {
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
-// correct (single inheritance) hierachy. For example, the categories
+// correct (single inheritance) hierarchy. For example, the categories
 // uni/multi-variate and discrete/continuous are cross-cutting.
 
 var finiteSupport = {
