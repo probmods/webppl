@@ -7,15 +7,21 @@ var forEach = function(xs, f) {
 
 var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
 
-  // Is this how we want to initialize the context?
-  initContext(corpus);
+  // In structure.wppl the suggestion is to init with a zero vector.
+  // Is there something special about that, or will most anything do?
+  initContext([]);
 
   var topics = repeat(numTopics, function() {
     return sampleDaipp(dirichletERP, [eta]);
   });
 
+  var globalContext = globalStore.context;
+
   mapData(corpus, function(doc) {
-    
+
+    globalStore.context = globalContext;
+    updateContext(doc);
+
     var topicDist = sampleDaipp(dirichletERP, [alpha]);
 
     // forEach, since we don't have nested mapData yet.
