@@ -1,0 +1,1 @@
+expectation(categoricalERP({ps: [.4, .5, .1], vs: [0, 1, 2]}), idF);

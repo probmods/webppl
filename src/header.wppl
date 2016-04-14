@@ -215,10 +215,10 @@ var MAP = function(erp) {
 
 var expectation = function(erp, func) {
   var f = func || idF;
-  var supp = erp.support([]);
+  var supp = erp.support();
   return mapReduce1(plus,
                     function(s) {
-                      return Math.exp(erp.score([], s)) * f(s);
+                      return Math.exp(erp.score(s)) * f(s);
                     },
                     supp);
 };
