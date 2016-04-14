@@ -1,5 +1,4 @@
-
-var forEach2 = function(xs, f) {
+var forEach = function(xs, f) {
   map(function(i) {
     return f(xs[i], i);
   }, _.range(xs.length));
@@ -19,8 +18,8 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
     
     var topicDist = sampleDaipp(dirichletERP, [alpha]);
 
-    // Note, that this forEach should not use mini-batches.
-    forEach2(doc, function(count, word) {
+    // forEach, since we don't have nested mapData yet.
+    forEach(doc, function(count, word) {
 
       if (count > 0) {
         var marginal = Enumerate(function() {
@@ -79,5 +78,3 @@ var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.01}}, 
 SampleGuide(model, {samples: 1000, params: params});
 
 // TODO: evaluate how good the result is
-
-
