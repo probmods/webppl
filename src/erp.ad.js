@@ -81,12 +81,30 @@ function isErpWithSupport(x) {
   return isErp(x) && _.isFunction(x.support);
 }
 
+function paramsEqual(p1, p2) {
+  if (p1 === p2) {
+    return true;
+  }
+  for (var k in p1) {
+    if (p1.hasOwnProperty(k)) {
+      var v1 = p1[k], v2 = p2[k];
+      if (typeof v1 === 'number') {
+        if (v1 !== v2) {
+          return false;
+        }
+      } else {
+        if (!_.isEqual(v1, v2)) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 function isEqual(erp1, erp2) {
   return erp1.constructor === erp2.constructor &&
-    (erp1.params === erp2.params ||
-     _.all(erp1.params, function(param, name) {
-       return _.isEqual(erp2.params[name], param);
-     }));
+    paramsEqual(erp1.params, erp2.params);
 }
 
 function clone(erp) {
