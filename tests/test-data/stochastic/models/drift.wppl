@@ -5,7 +5,7 @@ var model = function() {
   var m = sample(gaussianDriftERP({mu: 0, sigma: 2}));
   var b = sample(gaussianDriftERP({mu: 0, sigma: 2}));
 
-  var sigmaSquared = gamma(1, 1);
+  var sigma = gamma(1, 1);
 
   var f = function(x) {
     return m * x + b;
@@ -13,7 +13,7 @@ var model = function() {
 
   map2(
       function(x, y) {
-        factor(gaussianERP({mu: f(x), sigma: sigmaSquared}).score(y));
+        factor(gaussianERP({mu: f(x), sigma: sigma}).score(y));
       },
       xs,
       ys);

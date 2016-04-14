@@ -4,10 +4,10 @@ var labels = [false, false, true, true, true]
 var model = function() {
   var m = gaussian(0, 1)
   var b = gaussian(0, 1)
-  var sigmaSquared = gamma(1, 1)
+  var sigma = gamma(1, 1)
 
   var y = function(x) {
-    return gaussian(m * x + b, sigmaSquared)
+    return gaussian(m * x + b, sigma)
   }
   var sigmoid = function(x) {
     return 1 / (1 + Math.exp(-1 * y(x)))

@@ -11,7 +11,7 @@ var model = function() {
   var cov = numeric.diag([1, 1])
   var m = multivariateGaussian([0, 0], cov)
   var e = gaussian(0, 2)
-  var sigmaSquared = gamma(1, 1)
+  var sigma = gamma(1, 1)
 
   var f = function(x) {
     return numeric.dot(m, x) + e
@@ -19,7 +19,7 @@ var model = function() {
 
   map2(
       function(x, y) {
-        factor(gaussianERP({mu: f(x), sigma: sigmaSquared}).score(y))
+        factor(gaussianERP({mu: f(x), sigma: sigma}).score(y))
       },
       xs,
       ys)
