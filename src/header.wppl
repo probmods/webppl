@@ -99,11 +99,11 @@ var deltaERP = function(params) {
 };
 
 var serializeERP = function(e) {
-  return erp.serializeERP(e);
+  return erp.serialize(e);
 };
 
 var deserializeERP = function(JSONString) {
-  return erp.deserializeERP(JSONString);
+  return erp.deserialize(JSONString);
 };
 
 var withImportanceDist = function(e, importanceERP) {

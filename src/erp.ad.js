@@ -93,11 +93,11 @@ function clone(erp) {
   return new erp.constructor(erp.params);
 }
 
-var serializeERP = function(erp) {
+var serialize = function(erp) {
   return util.serialize(erp);
 };
 
-var deserializeERP = function(JSONString) {
+var deserialize = function(JSONString) {
   var obj = util.deserialize(JSONString);
   if (!obj.probs || !obj.support) {
     throw 'Cannot deserialize a non-ERP JSON object: ' + JSONString;
@@ -934,8 +934,8 @@ module.exports = {
   gaussianSample: gaussianSample,
   gammaSample: gammaSample,
   // helpers
-  serializeERP: serializeERP,
-  deserializeERP: deserializeERP,
+  serialize: serialize,
+  deserialize: deserialize,
   withImportanceDist: withImportanceDist,
   isErp: isErp,
   isErpWithSupport: isErpWithSupport,
