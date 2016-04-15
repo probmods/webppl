@@ -769,7 +769,6 @@ function dirichletScore(alpha, val) {
 
 var dirichlet = makeErpType({
   name: 'dirichlet',
-  mixins: [continuousSupport],
   sample: function() {
     return dirichletSample(this.params.alpha);
   },
