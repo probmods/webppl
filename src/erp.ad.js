@@ -540,7 +540,7 @@ var multinomialERP = new ERP({
     'use ad';
     var probs = params[0];
     var n = params[1];
-    if (sum(val) != n) {
+    if (sum(val) !== n) {
       return -Infinity;
     }
     var x = [];
