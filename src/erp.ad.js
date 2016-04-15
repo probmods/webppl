@@ -537,6 +537,7 @@ function multinomialSample(params) {
 var multinomialERP = new ERP({
   sample: multinomialSample,
   score: function(params, val) {
+    'use ad';
     var probs = params[0];
     var n = params[1];
     if (sum(val) != n) {
