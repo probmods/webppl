@@ -165,16 +165,44 @@ var continuousSupport = {
   isContinuous: true
 };
 
-// ERP
 
-function uniform(params) {
-  this.params = params;
+var methodNames = ['sample', 'score', 'support', 'grad', 'print', 'driftKernel'];
+
+function makeErpType(options) {
+  options = util.mergeDefaults(options, {
+    parent: ERP,
+    mixins: []
+  });
+
+  if (!_.has(options, 'name')) {
+    throw 'makeErpType: name is required.';
+  }
+
+  var ctor = _.has(options, 'constructor') ?
+        options.constructor :
+        Function('params', 'this.params = params');
+
+  Object.defineProperty(ctor, 'name', {value: options.name});
+  ctor.prototype = Object.create(options.parent.prototype);
+  ctor.prototype.constructor = ctor;
+
+  var methods = _.pick(options, methodNames);
+  _.extendOwn.apply(_, _.flatten([ctor.prototype, options.mixins, methods], true));
+
+  ['sample', 'score'].forEach(function(method) {
+    if (!ctor.prototype[method]) {
+      throw 'makeErpType: method "' + method + '" not defined for ' + options.name;
+    }
+  });
+
+  return ctor;
 }
 
-uniform.prototype = Object.create(ERP.prototype);
-uniform.prototype.constructor = uniform;
+// ERP
 
-_.extendOwn(uniform.prototype, continuousSupport, {
+var uniform = makeErpType({
+  name: 'uniform',
+  mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
     return (1 - u) * ad.value(this.params.a) + u * ad.value(this.params.b);
@@ -192,14 +220,10 @@ _.extendOwn(uniform.prototype, continuousSupport, {
 });
 
 
-function bernoulli(params) {
-  this.params = params;
-};
 
-bernoulli.prototype = Object.create(ERP.prototype);
-bernoulli.prototype.constructor = bernoulli;
-
-_.extendOwn(bernoulli.prototype, finiteSupport, {
+var bernoulli = makeErpType({
+  name: 'bernoulli',
+  mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
   },
@@ -220,14 +244,9 @@ _.extendOwn(bernoulli.prototype, finiteSupport, {
 });
 
 
-function randomInteger(params) {
-  this.params = params;
-}
-
-randomInteger.prototype = Object.create(ERP.prototype);
-randomInteger.prototype.constructor = randomInteger;
-
-_.extendOwn(randomInteger.prototype, finiteSupport, {
+var randomInteger = makeErpType({
+  name: 'randomInteger',
+  mixins: [finiteSupport],
   sample: function() {
     return Math.floor(util.random() * this.params.n);
   },
@@ -259,14 +278,11 @@ function gaussianScore(mu, sigma, x) {
   return -0.5 * (LOG_2PI + 2 * Math.log(sigma) + (x - mu) * (x - mu) / (sigma * sigma));
 }
 
-function gaussian(params) {
-  this.params = params;
-}
 
-gaussian.prototype = Object.create(ERP.prototype);
-gaussian.prototype.constructor = gaussian;
 
-_.extendOwn(gaussian.prototype, continuousSupport, {
+var gaussian = makeErpType({
+  name: 'gaussian',
+  mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
   },
@@ -276,14 +292,11 @@ _.extendOwn(gaussian.prototype, continuousSupport, {
 });
 
 
-function gaussianDrift(params) {
-  this.params = params;
-}
 
-gaussianDrift.prototype = Object.create(gaussian.prototype);
-gaussianDrift.prototype.constructor = gaussianDrift;
 
-_.extendOwn(gaussianDrift.prototype, {
+var gaussianDrift = makeErpType({
+  name: 'gaussianDrift',
+  parent: gaussian,
   driftKernel: function(curVal) {
     return new gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
   }
@@ -308,14 +321,9 @@ function multivariateGaussianScore(mu, cov, x) {
   return -0.5 * (coeffs + exponents);
 }
 
-function multivariateGaussian(params) {
-  this.params = params;
-}
 
-multivariateGaussian.prototype = Object.create(ERP.prototype);
-multivariateGaussian.prototype.constructor = multivariateGaussian;
-
-_.extendOwn(multivariateGaussian.prototype, {
+var multivariateGaussian = makeErpType({
+  name: 'multivariateGaussian',
   sample: function() {
     return multivariateGaussianSample(this.params.mu, this.params.cov);
   },
@@ -325,14 +333,10 @@ _.extendOwn(multivariateGaussian.prototype, {
 });
 
 
-function cauchy(params) {
-  this.params = params;
-}
 
-cauchy.prototype = Object.create(ERP.prototype);
-cauchy.prototype.constructor = cauchy;
-
-_.extendOwn(cauchy.prototype, continuousSupport, {
+var cauchy = makeErpType({
+  name: 'cauchy',
+  mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
     return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(180 * (u - 0.5));
@@ -350,14 +354,9 @@ function sum(xs) {
 };
 
 
-function discrete(params) {
-  this.params = params;
-}
-
-discrete.prototype = Object.create(ERP.prototype);
-discrete.prototype.constructor = discrete;
-
-_.extendOwn(discrete.prototype, finiteSupport, {
+var discrete = makeErpType({
+  name: 'discrete',
+  mixins: [finiteSupport],
   sample: function() {
     return discreteSample(this.params.ps.map(ad.value));
   },
@@ -458,14 +457,9 @@ function expGammaScore(shape, scale, val) {
 }
 
 
-function gamma(params) {
-  this.params = params;
-}
-
-gamma.prototype = Object.create(ERP.prototype);
-gamma.prototype.constructor = gamma;
-
-_.extendOwn(gamma.prototype, continuousSupport, {
+var gamma = makeErpType({
+  name: 'gamma',
+  mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
   },
@@ -479,14 +473,9 @@ _.extendOwn(gamma.prototype, continuousSupport, {
 });
 
 
-function exponential(params) {
-  this.params = params;
-}
-
-exponential.prototype = Object.create(ERP.prototype);
-exponential.prototype.constructor = exponential;
-
-_.extendOwn(exponential.prototype, continuousSupport, {
+var exponential = makeErpType({
+  name: 'exponential',
+  mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
     return Math.log(u) / (-1 * ad.value(this.params.a));
@@ -507,14 +496,11 @@ function logBeta(a, b) {
 }
 
 
-function beta(params) {
-  this.params = params;
-}
 
-beta.prototype = Object.create(ERP.prototype);
-beta.prototype.constructor = beta;
 
-_.extendOwn(beta.prototype, continuousSupport, {
+var beta = makeErpType({
+  name: 'beta',
+  mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
   },
@@ -575,14 +561,9 @@ function binomialSample(p, n) {
   return k || 0;
 }
 
-function binomial(params) {
-  this.params = params;
-}
-
-binomial.prototype = Object.create(ERP.prototype);
-binomial.prototype.constructor = binomial;
-
-_.extendOwn(binomial.prototype, finiteSupport, {
+var binomial = makeErpType({
+  name: 'binomial',
+  mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
   },
@@ -640,14 +621,9 @@ function multinomialSample(theta, n) {
   return a;
 }
 
-function multinomial(params) {
-  this.params = params;
-}
-
-multinomial.prototype = Object.create(ERP.prototype);
-multinomial.prototype.constructor = multinomial;
-
-_.extendOwn(multinomial.prototype, finiteSupport, {
+var multinomial = makeErpType({
+  name: 'multinomial',
+  mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
   },
@@ -731,14 +707,9 @@ function lnfact(x) {
 }
 
 
-function poisson(params) {
-  this.params = params;
-}
 
-poisson.prototype = Object.create(ERP.prototype);
-poisson.prototype.constructor = poisson;
-
-_.extendOwn(poisson.prototype, {
+var poisson = makeErpType({
+  name: 'poisson',
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -796,14 +767,9 @@ function dirichletScore(alpha, val) {
   return logp;
 }
 
-function dirichlet(params) {
-  this.params = params;
-}
-
-dirichlet.prototype = Object.create(ERP.prototype);
-dirichlet.prototype.constructor = dirichlet;
-
-_.extendOwn(dirichlet.prototype, continuousSupport, {
+var dirichlet = makeErpType({
+  name: 'dirichlet',
+  mixins: [continuousSupport],
   sample: function() {
     return dirichletSample(this.params.alpha);
   },
@@ -813,14 +779,10 @@ _.extendOwn(dirichlet.prototype, continuousSupport, {
 });
 
 
-function dirichletDrift(params) {
-  this.params = params;
-}
 
-dirichletDrift.prototype = Object.create(dirichlet.prototype);
-dirichletDrift.prototype.constructor = dirichletDrift;
-
-_.extendOwn(dirichletDrift.prototype, {
+var dirichletDrift = makeErpType({
+  name: 'dirichletDrift',
+  parent: dirichlet,
   driftKernel: function(prevVal) {
     var concentration = 10;
     var alpha = prevVal.map(function(x) { return concentration * x; });
@@ -844,24 +806,23 @@ function discreteSample(theta) {
 }
 
 
-function marginal(params) {
-  'use ad';
-  this.params = params;
 
-  var norm = _.reduce(this.params.dist, function(acc, obj) {
-    return acc + obj.prob;
-  }, 0);
-  assert.ok(Math.abs(1 - norm) < 1e-8, 'Expected marginal distribution to be normalized.');
+var marginal = makeErpType({
+  name: 'marginal',
+  mixins: [finiteSupport],
+  constructor: function(params) {
+    'use ad';
+    this.params = params;
 
-  this.supp = _.map(this.params.dist, function(obj) {
-    return obj.val;
-  });
-};
+    var norm = _.reduce(this.params.dist, function(acc, obj) {
+      return acc + obj.prob;
+    }, 0);
+    assert.ok(Math.abs(1 - norm) < 1e-8, 'Expected marginal distribution to be normalized.');
 
-marginal.prototype = Object.create(ERP.prototype);
-marginal.prototype.constructor = marginal;
-
-_.extendOwn(marginal.prototype, finiteSupport, {
+    this.supp = _.map(this.params.dist, function(obj) {
+      return obj.val;
+    });
+  },
   sample: function() {
     'use ad';
     var x = util.random();
@@ -894,18 +855,16 @@ _.extendOwn(marginal.prototype, finiteSupport, {
 });
 
 
-function categorical(params) {
-  // ps is expected to be normalized.
-  this.params = params;
-  this.dist = _.object(this.params.vs.map(function(v, i) {
-    return [util.serialize(v), { val: v, prob: this.params.ps[i] }];
-  }, this));
-}
-
-categorical.prototype = Object.create(ERP.prototype);
-categorical.prototype.constructor = categorical;
-
-_.extendOwn(categorical.prototype, finiteSupport, {
+var categorical = makeErpType({
+  name: 'categorical',
+  mixins: [finiteSupport],
+  constructor: function(params) {
+    // ps is expected to be normalized.
+    this.params = params;
+    this.dist = _.object(this.params.vs.map(function(v, i) {
+      return [util.serialize(v), { val: v, prob: this.params.ps[i] }];
+    }, this));
+  },
   sample: function() {
     var vs = this.params.vs.map(ad.value);
     var ps = this.params.ps.map(ad.value);
