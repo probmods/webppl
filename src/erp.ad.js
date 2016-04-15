@@ -628,7 +628,8 @@ var multinomial = makeErpType({
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
   },
   score: function(val) {
-    if (sum(val) != this.params.n) {
+    'use ad';
+    if (sum(val) !== this.params.n) {
       return -Infinity;
     }
     var x = [];
