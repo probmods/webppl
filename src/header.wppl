@@ -2,24 +2,24 @@
 
 // ERPs
 
-erpCtor uniform, uniformERP;
-erpCtor bernoulli, bernoulliERP;
-erpCtor randomInteger, randomIntegerERP;
-erpCtor gaussian, gaussianERP;
-erpCtor gaussianDrift, gaussianDriftERP;
-erpCtor multivariateGaussian, multivariateGaussianERP;
-erpCtor cauchy, cauchyERP;
-erpCtor discrete, discreteERP;
-erpCtor gamma, gammaERP;
-erpCtor exponential, exponentialERP;
-erpCtor beta, betaERP;
-erpCtor binomial, binomialERP;
-erpCtor multinomial, multinomialERP;
-erpCtor poisson, poissonERP;
-erpCtor dirichlet, dirichletERP;
-erpCtor dirichletDrift, dirichletDriftERP;
-erpCtor marginal, marginalERP;
-erpCtor categorical, categoricalERP;
+erpCtor bernoulli;
+erpCtor uniform;
+erpCtor randomInteger;
+erpCtor gaussian;
+erpCtor gaussianDrift;
+erpCtor multivariateGaussian;
+erpCtor cauchy;
+erpCtor discrete;
+erpCtor gamma;
+erpCtor exponential;
+erpCtor beta;
+erpCtor binomial;
+erpCtor multinomial;
+erpCtor poisson;
+erpCtor dirichlet;
+erpCtor dirichletDrift;
+erpCtor marginal;
+erpCtor categorical;
 
 var flip = function(theta) {
   var theta = (theta !== undefined) ? theta : 0.5;

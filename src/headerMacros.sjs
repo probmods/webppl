@@ -2,10 +2,15 @@ operator (|>) 0 left { $val, $f } => #{ $f($val) }
 export (|>)
 
 macro erpCtor {
-  rule { $ctor, $name } => {
-    var $name = function(params) {
-      return util.jsnew(erp.$ctor, params);
-    };
+  case {_ $ctor} => {
+    var ctor = unwrapSyntax(#{$ctor}, null);
+    var name = makeIdent(ctor + 'ERP', #{$ctor});
+    letstx $name = [name];
+    return #{
+      var $name = function(params) {
+        return util.jsnew(erp.$ctor, params);
+      };
+    }
   }
 }
 
