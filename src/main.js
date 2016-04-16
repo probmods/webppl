@@ -181,9 +181,22 @@ function compile(code, options) {
         sourceMapWithCode: true,
       }) : transformedAst
 
-    codeAndMap.map = JSON.parse(codeAndMap.map)
-    codeAndMap.map.sourcesContent = [fs.readFileSync('src/header.wppl', 'utf8'), code]
-    return codeAndMap
+    var sourceMap = JSON.parse(codeAndMap.map);
+    sourceMap.sourcesContent = []
+
+    debugger;
+
+    sourceMap.sources.forEach(function(sourceFilename) {
+       if (sourceFilename === options.filename) {
+        sourceMap.sourcesContent.push(code);
+       } else { // should this be a conditional to make sure the filename is in the bundle?
+        var correspondingCode = _.findWhere(bundles, {filename: sourceFilename})['code'];
+        sourceMap.sourcesContent.push(correspondingCode);
+       }
+    })
+
+    codeAndMap.map = sourceMap;
+    return codeAndMap;
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
@@ -198,7 +211,6 @@ function run(code, k, options) {
 
   util.timeif(options.verbose, 'run', function() {
     try {
-      debugger;
       eval.call(global, codeWithMap.code)(runner)({}, k, '');
     } catch (exception) {
       printFriendlyStackTrace(exception, codeWithMap.map)

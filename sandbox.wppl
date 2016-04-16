@@ -1,2 +1,2 @@
-return a + map([], function(){})
-// return a
+// return a + map([], function(){})
+return a

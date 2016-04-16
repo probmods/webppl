@@ -42,9 +42,6 @@ function getContextMessage(source, lineNumber, columnNumber) {
 }
 
 function printFriendlyStackTrace(error, sourceMap) {  
-  // var headerSource = fs.readFileSync('src/header.wppl')
-  // parsedMap.sourcesContent = [headerSource]
-  debugger;
   var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap)
   var firstStackFrame = stackTrace.parse(error)[0];
 
