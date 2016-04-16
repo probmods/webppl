@@ -5,7 +5,7 @@ var analysis = require('../src/analysis/main');
 var Set = require('immutable').Set;
 
 var tests = {
-  // Commented out as AD macros now transform '+' into 'ad.add' which
+  // Commented out as AD macros now transform '+' into 'ad.scalar.add' which
   // causes the test to fail.
   // constant: {
   //   program: '3 + 4',

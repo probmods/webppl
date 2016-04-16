@@ -12,25 +12,30 @@ Before committing changes, run grunt (which runs `tests`_ and
 If grunt doesn’t succeed, the `continuous integration tests`_ will fail
 as well.
 
-Modifying erp.ad.js
--------------------
+Modifying .ad.js files
+----------------------
 
-During development, it is necessary to transform ``src/erp.ad.js``
-after it has been modified by running::
+Files with names which end with ``.ad.js`` are transformed to use AD
+primitives when WebPPL is installed.
 
-    ./scripts/transformERP
+During development it is necessary to run this transform after any
+such files have been modified. A grunt task is provided that will
+monitor the file system and run the transform when any ``.ad.js``
+files are updated. Start the task with::
 
-This transforms ERP score functions in order to support automatic
-differentiation using `ad.js <https://github.com/iffsid/ad.js>`_.
+    grunt build-watch
 
-For performance reasons, not all code is transformed. All code
-relating to computing scores should therefore be implemented as some
-combination of the following:
+Alternatively, the transform can be run directly with::
 
-* Named functions where the name ends with ``Score`` or ``AD``. e.g.
-  ``function gaussianScore() {}``, ``function sumAD() {}``.
-* Anonymous functions defined as the ``score`` property of an object
-  literal. e.g. ``{ score: function() {} }``
+    grunt build
+
+The scope of the transform is controlled with the ``'use ad'``
+directive. If this directive appears directly after the ``'use
+strict'`` directive at the top of a file, then the whole file will be
+transformed. Otherwise, those functions which include the directive
+before any other statements or expressions in their body will be
+transformed. Any function nested within a function which includes the
+directive will also be transformed.
 
 Tests
 -----
@@ -66,16 +71,16 @@ many of them automatically using::
 
     grunt fixjsstyle
 
-Compiling for browser
----------------------
+Browser version
+---------------
 
-To compile webppl for use in browser, run::
+To generate a version of webppl for in-browser use, run::
 
     npm install -g browserify uglifyjs
-    grunt compile
+    grunt bundle
 
-The compiled code is written to ``compiled/webppl.js`` and a minified
-version is written to ``compiled/webppl.min.js``.
+The output is written to ``bundle/webppl.js`` and a minified version
+is written to ``bundle/webppl.min.js``.
 
 Testing
 ^^^^^^^
@@ -99,11 +104,10 @@ by performing an incremental compile whenever it detects changes to
 source files. To start `watchify`_ use::
 
     npm install -g watchify
-    grunt watchify
+    grunt browserify-watch
 
-Note that `watchify`_ only updates ``compiled/webppl.js``. Before
-running the browser tests and deploying, create the minified version
-like so::
+Note that this task only updates ``bundle/webppl.js``. Before running
+the browser tests and deploying, create the minified version like so::
 
     grunt uglify
 
@@ -113,7 +117,7 @@ Packages
 Packages can also be used in the browser. For example, to include the
 ``webppl-viz`` package use::
 
-    grunt compile:path/to/webppl-viz
+    grunt bundle:path/to/webppl-viz
 
 Multiple packages can specified, separated by colons.
 

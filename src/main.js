@@ -60,7 +60,8 @@ function parse(code, macros, filename) {
 
 function parseAll(bundles) {
   return bundles.map(function(bundle) {
-    return parse(bundle.code, bundle.macros, bundle.filename);
+    var ast = parse(bundle.code, bundle.macros, bundle.filename);
+    return _.extendOwn({ ast: ast }, bundle);
   });
 }
 
@@ -75,8 +76,7 @@ function headerPackage() {
   // Create a pseudo package from the header.
   var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
-  var adMacroModule = fs.readFileSync(__dirname + '/../node_modules/ad.js/macros/index.js', 'utf8');
-  return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule, adMacroModule] };
+  return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule] };
 }
 
 function unpack(packages) {
@@ -95,7 +95,7 @@ function unpack(packages) {
 
 function addHeaderMacrosToEachBundle(bundles) {
   // This assumes that pair[0] is the content of the header.
-  assert.ok(bundles.length >= 1 && bundles[0].macros.length === 2);
+  assert.ok(bundles.length >= 1 && bundles[0].macros.length === 1);
   var headerMacros = bundles[0].macros;
   return bundles.map(function(bundle, i) {
     return {
@@ -107,24 +107,19 @@ function addHeaderMacrosToEachBundle(bundles) {
 }
 
 function parsePackageCode(packages, verbose) {
-  // Takes an array of packages and turns them into an array of ASTs
-  // in which macros have been expanded. The contents of the header
-  // are included at this stage.
-  //
-  // As a convinience, an array of all macros (header + packages) is
-  // also returned in preparation for parsing the main program.
-  //
+  // Takes an array of packages and turns them into an array of parsed
+  // bundles. i.e. Each bundle (as returned by unpack) is augmented
+  // with an ast.
+  // The contents of the header are included at this stage.
+
   function _parsePackageCode() {
     var allPackages = [headerPackage()].concat(packages).map(loadMacros);
-    var macros = _.chain(allPackages).pluck('macros').flatten().value();
 
-    var asts = util.pipeline([
+    return util.pipeline([
       unpack,
       addHeaderMacrosToEachBundle,
       parseAll
     ])(allPackages);
-
-    return { asts: asts, macros: macros };
   }
 
   return util.timeif(verbose, 'parsePackageCode', _parsePackageCode);
@@ -151,7 +146,7 @@ function compile(code, options) {
     filename: 'webppl:program'
   });
 
-  var extra = options.extra || parsePackageCode([], options.verbose);
+  var bundles = options.bundles || parsePackageCode([], options.verbose);
 
   var transforms = options.transforms || [
     thunkify,
@@ -164,8 +159,9 @@ function compile(code, options) {
   ];
 
   function _compile() {
-    var programAst = parse(code, extra.macros, options.filename);
-    var asts = extra.asts.map(copyAst).concat(programAst);
+    var macros = _.chain(bundles).pluck('macros').flatten().uniq().value();
+    var programAst = parse(code, macros, options.filename);
+    var asts = _.pluck(bundles, 'ast').map(copyAst).concat(programAst);
     var doCaching = _.any(asts, caching.transformRequired);
 
     if (options.verbose && doCaching) {

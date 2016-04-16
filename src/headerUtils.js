@@ -7,7 +7,7 @@ var ad = require('./ad');
 module.exports = function(env) {
 
   function display(s, k, a, x) {
-    return k(s, console.log(ad.untapify(x)));
+    return k(s, console.log(ad.valueRec(x)));
   }
 
   // Caching for a wppl function f.

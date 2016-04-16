@@ -3,8 +3,10 @@
 *.swp
 node_modules
 npm-debug.log
-compiled/
+bundle/
 docs/_build
 docs/_static
 docs/_templates
 src/erp.js
+src/inference/enumerate.js
+src/aggregation/distribution.js

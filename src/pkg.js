@@ -3,6 +3,7 @@
 var path = require('path');
 var fs = require('fs');
 var _ = require('underscore');
+var pkginfo = require('./pkginfo');
 
 var isJsModule = function(path) {
   try {
@@ -59,7 +60,8 @@ var read = function(name_or_path, paths, verbose) {
               full: joinPath(manifestPath)
             };
           }),
-          macros: _.map(manifest.macros, joinPath)
+          macros: _.map(manifest.macros, joinPath),
+          version: pkginfo.version(candidate)
         };
       } else {
         return readFirst(candidates.slice(1));
@@ -125,7 +127,8 @@ var wrappers = {
   headers: wrapWithRequire,
   identifier: wrapWithQuotes,
   path: wrapWithRequire,
-  name: wrapWithQuotes
+  name: wrapWithQuotes,
+  version: wrapWithQuotes
 };
 
 module.exports = {

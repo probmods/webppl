@@ -20,20 +20,20 @@ var packages = [];
 var load = _.once(function() {
   // Load JS and headers from packages.
   packages.forEach(function(pkg) {
-    console.log('package ' + pkg.name + ' loaded.');
+    console.log('loaded ' + pkg.name + ' [' + pkg.version + ']');
     if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
     pkg.headers.forEach(webppl.requireHeaderWrapper);
   });
-  var extra = webppl.parsePackageCode(packages);
-  console.log('webppl ' + version + ' loaded.');
-  return extra;
+  var bundles = webppl.parsePackageCode(packages);
+  console.log('loaded webppl [' + version + ']');
+  return bundles;
 });
 
 function run(code, k, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: load()}, options);
+  var optionsExtended = _.extend({bundles: load()}, options);
 
   return webppl.run(code, k, optionsExtended);
 }
@@ -42,7 +42,7 @@ function compile(code, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({extra: load()}, options);
+  var optionsExtended = _.extend({bundles: load()}, options);
   return webppl.compile(code, optionsExtended);
 }
 

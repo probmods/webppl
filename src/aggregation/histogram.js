@@ -10,7 +10,6 @@ var Histogram = function() {
 };
 
 Histogram.prototype.add = function(value) {
-  var value = ad.deepUntapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { count: 0, val: value };
