@@ -193,8 +193,8 @@ function makeErpType(options) {
   erp.prototype.constructor = erp;
   erp.prototype.name = options.name;
 
-  var methods = _.pick(options, methodNames);
-  _.extendOwn.apply(_, _.flatten([erp.prototype, options.mixins, methods], true));
+  _.extendOwn.apply(_, [erp.prototype].concat(options.mixins));
+  _.extendOwn(erp.prototype, _.pick(options, methodNames));
 
   ['sample', 'score'].forEach(function(method) {
     if (!erp.prototype[method]) {
