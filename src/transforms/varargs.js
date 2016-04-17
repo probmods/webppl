@@ -37,11 +37,6 @@ function getEnclosingFunctionNode() {
 
 function varargs(node) {
 
-  if (node.seenByVarargs) {
-    return node;
-  }
-  node.seenByVarargs = true;
-
   switch (node.type) {
 
     // assign 'arguments' as first statement in body, rename to make it
@@ -76,11 +71,10 @@ function varargsMain(node) {
       node, {
         enter: function(node) {
           pushFn(node);
+          return varargs(node);
         },
         leave: function(node) {
-          var ret = varargs(node);
           popFn(node);
-          return ret;
         }
       });
   return node;
