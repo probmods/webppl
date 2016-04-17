@@ -72,7 +72,7 @@ function runNaming(test, code, newCode, expected) {
   check(test, code, newCode, expected, eval(newCode)(''));
 }
 
-var transformAstCps = compose(cps, transformAstNaming);
+var transformAstCps = compose(cps, varargs, transformAstNaming);
 function runCps(test, code, newCode, expected) {
   eval(newCode)(function(actual) {
     check(test, code, newCode, expected, actual);
@@ -90,10 +90,10 @@ function runStorepassing(test, code, newCode, expected) {
 var transformAstOptimize = compose(optimize, transformAstStorepassing);
 var runOptimize = runStorepassing;
 
-var transformAstVarargs = compose(optimize, store, cps, varargs, transformAstNaming);
-var runVarargs = runOptimize;
+var transformAstVarargs = transformAstStorepassing;
+var runVarargs = runStorepassing;
 
-var transformAstTrampoline = compose(trampoline, transformAstVarargs);
+var transformAstTrampoline = compose(trampoline, transformAstOptimize);
 
 function runTrampoline(test, code, newCode, expected) {
   var f = eval(newCode);
