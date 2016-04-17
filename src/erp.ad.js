@@ -64,10 +64,6 @@ ERP.prototype = {
     return [this.name, '(', inspect(this.params), ')'].join('');
   },
 
-  get name() {
-    return this.constructor.name;
-  },
-
   isContinuous: false,
   constructor: ERP
 
@@ -180,11 +176,11 @@ function makeErpType(options) {
 
   var ctor = _.has(options, 'constructor') ?
         options.constructor :
-        Function('params', 'this.params = params');
+        function(params) { this.params = params; };
 
-  Object.defineProperty(ctor, 'name', {value: options.name});
   ctor.prototype = Object.create(options.parent.prototype);
   ctor.prototype.constructor = ctor;
+  ctor.prototype.name = options.name;
 
   var methods = _.pick(options, methodNames);
   _.extendOwn.apply(_, _.flatten([ctor.prototype, options.mixins, methods], true));
