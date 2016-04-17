@@ -81,10 +81,6 @@ function isErp(x) {
   return x instanceof ERP;
 }
 
-function isErpWithSupport(x) {
-  return isErp(x) && _.isFunction(x.support);
-}
-
 function paramsEqual(p1, p2) {
   if (p1 === p2) {
     return true;
@@ -922,7 +918,6 @@ module.exports = {
   deserialize: deserialize,
   withImportanceDist: withImportanceDist,
   isErp: isErp,
-  isErpWithSupport: isErpWithSupport,
   isEqual: isEqual,
   isParams: isParams
 };
