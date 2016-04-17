@@ -60,8 +60,16 @@ ERP.prototype = {
     throw 'Not implemented';
   },
 
-  inspect: function() {
-    return [this.name, '(', inspect(this.params), ')'].join('');
+  inspect: function(depth, options) {
+    if (_.has(this, 'params')) {
+      return [this.name, '(', inspect(this.params), ')'].join('');
+    } else {
+      // This isn't an instance of an erp type, so reinspect while
+      // ignoring this custom inspection method.
+      var opts = options ? _.clone(options) : {};
+      opts.customInspect = false;
+      return inspect(this, opts);
+    }
   },
 
   isContinuous: false,
