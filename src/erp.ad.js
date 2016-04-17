@@ -174,24 +174,27 @@ function makeErpType(options) {
     throw 'makeErpType: name is required.';
   }
 
-  var ctor = _.has(options, 'constructor') ?
+  // Note that Chrome uses the name of this local variable in the
+  // output of `console.log` when it's called on an ERP that uses the
+  // default constructor.
+  var erp = _.has(options, 'constructor') ?
         options.constructor :
         function(params) { this.params = params; };
 
-  ctor.prototype = Object.create(options.parent.prototype);
-  ctor.prototype.constructor = ctor;
-  ctor.prototype.name = options.name;
+  erp.prototype = Object.create(options.parent.prototype);
+  erp.prototype.constructor = erp;
+  erp.prototype.name = options.name;
 
   var methods = _.pick(options, methodNames);
-  _.extendOwn.apply(_, _.flatten([ctor.prototype, options.mixins, methods], true));
+  _.extendOwn.apply(_, _.flatten([erp.prototype, options.mixins, methods], true));
 
   ['sample', 'score'].forEach(function(method) {
-    if (!ctor.prototype[method]) {
+    if (!erp.prototype[method]) {
       throw 'makeErpType: method "' + method + '" not defined for ' + options.name;
     }
   });
 
-  return ctor;
+  return erp;
 }
 
 // ERP
