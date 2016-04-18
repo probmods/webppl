@@ -158,7 +158,8 @@ function compile(code, options) {
     var macros = _.chain(bundles).pluck('macros').flatten().uniq().value();
     var programAst = parse(code, macros, options.filename);
     var asts = _.pluck(bundles, 'ast').map(copyAst).concat(programAst);
-    var doCaching = _.any(asts, caching.transformRequired);
+    assert.strictEqual(bundles[0].filename, 'header.wppl');
+    var doCaching = _.any(asts.slice(1), caching.transformRequired);
 
     if (options.verbose && doCaching) {
       console.log('Caching transform will be applied.');

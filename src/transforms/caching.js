@@ -67,11 +67,23 @@ function cachingMain(node) {
   return estraverse.replace(node, { leave: exit });
 }
 
+
+function isImhIdentifier(node) {
+  return node.type === 'Identifier' && node.name === 'IncrementalMH';
+}
+
+function isImhInferMethodOption(node) {
+  return node.type === 'Property' &&
+      ((node.key.type === 'Identifier' && node.key.name === 'method') ||
+      (node.key.type === 'Literal' && node.key.value === 'method')) &&
+      (node.value.type === 'Literal' && node.value.value === 'IncrementalMH');
+}
+
 function transformRequired(programAST) {
   var flag = false;
   estraverse.traverse(programAST, {
     enter: function(node) {
-      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+      if (isImhIdentifier(node) || isImhInferMethodOption(node)) {
         flag = true;
         this.break();
       }

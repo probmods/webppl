@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    func: 'Rejection',
+    method: 'Rejection',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },
@@ -92,7 +92,7 @@ var tests = [
   },
   {
     name: 'IMHjustSample',
-    func: 'IncrementalMH',
+    method: 'IncrementalMH',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -162,7 +162,7 @@ var tests = [
   },
   {
     name: 'IncrementalRejection',
-    func: 'Rejection',
+    method: 'Rejection',
     settings: {
       args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
@@ -178,7 +178,7 @@ var tests = [
   },
   {
     name: 'ParticleFilter',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -212,7 +212,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuvMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -241,7 +241,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuvHMC',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
@@ -270,7 +270,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterAsMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.15, check: true },
@@ -300,7 +300,7 @@ var tests = [
   },
   {
     name: 'MH',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.15, check: true },
@@ -341,7 +341,7 @@ var tests = [
   },
   {
     name: 'HMC',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
@@ -461,7 +461,7 @@ var tests = [
   },
   {
     name: 'HMConly',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.3 },
@@ -475,7 +475,7 @@ var tests = [
   },
   {
     name: 'MHjustSample',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -486,11 +486,10 @@ var tests = [
 ];
 
 var wpplRunInference = function(modelName, testDef) {
-  var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
+    'Infer(model, ', inferenceArgs, ');'
   ].join('');
   try {
     var retVal;
@@ -523,7 +522,7 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return _.isArray(args) ? args.map(util.serialize) : util.serialize(args);
+  return util.serialize(_.extendOwn({}, args, {method: testDef.method || testDef.name}));
 };
 
 var testFunctions = {
