@@ -20,6 +20,8 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
 
+    this.hist = new Histogram();
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -27,28 +29,7 @@ module.exports = function(env) {
   SampleGuide.prototype = {
 
     run: function() {
-
-      var hist = new Histogram();
-
-      return util.cpsLoop(
-          this.opts.samples,
-
-          // Loop body.
-          function(i, next) {
-            return this.wpplFn(_.clone(this.s), function(s, val) {
-              hist.add(val);
-              return next();
-            }, this.a);
-          },
-
-          // Continuation.
-          function() {
-            return this.k(this.s, hist.toERP());
-          },
-
-          this
-      );
-
+      return this.wpplFn(_.clone(this.s), env.exit, this.a);
     },
 
     sample: function(s, k, a, erp, params, options) {
@@ -63,6 +44,17 @@ module.exports = function(env) {
 
     factor: function(s, k, a, score) {
       return k(s);
+    },
+
+    exit: function(s, retval) {
+      this.hist.add(retval);
+      this.opts.samples -= 1;
+      if (this.opts.samples === 0) {
+        env.coroutine = this.coroutine;
+        return this.k(this.s, this.hist.toERP());
+      } else {
+        return this.run();
+      }
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
