@@ -174,8 +174,6 @@ module.exports = function(env) {
 
     mapDataFetch: function(ixprev, data, options, address) {
 
-      //FIXME: if no minibatch info is given, should use whole original data set. Currently seems to be randomly sampled but then persistent....
-
       // `ixprev` is an array of the indices used by the last
       // invocation of this mapData. This will be undefined the on the
       // first call to a particular mapData. The empty array stands
@@ -191,15 +189,21 @@ module.exports = function(env) {
       // of `Optimize`. This is the behavior Noah described for an
       // 'epoch' of wakey/sleepy.
 
-      var drawMiniBatch = options.batchSize < data.length &&
-            !this.opts.persistentBatches || (this.step === 0 && this.iter === 0);
+      var ix;
 
-      // Choose data uniformly at random if drawing a fresh
-      // mini-batch. Otherwise, use the previous mini-batch.
-      var ix = drawMiniBatch ?
-            _.times(options.batchSize, function() {
-              return Math.floor(util.random() * data.length);
-            }) : ixprev;
+      if (options.batchSize === data.length) {
+        // Use all the data, in order.
+        ix = [];
+      } else if (this.opts.persistentBatches && !(this.step === 0 && this.iter === 0)) {
+        // If we're using persistent batches and we're past the first
+        // step of the first iteration, use the same data as the
+        // previous execution.
+        ix = ixprev;
+      } else {
+        ix = _.times(options.batchSize, function() {
+          return Math.floor(util.random() * data.length);
+        });
+      }
 
       // Store the info needed to compute the correction to account
       // for the fact we only looked as a subset of the data.
