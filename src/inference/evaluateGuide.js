@@ -2,31 +2,20 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var assert = require('assert');
 var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function evaluateGuide(s, k, a, wpplFn, options) {
+  function EvaluateGuide(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
       datumIndex: 0,
-      particles: 100,
-      params: {},
-      debug: false
+      samples: 100,
+      params: {}
     });
 
     this.params = this.opts.params;
 
-    this.particles = [];
-    this.particleIndex = 0;
-
-    // Create initial particles.
-    for (var i = 0; i < this.opts.particles; i++) {
-      this.particles.push(new Particle(function() {
-        return wpplFn(s, env.exit, a);
-      }));
-    }
-
+    this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
     this.a = a;
@@ -35,109 +24,132 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  evaluateGuide.prototype.run = function() {
-    return this.runCurrentParticle();
+  EvaluateGuide.prototype = {
+
+
+    run: function() {
+
+      var logWeights = [];
+
+      return util.cpsLoop(
+          this.opts.samples,
+
+          // Loop body.
+          function(i, next) {
+            return this.computeImportanceWeight(function(logWeight) {
+              logWeights.push(logWeight);
+              return next();
+            });
+          },
+
+          // Loop continuation.
+          function() {
+            var logESS = computeLogESS(logWeights);
+            env.coroutine = this.coroutine;
+            return this.k(this.s, Math.exp(logESS));
+          },
+
+          this);
+
+    },
+
+    computeImportanceWeight: function(cont) {
+      // Draw a single sample from the guide and compute the
+      // unnormalized importance weight when used as an importance
+      // sampler for the target.
+
+      // Rather than doing importance sampling for the full posterior
+      // we focus on the posterior for a single datum. We compute the
+      // (unnormalized) probability for use in the importance weight
+      // as:
+
+      // p(global, local_i | datum_i)
+      // \prop p(global, local_i, datum_i)
+      // = p(global) p(local_i, datum_i | global)
+
+      // This makes use of our assumption that the data are IID.
+
+      // The proposal distribution for the importance sampler is:
+
+      // q(global, local_i)
+
+      // We can use `mapData` to sample from this. i.e. to sample only
+      // a subset of the local variables.
+
+      // p(global, local_i, datum_i) (i.e. the score under the target)
+      // is computed as we sample from the guide. (Following the
+      // factorization above.)
+
+      this.logp = 0;
+      this.logq = 0;
+
+      return this.wpplFn(_.clone(this.s), function() {
+
+        var logWeight = this.logp - this.logq;
+        return cont(logWeight);
+
+      }.bind(this), this.a);
+
+    },
+
+    sample: function(s, k, a, erp, params, options) {
+      options = options || {};
+
+      if (!_.has(options, 'guide')) {
+        throw 'Guide not specified.';
+      }
+
+      var _params = params.map(ad.value);
+
+      // Sample from the guide.
+      var guideERP = options.guide[0];
+      var guideParams = options.guide[1];
+      var _guideParams = guideParams.map(ad.value);
+      var _val = guideERP.sample(_guideParams);
+
+      // Compute scores.
+      this.logp += erp.score(_params, _val);
+      this.logq += guideERP.score(_guideParams, _val);
+
+      return k(s, _val);
+    },
+
+    factor: function(s, k, a, score) {
+      this.logp += ad.value(score);
+      return k(s);
+    },
+
+    mapDataFetch: function(ixprev, data, options, address) {
+      var ix = this.opts.datumIndex;
+      if (ix < 0 || ix >= data.length) {
+        throw 'Invalid datumIndex.';
+      }
+      return [this.opts.datumIndex];
+    },
+
+    incrementalize: env.defaultCoroutine.incrementalize,
+    constructor: EvaluateGuide
+
   };
 
-  evaluateGuide.prototype.sample = function(s, k, a, erp, params, options) {
-    var _val, choiceScore, importanceScore;
-    var _params = params && params.map(ad.value);
-
-    if (options && _.has(options, 'guide') && !this.ignoreGuide) {
-      var importanceERP = options.guide[0];
-      var importanceParams = options.guide[1];
-      var _importanceParams = importanceParams && importanceParams.map(ad.value);
-      _val = importanceERP.sample(_importanceParams);
-      choiceScore = erp.score(_params, _val);
-      importanceScore = importanceERP.score(_importanceParams, _val);
-    } else {
-      throw 'Un-guided choice.';
-    }
-
-    var particle = this.currentParticle();
-    particle.logWeight += choiceScore - importanceScore;
-
-    var val = _val;
-    return k(s, val);
-  };
-
-  evaluateGuide.prototype.factor = function(s, k, a, score) {
-    // Update particle.
-    var particle = this.currentParticle();
-    particle.logWeight += ad.value(score);
-    this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
-    return this.sync();
-  };
-
-  evaluateGuide.prototype.atLastParticle = function() {
-    return this.particleIndex === this.particles.length - 1;
-  };
-
-  evaluateGuide.prototype.currentParticle = function() {
-    return this.particles[this.particleIndex];
-  };
-
-  evaluateGuide.prototype.runCurrentParticle = function() {
-    return this.currentParticle().cont();
-  };
-
-  evaluateGuide.prototype.advanceParticleIndex = function() {
-    this.particleIndex += 1;
-  };
-
-  evaluateGuide.prototype.sync = function() {
-    // Called at sync points factor and exit.
-    // Either advance the next active particle, or if all particles have
-    // advanced, perform re-sampling and rejuvenation.
-    if (!this.atLastParticle()) {
-      this.advanceParticleIndex();
-      return this.runCurrentParticle();
-    } else {
-
-      // All particles are now expected to be at 'the' (I assume
-      // there's one for now) factor statement corresponding to the
-      // observation for the data point we're evaluating.
-
-      // TODO: Handle multiple factors per-datum. By computing what?
-
-      return this.finish();
-    }
-  };
-
-  evaluateGuide.prototype.debugLog = function(s) {
-    if (this.opts.debug) {
-      console.log(s);
-    }
-  };
-
-  evaluateGuide.prototype.exit = function(s, val) {
-    // We bail at the observation.
-    throw 'Unreachable.';
-  };
-
-  evaluateGuide.prototype.mapDataFetch = function(ixprev, data, options, address) {
-    var ix = this.opts.datumIndex;
-    if (ix < 0 || ix >= data.length) {
-      throw 'Invalid datumIndex.';
-    }
-    return [this.opts.datumIndex];
-  };
-
-  evaluateGuide.prototype.finish = function() {
-    var logWeights = _.pluck(this.particles, 'logWeight');
-    return this.k(this.s, logWeights);
-  };
-
-  evaluateGuide.prototype.incrementalize = env.defaultCoroutine.incrementalize;
-
-  function Particle(cont) {
-    this.logWeight = 0;
-    this.cont = cont;
+  function computeLogESS(logWeights) {
+    // Compute ESS (Effective Sample Size) as:
+    // ESS = (sum w_i)^2 / sum(w_i^2)
+    //
+    // Where each w_i is an unnormalized importance weight.
+    //
+    // This includes normalization, which also corrects for the fact
+    // that we only know the score under the target upto a constant.
+    //
+    var doubleLogWeights = logWeights.map(function(x) { return x * 2; });
+    return 2 * util.logsumexp(logWeights) - util.logsumexp(doubleLogWeights);
   }
 
   return {
-    evaluateGuide: function(s, k, a, wpplFn, options) {
-      return new evaluateGuide(s, k, a, wpplFn, options).run();
+    EvaluateGuide: function() {
+      var coroutine = Object.create(EvaluateGuide.prototype);
+      EvaluateGuide.apply(coroutine, arguments);
+      return coroutine.run();
     }
   };
 

@@ -29,19 +29,9 @@ var model = function() {
 
 var improveParams = function(params) {
 
-  // `evaluateGuide` is an attempt to compute importance weights
-  // (using a stripped down version of SMC) for a single datum. It
-  // currently assumes there's a single `factor` statement
-  // corresponding to the observation for each datum.
+  // `EvaluateGuide` is an attempt to compute ESS for a single datum.
 
   // Q. Does it compute the right thing?
-
-  // Q. It seems to me that we want to evaluate a single datum at a
-  // time, right? If we were to consider multiple data in an SMC
-  // setting, then the estimates for each datum would interact. e.g.
-  // If we do really poorly on the first datum, then the particle set
-  // might collapse onto a single particle, and that will affect what
-  // happens for the next datum?
 
   // datumIndex controls which data point will be mapped over by
   // mapData during evaluation.
@@ -49,11 +39,11 @@ var improveParams = function(params) {
   // TODO: Compute importance weights for the mini-batch we're about
   // to use for optimization?
 
-  var weights1 = evaluateGuide(model, {datumIndex: 0, params: params});
-  var weights2 = evaluateGuide(model, {datumIndex: 1, params: params});
+  var ess1 = EvaluateGuide(model, {datumIndex: 0, params: params});
+  var ess2 = EvaluateGuide(model, {datumIndex: 1, params: params});
 
-  display(listVar(weights1));
-  display(listVar(weights2));
+  display(ess1);
+  display(ess2);
   display('--------------------');
 
   // Do a few optimization steps.
@@ -74,71 +64,44 @@ var iterate = function(fn, initialVal, n) {
   return iter(0, initialVal);
 };
 
-iterate(improveParams, {}, 20);
+iterate(improveParams, {}, 100);
 
 'done';
 
 // Example output:
 
 // Processing daipp/examples/evaluation.wppl
-// 12.592528711785956
-// 12.398183896840061
+// 18.61140277153167
+// 10.838783883182332
 // --------------------
 // Gradient for param "_139_131_127":0 is zero.
-// 8.235067594062876
-// 7.641660924319535
+// 26.845862822776365
+// 31.111059507856353
 // --------------------
-// 7.366864257043168
-// 4.772882241261843
+// 9.274745033713328
+// 15.025259323381393
 // --------------------
-// 3.6109390850599676
-// 3.877226490801553
+// 30.5650710681452
+// 21.857003689918514
 // --------------------
-// 4.430682091406637
-// 3.6791702674412106
+// 27.28580069574539
+// 22.026537397931317
 // --------------------
-// 1.9600348610003897
-// 1.158616106102913
+// 21.594819950681437
+// 40.947737040619984
 // --------------------
-// 1.795602891670491
-// 1.469373693284604
+// 22.33416806650785
+// 30.296469209738145
 // --------------------
-// 0.93632260409096
-// 2.1753599780278563
+// 16.19092064477716
+// 45.52377334984425
 // --------------------
-// 0.9039775084512662
-// 1.0163774952021825
+// 7.057003397657739
+// 41.23052132398537
 // --------------------
-// 1.2548098651656863
-// 2.058261160647408
+// 33.26954536332534
+// 47.79059001664938
 // --------------------
-// 1.509674943364001
-// 0.7639275504999027
-// --------------------
-// 1.637326554662264
-// 0.7977176114377957
-// --------------------
-// 1.225055797784414
-// 1.2382877060860968
-// --------------------
-// 0.7835643239664636
-// 0.8749610293809279
-// --------------------
-// 2.6470624285029265
-// 1.0906896385057998
-// --------------------
-// 0.9959893437339931
-// 0.47977270681447565
-// --------------------
-// 2.072324475429688
-// 0.3188945245902764
-// --------------------
-// 1.004794695609142
-// 0.5329657673905979
-// --------------------
-// 0.8486200456694413
-// 0.4603851854487865
-// --------------------
-// 1.3004357341505255
-// 0.37508639005158817
-// --------------------
+//
+// ...
+//
