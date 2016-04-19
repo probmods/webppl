@@ -43,6 +43,7 @@ module.exports = function(env) {
 
           // Continuation.
           function() {
+            env.coroutine = this.coroutine;
             return this.k(this.s, hist.toERP());
           },
 
