@@ -1,0 +1,99 @@
+/*
+This is a simple "explaining away" bayes net. It allows us to test whether the context network learns
+to pass along the relevant (summary of) previous choices.
+
+run with: ./webppl examples/bayesnet.wppl --require ./daipp
+*/
+
+var data = [{c1: 0.2, c3: 3.0}, {c1: -0.1, c2: 2.1}]
+
+
+//NOTE: assume that sampleDaipp(erp,params,opt) takes a final options arg, and
+//when opt.observedVal is not undefined it will be interpretted as a factor
+//(except in fantasy mode....).
+
+var model = function(){
+  initContext("modelLearningInitContext")
+  //model prior, for now just variances per layer
+  var aVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
+  var aVariance = aVarianceSqrt * aVarianceSqrt
+  var bVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
+  var bVariance = bVarianceSqrt * bVarianceSqrt
+  var cVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
+  var cVariance = cVarianceSqrt * cVarianceSqrt
+
+  //map over observations
+  var latents = mapData(data,function(datum){
+    initContext(datum) //make depend on context in global model?
+    var a1 = sampleDaipp(gaussianERP, [0,aVariance])
+    var a2 = sampleDaipp(gaussianERP, [0,aVariance])
+    var a3 = sampleDaipp(gaussianERP, [0,aVariance])
+
+    var b1 = sampleDaipp(gaussianERP, [a1+a2,bVariance])
+    var b2 = sampleDaipp(gaussianERP, [a2+a3,bVariance])
+    var b3 = sampleDaipp(gaussianERP, [a1+a3,bVariance])
+
+    var c1 = sampleDaipp(gaussianERP, [b1+b2,cVariance], {observedVal: datum.c1})
+    var c2 = sampleDaipp(gaussianERP, [b2+b3,cVariance], {observedVal: datum.c2})
+    var c3 = sampleDaipp(gaussianERP, [b1+b3,cVariance], {observedVal: datum.c3})
+
+    return {a1: a1, a2: a2, a3: a3}
+  })
+
+  return latents
+}
+
+
+
+// Tutorial training.
+// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+// display(erp.hist)
+// var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+
+// VI.
+var params = Optimize(model, {
+  steps: 100,
+  method: {gd: {stepSize: 0.001}}, //{adagrad: {stepSize: 0.1}},
+  estimator: {ELBO: {samples: 1}},
+  verbose: true});
+
+// SampleGuide(model, {samples: 1000, params: params});
+//params
+
+var improveParams = function(params) {
+  // datumIndex controls which data point will be mapped over by
+  // mapData during evaluation.
+
+  // TODO: Compute importance weights for the mini-batch we're about
+  // to use for optimization?
+
+  var weights1 = evaluateGuide(model, {datumIndex: 0, params: params, samples: 10});
+  // var weights2 = evaluateGuide(model, {datumIndex: 1, params: params});
+
+  display(weights1)
+  display(listMean(weights1));
+  display(listStdev(weights1));
+  // display(listVar(weights2));
+  display('--------------------');
+
+  // Do a few optimization steps.
+
+  return Optimize(model, {
+    params: params,
+    steps: 50,
+    method: {gd: {stepSize: 0.001}}, //{adagrad: {stepSize: 0.1}}, //FIXME: what about state in adagrad, etc?
+    estimator: {ELBO: {samples: 1}},
+    verbose: false
+  });
+};
+
+var iterate = function(fn, initialVal, n) {
+  var iter = function(i, val) {
+    return  (i < n) ? iter(i + 1, fn(val)) : val;
+  };
+  return iter(0, initialVal);
+};
+
+// iterate(improveParams, {}, 10);
+
+'done';

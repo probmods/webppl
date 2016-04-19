@@ -54,6 +54,8 @@ function val2vec(val) {
   //NOTE: Number arrays (w/ fixed dim?) should be upgraded to tensor by hand
   //TODO: cache this for speed? we are likely to see the same values may times, especially for structured objects, eg address vectors.
 
+// console.log("val: "+ad.value(val)+" type "+betterTypeOf(val))
+
   switch(betterTypeOf(val)) {
     case 'number':
       //numbers are upgraded to tensor.
@@ -84,6 +86,7 @@ function val2vec(val) {
         return val.embed2vec(val2vec, latentSize)
       }
       //otherwise treat as enum: only equal objects have same vec.
+      return nneval(getConstant(val));
 
       // FIXME: The fall through here means the all objects not
       // implementing embed2vec are treat as null. Fix by checking

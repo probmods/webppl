@@ -21,7 +21,7 @@ daipp.vec2dist chooses an importance ERP ad generates its params.
 // dritchie: It's not clear to me why we really need another net here? Why not let the initial
 //    context be the output of val2vec?
 var initNet = nn.mlp(daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize, activation: nn.relu},
   {nOut: daipp.latentSize}
 ], 'initNet');
 initNet.setTraining(true)
@@ -39,7 +39,7 @@ var initContext = function(data) {
 //TODO: make deeper? use GRU / LSTM? ResNet?
 //TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
 var updateNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize, activation: nn.relu},
   {nOut: daipp.latentSize}
 ], 'updateNet');
 updateNet.setTraining(true)
@@ -50,6 +50,18 @@ var updateContext = function(val) {
   var context = globalStore.context
 
   var newContext = daipp.nneval(updateNet, ad.tensor.concat(context, addressVec, dataVec));
+
+  var _newContext = ad.value(newContext).toArray()
+  if(!all(function(p){return (p==p)}, _newContext)){
+
+    display("---update nan---")
+    display("input: ");
+    display(context)
+    display(addressVec)
+    display(dataVec)
+    display("new context: ");
+    display(newContext)
+  }
 
   globalStore.context = newContext
 
@@ -73,7 +85,7 @@ var updateContext = function(val) {
 // paul: note that params isn't necessarily an array of reals.
 
 var predictNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.tanh},
+  {nOut: daipp.latentSize, activation: nn.relu},
   {nOut: daipp.latentSize}
 ], 'predictNet');
 predictNet.setTraining(true)
@@ -90,14 +102,37 @@ var DAIPPguide = function(ERP, params, val) {
   var context = globalStore.context
 
   //merge the val, context, address together
-  var predict = daipp.nneval(predictNet, ad.tensor.concat(context, addressVec, dataVec));
+  var predictInput = ad.tensor.concat(context, addressVec, dataVec);
+  var predict = daipp.nneval(predictNet, predictInput);
+
+  var _predict = ad.value(predict).toArray()
+  if(!all(function(p){return (p==p)}, _predict)){
+
+    display("---predict nan---")
+    display("input: ");
+    display(context)
+    display(addressVec)
+    display(dataVec)
+    display("predict: ");
+    display(predict)
+  }
 
   //generate params as appropriate to ERP
-  return daipp.vec2dist(predict, ERP, params)
+  var guide = daipp.vec2dist(predict, ERP, params)
+  // display(guide)
+  return guide
 }
 
-var sampleDaipp = function(ERP,params) {
-  var val = sample(ERP, params, {guide: DAIPPguide(ERP, params, params)})
-  updateContext(val)
-  return val
+//this helper samples from the guide and updates the context. except when opt.observedVal is defined it instead is a factor enforcing the observation.
+var sampleDaipp = function(ERP,params,opt) {
+  //FIXME: in fantasy mode for sleepey phase, we want to sample even for observed vals? or just make sure they are undefined in that context?
+  if(opt == undefined || opt.observedVal == undefined) {
+    var val = sample(ERP, params, {guide: DAIPPguide(ERP, params, params)})
+    updateContext(val)
+    return val
+  } else {
+    var val = opt.observedVal
+    factor(ERP.score(params,val))
+    return val
+  }
 }

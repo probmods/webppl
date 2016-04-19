@@ -174,6 +174,8 @@ module.exports = function(env) {
 
     mapDataFetch: function(ixprev, data, options, address) {
 
+      //FIXME: if no minibatch info is given, should use whole original data set. Currently seems to be randomly sampled but then persistent....
+
       // `ixprev` is an array of the indices used by the last
       // invocation of this mapData. This will be undefined the on the
       // first call to a particular mapData. The empty array stands
