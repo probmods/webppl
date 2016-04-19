@@ -19,6 +19,15 @@ var model = function() {
   return [mu, tau];
 };
 
+
+var model2 = function() {
+  var mu = param(0);
+
+  var x = sample(gaussianERP, [2, 1], {
+    guide: [gaussianERP, [mu, 1]]
+  });
+};
+
 // This is supposed to be a proto-wakey-sleepy-epoch.
 
 // Q. How are we going to stitch VI/TT together in the final thing?
