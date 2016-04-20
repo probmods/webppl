@@ -2,24 +2,24 @@
 
 // ERPs
 
-erpCtor bernoulli;
-erpCtor uniform;
-erpCtor randomInteger;
-erpCtor gaussian;
-erpCtor gaussianDrift;
-erpCtor multivariateGaussian;
-erpCtor cauchy;
-erpCtor discrete;
-erpCtor gamma;
-erpCtor exponential;
-erpCtor beta;
-erpCtor binomial;
-erpCtor multinomial;
-erpCtor poisson;
-erpCtor dirichlet;
-erpCtor dirichletDrift;
-erpCtor marginal;
-erpCtor categorical;
+defineErpConstructors(
+    bernoulli
+    uniform
+    randomInteger
+    gaussian
+    gaussianDrift
+    multivariateGaussian
+    cauchy
+    discrete
+    gamma
+    exponential
+    beta
+    binomial
+    multinomial
+    poisson
+    dirichlet
+    dirichletDrift
+    categorical);
 
 var flip = function(theta) {
   var theta = (theta !== undefined) ? theta : 0.5;
