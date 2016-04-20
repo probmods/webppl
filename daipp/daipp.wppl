@@ -21,7 +21,7 @@ daipp.vec2dist chooses an importance ERP ad generates its params.
 // dritchie: It's not clear to me why we really need another net here? Why not let the initial
 //    context be the output of val2vec?
 var initNet = nn.mlp(daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.relu},
+  {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
 ], 'initNet');
 initNet.setTraining(true)
@@ -39,7 +39,7 @@ var initContext = function(data) {
 //TODO: make deeper? use GRU / LSTM? ResNet?
 //TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
 var updateNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.relu},
+  {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
 ], 'updateNet');
 updateNet.setTraining(true)
@@ -85,7 +85,7 @@ var updateContext = function(val) {
 // paul: note that params isn't necessarily an array of reals.
 
 var predictNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.relu},
+  {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
 ], 'predictNet');
 predictNet.setTraining(true)

@@ -15,27 +15,24 @@ var data = [{c1: 0.2, c3: 3.0}, {c1: -0.1, c2: 2.1}]
 var model = function(){
   initContext("modelLearningInitContext")
   //model prior, for now just variances per layer
-  var aVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
-  var aVariance = aVarianceSqrt * aVarianceSqrt
-  var bVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
-  var bVariance = bVarianceSqrt * bVarianceSqrt
-  var cVarianceSqrt = sampleDaipp(gaussianERP, [0,1])
-  var cVariance = cVarianceSqrt * cVarianceSqrt
+  var aStd = 1//sampleDaipp(gammaERP, [2,2])
+  var bStd = 1//sampleDaipp(gammaERP, [2,2])
+  var cStd = 1//sampleDaipp(gammaERP, [2,2])
 
   //map over observations
   var latents = mapData(data,function(datum){
     initContext(datum) //make depend on context in global model?
-    var a1 = sampleDaipp(gaussianERP, [0,aVariance])
-    var a2 = sampleDaipp(gaussianERP, [0,aVariance])
-    var a3 = sampleDaipp(gaussianERP, [0,aVariance])
+    var a1 = sampleDaipp(gaussianERP, [0,aStd])
+    var a2 = sampleDaipp(gaussianERP, [0,aStd])
+    var a3 = sampleDaipp(gaussianERP, [0,aStd])
 
-    var b1 = sampleDaipp(gaussianERP, [a1+a2,bVariance])
-    var b2 = sampleDaipp(gaussianERP, [a2+a3,bVariance])
-    var b3 = sampleDaipp(gaussianERP, [a1+a3,bVariance])
+    var b1 = sampleDaipp(gaussianERP, [a1+a2,bStd])
+    var b2 = sampleDaipp(gaussianERP, [a2+a3,bStd])
+    var b3 = sampleDaipp(gaussianERP, [a1+a3,bStd])
 
-    var c1 = sampleDaipp(gaussianERP, [b1+b2,cVariance], {observedVal: datum.c1})
-    var c2 = sampleDaipp(gaussianERP, [b2+b3,cVariance], {observedVal: datum.c2})
-    var c3 = sampleDaipp(gaussianERP, [b1+b3,cVariance], {observedVal: datum.c3})
+    var c1 = sampleDaipp(gaussianERP, [b1+b2,cStd], {observedVal: datum.c1})
+    var c2 = sampleDaipp(gaussianERP, [b2+b3,cStd], {observedVal: datum.c2})
+    var c3 = sampleDaipp(gaussianERP, [b1+b3,cStd], {observedVal: datum.c3})
 
     return {a1: a1, a2: a2, a3: a3}
   })
@@ -51,11 +48,11 @@ var model = function(){
 // var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
 
 // VI.
-var params = Optimize(model, {
-  steps: 100,
-  method: {gd: {stepSize: 0.001}}, //{adagrad: {stepSize: 0.1}},
-  estimator: {ELBO: {samples: 1}},
-  verbose: true});
+// var params = Optimize(model, {
+//   steps: 100,
+//   method: {adagrad: {stepSize: 0.01}},
+//   estimator: {ELBO: {samples: 1}},
+//   verbose: true});
 
 // SampleGuide(model, {samples: 1000, params: params});
 //params
@@ -67,21 +64,18 @@ var improveParams = function(params) {
   // TODO: Compute importance weights for the mini-batch we're about
   // to use for optimization?
 
-  var weights1 = evaluateGuide(model, {datumIndex: 0, params: params, samples: 10});
+  var ess1 = EvaluateGuide(model, {datumIndex: 0, params: params, samples: 100});
   // var weights2 = evaluateGuide(model, {datumIndex: 1, params: params});
 
-  display(weights1)
-  display(listMean(weights1));
-  display(listStdev(weights1));
-  // display(listVar(weights2));
+  display(ess1)
   display('--------------------');
 
   // Do a few optimization steps.
 
   return Optimize(model, {
     params: params,
-    steps: 50,
-    method: {gd: {stepSize: 0.001}}, //{adagrad: {stepSize: 0.1}}, //FIXME: what about state in adagrad, etc?
+    steps: 100,
+    method: {adagrad: {stepSize: 0.01}}, //FIXME: what about state in adagrad, etc?
     estimator: {ELBO: {samples: 1}},
     verbose: false
   });
@@ -94,6 +88,6 @@ var iterate = function(fn, initialVal, n) {
   return iter(0, initialVal);
 };
 
-// iterate(improveParams, {}, 10);
+iterate(improveParams, {}, 10);
 
 'done';
