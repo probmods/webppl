@@ -549,7 +549,7 @@ var testFunctions = {
     if (args.check) {
       var map = result.erp.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
-      helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
+      helpers.testWithinTolerance(test, map.score, expected.score, args.tol, 'MAP score');
     }
   },
   store: function(test, result, expected, args) {

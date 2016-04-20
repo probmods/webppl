@@ -143,7 +143,7 @@ var finiteSupport = {
         map = { val: val, score: score };
       }
     }, this);
-    return { val: map.val, prob: Math.exp(map.score) };
+    return map;
   },
 
   entropy: function() {
