@@ -40,6 +40,7 @@ var model = function(){
   return latents
 }
 
+display(model())
 
 
 // Tutorial training.
