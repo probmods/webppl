@@ -153,13 +153,15 @@ module.exports = function(env) {
     if (i === arr.length) {
       return k(s);
     } else {
+      // An empty `add` stands for `_.range(arr.length)`.
+      var ix = _.isEmpty(add) ? i : add[i];
       return f(s, function(s) {
         return function() {
           return wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i + 1);
         };
         // TODO: Do we still need indices in the addresses now we have
         // access to them in mapData?
-      }, a.concat('_$$' + add[i]), arr[i]);
+      }, a.concat('_$$' + ix), arr[i]);
     }
   }
 
