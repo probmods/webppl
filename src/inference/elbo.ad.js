@@ -222,11 +222,10 @@ module.exports = function(env) {
 
     mapDataFinal: function() {
       'use ad';
-      assert.ok(this.mapDataMultiplier);
-      //NDG: I commented out these asserts because they cause an error when there are no global variables. What were they here to catch?
-      // assert.ok(this.logp0);
-      // assert.ok(this.logq0);
-      // assert.ok(this.logr0);
+      assert.notStrictEqual(this.mapDataMultiplier, undefined);
+      assert.notStrictEqual(this.logp0, undefined);
+      assert.notStrictEqual(this.logq0, undefined);
+      assert.notStrictEqual(this.logr0, undefined);
       var m = this.mapDataMultiplier - 1;
       this.logp += m * (this.logp - this.logp0);
       this.logq += m * (this.logq - this.logq0);
