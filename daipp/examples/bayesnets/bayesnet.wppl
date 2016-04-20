@@ -64,7 +64,7 @@ var improveParams = function(params) {
   // TODO: Compute importance weights for the mini-batch we're about
   // to use for optimization?
 
-  var ess1 = EvaluateGuide(model, {datumIndex: 0, params: params, samples: 100});
+  var ess1 = EvaluateGuide(model, {datumIndices: [], params: params, samples: 100});
   // var weights2 = evaluateGuide(model, {datumIndex: 1, params: params});
 
   display(ess1)
