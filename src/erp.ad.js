@@ -290,10 +290,10 @@ function mvGaussianScore(params, x) {
   assert.ok(_mu.dims[0] === _cov.dims[0]);
   var d = _mu.dims[0];
   var dLog2Pi = d * LOG_2PI;
-  var logDetCov = ad.scalar.log(ad.tensor.det(cov));
+  var logDetCov = ad.scalar.log(ad.tensor.determinant(cov));
   var z = ad.tensor.sub(x, mu);
   var zT = ad.tensor.transpose(z);
-  var prec = ad.tensor.inv(cov);
+  var prec = ad.tensor.inverse(cov);
   return ad.scalar.mul(-0.5, ad.scalar.add(
     dLog2Pi, ad.scalar.add(
       logDetCov,
