@@ -7,6 +7,10 @@ var erp = require('../src/erp.js');
 var LRU = require('lru-cache');
 var serialize = require('../src/util').serialize;
 
+// Controls whether adnn debug checks are enabled for init, update and
+// predict nets.
+var debug = true;
+
 //this sets the size of the context network throughout daipp
 var latentSize = 10
 
@@ -269,5 +273,6 @@ module.exports = {
   latentSize: latentSize,
   nneval: nneval,
   val2vec: val2vec,
-  vec2dist: vec2dist
+  vec2dist: vec2dist,
+  debug: debug
 }
