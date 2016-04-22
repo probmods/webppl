@@ -92,6 +92,7 @@ module.exports = function(env) {
 
         var scoreDiff = ad.value(this.logq) - ad.value(this.logp);
         assert.ok(typeof scoreDiff === 'number');
+        assert.ok(_.isFinite(scoreDiff), 'ELBO: scoreDiff is not finite.');
 
         // TODO: Without reparameterization, the expectation of the
         // gradient of log q is zero. Optimize by removing this term
