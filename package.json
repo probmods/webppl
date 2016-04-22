@@ -13,7 +13,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "adnn": "^1.0.9",
+    "adnn": "^1.1.0",
     "amdefine": "^1.0.0",
     "ast-types": "^0.8.13",
     "escodegen": "^1.7.0",
