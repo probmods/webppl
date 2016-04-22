@@ -10,7 +10,7 @@ var termGreen = termColor(32);
 var testWithinTol = function(actual, expected, tol) {
   var msg = 'Expected: ' + expected + ', actual: ' + actual;
   var pass = Math.abs(actual - expected) < tol;
-  console.log((pass ? termGreen('PASS') : termRed('FAIL')), '|', msg);
+  console.log((pass ? termGreen('OK   ') : termRed('CHECK')), '|', msg);
 };
 
 var std = function(erp, mean) {
