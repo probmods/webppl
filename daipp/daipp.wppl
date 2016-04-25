@@ -23,7 +23,7 @@ daipp.vec2dist chooses an importance ERP ad generates its params.
 var initNet = nn.mlp(daipp.latentSize, [
   {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
-], 'initNet');
+], 'initNet', daipp.debug);
 initNet.setTraining(true)
 var initContext = function(data) {
   var dataVec = daipp.val2vec(data)
@@ -41,7 +41,7 @@ var initContext = function(data) {
 var updateNet = nn.mlp(3*daipp.latentSize, [
   {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
-], 'updateNet');
+], 'updateNet', daipp.debug);
 updateNet.setTraining(true)
 var updateContext = function(val) {
   var dataVec = daipp.val2vec(val)
@@ -50,18 +50,6 @@ var updateContext = function(val) {
   var context = globalStore.context
 
   var newContext = daipp.nneval(updateNet, ad.tensor.concat(context, addressVec, dataVec));
-
-  var _newContext = ad.value(newContext).toArray()
-  if(!all(function(p){return (p==p)}, _newContext)){
-
-    display("---update nan---")
-    display("input: ");
-    display(context)
-    display(addressVec)
-    display(dataVec)
-    display("new context: ");
-    display(newContext)
-  }
 
   globalStore.context = newContext
 
@@ -87,7 +75,7 @@ var updateContext = function(val) {
 var predictNet = nn.mlp(3*daipp.latentSize, [
   {nOut: daipp.latentSize, activation: nn.tanh},
   {nOut: daipp.latentSize}
-], 'predictNet');
+], 'predictNet', daipp.debug);
 predictNet.setTraining(true)
 
 var DAIPPguide = function(ERP, params, val) {
@@ -104,18 +92,6 @@ var DAIPPguide = function(ERP, params, val) {
   //merge the val, context, address together
   var predictInput = ad.tensor.concat(context, addressVec, dataVec);
   var predict = daipp.nneval(predictNet, predictInput);
-
-  var _predict = ad.value(predict).toArray()
-  if(!all(function(p){return (p==p)}, _predict)){
-
-    display("---predict nan---")
-    display("input: ");
-    display(context)
-    display(addressVec)
-    display(dataVec)
-    display("predict: ");
-    display(predict)
-  }
 
   //generate params as appropriate to ERP
   var guide = daipp.vec2dist(predict, ERP, params)
