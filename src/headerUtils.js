@@ -9,6 +9,7 @@ var LRU = require('lru-cache');
 var ad = require('./ad');
 var assert = require('assert');
 var util = require('./util');
+var erp = require('./erp');
 
 module.exports = function(env) {
 
@@ -86,11 +87,21 @@ module.exports = function(env) {
     var name = env.getRelativeAddress(a);
     var params = env.registerParams(name, function() {
       var val;
-      // TODO: Init. from Gaussian.
       if (_.isArray(arg1)) {
         // param(dims, mean, std)
-        val = new Tensor(arg1).fill(arg2);
+        var dims = arg1;
+        var mean = (arg2 !== undefined) ? arg2 : 0;
+        var sd = (arg3 !== undefined) ? arg3 : 0;
+        val = new Tensor(dims);
+        if (sd === 0) {
+          val.fill(mean);
+        } else {
+          for (var i = 0; i < val.length; i++) {
+            val.data[i] = erp.gaussianERP.sample([mean, sd]);
+          }
+        }
       } else {
+        // TODO: Init. from Gaussian.
         // param(mean, std)
         val = arg1;
       }
