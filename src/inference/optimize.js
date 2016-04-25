@@ -49,6 +49,7 @@ module.exports = function(env) {
     // Create a (cps) function which takes parameters to gradient
     // estimates.
     var estimator = subOptions(options.estimator, function(name, opts) {
+      opts = util.mergeDefaults(opts, _.pick(options, 'verbose', 'debug'));
       return _.partial(estimators[name], wpplFn, s, a, opts);
     });
 
