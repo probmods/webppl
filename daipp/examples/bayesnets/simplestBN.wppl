@@ -7,22 +7,16 @@ run with: ./webppl examples/bayesnet.wppl --require ./daipp
 
 var targetModel = function(){
   var aStd = 1//sampleDaipp(gammaERP, [2,2])
-  var bStd = 1//sampleDaipp(gammaERP, [2,2])
-  var cStd = 1//sampleDaipp(gammaERP, [2,2])
+  var cStd = 0.5//sampleDaipp(gammaERP, [2,2])
 
   var a1 = sample(gaussianERP, [0,aStd])
   var a2 = sample(gaussianERP, [0,aStd])
-  var a3 = sample(gaussianERP, [0,aStd])
 
-  var b1 = sample(gaussianERP, [a1+a2,bStd])
-  var b2 = sample(gaussianERP, [a2+a3,bStd])
-  var b3 = sample(gaussianERP, [a1+a3,bStd])
+  var c1 = sample(gaussianERP, [a1+a2,cStd])
+  // var c2 = sample(gaussianERP, [b2+b3,cStd])
+  // var c3 = sample(gaussianERP, [b1+b3,cStd])
 
-  var c1 = sample(gaussianERP, [b1+b2,cStd])
-  var c2 = sample(gaussianERP, [b2+b3,cStd])
-  var c3 = sample(gaussianERP, [b1+b3,cStd])
-
-  return {c1: c1, c2: c2, c3: c3} //TODO: randomly mask some of the c's with undefined.
+  return {c1: c1}
 }
 var data = repeat(20,targetModel)
 display(data)
@@ -33,28 +27,20 @@ display(data)
 //(except in fantasy mode....).
 
 var model = function(){
-  initContext("modelLearningInitContext")
-  //model prior, for now just variances per layer
-  var aStd = 1//sampleDaipp(gammaERP, [2,2])
-  var bStd = 1//sampleDaipp(gammaERP, [2,2])
-  var cStd = 1//sampleDaipp(gammaERP, [2,2])
+  // initContext("modelLearningInitContext")
+
+  var aStd = 1
+  var cStd = 0.5
 
   //map over observations
   var latents = mapData(data,function(datum){
     initContext(datum) //make depend on context in global model?
     var a1 = sampleDaipp(gaussianERP, [0,aStd])
     var a2 = sampleDaipp(gaussianERP, [0,aStd])
-    var a3 = sampleDaipp(gaussianERP, [0,aStd])
 
-    var b1 = sampleDaipp(gaussianERP, [a1+a2,bStd])
-    var b2 = sampleDaipp(gaussianERP, [a2+a3,bStd])
-    var b3 = sampleDaipp(gaussianERP, [a1+a3,bStd])
+    var c1 = sampleDaipp(gaussianERP, [a1+a2,cStd], {observedVal: datum.c1})
 
-    var c1 = sampleDaipp(gaussianERP, [b1+b2,cStd], {observedVal: datum.c1})
-    var c2 = sampleDaipp(gaussianERP, [b2+b3,cStd], {observedVal: datum.c2})
-    var c3 = sampleDaipp(gaussianERP, [b1+b3,cStd], {observedVal: datum.c3})
-
-    return {a1: a1, a2: a2, a3: a3}
+    return {a1: a1, a2: a2}
   })
 
   return latents
