@@ -94,12 +94,40 @@ module.exports = function(env) {
         assert.ok(typeof scoreDiff === 'number');
         assert.ok(_.isFinite(scoreDiff), 'ELBO: scoreDiff is not finite.');
 
-        // TODO: Without reparameterization, the expectation of the
-        // gradient of log q is zero. Optimize by removing this term
-        // when not using reparm trick. Can we test for this with
-        // `logq !== logr`?
+        // Objective.
 
-        var objective = this.logr * scoreDiff + this.logq - this.logp;
+        // We could use the hybrid objective in all situations, but
+        // for statistical efficiency we drop terms with zero
+        // expectation where possible.
+
+        var useLR = strictEqual(this.logq, this.logr);
+
+        // Sanity check.
+
+        if (useLR) {
+          // log p isn't expected to depend on the parameters unless
+          // we use reparameterization.
+          assert.ok(typeof this.logp === 'number');
+        }
+
+        // The objective used could change across steps, but for
+        // simplicity only report on the first step.
+
+        if (this.opts.verbose && this.iter === 0 && this.step === 0) {
+          // Here PW stands for "path-wise" estimator, aka the reparam
+          // trick.
+          var estName =
+                useLR ? 'LR' :
+                (typeof this.logr === 'number') ? 'PW' :
+                'hybrid';
+
+          console.log('ELBO: Using ' + estName + ' estimator.');
+        }
+
+        var objective = useLR ?
+              this.logq * scoreDiff :
+              this.logr * scoreDiff + this.logq - this.logp;
+
         objective.backprop();
 
         var grads = _.mapObject(this.paramsSeen, function(params) {
@@ -143,6 +171,7 @@ module.exports = function(env) {
         this.logr += baseERP.score(baseParams, z);
         val = erp.transform(z, params);
 
+        this.logq += erp.score(params, val);
         // console.log('Sampled ' + ad.value(val));
         // console.log('  ' + erp.name + '(' + _params + ') reparameterized as ' +
         //             baseERP.name + '(' + baseParams + ') + transform');
@@ -153,12 +182,24 @@ module.exports = function(env) {
         throw erp.name + ' ERP does not support reparameterization.';
       } else {
         val = erp.sample(_params);
-        this.logr += erp.score(params, val);
+        var score = erp.score(params, val);
+
+        if (strictEqual(this.logq, this.logr)) {
+          // The reparameterization trick has not been used yet.
+          // Continue representing logq and loqr with the same ad
+          // node.
+          this.logr += score;
+          this.logq = this.logr;
+        } else {
+          // The reparameterization trick has been used earlier in the
+          // execution. Update logq and logr independently.
+          this.logr += score;
+          this.logq += score;
+        }
         // trace('Sampled ' + val + ' for ' + a);
         // trace('  ' + erp.name + '(' + _params + ')');
       }
 
-      this.logq += erp.score(params, val);
       return val;
     },
 
@@ -269,6 +310,14 @@ module.exports = function(env) {
         gs[i] = generic.scalarDiv(gs[i], s);
       }
     });
+  }
+
+  // TODO: Fix ad transform of ===.
+  //
+  // The ad macros changes the semantics of === for some (non ad node)
+  // types. This is a work-around for use within 'adified' functions.
+  function strictEqual(a, b) {
+    return a === b;
   }
 
   return function() {
