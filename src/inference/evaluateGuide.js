@@ -8,12 +8,13 @@ module.exports = function(env) {
 
   function EvaluateGuide(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
-      datumIndex: 0,
+      datumIndices: [], //if this is an array, use multiple data points, if it is [] use all data.
       samples: 100,
       params: {}
     });
 
     this.params = this.opts.params;
+    this.opts.datumIndices = _.isArray(this.opts.datumIndices)?this.opts.datumIndices:[this.opts.datumIndices]
 
     this.wpplFn = wpplFn;
     this.s = s;
@@ -120,11 +121,7 @@ module.exports = function(env) {
     },
 
     mapDataFetch: function(ixprev, data, options, address) {
-      var ix = this.opts.datumIndex;
-      if (ix < 0 || ix >= data.length) {
-        throw 'Invalid datumIndex.';
-      }
-      return [this.opts.datumIndex];
+      return this.opts.datumIndices;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
