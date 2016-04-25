@@ -22,19 +22,6 @@ module.exports = function(env) {
     EUBO: require('./eubo')(env)
   };
 
-  // Example usage:
-
-  // Optimize(model, {method: 'VI'})
-  // Optimize(model, {params: params, method: 'VI'})
-  // Optimize(model, {method: 'VI', optimizer: 'adagrad'})
-
-  // Options specific to the estimator or the optimization method are
-  // specified in the same way as kernel specific options are
-  // specified for MCMC. For example:
-
-  // Optimize(model, {params: params, method: {TT: {traces: traces}}})
-  // Optimize(model, {method: 'VI', optimizer: {adagrad: {stepSize: 0.1}}})
-
   function Optimize(s, k, a, wpplFn, options) {
     options = util.mergeDefaults(options, {
       params: {},
