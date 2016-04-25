@@ -180,6 +180,16 @@ module.exports = function(env) {
     return k(s, JSON.parse(fs.readFileSync(fn, 'utf-8')));
   };
 
+  var readDataSetJSON = function(s, k, a, fn) {
+    var arr = JSON.parse(fs.readFileSync(fn, 'utf-8'));
+    // Helper to avoid performing map over large data sets in WebPPL.
+    // This is faster, and uses significantly less memory than the
+    // current divide and conquer map implementation. See #174.
+    return k(s, arr.map(function(x) {
+      return new Tensor([x.length, 1]).fromFlatArray(x);
+    }));
+  };
+
   function writeJSON(s, k, a, fn, obj) {
     return k(s, fs.writeFileSync(fn, JSON.stringify(obj)));
   }
@@ -197,6 +207,7 @@ module.exports = function(env) {
     mapData: mapData,
     wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses,
     readJSON: readJSON,
+    readDataSetJSON: readDataSetJSON,
     writeJSON: writeJSON
   };
 

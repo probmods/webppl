@@ -1,0 +1,71 @@
+var zDim = 2;
+var hDecodeDim = 500;
+var hEncodeDim = 500;
+var xDim = 784;
+
+var images = readDataSetJSON('daipp/examples/data/mnist_images.json');
+
+// Recognition network.
+// Maps from an input image to the parameters of the guide
+// distribution.
+var encode = function(x, W, b) {
+  var h = T.tanh(T.add(T.dot(W[0], x), b[0]));
+  var mu = T.add(T.dot(W[1], h), b[1]);
+  var sigma = T.exp(T.add(T.dot(W[2], h), b[2]));
+  return [mu, sigma];
+};
+
+// Generative network.
+// Maps from the latent space to pixels.
+var decode = function(z, W, b) {
+  var h = T.tanh(T.add(T.dot(W[0], z), b[0]));
+  return T.sigmoid(T.add(T.dot(W[1], h), b[1]));
+};
+
+var nnparam = function(a, b) {
+  return param([a, b], 0, 0.1);
+};
+
+var model = function() {
+
+  // Define parameters.
+
+  // Variational.
+  var W0 = nnparam(hEncodeDim, xDim);
+  var W1 = nnparam(zDim, hEncodeDim);
+  var W2 = nnparam(zDim, hEncodeDim);
+  var b0 = nnparam(hEncodeDim, 1);
+  var b1 = nnparam(zDim, 1);
+  var b2 = nnparam(zDim, 1);
+
+  // Generative.
+  var W3 = nnparam(hDecodeDim, zDim);
+  var W4 = nnparam(xDim, hDecodeDim);
+  var b3 = nnparam(hDecodeDim, 1);
+  var b4 = nnparam(xDim, 1);
+
+  mapData(images, function(image) {
+
+    var z = sample(diagCovGaussianERP, [Vector([0, 0]), Vector([1, 1])], {
+      guide: [diagCovGaussianERP, encode(image, [W0, W1, W2], [b0, b1, b2])]
+    });
+
+    var probs = decode(z, [W3, W4], [b3, b4]);
+
+    factor(mvBernoulliERP.score([probs], image));
+
+  }, {batchSize: 100});
+
+  return; // something
+};
+
+var params = Optimize(model, {
+  steps: 500,
+  estimator: {ELBO: {samples: 1}},
+  method: {adam: {stepSize: 0.001}},
+  onFinish: function(data) {
+    //writeJSON('', data.history);
+  }
+});
+
+'done';
