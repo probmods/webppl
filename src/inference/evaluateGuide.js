@@ -14,7 +14,7 @@ module.exports = function(env) {
     });
 
     this.params = this.opts.params;
-    this.opts.datumIndices = _.isArray(this.opts.datumIndices)?this.opts.datumIndices:[this.opts.datumIndices]
+    this.opts.datumIndices = _.isArray(this.opts.datumIndices) ? this.opts.datumIndices : [this.opts.datumIndices];
 
     this.wpplFn = wpplFn;
     this.s = s;
