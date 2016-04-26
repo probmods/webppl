@@ -90,17 +90,19 @@ var gamma = function(arg1, arg2) {
 
 // Other ERP helpers
 
-var flip = function(theta) {
-  var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP({p: theta}));
+var flip = function(arg) {
+  var params = erp.isParams(arg) ? arg : {p: (arg !== undefined) ? arg : .5};
+  return sample(bernoulliERP(params));
 };
 
-var categorical = function(ps, vs) {
-  return vs[discrete(ps)];
+var categorical = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  return params.vs[discrete(params.ps)];
 };
 
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP({n: l.length}))];
+var uniformDraw = function(arg) {
+  var vs = erp.isParams(arg) ? arg.vs : arg;
+  return vs[sample(randomIntegerERP({n: vs.length}))];
 };
 
 var deltaERP = function(params) {
