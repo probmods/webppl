@@ -26,12 +26,14 @@ var flip = function(theta) {
   return sample(bernoulliERP({p: theta}));
 };
 
-var randomInteger = function(n) {
-  return sample(randomIntegerERP({n: n}));
+var randomInteger = function(arg) {
+  var params = erp.isParams(arg) ? arg : {n: arg};
+  return sample(randomIntegerERP(params));
 };
 
-var discrete = function(ps) {
-  return sample(discreteERP({ps: ps}));
+var discrete = function(arg) {
+  var params = erp.isParams(arg) ? arg : {ps: arg};
+  return sample(discreteERP(params));
 };
 
 var categorical = function(ps, vs) {
@@ -67,12 +69,14 @@ var uniformDraw = function(l) {
   return l[sample(randomIntegerERP({n: l.length}))];
 };
 
-var dirichlet = function(alpha) {
-  return sample(dirichletERP({alpha: alpha}));
+var dirichlet = function(arg) {
+  var params = erp.isParams(arg) ? arg : {alpha: arg};
+  return sample(dirichletERP(params));
 };
 
-var poisson = function(mu) {
-  return sample(poissonERP({mu: mu}));
+var poisson = function(arg) {
+  var params = erp.isParams(arg) ? arg : {mu: arg};
+  return sample(poissonERP(params));
 };
 
 var binomial = function(arg1, arg2) {
@@ -85,8 +89,9 @@ var beta = function(arg1, arg2) {
   return sample(betaERP(params));
 };
 
-var exponential = function(a) {
-  return sample(exponentialERP({a: a}));
+var exponential = function(arg) {
+  var params = erp.isParams(arg) ? arg : {a: arg};
+  return sample(exponentialERP(params));
 };
 
 var gamma = function(arg1, arg2) {
