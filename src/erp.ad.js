@@ -124,7 +124,7 @@ var deserialize = function(JSONString) {
 };
 
 function isParams(x) {
-  return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x);
+  return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x) && x !== null;
 }
 
 // Mixins.
