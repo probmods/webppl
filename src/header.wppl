@@ -21,10 +21,7 @@ defineErpConstructors(
     dirichletDrift
     categorical);
 
-var flip = function(theta) {
-  var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP({p: theta}));
-};
+// Helpers to sample from ERPs.
 
 var randomInteger = function(arg) {
   var params = erp.isParams(arg) ? arg : {n: arg};
@@ -34,10 +31,6 @@ var randomInteger = function(arg) {
 var discrete = function(arg) {
   var params = erp.isParams(arg) ? arg : {ps: arg};
   return sample(discreteERP(params));
-};
-
-var categorical = function(ps, vs) {
-  return vs[discrete(ps)];
 };
 
 var multinomial = function(arg1, arg2) {
@@ -63,10 +56,6 @@ var cauchy = function(arg1, arg2) {
 var uniform = function(arg1, arg2) {
   var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
   return sample(uniformERP(params));
-};
-
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP({n: l.length}))];
 };
 
 var dirichlet = function(arg) {
@@ -97,6 +86,21 @@ var exponential = function(arg) {
 var gamma = function(arg1, arg2) {
   var params = erp.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
   return sample(gammaERP(params));
+};
+
+// Other ERP helpers
+
+var flip = function(theta) {
+  var theta = (theta !== undefined) ? theta : 0.5;
+  return sample(bernoulliERP({p: theta}));
+};
+
+var categorical = function(ps, vs) {
+  return vs[discrete(ps)];
+};
+
+var uniformDraw = function(l) {
+  return l[sample(randomIntegerERP({n: l.length}))];
 };
 
 var deltaERP = function(params) {
