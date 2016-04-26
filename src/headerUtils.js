@@ -118,8 +118,6 @@ module.exports = function(env) {
 
   var mapDataIndices = {};
 
-  // TODO: Turn this into a map rather than a forEach.
-
   // Do we need to make sure we construct the return array in a way
   // that plays nicely with coroutines that fork the execution on
   // random choices? Also, scaling: #174.
@@ -151,14 +149,15 @@ module.exports = function(env) {
 
     var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
 
-    return wpplCpsForEachWithAddresses(s, function(s) {
+    return wpplCpsMapWithAddresses(s, function(s,v) {
       if (env.coroutine.mapDataFinal) {
         env.coroutine.mapDataFinal();
       }
-      return k(s);
+      return k(s,v);
     }, a, batch, ix, obsFn);
   }
 
+  //NOTE: do we still need this helper?
   function wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i) {
     i = (i === undefined) ? 0 : i;
     if (i === arr.length) {
@@ -169,6 +168,25 @@ module.exports = function(env) {
       return f(s, function(s) {
         return function() {
           return wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i + 1);
+        };
+        // TODO: Do we still need indices in the addresses now we have
+        // access to them in mapData?
+      }, a.concat('_$$' + ix), arr[i]);
+    }
+  }
+
+  function wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc, i) {
+    i = (i === undefined) ? 0 : i;
+    acc = (acc === undefined) ? [] : acc;
+    if (i === arr.length) {
+      return k(s, acc);
+    } else {
+      // An empty `add` stands for `_.range(arr.length)`.
+      var ix = _.isEmpty(add) ? i : add[i];
+      return f(s, function(s,v) {
+        return function() {
+          //FIXME: this currently returns an array with size arr.length... do we want one with shape of original data but undefineds off add?
+          return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
         };
         // TODO: Do we still need indices in the addresses now we have
         // access to them in mapData?

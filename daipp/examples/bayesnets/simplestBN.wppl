@@ -54,11 +54,15 @@ var model = function(){
 // var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
 
 // VI.
-// var params = Optimize(model, {
-//   steps: 100,
-//   method: {adagrad: {stepSize: 0.01}},
-//   estimator: {ELBO: {samples: 1}},
-//   verbose: true});
+var params = Optimize(model, {
+  steps: 10,
+  method: {adagrad: {stepSize: 0.01}},
+  estimator: {ELBO: {samples: 1}},
+  verbose: true});
+
+var posterior = SampleGuide(model, {params: params, samples: 100})
+
+viz.auto(Enumerate(function(){return sample(posterior,[])[0]}))
 
 // SampleGuide(model, {samples: 1000, params: params});
 //params
@@ -94,6 +98,6 @@ var iterate = function(fn, initialVal, n) {
   return iter(0, initialVal);
 };
 
-iterate(improveParams, {}, 10);
+// iterate(improveParams, {}, 10);
 
 'done';
