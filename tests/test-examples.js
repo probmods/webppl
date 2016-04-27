@@ -21,8 +21,7 @@ var examples = [
   'pcfgIncremental',
   'scalarImplicature',
   'semanticParsing',
-  'pragmaticsWithSemanticParsing',
-  'multiplex'
+  'pragmaticsWithSemanticParsing'
 ];
 
 var loadExample = function(example) {

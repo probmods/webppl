@@ -160,7 +160,7 @@ var speaker = cache(function(world) {
   Enumerate(function() {
     var utterance = utterancePrior()
     var L = literalListener(utterance)
-    factor(L.score([], world))
+    factor(L.score(world))
     return utterance
   }, 100)
 })
@@ -170,7 +170,7 @@ var listener = function(utterance) {
     var world = worldPrior(2, function(w) {return 1}) //use vacuous meaning to avoid any guide...
     //    var world = worldPrior(2, meaning(utterance)) //guide by literal meaning
     var S = speaker(world)
-    factor(S.score([], utterance))
+    factor(S.score(utterance))
     return isall(world)
   }, 100)
 }

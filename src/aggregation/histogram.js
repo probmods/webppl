@@ -27,7 +27,7 @@ function normalize(hist) {
 }
 
 Histogram.prototype.toERP = function() {
-  return erp.makeMarginalERP(normalize(this.hist));
+  return new erp.marginal({dist: normalize(this.hist)});
 };
 
 module.exports = Histogram;

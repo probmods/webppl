@@ -7,7 +7,7 @@ var model = function() {
   // Posterior marginal over tau is Gamma(a=9, b=3)
   var tau = gamma(a0, 1 / b0);
   var mu = gaussian(mu0, 1 / Math.sqrt(lambda0 * tau));
-  factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], 1));
-  factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], 2));
+  factor(gaussianERP({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(1));
+  factor(gaussianERP({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(2));
   return tau;
 };

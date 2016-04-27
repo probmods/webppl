@@ -81,8 +81,8 @@ module.exports = function(env) {
     return ((this.particleIndex + 1) === this.particles.length);
   };
 
-  PMCMC.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+  PMCMC.prototype.sample = function(s, cc, a, erp) {
+    return cc(s, erp.sample());
   };
 
   PMCMC.prototype.particleAtStep = function(particle, step) {

@@ -67,7 +67,7 @@ var tests = [
     settings: {
       args: [5000],
       hist: { tol: 0.1 }
-      //MAP: { tol: 0.1, check: true }
+      //MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
@@ -107,7 +107,7 @@ var tests = [
     settings: {
       args: [1000, 5],
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
@@ -125,7 +125,7 @@ var tests = [
       args: [1000, 1000],
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
@@ -187,7 +187,7 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000 }
     },
     models: {
@@ -222,7 +222,7 @@ var tests = [
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000, rejuvSteps: 10 }
     },
     models: {
@@ -253,7 +253,7 @@ var tests = [
       mean: { tol: 0.2 },
       std: { tol: 0.2 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000, rejuvSteps: 10, rejuvKernel: 'HMC' }
     },
     models: {
@@ -275,7 +275,7 @@ var tests = [
     func: 'SMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1, rejuvSteps: 10000, rejuvKernel: { MH: { permissive: true } } }
     },
     models: {
@@ -306,7 +306,7 @@ var tests = [
     func: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { samples: 5000 }
     },
     models: {
@@ -345,7 +345,7 @@ var tests = [
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { samples: 1000, kernel: 'HMC' }
     },
     models: {
@@ -529,16 +529,16 @@ var getInferenceArgs = function(testDef, model) {
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.erp.hist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.erp.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.erp.params.dist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.erp.hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.erp.params.dist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {
@@ -549,7 +549,7 @@ var testFunctions = {
     if (args.check) {
       var map = result.erp.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
-      helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
+      helpers.testWithinTolerance(test, map.score, expected.score, args.tol, 'MAP score');
     }
   },
   store: function(test, result, expected, args) {

@@ -2,89 +2,123 @@
 
 // ERPs
 
-var flip = function(theta) {
-  var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP, [theta]);
+defineErpConstructors(
+    bernoulli
+    uniform
+    randomInteger
+    gaussian
+    gaussianDrift
+    multivariateGaussian
+    cauchy
+    discrete
+    gamma
+    exponential
+    beta
+    binomial
+    multinomial
+    poisson
+    dirichlet
+    dirichletDrift
+    categorical);
+
+// Helpers to sample from ERPs.
+
+var randomInteger = function(arg) {
+  var params = erp.isParams(arg) ? arg : {n: arg};
+  return sample(randomIntegerERP(params));
 };
 
-var randomInteger = function(n) {
-  return sample(randomIntegerERP, [n]);
+var discrete = function(arg) {
+  var params = erp.isParams(arg) ? arg : {ps: arg};
+  return sample(discreteERP(params));
 };
 
-var discrete = function(ps) {
-  return sample(discreteERP, [ps]);
+var multinomial = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  return sample(multinomialERP(params));
 };
 
-var categorical = function(ps, vs) {
-  return vs[discrete(ps)];
+var gaussian = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(gaussianERP(params));
 };
 
-var multinomial = function(ps, n) {
-  return sample(multinomialERP, [ps, n]);
+var multivariateGaussian = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  return sample(multivariateGaussianERP(params));
 };
 
-var gaussian = function(mu, sigma) {
-  return sample(gaussianERP, [mu, sigma]);
+var cauchy = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  return sample(cauchyERP(params));
 };
 
-var multivariateGaussian = function(mu, cov) {
-  return sample(multivariateGaussianERP, [mu, cov]);
+var uniform = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(uniformERP(params));
 };
 
-var cauchy = function(location, scale) {
-  return sample(cauchyERP, [location, scale]);
+var dirichlet = function(arg) {
+  var params = erp.isParams(arg) ? arg : {alpha: arg};
+  return sample(dirichletERP(params));
 };
 
-var uniform = function(a, b) {
-  return sample(uniformERP, [a, b]);
+var poisson = function(arg) {
+  var params = erp.isParams(arg) ? arg : {mu: arg};
+  return sample(poissonERP(params));
 };
 
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP, [l.length])];
+var binomial = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  return sample(binomialERP(params));
 };
 
-var dirichlet = function(alpha) {
-  return sample(dirichletERP, alpha);
+var beta = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(betaERP(params));
 };
 
-var poisson = function(mu) {
-  return sample(poissonERP, [mu]);
+var exponential = function(arg) {
+  var params = erp.isParams(arg) ? arg : {a: arg};
+  return sample(exponentialERP(params));
 };
 
-var binomial = function(p, n) {
-  return sample(binomialERP, [p, n]);
+var gamma = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  return sample(gammaERP(params));
 };
 
-var beta = function(a, b) {
-  return sample(betaERP, [a, b]);
+// Other ERP helpers
+
+var flip = function(arg) {
+  var params = erp.isParams(arg) ? arg : {p: (arg !== undefined) ? arg : .5};
+  return sample(bernoulliERP(params));
 };
 
-var exponential = function(a) {
-  return sample(exponentialERP, [a]);
+var categorical = function(arg1, arg2) {
+  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  return params.vs[discrete(params.ps)];
 };
 
-var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale]);
+var uniformDraw = function(arg) {
+  var vs = erp.isParams(arg) ? arg.vs : arg;
+  return vs[sample(randomIntegerERP({n: vs.length}))];
 };
 
-var deltaERP = function(v) {
-  return _top.makeCategoricalERP([1.0], [v]);
+var deltaERP = function(params) {
+  return categoricalERP({ps: [1.0], vs: [params.v]});
 };
 
-var categoricalERP = function(ps, vs, extraParams) {
-  return _top.makeCategoricalERP(ps, vs, extraParams);
-};
-
-var multiplexERP = function(vs, erps) {
-  return _top.makeMultiplexERP(vs, erps);
-};
-
-var serializeERP = function(erp) {
-  return _top.serializeERP(erp);
+var serializeERP = function(e) {
+  return erp.serialize(e);
 };
 
 var deserializeERP = function(JSONString) {
-  return _top.deserializeERP(JSONString);
+  return erp.deserialize(JSONString);
+};
+
+var withImportanceDist = function(e, importanceERP) {
+  return erp.withImportanceDist(e, importanceERP);
 };
 
 // XRPs
@@ -95,7 +129,7 @@ var makeBetaBernoulli = function(pseudocounts) {
   globalStore[bbname] = pseudocounts;
   return function() {
     var pc = globalStore[bbname];  // get current sufficient stats
-    var val = sample(bernoulliERP, [pc[0] / (pc[0] + pc[1])]);  // sample from predictive.
+    var val = sample(bernoulliERP({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
     globalStore[bbname] = [pc[0] + val, pc[1] + !val];  // update sufficient stats
     return val;
   };
@@ -115,7 +149,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   return function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(discreteERP({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
@@ -192,10 +226,10 @@ var MAP = function(erp) {
 
 var expectation = function(erp, func) {
   var f = func || idF;
-  var supp = erp.support([]);
+  var supp = erp.support();
   return mapReduce1(plus,
                     function(s) {
-                      return Math.exp(erp.score([], s)) * f(s);
+                      return Math.exp(erp.score(s)) * f(s);
                     },
                     supp);
 };
