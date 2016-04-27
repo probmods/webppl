@@ -7,33 +7,31 @@
 // functions will complain if they're missing one.
 //
 // The main thing we can do with ERPs in WebPPL is feed them into the
-// "sample" primitive to get a sample. At top level we will also have
-// some "inspection" functions to visualize them?
+// "sample" primitive to get a sample.
 //
 // required:
 // - erp.sample() returns a value sampled from the distribution.
-// - erp.score(val) returns the log-probability of val under the distribution.
+// - erp.score(val) returns the log-probability of val under the
+//   distribution.
+//
+// Note that `sample` methods are responsible for un-lifting params as
+// necessary.
 //
 // optional:
-
-// - erp.support() gives either an array of support elements
-// - (for discrete distributions with finite support) or an object
-// - with 'lower' and 'upper' properties (for continuous distributions
-// - with bounded support).
+// - erp.support() gives either an array of support elements (for
+//   discrete distributions with finite support) or an object with
+//   'lower' and 'upper' properties (for continuous distributions with
+//   bounded support).
 // - erp.grad(val) gives the gradient of score at val wrt params.
-// - erp.driftKernel(prevVal) is an erp for making mh proposals conditioned on the previous value
-
-
-// Other assumptions:
-
-// - All erp of a particular type will share the same set of
-// parameters.
-
-// - All erp constructors take a single params object argument and
-// store a reference to it as `this.params`. See `clone`.
-
-// - `sample` methods are responsible for un-lifting params as
-// necessary.
+// - erp.driftKernel(prevVal) is an erp for making mh proposals
+//   conditioned on the previous value
+//
+// All erp should also satisfy the following:
+//
+// - All erp of a particular type should share the same set of
+//   parameters.
+// - All erp constructors should take a single params object argument
+//   and store a reference to it as `this.params`. See `clone`.
 
 'use strict';
 
