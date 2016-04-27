@@ -150,8 +150,8 @@ function makeErpType(options) {
   // output of `console.log` when it's called on an ERP that uses the
   // default constructor.
   var erp = _.has(options, 'constructor') ?
-        options.constructor :
-        function(params) { this.params = params; };
+      options.constructor :
+      function(params) { this.params = params; };
 
   erp.prototype = Object.create(options.parent.prototype);
   erp.prototype.constructor = erp;
@@ -314,7 +314,9 @@ var cauchy = makeErpType({
   },
   score: function(x) {
     'use ad';
-    return -LOG_PI - Math.log(this.params.scale) - Math.log(1 + Math.pow((x - this.params.location) / this.params.scale, 2));
+    var scale = this.params.scale;
+    var location = this.params.location;
+    return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
   }
 });
 
@@ -436,7 +438,9 @@ var gamma = makeErpType({
   },
   score: function(x) {
     'use ad';
-    return (this.params.shape - 1) * Math.log(x) - x / this.params.scale - logGamma(this.params.shape) - this.params.shape * Math.log(this.params.scale);
+    var shape = this.params.shape;
+    var scale = this.params.scale;
+    return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -477,8 +481,11 @@ var beta = makeErpType({
   },
   score: function(x) {
     'use ad';
+    var a = this.params.a;
+    var b = this.params.b;
+
     return ((x > 0 && x < 1) ?
-            (this.params.a - 1) * Math.log(x) + (this.params.b - 1) * Math.log(1 - x) - logBeta(this.params.a, this.params.b) :
+            (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logBeta(a, b) :
             -Infinity);
   },
   support: function() {
@@ -584,7 +591,7 @@ function zeros(n) {
 }
 
 function multinomialSample(theta, n) {
-  var thetaSum = util.sum(theta);
+  // var thetaSum = util.sum(theta);
   var a = zeros(theta.length);
   for (var i = 0; i < n; i++) {
     a[discreteSample(theta)]++;
@@ -605,7 +612,7 @@ var multinomial = makeErpType({
     }
     var x = [];
     var y = [];
-    for (var i = 0; i < this.params.ps.length; i++){
+    for (var i = 0; i < this.params.ps.length; i++) {
       x[i] = lnfact(val[i]);
       y[i] = val[i] * Math.log(this.params.ps[i]);
     }
@@ -638,12 +645,12 @@ function buildHistogramFromCombinations(samples, states) {
   var stateIndices = _.range(states.length);
   // Build default histogram that has 0 for all state indices
   var zeroHist = (_.chain(stateIndices)
-                   .map(function(i){return [i, 0];})
-                   .object()
-                   .value());
+      .map(function(i) {return [i, 0];})
+      .object()
+      .value());
   // Now build actual histogram, keeping 0s for unsampled states
   var hist = _.defaults(_.countBy(samples), zeroHist);
-  var array = _.sortBy(hist, function(val, key){ return key; });
+  var array = _.sortBy(hist, function(val, key) { return key; });
   return array;
 }
 
@@ -819,9 +826,9 @@ var marginal = makeErpType({
   },
   print: function() {
     return _.map(this.params.dist, function(obj, val) { return [val, obj.prob]; })
-      .sort(function(a, b) { return b[1] - a[1]; })
-      .map(function(pair) { return '    ' + pair[0] + ' : ' + pair[1]; })
-      .join('\n');
+        .sort(function(a, b) { return b[1] - a[1]; })
+        .map(function(pair) { return '    ' + pair[0] + ' : ' + pair[1]; })
+        .join('\n');
   }
 });
 
