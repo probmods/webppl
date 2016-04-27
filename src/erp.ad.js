@@ -324,7 +324,7 @@ var cauchy = makeErpType({
 function sum(xs) {
   'use ad';
   return xs.reduce(function(a, b) { return a + b; }, 0);
-};
+}
 
 
 var discrete = makeErpType({
@@ -716,19 +716,33 @@ var poisson = makeErpType({
   }
 });
 
-
 function dirichletSample(alpha) {
+  var n = alpha.length;
+
   var ssum = 0;
   var theta = [];
   var t;
-  for (var i = 0; i < alpha.length; i++) {
+  for (var i = 0; i < n; i++) {
     t = gammaSample(alpha[i], 1);
     theta[i] = t;
     ssum = ssum + t;
   }
-  for (var j = 0; j < theta.length; j++) {
+
+  var numUnderflowCorrections = 0;
+  for (var j = 0; j < n; j++) {
     theta[j] /= ssum;
+    if (theta[j] === 0) {
+      theta[j] = Number.EPSILON;
+      numUnderflowCorrections += 1;
+    }
   }
+
+  for (var k = 0; k < n; k++) {
+    if (theta[k] === 1) {
+      theta[k] -= Number.EPSILON * numUnderflowCorrections;
+    }
+  }
+
   return theta;
 }
 
