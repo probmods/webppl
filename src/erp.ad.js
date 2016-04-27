@@ -27,7 +27,7 @@
 // Other assumptions:
 
 // - All erp of a particular type will share the same set of
-// parameters. See `isEqual`.
+// parameters.
 
 // - All erp constructors take a single params object argument and
 // store a reference to it as `this.params`. See `clone`.
@@ -52,10 +52,6 @@ function ERP() {}
 
 ERP.prototype = {
 
-  isEqual: function(other) {
-    return isEqual(this, other);
-  },
-
   toJSON: function() {
     throw 'Not implemented';
   },
@@ -79,32 +75,6 @@ ERP.prototype = {
 
 function isErp(x) {
   return x instanceof ERP;
-}
-
-function paramsEqual(p1, p2) {
-  if (p1 === p2) {
-    return true;
-  }
-  for (var k in p1) {
-    if (p1.hasOwnProperty(k)) {
-      var v1 = p1[k], v2 = p2[k];
-      if (typeof v1 === 'number') {
-        if (v1 !== v2) {
-          return false;
-        }
-      } else {
-        if (!_.isEqual(v1, v2)) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
-}
-
-function isEqual(erp1, erp2) {
-  return erp1.constructor === erp2.constructor &&
-    paramsEqual(erp1.params, erp2.params);
 }
 
 function clone(erp) {
@@ -918,6 +888,5 @@ module.exports = {
   deserialize: deserialize,
   withImportanceDist: withImportanceDist,
   isErp: isErp,
-  isEqual: isEqual,
   isParams: isParams
 };

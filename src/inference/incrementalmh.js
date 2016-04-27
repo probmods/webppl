@@ -127,7 +127,7 @@ module.exports = function(env) {
     updateProperty(this, 'continuation', k);
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
-    if (!this.erp.isEqual(erp)) {
+    if (!erpEqual(erp, this.erp)) {
       this.needsUpdate = true;
       updateProperty(this, 'erp', erp);
     }
@@ -184,6 +184,40 @@ module.exports = function(env) {
     updateProperty(this, 'score', this.erp.score(this.val));
     this.coroutine.score += this.score - oldscore;
   };
+
+
+  // This is used to decide whether to re-score an ERP. Only a shallow
+  // check for parameter equality is performed, as a deep check is
+  // unlikely to be any faster than re-scoring.
+  function erpEqual(erp1, erp2) {
+    return erp1.constructor === erp2.constructor &&
+        erpParamsEqual(erp1.params, erp2.params);
+  }
+
+  function erpParamsEqual(p1, p2) {
+    if (p1 === p2) {
+      return true;
+    }
+    //assert.strictEqual(_.size(p1), _.size(p2));
+    for (var k in p1) {
+      if (p1.hasOwnProperty(k)) {
+        //assert.ok(p2.hasOwnProperty(k));
+        var v1 = p1[k], v2 = p2[k];
+        if (typeof v1 === 'number') {
+          if (v1 !== v2) {
+            return false;
+          }
+        } else if (_.isArray(v1)) {
+          if (!_.isEqual(v1, v2)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
   // ------------------------------------------------------------------
 
