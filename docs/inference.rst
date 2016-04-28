@@ -182,7 +182,7 @@ Incremental MH
    :param object options: Options.
    :returns: Marginal ERP
 
-   This method performs inference using C3. [ritchie15]_
+   This method performs inference using C3. [ritchie15]_ 
 
    The following options are supported:
 
@@ -225,6 +225,33 @@ Incremental MH
    Example usage::
 
      IncrementalMH(model, 100, { lag: 5, burn: 10 });
+
+   To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
+
+      var model = function() {
+        var hmm = function(n, obs) {
+          if (n === 0) return true;
+          else {
+            var prev = hmm(n-1, obs);
+            var state = transition(prev);
+            observation(state, obs[n]);
+            query.add(n, state);
+            return state;
+          }
+        };
+        hmm(100, observed_data);
+        return query;
+      }
+      IncrementalMH(model, 100, { lag: 5, burn: 10 });
+
+   ``query`` is a write-only table which can be returned from a program (and thus marginalized). The only operation it supports is adding named values:
+
+      .. js:function:: query.add(name, value)
+
+         :param any name: Name of value to be added to query. Will be converted to string, as Javascript object keys are.
+         :param any value: Value to be added to query.
+         :returns: undefined
+
 
 SMC
 ---
@@ -279,4 +306,5 @@ SMC
 .. [ritchie15] Daniel Ritchie, Andreas Stuhlmüller, and Noah D.
                Goodman. "C3: Lightweight Incrementalized MCMC for
                Probabilistic Programs using Continuations and Callsite
-               Caching." arXiv preprint arXiv:1509.02151 (2015).
+               Caching." International Conference on Artificial
+               Intelligence and Statistics. 2016.
