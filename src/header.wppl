@@ -23,6 +23,11 @@ defineErpConstructors(
 
 // Helpers to sample from ERPs.
 
+var bernoulli = function(arg) {
+  var params = erp.isParams(arg) ? arg : {p: arg};
+  return sample(bernoulliERP(params));
+};
+
 var randomInteger = function(arg) {
   var params = erp.isParams(arg) ? arg : {n: arg};
   return sample(randomIntegerERP(params));
@@ -90,8 +95,8 @@ var gamma = function(arg1, arg2) {
 
 // Other ERP helpers
 
-var flip = function(arg) {
-  var params = erp.isParams(arg) ? arg : {p: (arg !== undefined) ? arg : .5};
+var flip = function(p) {
+  var params = {p: (p !== undefined) ? p : .5};
   return sample(bernoulliERP(params));
 };
 
