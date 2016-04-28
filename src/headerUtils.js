@@ -149,11 +149,11 @@ module.exports = function(env) {
 
     var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
 
-    return wpplCpsMapWithAddresses(s, function(s,v) {
+    return wpplCpsMapWithAddresses(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
         env.coroutine.mapDataFinal();
       }
-      return k(s,v);
+      return k(s, v);
     }, a, batch, ix, obsFn);
   }
 
@@ -183,9 +183,11 @@ module.exports = function(env) {
     } else {
       // An empty `add` stands for `_.range(arr.length)`.
       var ix = _.isEmpty(add) ? i : add[i];
-      return f(s, function(s,v) {
+      return f(s, function(s, v) {
         return function() {
-          //FIXME: this currently returns an array with size arr.length... do we want one with shape of original data but undefineds off add?
+          // FIXME: this currently returns an array with size
+          // arr.length... do we want one with shape of original data
+          // but undefineds off add?
           return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
         };
         // TODO: Do we still need indices in the addresses now we have
