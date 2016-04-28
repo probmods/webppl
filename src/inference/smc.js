@@ -27,8 +27,8 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
-    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
+    this.adRequired = this.performRejuv && this.rejuvKernel.adRequired;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
@@ -65,31 +65,28 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp, params, options) {
+  SMC.prototype.sample = function(s, k, a, erp, options) {
     var _val, choiceScore, importanceScore;
-    var _params = params && params.map(ad.value);
 
     if (options && _.has(options, 'guide') && !this.ignoreGuide) {
       // Guide available.
-      var importanceERP = options.guide[0];
-      var importanceParams = options.guide[1];
-      var _importanceParams = importanceParams && importanceParams.map(ad.value);
-      _val = importanceERP.sample(_importanceParams);
-      choiceScore = erp.score(_params, _val);
-      importanceScore = importanceERP.score(_importanceParams, _val);
+      var importanceERP = options.guide;
+      _val = importanceERP.sample();
+      choiceScore = erp.score(_val);
+      importanceScore = importanceERP.score(_val);
     } else {
       // No guide, sample from prior.
-      _val = erp.sample(_params);
-      choiceScore = importanceScore = erp.score(_params, _val);
+      _val = erp.sample();
+      choiceScore = importanceScore = erp.score(_val);
     }
 
     var particle = this.currentParticle();
-    particle.logWeight += choiceScore - importanceScore;
+    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
 
     var val = this.adRequired && erp.isContinuous ? ad.lift(_val) : _val;
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv || this.saveTraces) {
-      particle.trace.addChoice(erp, params, val, a, s, k);
+      particle.trace.addChoice(erp, val, a, s, k);
     }
     return k(s, val);
   };
@@ -287,7 +284,8 @@ module.exports = function(env) {
     var traces = [];
 
     var aggregate = function(trace) {
-      hist.add(trace.value);
+      var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
+      hist.add(value);
       if (this.saveTraces) {
         traces.push(trace);
       }

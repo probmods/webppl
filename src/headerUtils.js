@@ -97,7 +97,7 @@ module.exports = function(env) {
           val.fill(mean);
         } else {
           for (var i = 0; i < val.length; i++) {
-            val.data[i] = erp.gaussianERP.sample([mean, sd]);
+            val.data[i] = erp.gaussianSample(mean, sd);
           }
         }
       } else {

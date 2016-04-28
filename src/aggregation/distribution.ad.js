@@ -42,7 +42,7 @@ function normalize(dist) {
 }
 
 Distribution.prototype.toERP = function() {
-  return erp.makeMarginalERP(normalize(this.dist));
+  return new erp.marginal({dist: normalize(this.dist)});
 };
 
 module.exports = Distribution;

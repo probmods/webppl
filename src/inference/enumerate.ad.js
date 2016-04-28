@@ -58,31 +58,31 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(erp, params) {
+  var getSupport = function(erp) {
     // Find support of this erp:
     if (erp.isContinuous || !erp.support) {
-      console.error(erp, params);
+      console.error(erp);
       throw 'Enumerate can only be used with ERPs that have finite support.';
     }
-    var supp = erp.support(params);
+    var supp = erp.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
-      console.error(erp, params);
+      console.error(erp);
       throw 'Enumerate encountered ERP with empty support!';
     }
 
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, k, a, erp, params) {
-    var support = getSupport(erp, params);
+  Enumerate.prototype.sample = function(store, k, a, erp) {
+    var support = getSupport(erp);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          k, value, this.score + erp.score(params, value), store);
+          k, value, this.score + erp.score(value), store);
     }, this);
 
     // Call the next state on the queue
@@ -98,8 +98,8 @@ module.exports = function(env) {
     return k(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(store, k, a, erp, params, scoreFn) {
-    var support = getSupport(erp, params);
+  Enumerate.prototype.sampleWithFactor = function(store, k, a, erp, scoreFn) {
+    var support = getSupport(erp);
 
     // Allows extra factors to be taken into account in making
     // exploration decisions:
@@ -107,7 +107,7 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + erp.score(params, value) + extraScore;
+            var score = env.coroutine.score + erp.score(value) + extraScore;
             env.coroutine.enqueueContinuation(k, value, score, store);
             return nextK();
           }, a, value);

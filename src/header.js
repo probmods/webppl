@@ -54,8 +54,8 @@ module.exports = function(env) {
   // Inference interface
 
   env.coroutine = {
-    sample: function(s, k, a, erp, params) {
-      return k(s, erp.sample(params));
+    sample: function(s, k, a, erp) {
+      return k(s, erp.sample());
     },
     factor: function() {
       throw 'factor allowed only inside inference.';
@@ -71,8 +71,8 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, erp, params, options) {
-    return env.coroutine.sample(s, k, a, erp, params, options);
+  env.sample = function(s, k, a, erp, options) {
+    return env.coroutine.sample(s, k, a, erp, options);
   };
 
   env.factor = function(s, k, a, score) {
@@ -80,9 +80,9 @@ module.exports = function(env) {
     return env.coroutine.factor(s, k, a, score);
   };
 
-  env.sampleWithFactor = function(s, k, a, erp, params, scoreFn) {
+  env.sampleWithFactor = function(s, k, a, erp, scoreFn) {
     if (typeof env.coroutine.sampleWithFactor === 'function') {
-      return env.coroutine.sampleWithFactor(s, k, a, erp, params, scoreFn);
+      return env.coroutine.sampleWithFactor(s, k, a, erp, scoreFn);
     } else {
       var sampleK = function(s, v) {
         var scoreK = function(s, sc) {
@@ -93,7 +93,7 @@ module.exports = function(env) {
         };
         return scoreFn(s, scoreK, a + 'swf1', v);
       };
-      return env.sample(s, sampleK, a, erp, params);
+      return env.sample(s, sampleK, a, erp);
     }
   };
 
@@ -226,7 +226,8 @@ module.exports = function(env) {
     assert: assert,
     ad: ad,
     nn: nn,
-    T: ad.tensor
+    T: ad.tensor,
+    erp: erp
   });
 
   // Inference functions and header utils
@@ -237,9 +238,6 @@ module.exports = function(env) {
   headerModules.forEach(function(mod) {
     addExports(mod(env));
   });
-
-  // Random primitives
-  addExports(erp);
 
   // TODO: Come up with a better way to get at this from packages. i.e. daipp.
   addExports({registerParams: env.registerParams});

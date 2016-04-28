@@ -6,21 +6,21 @@ run with: ./webppl examples/bayesnet.wppl --require ./daipp
 */
 
 var targetModel = function(){
-  var aStd = 1//sampleDaipp(gammaERP, [2,2])
-  var bStd = 1//sampleDaipp(gammaERP, [2,2])
-  var cStd = 1//sampleDaipp(gammaERP, [2,2])
+  var aStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
+  var bStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
+  var cStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
 
-  var a1 = sample(gaussianERP, [0,aStd])
-  var a2 = sample(gaussianERP, [0,aStd])
-  var a3 = sample(gaussianERP, [0,aStd])
+  var a1 = sample(gaussianERP({mu: 0, sigma: aStd}))
+  var a2 = sample(gaussianERP({mu: 0, sigma: aStd}))
+  var a3 = sample(gaussianERP({mu: 0, sigma: aStd}))
 
-  var b1 = sample(gaussianERP, [a1+a2,bStd])
-  var b2 = sample(gaussianERP, [a2+a3,bStd])
-  var b3 = sample(gaussianERP, [a1+a3,bStd])
+  var b1 = sample(gaussianERP({mu: a1+a2, sigma: bStd}))
+  var b2 = sample(gaussianERP({mu: a2+a3, sigma: bStd}))
+  var b3 = sample(gaussianERP({mu: a1+a3, sigma: bStd}))
 
-  var c1 = sample(gaussianERP, [b1+b2,cStd])
-  var c2 = sample(gaussianERP, [b2+b3,cStd])
-  var c3 = sample(gaussianERP, [b1+b3,cStd])
+  var c1 = sample(gaussianERP({mu: b1+b2, sigma: cStd}))
+  var c2 = sample(gaussianERP({mu: b2+b3, sigma: cStd}))
+  var c3 = sample(gaussianERP({mu: b1+b3, sigma: cStd}))
 
   return {c1: c1, c2: c2, c3: c3} //TODO: randomly mask some of the c's with undefined.
 }
@@ -35,24 +35,24 @@ display(data)
 var model = function(){
   initContext("modelLearningInitContext")
   //model prior, for now just variances per layer
-  var aStd = 1//sampleDaipp(gammaERP, [2,2])
-  var bStd = 1//sampleDaipp(gammaERP, [2,2])
-  var cStd = 1//sampleDaipp(gammaERP, [2,2])
+  var aStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
+  var bStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
+  var cStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
 
   //map over observations
   var latents = mapData(data,function(datum){
     initContext(datum) //make depend on context in global model?
-    var a1 = sampleDaipp(gaussianERP, [0,aStd])
-    var a2 = sampleDaipp(gaussianERP, [0,aStd])
-    var a3 = sampleDaipp(gaussianERP, [0,aStd])
+    var a1 = sampleDaipp(gaussianERP({mu: 0, sigma: aStd}))
+    var a2 = sampleDaipp(gaussianERP({mu: 0, sigma: aStd}))
+    var a3 = sampleDaipp(gaussianERP({mu: 0, sigma: aStd}))
 
-    var b1 = sampleDaipp(gaussianERP, [a1+a2,bStd])
-    var b2 = sampleDaipp(gaussianERP, [a2+a3,bStd])
-    var b3 = sampleDaipp(gaussianERP, [a1+a3,bStd])
+    var b1 = sampleDaipp(gaussianERP({mu: a1+a2, sigma: bStd}))
+    var b2 = sampleDaipp(gaussianERP({mu: a2+a3, sigma: bStd}))
+    var b3 = sampleDaipp(gaussianERP({mu: a1+a3, sigma: bStd}))
 
-    var c1 = sampleDaipp(gaussianERP, [b1+b2,cStd], {observedVal: datum.c1})
-    var c2 = sampleDaipp(gaussianERP, [b2+b3,cStd], {observedVal: datum.c2})
-    var c3 = sampleDaipp(gaussianERP, [b1+b3,cStd], {observedVal: datum.c3})
+    var c1 = sampleDaipp(gaussianERP({mu: b1+b2, sigma: cStd}), {observedVal: datum.c1})
+    var c2 = sampleDaipp(gaussianERP({mu: b2+b3, sigma: cStd}), {observedVal: datum.c2})
+    var c3 = sampleDaipp(gaussianERP({mu: b1+b3, sigma: cStd}), {observedVal: datum.c3})
 
     return {a1: a1, a2: a2, a3: a3}
   })

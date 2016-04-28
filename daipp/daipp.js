@@ -140,48 +140,54 @@ This goes from a vector (created from context etc) to an importance distribution
 ERP + params is the target distribution
 This function is responsible for deciding which importance ERP to use, and it’s params. Returns [guideERP, guideParams].
 */
-function vec2dist(vec, ERP, params) {
+function vec2dist(vec, ERP) {
   var guideERP, guideParamNets;
-  if (ERP === erp.bernoulliERP) {
+  if (ERP instanceof erp.bernoulli) {
     //importance ERP is Bernoulli, param is single bounded real
-    guideERP = erp.bernoulliERP; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
-    guideParamNets = makeParamAdaptorNets([{dim:[1], dom:[0,1]}], 'Bernoulli');
-  } else if (ERP === erp.gaussianERP) {
+    guideERP = erp.bernoulli; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
+    guideParamNets = makeParamAdaptorNets({p: {dim:[1], dom:[0,1]}}, 'Bernoulli');
+  } else if (ERP instanceof erp.gaussian) {
     //importance ERP is mixture of Gaussians, params are means and logvars for the components
     // TODO: How to set ncomponents?
     //var ncomponents = 2;
     //guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
     //guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
     // Guide with single Gaussian until we have mixture ERP.
-    guideERP = erp.gaussianERP;
-    guideParamNets = makeParamAdaptorNets([[1], {dim: [1], dom: [0, Infinity]}], 'Gaussian');
-  } else if (ERP === erp.gammaERP) {
-    guideERP = erp.gammaERP;
-    guideParamNets = makeParamAdaptorNets([{dim: [1], dom: [0, Infinity]}, {dim: [1], dom: [0, Infinity]}], 'Gamma');
-  } else if (ERP === erp.diagCovGaussianERP) {
-    guideERP = ERP;
-    var erpDim = ad.value(params[0]).length;
-    guideParamNets = makeParamAdaptorNets([[erpDim, 1], {dim: [erpDim, 1], dom: [0, Infinity]}], 'diagCovGaussianERP');
-  } else if (ERP === erp.dirichletERP) {
-    guideERP = erp.logisticNormalERP;
-    var erpDim = ad.value(params[0]).length;
-    guideParamNets = makeParamAdaptorNets([[erpDim-1, 1], {dim: [erpDim-1, 1], dom: [0, Infinity]}], 'Dirichlet');
+    guideERP = erp.gaussian;
+    guideParamNets = makeParamAdaptorNets({mu: [1], sigma: {dim: [1], dom: [0, Infinity]}}, 'Gaussian');
+  } else if (ERP instanceof erp.gamma) {
+    guideERP = erp.gamma;
+    guideParamNets = makeParamAdaptorNets({
+      shape: {dim: [1], dom: [0, Infinity]},
+      scale: {dim: [1], dom: [0, Infinity]}
+    }, 'Gamma');
+  } else if (ERP instanceof erp.diagCovGaussian) {
+    guideERP = erp.diagCovGaussian;
+    var erpDim = ad.value(ERP.params.mu).length;
+    guideParamNets = makeParamAdaptorNets({mu: [erpDim, 1], sigma: {dim: [erpDim, 1], dom: [0, Infinity]}}, 'diagCovGaussianERP');
+  } else if (ERP instanceof erp.dirichlet) {
+    guideERP = erp.logisticNormal;
+    var erpDim = ad.value(ERP.params.alpha).length;
+    guideParamNets = makeParamAdaptorNets({
+      mu: [erpDim-1, 1],
+      sigma: {dim: [erpDim-1, 1], dom: [0, Infinity]}
+    }, 'Dirichlet');
   } else {
     throw 'daipp: Unhandled ERP type in vec2dist: ' + ERP.name;
   }
   // TODO: Other ERPs: dirichlet, beta, gamma, etc.?
-  return [
-    guideERP,
-    guideParamNets.map(function(net) {
-      // dritchie: Extract scalars from singleton tensors? (see comment on makeParamAdaptorNets below)
-      // paul: the mismatch between tensor valued guide params and
-      // scalar valued erp params isn't specific to daipp. we might
-      // consider moving this into erps.
-      var out = nneval(net, vec);
-      var _out = ad.value(out);
-      return (_out instanceof Tensor) && isSingleton(_out) ? ad.tensorEntry(out, 0) : out;
-    })
-  ];
+
+  var guideParams = _.mapObject(guideParamNets, function(net) {
+    // dritchie: Extract scalars from singleton tensors? (see comment on makeParamAdaptorNets below)
+    // paul: the mismatch between tensor valued guide params and
+    // scalar valued erp params isn't specific to daipp. we might
+    // consider moving this into erps.
+    var out = nneval(net, vec);
+    var _out = ad.value(out);
+    return (_out instanceof Tensor) && isSingleton(_out) ? ad.tensorEntry(out, 0) : out;
+  });
+  var guide = new guideERP(guideParams);
+  return guide;
 }
 
 function isSingleton(t) {
@@ -200,9 +206,7 @@ function isSingleton(t) {
 //       discreteOneHot, dirichlet, logisticNormal
 //    *OR* we can look for singleton tensors and do an ad.tensorEntry(vec, 0) to turn tensor params into scalar ones...
 var makeParamAdaptorNets = cache(function(sizes, name) {
-  var nets = [];
-  for (var i = 0; i < sizes.length; i++) {
-    var size = sizes[i];
+  return _.mapObject(sizes, function(size, paramName) {
     var dim = (size.dim === undefined) ? size : size.dim;
     var flatlength = cumProd(dim);
     // dritchie: Should this be an MLP with a hidden layer + activation?
@@ -214,12 +218,11 @@ var makeParamAdaptorNets = cache(function(sizes, name) {
     if (dim.length > 1) {
       net = nn.sequence([net, nn.reshape(dim)]);
     }
-    var netname = name + '_' + i;
+    var netname = name + '_' + paramName;
     net.name = netname;
     net.setTraining(true);
-    nets.push(net);
-  }
-  return nets;
+    return net;
+  });
 });
 
 //helper to squish return vals into range [a,b]
@@ -269,10 +272,17 @@ function cache(f, maxSize) {
   return cf
 }
 
+function orderedValues(obj) {
+  return Object.keys(obj).sort().map(function(key) {
+    return obj[key];
+  });
+}
+
 module.exports = {
   latentSize: latentSize,
   nneval: nneval,
   val2vec: val2vec,
   vec2dist: vec2dist,
+  orderedValues: orderedValues,
   debug: debug
 }

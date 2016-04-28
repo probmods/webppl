@@ -50,12 +50,11 @@ Trace.prototype.continue = function() {
   }
 };
 
-Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
+Trace.prototype.addChoice = function(erp, val, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
   // assert(isErp(erp));
-  // assert(_.isUndefined(params) || _.isArray(params));
   // assert(_.isString(address));
   // assert(_.isObject(store));
   // assert(_.isFunction(continuation));
@@ -64,7 +63,6 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
     k: continuation,
     address: address,
     erp: erp,
-    params: params,
     // Record the score without adding the choiceScore. This is the score we'll
     // need if we regen from this choice.
     score: this.score,
@@ -76,7 +74,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score = ad.scalar.add(this.score, erp.score(params, val));
+  this.score = ad.scalar.add(this.score, erp.score(val));
   // this.checkConsistency();
 };
 

@@ -4,15 +4,13 @@ var model = function() {
 
   initContext(data);
 
-  var priorss = [1, 1];
-  var tau = sampleDaipp(gammaERP, priorss);
+  var tau = sampleDaipp(gammaERP({shape: 1, scale: 1}));
 
-  var priormv = [0, 1 / Math.sqrt(tau)];
-  var mu = sampleDaipp(gaussianERP, priormv);
+  var mu = sampleDaipp(gaussianERP({mu: 0, sigma: 1 / Math.sqrt(tau)}));
 
   var d = mapData(data, function(datum) {
 
-    factor(gaussianERP.score([mu, 1 / Math.sqrt(tau)], datum));
+    factor(gaussianERP({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(datum));
 
   });
 
@@ -23,8 +21,8 @@ var model = function() {
 var model2 = function() {
   var mu = param(0);
 
-  var x = sample(gaussianERP, [2, 1], {
-    guide: [gaussianERP, [mu, 1]]
+  var x = sample(gaussianERP({mu: 2, sigma: 1}), {
+    guide: gaussianERP({mu: mu, sigma: 1})
   });
 };
 

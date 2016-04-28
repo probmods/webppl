@@ -58,7 +58,7 @@ var updateContext = function(val) {
 
 //A function to predict the params of the importance distribution at a sample statement.
 
-// `ERP` + `params` is the distribution we're guiding.
+// `ERP` is the distribution we're guiding.
 // `val` will usually (by default) be the original ERP params (so
 // params === val), but we want to maintain the flexibility to put in
 // other info.
@@ -78,10 +78,7 @@ var predictNet = nn.mlp(3*daipp.latentSize, [
 ], 'predictNet', daipp.debug);
 predictNet.setTraining(true)
 
-var DAIPPguide = function(ERP, params, val) {
-  // TODO: Once the ERP interface is changed (#246) I expect we can
-  // revert to just passing ERP and val into DAIPPguide.
-
+var DAIPPguide = function(ERP, val) {
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
   //TODO: at the moment the address will be a single string, so val2vec will learn a separate embedding per address. we may want to split the string into an array (of syntax sites); in that case val2vec will use an RNN along the array, making related addresses have related vectors.
@@ -94,21 +91,25 @@ var DAIPPguide = function(ERP, params, val) {
   var predict = daipp.nneval(predictNet, predictInput);
 
   //generate params as appropriate to ERP
-  var guide = daipp.vec2dist(predict, ERP, params)
+  var guide = daipp.vec2dist(predict, ERP)
   // display(guide)
   return guide
 }
 
 //this helper samples from the guide and updates the context. except when opt.observedVal is defined it instead is a factor enforcing the observation.
-var sampleDaipp = function(ERP,params,opt) {
+var sampleDaipp = function(ERP,opt) {
   //FIXME: in fantasy mode for sleepey phase, we want to sample even for observed vals? or just make sure they are undefined in that context?
   if(opt == undefined || opt.observedVal == undefined) {
-    var val = sample(ERP, params, {guide: DAIPPguide(ERP, params, params)})
+    // Convert the ERP params to an array to retain the behavior we
+    // had under the old ERP interface. Probably better to have some
+    // handling of this directly in val2vec at some point.
+    var params = daipp.orderedValues(ERP.params);
+    var val = sample(ERP, {guide: DAIPPguide(ERP, params)})
     updateContext(val)
     return val
   } else {
     var val = opt.observedVal
-    factor(ERP.score(params,val))
+    factor(ERP.score(val))
     return val
   }
 }

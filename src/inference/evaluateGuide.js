@@ -93,24 +93,20 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, params, options) {
+    sample: function(s, k, a, erp, options) {
       options = options || {};
 
       if (!_.has(options, 'guide')) {
         throw 'Guide not specified.';
       }
 
-      var _params = params.map(ad.value);
-
       // Sample from the guide.
-      var guideERP = options.guide[0];
-      var guideParams = options.guide[1];
-      var _guideParams = guideParams.map(ad.value);
-      var _val = guideERP.sample(_guideParams);
+      var guideERP = options.guide;
+      var _val = guideERP.sample();
 
       // Compute scores.
-      this.logp += erp.score(_params, _val);
-      this.logq += guideERP.score(_guideParams, _val);
+      this.logp += ad.value(erp.score(_val));
+      this.logq += ad.value(guideERP.score(_val));
 
       return k(s, _val);
     },

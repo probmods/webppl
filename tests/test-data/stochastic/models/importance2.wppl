@@ -1,9 +1,9 @@
 var model = function() {
-  var x = sample(bernoulliERP, [.5], {
-    guide: [bernoulliERP, [.2]]
+  var x = sample(bernoulliERP({p: .5}), {
+    guide: bernoulliERP({p: .2})
   });
-  var y = sample(bernoulliERP, [.5], {
-    guide: [bernoulliERP, [.7]]
+  var y = sample(bernoulliERP({p: .5}), {
+    guide: bernoulliERP({p: .7})
   });
   factor((x || y) ? 0 : -Infinity);
   return [x, y];

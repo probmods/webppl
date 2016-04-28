@@ -31,10 +31,10 @@ module.exports = function(env) {
     return this.trace.continue();
   };
 
-  Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var _val = erp.sample(params && params.map(ad.value));
+  Initialize.prototype.sample = function(s, k, a, erp) {
+    var _val = erp.sample();
     var val = this.ad && erp.isContinuous ? ad.lift(_val) : _val;
-    this.trace.addChoice(erp, params, val, a, s, k);
+    this.trace.addChoice(erp, val, a, s, k);
     return k(s, val);
   };
 

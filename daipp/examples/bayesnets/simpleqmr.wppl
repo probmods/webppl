@@ -13,20 +13,20 @@ var noisyOrProb = function(causes,causalPowers,baserate){
   return 1-(1-baserate)*product(map2(function(c,cp){return c?(1-cp):1},causes,causalPowers))
 }
 
-var observe = function(erp,val,params){
-  factor(erp.score(params, val))
+var observe = function(erp,val){
+  factor(erp.score(val))
 }
 
 var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var c1=sampleDaipp(bernoulliERP,[0.1])
-  var c2=sampleDaipp(bernoulliERP,[0.1])
-  var c3=sampleDaipp(bernoulliERP,[0.1])
+  var c1=sampleDaipp(bernoulliERP({p: 0.1}))
+  var c2=sampleDaipp(bernoulliERP({p: 0.1}))
+  var c3=sampleDaipp(bernoulliERP({p: 0.1}))
 
-  observe(bernoulliERP,data[0],[noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)])
-  observe(bernoulliERP,data[1],[noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)])
+  observe(bernoulliERP({p: noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)}), data[0])
+  observe(bernoulliERP({p: noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)}) ,data[1])
 
   return [c1,c2,c3];
 
@@ -35,7 +35,7 @@ var model = function() {
 
 // Tutorial training.
 var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
-display(erp.hist)
+display(erp.params.dist)
 var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
 
 // VI.

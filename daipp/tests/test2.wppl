@@ -4,11 +4,9 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var priorweight = [0.4]
+  var x = sampleDaipp(bernoulliERP({p: .4}))
 
-  var x = sampleDaipp(bernoulliERP, priorweight)
-
-  factor(bernoulliERP.score([x ? 0.75 : 0.25], data[0]));
+  factor(bernoulliERP({p: x ? 0.75 : 0.25}).score(data[0]));
 
   return x;
 
@@ -20,7 +18,7 @@ var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, e
 
 var erp = SampleGuide(model, {samples: 1000, params: params});
 
-var pTrue = Math.exp(erp.score([], true));
+var pTrue = Math.exp(erp.score(true));
 
 testWithinTol(pTrue, 0.667, 0.1);
 

@@ -6,15 +6,15 @@ run with: ./webppl examples/bayesnet.wppl --require ./daipp
 */
 
 var targetModel = function(){
-  var aStd = 1//sampleDaipp(gammaERP, [2,2])
-  var cStd = 0.5//sampleDaipp(gammaERP, [2,2])
+  var aStd = 1//sampleDaipp(gammaERP({shape: 2, scale: 2}))
+  var cStd = 0.5//sampleDaipp(gammaERP({shape: 2, scale: 2}))
 
-  var a1 = sample(gaussianERP, [0,aStd])
-  var a2 = sample(gaussianERP, [0,aStd])
+  var a1 = sample(gaussianERP({mu: 0, sigma: aStd}))
+  var a2 = sample(gaussianERP({mu: 0, sigma: aStd}))
 
-  var c1 = sample(gaussianERP, [a1+a2,cStd])
-  // var c2 = sample(gaussianERP, [b2+b3,cStd])
-  // var c3 = sample(gaussianERP, [b1+b3,cStd])
+  var c1 = sample(gaussianERP({mu: a1+a2, sigma: cStd}))
+  // var c2 = sample(gaussianERP({mu: b2+b3, sigma: cStd}))
+  // var c3 = sample(gaussianERP({mu: b1+b3, sigma: cStd}))
 
   return {c1: c1}
 }
@@ -35,10 +35,10 @@ var model = function(){
   //map over observations
   var latents = mapData(data,function(datum){
     initContext(datum) //make depend on context in global model?
-    var a1 = sampleDaipp(gaussianERP, [0,aStd])
-    var a2 = sampleDaipp(gaussianERP, [0,aStd])
+    var a1 = sampleDaipp(gaussianERP({mu: 0, sigma: aStd}))
+    var a2 = sampleDaipp(gaussianERP({mu: 0, sigma: aStd}))
 
-    var c1 = sampleDaipp(gaussianERP, [a1+a2,cStd], {observedVal: datum.c1})
+    var c1 = sampleDaipp(gaussianERP({mu: a1+a2, sigma: cStd}), {observedVal: datum.c1})
 
     return {a1: a1, a2: a2}
   })
@@ -62,7 +62,7 @@ var params = Optimize(model, {
 
 var posterior = SampleGuide(model, {params: params, samples: 100})
 
-viz.auto(Enumerate(function(){return sample(posterior,[])[0]}))
+viz.auto(Enumerate(function(){return sample(posterior)[0]}))
 
 // SampleGuide(model, {samples: 1000, params: params});
 //params

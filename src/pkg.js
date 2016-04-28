@@ -46,21 +46,22 @@ var read = function(name_or_path, paths, verbose) {
       var candidate = path.resolve(candidates[0]);
       var candidatePackagePath = path.join(candidate, 'package.json');
       if (fs.existsSync(candidatePackagePath)) {
-        var name = path.basename(candidate);
+        var manifest = require(candidatePackagePath);
+        manifest.webppl = manifest.webppl || {};
+        var name = manifest.name;
         log('Loading module "' + name + '" from "' + candidate + '"');
-        var manifest = require(candidatePackagePath).webppl || {};
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
           name: name,
           js: isJsModule(candidate) && { identifier: toCamelCase(name), path: candidate },
-          headers: _.map(manifest.headers, joinPath),
-          wppl: _.map(manifest.wppl, function(manifestPath) {
+          headers: _.map(manifest.webppl.headers, joinPath),
+          wppl: _.map(manifest.webppl.wppl, function(manifestPath) {
             return {
               rel: path.join(path.basename(candidate), manifestPath),
               full: joinPath(manifestPath)
             };
           }),
-          macros: _.map(manifest.macros, joinPath),
+          macros: _.map(manifest.webppl.macros, joinPath),
           version: pkginfo.version(candidate)
         };
       } else {

@@ -52,14 +52,12 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, params, options) {
+    sample: function(s, k, a, erp, options) {
       if (!(options && _.has(options, 'guide'))) {
         throw 'Guide not specified.';
       }
-      var guideErp = options.guide[0];
-      var guideParams = options.guide[1];
-      var _guideParams = guideParams ? guideParams.map(ad.value) : [];
-      return k(s, guideErp.sample(_guideParams));
+      var guideErp = options.guide;
+      return k(s, guideErp.sample());
     },
 
     factor: function(s, k, a, score) {

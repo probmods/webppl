@@ -12,7 +12,7 @@ var ln = Math.log,
 
 module.exports = {
   name: 'gamma',
-  sampler: erp.gammaERP.sample,
+  sampler: erp.gammaSample,
   inSupport: function(params, x) {
     return typeof x === 'number' && x > 0 && x < Infinity;
   },

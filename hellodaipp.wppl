@@ -6,12 +6,10 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var priormv = [5, 1]
-
-  var x = sampleDaipp(gaussianERP, priormv);;
+  var x = sampleDaipp(gaussianERP({mu: 5, sigma: 1}));;
 
   display(x);
-  factor(gaussianERP.score([x,1], data[0]));
+  factor(gaussianERP({mu: x, sigma: 1}).score(data[0]));
 
   return x;
 

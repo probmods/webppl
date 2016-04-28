@@ -140,7 +140,7 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, params, options) {
+    sample: function(s, k, a, erp, options) {
       options = options || {};
 
       // TODO: Default to mean-field?
@@ -148,41 +148,37 @@ module.exports = function(env) {
         throw 'Guide not specified.';
       }
 
-      var guideVal = this.sampleGuide.apply(this, options.guide.concat(options));
-      this.sampleTarget(erp, params, guideVal);
+      var guideVal = this.sampleGuide(options.guide, options);
+      this.sampleTarget(erp, guideVal);
       return k(s, guideVal);
     },
 
-    sampleGuide: function(erp, params, options) {
+    sampleGuide: function(erp, options) {
       'use ad';
 
-      // At present, samplers expect untapified params.
-      var _params = params.map(ad.value);
       var val;
 
       if ((!_.has(options, 'reparam') || options.reparam) &&
-          erp.baseParams && erp.transform) {
+          erp.base && erp.transform) {
         // Use the reparameterization trick.
 
-        var baseERP = erp.baseERP || erp;
-        var baseParams = erp.baseParams(_params);
-        var z = baseERP.sample(baseParams);
+        var baseERP = erp.base();
+        var z = baseERP.sample();
+        this.logr += baseERP.score(z);
+        val = erp.transform(z);
+        this.logq += erp.score(val);
 
-        this.logr += baseERP.score(baseParams, z);
-        val = erp.transform(z, params);
-
-        this.logq += erp.score(params, val);
         // console.log('Sampled ' + ad.value(val));
         // console.log('  ' + erp.name + '(' + _params + ') reparameterized as ' +
         //             baseERP.name + '(' + baseParams + ') + transform');
 
-      } else if (options.reparam && !(erp.baseParams && erp.transform)) {
+      } else if (options.reparam && !(erp.base && erp.transform)) {
         // Warn when reparameterization is explicitly requested but
         // isn't supported by the ERP.
         throw erp.name + ' ERP does not support reparameterization.';
       } else {
-        val = erp.sample(_params);
-        var score = erp.score(params, val);
+        val = erp.sample();
+        var score = erp.score(val);
 
         if (strictEqual(this.logq, this.logr)) {
           // The reparameterization trick has not been used yet.
@@ -203,9 +199,9 @@ module.exports = function(env) {
       return val;
     },
 
-    sampleTarget: function(erp, params, guideVal) {
+    sampleTarget: function(erp, guideVal) {
       'use ad';
-      this.logp += erp.score(params, guideVal);
+      this.logp += erp.score(guideVal);
     },
 
     factor: function(s, k, a, score) {

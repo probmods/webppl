@@ -35,7 +35,7 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  HMCKernel.prototype.sample = function(s, k, a, erp, params) {
+  HMCKernel.prototype.sample = function(s, k, a, erp) {
     var prevChoice = this.prevTrace.findChoice(a);
     if (!prevChoice) {
       throw 'HMC does not support structural continuous variables.';
@@ -48,7 +48,7 @@ module.exports = function(env) {
 
       // Handle constraints.
       if (erp.support) {
-        var support = erp.support(params);
+        var support = erp.support();
         var lower = support.lower;
         var upper = support.upper;
 
@@ -71,7 +71,7 @@ module.exports = function(env) {
       val = prevChoice.val;
     }
 
-    this.trace.addChoice(erp, params, val, a, s, k);
+    this.trace.addChoice(erp, val, a, s, k);
     return k(s, val);
   };
 
@@ -132,7 +132,7 @@ module.exports = function(env) {
     var momentum = {};
     _.each(trace.choices, function(choice) {
       if (choice.erp.isContinuous) {
-        momentum[choice.address] = erp.gaussianERP.sample([0, 1]);
+        momentum[choice.address] = erp.gaussianSample(0, 1);
       }
     });
     return momentum;
