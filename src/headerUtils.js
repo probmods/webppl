@@ -157,24 +157,6 @@ module.exports = function(env) {
     }, a, batch, ix, obsFn);
   }
 
-  //NOTE: do we still need this helper?
-  function wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i) {
-    i = (i === undefined) ? 0 : i;
-    if (i === arr.length) {
-      return k(s);
-    } else {
-      // An empty `add` stands for `_.range(arr.length)`.
-      var ix = _.isEmpty(add) ? i : add[i];
-      return f(s, function(s) {
-        return function() {
-          return wpplCpsForEachWithAddresses(s, k, a, arr, add, f, i + 1);
-        };
-        // TODO: Do we still need indices in the addresses now we have
-        // access to them in mapData?
-      }, a.concat('_$$' + ix), arr[i]);
-    }
-  }
-
   function wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc, i) {
     i = (i === undefined) ? 0 : i;
     acc = (acc === undefined) ? [] : acc;
@@ -225,7 +207,6 @@ module.exports = function(env) {
     param: param,
     getRelativeAddress: getRelativeAddress,
     mapData: mapData,
-    wpplCpsForEachWithAddresses: wpplCpsForEachWithAddresses,
     readJSON: readJSON,
     readDataSetJSON: readDataSetJSON,
     writeJSON: writeJSON
