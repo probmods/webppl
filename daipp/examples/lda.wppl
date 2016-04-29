@@ -97,7 +97,16 @@ var model = function() {
   return lda(bars, vocabSize, numTopics, alpha, eta);
 };
 
-var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
-SampleGuide(model, {samples: 1000, params: params});
+var params = Optimize(model, {
+  steps: 1000,
+  method: {adagrad: {stepSize: 0.1}},
+  estimator: 'ELBO',
+  onFinish: function(data) {
+    //writeJSON('', data.history)
+  }
+});
 
+//SampleGuide(model, {samples: 1000, params: params});
 // TODO: evaluate how good the result is
+
+'done';
