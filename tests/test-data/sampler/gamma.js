@@ -1,8 +1,6 @@
-var erp = require('../../../src/erp.js');
-
-var util = require('../../../src/util.js');
-
-var statistics = require('../../../src/statistics.js');
+var erp = require('../../../src/erp');
+var util = require('../../../src/util');
+var statistics = require('../../../src/statistics');
 
 var ln = Math.log,
     pow = Math.pow,
