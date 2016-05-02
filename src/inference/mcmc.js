@@ -4,6 +4,7 @@ var _ = require('underscore');
 var util = require('../util');
 var Histogram = require('../aggregation/histogram');
 var MAP = require('../aggregation/map');
+var ad = require('../ad');
 
 module.exports = function(env) {
 
@@ -30,6 +31,10 @@ module.exports = function(env) {
         new MAP(options.justSample) :
         new Histogram();
 
+    var addToAggregator = options.kernel.adRequired ?
+        function(value, score) { aggregator.add(ad.valueRec(value), ad.value(score)); } :
+        aggregator.add.bind(aggregator);
+
     var initialize, run, finish;
 
     initialize = function() {
@@ -40,7 +45,7 @@ module.exports = function(env) {
     run = function(initialTrace) {
       initialTrace.info = { accepted: 0, total: 0 };
       var callback = kernels.tap(function(trace) { _.invoke(callbacks, 'iteration', trace); });
-      var collectSample = makeExtractValue(aggregator.add.bind(aggregator));
+      var collectSample = makeExtractValue(addToAggregator);
       var kernel = kernels.sequence(options.kernel, callback);
       var chain = kernels.sequence(
           kernels.repeat(options.burn, kernel),

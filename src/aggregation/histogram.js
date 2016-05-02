@@ -10,7 +10,6 @@ var Histogram = function() {
 };
 
 Histogram.prototype.add = function(value) {
-  var value = ad.deepUntapify(value);
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { count: 0, val: value };
@@ -28,7 +27,7 @@ function normalize(hist) {
 }
 
 Histogram.prototype.toERP = function() {
-  return erp.makeMarginalERP(normalize(this.hist));
+  return new erp.marginal({dist: normalize(this.hist)});
 };
 
 module.exports = Histogram;

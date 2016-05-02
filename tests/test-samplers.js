@@ -65,7 +65,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
 
   group['test'] = function(test) {
     var samples = repeat(n, function() {
-      return erpMetadata.sampler(params);
+      return erpMetadata.sampler.apply(null, params);
     });
 
     // first check support

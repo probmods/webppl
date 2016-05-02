@@ -21,31 +21,27 @@
 var assert = require('assert');
 var _ = require('underscore');
 
-var util = require('./util');
-var erp = requireErp();
-var enumerate = require('./inference/enumerate');
-var mcmc = require('./inference/mcmc');
-var asyncpf = require('./inference/asyncpf');
-var pmcmc = require('./inference/pmcmc');
-var smc = require('./inference/smc');
-var variational = require('./inference/variational');
-var rejection = require('./inference/rejection');
-var incrementalmh = require('./inference/incrementalmh');
-var headerUtils = require('./headerUtils');
-var Query = require('./query').Query;
-var ad = require('./ad');
-
-function requireErp() {
-  try {
-    return require('./erp');
-  } catch (e) {
-    if (e.code === 'MODULE_NOT_FOUND') {
-      console.log('ERROR: erp.js not found');
-      console.log('Run "./script/transformERP" and try again.');
-      process.exit();
-    } else {
-      throw e;
-    }
+try {
+  var util = require('./util');
+  var erp = require('./erp');
+  var enumerate = require('./inference/enumerate');
+  var mcmc = require('./inference/mcmc');
+  var asyncpf = require('./inference/asyncpf');
+  var pmcmc = require('./inference/pmcmc');
+  var smc = require('./inference/smc');
+  var variational = require('./inference/variational');
+  var rejection = require('./inference/rejection');
+  var incrementalmh = require('./inference/incrementalmh');
+  var headerUtils = require('./headerUtils');
+  var Query = require('./query').Query;
+  var ad = require('./ad');
+} catch (e) {
+  if (e.code === 'MODULE_NOT_FOUND') {
+    console.error(e.message);
+    console.error('Run ./script/adify and try again.');
+    process.exit();
+  } else {
+    throw e;
   }
 }
 
@@ -55,8 +51,8 @@ module.exports = function(env) {
   // Inference interface
 
   env.coroutine = {
-    sample: function(s, cc, a, erp, params) {
-      return cc(s, erp.sample(params));
+    sample: function(s, k, a, erp) {
+      return k(s, erp.sample());
     },
     factor: function() {
       throw 'factor allowed only inside inference.';
@@ -64,26 +60,26 @@ module.exports = function(env) {
     exit: function(s, r) {
       return r;
     },
-    incrementalize: function(s, cc, a, fn, args) {
-      var args = [s, cc, a].concat(args);
+    incrementalize: function(s, k, a, fn, args) {
+      var args = [s, k, a].concat(args);
       return fn.apply(global, args);
     }
   };
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, dist, params) {
-    return env.coroutine.sample(s, k, a, dist, params);
+  env.sample = function(s, k, a, erp) {
+    return env.coroutine.sample(s, k, a, erp);
   };
 
   env.factor = function(s, k, a, score) {
-    assert.ok(!isNaN(ad.untapify(score)), 'factor() score was NaN');
+    assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
     return env.coroutine.factor(s, k, a, score);
   };
 
-  env.sampleWithFactor = function(s, k, a, dist, params, scoreFn) {
+  env.sampleWithFactor = function(s, k, a, erp, scoreFn) {
     if (typeof env.coroutine.sampleWithFactor === 'function') {
-      return env.coroutine.sampleWithFactor(s, k, a, dist, params, scoreFn);
+      return env.coroutine.sampleWithFactor(s, k, a, erp, scoreFn);
     } else {
       var sampleK = function(s, v) {
         var scoreK = function(s, sc) {
@@ -94,7 +90,7 @@ module.exports = function(env) {
         };
         return scoreFn(s, scoreK, a + 'swf1', v);
       };
-      return env.sample(s, sampleK, a, dist, params);
+      return env.sample(s, sampleK, a, erp);
     }
   };
 
@@ -102,10 +98,10 @@ module.exports = function(env) {
     return env.coroutine.exit(s, retval);
   };
 
-  env.incrementalize = function(s, cc, a, fn, args) {
+  env.incrementalize = function(s, k, a, fn, args) {
     args = args || [];
-    return env.coroutine.incrementalize(s, cc, a, fn, args);
-  }
+    return env.coroutine.incrementalize(s, k, a, fn, args);
+  };
 
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
@@ -135,7 +131,8 @@ module.exports = function(env) {
     _: _,
     util: util,
     assert: assert,
-    ad: ad
+    ad: ad,
+    erp: erp
   });
 
   // Inference functions and header utils
@@ -146,9 +143,6 @@ module.exports = function(env) {
   headerModules.forEach(function(mod) {
     addExports(mod(env));
   });
-
-  // Random primitives
-  addExports(erp);
 
   return exports;
 

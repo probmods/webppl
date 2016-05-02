@@ -24,8 +24,8 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
-    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
+    this.adRequired = this.performRejuv && this.rejuvKernel.adRequired;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
@@ -52,19 +52,18 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp, params) {
+  SMC.prototype.sample = function(s, k, a, erp) {
     var importanceERP = erp.importanceERP || erp;
-    var _params = ad.untapify(params);
-    var _val = importanceERP.sample(_params);
-    var val = this.adRequired && importanceERP.isContinuous ? ad.tapify(_val) : _val;
-    var importanceScore = importanceERP.score(_params, _val);
-    var choiceScore = erp.score(_params, _val);
+    var _val = importanceERP.sample();
+    var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
+    var importanceScore = importanceERP.score(_val);
+    var choiceScore = erp.score(_val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
-      particle.trace.addChoice(erp, params, val, a, s, k);
+      particle.trace.addChoice(erp, val, a, s, k);
     }
-    particle.logWeight += choiceScore - importanceScore;
+    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
     return k(s, val);
   };
 
@@ -73,8 +72,8 @@ module.exports = function(env) {
     var particle = this.currentParticle();
     particle.trace.numFactors += 1;
     particle.trace.saveContinuation(s, k);
-    particle.trace.score = ad.add(particle.trace.score, score);
-    particle.logWeight += ad.untapify(score);
+    particle.trace.score = ad.scalar.add(particle.trace.score, score);
+    particle.logWeight += ad.value(score);
     this.debugLog('(' + this.particleIndex + ') Factor: ' + a);
     return this.sync();
   };
@@ -132,7 +131,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = erp.multinomialSample(newWeights);
+      j = erp.discreteSample(newWeights);
       newParticles.push(particles[j].copy());
     }
 
@@ -258,6 +257,9 @@ module.exports = function(env) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
     var hist = new Histogram();
+    var addToHist = this.adRequired ?
+        function(value) { hist.add(ad.valueRec(value)); } :
+        hist.add.bind(hist);
     var logAvgW = _.first(this.completeParticles).logWeight;
 
     return util.cpsForEach(
@@ -268,10 +270,10 @@ module.exports = function(env) {
                 this.rejuvSteps,
                 kernels.sequence(
                     this.rejuvKernel,
-                    kernels.tap(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(function(trace) { addToHist(trace.value); })));
             return chain(k, particle.trace);
           } else {
-            hist.add(particle.trace.value);
+            addToHist(particle.trace.value);
             return k();
           }
         }.bind(this),

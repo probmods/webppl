@@ -8,9 +8,10 @@
 
 'use strict';
 
+var _ = require('underscore');
 var erp = require('../erp');
 var assert = require('assert');
-var util = require('../util')
+var util = require('../util');
 var Histogram = require('../aggregation/histogram');
 
 module.exports = function(env) {
@@ -20,12 +21,16 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxScore = maxScore === undefined ? 0 : maxScore
+    this.maxScore = (maxScore === undefined) ? 0 : maxScore;
     this.incremental = incremental;
     this.hist = new Histogram();
-    this.numSamples = numSamples;
+    this.numSamples = (numSamples === undefined) ? 1 : numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
+
+    if (!_.isNumber(numSamples) || numSamples <= 0) {
+      throw 'numSamples should be a positive integer.';
+    }
 
     if (this.incremental) {
       assert(this.maxScore <= 0, 'maxScore cannot be positive for incremental rejection.');
@@ -36,11 +41,11 @@ module.exports = function(env) {
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
-  }
+  };
 
-  Rejection.prototype.sample = function(s, k, a, erp, params) {
-    return k(s, erp.sample(params));
-  }
+  Rejection.prototype.sample = function(s, k, a, erp) {
+    return k(s, erp.sample());
+  };
 
   Rejection.prototype.factor = function(s, k, a, score) {
     if (this.incremental) {
@@ -57,7 +62,7 @@ module.exports = function(env) {
     } else {
       return k(s);
     }
-  }
+  };
 
   Rejection.prototype.exit = function(s, retval) {
     assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
@@ -74,7 +79,7 @@ module.exports = function(env) {
     } else {
       return this.run();
     }
-  }
+  };
 
   Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 

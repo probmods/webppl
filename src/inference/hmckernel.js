@@ -35,7 +35,7 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  HMCKernel.prototype.sample = function(s, k, a, erp, params) {
+  HMCKernel.prototype.sample = function(s, k, a, erp) {
     var prevChoice = this.prevTrace.findChoice(a);
     if (!prevChoice) {
       throw 'HMC does not support structural continuous variables.';
@@ -43,12 +43,12 @@ module.exports = function(env) {
 
     var val;
     if (erp.isContinuous) {
-      var prevVal = ad.untapify(prevChoice.val);
+      var prevVal = ad.value(prevChoice.val);
       var _val = prevVal + this.stepSize * this.momentum[a];
 
       // Handle constraints.
       if (erp.support) {
-        var support = erp.support(params);
+        var support = erp.support();
         var lower = support.lower;
         var upper = support.upper;
 
@@ -63,7 +63,7 @@ module.exports = function(env) {
           }
         }
       }
-      val = ad.tapify(_val);
+      val = ad.lift(_val);
     } else {
       if (_.contains(mvErpNames, erp.name)) {
         throw 'Multivariate distributions are not yet supported by HMC.';
@@ -71,13 +71,13 @@ module.exports = function(env) {
       val = prevChoice.val;
     }
 
-    this.trace.addChoice(erp, params, val, a, s, k);
+    this.trace.addChoice(erp, val, a, s, k);
     return k(s, val);
   };
 
   HMCKernel.prototype.factor = function(s, k, a, score) {
     this.trace.numFactors += 1;
-    this.trace.score = ad.add(this.trace.score, score);
+    this.trace.score = ad.scalar.add(this.trace.score, score);
 
     if (this.trace.numFactors === this.exitFactor) {
       this.trace.saveContinuation(s, k);
@@ -88,6 +88,14 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.run = function() {
+
+    // Zero derivatives left over from previous HMC iterations, or
+    // from the rejuvenation of a particle which shares parts of the
+    // ad graph which this trace.
+    if (ad.isLifted(this.oldTrace.score)) {
+      this.oldTrace.score.zeroDerivatives();
+    }
+
     // Initialize momentum.
     this.momentum = sampleMomentum(this.oldTrace);
 
@@ -124,7 +132,7 @@ module.exports = function(env) {
     var momentum = {};
     _.each(trace.choices, function(choice) {
       if (choice.erp.isContinuous) {
-        momentum[choice.address] = erp.gaussianERP.sample([0, 1]);
+        momentum[choice.address] = erp.gaussianSample(0, 1);
       }
     });
     return momentum;
@@ -142,12 +150,12 @@ module.exports = function(env) {
     // variables.
     this.prevTrace = trace;
     this.trace = this.prevTrace.fresh();
-    // Once the WebPPL program has finished we need to call k to
+    // Once the WebPPL program has finished we need to call cont to
     // continue inference. Since the program will call env.exit once
-    // finished, we save k here in order to resume inference as
+    // finished, we save cont here in order to resume inference as
     // desired. Note that we can't pass a continuation other than
     // env.exit to the program. This is because the continuation is
-    // store as part of the trace, and when invoked by a different
+    // stored as part of the trace, and when invoked by a different
     // MCMC kernel execution would jump back here.
     this.positionStepCont = cont;
     return this.trace.continue();
@@ -162,23 +170,27 @@ module.exports = function(env) {
       assert(!this.trace.isComplete());
     }
     var cont = this.positionStepCont;
-    this.thisPositionStepCont = undefined;
+    this.positionStepCont = undefined;
     return cont(this.trace);
   };
 
   HMCKernel.prototype.momentumStep = function(trace, scaleFactor) {
-    // Compute gradient of score w.r.t. the continuous variables.
-    ad.yGradientR(trace.score);
-    var stepSize = this.stepSize * scaleFactor;
-    _.each(trace.choices, function(choice) {
-      if (choice.erp.isContinuous) {
-        this.momentum[choice.address] += stepSize * choice.val.sensitivity;
-      }
-    }, this);
+    if (ad.isLifted(trace.score)) {
+
+      // Compute gradient of score w.r.t. the continuous variables.
+      trace.score.backprop();
+
+      var stepSize = this.stepSize * scaleFactor;
+      _.each(trace.choices, function(choice) {
+        if (choice.erp.isContinuous) {
+          this.momentum[choice.address] += stepSize * ad.derivative(choice.val);
+        }
+      }, this);
+    }
   };
 
   function computeH(trace, momentum) {
-    var score = ad.untapify(trace.score);
+    var score = ad.value(trace.score);
     var kinetic = 0.5 * _.reduce(momentum, function(memo, p) { return memo + p * p; }, 0);
     return score - kinetic;
   }

@@ -42,16 +42,16 @@ module.exports = function(env) {
     env.query.clear();
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
-    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, regen.params, true);
+    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.erp, true);
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
-    if (ad.untapify(score) === -Infinity) {
+    if (ad.value(score) === -Infinity) {
       return this.finish(this.oldTrace, false);
     }
     this.trace.numFactors += 1;
-    this.trace.score = ad.add(this.trace.score, score);
+    this.trace.score = ad.scalar.add(this.trace.score, score);
     if (this.trace.numFactors === this.exitFactor) {
       this.trace.saveContinuation(s, k);
       return this.exit(s, undefined, true);
@@ -59,16 +59,15 @@ module.exports = function(env) {
     return k(s);
   };
 
-  MHKernel.prototype.sample = function(s, k, a, erp, params, forceSample) {
+  MHKernel.prototype.sample = function(s, k, a, erp, forceSample) {
     var _val, val;
     var prevChoice = this.oldTrace.findChoice(a);
 
     if (forceSample) {
       assert(prevChoice);
-      var proposalErp = erp.proposer || erp;
-      var proposalParams = erp.proposer ? [params, prevChoice.val] : params;
-      _val = proposalErp.sample(ad.untapify(proposalParams));
-      val = this.adRequired && proposalErp.isContinuous ? ad.tapify(_val) : _val;
+      var proposalErp = erp.driftKernel ? erp.driftKernel(prevChoice.val) : erp;
+      _val = proposalErp.sample();
+      val = this.adRequired && proposalErp.isContinuous ? ad.lift(_val) : _val;
       // Optimization: Bail early if same value is re-sampled.
       if (!proposalErp.isContinuous && prevChoice.val === val) {
         return this.finish(this.oldTrace, true);
@@ -78,13 +77,13 @@ module.exports = function(env) {
         val = prevChoice.val; // Will be a tape if continuous.
         this.reused[a] = true;
       } else {
-        _val = erp.sample(ad.untapify(params));
-        val = this.adRequired && erp.isContinuous ? ad.tapify(_val) : _val;
+        _val = erp.sample();
+        val = this.adRequired && erp.isContinuous ? ad.lift(_val) : _val;
       }
     }
 
-    this.trace.addChoice(erp, params, val, a, s, k);
-    if (ad.untapify(this.trace.score) === -Infinity) {
+    this.trace.addChoice(erp, val, a, s, k);
+    if (ad.value(this.trace.score) === -Infinity) {
       return this.finish(this.oldTrace, false);
     }
     return k(s, val);
@@ -154,36 +153,34 @@ module.exports = function(env) {
   MHKernel.prototype.acceptProb = function(trace, oldTrace) {
     // assert.notStrictEqual(trace, undefined);
     // assert.notStrictEqual(oldTrace, undefined);
-    // assert(_.isNumber(ad.untapify(trace.score)));
-    // assert(_.isNumber(ad.untapify(oldTrace.score)));
+    // assert(_.isNumber(ad.value(trace.score)));
+    // assert(_.isNumber(ad.value(oldTrace.score)));
     // assert(_.isNumber(this.regenFrom));
     // assert(_.isNumber(this.proposalBoundary));
 
     var fw = this.transitionProb(oldTrace, trace);
     var bw = this.transitionProb(trace, oldTrace);
-    var p = Math.exp(ad.untapify(trace.score) - ad.untapify(oldTrace.score) + bw - fw);
+    var p = Math.exp(ad.value(trace.score) - ad.value(oldTrace.score) + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   };
 
   MHKernel.prototype.transitionProb = function(fromTrace, toTrace) {
     // Proposed to ERP.
-    var proposalErp, proposalParams;
+    var proposalErp;
     var regenChoice = toTrace.choiceAtIndex(this.regenFrom);
 
-    if (regenChoice.erp.proposer) {
-      proposalErp = regenChoice.erp.proposer;
-      proposalParams = [regenChoice.params, fromTrace.choiceAtIndex(this.regenFrom).val];
+    if (regenChoice.erp.driftKernel) {
+      proposalErp = regenChoice.erp.driftKernel(fromTrace.choiceAtIndex(this.regenFrom).val);
     } else {
       proposalErp = regenChoice.erp;
-      proposalParams = regenChoice.params;
     }
 
-    var score = ad.untapify(proposalErp.score(proposalParams, regenChoice.val));
+    var score = ad.value(proposalErp.score(regenChoice.val));
 
     // Rest of the trace.
     score += util.sum(toTrace.choices.slice(this.regenFrom + 1).map(function(choice) {
-      return this.reused.hasOwnProperty(choice.address) ? 0 : ad.untapify(choice.erp.score(choice.params, choice.val));
+      return this.reused.hasOwnProperty(choice.address) ? 0 : ad.value(choice.erp.score(choice.val));
     }, this));
 
     score -= Math.log(this.numRegenChoices(fromTrace));

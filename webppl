@@ -6,13 +6,16 @@ var path = require('path');
 var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var util = require('./src/util');
+var pkginfo = require('./src/pkginfo');
+var git = require('./src/git');
+var erp = require('./src/erp');
 var parseArgs = require('minimist');
-var version = require('./src/version');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
-  if (isErp(x)) {
-    x.print();
+  if (erp.isErp(x) && x.print) {
+    console.log('ERP:');
+    console.log(x.print());
   } else {
     console.log(x);
   }
@@ -31,19 +34,11 @@ function run(code, packages, verbose, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  console.log('programFile', programFile)
-
-  webppl.run(
-      code,
-      function(s, x) {
-        console.log('\n* Program return value:\n');
-        printWebPPLValue(x);
-      },
-      {
-        extra: webppl.parsePackageCode(packages, verbose),
-        filename: programFile,
-        verbose: verbose
-      });
+  webppl.run(code, topK, {
+    bundles: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose
+  });
 }
 
 var lines = function(ar) {
@@ -60,7 +55,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
   });
 
   var compileOptions = {
-    extra: webppl.parsePackageCode(packages, verbose),
+    bundles: webppl.parsePackageCode(packages, verbose),
     filename: programFile,
     verbose: verbose
   };
@@ -94,9 +89,8 @@ function main() {
 
   // Print version if requested
   if (argv.version) {
-    version.get(__dirname, function(ver) {
-      console.log(ver.branch, ver.describe, __dirname);
-    });
+    var dir = __dirname;
+    console.log(_.filter([git.branch(dir), pkginfo.version(), dir]).join(' '));
     return;
   }
 

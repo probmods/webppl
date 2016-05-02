@@ -31,10 +31,10 @@ module.exports = function(env) {
     return this.trace.continue();
   };
 
-  Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var _val = erp.sample(ad.untapify(params));
-    var val = this.ad && erp.isContinuous ? ad.tapify(_val) : _val;
-    this.trace.addChoice(erp, params, val, a, s, k);
+  Initialize.prototype.sample = function(s, k, a, erp) {
+    var _val = erp.sample();
+    var val = this.ad && erp.isContinuous ? ad.lift(_val) : _val;
+    this.trace.addChoice(erp, val, a, s, k);
     return k(s, val);
   };
 
@@ -42,7 +42,7 @@ module.exports = function(env) {
     if (score === -Infinity) {
       return this.fail();
     }
-    this.trace.score = ad.add(this.trace.score, score);
+    this.trace.score = ad.scalar.add(this.trace.score, score);
     return k(s);
   };
 

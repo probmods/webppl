@@ -12,12 +12,16 @@ var examples = [
   'geometric',
   'hmm',
   'hmmIncremental',
+  'lda',
+  'ldaCollapsed',
+  'linearRegression',
+  'logisticRegression',
+  'multivariateRegression',
   'pcfg',
   'pcfgIncremental',
   'scalarImplicature',
   'semanticParsing',
-  'pragmaticsWithSemanticParsing',
-  'multiplex'
+  'pragmaticsWithSemanticParsing'
 ];
 
 var loadExample = function(example) {

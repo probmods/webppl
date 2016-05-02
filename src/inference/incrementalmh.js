@@ -72,7 +72,7 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   // A cached ERP call
-  function ERPNode(coroutine, parent, s, k, a, erp, params) {
+  function ERPNode(coroutine, parent, s, k, a, erp) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
@@ -87,8 +87,7 @@ module.exports = function(env) {
     this.reachable = true;
     this.needsUpdate = false;
 
-    this.params = params;
-    this.val = erp.sample(params);
+    this.val = erp.sample();
     this.score = 0; this.rescore();
 
     // Add this to the master list of ERP nodes
@@ -96,23 +95,23 @@ module.exports = function(env) {
   }
 
   ERPNode.prototype.print = function() {
-    tabbedlog(0, this.depth, 'ERPNode', this.erp.sample.name.slice(0, -6),
-              this.params, this.val, this.reachable ? '' : '!!UNREACHABLE!!');
+    tabbedlog(0, this.depth, 'ERPNode', this.erp,
+              this.val, this.reachable ? '' : '!!UNREACHABLE!!');
   };
 
   ERPNode.prototype.execute = function() {
     tabbedlog(4, this.depth, 'execute ERP');
     if (this.needsUpdate) {
-      tabbedlog(4, this.depth, 'yes, ERP params changed');
-      tabbedlog(5, this.depth, 'old params:',
-          this.__snapshot ? this.__snapshot.params : undefined,
-          'new params:', this.params);
+      tabbedlog(4, this.depth, 'yes, ERP changed');
+      tabbedlog(5, this.depth, 'old erp:',
+          this.__snapshot ? this.__snapshot.erp : undefined,
+          'new erp:', this.erp);
       this.needsUpdate = false;
       this.rescore();
     }
     else {
-      tabbedlog(4, this.depth, 'no, ERP params have not changed');
-      tabbedlog(5, this.depth, 'params:', this.params);
+      tabbedlog(4, this.depth, 'no, ERP has not changed');
+      tabbedlog(5, this.depth, 'erp:', this.erp);
     }
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
@@ -123,15 +122,14 @@ module.exports = function(env) {
     }
   };
 
-  ERPNode.prototype.registerInputChanges = function(s, k, unused, params) {
+  ERPNode.prototype.registerInputChanges = function(s, k, erp) {
     updateProperty(this, 'store', _.clone(s));
     updateProperty(this, 'continuation', k);
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
-    // Check params for changes
-    if (!paramsEqual(params, this.params)) {
+    if (!erpEqual(erp, this.erp)) {
       this.needsUpdate = true;
-      updateProperty(this, 'params', params);
+      updateProperty(this, 'erp', erp);
     }
   };
 
@@ -148,7 +146,7 @@ module.exports = function(env) {
 
   ERPNode.prototype.propose = function() {
     var oldval = this.val;
-    var newval = this.erp.sample(this.params);
+    var newval = this.erp.sample();
     tabbedlog(4, this.depth, 'proposing change to ERP.', 'oldval:', oldval, 'newval:', newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
@@ -183,9 +181,43 @@ module.exports = function(env) {
 
   ERPNode.prototype.rescore = function() {
     var oldscore = this.score;
-    updateProperty(this, 'score', this.erp.score(this.params, this.val));
+    updateProperty(this, 'score', this.erp.score(this.val));
     this.coroutine.score += this.score - oldscore;
   };
+
+
+  // This is used to decide whether to re-score an ERP. Only a shallow
+  // check for parameter equality is performed, as a deep check is
+  // unlikely to be any faster than re-scoring.
+  function erpEqual(erp1, erp2) {
+    return erp1.constructor === erp2.constructor &&
+        erpParamsEqual(erp1.params, erp2.params);
+  }
+
+  function erpParamsEqual(p1, p2) {
+    if (p1 === p2) {
+      return true;
+    }
+    //assert.strictEqual(_.size(p1), _.size(p2));
+    for (var k in p1) {
+      if (p1.hasOwnProperty(k)) {
+        //assert.ok(p2.hasOwnProperty(k));
+        var v1 = p1[k], v2 = p2[k];
+        if (typeof v1 === 'number') {
+          if (v1 !== v2) {
+            return false;
+          }
+        } else if (_.isArray(v1)) {
+          if (!_.isEqual(v1, v2)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
   // ------------------------------------------------------------------
 
@@ -258,21 +290,6 @@ module.exports = function(env) {
     for (prop in s2) {
       if (s1[prop] !== s2[prop])
         return false;
-    }
-    return true;
-  }
-
-  function paramsEqual(p1, p2) {
-    if (p1 === p2) {
-      return true;
-    } else if (p1 === undefined || p2 === undefined) {
-      return false;
-    } else if (p1.length !== p2.length) {
-      return false;
-    } else {
-      for (var i = 0; i < p1.length; i++) {
-        if (p1[i] !== p2[i]) { return false; }
-      }
     }
     return true;
   }
@@ -455,7 +472,7 @@ module.exports = function(env) {
       }
     }
     // Check store for changes
-    if (!storesEqual(this.store, s)) {
+    if (!storesEqual(this.inStore, s)) {
       this.needsUpdate = true;
       updateProperty(this, 'inStore', _.clone(s));
     }
@@ -816,8 +833,8 @@ module.exports = function(env) {
     return this.cachelookup(FactorNode, s, k, a, null, [score]).execute();
   };
 
-  IncrementalMH.prototype.sample = function(s, k, a, erp, params, name) {
-    var n = this.cachelookup(ERPNode, s, k, a, erp, params);
+  IncrementalMH.prototype.sample = function(s, k, a, erp, name) {
+    var n = this.cachelookup(ERPNode, s, k, a, erp);
     n.name = name;
     return n.execute();
   };
@@ -925,7 +942,7 @@ module.exports = function(env) {
           var propnode = this.erpMasterList.getRandom();
           // Propose change and resume execution
           debuglog(1, '----------------------------------------------------------------------');
-          debuglog(1, 'PROPOSAL', 'type:', propnode.erp.sample.name, 'address:', propnode.address);
+          debuglog(1, 'PROPOSAL', 'type:', propnode.erp, 'address:', propnode.address);
           return propnode.propose();
         } else {
           return this.runFromStart();

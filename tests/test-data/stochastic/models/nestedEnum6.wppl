@@ -1,0 +1,19 @@
+var model = function() {
+  var x = uniform(0, 1);
+
+  var outerMarginal = Enumerate(function() {
+
+    var innerMarginal = Enumerate(function() {
+      var y = flip(x);
+      factor(y ? 1 : -1);
+      return y;
+    });
+
+    var z = sample(innerMarginal);
+    factor(!z ? 0 : -4);
+    return z;
+  });
+
+  var w = sample(outerMarginal);
+  return x * w;
+};
