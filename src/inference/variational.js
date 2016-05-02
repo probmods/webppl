@@ -6,9 +6,6 @@
 
 'use strict';
 
-var erp = require('../erp');
-
-
 module.exports = function(env) {
 
   function Variational(s, k, a, wpplFn, estS) {
