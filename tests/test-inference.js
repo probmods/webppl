@@ -56,7 +56,6 @@ var tests = [
       geometric: { args: [10] },
       cache: true,
       withCaching: true,
-      optionalErpParams: true,
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
       nestedEnumDiscrete: true
@@ -77,7 +76,6 @@ var tests = [
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000] },
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] },
@@ -115,8 +113,7 @@ var tests = [
       deterministic: { hist: { tol: 0 }, args: [30, 30] },
       store: { hist: { tol: 0 }, args: [30, 30] },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
-      withCaching: true,
-      optionalErpParams: true
+      withCaching: true
     }
   },
   {
@@ -151,7 +148,6 @@ var tests = [
       varFactors1: true,
       varFactors2: true,
       withCaching: true,
-      optionalErpParams: true,
       nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -177,8 +173,7 @@ var tests = [
       incrementalBinomial: { args: [1000, -2, true] },
       store: { hist: { tol: 0 } },
       geometric: true,
-      varFactors2: true,
-      optionalErpParams: true
+      varFactors2: true
     }
   },
   {
@@ -204,7 +199,6 @@ var tests = [
       importance2: { args: { particles: 3000 } },
       importance3: true,
       withCaching: true,
-      optionalErpParams: true,
       nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -240,7 +234,6 @@ var tests = [
       importance2: { args: { particles: 3000, rejuvSteps: 10 } },
       importance3: true,
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
@@ -297,7 +290,6 @@ var tests = [
       importance: true,
       importance2: true,
       importance3: true,
-      optionalErpParams: true,
       variableSupport: true
     }
   },
@@ -323,7 +315,6 @@ var tests = [
         args: { samples: 80000, burn: 20000 }
       },
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
@@ -356,7 +347,6 @@ var tests = [
       store2: { hist: { tol: 0 } },
       geometric: { samples: 5000, kernel: 'HMC' },
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
