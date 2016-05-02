@@ -33,7 +33,7 @@ _.each(cacheExempt, function(erpname) {
 cacheExempt = cacheExemptTable;
 
 function shouldCache(callee) {
-  // Don't cache 'primitive' functions. It actually could be benficial to cache
+  // Don't cache 'primitive' functions. It actually could be beneficial to cache
   //    these in some cases, but correctly binding 'this' will require some
   //    systemic changes that I don't want to deal with right now.
   if (isPrimitive(callee))

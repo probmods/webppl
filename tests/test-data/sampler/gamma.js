@@ -15,7 +15,7 @@ module.exports = {
     return typeof x === 'number' && x > 0 && x < Infinity;
   },
   settings: [
-    // params are sampled to the ERP sampler
+    // params are passed to the ERP sampler
     // n is the number of samples we'll take
     // reltol declares which stats we'll run for a single parameter value
     // and the acceptable relative tolerance for each
