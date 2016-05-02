@@ -1,2 +1,2 @@
-return a + map([], function(){})
-// return a
+//var a = function(){} // asdfadfs
+return b

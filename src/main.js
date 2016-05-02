@@ -181,8 +181,22 @@ function compile(code, options) {
         sourceMapWithCode: true,
       }) : transformedAst
 
-    codeAndMap.map = JSON.parse(codeAndMap.map)
-    codeAndMap.map.sourcesContent = [fs.readFileSync('src/header.wppl', 'utf8'), code]
+    debugger;
+    var sourceMap = JSON.parse(codeAndMap.map);
+    var sourcesContent = []
+
+    sourceMap.sources.map(function(filename) {
+      if (filename === options.filename) {
+        sourcesContent.push(code);
+      } else {
+        var correspondingCode = _.findWhere(bundles, {filename: filename}).code;
+        sourcesContent.push(correspondingCode);
+      }
+    })
+
+    sourceMap.sourcesContent = sourcesContent;
+    codeAndMap.map = sourceMap;
+
     return codeAndMap
   };
 

@@ -26,25 +26,25 @@ function getContextMessage(source, lineNumber, columnNumber) {
   var lineDigits = ('' + (lineNumber + 1)).length + 1;
   var padding = repeatString(' ', lineDigits);
 
-  var previousPrefix = colors.dim(pad(padding, (lineNumber - 1), true) + '| ')
-  var errorPrefix = colors.dim(pad(padding, lineNumber, true) + '| ')
-  var followingPrefix = colors.dim(pad(padding, (lineNumber + 1), true) + '| ')
+  var previousPrefix = colors.dim(pad(padding, (lineNumber - 1), true) + '| ');
+  var errorPrefix = colors.dim(pad(padding, lineNumber, true) + '| ');
+  var followingPrefix = colors.dim(pad(padding, (lineNumber + 1), true) + '| ');
 
-  var previousLine = source[lineNumber - 2] + '\n'
-  var errorLine = colors.bold(source[lineNumber - 1]) + '\n'
-  var followingLine = source[lineNumber] + '\n'
+  var previousLine = source[lineNumber - 2] + '\n';
+  var errorLine = colors.bold(source[lineNumber - 1]) + '\n';
+  var followingLine = source[lineNumber] + '\n';
 
-  var previousTotal = previousLine == 'undefined\n' ? '' : previousPrefix + previousLine
+  previousLine = previousLine.trim().slice(0, 2) === '//' ? colors.dim(previousLine) : previousLine;
+  followingLine = followingLine.trim().slice(0, 2) === '//' ? colors.dim(followingLine) : followingLine;
+
+  var previousTotal = previousLine == 'undefined\n' ? '' : previousPrefix + previousLine;
   var errorTotal = errorPrefix + errorLine;
-  var followingTotal = followingLine == 'undefined\n' ? '' : followingPrefix + followingLine
+  var followingTotal = followingLine == 'undefined\n' ? '' : followingPrefix + followingLine;
 
-  return previousTotal + errorTotal + (padding + getArrow(columnNumber)) + followingTotal
+  return previousTotal + errorTotal + (padding + getArrow(columnNumber)) + followingTotal;
 }
 
 function printFriendlyStackTrace(error, sourceMap) {  
-  // var headerSource = fs.readFileSync('src/header.wppl')
-  // parsedMap.sourcesContent = [headerSource]
-  debugger;
   var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap)
   var firstStackFrame = stackTrace.parse(error)[0];
 
