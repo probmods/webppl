@@ -9,7 +9,6 @@
 'use strict';
 
 var _ = require('underscore');
-var erp = require('../erp');
 var assert = require('assert');
 var util = require('../util');
 var Histogram = require('../aggregation/histogram');
