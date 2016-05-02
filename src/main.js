@@ -188,7 +188,7 @@ function compile(code, options) {
     sourceMap.sources.map(function(filename) {
       if (filename === options.filename) {
         sourcesContent.push(code);
-      } else {
+      } else { // should this be a conditional to make sure the filename is in the bundle?
         var correspondingCode = _.findWhere(bundles, {filename: filename}).code;
         sourcesContent.push(correspondingCode);
       }
@@ -198,6 +198,7 @@ function compile(code, options) {
     codeAndMap.map = sourceMap;
 
     return codeAndMap
+
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
@@ -212,7 +213,6 @@ function run(code, k, options) {
 
   util.timeif(options.verbose, 'run', function() {
     try {
-      debugger;
       eval.call(global, codeWithMap.code)(runner)({}, k, '');
     } catch (exception) {
       printFriendlyStackTrace(exception, codeWithMap.map)
