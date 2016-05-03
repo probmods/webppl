@@ -10,13 +10,13 @@
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
-var Distribution = require('../aggregation/distribution');
+var ScoreAggregator = require('../aggregation/ScoreAggregator');
 
 module.exports = function(env) {
 
   function Enumerate(store, k, a, wpplFn, maxExecutions, Q) {
     this.score = 0; // Used to track the score of the path currently being explored
-    this.marginal = new Distribution(); // We will accumulate the marginal distribution here
+    this.marginal = new ScoreAggregator(); // We will accumulate the marginal distribution here
     this.numCompletedExecutions = 0;
     this.store = store; // will be reinstated at the end
     this.k = k;

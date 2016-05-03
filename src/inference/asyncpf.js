@@ -8,7 +8,7 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -51,7 +51,7 @@ module.exports = function(env) {
 
     this.obsWeights = {};
     this.exitedParticles = 0;
-    this.hist = new Histogram();
+    this.hist = new CountAggregator();
 
     // Move old coroutine out of the way and install this as current handler.
     this.k = k;
