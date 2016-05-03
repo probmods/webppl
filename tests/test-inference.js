@@ -426,7 +426,7 @@ var tests = [
       constrainedSum: {
         hist: { tol: 0.1 },
         args: {
-          samples: 500,
+          samples: 700,
           burn: 50,
           kernel: { HMC: { steps: 50, stepSize: 0.004 } }
         }
