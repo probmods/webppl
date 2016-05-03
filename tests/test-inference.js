@@ -337,15 +337,15 @@ var tests = [
       mean: { tol: 0.2 },
       std: { tol: 0.2 },
       MAP: { tol: 0.15, check: true },
-      args: { samples: 1000, kernel: 'HMC' }
+      args: { samples: 5000, kernel: 'HMC' }
     },
     models: {
-      deterministic: { hist: { tol: 0 } },
+      deterministic: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
       simple: true,
       cache: true,
-      store: { hist: { tol: 0 } },
-      store2: { hist: { tol: 0 } },
-      geometric: { samples: 5000, kernel: 'HMC' },
+      store: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
+      store2: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
+      geometric: true,
       withCaching: true,
       variableSupport: true,
       query: true,
@@ -426,7 +426,7 @@ var tests = [
       constrainedSum: {
         hist: { tol: 0.1 },
         args: {
-          samples: 500,
+          samples: 700,
           burn: 50,
           kernel: { HMC: { steps: 50, stepSize: 0.004 } }
         }
