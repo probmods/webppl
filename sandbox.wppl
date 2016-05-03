@@ -1,2 +1,10 @@
-//var a = function(){} // asdfadfs
-return b
+var binomial = function() {
+  var a = flip();
+  var b = flip();
+  var c = flip();
+  return a + b + c;
+};
+
+var binomialERP = Enumerate(null);
+
+binomialERP

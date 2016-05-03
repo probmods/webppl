@@ -46,18 +46,25 @@ function getContextMessage(source, lineNumber, columnNumber) {
 
 function printFriendlyStackTrace(error, sourceMap) {  
   var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap)
-  var firstStackFrame = stackTrace.parse(error)[0];
+  var parsedError = stackTrace.parse(error)
+  var firstStackFrame = parsedError[0];
 
   var originalPosition = mapConsumer.originalPositionFor({
     line: firstStackFrame.lineNumber,
     column: firstStackFrame.columnNumber - 1
   })
 
-  console.log('\n' + colors.bold(error.toString()))
-  console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n')
-  console.log(getContextMessage(mapConsumer.sourceContentFor(originalPosition.source), 
-                                                             originalPosition.line, 
-                                                             originalPosition.column))
+  if (originalPosition.source !== null) {
+    console.log('\n' + colors.bold(error.toString()))
+    console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n')
+    console.log(getContextMessage(mapConsumer.sourceContentFor(originalPosition.source), 
+                                                               originalPosition.line, 
+                                                               originalPosition.column))
+  } else {
+    console.log(firstStackFrame.fileName + ':' + firstStackFrame.lineNumber +'\n')
+    // missing the actual line of that file
+    console.log(error.stack);
+  }
 }
 
 module.exports = printFriendlyStackTrace;

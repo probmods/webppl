@@ -181,7 +181,6 @@ function compile(code, options) {
         sourceMapWithCode: true,
       }) : transformedAst
 
-    debugger;
     var sourceMap = JSON.parse(codeAndMap.map);
     var sourcesContent = []
 
@@ -198,7 +197,6 @@ function compile(code, options) {
     codeAndMap.map = sourceMap;
 
     return codeAndMap
-
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
@@ -226,7 +224,7 @@ global.webpplEval = function(s, k, a, code, runner) {
   if (runner === undefined) {
     runner = util.runningInBrowser() ? 'web' : 'cli'
   }
-  var compiledCode = compile(code);
+  var compiledCode = compile(code).code;
   return eval.call(global, compiledCode)(util.trampolineRunners[runner])(s, k, a);
 };
 

@@ -60,7 +60,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
     verbose: verbose
   };
 
-  var compiledBody = webppl.compile(code, compileOptions);
+  var compiledBody = webppl.compile(code, compileOptions).code;
 
   compiledCode += lines([
     'var __runner__ = ' + cliRunner.toString() + ';',
