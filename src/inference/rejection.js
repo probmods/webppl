@@ -11,7 +11,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -22,7 +22,7 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.maxScore = (maxScore === undefined) ? 0 : maxScore;
     this.incremental = incremental;
-    this.hist = new Histogram();
+    this.hist = new CountAggregator();
     this.numSamples = (numSamples === undefined) ? 1 : numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;

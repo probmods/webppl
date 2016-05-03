@@ -5,11 +5,11 @@ var util = require('../util');
 var ad = require('../ad');
 var erp = require('../erp');
 
-var Histogram = function() {
+var CountAggregator = function() {
   this.hist = {};
 };
 
-Histogram.prototype.add = function(value) {
+CountAggregator.prototype.add = function(value) {
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { count: 0, val: value };
@@ -26,8 +26,8 @@ function normalize(hist) {
   });
 }
 
-Histogram.prototype.toERP = function() {
+CountAggregator.prototype.toERP = function() {
   return new erp.marginal({dist: normalize(this.hist)});
 };
 
-module.exports = Histogram;
+module.exports = CountAggregator;

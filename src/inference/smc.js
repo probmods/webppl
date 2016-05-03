@@ -6,7 +6,7 @@ var erp = require('../erp');
 var Trace = require('../trace');
 
 var assert = require('assert');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -256,7 +256,7 @@ module.exports = function(env) {
   SMC.prototype.finish = function(s, val) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
-    var hist = new Histogram();
+    var hist = new CountAggregator();
     var addToHist = this.adRequired ?
         function(value) { hist.add(ad.valueRec(value)); } :
         hist.add.bind(hist);

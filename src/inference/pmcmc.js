@@ -6,7 +6,7 @@
 var _ = require('underscore');
 var erp = require('../erp');
 var util = require('../util')
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -35,7 +35,7 @@ module.exports = function(env) {
     this.address = a;
     this.numParticles = numParticles;
     this.resetParticles();
-    this.hist = new Histogram();
+    this.hist = new CountAggregator();
   }
 
   PMCMC.prototype.run = function() {

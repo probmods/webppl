@@ -16,7 +16,7 @@ var jslintSettings = {
     src: [
       'Gruntfile.js',
       'src/header.wppl',
-      'src/**/!(erp|enumerate|distribution).js'
+      'src/**/!(erp|enumerate|ScoreAggregator).js'
     ]
   },
   test: {
