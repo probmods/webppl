@@ -10,12 +10,26 @@ var generic = require('../generic');
 module.exports = {
 
   gd: function(options) {
-    options = util.mergeDefaults(options, {stepSize: 0.1});
+    options = util.mergeDefaults(options, {
+      stepSize: 0.1,
+      mu: 0 // mu > 0 yields gradient descent with 'momentum'
+    });
     var stepSize = options.stepSize;
+    var mu = options.mu;
+
+    // Map from name to an array of 'velocity' tensors.
+    var vObj = {};
 
     return function(params, grads, step, name) {
+      if (!_.has(vObj, name)) {
+        vObj[name] = grads.map(function(g) {
+          return generic.zerosLike(g);
+        });
+      }
+      var v = vObj[name];
       for (var i = 0; i < grads.length; i++) {
-        params[i] = generic.sub(params[i], generic.scalarMul(grads[i], stepSize));
+        v[i] = generic.sub(generic.scalarMul(v[i], mu), generic.scalarMul(grads[i], stepSize));
+        params[i] = generic.add(params[i], v[i]);
       }
     };
   },
