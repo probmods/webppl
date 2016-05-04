@@ -722,27 +722,23 @@ function dirichletSample(alpha) {
   var ssum = 0;
   var theta = [];
   var t;
+  // sample n gammas
   for (var i = 0; i < n; i++) {
     t = gammaSample(alpha[i], 1);
     theta[i] = t;
     ssum = ssum + t;
   }
 
-  var numUnderflowCorrections = 0;
+  // normalize and catch under/overflow
   for (var j = 0; j < n; j++) {
     theta[j] /= ssum;
     if (theta[j] === 0) {
-      theta[j] = Number.EPSILON;
-      numUnderflowCorrections += 1;
+      theta[j] = Number.EPSILON
+    }
+    if (theta[j] === 1) {
+      theta[j] = 1 - Number.EPSILON
     }
   }
-
-  for (var k = 0; k < n; k++) {
-    if (theta[k] === 1) {
-      theta[k] -= Number.EPSILON * numUnderflowCorrections;
-    }
-  }
-
   return theta;
 }
 
@@ -902,6 +898,7 @@ module.exports = {
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
   gammaSample: gammaSample,
+  dirichletSample: dirichletSample,
   // helpers
   serialize: serialize,
   deserialize: deserialize,
