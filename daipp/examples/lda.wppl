@@ -9,6 +9,10 @@ var softplus = function(x) {
   return T.log(T.add(T.exp(x), 1));
 };
 
+var normalize = function(x) {
+  return T.div(x, T.sumreduce(x));
+};
+
 var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
 
   // In structure.wppl the suggestion is to init with a zero vector.
@@ -30,7 +34,7 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
   mapData(corpus, function(doc) {
 
     globalStore.context = globalContext;
-    updateContext(doc);
+    updateContext(normalize(Vector(doc)));
 
     var topicDist = sampleDaipp(dirichletERP({alpha: alpha}));
     // var topicDist = sample(dirichletERP({alpha: alpha}), {
