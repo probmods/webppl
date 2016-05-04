@@ -42,8 +42,8 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
-  Rejection.prototype.sample = function(s, k, a, erp) {
-    return k(s, erp.sample());
+  Rejection.prototype.sample = function(s, k, a, dist) {
+    return k(s, dist.sample());
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {
@@ -74,7 +74,7 @@ module.exports = function(env) {
 
     if (this.numSamples === 0) {
       env.coroutine = this.oldCoroutine;
-      return this.k(this.s, this.hist.toERP());
+      return this.k(this.s, this.hist.toDist());
     } else {
       return this.run();
     }

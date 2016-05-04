@@ -2,7 +2,7 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var erp = require('../erp');
+var dists = require('../dists');
 var Trace = require('../trace');
 
 var assert = require('assert');
@@ -52,16 +52,16 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp) {
-    var importanceERP = erp.importanceERP || erp;
-    var _val = importanceERP.sample();
-    var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
-    var importanceScore = importanceERP.score(_val);
-    var choiceScore = erp.score(_val);
+  SMC.prototype.sample = function(s, k, a, dist) {
+    var importanceDist = dist.importanceDist || dist;
+    var _val = importanceDist.sample();
+    var val = this.adRequired && importanceDist.isContinuous ? ad.lift(_val) : _val;
+    var importanceScore = importanceDist.score(_val);
+    var choiceScore = dist.score(_val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
-      particle.trace.addChoice(erp, val, a, s, k);
+      particle.trace.addChoice(dist, val, a, s, k);
     }
     particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
     return k(s, val);
@@ -131,7 +131,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = erp.discreteSample(newWeights);
+      j = dists.discreteSample(newWeights);
       newParticles.push(particles[j].copy());
     }
 
@@ -278,7 +278,7 @@ module.exports = function(env) {
           }
         }.bind(this),
         function() {
-          var dist = hist.toERP();
+          var dist = hist.toDist();
           dist.normalizationConstant = logAvgW;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
@@ -288,7 +288,7 @@ module.exports = function(env) {
 
   SMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  // Restrict rejuvenation to erps that come after proposal boundary.
+  // Restrict rejuvenation to choices that come after proposal boundary.
   function setProposalBoundary(s, k, a) {
     if (env.coroutine.currentParticle) {
       var particle = env.coroutine.currentParticle();

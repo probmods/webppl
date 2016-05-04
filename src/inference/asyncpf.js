@@ -83,8 +83,8 @@ module.exports = function(env) {
     return p.continuation(p.store);
   };
 
-  AsyncPF.prototype.sample = function(s, cc, a, erp) {
-    return cc(s, erp.sample());
+  AsyncPF.prototype.sample = function(s, cc, a, dist) {
+    return cc(s, dist.sample());
   };
 
   AsyncPF.prototype.factor = function(s, cc, a, score) {
@@ -168,7 +168,7 @@ module.exports = function(env) {
     if (this.exitedParticles < this.numParticles) {
       return this.run();
     } else {
-      var dist = this.hist.toERP();
+      var dist = this.hist.toDist();
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];

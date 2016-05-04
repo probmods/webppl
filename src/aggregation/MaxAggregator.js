@@ -21,14 +21,14 @@ MaxAggregator.prototype.add = function(value, score) {
   }
 };
 
-MaxAggregator.prototype.toERP = function() {
+MaxAggregator.prototype.toDist = function() {
   var hist = new CountAggregator();
   hist.add(this.max.value);
-  var erp = hist.toERP();
+  var dist = hist.toDist();
   if (this.retainSamples) {
-    erp.samples = this.samples;
+    dist.samples = this.samples;
   }
-  return erp;
+  return dist;
 };
 
 module.exports = MaxAggregator;

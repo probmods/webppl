@@ -484,7 +484,7 @@ var wpplRunInference = function(modelName, testDef) {
   ].join('');
   try {
     var retVal;
-    webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+    webppl.run(progText, function(store, dist) { retVal = { store: store, dist: dist }; });
     return retVal;
   } catch (e) {
     console.log('Exception: ' + e);
@@ -519,25 +519,25 @@ var getInferenceArgs = function(testDef, model) {
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.erp.params.dist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.erp.params.dist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.erp.params.dist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.dist.params.dist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {
-      helpers.testWithinTolerance(test, result.erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, result.dist.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
   MAP: function(test, result, expected, args) {
     if (args.check) {
-      var map = result.erp.MAP();
+      var map = result.dist.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
       helpers.testWithinTolerance(test, map.score, expected.score, args.tol, 'MAP score');
     }

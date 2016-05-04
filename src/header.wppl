@@ -1,129 +1,129 @@
 'no caching';
 
-// ERPs
+// Distributions
 
-defineErpConstructors(
-    bernoulli
-    uniform
-    randomInteger
-    gaussian
-    gaussianDrift
-    multivariateGaussian
-    cauchy
-    discrete
-    gamma
-    exponential
-    beta
-    binomial
-    multinomial
-    poisson
-    dirichlet
-    dirichletDrift
-    categorical);
+defineDistConstructors(
+    Bernoulli
+    Uniform
+    RandomInteger
+    Gaussian
+    GaussianDrift
+    MultivariateGaussian
+    Cauchy
+    Discrete
+    Gamma
+    Exponential
+    Beta
+    Binomial
+    Multinomial
+    Poisson
+    Dirichlet
+    DirichletDrift
+    Categorical);
 
-// Helpers to sample from ERPs.
+// Helpers to sample from distributions.
 
 var bernoulli = function(arg) {
-  var params = erp.isParams(arg) ? arg : {p: arg};
-  return sample(bernoulliERP(params));
+  var params = dists.isParams(arg) ? arg : {p: arg};
+  return sample(Bernoulli(params));
 };
 
 var randomInteger = function(arg) {
-  var params = erp.isParams(arg) ? arg : {n: arg};
-  return sample(randomIntegerERP(params));
+  var params = dists.isParams(arg) ? arg : {n: arg};
+  return sample(RandomInteger(params));
 };
 
 var discrete = function(arg) {
-  var params = erp.isParams(arg) ? arg : {ps: arg};
-  return sample(discreteERP(params));
+  var params = dists.isParams(arg) ? arg : {ps: arg};
+  return sample(Discrete(params));
 };
 
 var multinomial = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
-  return sample(multinomialERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  return sample(Multinomial(params));
 };
 
 var gaussian = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
-  return sample(gaussianERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(Gaussian(params));
 };
 
 var multivariateGaussian = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
-  return sample(multivariateGaussianERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  return sample(MultivariateGaussian(params));
 };
 
 var cauchy = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
-  return sample(cauchyERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  return sample(Cauchy(params));
 };
 
 var uniform = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
-  return sample(uniformERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(Uniform(params));
 };
 
 var dirichlet = function(arg) {
-  var params = erp.isParams(arg) ? arg : {alpha: arg};
-  return sample(dirichletERP(params));
+  var params = dists.isParams(arg) ? arg : {alpha: arg};
+  return sample(Dirichlet(params));
 };
 
 var poisson = function(arg) {
-  var params = erp.isParams(arg) ? arg : {mu: arg};
-  return sample(poissonERP(params));
+  var params = dists.isParams(arg) ? arg : {mu: arg};
+  return sample(Poisson(params));
 };
 
 var binomial = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
-  return sample(binomialERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  return sample(Binomial(params));
 };
 
 var beta = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
-  return sample(betaERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(Beta(params));
 };
 
 var exponential = function(arg) {
-  var params = erp.isParams(arg) ? arg : {a: arg};
-  return sample(exponentialERP(params));
+  var params = dists.isParams(arg) ? arg : {a: arg};
+  return sample(Exponential(params));
 };
 
 var gamma = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
-  return sample(gammaERP(params));
+  var params = dists.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  return sample(Gamma(params));
 };
 
-// Other ERP helpers
+// Other distribution helpers
 
 var flip = function(p) {
   var params = {p: (p !== undefined) ? p : .5};
-  return sample(bernoulliERP(params));
+  return sample(Bernoulli(params));
 };
 
 var categorical = function(arg1, arg2) {
-  var params = erp.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
   return params.vs[discrete(params.ps)];
 };
 
 var uniformDraw = function(arg) {
-  var vs = erp.isParams(arg) ? arg.vs : arg;
-  return vs[sample(randomIntegerERP({n: vs.length}))];
+  var vs = dists.isParams(arg) ? arg.vs : arg;
+  return vs[sample(RandomInteger({n: vs.length}))];
 };
 
-var deltaERP = function(params) {
-  return categoricalERP({ps: [1.0], vs: [params.v]});
+var Delta = function(params) {
+  return Categorical({ps: [1.0], vs: [params.v]});
 };
 
-var serializeERP = function(e) {
-  return erp.serialize(e);
+var serializeDist = function(d) {
+  return dists.serialize(d);
 };
 
-var deserializeERP = function(JSONString) {
-  return erp.deserialize(JSONString);
+var deserializeDist = function(JSONString) {
+  return dists.deserialize(JSONString);
 };
 
-var withImportanceDist = function(e, importanceERP) {
-  return erp.withImportanceDist(e, importanceERP);
+var withImportanceDist = function(d, importanceDist) {
+  return dists.withImportanceDist(d, importanceDist);
 };
 
 // XRPs
@@ -134,7 +134,7 @@ var makeBetaBernoulli = function(pseudocounts) {
   globalStore[bbname] = pseudocounts;
   return function() {
     var pc = globalStore[bbname];  // get current sufficient stats
-    var val = sample(bernoulliERP({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
+    var val = sample(Bernoulli({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
     globalStore[bbname] = [pc[0] + val, pc[1] + !val];  // update sufficient stats
     return val;
   };
@@ -154,7 +154,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   return function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(Discrete({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
@@ -225,22 +225,22 @@ var trueF = function() {
 
 // Probability computations & calculations
 
-var MAP = function(erp) {
-  return erp.MAP();
+var MAP = function(dist) {
+  return dist.MAP();
 };
 
-var expectation = function(erp, func) {
+var expectation = function(dist, func) {
   var f = func || idF;
-  var supp = erp.support();
+  var supp = dist.support();
   return mapReduce1(plus,
                     function(s) {
-                      return Math.exp(erp.score(s)) * f(s);
+                      return Math.exp(dist.score(s)) * f(s);
                     },
                     supp);
 };
 
-var entropy = function(erp) {
-  return erp.entropy();
+var entropy = function(dist) {
+  return dist.entropy();
 };
 
 // Data structures & higher-order functions

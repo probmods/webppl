@@ -71,14 +71,14 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  // A cached ERP call
-  function ERPNode(coroutine, parent, s, k, a, erp) {
+  // A cached distribution call
+  function DistNode(coroutine, parent, s, k, a, dist) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
     this.continuation = k;
     this.address = a;
-    this.erp = erp;
+    this.dist = dist;
 
     this.parent = parent;
     this.depth = parent.depth + 1;
@@ -87,31 +87,31 @@ module.exports = function(env) {
     this.reachable = true;
     this.needsUpdate = false;
 
-    this.val = erp.sample();
+    this.val = dist.sample();
     this.score = 0; this.rescore();
 
-    // Add this to the master list of ERP nodes
-    this.coroutine.addERP(this);
+    // Add this to the master list of distribution nodes
+    this.coroutine.addDist(this);
   }
 
-  ERPNode.prototype.print = function() {
-    tabbedlog(0, this.depth, 'ERPNode', this.erp,
+  DistNode.prototype.print = function() {
+    tabbedlog(0, this.depth, 'DistNode', this.dist,
               this.val, this.reachable ? '' : '!!UNREACHABLE!!');
   };
 
-  ERPNode.prototype.execute = function() {
-    tabbedlog(4, this.depth, 'execute ERP');
+  DistNode.prototype.execute = function() {
+    tabbedlog(4, this.depth, 'execute distribution');
     if (this.needsUpdate) {
-      tabbedlog(4, this.depth, 'yes, ERP changed');
-      tabbedlog(5, this.depth, 'old erp:',
-          this.__snapshot ? this.__snapshot.erp : undefined,
-          'new erp:', this.erp);
+      tabbedlog(4, this.depth, 'yes, dist changed');
+      tabbedlog(5, this.depth, 'old dist:',
+          this.__snapshot ? this.__snapshot.dist : undefined,
+          'new dist:', this.dist);
       this.needsUpdate = false;
       this.rescore();
     }
     else {
-      tabbedlog(4, this.depth, 'no, ERP has not changed');
-      tabbedlog(5, this.depth, 'erp:', this.erp);
+      tabbedlog(4, this.depth, 'no, dist has not changed');
+      tabbedlog(5, this.depth, 'dist:', this.dist);
     }
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
@@ -122,32 +122,32 @@ module.exports = function(env) {
     }
   };
 
-  ERPNode.prototype.registerInputChanges = function(s, k, erp) {
+  DistNode.prototype.registerInputChanges = function(s, k, dist) {
     updateProperty(this, 'store', _.clone(s));
     updateProperty(this, 'continuation', k);
     updateProperty(this, 'index', this.parent.nextChildIdx);
     this.reachable = true;
-    if (!erpEqual(erp, this.erp)) {
+    if (!distEqual(dist, this.dist)) {
       this.needsUpdate = true;
-      updateProperty(this, 'erp', erp);
+      updateProperty(this, 'dist', dist);
     }
   };
 
-  ERPNode.prototype.kontinue = function() {
+  DistNode.prototype.kontinue = function() {
     this.parent.notifyChildExecuted(this);
     // Call continuation
     // Copies store, so that we maintain a pristine copy of this.store
     return this.continuation(_.clone(this.store), this.val);
   };
 
-  ERPNode.prototype.killDescendantLeaves = function() {
-    this.coroutine.removeERP(this);
+  DistNode.prototype.killDescendantLeaves = function() {
+    this.coroutine.removeDist(this);
   };
 
-  ERPNode.prototype.propose = function() {
+  DistNode.prototype.propose = function() {
     var oldval = this.val;
-    var newval = this.erp.sample();
-    tabbedlog(4, this.depth, 'proposing change to ERP.', 'oldval:', oldval, 'newval:', newval);
+    var newval = this.dist.sample();
+    tabbedlog(4, this.depth, 'proposing change to distribution.', 'oldval:', oldval, 'newval:', newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
     if (oldval === newval) {
@@ -179,22 +179,22 @@ module.exports = function(env) {
     }
   };
 
-  ERPNode.prototype.rescore = function() {
+  DistNode.prototype.rescore = function() {
     var oldscore = this.score;
-    updateProperty(this, 'score', this.erp.score(this.val));
+    updateProperty(this, 'score', this.dist.score(this.val));
     this.coroutine.score += this.score - oldscore;
   };
 
 
-  // This is used to decide whether to re-score an ERP. Only a shallow
-  // check for parameter equality is performed, as a deep check is
-  // unlikely to be any faster than re-scoring.
-  function erpEqual(erp1, erp2) {
-    return erp1.constructor === erp2.constructor &&
-        erpParamsEqual(erp1.params, erp2.params);
+  // This is used to decide whether to re-score a distribution. Only a
+  // shallow check for parameter equality is performed, as a deep
+  // check is unlikely to be any faster than re-scoring.
+  function distEqual(dist1, dist2) {
+    return dist1.constructor === dist2.constructor &&
+        distParamsEqual(dist1.params, dist2.params);
   }
 
-  function erpParamsEqual(p1, p2) {
+  function distParamsEqual(p1, p2) {
     if (p1 === p2) {
       return true;
     }
@@ -554,107 +554,107 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  // Abstraction representing a master list of ERPs
+  // Abstraction representing a master list of distributions
   // (lets us abstract over whether we're using an array or a hash table)
 
-  function ArrayERPMasterList() {
-    this.erpNodes = [];
+  function ArrayDistMasterList() {
+    this.distNodes = [];
   }
 
-  ArrayERPMasterList.prototype.size = function() { return this.erpNodes.length; }
-      ArrayERPMasterList.prototype.oldSize = function() {
-        return this.oldErpNodes === undefined ? undefined : this.oldErpNodes.length;
+  ArrayDistMasterList.prototype.size = function() { return this.distNodes.length; }
+      ArrayDistMasterList.prototype.oldSize = function() {
+        return this.oldDistNodes === undefined ? undefined : this.oldDistNodes.length;
       }
 
-      ArrayERPMasterList.prototype.addERP = function(node) {
-        this.erpNodes.push(node);
+      ArrayDistMasterList.prototype.addDist = function(node) {
+        this.distNodes.push(node);
       };
 
-  ArrayERPMasterList.prototype.removeERP = function(node) {
+  ArrayDistMasterList.prototype.removeDist = function(node) {
     // Set it up to be removed as a post-process
     touch(node);
     node.reachable = false;
   };
 
-  ArrayERPMasterList.prototype.preProposal = function() {
-    this.oldErpNodes = this.erpNodes.slice();
+  ArrayDistMasterList.prototype.preProposal = function() {
+    this.oldDistNodes = this.distNodes.slice();
   };
 
-  ArrayERPMasterList.prototype.postProposal = function() {
-    this.erpNodes = _.filter(this.erpNodes, function(node) {
+  ArrayDistMasterList.prototype.postProposal = function() {
+    this.distNodes = _.filter(this.distNodes, function(node) {
       return node.reachable;
     });
   };
 
-  ArrayERPMasterList.prototype.getRandom = function() {
-    var idx = Math.floor(util.random() * this.erpNodes.length);
-    return this.erpNodes[idx];
+  ArrayDistMasterList.prototype.getRandom = function() {
+    var idx = Math.floor(util.random() * this.distNodes.length);
+    return this.distNodes[idx];
   };
 
-  ArrayERPMasterList.prototype.restoreOnReject = function() {
-    this.erpNodes = this.oldErpNodes;
+  ArrayDistMasterList.prototype.restoreOnReject = function() {
+    this.distNodes = this.oldDistNodes;
   };
 
 
-  function HashtableERPMasterList() {
-    this.erpNodeMap = new Hashtable();
-    this.erpsAdded = [];
-    this.erpsRemoved = [];
-    this.numErps = 0;
+  function HashtableDistMasterList() {
+    this.distNodeMap = new Hashtable();
+    this.distsAdded = [];
+    this.distsRemoved = [];
+    this.numDists = 0;
   }
 
-  HashtableERPMasterList.prototype.size = function() { return this.numErps; }
-      HashtableERPMasterList.prototype.oldSize = function() { return this.oldNumErps; }
+  HashtableDistMasterList.prototype.size = function() { return this.numDists; }
+      HashtableDistMasterList.prototype.oldSize = function() { return this.oldNumDists; }
 
-      HashtableERPMasterList.prototype.addERP = function(node) {
-        this.erpNodeMap.put(node.address, node);
-        this.erpsAdded.push(node);
-        this.numErps++;
-        // this.checkConsistency("addERP");
+      HashtableDistMasterList.prototype.addDist = function(node) {
+        this.distNodeMap.put(node.address, node);
+        this.distsAdded.push(node);
+        this.numDists++;
+        // this.checkConsistency("addDist");
       };
 
-  HashtableERPMasterList.prototype.removeERP = function(node) {
-    this.erpNodeMap.remove(node.address);
-    this.erpsRemoved.push(node);
-    this.numErps--;
-    // this.checkConsistency("removeERP");
+  HashtableDistMasterList.prototype.removeDist = function(node) {
+    this.distNodeMap.remove(node.address);
+    this.distsRemoved.push(node);
+    this.numDists--;
+    // this.checkConsistency("removeDist");
   };
 
-  HashtableERPMasterList.prototype.preProposal = function() {
-    this.oldNumErps = this.numErps;
-    this.erpsAdded = [];
-    this.erpsRemoved = [];
+  HashtableDistMasterList.prototype.preProposal = function() {
+    this.oldNumDists = this.numDists;
+    this.distsAdded = [];
+    this.distsRemoved = [];
   };
 
-  HashtableERPMasterList.prototype.postProposal = function() {};
+  HashtableDistMasterList.prototype.postProposal = function() {};
 
-  HashtableERPMasterList.prototype.getRandom = function() { return this.erpNodeMap.getRandom(); }
+  HashtableDistMasterList.prototype.getRandom = function() { return this.distNodeMap.getRandom(); }
 
-      HashtableERPMasterList.prototype.restoreOnReject = function() {
+      HashtableDistMasterList.prototype.restoreOnReject = function() {
         // this.checkConsistency("restoreOnReject");
-        this.numErps = this.oldNumErps;
-        var n = this.erpsAdded.length;
+        this.numDists = this.oldNumDists;
+        var n = this.distsAdded.length;
         while (n--) {
-          var node = this.erpsAdded[n];
-          this.erpNodeMap.remove(node.address);
+          var node = this.distsAdded[n];
+          this.distNodeMap.remove(node.address);
         }
-        n = this.erpsRemoved.length;
+        n = this.distsRemoved.length;
         while (n--) {
-          var node = this.erpsRemoved[n];
-          this.erpNodeMap.put(node.address, node);
+          var node = this.distsRemoved[n];
+          this.distNodeMap.put(node.address, node);
         }
       };
 
   // For debugging
-  HashtableERPMasterList.prototype.checkConsistency = function(tag) {
-    for (var i = 0; i < this.erpsAdded.length; i++) {
-      var addr = this.erpsAdded[i].address;
-      if (!this.erpNodeMap.get(addr))
+  HashtableDistMasterList.prototype.checkConsistency = function(tag) {
+    for (var i = 0; i < this.distsAdded.length; i++) {
+      var addr = this.distsAdded[i].address;
+      if (!this.distNodeMap.get(addr))
         throw "WTF - hash table doesn't contain node " + addr + ' that we added (' + tag + ')';
     }
-    for (var i = 0; i < this.erpsRemoved.length; i++) {
-      var addr = this.erpsRemoved[i].address;
-      if (this.erpNodeMap.get(addr))
+    for (var i = 0; i < this.distsRemoved.length; i++) {
+      var addr = this.distsRemoved[i].address;
+      if (this.distNodeMap.get(addr))
         throw 'WTF - hash table contains node ' + addr + ' that we removed (' + tag + ')';
     }
   };
@@ -809,8 +809,8 @@ module.exports = function(env) {
 
   IncrementalMH.prototype.run = function() {
     this.cacheRoot = null;
-    this.erpMasterList = new HashtableERPMasterList();
-    // this.erpMasterList = new ArrayERPMasterList();
+    this.distMasterList = new HashtableDistMasterList();
+    // this.distMasterList = new ArrayDistMasterList();
     this.touchedNodes = [];
     this.score = 0;
     this.fwdPropLP = 0;
@@ -833,8 +833,8 @@ module.exports = function(env) {
     return this.cachelookup(FactorNode, s, k, a, null, [score]).execute();
   };
 
-  IncrementalMH.prototype.sample = function(s, k, a, erp, name) {
-    var n = this.cachelookup(ERPNode, s, k, a, erp);
+  IncrementalMH.prototype.sample = function(s, k, a, dist, name) {
+    var n = this.cachelookup(DistNode, s, k, a, dist);
     n.name = name;
     return n.execute();
   };
@@ -882,23 +882,23 @@ module.exports = function(env) {
         // Continue proposing as normal
         this.iterations--;
 
-        this.erpMasterList.postProposal();
+        this.distMasterList.postProposal();
 
-        debuglog(2, 'Num vars:', this.erpMasterList.size());
+        debuglog(2, 'Num vars:', this.distMasterList.size());
         debuglog(2, 'Touched nodes:', this.touchedNodes.length);
 
         // Accept/reject the current proposal
         var acceptance = acceptProb(this.score, this.oldScore,
-                                    this.erpMasterList.size(), this.erpMasterList.oldSize(),
+                                    this.distMasterList.size(), this.distMasterList.oldSize(),
                                     this.rvsPropLP, this.fwdPropLP);
-        debuglog(1, 'num vars:', this.erpMasterList.size(), 'old num vars:', this.erpMasterList.oldSize());
+        debuglog(1, 'num vars:', this.distMasterList.size(), 'old num vars:', this.distMasterList.oldSize());
         debuglog(1, 'acceptance prob:', acceptance);
         if (util.random() >= acceptance) {
           debuglog(1, 'REJECT');
           this.score = this.oldScore;
           var n = this.touchedNodes.length;
           while (n--) restoreSnapshot(this.touchedNodes[n]);
-          this.erpMasterList.restoreOnReject();
+          this.distMasterList.restoreOnReject();
         }
         else {
           debuglog(1, 'ACCEPT');
@@ -931,18 +931,18 @@ module.exports = function(env) {
         if (this.doAdapt)
           this.cacheAdapter.adapt(this.cacheRoot);
 
-        if (this.erpMasterList.numErps > 0) {
+        if (this.distMasterList.numDists > 0) {
           // Prepare to make a new proposal
           this.oldScore = this.score;
-          this.erpMasterList.preProposal();
+          this.distMasterList.preProposal();
           this.touchedNodes = [];
           this.fwdPropLP = 0;
           this.rvsPropLP = 0;
-          // Select ERP to change.
-          var propnode = this.erpMasterList.getRandom();
+          // Select distribution to change.
+          var propnode = this.distMasterList.getRandom();
           // Propose change and resume execution
           debuglog(1, '----------------------------------------------------------------------');
-          debuglog(1, 'PROPOSAL', 'type:', propnode.erp, 'address:', propnode.address);
+          debuglog(1, 'PROPOSAL', 'type:', propnode.dist, 'address:', propnode.address);
           return propnode.propose();
         } else {
           return this.runFromStart();
@@ -959,7 +959,7 @@ module.exports = function(env) {
       }
 
       // Return by calling original continuation:
-      return k(this.oldStore, this.aggregator.toERP());
+      return k(this.oldStore, this.aggregator.toDist());
     }
   };
 
@@ -1042,15 +1042,15 @@ module.exports = function(env) {
     }
   };
 
-  IncrementalMH.prototype.addERP = function(node) {
-    tabbedlog(3, node.depth, 'new ERP');
-    this.erpMasterList.addERP(node);
+  IncrementalMH.prototype.addDist = function(node) {
+    tabbedlog(3, node.depth, 'new distribution');
+    this.distMasterList.addDist(node);
     this.fwdPropLP += node.score;
   };
 
-  IncrementalMH.prototype.removeERP = function(node) {
-    tabbedlog(3, node.depth, 'kill ERP', node.address);
-    this.erpMasterList.removeERP(node);
+  IncrementalMH.prototype.removeDist = function(node) {
+    tabbedlog(3, node.depth, 'kill distribution', node.address);
+    this.distMasterList.removeDist(node);
     this.rvsPropLP += node.score;
     this.score -= node.score;
   };

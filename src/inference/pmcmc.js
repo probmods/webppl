@@ -4,7 +4,7 @@
 'use strict';
 
 var _ = require('underscore');
-var erp = require('../erp');
+var dists = require('../dists');
 var util = require('../util')
 var CountAggregator = require('../aggregation/CountAggregator');
 
@@ -81,8 +81,8 @@ module.exports = function(env) {
     return ((this.particleIndex + 1) === this.particles.length);
   };
 
-  PMCMC.prototype.sample = function(s, cc, a, erp) {
-    return cc(s, erp.sample());
+  PMCMC.prototype.sample = function(s, cc, a, dist) {
+    return cc(s, dist.sample());
   };
 
   PMCMC.prototype.particleAtStep = function(particle, step) {
@@ -120,7 +120,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = erp.discreteSample(weights);
+      j = dists.discreteSample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 
@@ -189,7 +189,7 @@ module.exports = function(env) {
         env.coroutine = this.oldCoroutine;
 
         // Return from particle filter by calling original continuation:
-        return this.k(this.oldStore, this.hist.toERP());
+        return this.k(this.oldStore, this.hist.toDist());
 
       }
     }

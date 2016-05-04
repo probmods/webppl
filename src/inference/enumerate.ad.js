@@ -58,31 +58,31 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(erp) {
-    // Find support of this erp:
-    if (erp.isContinuous || !erp.support) {
-      console.error(erp);
-      throw 'Enumerate can only be used with ERPs that have finite support.';
+  var getSupport = function(dist) {
+    // Find support of this distribution:
+    if (dist.isContinuous || !dist.support) {
+      console.error(dist);
+      throw 'Enumerate can only be used with distributions that have finite support.';
     }
-    var supp = erp.support();
+    var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
-      console.error(erp);
-      throw 'Enumerate encountered ERP with empty support!';
+      console.error(dist);
+      throw 'Enumerate encountered a distribution with empty support!';
     }
 
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, k, a, erp) {
-    var support = getSupport(erp);
+  Enumerate.prototype.sample = function(store, k, a, dist) {
+    var support = getSupport(dist);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          k, value, this.score + erp.score(value), store);
+          k, value, this.score + dist.score(value), store);
     }, this);
 
     // Call the next state on the queue
@@ -98,8 +98,8 @@ module.exports = function(env) {
     return k(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(store, k, a, erp, scoreFn) {
-    var support = getSupport(erp);
+  Enumerate.prototype.sampleWithFactor = function(store, k, a, dist, scoreFn) {
+    var support = getSupport(dist);
 
     // Allows extra factors to be taken into account in making
     // exploration decisions:
@@ -107,7 +107,7 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + erp.score(value) + extraScore;
+            var score = env.coroutine.score + dist.score(value) + extraScore;
             env.coroutine.enqueueContinuation(k, value, score, store);
             return nextK();
           }, a, value);
@@ -136,7 +136,7 @@ module.exports = function(env) {
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;
       // Return from enumeration by calling original continuation with original store:
-      return this.k(this.store, this.marginal.toERP());
+      return this.k(this.store, this.marginal.toDist());
     }
   };
 

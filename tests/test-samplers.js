@@ -1,4 +1,4 @@
-// In this file, we test our ERP samplers by running them a bunch for various
+// In this file, we test our samplers by running them a bunch for various
 // sample values and comparing the resulting *sample* statistics against mathematically
 // derived *population* statistics. We also check that every sample is in the
 // support of the distribution, so that users aren't bit by underflow or overflow
@@ -42,30 +42,30 @@ var sampleStatisticFunctions = {
   mode: mode
 }
 
-var erpMetadataList = [
+var distMetadataList = [
   require('./test-data/sampler/gamma')
 ];
 
-var generateSettingTest = function(seed, erpMetadata, settings) {
+var generateSettingTest = function(seed, distMetadata, settings) {
   // settings includes:
-  // - params to the erp
+  // - params to the dist
   // - inference params (e.g., number of samples)
   // - test params (e.g., relative tolerance)
   var params = settings.params;
   var n = settings.n;
 
   // only test the stats that aren't blacklisted
-  var populationStatisticFunctions = _.pick(erpMetadata.populationStatisticFunctions,
+  var populationStatisticFunctions = _.pick(distMetadata.populationStatisticFunctions,
                                             function(v, k) {
                                               return !_.contains(settings.skip, k)
                                             });
   var group = {};
 
-  var moment = erpMetadata.moment;
+  var moment = distMetadata.moment;
 
   group['test'] = function(test) {
     var samples = repeat(n, function() {
-      return erpMetadata.sampler.apply(null, params);
+      return distMetadata.sampler.apply(null, params);
     });
 
     // first check support
@@ -73,7 +73,7 @@ var generateSettingTest = function(seed, erpMetadata, settings) {
     // for Float64Array
     var allInSupport = true;
     for (var i = 0, ii = samples.length; i < ii; i++) {
-      allInSupport = allInSupport && erpMetadata.inSupport(params, samples[i]);
+      allInSupport = allInSupport && distMetadata.inSupport(params, samples[i]);
     }
 
     test.ok(allInSupport);
@@ -177,14 +177,14 @@ var generateTestCases = function(seed) {
     callback()
   }
 
-  _.each(erpMetadataList, function(erpMetadata) {
+  _.each(distMetadataList, function(distMetadata) {
     var group = {};
 
-    _.map(erpMetadata.settings, function(settings) {
-      group[settings.params.join(',')] = generateSettingTest(seed, erpMetadata, settings)
+    _.map(distMetadata.settings, function(settings) {
+      group[settings.params.join(',')] = generateSettingTest(seed, distMetadata, settings)
     });
 
-    exports[erpMetadata.name] = group;
+    exports[distMetadata.name] = group;
   });
 
 };

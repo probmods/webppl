@@ -12,7 +12,7 @@ var model = function() {
 
   map2(
       function(x, y) {
-        factor(gaussianERP({mu: f(x), sigma: sigma}).score(y))
+        factor(Gaussian({mu: f(x), sigma: sigma}).score(y))
       },
       xs,
       ys)
