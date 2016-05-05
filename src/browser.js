@@ -43,7 +43,7 @@ function compile(code, options) {
     options = {};
   }
   var optionsExtended = _.extend({bundles: load()}, options);
-  return webppl.compile(code, optionsExtended);
+  return webppl.compile(code, optionsExtended).code;
 }
 
 function webpplCPS(code) {
