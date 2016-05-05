@@ -4,4 +4,4 @@ var geometric = function(p) {
 
 Enumerate(
     function() {return geometric(0.5);},
-    10);
+    {maxExecutions: 10});

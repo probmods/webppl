@@ -14,7 +14,11 @@ var ScoreAggregator = require('../aggregation/ScoreAggregator');
 
 module.exports = function(env) {
 
-  function Enumerate(store, k, a, wpplFn, maxExecutions, Q) {
+  function Enumerate(store, k, a, wpplFn, options, Q) {
+    options = util.mergeDefaults(options, {
+      maxExecutions: Infinity
+    });
+    this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
     this.marginal = new ScoreAggregator(); // We will accumulate the marginal distribution here
     this.numCompletedExecutions = 0;
@@ -22,7 +26,6 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxExecutions = maxExecutions || Infinity;
 
     // Queue of states that we have yet to explore.  This queue is a
     // bunch of computation states. Each state is a continuation, a
@@ -143,36 +146,37 @@ module.exports = function(env) {
   Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-  function enuPriority(s, k, a, wpplFn, maxExecutions) {
+  function enuPriority(s, k, a, wpplFn, options) {
     var q = new PriorityQueue(function(a, b) {
       return a.score - b.score;
     });
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, options, q).run();
   }
 
-  function enuFilo(s, k, a, wpplFn, maxExecutions) {
+  function enuFilo(s, k, a, wpplFn, options) {
     var q = [];
     q.size = function() {
       return q.length;
     };
     q.enq = q.push;
     q.deq = q.pop;
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, options, q).run();
   }
 
-  function enuFifo(s, k, a, wpplFn, maxExecutions) {
+  function enuFifo(s, k, a, wpplFn, options) {
     var q = [];
     q.size = function() {
       return q.length;
     };
     q.enq = q.push;
     q.deq = q.shift;
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
+    return new Enumerate(s, k, a, wpplFn, options, q).run();
   }
 
-  function enuDefault(s, k, a, wpplFn, maxExecutions) {
-    var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
-    return enu(s, k, a, wpplFn, maxExecutions);
+  function enuDefault(s, k, a, wpplFn, options) {
+    options = options || {};
+    var enu = _.isFinite(options.maxExecutions) ? enuPriority : enuFilo;
+    return enu(s, k, a, wpplFn, options);
   }
 
   return {

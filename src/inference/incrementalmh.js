@@ -756,8 +756,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numSamples, opts) {
+  function IncrementalMH(s, k, a, wpplFn, opts) {
     // Extract options
+    var numSamples = opts.samples === undefined ? 1 : opts.samples;
     var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
@@ -1094,9 +1095,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numSamples, opts) {
+  function imh(s, cc, a, wpplFn, opts) {
     opts = opts || {};
-    return new IncrementalMH(s, cc, a, wpplFn, numSamples, opts).run();
+    return new IncrementalMH(s, cc, a, wpplFn, opts).run();
   }
 
   return {

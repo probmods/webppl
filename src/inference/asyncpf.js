@@ -38,9 +38,9 @@ module.exports = function(env) {
     };
   }
 
-  function AsyncPF(s, k, a, wpplFn, numParticles, bufferSize) {
+  function AsyncPF(s, k, a, wpplFn, options) {
     this.numParticles = 0;      // K_0 -- initialized here, set in run
-    this.bufferSize = bufferSize == undefined ? numParticles : bufferSize; // \rho
+    this.bufferSize = options.bufferSize == undefined ? options.particles : options.bufferSize; // \rho
     this.initNumParticles = Math.floor(this.bufferSize * (1 / 2));         // \rho_0
     this.exitK = function(s) {return wpplFn(s, env.exit, a);};
     this.store = s;
@@ -196,8 +196,9 @@ module.exports = function(env) {
 
   AsyncPF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function asyncPF(s, cc, a, wpplFn, numParticles, bufferSize) {
-    return new AsyncPF(s, cc, a, wpplFn, numParticles, bufferSize).run(numParticles);
+  function asyncPF(s, cc, a, wpplFn, options) {
+    options = options || {};
+    return new AsyncPF(s, cc, a, wpplFn, options).run(options.particles);
   }
 
   return {

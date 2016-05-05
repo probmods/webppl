@@ -153,7 +153,7 @@ var literalListener = cache(function(utterance) {
     var world = worldPrior(2, m)
     factor(m(world) ? 0 : -Infinity)
     return world
-  }, 100)
+  }, {maxExecutions: 100})
 })
 
 var speaker = cache(function(world) {
@@ -162,7 +162,7 @@ var speaker = cache(function(world) {
     var L = literalListener(utterance)
     factor(L.score(world))
     return utterance
-  }, 100)
+  }, {maxExecutions: 100})
 })
 
 var listener = function(utterance) {
@@ -172,7 +172,7 @@ var listener = function(utterance) {
     var S = speaker(world)
     factor(S.score(utterance))
     return isall(world)
-  }, 100)
+  }, {maxExecutions: 100})
 }
 
 listener('some of the blond people are nice')
