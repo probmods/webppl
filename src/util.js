@@ -179,6 +179,13 @@ function mergeDefaults(options, defaults) {
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
 
+function throwUnlessOpts(options, fnName) {
+  assert.ok(fnName);
+  if (options !== undefined && !_.isObject(options)) {
+    throw fnName + ' expected an options object but received: ' + JSON.stringify(options);
+  }
+}
+
 function InfToJSON(k, v) {
   if (v === Infinity) {
     return 'Infinity';
@@ -255,6 +262,7 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
+  throwUnlessOpts: throwUnlessOpts,
   sum: sum,
   product: product,
   asArray: asArray,

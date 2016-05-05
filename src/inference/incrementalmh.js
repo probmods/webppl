@@ -757,6 +757,7 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   function IncrementalMH(s, k, a, wpplFn, opts) {
+    util.throwUnlessOpts(opts, 'IncrementalMH');
     // Extract options
     var numSamples = opts.samples === undefined ? 1 : opts.samples;
     var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;

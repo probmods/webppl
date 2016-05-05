@@ -39,6 +39,7 @@ module.exports = function(env) {
   }
 
   function AsyncPF(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'AsyncPF');
     this.numParticles = 0;      // K_0 -- initialized here, set in run
     this.bufferSize = options.bufferSize == undefined ? options.particles : options.bufferSize; // \rho
     this.initNumParticles = Math.floor(this.bufferSize * (1 / 2));         // \rho_0

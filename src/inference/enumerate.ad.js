@@ -15,6 +15,7 @@ var ScoreAggregator = require('../aggregation/ScoreAggregator');
 module.exports = function(env) {
 
   function Enumerate(store, k, a, wpplFn, options, Q) {
+    util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity
     });
