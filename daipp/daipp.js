@@ -21,6 +21,20 @@ function cumProd(dims) {
   return size;
 }
 
+// TODO: Move to adnn.
+function xavierInit(t) {
+  if (t.rank === 1) {
+    t.zero();
+  } else if (t.rank === 2) {
+    var scale = 1 / Math.sqrt(t.dims[1]);
+    var n = t.length;
+    while (n--) {
+      t.data[n] = erp.gaussianSample(0, scale);
+    }
+  } else {
+    throw 'xavierInit: Unexpected rank.';
+  }
+}
 
 // dritchie: We need a function that wraps any call to nn.eval(), which will do parameter registration
 // IMPORTANT: We assume that every nn has been given a name, which we use for the param name/address
@@ -41,7 +55,20 @@ function nneval(nn, arg) {
 
   // registerParams is made globally available in the WebPPL header.
   if (nn.getParameters().length > 0) {
-    registerParams(nn.name, nn.getParameters.bind(nn), nn.setParameters.bind(nn));
+    registerParams(nn.name,
+                   function() {
+                     var params = nn.getParameters().map(ad.value);
+                     // Replace the adnn initialization with 'xavier
+                     // initialization'.
+                     // One further advantage of this is that
+                     // initialization can be made repeatable using
+                     // webppl's --random-seed option.
+                     params.forEach(xavierInit);
+                     // It's OK that we don't re-lift params here,
+                     // registerParams handles this.
+                     return params;
+                   },
+                   nn.setParameters.bind(nn));
   }
 
   // Fast version, assuming all nets take at most one argument
