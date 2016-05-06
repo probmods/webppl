@@ -26,4 +26,4 @@ var hmm = function(n) {
 Enumerate(function() {
   var r = hmm(3)
   return r.states
-}, 500)
+}, {maxExecutions: 500})

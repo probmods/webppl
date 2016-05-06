@@ -14,6 +14,7 @@ module.exports = function(env) {
   var kernels = require('./kernels')(env);
 
   function SMC(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'SMC');
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,

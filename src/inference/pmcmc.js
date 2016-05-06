@@ -14,8 +14,9 @@ module.exports = function(env) {
     return xs[xs.length - 1];
   }
 
-  function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps) {
 
+  function PMCMC(s, cc, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'PMCMC');
     // Move old coroutine out of the way and install this as the
     // current handler.
     this.oldCoroutine = env.coroutine;
@@ -29,11 +30,11 @@ module.exports = function(env) {
     // Setup inference variables
     this.particleIndex = 0;  // marks the active particle
     this.retainedParticle = undefined;
-    this.numSweeps = numSweeps;
+    this.numSweeps = options.sweeps;
     this.sweep = 0;
     this.wpplFn = wpplFn;
     this.address = a;
-    this.numParticles = numParticles;
+    this.numParticles = options.particles;
     this.resetParticles();
     this.hist = new CountAggregator();
   }
@@ -197,8 +198,8 @@ module.exports = function(env) {
 
   PMCMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
-    return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();
+  function pmc(s, cc, a, wpplFn, options) {
+    return new PMCMC(s, cc, a, wpplFn, options).run();
   }
 
   return {

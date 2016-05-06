@@ -15,18 +15,18 @@ var tests = [
     name: 'ForwardSample',
     func: 'Rejection',
     settings: {
-      args: [3000],
+      args: { samples: 3000 },
       hist: { tol: 0.05 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 }
     },
     models: {
-      deterministic: { args: [10], hist: { tol: 0 } },
+      deterministic: { args: { samples: 10 }, hist: { tol: 0 } },
       flips: true,
       geometric: true,
       randomInteger: true,
-      gaussian: { args: [10000] },
-      uniform: { args: [10000] },
+      gaussian: { args: { samples: 10000 } },
+      uniform: { args: { samples: 10000 } },
       beta: true,
       exponential: true,
       binomial: true,
@@ -44,7 +44,7 @@ var tests = [
   {
     name: 'Enumerate',
     settings: {
-      args: [],
+      args: {},
       MAP: { check: true }
     },
     models: {
@@ -53,7 +53,7 @@ var tests = [
       incrementalBinomial: true,
       deterministic: { hist: { exact: true } },
       store: { hist: { exact: true } },
-      geometric: { args: [10] },
+      geometric: { args: { maxExecutions: 10 } },
       cache: true,
       withCaching: true,
       earlyExit: { hist: { exact: true } },
@@ -64,21 +64,21 @@ var tests = [
   {
     name: 'IncrementalMH',
     settings: {
-      args: [5000],
+      args: { samples: 5000 },
       hist: { tol: 0.1 }
       //MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
-      deterministic: { hist: { tol: 0 }, args: [100] },
+      deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
       cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
+      store: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 100000 } },
       withCaching: true,
       variableSupport: true,
       query: true,
-      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] },
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -94,7 +94,7 @@ var tests = [
     name: 'IMHjustSample',
     func: 'IncrementalMH',
     settings: {
-      args: [100, { justSample: true }]
+      args: { samples: 100, justSample: true }
     },
     models: {
       deterministic: { hist: { tol: 0 } }
@@ -103,46 +103,46 @@ var tests = [
   {
     name: 'PMCMC',
     settings: {
-      args: [1000, 5],
+      args: { particles: 1000, sweeps: 5 },
       hist: { tol: 0.1 },
       MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
       cache: true,
-      deterministic: { hist: { tol: 0 }, args: [30, 30] },
-      store: { hist: { tol: 0 }, args: [30, 30] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
+      deterministic: { hist: { tol: 0 }, args: { particles: 30, sweeps: 30 } },
+      store: { hist: { tol: 0 }, args: { particles: 30, sweeps: 30 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, sweeps: 100 } },
       withCaching: true
     }
   },
   {
     name: 'AsyncPF',
     settings: {
-      args: [1000, 1000],
+      args: { particles: 1000, bufferSize: 1000 },
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
       MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100, 100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] },
+      store: { hist: { tol: 0 }, args: { particles: 100, bufferSize: 100 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000, bufferSize: 1000 } },
       withCaching: true
     }
   },
   {
     name: 'Rejection',
     settings: {
-      args: [1000],
+      args: { samples: 1000 },
       hist: { tol: 0.1 }
     },
     models: {
       simple: true,
       cache: true,
       deterministic: { hist: { tol: 0 } },
-      upweight: { args: [1000, 10] },
-      incrementalBinomial: { args: [1000, -2] },
+      upweight: { args: { samples: 1000, maxScore: 10 } },
+      incrementalBinomial: { args: { samples: 1000, maxScore: -2 } },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
@@ -164,13 +164,13 @@ var tests = [
     name: 'IncrementalRejection',
     func: 'Rejection',
     settings: {
-      args: [1000, 0, true],
+      args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
     },
     models: {
       simple: true,
       cache: true,
-      incrementalBinomial: { args: [1000, -2, true] },
+      incrementalBinomial: { args: { samples: 1000, maxScore: -2, incremental: true } },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors2: true
