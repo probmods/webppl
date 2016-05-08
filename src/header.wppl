@@ -5,6 +5,7 @@
 defineErpConstructors(
     bernoulli
     uniform
+    uniformDrift
     randomInteger
     gaussian
     gaussianDrift

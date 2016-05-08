@@ -190,6 +190,21 @@ var uniform = makeErpType({
   }
 });
 
+var uniformDrift = makeErpType({
+  name: 'uniformDrift',
+  parent: uniform,
+  driftKernel: function(prevVal) {
+    // propose from the window [prevVal - r, prevVal + r]
+    // where r is the proposal radius (defaults to 0.1)
+
+    var r = this.params.r === undefined ? 0.1 : this.params.r;
+
+    return new uniform({
+      a: Math.max(prevVal - r, this.params.a),
+      b: Math.min(prevVal + r, this.params.b)
+    });
+  }
+});
 
 
 var bernoulli = makeErpType({
@@ -877,6 +892,7 @@ function withImportanceDist(erp, importanceERP) {
 module.exports = {
   // erp
   uniform: uniform,
+  uniformDrift: uniformDrift,
   bernoulli: bernoulli,
   randomInteger: randomInteger,
   gaussian: gaussian,
