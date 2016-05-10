@@ -146,7 +146,8 @@ module.exports = function(env) {
 
   ERPNode.prototype.propose = function() {
     var oldval = this.val;
-    var newval = this.erp.sample();
+    var fwdPropErp = this.erp.driftKernel ? this.erp.driftKernel(oldval) : this.erp;
+    var newval = fwdPropErp.sample();
     tabbedlog(4, this.depth, 'proposing change to ERP.', 'oldval:', oldval, 'newval:', newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
@@ -157,10 +158,10 @@ module.exports = function(env) {
     } else {
       updateProperty(this, 'store', _.clone(this.store));
       updateProperty(this, 'val', newval);
-      var oldscore = this.score;
       this.rescore();
-      this.coroutine.rvsPropLP = oldscore;
-      this.coroutine.fwdPropLP = this.score;
+      var rvsPropErp = this.erp.driftKernel ? this.erp.driftKernel(newval) : this.erp;
+      this.coroutine.rvsPropLP = rvsPropErp.score(oldval);
+      this.coroutine.fwdPropLP = fwdPropErp.score(newval);
       tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
           'initial fwdPropLP:', this.coroutine.fwdPropLP);
       this.needsUpdate = false;

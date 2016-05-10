@@ -75,6 +75,16 @@ var tests = [
       store: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 100000 } },
+      gaussianDrift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: { samples: 80000, burn: 20000 }
+      },
+      uniformDrift: {
+        mean: { tol: 0.4 },
+        std: { tol: 0.4 },
+        args: { samples: 200000 }
+      },
       withCaching: true,
       variableSupport: true,
       query: true,
