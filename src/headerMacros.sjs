@@ -1,26 +1,17 @@
 operator (|>) 0 left { $val, $f } => #{ $f($val) }
 export (|>)
 
-macro defineErpConstructors {
-  case { _ ($name ...) } => {
-
-    var ctor = #{ $name ... }.map(function(name) {
-      return makeIdent(unwrapSyntax(name) + 'ERP', name);
-    });
-
-    letstx $ctor ... = ctor;
-
-    return #{
-      $(
-        var $ctor = function(params) {
-          return util.jsnew(erp.$name, params);
-        };
-      ) ...
-    }
+macro defineDistConstructors {
+  rule { ($name ...) } => {
+    $(
+      var $name = function(params) {
+        return util.jsnew(dists.$name, params);
+      };
+    ) ...
   }
 }
 
-export defineErpConstructors
+export defineDistConstructors
 
 // mirror ad macros to work-around issue #382.
 // https://github.com/dritchie/adnn/blob/master/ad/macros.sjs

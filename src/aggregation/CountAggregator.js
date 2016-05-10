@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var util = require('../util');
 var ad = require('../ad');
-var erp = require('../erp');
+var dists = require('../dists');
 
 var CountAggregator = function() {
   this.hist = {};
@@ -26,8 +26,8 @@ function normalize(hist) {
   });
 }
 
-CountAggregator.prototype.toERP = function() {
-  return new erp.marginal({dist: normalize(this.hist)});
+CountAggregator.prototype.toDist = function() {
+  return new dists.Marginal({dist: normalize(this.hist)});
 };
 
 module.exports = CountAggregator;

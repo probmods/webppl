@@ -8,13 +8,13 @@ var pkg = require('./src/pkg');
 var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
-var erp = require('./src/erp');
+var dists = require('./src/dists');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
 function printWebPPLValue(x) {
-  if (erp.isErp(x) && x.print) {
-    console.log('ERP:');
+  if (dists.isDist(x) && x.print) {
+    console.log(x.name + ':');
     console.log(x.print());
   } else {
     console.log(x);

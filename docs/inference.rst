@@ -8,7 +8,7 @@ Enumeration
 
    :param function thunk: Program to perform inference in.
    :param number maxExecutions: Maximum number of (complete) executions to enumerate.
-   :returns: Marginal ERP
+   :returns: ``Marginal`` distribution
 
    This method performs inference by enumeration. If ``maxExecutions``
    is not specified, exhaustive enumeration is performed. Otherwise,
@@ -49,7 +49,7 @@ Rejection Sampling
                            per-execution. Only required for
                            incremental mode.
    :param boolean incremental: Enable incremental mode. Default: ``false``.
-   :returns: Marginal ERP
+   :returns: ``Marginal`` distribution
 
    This method performs inference using rejection sampling.
 
@@ -72,7 +72,7 @@ MCMC
 
    :param function thunk: Program to perform inference in.
    :param object options: Options.
-   :returns: Marginal ERP
+   :returns: ``Marginal`` distribution
 
    This method performs inference using Markov chain Monte Carlo.
 
@@ -115,15 +115,15 @@ MCMC
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
@@ -180,7 +180,7 @@ Incremental MH
    :param number numIterations: The total number of iterations to
                                 perform. (Including burn-in and lag.)
    :param object options: Options.
-   :returns: Marginal ERP
+   :returns: ``Marginal`` distribution
 
    This method performs inference using C3. [ritchie15]_ 
 
@@ -210,15 +210,15 @@ Incremental MH
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
@@ -260,7 +260,7 @@ SMC
 
    :param function thunk: Program to perform inference in.
    :param object options: Options.
-   :returns: Marginal ERP
+   :returns: ``Marginal`` distribution
 
    This method performs inference using sequential Monte Carlo. When
    ``rejuvSteps`` is 0, this method is also known as a particle
