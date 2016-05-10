@@ -53,9 +53,8 @@ function concatPrograms(programs) {
 }
 
 function parse(code, macros, filename) {
-  var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros })
-  var withFilename = addFilename(compiled, filename);
-  return withFilename;
+  var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+  return addFilename(compiled, filename);
 }
 
 function parseAll(bundles) {
@@ -175,28 +174,28 @@ function compile(code, options) {
       util.pipeline(transforms)
     ])(asts);
 
-    var codeAndMap = options.generateCode ? 
-      escodegen.generate(transformedAst, { 
-        sourceMap: true, 
-        sourceMapWithCode: true,
-      }) : transformedAst
+    var codeAndMap = options.generateCode ?
+        escodegen.generate(transformedAst, {
+          sourceMap: true,
+          sourceMapWithCode: true
+        }) : transformedAst;
 
     var sourceMap = JSON.parse(codeAndMap.map);
-    var sourcesContent = []
+    var sourcesContent = [];
 
     sourceMap.sources.map(function(filename) {
       if (filename === options.filename) {
         sourcesContent.push(code);
-      } else { // should this be a conditional to make sure the filename is in the bundle?
+      } else {
         var correspondingCode = _.findWhere(bundles, {filename: filename}).code;
         sourcesContent.push(correspondingCode);
       }
-    })
+    });
 
     sourceMap.sourcesContent = sourcesContent;
     codeAndMap.map = sourceMap;
 
-    return codeAndMap
+    return codeAndMap;
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
@@ -213,7 +212,7 @@ function run(code, k, options) {
     try {
       eval.call(global, codeWithMap.code)(runner)({}, k, '');
     } catch (exception) {
-      printFriendlyStackTrace(exception, codeWithMap.map)
+      printFriendlyStackTrace(exception, codeWithMap.map);
     }
   });
 }

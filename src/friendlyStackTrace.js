@@ -1,14 +1,14 @@
-var stackTrace = require('stack-trace')
-var SourceMap = require('source-map')
-var colors = require('colors/safe')
-var fs = require('fs')
+var stackTrace = require('stack-trace');
+var SourceMap = require('source-map');
+var colors = require('colors/safe');
+var fs = require('fs');
 
 function repeatString(string, count) {
   return Array(count).join(string);
 }
 
 function pad(pad, str, padLeft) {
-  if (typeof str === 'undefined') 
+  if (typeof str === 'undefined')
     return pad;
   if (padLeft) {
     return (pad + str).slice(-pad.length);
@@ -22,7 +22,7 @@ function getArrow(length) {
 }
 
 function getContextMessage(source, lineNumber, columnNumber) {
-  var source = source.split('\n');
+  source = source.split('\n');
   var lineDigits = ('' + (lineNumber + 1)).length + 1;
   var padding = repeatString(' ', lineDigits);
 
@@ -44,9 +44,9 @@ function getContextMessage(source, lineNumber, columnNumber) {
   return previousTotal + errorTotal + (padding + getArrow(columnNumber)) + followingTotal;
 }
 
-function printFriendlyStackTrace(error, sourceMap) {  
-  var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap)
-  var parsedError = stackTrace.parse(error)
+function printFriendlyStackTrace(error, sourceMap) {
+  var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap);
+  var parsedError = stackTrace.parse(error);
   var firstStackFrame = parsedError[0];
 
   var originalPosition = mapConsumer.originalPositionFor({
@@ -55,13 +55,13 @@ function printFriendlyStackTrace(error, sourceMap) {
   })
 
   if (originalPosition.source !== null) {
-    console.log('\n' + colors.bold(error.toString()))
-    console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n')
-    console.log(getContextMessage(mapConsumer.sourceContentFor(originalPosition.source), 
-                                                               originalPosition.line, 
-                                                               originalPosition.column))
+    console.log('\n' + colors.bold(error.toString()));
+    console.log('    at ' + originalPosition.source + ':' + originalPosition.line + '\n');
+    console.log(getContextMessage(mapConsumer.sourceContentFor(originalPosition.source),
+                                  originalPosition.line,
+                                  originalPosition.column));
   } else {
-    console.log(firstStackFrame.fileName + ':' + firstStackFrame.lineNumber +'\n')
+    console.log(firstStackFrame.fileName + ':' + firstStackFrame.lineNumber + '\n');
     // missing the actual line of that file
     console.log(error.stack);
   }

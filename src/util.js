@@ -3,7 +3,6 @@
 var _ = require('underscore');
 var assert = require('assert');
 var seedrandom = require('seedrandom');
-var node_util = require('util')
 
 var rng = Math.random;
 
@@ -180,10 +179,6 @@ function mergeDefaults(options, defaults) {
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
 
-function print(x) {
-  console.log(node_util.inspect(x, false, null))
-}
-
 function throwUnlessOpts(options, fnName) {
   assert.ok(fnName);
   if (options !== undefined && !_.isObject(options)) {
@@ -267,7 +262,6 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
-  print: print,
   throwUnlessOpts: throwUnlessOpts,
   sum: sum,
   product: product,
