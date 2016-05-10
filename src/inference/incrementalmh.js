@@ -146,7 +146,8 @@ module.exports = function(env) {
 
   DistNode.prototype.propose = function() {
     var oldval = this.val;
-    var newval = this.dist.sample();
+    var fwdPropDist = this.dist.driftKernel ? this.dist.driftKernel(oldval) : this.dist;
+    var newval = fwdPropDist.sample();
     tabbedlog(4, this.depth, 'proposing change to distribution.', 'oldval:', oldval, 'newval:', newval);
     // If the value didn't change, then just bail out (we know the
     //    the proposal will be accepted)
@@ -157,10 +158,10 @@ module.exports = function(env) {
     } else {
       updateProperty(this, 'store', _.clone(this.store));
       updateProperty(this, 'val', newval);
-      var oldscore = this.score;
       this.rescore();
-      this.coroutine.rvsPropLP = oldscore;
-      this.coroutine.fwdPropLP = this.score;
+      var rvsPropDist = this.dist.driftKernel ? this.dist.driftKernel(newval) : this.dist;
+      this.coroutine.rvsPropLP = rvsPropDist.score(oldval);
+      this.coroutine.fwdPropLP = fwdPropDist.score(newval);
       tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
           'initial fwdPropLP:', this.coroutine.fwdPropLP);
       this.needsUpdate = false;
@@ -756,8 +757,10 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, opts) {
+  function IncrementalMH(s, k, a, wpplFn, opts) {
+    util.throwUnlessOpts(opts, 'IncrementalMH');
     // Extract options
+    var numSamples = opts.samples === undefined ? 1 : opts.samples;
     var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
@@ -781,7 +784,7 @@ module.exports = function(env) {
 
     this.k = k;
     this.oldStore = s;
-    this.iterations = numIterations;
+    this.iterations = numSamples * (lag + 1) + burn;
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
@@ -790,7 +793,7 @@ module.exports = function(env) {
         new MaxAggregator(justSample) :
         new CountAggregator();
 
-    this.totalIterations = numIterations;
+    this.totalIterations = this.iterations;
     this.acceptedProps = 0;
     this.lag = lag;
     this.burn = burn;
@@ -913,7 +916,7 @@ module.exports = function(env) {
         debuglog(1, 'return val:', val);
 
         // Record this sample, if lag allows for it and not in burnin period
-        if ((iternum % (this.lag + 1) === 0) && (iternum > this.burn)) {
+        if ((iternum % (this.lag + 1) === 0) && (iternum >= this.burn)) {
           // Replace val with accumulated query, if need be.
           if (val === env.query)
             val = this.query.getTable();
@@ -1094,9 +1097,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, opts) {
+  function imh(s, cc, a, wpplFn, opts) {
     opts = opts || {};
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, opts).run();
+    return new IncrementalMH(s, cc, a, wpplFn, opts).run();
   }
 
   return {

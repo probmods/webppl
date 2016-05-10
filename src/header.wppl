@@ -1,10 +1,11 @@
 'no caching';
 
-// Distributions
+// Distributions (note: this gets macro transformed)
 
 defineDistConstructors(
     Bernoulli
     Uniform
+    UniformDrift
     RandomInteger
     Gaussian
     GaussianDrift

@@ -15,19 +15,25 @@ var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
-  function Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental) {
+  function Rejection(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'Rejection');
+    options = util.mergeDefaults(options, {
+      samples: 1,
+      maxScore: 0,
+      incremental: false
+    });
+    this.numSamples = options.samples;
+    this.maxScore = options.maxScore;
+    this.incremental = options.incremental;
     this.s = s;
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxScore = (maxScore === undefined) ? 0 : maxScore;
-    this.incremental = incremental;
     this.hist = new CountAggregator();
-    this.numSamples = (numSamples === undefined) ? 1 : numSamples;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    if (!_.isNumber(numSamples) || numSamples <= 0) {
+    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
       throw 'numSamples should be a positive integer.';
     }
 
@@ -82,8 +88,8 @@ module.exports = function(env) {
 
   Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function rej(s, k, a, wpplFn, numSamples, maxScore, incremental) {
-    return new Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental).run();
+  function rej(s, k, a, wpplFn, options) {
+    return new Rejection(s, k, a, wpplFn, options).run();
   }
 
   return {
