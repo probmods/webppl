@@ -1,10 +1,11 @@
 'no caching';
 
-// ERPs
+// ERPs (note: this gets macro transformed)
 
 defineErpConstructors(
     bernoulli
     uniform
+    uniformDrift
     randomInteger
     gaussian
     gaussianDrift

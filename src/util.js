@@ -181,7 +181,14 @@ function mergeDefaults(options, defaults) {
 }
 
 function print(x) {
-    console.log(node_util.inspect(x, false, null))
+  console.log(node_util.inspect(x, false, null))
+}
+
+function throwUnlessOpts(options, fnName) {
+  assert.ok(fnName);
+  if (options !== undefined && !_.isObject(options)) {
+    throw fnName + ' expected an options object but received: ' + JSON.stringify(options);
+  }
 }
 
 function InfToJSON(k, v) {
@@ -261,6 +268,7 @@ module.exports = {
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
   print: print,
+  throwUnlessOpts: throwUnlessOpts,
   sum: sum,
   product: product,
   asArray: asArray,

@@ -8,7 +8,7 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -38,9 +38,10 @@ module.exports = function(env) {
     };
   }
 
-  function AsyncPF(s, k, a, wpplFn, numParticles, bufferSize) {
+  function AsyncPF(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'AsyncPF');
     this.numParticles = 0;      // K_0 -- initialized here, set in run
-    this.bufferSize = bufferSize == undefined ? numParticles : bufferSize; // \rho
+    this.bufferSize = options.bufferSize == undefined ? options.particles : options.bufferSize; // \rho
     this.initNumParticles = Math.floor(this.bufferSize * (1 / 2));         // \rho_0
     this.exitK = function(s) {return wpplFn(s, env.exit, a);};
     this.store = s;
@@ -51,7 +52,7 @@ module.exports = function(env) {
 
     this.obsWeights = {};
     this.exitedParticles = 0;
-    this.hist = new Histogram();
+    this.hist = new CountAggregator();
 
     // Move old coroutine out of the way and install this as current handler.
     this.k = k;
@@ -196,8 +197,9 @@ module.exports = function(env) {
 
   AsyncPF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function asyncPF(s, cc, a, wpplFn, numParticles, bufferSize) {
-    return new AsyncPF(s, cc, a, wpplFn, numParticles, bufferSize).run(numParticles);
+  function asyncPF(s, cc, a, wpplFn, options) {
+    options = options || {};
+    return new AsyncPF(s, cc, a, wpplFn, options).run(options.particles);
   }
 
   return {

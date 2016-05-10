@@ -8,8 +8,8 @@ var assert = require('assert');
 var util = require('../util');
 var Hashtable = require('../hashtable').Hashtable
 var Query = require('../query').Query;
-var Histogram = require('../aggregation/histogram');
-var MAP = require('../aggregation/map');
+var CountAggregator = require('../aggregation/CountAggregator');
+var MaxAggregator = require('../aggregation/MaxAggregator');
 
 module.exports = function(env) {
 
@@ -756,8 +756,10 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function IncrementalMH(s, k, a, wpplFn, numIterations, opts) {
+  function IncrementalMH(s, k, a, wpplFn, opts) {
+    util.throwUnlessOpts(opts, 'IncrementalMH');
     // Extract options
+    var numSamples = opts.samples === undefined ? 1 : opts.samples;
     var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
@@ -781,16 +783,16 @@ module.exports = function(env) {
 
     this.k = k;
     this.oldStore = s;
-    this.iterations = numIterations;
+    this.iterations = numSamples * (lag + 1) + burn;
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
 
     this.aggregator = (justSample || onlyMAP) ?
-        new MAP(justSample) :
-        new Histogram();
+        new MaxAggregator(justSample) :
+        new CountAggregator();
 
-    this.totalIterations = numIterations;
+    this.totalIterations = this.iterations;
     this.acceptedProps = 0;
     this.lag = lag;
     this.burn = burn;
@@ -913,7 +915,7 @@ module.exports = function(env) {
         debuglog(1, 'return val:', val);
 
         // Record this sample, if lag allows for it and not in burnin period
-        if ((iternum % (this.lag + 1) === 0) && (iternum > this.burn)) {
+        if ((iternum % (this.lag + 1) === 0) && (iternum >= this.burn)) {
           // Replace val with accumulated query, if need be.
           if (val === env.query)
             val = this.query.getTable();
@@ -1094,9 +1096,9 @@ module.exports = function(env) {
 
   // ------------------------------------------------------------------
 
-  function imh(s, cc, a, wpplFn, numIters, opts) {
+  function imh(s, cc, a, wpplFn, opts) {
     opts = opts || {};
-    return new IncrementalMH(s, cc, a, wpplFn, numIters, opts).run();
+    return new IncrementalMH(s, cc, a, wpplFn, opts).run();
   }
 
   return {
