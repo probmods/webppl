@@ -146,6 +146,17 @@ function makeDistributionType(options) {
     throw 'makeDistributionType: name is required.';
   }
 
+  // Wrap the score function with args check.
+  if (options.score) {
+    var originalScoreFn = options.score;
+    options.score = function(val) {
+      if (arguments.length !== 1) {
+        throw 'The score method of ' + this.name + ' expected 1 argument but received ' + arguments.length + '.';
+      }
+      return originalScoreFn.call(this, val);
+    };
+  }
+
   // Note that Chrome uses the name of this local variable in the
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
