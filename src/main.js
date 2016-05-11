@@ -21,7 +21,6 @@ var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var analyze = require('./analysis/main').analyze;
 var util = require('./util');
-var printFriendlyStackTrace = require('./friendlyStackTrace');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -139,6 +138,7 @@ function copyAst(ast) {
 }
 
 function compile(code, options) {
+
   options = util.mergeDefaults(options, {
     verbose: false,
     generateCode: true,
@@ -201,6 +201,15 @@ function compile(code, options) {
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
+function addSourceMap(error, sourceMap) {
+  if (error instanceof Error) {
+    if (error.sourceMaps === undefined) {
+      error.sourceMaps = [];
+    }
+    error.sourceMaps.push(sourceMap);
+  }
+}
+
 function run(code, k, options) {
   options = _.defaults(options || {},
                        {runner: util.runningInBrowser() ? 'web' : 'cli'});
@@ -211,8 +220,9 @@ function run(code, k, options) {
   util.timeif(options.verbose, 'run', function() {
     try {
       eval.call(global, codeWithMap.code)(runner)({}, k, '');
-    } catch (exception) {
-      printFriendlyStackTrace(exception, codeWithMap.map);
+    } catch (e) {
+      addSourceMap(e, codeWithMap.map);
+      throw e;
     }
   });
 }
@@ -223,8 +233,19 @@ global.webpplEval = function(s, k, a, code, runner) {
   if (runner === undefined) {
     runner = util.runningInBrowser() ? 'web' : 'cli'
   }
-  var compiledCode = compile(code).code;
-  return eval.call(global, compiledCode)(util.trampolineRunners[runner])(s, k, a);
+  var codeWithMap = compile(code, {filename: 'webppl:eval'});
+  try {
+
+    // Generally CPS and exceptions don't mix very well. However, I
+    // think catching errors will work here because the eval'd code is
+    // run in it's own trampoline, and therefore within this
+    // try/catch. If the eval'd code ran in the top-level trampoline
+    // this approach wouldn't work.
+    return eval.call(global, codeWithMap.code)(util.trampolineRunners[runner])(s, k, a);
+  } catch (e) {
+    addSourceMap(e, codeWithMap.map);
+    throw e;
+  }
 };
 
 module.exports = {
