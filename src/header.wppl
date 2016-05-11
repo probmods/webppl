@@ -669,3 +669,12 @@ var ParticleFilter = function(wpplFn, particles) {
 var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };
+
+var Infer = function(wpplFn, options) {
+  assert.ok(_.isObject(options), 'Infer: options argument not given.');
+  var methodName = options.method;
+  assert.ok(methodName, 'Infer: the option \'method\' must be specified.');
+  assert.ok(_.has(_top, methodName), 'Infer: unknown method \'' + methodName + '\'.');
+  var method = _top[methodName];
+  return method(wpplFn, _.omit(options, 'method'));
+};
