@@ -29,9 +29,6 @@
 //
 // - All distributions of a particular type should share the same set
 //   of parameters.
-// - All distribution constructors should take a single params object
-//   argument and store a reference to it as `this.params`. See
-//   `clone`.
 
 'use strict';
 
@@ -157,12 +154,17 @@ function makeDistributionType(options) {
     };
   }
 
+  var extraConstructorFn = options.constructor;
+
   // Note that Chrome uses the name of this local variable in the
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
-  var dist = _.has(options, 'constructor') ?
-        options.constructor :
-        function(params) { this.params = params; };
+  var dist = function(params) {
+    this.params = params;
+    if (extraConstructorFn !== undefined) {
+      extraConstructorFn.call(this);
+    }
+  };
 
   dist.prototype = Object.create(options.parent.prototype);
   dist.prototype.constructor = dist;
@@ -824,10 +826,8 @@ function discreteSample(theta) {
 var Marginal = makeDistributionType({
   name: 'Marginal',
   mixins: [finiteSupport],
-  constructor: function(params) {
+  constructor: function() {
     'use ad';
-    this.params = params;
-
     var norm = _.reduce(this.params.dist, function(acc, obj) {
       return acc + obj.prob;
     }, 0);
@@ -872,9 +872,8 @@ var Marginal = makeDistributionType({
 var Categorical = makeDistributionType({
   name: 'Categorical',
   mixins: [finiteSupport],
-  constructor: function(params) {
+  constructor: function() {
     // ps is expected to be normalized.
-    this.params = params;
     this.dist = _.object(this.params.vs.map(function(v, i) {
       return [util.serialize(v), { val: v, prob: this.params.ps[i] }];
     }, this));
