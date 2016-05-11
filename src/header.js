@@ -69,6 +69,9 @@ module.exports = function(env) {
   env.defaultCoroutine = env.coroutine;
 
   env.sample = function(s, k, a, dist) {
+    if (!dists.isDist(dist)) {
+      throw 'sample() expected a distribution but received \"' + dist + '\".';
+    }
     return env.coroutine.sample(s, k, a, dist);
   };
 
