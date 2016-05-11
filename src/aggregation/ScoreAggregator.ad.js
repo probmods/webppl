@@ -3,7 +3,7 @@
 
 var assert = require('assert');
 var _ = require('underscore');
-var erp = require('../erp');
+var dists = require('../dists');
 var util = require('../util');
 
 function logsumexp(a, b) {
@@ -41,8 +41,8 @@ function normalize(dist) {
   });
 }
 
-ScoreAggregator.prototype.toERP = function() {
-  return new erp.marginal({dist: normalize(this.dist)});
+ScoreAggregator.prototype.toDist = function() {
+  return new dists.Marginal({dist: normalize(this.dist)});
 };
 
 module.exports = ScoreAggregator;

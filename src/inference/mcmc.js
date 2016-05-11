@@ -59,7 +59,7 @@ module.exports = function(env) {
 
     finish = function(trace) {
       _.invoke(callbacks, 'finish', trace);
-      return k(s, aggregator.toERP());
+      return k(s, aggregator.toDist());
     };
 
     return initialize();

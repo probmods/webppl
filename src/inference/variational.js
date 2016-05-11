@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////
 // Simple Variational inference wrt the (pseudo)mean-field program.
-// We do stochastic gradient descent on the ERP params.
+// We do stochastic gradient descent on the dist params.
 // On sample statements: sample and accumulate grad-log-score, orig-score, and variational-score
 // On factor statements accumulate into orig-score.
 
@@ -48,7 +48,7 @@ module.exports = function(env) {
     this.wpplFn(this.initialStore, env.exit, this.initialAddress);
   };
 
-  Variational.prototype.sample = function(s, k, a, erp, params) {
+  Variational.prototype.sample = function(s, k, a, dist, params) {
     //sample from variational dist
     if (!this.variationalParams.hasOwnProperty(a)) {
       //initialize at prior (for this sample)...
@@ -56,14 +56,14 @@ module.exports = function(env) {
       this.runningG2[a] = [0];//fixme: vec size
     }
     var vParams = this.variationalParams[a];
-    var val = erp.sample(vParams);
+    var val = dist.sample(vParams);
 
     //compute variational dist grad
-    this.samplegrad[a] = erp.grad(vParams, val);
+    this.samplegrad[a] = dist.grad(vParams, val);
 
     //compute target score + variational score
-    this.jointScore += erp.score(params, val);
-    this.variScore += erp.score(vParams, val);
+    this.jointScore += dist.score(params, val);
+    this.variScore += dist.score(vParams, val);
 
     k(s, val); //TODO: need a?
   };
@@ -119,7 +119,7 @@ module.exports = function(env) {
       return this.takeGradSample();
     }
 
-    //return variational dist as ERP:
+    //return variational dist:
     //FIXME
     console.log(this.variationalParams);
     var dist = null;

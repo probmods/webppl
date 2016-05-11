@@ -128,15 +128,15 @@ MCMC
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
@@ -224,15 +224,15 @@ Incremental MH
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
