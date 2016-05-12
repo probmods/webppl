@@ -138,7 +138,6 @@ function copyAst(ast) {
 }
 
 function compile(code, options) {
-
   options = util.mergeDefaults(options, {
     verbose: false,
     generateCode: true,
@@ -185,6 +184,8 @@ function compile(code, options) {
     });
 
     var sourceMap = JSON.parse(codeAndMap.map);
+    // Embed the original source in the source map for later use in
+    // error handling.
     sourceMap.sourcesContent = sourceMap.sources.map(function(filename) {
       if (filename === options.filename) {
         return code;
@@ -237,8 +238,8 @@ global.webpplEval = function(s, k, a, code, runner) {
 
     // Generally CPS and exceptions don't mix very well. However, I
     // think catching errors will work here because the eval'd code is
-    // run in it's own trampoline, and therefore within this
-    // try/catch. If the eval'd code ran in the top-level trampoline
+    // run in its own trampoline, and therefore within this try/catch.
+    // In contrast, if the eval'd code ran in the top-level trampoline
     // this approach wouldn't work.
     return eval.call(global, codeWithMap.code)(util.trampolineRunners[runner])(s, k, a);
   } catch (e) {

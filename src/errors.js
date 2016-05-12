@@ -44,6 +44,7 @@ function getContextMessage(source, lineNumber, columnNumber) {
   return previousTotal + errorTotal + (padding + getArrow(columnNumber)) + followingTotal;
 }
 
+// Note that this is Node specific.
 function showFriendlyError(error) {
   if (!(error instanceof Error)) {
     // Probably a string from `throw message`.
@@ -51,13 +52,11 @@ function showFriendlyError(error) {
     return;
   }
 
-  // Note that `error.sourceMaps` will contain one of more source maps
-  // if the error occurred while evaluating a webppl program.
+  // `error.sourceMaps` will contain one of more source maps if the
+  // error occurred while evaluating a webppl program.
 
   var pos = getErrorPosition(error);
 
-  // This is Node specific in the browser we'll need something else. I
-  // guess we need a source map for the whole browser bundle.
   var src = pos.sourceMapped ?
       getSrcFromMap(error.sourceMaps[0], pos.fileName) :
       fs.readFileSync(pos.fileName, 'utf8');
