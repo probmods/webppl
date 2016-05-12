@@ -137,6 +137,23 @@ function copyAst(ast) {
   return ret;
 }
 
+function generateCodeAndMap(code, filename, bundles, ast) {
+  var codeAndMap = escodegen.generate(ast, {
+    sourceMap: true,
+    sourceMapWithCode: true
+  });
+
+  var sourceMap = JSON.parse(codeAndMap.map);
+  // Embed the original source in the source map for later use in
+  // error handling.
+  sourceMap.sourcesContent = sourceMap.sources.map(function(fn) {
+    return (fn === filename) ? code : _.findWhere(bundles, {filename: fn}).code;
+  });
+  codeAndMap.map = sourceMap;
+
+  return codeAndMap;
+}
+
 function compile(code, options) {
   options = util.mergeDefaults(options, {
     verbose: false,
@@ -167,35 +184,15 @@ function compile(code, options) {
       console.log('Caching transform will be applied.');
     }
 
-    var transformedAst = util.pipeline([
+    var generateCode = _.partial(generateCodeAndMap, code, options.filename, bundles);
+
+    return util.pipeline([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
-      util.pipeline(transforms)
+      util.pipeline(transforms),
+      options.generateCode ? generateCode : _.identity
     ])(asts);
-
-    if (!options.generateCode) {
-      return transformedAst;
-    }
-
-    var codeAndMap = escodegen.generate(transformedAst, {
-      sourceMap: true,
-      sourceMapWithCode: true
-    });
-
-    var sourceMap = JSON.parse(codeAndMap.map);
-    // Embed the original source in the source map for later use in
-    // error handling.
-    sourceMap.sourcesContent = sourceMap.sources.map(function(filename) {
-      if (filename === options.filename) {
-        return code;
-      } else {
-        return _.findWhere(bundles, {filename: filename}).code;
-      }
-    });
-    codeAndMap.map = sourceMap;
-
-    return codeAndMap;
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
