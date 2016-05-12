@@ -1,37 +1,37 @@
 ////////////////////////////////////////////////////////////////////
-// ERPs
+// Distributions
 //
-// Elementary Random Primitives (ERPs) are the representation of
-// distributions. They can have sampling, scoring, and support
-// functions. A single ERP need not have all three, but some inference
+// Distributions can have sampling, scoring, and support functions. A
+// single distribution need not have all three, but some inference
 // functions will complain if they're missing one.
 //
-// The main thing we can do with ERPs in WebPPL is feed them into the
-// "sample" primitive to get a sample.
+// The main thing we can do with distributions in WebPPL is feed them
+// into the "sample" primitive to get a sample.
 //
 // required:
-// - erp.sample() returns a value sampled from the distribution.
-// - erp.score(val) returns the log-probability of val under the
+// - dist.sample() returns a value sampled from the distribution.
+// - dist.score(val) returns the log-probability of val under the
 //   distribution.
 //
 // Note that `sample` methods are responsible for un-lifting params as
 // necessary.
 //
 // optional:
-// - erp.support() gives either an array of support elements (for
+// - dist.support() gives either an array of support elements (for
 //   discrete distributions with finite support) or an object with
 //   'lower' and 'upper' properties (for continuous distributions with
 //   bounded support).
-// - erp.grad(val) gives the gradient of score at val wrt params.
-// - erp.driftKernel(prevVal) is an erp for making mh proposals
-//   conditioned on the previous value
+// - dist.grad(val) gives the gradient of score at val wrt params.
+// - dist.driftKernel(prevVal) is a distribution for making mh
+//   proposals conditioned on the previous value
 //
-// All erp should also satisfy the following:
+// All distributions should also satisfy the following:
 //
-// - All erp of a particular type should share the same set of
-//   parameters.
-// - All erp constructors should take a single params object argument
-//   and store a reference to it as `this.params`. See `clone`.
+// - All distributions of a particular type should share the same set
+//   of parameters.
+// - All distribution constructors should take a single params object
+//   argument and store a reference to it as `this.params`. See
+//   `clone`.
 
 'use strict';
 
@@ -44,11 +44,11 @@ var inspect = require('util').inspect;
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
 
-// This acts as a base class for all ERP.
+// This acts as a base class for all distributions.
 
-function ERP() {}
+function Distribution() {}
 
-ERP.prototype = {
+Distribution.prototype = {
 
   toJSON: function() {
     throw 'Not implemented';
@@ -58,8 +58,8 @@ ERP.prototype = {
     if (_.has(this, 'params')) {
       return [this.name, '(', inspect(this.params), ')'].join('');
     } else {
-      // This isn't an instance of an erp type, so reinspect while
-      // ignoring this custom inspection method.
+      // This isn't an instance of a distribution type, so reinspect
+      // while ignoring this custom inspection method.
       var opts = options ? _.clone(options) : {};
       opts.customInspect = false;
       return inspect(this, opts);
@@ -67,28 +67,28 @@ ERP.prototype = {
   },
 
   isContinuous: false,
-  constructor: ERP
+  constructor: Distribution
 
 };
 
-function isErp(x) {
-  return x instanceof ERP;
+function isDist(x) {
+  return x instanceof Distribution;
 }
 
-function clone(erp) {
-  return new erp.constructor(erp.params);
+function clone(dist) {
+  return new dist.constructor(dist.params);
 }
 
-var serialize = function(erp) {
-  return util.serialize(erp);
+var serialize = function(dist) {
+  return util.serialize(dist);
 };
 
 var deserialize = function(JSONString) {
   var obj = util.deserialize(JSONString);
   if (!obj.probs || !obj.support) {
-    throw 'Cannot deserialize a non-ERP JSON object: ' + JSONString;
+    throw 'Cannot deserialize a non-distribution JSON object: ' + JSONString;
   }
-  return new categorical({ps: obj.probs, vs: obj.support});
+  return new Categorical({ps: obj.probs, vs: obj.support});
 };
 
 function isParams(x) {
@@ -136,43 +136,43 @@ var continuousSupport = {
 
 var methodNames = ['sample', 'score', 'support', 'grad', 'print', 'driftKernel'];
 
-function makeErpType(options) {
+function makeDistributionType(options) {
   options = util.mergeDefaults(options, {
-    parent: ERP,
+    parent: Distribution,
     mixins: []
   });
 
   if (!_.has(options, 'name')) {
-    throw 'makeErpType: name is required.';
+    throw 'makeDistributionType: name is required.';
   }
 
   // Note that Chrome uses the name of this local variable in the
-  // output of `console.log` when it's called on an ERP that uses the
-  // default constructor.
-  var erp = _.has(options, 'constructor') ?
-      options.constructor :
-      function(params) { this.params = params; };
+  // output of `console.log` when it's called on a distribution that
+  // uses the default constructor.
+  var dist = _.has(options, 'constructor') ?
+        options.constructor :
+        function(params) { this.params = params; };
 
-  erp.prototype = Object.create(options.parent.prototype);
-  erp.prototype.constructor = erp;
-  erp.prototype.name = options.name;
+  dist.prototype = Object.create(options.parent.prototype);
+  dist.prototype.constructor = dist;
+  dist.prototype.name = options.name;
 
-  _.extendOwn.apply(_, [erp.prototype].concat(options.mixins));
-  _.extendOwn(erp.prototype, _.pick(options, methodNames));
+  _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
+  _.extendOwn(dist.prototype, _.pick(options, methodNames));
 
   ['sample', 'score'].forEach(function(method) {
-    if (!erp.prototype[method]) {
-      throw 'makeErpType: method "' + method + '" not defined for ' + options.name;
+    if (!dist.prototype[method]) {
+      throw 'makeDistributionType: method "' + method + '" not defined for ' + options.name;
     }
   });
 
-  return erp;
+  return dist;
 }
 
-// ERP
+// Distributions
 
-var uniform = makeErpType({
-  name: 'uniform',
+var Uniform = makeDistributionType({
+  name: 'Uniform',
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -190,16 +190,16 @@ var uniform = makeErpType({
   }
 });
 
-var uniformDrift = makeErpType({
-  name: 'uniformDrift',
-  parent: uniform,
+var UniformDrift = makeDistributionType({
+  name: 'UniformDrift',
+  parent: Uniform,
   driftKernel: function(prevVal) {
     // propose from the window [prevVal - r, prevVal + r]
     // where r is the proposal radius (defaults to 0.1)
 
     var r = this.params.r === undefined ? 0.1 : this.params.r;
 
-    return new uniform({
+    return new Uniform({
       a: Math.max(prevVal - r, this.params.a),
       b: Math.min(prevVal + r, this.params.b)
     });
@@ -207,8 +207,8 @@ var uniformDrift = makeErpType({
 });
 
 
-var bernoulli = makeErpType({
-  name: 'bernoulli',
+var Bernoulli = makeDistributionType({
+  name: 'Bernoulli',
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -230,8 +230,8 @@ var bernoulli = makeErpType({
 });
 
 
-var randomInteger = makeErpType({
-  name: 'randomInteger',
+var RandomInteger = makeDistributionType({
+  name: 'RandomInteger',
   mixins: [finiteSupport],
   sample: function() {
     return Math.floor(util.random() * this.params.n);
@@ -266,8 +266,8 @@ function gaussianScore(mu, sigma, x) {
 
 
 
-var gaussian = makeErpType({
-  name: 'gaussian',
+var Gaussian = makeDistributionType({
+  name: 'Gaussian',
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
@@ -280,11 +280,11 @@ var gaussian = makeErpType({
 
 
 
-var gaussianDrift = makeErpType({
-  name: 'gaussianDrift',
-  parent: gaussian,
+var GaussianDrift = makeDistributionType({
+  name: 'GaussianDrift',
+  parent: Gaussian,
   driftKernel: function(curVal) {
-    return new gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
+    return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
   }
 });
 
@@ -308,8 +308,8 @@ function multivariateGaussianScore(mu, cov, x) {
 }
 
 
-var multivariateGaussian = makeErpType({
-  name: 'multivariateGaussian',
+var MultivariateGaussian = makeDistributionType({
+  name: 'MultivariateGaussian',
   sample: function() {
     return multivariateGaussianSample(this.params.mu, this.params.cov);
   },
@@ -320,8 +320,8 @@ var multivariateGaussian = makeErpType({
 
 
 
-var cauchy = makeErpType({
-  name: 'cauchy',
+var Cauchy = makeDistributionType({
+  name: 'Cauchy',
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -342,8 +342,8 @@ function sum(xs) {
 }
 
 
-var discrete = makeErpType({
-  name: 'discrete',
+var Discrete = makeDistributionType({
+  name: 'Discrete',
   mixins: [finiteSupport],
   sample: function() {
     return discreteSample(this.params.ps.map(ad.value));
@@ -445,8 +445,8 @@ function expGammaScore(shape, scale, val) {
 }
 
 
-var gamma = makeErpType({
-  name: 'gamma',
+var Gamma = makeDistributionType({
+  name: 'Gamma',
   mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
@@ -463,8 +463,8 @@ var gamma = makeErpType({
 });
 
 
-var exponential = makeErpType({
-  name: 'exponential',
+var Exponential = makeDistributionType({
+  name: 'Exponential',
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -488,8 +488,8 @@ function logBeta(a, b) {
 
 
 
-var beta = makeErpType({
-  name: 'beta',
+var Beta = makeDistributionType({
+  name: 'Beta',
   mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
@@ -554,8 +554,8 @@ function binomialSample(p, n) {
   return k || 0;
 }
 
-var binomial = makeErpType({
-  name: 'binomial',
+var Binomial = makeDistributionType({
+  name: 'Binomial',
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -614,8 +614,8 @@ function multinomialSample(theta, n) {
   return a;
 }
 
-var multinomial = makeErpType({
-  name: 'multinomial',
+var Multinomial = makeDistributionType({
+  name: 'Multinomial',
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -702,8 +702,8 @@ function lnfact(x) {
 
 
 
-var poisson = makeErpType({
-  name: 'poisson',
+var Poisson = makeDistributionType({
+  name: 'Poisson',
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -771,8 +771,8 @@ function dirichletScore(alpha, val) {
   return logp;
 }
 
-var dirichlet = makeErpType({
-  name: 'dirichlet',
+var Dirichlet = makeDistributionType({
+  name: 'Dirichlet',
   sample: function() {
     return dirichletSample(this.params.alpha);
   },
@@ -783,13 +783,13 @@ var dirichlet = makeErpType({
 
 
 
-var dirichletDrift = makeErpType({
-  name: 'dirichletDrift',
-  parent: dirichlet,
+var DirichletDrift = makeDistributionType({
+  name: 'DirichletDrift',
+  parent: Dirichlet,
   driftKernel: function(prevVal) {
     var concentration = 10;
     var alpha = prevVal.map(function(x) { return concentration * x; });
-    return new dirichlet({alpha: alpha});
+    return new Dirichlet({alpha: alpha});
   }
 });
 
@@ -810,8 +810,8 @@ function discreteSample(theta) {
 
 
 
-var marginal = makeErpType({
-  name: 'marginal',
+var Marginal = makeDistributionType({
+  name: 'Marginal',
   mixins: [finiteSupport],
   constructor: function(params) {
     'use ad';
@@ -858,8 +858,8 @@ var marginal = makeErpType({
 });
 
 
-var categorical = makeErpType({
-  name: 'categorical',
+var Categorical = makeDistributionType({
+  name: 'Categorical',
   mixins: [finiteSupport],
   constructor: function(params) {
     // ps is expected to be normalized.
@@ -883,33 +883,33 @@ var categorical = makeErpType({
   }
 });
 
-function withImportanceDist(erp, importanceERP) {
-  var newERP = clone(erp);
-  newERP.importanceERP = importanceERP;
-  return newERP;
+function withImportanceDist(dist, importanceDist) {
+  var newDist = clone(dist);
+  newDist.importanceDist = importanceDist;
+  return newDist;
 }
 
 module.exports = {
-  // erp
-  uniform: uniform,
-  uniformDrift: uniformDrift,
-  bernoulli: bernoulli,
-  randomInteger: randomInteger,
-  gaussian: gaussian,
-  gaussianDrift: gaussianDrift,
-  multivariateGaussian: multivariateGaussian,
-  cauchy: cauchy,
-  discrete: discrete,
-  gamma: gamma,
-  exponential: exponential,
-  beta: beta,
-  binomial: binomial,
-  multinomial: multinomial,
-  poisson: poisson,
-  dirichlet: dirichlet,
-  dirichletDrift: dirichletDrift,
-  marginal: marginal,
-  categorical: categorical,
+  // distributions
+  Uniform: Uniform,
+  UniformDrift: UniformDrift,
+  Bernoulli: Bernoulli,
+  RandomInteger: RandomInteger,
+  Gaussian: Gaussian,
+  GaussianDrift: GaussianDrift,
+  MultivariateGaussian: MultivariateGaussian,
+  Cauchy: Cauchy,
+  Discrete: Discrete,
+  Gamma: Gamma,
+  Exponential: Exponential,
+  Beta: Beta,
+  Binomial: Binomial,
+  Multinomial: Multinomial,
+  Poisson: Poisson,
+  Dirichlet: Dirichlet,
+  DirichletDrift: DirichletDrift,
+  Marginal: Marginal,
+  Categorical: Categorical,
   // rng
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
@@ -919,6 +919,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   withImportanceDist: withImportanceDist,
-  isErp: isErp,
+  isDist: isDist,
   isParams: isParams
 };

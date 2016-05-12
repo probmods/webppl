@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    func: 'Rejection',
+    method: 'Rejection',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },
@@ -75,6 +75,16 @@ var tests = [
       store: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 100000 } },
+      gaussianDrift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: { samples: 80000, burn: 20000 }
+      },
+      uniformDrift: {
+        mean: { tol: 0.4 },
+        std: { tol: 0.4 },
+        args: { samples: 200000 }
+      },
       withCaching: true,
       variableSupport: true,
       query: true,
@@ -92,7 +102,7 @@ var tests = [
   },
   {
     name: 'IMHjustSample',
-    func: 'IncrementalMH',
+    method: 'IncrementalMH',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -162,7 +172,7 @@ var tests = [
   },
   {
     name: 'IncrementalRejection',
-    func: 'Rejection',
+    method: 'Rejection',
     settings: {
       args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
@@ -178,7 +188,7 @@ var tests = [
   },
   {
     name: 'ParticleFilter',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -212,7 +222,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuvMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
@@ -241,7 +251,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuvHMC',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
@@ -270,7 +280,7 @@ var tests = [
   },
   {
     name: 'ParticleFilterAsMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.15, check: true },
@@ -300,7 +310,7 @@ var tests = [
   },
   {
     name: 'MH',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       MAP: { tol: 0.15, check: true },
@@ -341,7 +351,7 @@ var tests = [
   },
   {
     name: 'HMC',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
@@ -461,7 +471,7 @@ var tests = [
   },
   {
     name: 'HMConly',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.3 },
@@ -475,7 +485,7 @@ var tests = [
   },
   {
     name: 'MHjustSample',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -486,15 +496,14 @@ var tests = [
 ];
 
 var wpplRunInference = function(modelName, testDef) {
-  var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
+    'Infer(model, ', inferenceArgs, ');'
   ].join('');
   try {
     var retVal;
-    webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+    webppl.run(progText, function(store, dist) { retVal = { store: store, dist: dist }; });
     return retVal;
   } catch (e) {
     console.log('Exception: ' + e);
@@ -523,31 +532,31 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return _.isArray(args) ? args.map(util.serialize) : util.serialize(args);
+  return util.serialize(_.extendOwn({}, args, {method: testDef.method || testDef.name}));
 };
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.erp.params.dist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.erp.params.dist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.erp.params.dist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.dist.params.dist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {
-      helpers.testWithinTolerance(test, result.erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, result.dist.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
   MAP: function(test, result, expected, args) {
     if (args.check) {
-      var map = result.erp.MAP();
+      var map = result.dist.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
       helpers.testWithinTolerance(test, map.score, expected.score, args.tol, 'MAP score');
     }

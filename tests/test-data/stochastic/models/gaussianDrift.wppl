@@ -2,8 +2,8 @@ var xs = [0, 1, 2, 3];
 var ys = [0, 1, 4, 6];
 
 var model = function() {
-  var m = sample(gaussianDriftERP({mu: 0, sigma: 2}));
-  var b = sample(gaussianDriftERP({mu: 0, sigma: 2}));
+  var m = sample(GaussianDrift({mu: 0, sigma: 2}));
+  var b = sample(GaussianDrift({mu: 0, sigma: 2}));
 
   var sigma = gamma(1, 1);
 
@@ -13,7 +13,7 @@ var model = function() {
 
   map2(
       function(x, y) {
-        factor(gaussianERP({mu: f(x), sigma: sigma}).score(y));
+        factor(Gaussian({mu: f(x), sigma: sigma}).score(y));
       },
       xs,
       ys);
