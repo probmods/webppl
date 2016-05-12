@@ -175,11 +175,14 @@ function compile(code, options) {
       util.pipeline(transforms)
     ])(asts);
 
-    var codeAndMap = options.generateCode ?
-        escodegen.generate(transformedAst, {
-          sourceMap: true,
-          sourceMapWithCode: true
-        }) : transformedAst;
+    if (!options.generateCode) {
+      return transformedAst;
+    }
+
+    var codeAndMap = escodegen.generate(transformedAst, {
+      sourceMap: true,
+      sourceMapWithCode: true
+    });
 
     var sourceMap = JSON.parse(codeAndMap.map);
     var sourcesContent = [];
