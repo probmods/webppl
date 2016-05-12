@@ -37,9 +37,9 @@ function getContextMessage(source, lineNumber, columnNumber) {
   previousLine = previousLine.trim().slice(0, 2) === '//' ? colors.dim(previousLine) : previousLine;
   followingLine = followingLine.trim().slice(0, 2) === '//' ? colors.dim(followingLine) : followingLine;
 
-  var previousTotal = previousLine == 'undefined\n' ? '' : previousPrefix + previousLine;
+  var previousTotal = previousLine === 'undefined\n' ? '' : previousPrefix + previousLine;
   var errorTotal = errorPrefix + errorLine;
-  var followingTotal = followingLine == 'undefined\n' ? '' : followingPrefix + followingLine;
+  var followingTotal = followingLine === 'undefined\n' ? '' : followingPrefix + followingLine;
 
   return previousTotal + errorTotal + (padding + getArrow(columnNumber)) + followingTotal;
 }
