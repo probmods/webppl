@@ -185,18 +185,13 @@ function compile(code, options) {
     });
 
     var sourceMap = JSON.parse(codeAndMap.map);
-    var sourcesContent = [];
-
-    sourceMap.sources.map(function(filename) {
+    sourceMap.sourcesContent = sourceMap.sources.map(function(filename) {
       if (filename === options.filename) {
-        sourcesContent.push(code);
+        return code;
       } else {
-        var correspondingCode = _.findWhere(bundles, {filename: filename}).code;
-        sourcesContent.push(correspondingCode);
+        return _.findWhere(bundles, {filename: filename}).code;
       }
     });
-
-    sourceMap.sourcesContent = sourcesContent;
     codeAndMap.map = sourceMap;
 
     return codeAndMap;
