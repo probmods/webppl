@@ -166,11 +166,11 @@ function makeDistributionType(options) {
     if (params === undefined) {
       throw 'Parameters not supplied to ' + this.name + ' distribution.';
     }
-    for (var p of parameterNames) {
+    parameterNames.forEach(function(p) {
       if (!params.hasOwnProperty(p)) {
         throw 'Parameter \"' + p + '\" missing from ' + this.name + ' distribution.';
       }
-    }
+    });
     this.params = params;
     if (extraConstructorFn !== undefined) {
       extraConstructorFn.call(this);
