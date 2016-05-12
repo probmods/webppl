@@ -170,7 +170,7 @@ function makeDistributionType(options) {
       if (!params.hasOwnProperty(p)) {
         throw 'Parameter \"' + p + '\" missing from ' + this.name + ' distribution.';
       }
-    });
+    }, this);
     this.params = params;
     if (extraConstructorFn !== undefined) {
       extraConstructorFn.call(this);
