@@ -23,4 +23,4 @@ var model = function() {
   return sigmoid(8)
 }
 
-MH(model, 10000, 2000)
+Infer(model, {method: 'MCMC', samples: 10000, burn: 2000})

@@ -20,4 +20,4 @@ var model = function() {
   return f(4)
 }
 
-MH(model, 10000)
+Infer(model, {method: 'MCMC', samples: 10000})

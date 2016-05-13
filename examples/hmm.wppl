@@ -22,8 +22,8 @@ var arrayEq = function(a, b) {
   return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
 }
 
-Enumerate(function() {
+Infer(function() {
   var r = hmm(3);
   factor(arrayEq(r.observations, trueObservations) ? 0 : -Infinity);
   return r.states;
-})
+}, {method: 'Enumerate'})

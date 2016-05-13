@@ -5,6 +5,4 @@ var binomial = function() {
   return a + b + c;
 };
 
-var binomialDist = Enumerate(binomial);
-
-binomialDist
+Infer(binomial, {method: 'Enumerate'});

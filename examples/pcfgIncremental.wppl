@@ -40,7 +40,7 @@ var expand = function(symbols, yieldsofar, trueyield) {
   }
 }
 
-Enumerate(function() {
+Infer(function() {
   var y = pcfg('start', [], ['tall', 'John'])
   return y[2] ? y[2] : '' //distribution on next word?
-}, {maxExecutions: 300})
+}, {method: 'Enumerate', maxExecutions: 300})
