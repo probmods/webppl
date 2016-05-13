@@ -5,7 +5,7 @@ function isLocationNode(node) {
   return _.has(node, 'start') && _.has(node, 'end');
 }
 
-module.exports = _.mapObject(builders, function(builder, name) {
+module.exports = _.mapObject(builders, function(builder) {
   return function() {
     var args = _.toArray(arguments);
     if (args.length > 0 && isLocationNode(_.last(args))) {
