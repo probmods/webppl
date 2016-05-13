@@ -52,16 +52,38 @@ function showFriendlyError(error) {
     return;
   }
 
-  // `error.sourceMaps` will contain one of more source maps if the
+  var pos = getErrorPosition(error);
+  var src = getSrc(error, pos);
+
+  if (src) {
+    writeFriendlyError(error, pos, src);
+  } else {
+    console.log('\nFailed to generate friendly error message. Original error was:\n');
+    console.log(error.message + '\n');
+  }
+
+  if (error.stack) {
+    console.log('Stack trace:');
+    console.log(error.stack.slice(error.stack.indexOf('\n') + 1));
+  }
+}
+
+function getSrc(error, pos) {
+
+  // `error.sourceMaps` will contain one or more source maps if the
   // error occurred while evaluating a webppl program.
 
-  var pos = getErrorPosition(error);
-
-  var src = pos.sourceMapped ?
-      getSrcFromMap(error.sourceMaps[0], pos.fileName) :
-      fs.readFileSync(pos.fileName, 'utf8');
-
-  writeFriendlyError(error, pos, src);
+  if (pos.sourceMapped) {
+    return getSrcFromMap(error.sourceMaps[0], pos.fileName);
+  } else {
+    try {
+      return fs.readFileSync(pos.fileName, 'utf8');
+    } catch (e) {
+      // This can occur if the original location gets lost during
+      // compilation.
+      return null;
+    }
+  }
 }
 
 function getSrcFromMap(sourceMap, fileName) {
@@ -73,11 +95,6 @@ function writeFriendlyError(error, pos, src) {
   console.log('\n' + colors.bold(error.message));
   console.log('    at ' + pos.fileName + ':' + pos.lineNumber + '\n');
   console.log(getContextMessage(src, pos.lineNumber, pos.columnNumber));
-
-  if (error.stack) {
-    console.log('Stack trace:');
-    console.log(error.stack.slice(error.stack.indexOf('\n') + 1));
-  }
 }
 
 function getErrorPosition(error) {
