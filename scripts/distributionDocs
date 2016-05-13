@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+'use strict';
+
+// Require this version so that we don't need to run the build in
+// order to build the docs.
+var dists = require('../src/dists.ad.js');
+var _ = require('underscore');
+
+function getMetaData() {
+  return _.chain(dists)
+    .pairs() // pair[0] = key, pair[1] = value
+    .filter(function(pair) {
+      var dist = pair[1];
+      return dists.isDist(dist.prototype);
+    })
+    .sortBy(function(pair) { return pair[0]; })
+    .map(function(pair) { return pair[1]; })
+    .map(function(dist) {
+      return dist.prototype.meta;
+    }).value();
+}
+
+function makeTemplates(obj) {
+  return _.mapObject(obj, _.template);
+}
+
+var header = [
+  'Distributions',
+  '=============\n'
+].join('\n');
+
+var t = makeTemplates({
+  func:          '.. js:function:: <%= name %>({<%= args %>})\n',
+  arg:           '<%= name %>: ...',
+  param:         '  * <%= name %>',
+  paramWithDesc: '  * <%= name %>: *<%= desc %>*',
+  desc:          '  <%= desc %>\n'
+});
+
+var body = getMetaData().map(function(meta) {
+
+  var out = [];
+
+  out.push(t.func({
+    name: meta.name,
+    args: meta.params.map(t.arg).join(', ')
+  }));
+
+  meta.params.forEach(function(param) {
+    out.push((param.desc ? t.paramWithDesc : t.param)(param));
+  });
+
+  out.push('');
+
+  if (meta.desc) {
+    out.push(t.desc(meta));
+  }
+
+  return out;
+
+});
+
+console.log(header);
+console.log(_.flatten(body).join('\n'));
