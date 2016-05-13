@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var build = require('ast-types').builders;
+var build = require('./builders');
 var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;
 
@@ -121,7 +121,7 @@ function atomize(node, metaK) {
     clause(Syntax.MemberExpression, function(object, property) {
       return atomize(object, function(object) {
         return atomize(property, function(property) {
-          return metaK(build.memberExpression(object, property, node.computed));
+          return metaK(build.memberExpression(object, property, node.computed, node.loc));
         });
       });
     }),
