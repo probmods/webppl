@@ -200,6 +200,7 @@ function makeDistributionType(options) {
 
 var Uniform = makeDistributionType({
   name: 'Uniform',
+  desc: 'Continuous uniform distribution on [a, b]',
   params: [{name: 'a'}, {name: 'b'}],
   mixins: [continuousSupport],
   sample: function() {
@@ -220,7 +221,7 @@ var Uniform = makeDistributionType({
 
 var UniformDrift = makeDistributionType({
   name: 'UniformDrift',
-  params: [{name: 'a'}, {name: 'b'}, {name: 'r'}],
+  params: [{name: 'a'}, {name: 'b'}, {name: 'r', desc: 'drift kernel radius'}],
   parent: Uniform,
   driftKernel: function(prevVal) {
     // propose from the window [prevVal - r, prevVal + r]
@@ -238,7 +239,8 @@ var UniformDrift = makeDistributionType({
 
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
-  params: [{name: 'p'}],
+  desc: 'Distribution on {true,false}',
+  params: [{name: 'p', desc: 'probability of true'}],
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -262,6 +264,7 @@ var Bernoulli = makeDistributionType({
 
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
+  desc: 'Uniform distribution on {0,1,...,n-1}',
   params: [{name: 'n'}],
   mixins: [finiteSupport],
   sample: function() {
@@ -299,7 +302,7 @@ function gaussianScore(mu, sigma, x) {
 
 var Gaussian = makeDistributionType({
   name: 'Gaussian',
-  params: [{name: 'mu'}, {name: 'sigma'}],
+  params: [{name: 'mu', desc: 'mean'}, {name: 'sigma', desc: 'standard deviation'}],
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
@@ -314,7 +317,7 @@ var Gaussian = makeDistributionType({
 
 var GaussianDrift = makeDistributionType({
   name: 'GaussianDrift',
-  params: [{name: 'mu'}, {name: 'sigma'}],
+  params: [{name: 'mu', desc: 'mean'}, {name: 'sigma', desc: 'standard deviation'}],
   parent: Gaussian,
   driftKernel: function(curVal) {
     return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
@@ -343,7 +346,7 @@ function multivariateGaussianScore(mu, cov, x) {
 
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
-  params: [{name: 'mu'}, {name: 'cov'}],
+  params: [{name: 'mu', desc: 'mean vector'}, {name: 'cov', desc: 'covariance matrix'}],
   sample: function() {
     return multivariateGaussianSample(this.params.mu, this.params.cov);
   },
@@ -379,7 +382,8 @@ function sum(xs) {
 
 var Discrete = makeDistributionType({
   name: 'Discrete',
-  params: [{name: 'ps'}],
+  desc: 'Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]',
+  params: [{name: 'ps', desc: 'array of probabilities'}],
   mixins: [finiteSupport],
   sample: function() {
     return discreteSample(this.params.ps.map(ad.value));
@@ -502,7 +506,7 @@ var Gamma = makeDistributionType({
 
 var Exponential = makeDistributionType({
   name: 'Exponential',
-  params: [{name: 'a'}],
+  params: [{name: 'a', desc: 'rate'}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -595,7 +599,8 @@ function binomialSample(p, n) {
 
 var Binomial = makeDistributionType({
   name: 'Binomial',
-  params: [{name: 'p'}, {name: 'n'}],
+  desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
+  params: [{name: 'p', desc: 'success probability'}, {name: 'n', desc: 'number of trials'}],
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -656,7 +661,8 @@ function multinomialSample(theta, n) {
 
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
-  params: [{name: 'ps'}, {name: 'n'}],
+  desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
+  params: [{name: 'ps', desc: 'probabilities'}, {name: 'n', desc: 'number of trials'}],
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -815,7 +821,7 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
-  params: [{name: 'alpha'}],
+  params: [{name: 'alpha', desc: 'array of concentration parameters'}],
   sample: function() {
     return dirichletSample(this.params.alpha);
   },
@@ -829,7 +835,7 @@ var Dirichlet = makeDistributionType({
 var DirichletDrift = makeDistributionType({
   name: 'DirichletDrift',
   parent: Dirichlet,
-  params: [{name: 'alpha'}],
+  params: [{name: 'alpha', desc: 'array of concentration parameters'}],
   driftKernel: function(prevVal) {
     var concentration = 10;
     var alpha = prevVal.map(function(x) { return concentration * x; });
@@ -903,7 +909,8 @@ var Marginal = makeDistributionType({
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  params: [{name: 'ps'}, {name: 'vs'}],
+  desc: 'Distribution over elements of vs with P(vs[i]) = ps[i]',
+  params: [{name: 'ps', desc: 'array of probabilities'}, {name: 'vs', desc: 'support'}],
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
