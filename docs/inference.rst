@@ -34,11 +34,11 @@ Enumeration
 
    .. describe:: strategy
 
-      Either ``'lfs'``, ``'dfs'`` or ``'bfs'``. These correspond to
-      likely, depth and breadth first search strategies respectively.
+      The traversal strategy used to explore executions. Either
+      ``'likely-first'``, ``'depth-first'`` or ``'breadth-first'``.
 
-      Default: ``'lfs'`` if ``maxExecutions`` is finite, ``'dfs'``
-      otherwise.
+      Default: ``'likely-first'`` if ``maxExecutions`` is finite,
+      ``'depth-first'`` otherwise.
 
    Example usage::
 
