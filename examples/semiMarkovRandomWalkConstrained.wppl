@@ -80,11 +80,11 @@ var semiMarkovWalkConstrained = function(n, dim, trueObs) {
 var numSteps = 80;
 var trueObservations = semiMarkovWalk(numSteps, 2).observations;
 
-var posteriorSampler = ParticleFilter(
+var posteriorSampler = Infer(
     function() {
       return semiMarkovWalkConstrained(numSteps, 2, trueObservations);
     },
-    10) // Try reducing the number of samples to 1!
+    {method: 'SMC', particles: 10}) // Try reducing the number of samples to 1!
 
 var inferredStates = sample(posteriorSampler).states;
 
