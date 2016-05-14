@@ -14,7 +14,7 @@ var _ = require('underscore');
 
 function printWebPPLValue(x) {
   if (dists.isDist(x) && x.print) {
-    console.log(x.name + ':');
+    console.log(x.meta.name + ':');
     console.log(x.print());
   } else {
     console.log(x);

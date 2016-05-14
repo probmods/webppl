@@ -9,6 +9,7 @@ Contents:
    quickstart
    usage
    inference
+   distributions
    debugging
    packages
    development/index
