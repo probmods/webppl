@@ -5,4 +5,4 @@ var binomial = function() {
   return a + b + c;
 };
 
-Infer(binomial, {method: 'Enumerate'});
+Infer({method: 'Enumerate'}, binomial);

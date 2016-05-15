@@ -109,4 +109,4 @@ var model = function() {
   return counts;
 };
 
-Infer(model, {method: 'MCMC', samples: 5000})
+Infer({method: 'MCMC', samples: 5000}, model)
