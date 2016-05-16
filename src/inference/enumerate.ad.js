@@ -14,7 +14,7 @@ var ScoreAggregator = require('../aggregation/ScoreAggregator');
 
 module.exports = function(env) {
 
-  function Enumerate(store, k, a, wpplFn, options, Q) {
+  function Enumerate(store, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity
@@ -31,7 +31,8 @@ module.exports = function(env) {
     // Queue of states that we have yet to explore.  This queue is a
     // bunch of computation states. Each state is a continuation, a
     // value to apply it to, and a score.
-    this.queue = Q;
+    var strategy = strategies[options.strategy] || defaultStrategy(options.maxExecutions);
+    this.queue = strategy.makeQ();
 
     // Move old coroutine out of the way
     // and install this as the current handler
@@ -146,45 +147,46 @@ module.exports = function(env) {
 
   Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-  function enuPriority(s, k, a, wpplFn, options) {
-    var q = new PriorityQueue(function(a, b) {
-      return a.score - b.score;
-    });
-    return new Enumerate(s, k, a, wpplFn, options, q).run();
-  }
+  var strategies = {
+    'likely-first': {
+      makeQ: function() {
+        return new PriorityQueue(function(a, b) {
+          return a.score - b.score;
+        });
+      }
+    },
+    'depth-first': {
+      makeQ: function() {
+        var q = [];
+        q.size = function() {
+          return q.length;
+        };
+        q.enq = q.push;
+        q.deq = q.pop;
+        return q;
+      }
+    },
+    'breadth-first': {
+      makeQ: function() {
+        var q = [];
+        q.size = function() {
+          return q.length;
+        };
+        q.enq = q.push;
+        q.deq = q.shift;
+        return q;
+      }
+    }
+  };
 
-  function enuFilo(s, k, a, wpplFn, options) {
-    var q = [];
-    q.size = function() {
-      return q.length;
-    };
-    q.enq = q.push;
-    q.deq = q.pop;
-    return new Enumerate(s, k, a, wpplFn, options, q).run();
-  }
-
-  function enuFifo(s, k, a, wpplFn, options) {
-    var q = [];
-    q.size = function() {
-      return q.length;
-    };
-    q.enq = q.push;
-    q.deq = q.shift;
-    return new Enumerate(s, k, a, wpplFn, options, q).run();
-  }
-
-  function enuDefault(s, k, a, wpplFn, options) {
-    options = options || {};
-    var enu = _.isFinite(options.maxExecutions) ? enuPriority : enuFilo;
-    return enu(s, k, a, wpplFn, options);
+  function defaultStrategy(maxExecutions) {
+    return strategies[_.isFinite(maxExecutions) ? 'likely-first' : 'depth-first'];
   }
 
   return {
-    Enumerate: enuDefault,
-    EnumerateBreadthFirst: enuFifo,
-    EnumerateDepthFirst: enuFilo,
-    EnumerateLikelyFirst: enuPriority
+    Enumerate: function(s, k, a, wpplFn, options) {
+      return new Enumerate(s, k, a, wpplFn, options).run();
+    }
   };
 
 };

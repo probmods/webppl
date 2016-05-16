@@ -30,19 +30,20 @@ Enumeration
 
       Maximum number of (complete) executions to enumerate.
 
-   If ``maxExecutions`` is not specified, exhaustive enumeration is
-   performed. Otherwise, paths through the program are explored using
-   a "most probable first" heuristic until the maximum number of
-   executions is reached.
+      Default: ``Infinity``
 
-   Alternatively, the search strategy can be specified explicitly
-   using the ``EnumerateBreadthFirst``, ``EnumerateDepthFirst`` or
-   ``EnumerateLikelyFirst`` methods.
+   .. describe:: strategy
+
+      The traversal strategy used to explore executions. Either
+      ``'likely-first'``, ``'depth-first'`` or ``'breadth-first'``.
+
+      Default: ``'likely-first'`` if ``maxExecutions`` is finite,
+      ``'depth-first'`` otherwise.
 
    Example usage::
 
      Infer({method: 'Enumerate', maxExecutions: 10}, thunk);
-     Infer({method: 'EnumerateBreadthFirst'}, thunk);
+     Infer({method: 'Enumerate', strategy: 'breadth-first'}, thunk);
 
 Rejection Sampling
 ------------------
