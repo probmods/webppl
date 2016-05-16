@@ -499,7 +499,7 @@ var wpplRunInference = function(modelName, testDef) {
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    'Infer(model, ', inferenceArgs, ');'
+    'Infer(', inferenceArgs, ', model);'
   ].join('');
   try {
     var retVal;

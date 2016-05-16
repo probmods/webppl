@@ -1,10 +1,10 @@
 Inference
 =========
 
-.. js:function:: Infer(thunk, options)
+.. js:function:: Infer(options, thunk)
 
-   :param function thunk: Program to perform inference in.
    :param object options: Inference options.
+   :param function thunk: Program to perform inference in.
 
 ``Infer`` computes the marginal distribution on return values of a
 program. The program is specified as a function of zero arguments,
@@ -13,14 +13,14 @@ also known as a `thunk`.
 The inference algorithm to use must be specified using the ``method``
 option. For example::
 
-  Infer(thunk, {method: 'Enumerate'})
+  Infer({method: 'Enumerate'}, thunk)
 
 The following algorithms are available:
 
 Enumeration
 -----------
 
-.. js:function:: Infer(thunk, {method: 'Enumerate'[, ...]})
+.. js:function:: Infer({method: 'Enumerate'[, ...]}, thunk)
 
    This method performs inference by enumeration.
 
@@ -41,13 +41,13 @@ Enumeration
 
    Example usage::
 
-     Infer(thunk, {method: 'Enumerate', maxExecutions: 10});
-     Infer(thunk, {method: 'EnumerateBreadthFirst'});
+     Infer({method: 'Enumerate', maxExecutions: 10}, thunk);
+     Infer({method: 'EnumerateBreadthFirst'}, thunk);
 
 Rejection Sampling
 ------------------
 
-.. js:function:: Infer(thunk, {method: 'Rejection'[, ...]})
+.. js:function:: Infer({method: 'Rejection'[, ...]}, thunk)
 
    This method performs inference using rejection sampling.
 
@@ -80,12 +80,12 @@ Rejection Sampling
 
    Example usage::
 
-     Infer(thunk, {method: 'Rejection', samples: 100});
+     Infer({method: 'Rejection', samples: 100}, thunk);
 
 MCMC
 ----
 
-.. js:function:: Infer(thunk, {method: 'MCMC'[, ...]})
+.. js:function:: Infer({method: 'MCMC'[, ...]}, thunk)
 
    This method performs inference using Markov chain Monte Carlo.
 
@@ -142,7 +142,7 @@ MCMC
 
    Example usage::
 
-     Infer(thunk, {samples: 1000, lag: 100, burn: 5});
+     Infer({samples: 1000, lag: 100, burn: 5}, thunk);
 
 Kernels
 ^^^^^^^
@@ -155,7 +155,7 @@ The following kernels are available:
 
 Example usage::
 
-    Infer(thunk, {method: 'MCMC', kernel: 'MH'});
+    Infer({method: 'MCMC', kernel: 'MH'}, thunk);
 
 .. describe:: HMC
 
@@ -181,13 +181,13 @@ Example usage::
 
 Example usage::
 
-    Infer(thunk, {method: 'MCMC', kernel: 'HMC'});
-    Infer(thunk, {method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}});
+    Infer({method: 'MCMC', kernel: 'HMC'}, thunk);
+    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}}, thunk);
 
 Incremental MH
 --------------
 
-.. js:function:: Infer(thunk, {method: 'IncrementalMH'[, ...]})
+.. js:function:: Infer({method: 'IncrementalMH'[, ...]}, thunk)
 
    This method performs inference using C3. [ritchie15]_
 
@@ -238,7 +238,7 @@ Incremental MH
 
    Example usage::
 
-     Infer(thunk, {method: 'IncrementalMH', samples: 100, lag: 5, burn: 10});
+     Infer({method: 'IncrementalMH', samples: 100, lag: 5, burn: 10}, thunk);
 
    To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
 
@@ -256,7 +256,7 @@ Incremental MH
         hmm(100, observed_data);
         return query;
       }
-      Infer(model, {method: 'IncrementalMH', samples: 100, lag: 5, burn: 10});
+      Infer({method: 'IncrementalMH', samples: 100, lag: 5, burn: 10}, model);
 
    ``query`` is a write-only table which can be returned from a program (and thus marginalized). The only operation it supports is adding named values:
 
@@ -270,7 +270,7 @@ Incremental MH
 SMC
 ---
 
-.. js:function:: Infer(thunk, {method: 'SMC'[, ...]})
+.. js:function:: Infer({method: 'SMC'[, ...]}, thunk)
 
    This method performs inference using sequential Monte Carlo. When
    ``rejuvSteps`` is 0, this method is also known as a particle
@@ -300,7 +300,7 @@ SMC
 
    Example usage::
 
-     Infer(thunk, {method: 'SMC', particles: 100, rejuvSteps: 5});
+     Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
 
 .. rubric:: Bibliography
 
