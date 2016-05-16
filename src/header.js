@@ -70,7 +70,7 @@ module.exports = function(env) {
 
   env.sample = function(s, k, a, dist) {
     if (!dists.isDist(dist)) {
-      throw 'sample() expected a distribution but received \"' + dist + '\".';
+      throw 'sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".';
     }
     return env.coroutine.sample(s, k, a, dist);
   };

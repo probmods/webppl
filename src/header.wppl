@@ -670,7 +670,7 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };
 
-var Infer = function(wpplFn, options) {
+var Infer = function(options, wpplFn) {
   assert.ok(_.isObject(options), 'Infer: options argument not given.');
   var methodName = options.method;
   assert.ok(methodName, 'Infer: the option \'method\' must be specified.');
