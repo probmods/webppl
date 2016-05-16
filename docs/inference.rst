@@ -43,7 +43,7 @@ Enumeration
    Example usage::
 
      Infer({method: 'Enumerate', maxExecutions: 10}, thunk);
-     Infer({method: 'Enumerate', strategy: 'bfs'}, thunk);
+     Infer({method: 'Enumerate', strategy: 'breadth-first'}, thunk);
 
 Rejection Sampling
 ------------------
