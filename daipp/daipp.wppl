@@ -98,7 +98,7 @@ var DAIPPguide = function(dist, val) {
 //this helper samples from the guide and updates the context. except when opt.observedVal is defined it instead is a factor enforcing the observation.
 var sampleDaipp = function(dist,opt) {
   //FIXME: in fantasy mode for sleepey phase, we want to sample even for observed vals? or just make sure they are undefined in that context?
-  if(opt == undefined || opt.observedVal == undefined) {
+  if(opt === undefined || opt.observedVal === undefined) {
     // Convert the dist params to an array to retain the behavior we
     // had under the old ERP interface. Probably better to have some
     // handling of this directly in val2vec at some point.
