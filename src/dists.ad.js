@@ -55,8 +55,9 @@ Distribution.prototype = {
     if (_.has(this, 'params')) {
       return [this.meta.name, '(', inspect(this.params), ')'].join('');
     } else {
-      // This isn't an instance of a distribution type, so reinspect
-      // while ignoring this custom inspection method.
+      // This isn't an instance of a distribution type.
+      // e.g. Uniform.prototype.inspect()
+      // Reinspect while ignoring this custom inspection method.
       var opts = options ? _.clone(options) : {};
       opts.customInspect = false;
       return inspect(this, opts);
