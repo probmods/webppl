@@ -52,7 +52,7 @@ var model = function() {
 
     var probs = decode(z, [W3, W4], [b3, b4]);
 
-    factor(MultivariateBernoulli({p: probs}).score(image));
+    factor(MultivariateBernoulli({ps: probs}).score(image));
 
   }, {batchSize: 100});
 

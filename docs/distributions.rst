@@ -99,9 +99,9 @@ Distributions
 
   Distribution over counts for n independent ``Discrete({ps: ps})`` trials
 
-.. js:function:: MultivariateBernoulli({p: ...})
+.. js:function:: MultivariateBernoulli({ps: ...})
 
-  * p
+  * ps
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 

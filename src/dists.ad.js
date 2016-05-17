@@ -257,21 +257,21 @@ var Bernoulli = makeDistributionType({
 });
 
 // TODO: Fix that the following return NaN rather than -Infinity.
-// MultivariateBernoulli({p: Vector([1, 0])}).score(Vector([0, 0]));
+// MultivariateBernoulli({ps: Vector([1, 0])}).score(Vector([0, 0]));
 
 // TODO: The support here is {0, 1}^n rather than {true, false} as in
 // the univariate case.
 
-function mvBernoulliScore(p, x) {
-  assert.ok(ad.value(p).rank === 2);
-  assert.ok(ad.value(p).dims[1] === 1);
+function mvBernoulliScore(ps, x) {
+  assert.ok(ad.value(ps).rank === 2);
+  assert.ok(ad.value(ps).dims[1] === 1);
   assert.ok(ad.value(x).rank === 2);
   assert.ok(ad.value(x).dims[1] === 1);
-  assert.ok(ad.value(x).dims[0] === ad.value(p).dims[0]);
+  assert.ok(ad.value(x).dims[0] === ad.value(ps).dims[0]);
 
-  var logp = ad.tensor.log(p);
+  var logp = ad.tensor.log(ps);
   var xSub1 = ad.tensor.sub(x, 1);
-  var pSub1 = ad.tensor.sub(p, 1);
+  var pSub1 = ad.tensor.sub(ps, 1);
 
   return ad.tensor.sumreduce(ad.tensor.sub(
     ad.tensor.mul(x, logp),
@@ -282,22 +282,22 @@ function mvBernoulliScore(p, x) {
 
 var MultivariateBernoulli = makeDistributionType({
   name: 'MultivariateBernoulli',
-  params: [{name: 'p'}],
+  params: [{name: 'ps'}],
   mixins: [finiteSupport],
   sample: function() {
-    var p = ad.value(this.params.p);
-    assert.ok(p.rank === 2);
-    assert.ok(p.dims[1] === 1);
-    var d = p.dims[0];
+    var ps = ad.value(this.params.ps);
+    assert.ok(ps.rank === 2);
+    assert.ok(ps.dims[1] === 1);
+    var d = ps.dims[0];
     var x = new Tensor([d, 1]);
     var n = x.length;
     while (n--) {
-      x.data[n] = util.random() < p.data[n];
+      x.data[n] = util.random() < ps.data[n];
     }
     return x;
   },
   score: function(x) {
-    return mvBernoulliScore(this.params.p, x);
+    return mvBernoulliScore(this.params.ps, x);
   }
 });
 
