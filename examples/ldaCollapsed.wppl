@@ -14,13 +14,13 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   var ddSample = function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(Discrete({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
   var ddObserve = function(val) {
     var pc = globalStore[ddname];  // get current sufficient stats
-    factor(discreteERP({ps: normalize(pc)}).score(val));
+    factor(Discrete({ps: normalize(pc)}).score(val));
     // score based on predictive distribution (normalize counts)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
   };
@@ -109,4 +109,4 @@ var model = function() {
   return counts;
 };
 
-MH(model, 5000)
+Infer({method: 'MCMC', samples: 5000}, model)

@@ -46,13 +46,13 @@ var model = function() {
 
   mapData(images, function(image) {
 
-    var z = sample(diagCovGaussianERP({mu: Vector([0, 0]), sigma: Vector([1, 1])}), {
-      guide: diagCovGaussianERP(encode(image, [W0, W1, W2], [b0, b1, b2]))
+    var z = sample(DiagCovGaussian({mu: Vector([0, 0]), sigma: Vector([1, 1])}), {
+      guide: DiagCovGaussian(encode(image, [W0, W1, W2], [b0, b1, b2]))
     });
 
     var probs = decode(z, [W3, W4], [b3, b4]);
 
-    factor(mvBernoulliERP({p: probs}).score(image));
+    factor(MultivariateBernoulli({p: probs}).score(image));
 
   }, {batchSize: 100});
 

@@ -7,8 +7,8 @@ bundle/
 docs/_build
 docs/_static
 docs/_templates
-src/erp.js
+src/dists.js
 src/inference/enumerate.js
 src/inference/elbo.js
 src/inference/eubo.js
-src/aggregation/distribution.js
+src/aggregation/ScoreAggregator.js

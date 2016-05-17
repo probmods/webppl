@@ -15,7 +15,7 @@ var model = function() {
 
   map2(
       function(x, label) {
-        factor(bernoulliERP({p: sigmoid(x)}).score(label))
+        factor(Bernoulli({p: sigmoid(x)}).score(label))
       },
       xs,
       labels)
@@ -23,4 +23,4 @@ var model = function() {
   return sigmoid(8)
 }
 
-MH(model, 10000, 2000)
+Infer({method: 'MCMC', samples: 10000, burn: 2000}, model)

@@ -67,4 +67,4 @@ var model = function() {
   return wordDistForTopic
 };
 
-MH(model, 10000)
+Infer({method: 'MCMC', samples: 10000}, model)

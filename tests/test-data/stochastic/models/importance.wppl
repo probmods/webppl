@@ -1,5 +1,5 @@
 var makeCoin = function(p) {
-  return bernoulliERP({p: p});
+  return Bernoulli({p: p});
 };
 
 var FairCoin = makeCoin(.5);

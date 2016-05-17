@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -28,7 +28,7 @@ module.exports = function(env) {
 
     run: function() {
 
-      var hist = new Histogram();
+      var hist = new CountAggregator();
 
       return util.cpsLoop(
           this.opts.samples,
@@ -44,7 +44,7 @@ module.exports = function(env) {
           // Continuation.
           function() {
             env.coroutine = this.coroutine;
-            return this.k(this.s, hist.toERP());
+            return this.k(this.s, hist.toDist());
           },
 
           this

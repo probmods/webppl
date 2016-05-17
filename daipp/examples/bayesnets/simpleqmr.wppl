@@ -21,12 +21,12 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var c1=sampleDaipp(bernoulliERP({p: 0.1}))
-  var c2=sampleDaipp(bernoulliERP({p: 0.1}))
-  var c3=sampleDaipp(bernoulliERP({p: 0.1}))
+  var c1=sampleDaipp(Bernoulli({p: 0.1}))
+  var c2=sampleDaipp(Bernoulli({p: 0.1}))
+  var c3=sampleDaipp(Bernoulli({p: 0.1}))
 
-  observe(bernoulliERP({p: noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)}), data[0])
-  observe(bernoulliERP({p: noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)}) ,data[1])
+  observe(Bernoulli({p: noisyOrProb([c1,c3],[strengthParam,strengthParam],backgroundParam)}), data[0])
+  observe(Bernoulli({p: noisyOrProb([c2,c3],[strengthParam,strengthParam],backgroundParam)}) ,data[1])
 
   return [c1,c2,c3];
 

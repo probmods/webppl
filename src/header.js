@@ -3,8 +3,8 @@
 //
 // An inference function takes the current continuation and a WebPPL
 // thunk (which itself has been transformed to take a
-// continuation). It does some kind of inference and returns an ERP
-// representing the nromalized marginal distribution on return values.
+// continuation). It does some kind of inference and returns a distribution
+// representing the normalized marginal distribution on return values.
 //
 // The inference function should install a coroutine object that
 // provides sample, factor, and exit.
@@ -24,7 +24,7 @@ var nn = require('adnn/nn');
 
 try {
   var util = require('./util');
-  var erp = require('./erp');
+  var dists = require('./dists');
   var enumerate = require('./inference/enumerate');
   var mcmc = require('./inference/mcmc');
   var asyncpf = require('./inference/asyncpf');
@@ -54,8 +54,8 @@ module.exports = function(env) {
   // Inference interface
 
   env.coroutine = {
-    sample: function(s, k, a, erp) {
-      return k(s, erp.sample());
+    sample: function(s, k, a, dist) {
+      return k(s, dist.sample());
     },
     factor: function() {
       throw 'factor allowed only inside inference.';
@@ -71,8 +71,11 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, erp, options) {
-    return env.coroutine.sample(s, k, a, erp, options);
+  env.sample = function(s, k, a, dist, options) {
+    if (!dists.isDist(dist)) {
+      throw 'sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".';
+    }
+    return env.coroutine.sample(s, k, a, dist, options);
   };
 
   env.factor = function(s, k, a, score) {
@@ -80,9 +83,9 @@ module.exports = function(env) {
     return env.coroutine.factor(s, k, a, score);
   };
 
-  env.sampleWithFactor = function(s, k, a, erp, scoreFn) {
+  env.sampleWithFactor = function(s, k, a, dist, scoreFn) {
     if (typeof env.coroutine.sampleWithFactor === 'function') {
-      return env.coroutine.sampleWithFactor(s, k, a, erp, scoreFn);
+      return env.coroutine.sampleWithFactor(s, k, a, dist, scoreFn);
     } else {
       var sampleK = function(s, v) {
         var scoreK = function(s, sc) {
@@ -93,7 +96,7 @@ module.exports = function(env) {
         };
         return scoreFn(s, scoreK, a + 'swf1', v);
       };
-      return env.sample(s, sampleK, a, erp);
+      return env.sample(s, sampleK, a, dist);
     }
   };
 
@@ -227,7 +230,7 @@ module.exports = function(env) {
     ad: ad,
     nn: nn,
     T: ad.tensor,
-    erp: erp
+    dists: dists
   });
 
   // Inference functions and header utils

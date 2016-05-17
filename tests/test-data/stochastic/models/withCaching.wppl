@@ -1,4 +1,4 @@
-var _ = IncrementalMH; // Trigger caching transforms.
+var imh = IncrementalMH; // Trigger caching transforms.
 var f = function() {};
 
 var model = function() {

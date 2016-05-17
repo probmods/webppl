@@ -2,8 +2,8 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
-var MAP = require('../aggregation/map');
+var CountAggregator = require('../aggregation/CountAggregator');
+var MaxAggregator = require('../aggregation/MaxAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -12,6 +12,7 @@ module.exports = function(env) {
   var kernels = require('./kernels')(env);
 
   function MCMC(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'MCMC');
     var options = util.mergeDefaults(options, {
       samples: 100,
       kernel: 'MH',
@@ -28,8 +29,8 @@ module.exports = function(env) {
     _.invoke(callbacks, 'setup', numIters(options));
 
     var aggregator = (options.justSample || options.onlyMAP) ?
-        new MAP(options.justSample) :
-        new Histogram();
+        new MaxAggregator(options.justSample) :
+        new CountAggregator();
 
     var addToAggregator = options.kernel.adRequired ?
         function(value, score) { aggregator.add(ad.valueRec(value), ad.value(score)); } :
@@ -58,7 +59,7 @@ module.exports = function(env) {
 
     finish = function(trace) {
       _.invoke(callbacks, 'finish', trace);
-      return k(s, aggregator.toERP());
+      return k(s, aggregator.toDist());
     };
 
     return initialize();

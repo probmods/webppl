@@ -3,7 +3,7 @@
 
 var assert = require('assert');
 var _ = require('underscore');
-var erp = require('../erp');
+var dists = require('../dists');
 var util = require('../util');
 
 function logsumexp(a, b) {
@@ -12,15 +12,15 @@ function logsumexp(a, b) {
   return Math.log(Math.exp(a - m) + Math.exp(b - m)) + m;
 }
 
-var Distribution = function() {
+var ScoreAggregator = function() {
   this.dist = {};
 };
 
-Object.defineProperties(Distribution.prototype, {
+Object.defineProperties(ScoreAggregator.prototype, {
   size: { get: function() { return _.size(this.dist); } }
 });
 
-Distribution.prototype.add = function(value, score) {
+ScoreAggregator.prototype.add = function(value, score) {
   if (score === -Infinity) {
     return;
   }
@@ -41,8 +41,8 @@ function normalize(dist) {
   });
 }
 
-Distribution.prototype.toERP = function() {
-  return new erp.marginal({dist: normalize(this.dist)});
+ScoreAggregator.prototype.toDist = function() {
+  return new dists.Marginal({dist: normalize(this.dist)});
 };
 
-module.exports = Distribution;
+module.exports = ScoreAggregator;

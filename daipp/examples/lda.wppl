@@ -20,9 +20,9 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
   initContext([]);
 
   var topics = repeat(numTopics, function() {
-    return sampleDaipp(dirichletERP({alpha: eta}));
-    // return sample(dirichletERP({alpha: eta}), {
-    //   guide: logisticNormalERP({
+    return sampleDaipp(Dirichlet({alpha: eta}));
+    // return sample(Dirichlet({alpha: eta}), {
+    //   guide: LogisticNormal({
     //     mu: param([3, 1], 0),
     //     sigma: softplus(param([3, 1], 0))
     //   })
@@ -36,9 +36,9 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
     globalStore.context = globalContext;
     updateContext(normalize(Vector(doc)));
 
-    var topicDist = sampleDaipp(dirichletERP({alpha: alpha}));
-    // var topicDist = sample(dirichletERP({alpha: alpha}), {
-    //   guide: logisticNormalERP({
+    var topicDist = sampleDaipp(Dirichlet({alpha: alpha}));
+    // var topicDist = sample(Dirichlet({alpha: alpha}), {
+    //   guide: LogisticNormal({
     //     mu: param([3, 1], 0),
     //     sigma: softplus(param([3, 1], 0))
     //   })
@@ -50,9 +50,9 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
 
       if (count > 0) {
         var marginal = Enumerate(function() {
-          var z = sample(discreteERP({ps: topicDist}));
+          var z = sample(Discrete({ps: topicDist}));
           var topic = topics[z];
-          return sample(discreteERP({ps: topic}));
+          return sample(Discrete({ps: topic}));
         });
 
         // More efficient summing out of z by moving the factor inside
@@ -66,9 +66,9 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
         // remove the check in `makeMarginalERP` in erp.ad.js.)
 
         // var marginal = Enumerate(function() {
-        //   var z = sample(discreteERP({ps: topicDist}));
+        //   var z = sample(Discrete({ps: topicDist}));
         //   var topic = topics[z];
-        //   factor(discreteERP({ps: topic}).score(word));
+        //   factor(Discrete({ps: topic}).score(word));
         //   return word;
         // });
 

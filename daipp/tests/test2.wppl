@@ -4,9 +4,9 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var x = sampleDaipp(bernoulliERP({p: .4}))
+  var x = sampleDaipp(Bernoulli({p: .4}))
 
-  factor(bernoulliERP({p: x ? 0.75 : 0.25}).score(data[0]));
+  factor(Bernoulli({p: x ? 0.75 : 0.25}).score(data[0]));
 
   return x;
 

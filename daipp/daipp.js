@@ -3,7 +3,7 @@ var Tensor = require('adnn/tensor');
 // var ad = require('adnn/ad');
 var ad = require('../src/ad.js'); // Get Paul's extra functions
 var nn = require('adnn/nn');
-var erp = require('../src/erp.js');
+var dists = require('../src/dists.js');
 var LRU = require('lru-cache');
 var serialize = require('../src/util').serialize;
 
@@ -29,7 +29,7 @@ function xavierInit(t) {
     var scale = 1 / Math.sqrt(t.dims[1]);
     var n = t.length;
     while (n--) {
-      t.data[n] = erp.gaussianSample(0, scale);
+      t.data[n] = dists.gaussianSample(0, scale);
     }
   } else {
     throw 'xavierInit: Unexpected rank.';
@@ -169,31 +169,31 @@ This function is responsible for deciding which importance ERP to use, and it’
 */
 function vec2dist(vec, ERP) {
   var guideERP, guideParamNets;
-  if (ERP instanceof erp.bernoulli) {
+  if (ERP instanceof dists.Bernoulli) {
     //importance ERP is Bernoulli, param is single bounded real
-    guideERP = erp.bernoulli; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
+    guideERP = dists.Bernoulli; // dritchie: Should be mvBernoulliERP, b/c of tensor params?
     guideParamNets = makeParamAdaptorNets({p: {dim:[1], dom:[0,1]}}, 'Bernoulli');
-  } else if (ERP instanceof erp.gaussian) {
+  } else if (ERP instanceof dists.Gaussian) {
     //importance ERP is mixture of Gaussians, params are means and logvars for the components
     // TODO: How to set ncomponents?
     //var ncomponents = 2;
     //guideERP = GaussianMixtureERP;  // FIXME: Need to write GaussianMixtureERP
     //guideParamNets = makeParamAdaptorNets([[ncomponents], [ncomponents]], 'GMM');
     // Guide with single Gaussian until we have mixture ERP.
-    guideERP = erp.gaussian;
+    guideERP = dists.Gaussian;
     guideParamNets = makeParamAdaptorNets({mu: [1], sigma: {dim: [1], dom: [0, Infinity]}}, 'Gaussian');
-  } else if (ERP instanceof erp.gamma) {
-    guideERP = erp.gamma;
+  } else if (ERP instanceof dists.Gamma) {
+    guideERP = dists.Gamma;
     guideParamNets = makeParamAdaptorNets({
       shape: {dim: [1], dom: [0, Infinity]},
       scale: {dim: [1], dom: [0, Infinity]}
     }, 'Gamma');
-  } else if (ERP instanceof erp.diagCovGaussian) {
-    guideERP = erp.diagCovGaussian;
+  } else if (ERP instanceof dists.DiagCovGaussian) {
+    guideERP = dists.DiagCovGaussian;
     var erpDim = ad.value(ERP.params.mu).length;
     guideParamNets = makeParamAdaptorNets({mu: [erpDim, 1], sigma: {dim: [erpDim, 1], dom: [0, Infinity]}}, 'diagCovGaussianERP');
-  } else if (ERP instanceof erp.dirichlet) {
-    guideERP = erp.logisticNormal;
+  } else if (ERP instanceof dists.Dirichlet) {
+    guideERP = dists.LogisticNormal;
     var erpDim = ad.value(ERP.params.alpha).length;
     guideParamNets = makeParamAdaptorNets({
       mu: [erpDim-1, 1],

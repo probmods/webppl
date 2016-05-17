@@ -9,7 +9,7 @@ var LRU = require('lru-cache');
 var ad = require('./ad');
 var assert = require('assert');
 var util = require('./util');
-var erp = require('./erp');
+var dists = require('./dists');
 
 module.exports = function(env) {
 
@@ -97,7 +97,7 @@ module.exports = function(env) {
           val.fill(mean);
         } else {
           for (var i = 0; i < val.length; i++) {
-            val.data[i] = erp.gaussianSample(mean, sd);
+            val.data[i] = dists.gaussianSample(mean, sd);
           }
         }
       } else {

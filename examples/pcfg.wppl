@@ -35,8 +35,8 @@ var arrayEq = function(a, b) {
   return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
 }
 
-Enumerate(function() {
+Infer({method: 'Enumerate', maxExecutions: 300}, function() {
   var y = pcfg('start')
   factor(arrayEq(y.slice(0, 2), ['tall', 'John']) ? 0 : -Infinity) //yield starts with "tall John"
   return y[2] ? y[2] : '' //distribution on next word?
-}, 300)
+})

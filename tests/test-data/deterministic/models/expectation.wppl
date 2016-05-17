@@ -1,1 +1,1 @@
-expectation(categoricalERP({ps: [.3, .5, .2], vs: [0, 1, 2]}), idF);
+expectation(Categorical({ps: [.3, .5, .2], vs: [0, 1, 2]}), idF);

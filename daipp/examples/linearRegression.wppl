@@ -7,9 +7,9 @@ var model = function() {
 
   initContext([xs, ys]);
 
-  var m = sampleDaipp(diagCovGaussianERP({mu: Vector([0]), sigma: Vector([2])}));
-  var b = sampleDaipp(gaussianERP({mu: 0, sigma: 2}));
-  var sigma = sampleDaipp(gammaERP({shape: 1, scale: 1}));
+  var m = sampleDaipp(DiagCovGaussian({mu: Vector([0]), sigma: Vector([2])}));
+  var b = sampleDaipp(Gaussian({mu: 0, sigma: 2}));
+  var sigma = sampleDaipp(Gamma({shape: 1, scale: 1}));
   //var sigma = 0.8;
 
   var f = function(x) {
@@ -18,7 +18,7 @@ var model = function() {
 
   map2(
       function(x, y) {
-        factor(gaussianERP({mu: f(x), sigma: sigma}).score(y));
+        factor(Gaussian({mu: f(x), sigma: sigma}).score(y));
       },
       xs,
       ys);

@@ -31,7 +31,7 @@ function adRequirePath(srcFilename) {
   return adPath + path.sep + 'ad.js';
 }
 
-// Don't match text editor temporary files. e.g. src/.#erp.ad.js
+// Don't match text editor temporary files. e.g. src/.#dists.ad.js
 findFiles(root, /^(\w.*)\.ad\.js$/).forEach(function(inFile) {
   var outFile = inFile.replace(/\.ad\.js$/, '.js');
   var code = fs.readFileSync(inFile, 'utf8');

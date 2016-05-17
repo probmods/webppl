@@ -16,7 +16,7 @@ var jslintSettings = {
     src: [
       'Gruntfile.js',
       'src/header.wppl',
-      'src/**/!(erp|enumerate|elbo|eubo|distribution).js'
+      'src/**/!(dists|enumerate|elbo|eubo|ScoreAggregator).js'
     ]
   },
   test: {
@@ -139,5 +139,10 @@ module.exports = function(grunt) {
       grunt.log.writeln(e.output.join('\n'));
       throw e;
     }
+  });
+
+  grunt.registerTask('generate-docs', 'Generate documentation.', function() {
+    var output = child_process.execSync('scripts/distributionDocs > docs/distributions.rst');
+    grunt.log.writeln(output);
   });
 };

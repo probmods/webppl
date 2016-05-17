@@ -1,5 +1,5 @@
-var FairCoin = bernoulliERP({p: 0.5});
-var BentCoin = bernoulliERP({p: 0.2});
+var FairCoin = Bernoulli({p: 0.5});
+var BentCoin = Bernoulli({p: 0.2});
 
 var model = function() {
   var x = sample(FairCoin, {

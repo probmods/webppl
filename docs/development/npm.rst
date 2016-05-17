@@ -17,5 +17,5 @@ Updating the npm package
 
     git push origin dev
     git push origin master
-    git push origin v0.0.1  // again, use version printed by "npm version" command above
+    git push origin v0.0.1  // use version printed by "npm version" command above
     npm publish

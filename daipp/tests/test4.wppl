@@ -4,9 +4,9 @@ var model = function() {
 
   initContext(data);   //initialize the context, incorporating the observation(s)
 
-  var x = sampleDaipp(gaussianERP({mu: 5, sigma: 1}));
+  var x = sampleDaipp(Gaussian({mu: 5, sigma: 1}));
 
-  factor(gaussianERP({mu: x, sigma: 1}).score(data[0]));
+  factor(Gaussian({mu: x, sigma: 1}).score(data[0]));
 
   return x;
 

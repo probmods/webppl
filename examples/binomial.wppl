@@ -5,6 +5,4 @@ var binomial = function() {
   return a + b + c;
 };
 
-var binomialERP = Enumerate(binomial);
-
-binomialERP
+Infer({method: 'Enumerate'}, binomial);

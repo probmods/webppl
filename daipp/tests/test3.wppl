@@ -4,13 +4,13 @@ var model = function() {
 
   initContext(data);
 
-  var tau = sampleDaipp(gammaERP({shape: 1, scale: 1}));
+  var tau = sampleDaipp(Gamma({shape: 1, scale: 1}));
 
-  var mu = sampleDaipp(gaussianERP({mu: 0, sigma: 1 / Math.sqrt(tau)}));
+  var mu = sampleDaipp(Gaussian({mu: 0, sigma: 1 / Math.sqrt(tau)}));
 
   var d = mapData(data, function(datum) {
 
-    factor(gaussianERP({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(datum));
+    factor(Gaussian({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(datum));
 
   });
 
