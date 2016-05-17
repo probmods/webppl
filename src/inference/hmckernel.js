@@ -13,7 +13,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  var mvDistNames = ['multivariateGaussian', 'dirichlet', 'dirichletDrift'];
+  var mvDistNames = ['MultivariateGaussian', 'Dirichlet', 'DirichletDrift'];
 
   function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
@@ -65,7 +65,7 @@ module.exports = function(env) {
       }
       val = ad.lift(_val);
     } else {
-      if (_.contains(mvDistNames, dist.name)) {
+      if (_.contains(mvDistNames, dist.meta.name)) {
         throw 'Multivariate distributions are not yet supported by HMC.';
       }
       val = prevChoice.val;
