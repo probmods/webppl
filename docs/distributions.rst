@@ -31,6 +31,15 @@ Distributions
   * location
   * scale
 
+.. js:function:: Delta({v: ...})
+
+  * v
+
+.. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
+
+  * mu
+  * sigma
+
 .. js:function:: Dirichlet({alpha: ...})
 
   * alpha: *array of concentration parameters*
@@ -44,6 +53,10 @@ Distributions
   * ps: *array of probabilities*
 
   Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]
+
+.. js:function:: DiscreteOneHot({ps: ...})
+
+  * ps
 
 .. js:function:: Exponential({a: ...})
 
@@ -64,9 +77,20 @@ Distributions
   * mu: *mean*
   * sigma: *standard deviation*
 
+.. js:function:: LogisticNormal({mu: ..., sigma: ...})
+
+  * mu
+  * sigma
+
 .. js:function:: Marginal({dist: ...})
 
   * dist
+
+.. js:function:: MatrixGaussian({mu: ..., sigma: ..., dims: ...})
+
+  * mu
+  * sigma
+  * dims
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
@@ -74,6 +98,10 @@ Distributions
   * n: *number of trials*
 
   Distribution over counts for n independent ``Discrete({ps: ps})`` trials
+
+.. js:function:: MultivariateBernoulli({p: ...})
+
+  * p
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
