@@ -63,6 +63,10 @@ Distribution.prototype = {
     }
   },
 
+  toString: function() {
+    return this.inspect();
+  },
+
   isContinuous: false,
   constructor: Distribution
 
