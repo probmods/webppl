@@ -168,6 +168,10 @@ dist is the target distribution
 This function is responsible for deciding which importance distribution to use. Returns a distribution.
 */
 function vec2dist(vec, dist) {
+  // TODO: We should probably split out the part of vec2dist that
+  // specifies the guide type and parameters from the bit that builds
+  // the guide nets, so that the former can also be used as part of a
+  // simple mean-field helper.
   var guideDistType, guideParamNets;
   if (dist instanceof dists.Bernoulli) {
     //importance distribution is Bernoulli, param is single bounded real
