@@ -151,7 +151,7 @@ function makeDistributionType(options) {
     var originalScoreFn = options.score;
     options.score = function(val) {
       if (arguments.length !== 1) {
-        throw 'The score method of ' + this.name + ' expected 1 argument but received ' + arguments.length + '.';
+        throw 'The score method of ' + this.meta.name + ' expected 1 argument but received ' + arguments.length + '.';
       }
       return originalScoreFn.call(this, val);
     };
@@ -165,11 +165,11 @@ function makeDistributionType(options) {
   // uses the default constructor.
   var dist = function(params) {
     if (params === undefined) {
-      throw 'Parameters not supplied to ' + this.name + ' distribution.';
+      throw 'Parameters not supplied to ' + this.meta.name + ' distribution.';
     }
     parameterNames.forEach(function(p) {
       if (!params.hasOwnProperty(p)) {
-        throw 'Parameter \"' + p + '\" missing from ' + this.name + ' distribution.';
+        throw 'Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.';
       }
     }, this);
     this.params = params;
