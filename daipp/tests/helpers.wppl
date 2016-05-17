@@ -13,8 +13,8 @@ var testWithinTol = function(actual, expected, tol) {
   console.log((pass ? termGreen('OK   ') : termRed('CHECK')), '|', msg);
 };
 
-var std = function(erp, mean) {
-  return expectation(erp, function(x) {
+var std = function(dist, mean) {
+  return expectation(dist, function(x) {
     return Math.pow(x - mean, 2);
   });
 };

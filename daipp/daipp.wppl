@@ -5,15 +5,15 @@ These should be used to annotate the target program as so:
   Insert an initContext at start of thunk to initialize.
   Insert updateContext after each sample statement.
   Optional to do updateContext at other places (after primitives, fn returns).
-  At sample statements guide as so: `sample(origERP, origParams, {guide: DAIPPguide(origERP, origParams)})`.
+  At sample statements guide as so: `sample(origDist, {guide: DAIPPguide(origDist, origDistParams)})`.
 This file provides a simple helper function sampleDaipp that replaces sample and expands to the
-  right guide+update code for known ERPs.
+  right guide+update code for known distributions.
   It should be possible for the daipp package to provide a macro that replaces sample with sampleDaipp and
   inserts initContext at the start of the model fn.
 
 Two key helper functions are in a corresponding DAIPP.js file:
 daipp.val2vec embeds js objects into vectors,
-daipp.vec2dist chooses an importance ERP ad generates its params.
+daipp.vec2dist chooses an importance distribution ad generates its params.
 */
 
 
@@ -58,16 +58,15 @@ var updateContext = function(val) {
 
 //A function to predict the params of the importance distribution at a sample statement.
 
-// `ERP` is the distribution we're guiding.
-// `val` will usually (by default) be the original ERP params (so
-// params === val), but we want to maintain the flexibility to put in
-// other info.
+// `dist` is the distribution we're guiding.
+// `val` will usually (by default) be the original params of dist, but
+// we want to maintain the flexibility to put in other info.
 
 // paul, paraphrasing noah:
-// when `val` is the original ERP params, we want to treat them as a
+// when `val` is the original dist params, we want to treat them as a
 // tensor (so that they get minimally mangled).... simplest is
 // probably just to upgrade them to tensor in the webppl program
-// before calling DAIPPguide. so something like: `DAIPPguide(ERP,
+// before calling DAIPPguide. so something like: `DAIPPguide(dist,
 // ad.tensor(params))`.
 
 // paul: note that params isn't necessarily an array of reals.
@@ -78,7 +77,7 @@ var predictNet = nn.mlp(3*daipp.latentSize, [
 ], 'predictNet', daipp.debug);
 predictNet.setTraining(true)
 
-var DAIPPguide = function(ERP, val) {
+var DAIPPguide = function(dist, val) {
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
   //TODO: at the moment the address will be a single string, so val2vec will learn a separate embedding per address. we may want to split the string into an array (of syntax sites); in that case val2vec will use an RNN along the array, making related addresses have related vectors.
@@ -90,26 +89,26 @@ var DAIPPguide = function(ERP, val) {
   var predictInput = ad.tensor.concat(context, addressVec, dataVec);
   var predict = daipp.nneval(predictNet, predictInput);
 
-  //generate params as appropriate to ERP
-  var guide = daipp.vec2dist(predict, ERP)
+  //generate params as appropriate to dist
+  var guide = daipp.vec2dist(predict, dist)
   // display(guide)
   return guide
 }
 
 //this helper samples from the guide and updates the context. except when opt.observedVal is defined it instead is a factor enforcing the observation.
-var sampleDaipp = function(ERP,opt) {
+var sampleDaipp = function(dist,opt) {
   //FIXME: in fantasy mode for sleepey phase, we want to sample even for observed vals? or just make sure they are undefined in that context?
   if(opt == undefined || opt.observedVal == undefined) {
-    // Convert the ERP params to an array to retain the behavior we
+    // Convert the dist params to an array to retain the behavior we
     // had under the old ERP interface. Probably better to have some
     // handling of this directly in val2vec at some point.
-    var params = daipp.orderedValues(ERP.params);
-    var val = sample(ERP, {guide: DAIPPguide(ERP, params)})
+    var params = daipp.orderedValues(dist.params);
+    var val = sample(dist, {guide: DAIPPguide(dist, params)})
     updateContext(val)
     return val
   } else {
     var val = opt.observedVal
-    factor(ERP.score(val))
+    factor(dist.score(val))
     return val
   }
 }

@@ -52,12 +52,12 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, options) {
+    sample: function(s, k, a, dist, options) {
       if (!(options && _.has(options, 'guide'))) {
         throw 'Guide not specified.';
       }
-      var guideErp = options.guide;
-      return k(s, guideErp.sample());
+      var guideDist = options.guide;
+      return k(s, guideDist.sample());
     },
 
     factor: function(s, k, a, score) {

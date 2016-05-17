@@ -107,19 +107,19 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, options) {
+    sample: function(s, k, a, dist, options) {
       'use ad';
 
       if (!_.has(options, 'guide')) {
         throw 'Guide not specified.';
       }
 
-      var guideErp = options.guide;
+      var guideDist = options.guide;
       var rel = env.getRelativeAddress(a);
       var guideVal = this.trace.findChoice(rel).val;
       assert.notStrictEqual(guideVal, undefined);
       assert.ok(!ad.isLifted(guideVal), 'Unexpected AD node in example trace.');
-      this.logq += guideErp.score(guideVal);
+      this.logq += guideDist.score(guideVal);
       return k(s, guideVal);
     },
 

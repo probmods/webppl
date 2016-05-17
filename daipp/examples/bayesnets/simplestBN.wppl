@@ -22,7 +22,7 @@ var data = repeat(20,targetModel)
 display(data)
 
 
-//NOTE: assume that sampleDaipp(erp,params,opt) takes a final options arg, and
+//NOTE: assume that sampleDaipp(dist,opt) takes a final options arg, and
 //when opt.observedVal is not undefined it will be interpretted as a factor
 //(except in fantasy mode....).
 
@@ -49,9 +49,9 @@ var model = function(){
 
 
 // Tutorial training.
-// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
-// display(erp.hist)
-// var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+// var marginal = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+// display(marginal.params.dist)
+// var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: marginal.traces}}});
 
 // VI.
 var params = Optimize(model, {

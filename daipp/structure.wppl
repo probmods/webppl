@@ -12,7 +12,7 @@ var model = function() {
 
   // Global choices | begin
 
-  var theta = sampleDaipp(erp);
+  var theta = sampleDaipp(dist);
   // ...
 
   // Global choices | end
@@ -42,7 +42,7 @@ var model = function() {
 
     // Local choices | start
 
-    var z = sampleDaipp(erp);
+    var z = sampleDaipp(dist);
     // ...
 
     // Local choices | end
@@ -52,12 +52,12 @@ var model = function() {
 
 
     // Observe data
-    d = observe(erp,datum)
+    d = observe(dist,datum)
 
-    // During wake (VI) observe(erp, datum) is
-    // factor(erp.score(datum)) as usual (but returns value datum).
+    // During wake (VI) observe(dist, datum) is
+    // factor(dist.score(datum)) as usual (but returns value datum).
 
-    // During sleep observe(erp, datum) is sample(erp).
+    // During sleep observe(dist, datum) is sample(dist).
 
     //NOTE: during sleep we'll need to get the datum in the same format that it is passed
     //  in during wake. If there are multiple observe calls we may need an observeData(...) helper

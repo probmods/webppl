@@ -93,7 +93,7 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, options) {
+    sample: function(s, k, a, dist, options) {
       options = options || {};
 
       if (!_.has(options, 'guide')) {
@@ -101,12 +101,12 @@ module.exports = function(env) {
       }
 
       // Sample from the guide.
-      var guideERP = options.guide;
-      var _val = guideERP.sample();
+      var guideDist = options.guide;
+      var _val = guideDist.sample();
 
       // Compute scores.
-      this.logp += ad.value(erp.score(_val));
-      this.logq += ad.value(guideERP.score(_val));
+      this.logp += ad.value(dist.score(_val));
+      this.logq += ad.value(guideDist.score(_val));
 
       return k(s, _val);
     },

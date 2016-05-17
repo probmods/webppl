@@ -17,8 +17,8 @@ var model = function() {
 
 
 // Tutorial training.
-// var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
-// var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+// var marginal = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+// var params = Optimize(model, {steps: 50, method: {gd: {stepSize: 0.1}}, estimator: {EUBO: {traces: marginal.traces}}});
 
 
 // VI.
@@ -27,6 +27,6 @@ var params = Optimize(model, {steps: 1000, method: {gd: {stepSize: 0.01}}, estim
 // Optimized params.
 //params;
 
-var erp = SampleGuide(model, {samples: 1000, params: params});
+var marginal = SampleGuide(model, {samples: 1000, params: params});
 
 'done';

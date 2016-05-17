@@ -62,8 +62,8 @@ var lda = function(corpus, vocabSize, numTopics, alpha, eta) {
         // ~8.8s to ~6.7s.
 
         // This needs a version of Enumerate which doesn't normalize
-        // its result. (Change `normalize` in discribution.ad.js and
-        // remove the check in `makeMarginalERP` in erp.ad.js.)
+        // its result. (Change `normalize` in ScoreAggregator.ad.js and
+        // remove the check in `Marginal` in dists.ad.js.)
 
         // var marginal = Enumerate(function() {
         //   var z = sample(Discrete({ps: topicDist}));

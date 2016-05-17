@@ -7,7 +7,7 @@ var dists = require('../src/dists');
 
 var examplesDir = './examples/';
 
-// TODO: Update examples to work with new ERP.
+// TODO: Update examples to work with tensor valued dists.
 
 var examples = [
   'binomial',

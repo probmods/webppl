@@ -257,7 +257,7 @@ var Bernoulli = makeDistributionType({
 });
 
 // TODO: Fix that the following return NaN rather than -Infinity.
-// mvBernoulliERP.score([Vector([1, 0])], Vector([0, 0]));
+// MultivariateBernoulli({p: Vector([1, 0])}).score(Vector([0, 0]));
 
 // TODO: The support here is {0, 1}^n rather than {true, false} as in
 // the univariate case.

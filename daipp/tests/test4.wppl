@@ -12,17 +12,17 @@ var model = function() {
 
 };
 
-var erp = SMC(model, {particles: 100, rejuvSteps: 10, saveTraces: true, ignoreGuide: true});
-var params = Optimize(model, {steps: 200, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces, miniBatchSize: 10}}});
+var marginal = SMC(model, {particles: 100, rejuvSteps: 10, saveTraces: true, ignoreGuide: true});
+var params = Optimize(model, {steps: 200, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: marginal.traces, miniBatchSize: 10}}});
 
-var marginal = SampleGuide(model, {samples: 1000, params: params});
+var guideMarginal = SampleGuide(model, {samples: 1000, params: params});
 
-var guideMean = expectation(marginal);
-var guideSd = std(marginal, guideMean);
+var guideMean = expectation(guideMarginal);
+var guideSd = std(guideMarginal, guideMean);
 
 // Check guide is fit to example traces.
-var posteriorMean = expectation(erp);
-var posteriorSd = std(erp, posteriorMean);
+var posteriorMean = expectation(marginal);
+var posteriorSd = std(marginal, posteriorMean);
 
 testWithinTol(guideMean, posteriorMean, 0.1);
 testWithinTol(guideSd, posteriorSd, 0.1);

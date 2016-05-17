@@ -140,7 +140,7 @@ module.exports = function(env) {
 
     },
 
-    sample: function(s, k, a, erp, options) {
+    sample: function(s, k, a, dist, options) {
       options = options || {};
 
       // TODO: Default to mean-field?
@@ -149,36 +149,35 @@ module.exports = function(env) {
       }
 
       var guideVal = this.sampleGuide(options.guide, options);
-      this.sampleTarget(erp, guideVal);
+      this.sampleTarget(dist, guideVal);
       return k(s, guideVal);
     },
 
-    sampleGuide: function(erp, options) {
+    sampleGuide: function(dist, options) {
       'use ad';
 
       var val;
 
       if ((!_.has(options, 'reparam') || options.reparam) &&
-          erp.base && erp.transform) {
+          dist.base && dist.transform) {
         // Use the reparameterization trick.
 
-        var baseERP = erp.base();
-        var z = baseERP.sample();
-        this.logr += baseERP.score(z);
-        val = erp.transform(z);
-        this.logq += erp.score(val);
+        var baseDist = dist.base();
+        var z = baseDist.sample();
+        this.logr += baseDist.score(z);
+        val = dist.transform(z);
+        this.logq += dist.score(val);
 
         // console.log('Sampled ' + ad.value(val));
-        // console.log('  ' + erp.name + '(' + _params + ') reparameterized as ' +
-        //             baseERP.name + '(' + baseParams + ') + transform');
+        // console.log('  ' + dist + ' reparameterized as ' + baseDist + ' + transform');
 
-      } else if (options.reparam && !(erp.base && erp.transform)) {
+      } else if (options.reparam && !(dist.base && dist.transform)) {
         // Warn when reparameterization is explicitly requested but
-        // isn't supported by the ERP.
-        throw erp.name + ' ERP does not support reparameterization.';
+        // isn't supported by the distribution.
+        throw dist + ' does not support reparameterization.';
       } else {
-        val = erp.sample();
-        var score = erp.score(val);
+        val = dist.sample();
+        var score = dist.score(val);
 
         if (strictEqual(this.logq, this.logr)) {
           // The reparameterization trick has not been used yet.
@@ -193,15 +192,15 @@ module.exports = function(env) {
           this.logq += score;
         }
         // trace('Sampled ' + val + ' for ' + a);
-        // trace('  ' + erp.name + '(' + _params + ')');
+        // trace('  ' + dist);
       }
 
       return val;
     },
 
-    sampleTarget: function(erp, guideVal) {
+    sampleTarget: function(dist, guideVal) {
       'use ad';
-      this.logp += erp.score(guideVal);
+      this.logp += dist.score(guideVal);
     },
 
     factor: function(s, k, a, score) {

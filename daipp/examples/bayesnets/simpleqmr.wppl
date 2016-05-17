@@ -13,8 +13,8 @@ var noisyOrProb = function(causes,causalPowers,baserate){
   return 1-(1-baserate)*product(map2(function(c,cp){return c?(1-cp):1},causes,causalPowers))
 }
 
-var observe = function(erp,val){
-  factor(erp.score(val))
+var observe = function(dist,val){
+  factor(dist.score(val))
 }
 
 var model = function() {
@@ -34,9 +34,9 @@ var model = function() {
 
 
 // Tutorial training.
-var erp = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
-display(erp.params.dist)
-var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: erp.traces}}});
+var marginal = SMC(model, {particles: 100, saveTraces: true, ignoreGuide: true});
+display(marginal.params.dist)
+var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: {EUBO: {traces: marginal.traces}}});
 
 // VI.
 // var params = Optimize(model, {steps: 1000, method: {adagrad: {stepSize: 0.1}}, estimator: 'ELBO'});
@@ -46,7 +46,7 @@ SampleGuide(model, {samples: 1000, params: params});
 
 // Enumerate(model)
 // Exact solution:
-// ERP:
+// Marginal:
 //     [false,false,true] : 0.6450786794468975
 //     [false,true,true] : 0.08512560900245762
 //     [true,false,true] : 0.08512560900245762
