@@ -28,6 +28,8 @@ module.exports = function(env) {
       method: 'gd',
       estimator: 'ELBO',
       steps: 1,
+      clip: false,              // false = no clipping, otherwise specifies threshold.
+      showGradNorm: false,
       debug: true,              // TODO: Switch default before merging.
       verbose: true,
       onFinish: function(s, k, a) { return k(s); }
@@ -66,6 +68,16 @@ module.exports = function(env) {
           return estimator(paramObj, i, function(gradObj, objective) {
             if (options.debug) {
               checkGradients(gradObj);
+            }
+
+            if (options.clip || options.showGradNorm) {
+              var norm = normG(gradObj);
+              if (options.showGradNorm) {
+                console.log('L2 norm of gradient: ' + norm);
+              }
+              if (options.clip) {
+                clipGradients(gradObj, options.clip, norm);
+              }
             }
 
             if (options.verbose) {
@@ -107,6 +119,35 @@ module.exports = function(env) {
           logGradWarning(name, i, 'not finite');
         }
       });
+    });
+  }
+
+  function clipGradients(gradObj, threshold, norm) {
+    assert.ok(_.isNumber(threshold));
+    if (norm > threshold) {
+      mulEqG(gradObj, threshold / norm);
+      assert.ok(Math.abs(threshold - normG(gradObj)) < 1e-10);
+    }
+  }
+
+  function normG(gradObj) {
+    // Compute the L2 norm of gradient object.
+    var normsq = 0;
+    _.each(gradObj, function(gs) {
+      _.each(gs, function(g) {
+        normsq += generic.sum(generic.mul(g, g));
+      });
+    });
+    return Math.sqrt(normsq);
+  }
+
+  // Similar functions exist in elbo.js & eubo.js.
+  function mulEqG(g, s) {
+    // In-place multiplication by a scalar.
+    _.each(g, function(gs) {
+      for (var i = 0; i < gs.length; i++) {
+        gs[i] = generic.scalarMul(gs[i], s);
+      }
     });
   }
 

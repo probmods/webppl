@@ -71,6 +71,10 @@ function sqrt(a) {
   return _.isNumber(a) ? Math.sqrt(a) : a.sqrt();
 }
 
+function sum(a) {
+  return _.isNumber(a) ? a : a.sumreduce();
+}
+
 module.exports = {
   allZero: allZero,
   allFinite: allFinite,
@@ -83,5 +87,6 @@ module.exports = {
   scalarAdd: scalarAdd,
   scalarMul: scalarMul,
   scalarDiv: scalarDiv,
-  sqrt: sqrt
+  sqrt: sqrt,
+  sum: sum
 };
