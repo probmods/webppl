@@ -1,0 +1,22 @@
+var model = function() {
+
+  var sigma = 1;
+
+  var a1 = sample(Gaussian({mu: 0, sigma: sigma}));
+  var a2 = sample(Gaussian({mu: 0, sigma: sigma}));
+
+  factor(Gaussian({mu: a1 * a1 + a2 * a2, sigma: .1}).score(3));
+
+  return [a1, a2];
+
+};
+
+var samples = _.pluck(Infer({
+  method: 'MCMC',
+  justSample: true,
+  samples: 1000,
+  burn: 100,
+  kernel: {HMC: {stepSize: .01, steps: 40}}
+}, model).samples, 'value');
+
+viz.scatter(map(first, samples), map(second, samples));
