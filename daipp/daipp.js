@@ -138,6 +138,9 @@ function nneval(nn, arg) {
 }
 
 
+var arrayRNN = makeRU(latentSize, latentSize, 'arrayRNN');
+arrayRNN.setTraining(true);
+
 //val2vec takes an object and turns it into a vector.
 function val2vec(val) {
   //NOTE: Number arrays (w/ fixed dim?) should be upgraded to tensor by hand
@@ -160,9 +163,8 @@ function val2vec(val) {
       //arrays are handled inductively
       //TODO: change init so that an array with one elt gets the same vec as the elt?
       var initvec = val2vec("emptyarrayvec");
-      var arrayRNN = tensorAdaptor(2*latentSize, 'arrayRNN');
       return val.reduce(function(vec, next){
-                          return nneval(arrayRNN, ad.tensor.concat(vec, val2vec(next)));
+                          return nneval(arrayRNN, [vec, val2vec(next)]);
                         },
                         initvec);
     case "function":
