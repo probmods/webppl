@@ -38,19 +38,17 @@ var initContext = function(data) {
 //A function used to update the context upon getting a sampled (or deterministic) value
 //TODO: make deeper? use GRU / LSTM? ResNet?
 //TODO: take optional name/type to allow different update nets, eg for sample vs deterministic vs return.
-var updateNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.tanh},
-  {nOut: daipp.latentSize}
-], 'updateNet', daipp.debug);
+
+var updateNet = daipp.makeRU(daipp.latentSize, 2*daipp.latentSize, 'updateNet');
 updateNet.setTraining(true)
+
 var updateContext = function(val) {
   var dataVec = daipp.val2vec(val)
   var address = getRelativeAddress()
   var addressVec = daipp.val2vec(address)
   var context = globalStore.context
 
-  var newContext = daipp.nneval(updateNet, ad.tensor.concat(context, addressVec, dataVec));
-
+  var newContext = daipp.nneval(updateNet, [context, ad.tensor.concat(addressVec, dataVec)]);
   globalStore.context = newContext
 
   return
@@ -71,10 +69,7 @@ var updateContext = function(val) {
 
 // paul: note that params isn't necessarily an array of reals.
 
-var predictNet = nn.mlp(3*daipp.latentSize, [
-  {nOut: daipp.latentSize, activation: nn.tanh},
-  {nOut: daipp.latentSize}
-], 'predictNet', daipp.debug);
+var predictNet = daipp.makeRU(daipp.latentSize, 2*daipp.latentSize, 'predictNet');
 predictNet.setTraining(true)
 
 var DAIPPguide = function(dist, val) {
@@ -85,9 +80,9 @@ var DAIPPguide = function(dist, val) {
   // var context = zeros([daipp.latentSize]) //for testing how much the context net matters...
   var context = globalStore.context
 
-  //merge the val, context, address together
-  var predictInput = ad.tensor.concat(context, addressVec, dataVec);
-  var predict = daipp.nneval(predictNet, predictInput);
+  //merge the val, address together
+  var predictInput = ad.tensor.concat(addressVec, dataVec);
+  var predict = daipp.nneval(predictNet, [context, predictInput]);
 
   //generate params as appropriate to dist
   var guide = daipp.vec2dist(predict, dist)
