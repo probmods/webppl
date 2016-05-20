@@ -496,7 +496,7 @@ var all = function(p, l) {
 // webppl replacement for underscore `some` function, with arguments flipped.
 // underscore version won't work because it uses higher-order functions
 // "Returns true if any of the values in the list `l` pass the predicate truth test `p`"
-// Note: underscore function will short-circuit and stops traversing the list if a true element is found. 
+// Note: underscore function will short-circuit and stops traversing the list if a true element is found.
 //       Might want to add this functionality.
 var any = function(p, l) {
   if (l.length === 0) {
