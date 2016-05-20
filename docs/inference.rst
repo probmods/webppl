@@ -35,15 +35,15 @@ Enumeration
    .. describe:: strategy
 
       The traversal strategy used to explore executions. Either
-      ``'likely-first'``, ``'depth-first'`` or ``'breadth-first'``.
+      ``'likelyFirst'``, ``'depthFirst'`` or ``'breadthFirst'``.
 
-      Default: ``'likely-first'`` if ``maxExecutions`` is finite,
-      ``'depth-first'`` otherwise.
+      Default: ``'likelyFirst'`` if ``maxExecutions`` is finite,
+      ``'depthFirst'`` otherwise.
 
    Example usage::
 
      Infer({method: 'enumerate', maxExecutions: 10}, thunk);
-     Infer({method: 'enumerate', strategy: 'breadth-first'}, thunk);
+     Infer({method: 'enumerate', strategy: 'breadthFirst'}, thunk);
 
 Rejection Sampling
 ------------------
