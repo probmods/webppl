@@ -57,7 +57,10 @@ Distributions
 
   * alpha: *array of concentration parameters*
 
+  Distribution over arrays of positive real numbers. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
+
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`_.
+  
 
 .. js:function:: Discrete({ps: ...})
 
