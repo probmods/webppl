@@ -163,6 +163,8 @@ var makeDirichletDiscrete = function(pseudocounts) {
 
 // Arithmetic and other functionals
 
+// Note: These may be left over from before we had infix notation and could be removed
+
 var plus = function(a, b) {
   return a + b;
 };
@@ -226,6 +228,10 @@ var trueF = function() {
 
 // Probability computations & calculations
 
+// Note: these should probably follow the same scheme as "sample" and "score". 
+//       If we end up forcing dist.sample() and dist.score(val), 
+//       then we probably should also force dist.MAP() and dist.entropy(). 
+
 var MAP = function(dist) {
   return dist.MAP();
 };
@@ -245,6 +251,8 @@ var entropy = function(dist) {
 };
 
 // Data structures & higher-order functions
+
+// Note: concat *does* work in webppl, so these may not be widely used
 
 var append = function(a, b) {
   return a.concat(b);
@@ -283,6 +291,9 @@ var rest = function(xs) {
   return xs.slice(1);
 };
 
+// optimizes following map functions:
+// recursively split input array so that we only call
+// concat a logarithmic number of times
 var map_helper = function(i, j, f) {
   var n = j - i + 1;
   if (n == 0) {
@@ -295,22 +306,44 @@ var map_helper = function(i, j, f) {
   }
 }
 
-// recursively split input array so that we only call
-// concat a logarithmic number of times
+// Webppl replacement for underscore `map`, with argument order flipped and fewer "bonus" features. 
+// Note that underscore map doesn't work because it calls a higher-order function.
+// "Produces a new array of values by mapping each value in `l` through a transformation function (`fn`)."
+// e.g. map(function(a) {return a*a}, [1,2,3]) => [1,4,9]
 var map = function(fn, l) {
   return map_helper(0, l.length - 1, function(i) { return fn(l[i]) })
 }
 
+// No underscore equivalent.
+// "Produces a new array of values by mapping each value in `l1` and `l2` through a transformation function (`fn`) that takes two arguments."
+// e.g. map2(function(a, b) {return a + b}, [1,2,3], [10,11,12]) => [11,13,15]
 // assumes that length l1 == length l2
 var map2 = function(fn, l1, l2) {
   return map_helper(0, l1.length - 1, function(i) { return fn(l1[i], l2[i]) })
 }
+
+// Webppl replacement for underscore `mapObject`, with argument order flipped.
+// Note that underscore mapObject doesn't work because it calls a higher-order function.
+// "Like map, but for objects. Transform the value of each property in turn."
+// e.g. mapObject(function(val, key) {  return val + 5; }, {start: 5, end: 12}); => {start: 10, end: 17}
+var mapObject = function(fn, obj) {
+  return _.object(
+      map(
+      function(kv) {
+        return [kv[0], fn(kv[0], kv[1])]
+      },
+      _.pairs(obj))
+  );
+};
+
+// The following map variants may be too specialized to warrant inclusion in the core header
 
 // sugar for map(f, [0,1,...,n-1])
 var mapN = function(fn, n) {
   return map_helper(0, n - 1, function(i) { return fn(i) })
 }
 
+// Note: this should an optional argument to fn in the original map
 var mapIndexed = function(fn, l) {
   return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
 }
@@ -372,16 +405,12 @@ var mapPairsNC = function(f, l) {
   return remove(undefined, res);
 };
 
-var mapObject = function(fn, obj) {
-  return _.object(
-      map(
-      function(kv) {
-        return [kv[0], fn(kv[0], kv[1])]
-      },
-      _.pairs(obj))
-  );
-};
-
+// Equivalent to underscore `reduce` but with arguments in a different order.
+// Note that underscore map doesn't work because it calls a higher-order function.
+// "Also known as inject and foldl, reduce boils down a list of values into a single value. 
+// `init` is the initial state of the reduction, and each successive step of it should be returned by `fn`. 
+// The `fn` is passed two arguments: the memo and the value."
+// e.g. reduce(function(memo, num){ return memo + num; }, 0, [1, 2, 3]); => 6
 var reduce = function(fn, init, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -411,26 +440,38 @@ var mapReduce1 = function(f, g, ar) {
                 ar.slice(0, -1));
 };
 
+// Takes the sum of values in a list `l`
 var sum = function(l) {
   return reduce(plus, 0, l);
 };
+
+// Takes the product of values in a list `l`
 var product = function(l) {
   return reduce(mult, 1, l);
 };
 
+// Note: I don't know how widely the following are used, or if they should be included in the core header.
+
+// Takes the mean of values in a list `l`
 var listMean = function(l) {
   return reduce(plus, 0, l) / l.length;
 };
+
+// Takes the variance of values in a list `l`
 var listVar = function(l, mu) {
   var mu = mu === undefined ? listMean(l) : mu;
   return mapReduce1(plus, function(a) {
     return (a - mu) * (a - mu);
   }, l) / l.length;
 };
+
+// Takes the standard deviation of values in a list `l`
 var listStdev = function(l, mu) {
   return Math.sqrt(listVar(l, mu));
 };
 
+// Normalizes values in a list such that they sum to 1:
+// normalize([1,1,1,1]) => [0.25,0.25,0.25,0.25]
 var normalize = function(xs) {
   var Z = sum(xs);
   return map(function(x) {
@@ -438,6 +479,10 @@ var normalize = function(xs) {
   }, xs);
 };
 
+// webppl replacement for underscore `every` function, with arguments flipped.
+// underscore version won't work because it uses higher-order functions
+// "Returns true if all of the values in the list `l` pass the predicate truth test `p`."
+// Note: underscore function will short-circuit and stops traversing the list if a false element is found. Might want to add this functionality.
 var all = function(p, l) {
   if (l.length === 0) {
     return true
@@ -446,6 +491,10 @@ var all = function(p, l) {
   }
 };
 
+// webppl replacement for underscore `some` function, with arguments flipped.
+// underscore version won't work because it uses higher-order functions
+// "Returns true if any of the values in the list `l` pass the predicate truth test `p`"
+// Note: underscore function will short-circuit and stops traversing the list if a true element is found. Might want to add this functionality.
 var any = function(p, l) {
   if (l.length === 0) {
     return false
@@ -454,12 +503,19 @@ var any = function(p, l) {
   }
 };
 
+// webppl version of underscore `zip` function.
+// underscore function *will* work, so we don't necessarily need to reimplement it here
+// Merges together the values of each of the arrays with the values at the corresponding position. 
+// Useful when you have separate data sources that are coordinated through matching array indexes. 
 var zip = function(xs, ys) {
   return map2(function(x, y) { return [x, y]},
               xs,
               ys)
 };
 
+// webppl version of underscore `filter` function.
+// underscore function won't work because it uses higher-order functions
+// Looks through each value in the list `ar`, returning an array of all the values that pass a truth test `fn`.
 var filter = function(fn, ar) {
   var helper = function(i, j) {
     var n = j - i + 1;
@@ -476,6 +532,10 @@ var filter = function(fn, ar) {
   return helper(0, ar.length - 1)
 };
 
+// webppl version of underscore `find` function.
+// underscore function won't work because it uses higher-order functions
+// "Looks through each value in the list `ar`, returning the first one that passes a truth test (`f`), or undefined if no value passes the test. 
+// The function returns as soon as it finds an acceptable element, and doesn't traverse the entire list."
 var find = function(f, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -490,11 +550,15 @@ var find = function(f, ar) {
   return helper(0);
 };
 
+// webppl version of underscore `without` function.
+// underscore function *will* work, so we don't necessarily need to reimplement it here
 var remove = function(a, ar) {
   return filter(function(e) {
     return a != e;
   }, ar);
 };
+
+// Note: not sure how widely used the following utils are, and might be removed?
 
 var insertAt = function(ar, i, x) {
   return ar.slice(0, i).concat([x]).concat(ar.slice(i));
@@ -539,6 +603,9 @@ var takeWhile = function(p, ar) {
   return ar.slice(0, helper(0));
 };
 
+// webppl version of underscore `indexOf` function.
+// underscore function *will* work, so we don't necessarily need to reimplement it here
+// "Returns the index at which value can be found in the array, or -1 if value is not present in the array. If you're working with a large array, and you know that the array is already sorted, pass true for isSorted to use a faster binary search ... or, pass a number as the third argument in order to look for the first matching value in the array after the given index."
 var indexOf = function(x, xs) {
   // prototype method doesn't return falsy value if not found
   var i = xs.indexOf(x);
