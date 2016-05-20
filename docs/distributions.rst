@@ -3,7 +3,7 @@ Distributions
 
 .. js:function:: Bernoulli({p: ...})
 
-  * p: *probability of true* (p in [0, 1])
+  * p: *success probability* (probability in [0, 1])
 
   Distribution on {true,false}
   
@@ -11,8 +11,8 @@ Distributions
 
 .. js:function:: Beta({a: ..., b: ...})
 
-  * a: shape > 0
-  * b: shape > 0
+  * a: *shape* (real > 0)
+  * b: *shape* (real > 0)
  
  Distribution on [0, 1]
 
@@ -20,8 +20,8 @@ Distributions
 
 .. js:function:: Binomial({p: ..., n: ...})
 
-  * p: *success probability* (p in [0, 1])
-  * n: *number of trials* (n > 0; natural number)
+  * p: *success probability* (probability in [0, 1])
+  * n: *number of trials* (integer > 0)
 
   Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials
 
@@ -29,8 +29,8 @@ Distributions
 
 .. js:function:: Categorical({ps: ..., vs: ...})
 
-  * ps: *array of probabilities* (p_i's > 0)
-  * vs: *support*
+  * ps: *probabilities* (array of probabilities in [0, 1])
+  * vs: *support* (array of values)
 
   Distribution over elements of vs with ``P(vs[i]) = ps[i]``
 
@@ -38,8 +38,8 @@ Distributions
 
 .. js:function:: Cauchy({location: ..., scale: ...})
 
-  * location: in [-Infinity, Infinity]
-  * scale: > 0
+  * *location* (real in [-Infinity, Infinity])
+  * *scale* (real > 0)
  
   Distribution over ``[-Infinity, Infinity]``
 
@@ -47,24 +47,23 @@ Distributions
 
 .. js:function:: Dirichlet({alpha: ...})
 
-  * alpha: *array of concentration parameters* (alpha_i's > 0)
+  * alpha: *concentration parameters* (array of reals > 0)
  
-  Distribution over arrays of positive real numbers.
+  Distribution over arrays of probabilities.
  
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`_.
 
 .. js:function:: DirichletDrift({alpha: ...})
 
-  * alpha: *array of concentration parameters*
+  * alpha: *concentration parameters* (array of reals > 0)
 
-  Distribution over arrays of positive real numbers. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
+  Distribution over arrays of probabilities. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`_.
-  
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: *array of probabilities* (p_i's > 0)
+  * ps: *probabilities* (array of probabilities in [0,1])
 
   Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
@@ -72,7 +71,7 @@ Distributions
 
 .. js:function:: Exponential({a: ...})
 
-  * a: *rate* (a > 0)
+  * a: *rate* (real > 0)
   
   Distribution on ``[0, Infinity]``
   
