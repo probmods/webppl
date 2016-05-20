@@ -672,9 +672,23 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
 
 var Infer = function(options, wpplFn) {
   assert.ok(_.isObject(options), 'Infer: options argument not given.');
+
+  // Map from camelCase options to PascalCase coroutine names. Also
+  // used to ensure the supplied method name is a valid inference
+  // routine.
+  var methodMap = {
+    SMC: SMC,
+    MCMC: MCMC,
+    PMCMC: PMCMC,
+    asyncPF: AsyncPF,
+    rejection: Rejection,
+    enumerate: Enumerate,
+    incrementalMH: IncrementalMH
+  };
+
   var methodName = options.method;
   assert.ok(methodName, 'Infer: the option \'method\' must be specified.');
-  assert.ok(_.has(_top, methodName), 'Infer: unknown method \'' + methodName + '\'.');
-  var method = _top[methodName];
+  assert.ok(_.has(methodMap, methodName), 'Infer: unknown method \'' + methodName + '\'.');
+  var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));
 };

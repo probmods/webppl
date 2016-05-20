@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    method: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },
@@ -43,6 +43,7 @@ var tests = [
   },
   {
     name: 'Enumerate',
+    method: 'enumerate',
     settings: {
       args: {},
       MAP: { check: true }
@@ -63,6 +64,7 @@ var tests = [
   },
   {
     name: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
       args: { samples: 5000 },
       hist: { tol: 0.1 }
@@ -102,7 +104,7 @@ var tests = [
   },
   {
     name: 'IMHjustSample',
-    method: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -128,6 +130,7 @@ var tests = [
   },
   {
     name: 'AsyncPF',
+    method: 'asyncPF',
     settings: {
       args: { particles: 1000, bufferSize: 1000 },
       hist: { tol: 0.1 },
@@ -143,6 +146,7 @@ var tests = [
   },
   {
     name: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 1000 },
       hist: { tol: 0.1 }
@@ -172,7 +176,7 @@ var tests = [
   },
   {
     name: 'IncrementalRejection',
-    method: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
