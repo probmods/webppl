@@ -148,14 +148,14 @@ module.exports = function(env) {
   Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   var strategies = {
-    'likely-first': {
+    'likelyFirst': {
       makeQ: function() {
         return new PriorityQueue(function(a, b) {
           return a.score - b.score;
         });
       }
     },
-    'depth-first': {
+    'depthFirst': {
       makeQ: function() {
         var q = [];
         q.size = function() {
@@ -166,7 +166,7 @@ module.exports = function(env) {
         return q;
       }
     },
-    'breadth-first': {
+    'breadthFirst': {
       makeQ: function() {
         var q = [];
         q.size = function() {
@@ -180,7 +180,7 @@ module.exports = function(env) {
   };
 
   function defaultStrategy(maxExecutions) {
-    return strategies[_.isFinite(maxExecutions) ? 'likely-first' : 'depth-first'];
+    return strategies[_.isFinite(maxExecutions) ? 'likelyFirst' : 'depthFirst'];
   }
 
   return {

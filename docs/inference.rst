@@ -13,14 +13,14 @@ also known as a `thunk`.
 The inference algorithm to use must be specified using the ``method``
 option. For example::
 
-  Infer({method: 'Enumerate'}, thunk)
+  Infer({method: 'enumerate'}, thunk)
 
 The following algorithms are available:
 
 Enumeration
 -----------
 
-.. js:function:: Infer({method: 'Enumerate'[, ...]}, thunk)
+.. js:function:: Infer({method: 'enumerate'[, ...]}, thunk)
 
    This method performs inference by enumeration.
 
@@ -35,20 +35,20 @@ Enumeration
    .. describe:: strategy
 
       The traversal strategy used to explore executions. Either
-      ``'likely-first'``, ``'depth-first'`` or ``'breadth-first'``.
+      ``'likelyFirst'``, ``'depthFirst'`` or ``'breadthFirst'``.
 
-      Default: ``'likely-first'`` if ``maxExecutions`` is finite,
-      ``'depth-first'`` otherwise.
+      Default: ``'likelyFirst'`` if ``maxExecutions`` is finite,
+      ``'depthFirst'`` otherwise.
 
    Example usage::
 
-     Infer({method: 'Enumerate', maxExecutions: 10}, thunk);
-     Infer({method: 'Enumerate', strategy: 'breadth-first'}, thunk);
+     Infer({method: 'enumerate', maxExecutions: 10}, thunk);
+     Infer({method: 'enumerate', strategy: 'breadthFirst'}, thunk);
 
 Rejection Sampling
 ------------------
 
-.. js:function:: Infer({method: 'Rejection'[, ...]}, thunk)
+.. js:function:: Infer({method: 'rejection'[, ...]}, thunk)
 
    This method performs inference using rejection sampling.
 
@@ -81,7 +81,7 @@ Rejection Sampling
 
    Example usage::
 
-     Infer({method: 'Rejection', samples: 100}, thunk);
+     Infer({method: 'rejection', samples: 100}, thunk);
 
 MCMC
 ----
@@ -188,7 +188,7 @@ Example usage::
 Incremental MH
 --------------
 
-.. js:function:: Infer({method: 'IncrementalMH'[, ...]}, thunk)
+.. js:function:: Infer({method: 'incrementalMH'[, ...]}, thunk)
 
    This method performs inference using C3. [ritchie15]_
 
@@ -239,7 +239,7 @@ Incremental MH
 
    Example usage::
 
-     Infer({method: 'IncrementalMH', samples: 100, lag: 5, burn: 10}, thunk);
+     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, thunk);
 
    To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
 
@@ -257,7 +257,7 @@ Incremental MH
         hmm(100, observed_data);
         return query;
       }
-      Infer({method: 'IncrementalMH', samples: 100, lag: 5, burn: 10}, model);
+      Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, model);
 
    ``query`` is a write-only table which can be returned from a program (and thus marginalized). The only operation it supports is adding named values:
 

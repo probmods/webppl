@@ -22,7 +22,7 @@ var arrayEq = function(a, b) {
   return (a.length == 0) ? true : (a[0] == b[0] && arrayEq(a.slice(1), b.slice(1)))
 }
 
-Infer({method: 'Enumerate'}, function() {
+Infer({method: 'enumerate'}, function() {
   var r = hmm(3);
   factor(arrayEq(r.observations, trueObservations) ? 0 : -Infinity);
   return r.states;

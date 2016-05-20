@@ -77,7 +77,7 @@ function isImhInferMethodOption(node) {
   return node.type === 'Property' &&
       ((node.key.type === 'Identifier' && node.key.name === 'method') ||
       (node.key.type === 'Literal' && node.key.value === 'method')) &&
-      (node.value.type === 'Literal' && node.value.value === 'IncrementalMH');
+      (node.value.type === 'Literal' && node.value.value === 'incrementalMH');
 }
 
 function transformRequired(programAST) {
