@@ -143,7 +143,7 @@ MCMC
 
    Example usage::
 
-     Infer({samples: 1000, lag: 100, burn: 5}, thunk);
+     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5}, thunk);
 
 Kernels
 ^^^^^^^
