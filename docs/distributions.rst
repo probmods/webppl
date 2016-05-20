@@ -31,6 +31,12 @@ Distributions
   * location
   * scale
 
+.. js:function:: Delta({v: ...})
+
+  * v: *support element*
+
+  Discrete distribution that assigns probability one to the single element in its support
+
 .. js:function:: Dirichlet({alpha: ...})
 
   * alpha: *array of concentration parameters*
