@@ -226,6 +226,10 @@ var trueF = function() {
 
 // Probability computations & calculations
 
+var score = function(dist, val) {
+  return dist.score(val);
+};
+
 var MAP = function(dist) {
   return dist.MAP();
 };
