@@ -228,9 +228,9 @@ var trueF = function() {
 
 // Probability computations & calculations
 
-// Note: these should probably follow the same scheme as "sample" and "score". 
-//       If we end up forcing dist.sample() and dist.score(val), 
-//       then we probably should also force dist.MAP() and dist.entropy(). 
+// Note: these should probably follow the same scheme as "sample" and "score".
+//       If we end up forcing dist.sample() and dist.score(val),
+//       then we probably should also force dist.MAP() and dist.entropy().
 
 var MAP = function(dist) {
   return dist.MAP();
@@ -306,7 +306,7 @@ var map_helper = function(i, j, f) {
   }
 }
 
-// Webppl replacement for underscore `map`, with argument order flipped and fewer "bonus" features. 
+// Webppl replacement for underscore `map`, with argument order flipped and fewer "bonus" features.
 // Note that underscore map doesn't work because it calls a higher-order function.
 // "Produces a new array of values by mapping each value in `l` through a transformation function (`fn`)."
 // e.g. map(function(a) {return a*a}, [1,2,3]) => [1,4,9]
@@ -315,7 +315,8 @@ var map = function(fn, l) {
 }
 
 // No underscore equivalent.
-// "Produces a new array of values by mapping each value in `l1` and `l2` through a transformation function (`fn`) that takes two arguments."
+// "Produces a new array of values by mapping each value in `l1` and `l2`
+// through a transformation function (`fn`) that takes two arguments."
 // e.g. map2(function(a, b) {return a + b}, [1,2,3], [10,11,12]) => [11,13,15]
 // assumes that length l1 == length l2
 var map2 = function(fn, l1, l2) {
@@ -407,8 +408,8 @@ var mapPairsNC = function(f, l) {
 
 // Equivalent to underscore `reduce` but with arguments in a different order.
 // Note that underscore map doesn't work because it calls a higher-order function.
-// "Also known as inject and foldl, reduce boils down a list of values into a single value. 
-// `init` is the initial state of the reduction, and each successive step of it should be returned by `fn`. 
+// "Also known as inject and foldl, reduce boils down a list of values into a single value.
+// `init` is the initial state of the reduction, and each successive step of it should be returned by `fn`.
 // The `fn` is passed two arguments: the memo and the value."
 // e.g. reduce(function(memo, num){ return memo + num; }, 0, [1, 2, 3]); => 6
 var reduce = function(fn, init, ar) {
@@ -482,7 +483,8 @@ var normalize = function(xs) {
 // webppl replacement for underscore `every` function, with arguments flipped.
 // underscore version won't work because it uses higher-order functions
 // "Returns true if all of the values in the list `l` pass the predicate truth test `p`."
-// Note: underscore function will short-circuit and stops traversing the list if a false element is found. Might want to add this functionality.
+// Note: underscore function will short-circuit and stops traversing the list if a false element is found.
+//       Might want to add this functionality.
 var all = function(p, l) {
   if (l.length === 0) {
     return true
@@ -494,7 +496,8 @@ var all = function(p, l) {
 // webppl replacement for underscore `some` function, with arguments flipped.
 // underscore version won't work because it uses higher-order functions
 // "Returns true if any of the values in the list `l` pass the predicate truth test `p`"
-// Note: underscore function will short-circuit and stops traversing the list if a true element is found. Might want to add this functionality.
+// Note: underscore function will short-circuit and stops traversing the list if a true element is found. 
+//       Might want to add this functionality.
 var any = function(p, l) {
   if (l.length === 0) {
     return false
@@ -505,8 +508,8 @@ var any = function(p, l) {
 
 // webppl version of underscore `zip` function.
 // underscore function *will* work, so we don't necessarily need to reimplement it here
-// Merges together the values of each of the arrays with the values at the corresponding position. 
-// Useful when you have separate data sources that are coordinated through matching array indexes. 
+// Merges together the values of each of the arrays with the values at the corresponding position.
+// Useful when you have separate data sources that are coordinated through matching array indexes.
 var zip = function(xs, ys) {
   return map2(function(x, y) { return [x, y]},
               xs,
@@ -534,8 +537,9 @@ var filter = function(fn, ar) {
 
 // webppl version of underscore `find` function.
 // underscore function won't work because it uses higher-order functions
-// "Looks through each value in the list `ar`, returning the first one that passes a truth test (`f`), or undefined if no value passes the test. 
-// The function returns as soon as it finds an acceptable element, and doesn't traverse the entire list."
+// "Looks through each value in the list `ar`, returning the first one that passes a truth test (`f`),
+// or undefined if no value passes the test. The function returns as soon as it finds an acceptable element,
+// and doesn't traverse the entire list."
 var find = function(f, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -605,7 +609,7 @@ var takeWhile = function(p, ar) {
 
 // webppl version of underscore `indexOf` function.
 // underscore function *will* work, so we don't necessarily need to reimplement it here
-// "Returns the index at which value can be found in the array, or -1 if value is not present in the array. If you're working with a large array, and you know that the array is already sorted, pass true for isSorted to use a faster binary search ... or, pass a number as the third argument in order to look for the first matching value in the array after the given index."
+// "Returns the index at which value can be found in the array, or undefined if value is not present in the array."
 var indexOf = function(x, xs) {
   // prototype method doesn't return falsy value if not found
   var i = xs.indexOf(x);
