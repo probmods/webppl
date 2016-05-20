@@ -1,19 +1,28 @@
 Debugging
 =========
 
+WebPPL provides error messages that try to be informative.
+In addition there is debugging software you can use for WebPPL programs.
+
 To debug WebPPL programs running in Chrome, enable `pause on JavaScript
-exceptions`_ in the Chrome debugger. To debug WebPPL programs running in
-nodejs, use node-inspector as follows::
+exceptions`_ in the Chrome debugger.  To debug WebPPL programs running in
+nodejs, use node debugger as follows:
 
-    // 1. Install node-inspector (only need to do this once)
-    npm install -g node-inspector
+1. Add ``debugger;`` statements to ``my-program.wppl`` to indicate breakpoints.
 
-    // 2. Add "debugger;" statements to my-program.wppl to indicate breakpoints
+2. Run your compiled program in debug mode.
 
-    // 3. Run your compiled program in debug mode (will pause automatically)
-    node --debug-brk webppl my-program.wppl
+    ::
+    
+        node debug /path/to/webppl/directory/webppl my-program.wppl
 
-    // 4. (In separate terminal:) Load node inspector, resume program execution in node-inspector
-    node-inspector
+   * Note that you will need the full path to the ``webppl`` executable.
+     This might be in the ``lib`` folder of your ``node`` directory if
+     you installed with ``npm``.
+    
+3. To navigate to your breakpoint within the debugger interface, type ``cont`` or ``c``.
+   At any break point, you can type ``repl`` to interact with the variables.
+   `Here`_'s some documentation for this debugger.
 
 .. _pause on JavaScript exceptions: https://developer.chrome.com/devtools/docs/javascript-debugging#pause-on-exceptions
+.. _Here: https://nodejs.org/api/debugger.html
