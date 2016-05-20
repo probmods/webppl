@@ -57,7 +57,7 @@ Distributions
 
   * alpha: *concentration parameters* (array of reals > 0)
 
-  Distribution over arrays of probabilities. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
+  Drift version of Dirichlet. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`_.
 
