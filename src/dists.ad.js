@@ -939,6 +939,29 @@ var Categorical = makeDistributionType({
   }
 });
 
+var Delta = makeDistributionType({
+  name: 'Delta',
+  desc: 'Discrete distribution that assigns probability one to the single ' +
+    'element in its support. This is only useful in special circumstances as sampling ' +
+    'from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` ' +
+    'distribution parameterized by a random choice should not be used with MCMC based inference, ' +
+    'as doing so produces incorrect results.',
+  params: [{name: 'v', desc: 'support element'}],
+  mixins: [finiteSupport],
+  constructor: function() {
+    this.v = util.serialize(this.params.v);
+  },
+  sample: function() {
+    return ad.value(this.params.v);
+  },
+  score: function(val) {
+    return util.serialize(val) === this.v ? 0 : -Infinity;
+  },
+  support: function() {
+    return [this.params.v];
+  }
+});
+
 function withImportanceDist(dist, importanceDist) {
   var newDist = clone(dist);
   newDist.importanceDist = importanceDist;
@@ -966,6 +989,7 @@ module.exports = {
   DirichletDrift: DirichletDrift,
   Marginal: Marginal,
   Categorical: Categorical,
+  Delta: Delta,
   // rng
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
