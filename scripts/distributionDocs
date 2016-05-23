@@ -18,7 +18,9 @@ function getMetaData() {
     .map(function(pair) { return pair[1]; })
     .map(function(dist) {
       return dist.prototype.meta;
-    }).value();
+    })
+    .filter(function(meta) { return !meta.internal; })
+    .value();
 }
 
 function makeTemplates(obj) {

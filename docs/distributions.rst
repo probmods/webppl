@@ -64,10 +64,6 @@ Distributions
   * mu: *mean*
   * sigma: *standard deviation*
 
-.. js:function:: Marginal({dist: ...})
-
-  * dist
-
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: *probabilities*
