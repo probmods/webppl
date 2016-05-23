@@ -574,6 +574,8 @@ function binomialG(x) {
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
 
+// see lemma 6.1 from Ahrens & Dieter's
+// Computer Methods for Sampling from Gamma, Beta, Poisson and Binomial Distributions
 function binomialSample(p, n) {
   var k = 0;
   var N = 10;
