@@ -107,6 +107,11 @@ var categorical = function(arg1, arg2) {
   return params.vs[discrete(params.ps)];
 };
 
+var delta = function(arg) {
+  var params = dists.isParams(arg) ? arg : {v: arg};
+  return sample(Delta(params));
+};
+
 var uniformDraw = function(arg) {
   var vs = dists.isParams(arg) ? arg.vs : arg;
   return vs[sample(RandomInteger({n: vs.length}))];
