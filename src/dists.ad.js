@@ -187,7 +187,7 @@ function makeDistributionType(options) {
   dist.prototype.constructor = dist;
 
   // Note that meta-data is not inherited from the parent.
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -867,6 +867,7 @@ function discreteSample(theta) {
 
 var Marginal = makeDistributionType({
   name: 'Marginal',
+  internal: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
