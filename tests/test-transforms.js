@@ -99,7 +99,7 @@ function runTrampoline(test, code, newCode, expected) {
   var f = eval(newCode);
   // the result of trampoline transform needs to be evaluated an extra time,
   // supplying the runner as an argument
-  f = f(util.trampolineRunners.cli);
+  f = f(util.trampolineRunners.cli());
   f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');

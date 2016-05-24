@@ -211,38 +211,32 @@ function run(code, k, options) {
   options = _.defaults(options || {},
                        {runner: util.runningInBrowser() ? 'web' : 'cli'});
 
-  var runner = util.trampolineRunners[options.runner];
   var codeWithMap = compile(code, options);
 
+  var runner = util.trampolineRunners[options.runner](function(e) {
+    addSourceMap(e, codeWithMap.map);
+    throw e;
+  });
+
   util.timeif(options.verbose, 'run', function() {
-    try {
-      eval.call(global, codeWithMap.code)(runner)({}, k, '');
-    } catch (e) {
-      addSourceMap(e, codeWithMap.map);
-      throw e;
-    }
+    eval.call(global, codeWithMap.code)(runner)({}, k, '');
   });
 }
 
 // Make webppl eval available within webppl
 // runner is one of 'cli','web'
-global.webpplEval = function(s, k, a, code, runner) {
-  if (runner === undefined) {
-    runner = util.runningInBrowser() ? 'web' : 'cli'
+global.webpplEval = function(s, k, a, code, runnerName) {
+  if (runnerName === undefined) {
+    runnerName = util.runningInBrowser() ? 'web' : 'cli'
   }
   var codeWithMap = compile(code, {filename: 'webppl:eval'});
-  try {
 
-    // Generally CPS and exceptions don't mix very well. However, I
-    // think catching errors will work here because the eval'd code is
-    // run in its own trampoline, and therefore within this try/catch.
-    // In contrast, if the eval'd code ran in the top-level trampoline
-    // this approach wouldn't work.
-    return eval.call(global, codeWithMap.code)(util.trampolineRunners[runner])(s, k, a);
-  } catch (e) {
+  var runner = util.trampolineRunners[runnerName](function(e) {
     addSourceMap(e, codeWithMap.map);
     throw e;
-  }
+  });
+
+  return eval.call(global, codeWithMap.code)(runner)(s, k, a);
 };
 
 module.exports = {

@@ -6,30 +6,49 @@ var seedrandom = require('seedrandom');
 
 var rng = Math.random;
 
-var trampolineRunners = {
-  web: function f(t) {
-    var lastPauseTime = Date.now();
-
-    if (f.__cancel__) {
-      f.__cancel__ = false;
-    } else {
-      while (t) {
-        var currTime = Date.now();
-        if (currTime - lastPauseTime > 100) {
-          // NB: return is crucial here as it exits the while loop
-          // and i'm using return rather than break because we might
-          // one day want to cancel the timer
-          return setTimeout(function() { f(t) }, 0);
-        } else {
-          t = t();
-        }
+function withErrorHandling(handler, f) {
+  return function(x) {
+    try {
+      return f(x);
+    } catch (e) {
+      if (handler) {
+        handler(e);
+      } else {
+        throw e;
       }
     }
+  };
+}
+
+var trampolineRunners = {
+  web: function(handler) {
+    var f = withErrorHandling(handler, function(t) {
+      var lastPauseTime = Date.now();
+
+      if (f.__cancel__) {
+        f.__cancel__ = false;
+      } else {
+        while (t) {
+          var currTime = Date.now();
+          if (currTime - lastPauseTime > 100) {
+            // NB: return is crucial here as it exits the while loop
+            // and i'm using return rather than break because we might
+            // one day want to cancel the timer
+            return setTimeout(function() { f(t) }, 0);
+          } else {
+            t = t();
+          }
+        }
+      }
+    });
+    return f;
   },
-  cli: function(t) {
-    while (t) {
-      t = t()
-    }
+  cli: function(handler) {
+    return withErrorHandling(handler, function(t) {
+      while (t) {
+        t = t()
+      }
+    });
   }
 }
 
