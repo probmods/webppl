@@ -56,7 +56,9 @@ function showFriendlyError(error) {
   var src = getSrc(error, pos);
 
   if (src) {
-    writeFriendlyError(error, pos, src);
+    console.log('\n' + colors.bold(error.message));
+    console.log('    at ' + pos.fileName + ':' + pos.lineNumber + '\n');
+    console.log(getContextMessage(src, pos.lineNumber, pos.columnNumber));
   } else {
     console.log('\nFailed to generate friendly error message. Original error was:\n');
     console.log(error.message + '\n');
@@ -89,12 +91,6 @@ function getSrc(error, pos) {
 function getSrcFromMap(sourceMap, fileName) {
   var mapConsumer = new SourceMap.SourceMapConsumer(sourceMap);
   return mapConsumer.sourceContentFor(fileName);
-}
-
-function writeFriendlyError(error, pos, src) {
-  console.log('\n' + colors.bold(error.message));
-  console.log('    at ' + pos.fileName + ':' + pos.lineNumber + '\n');
-  console.log(getContextMessage(src, pos.lineNumber, pos.columnNumber));
 }
 
 function getErrorPosition(error) {
