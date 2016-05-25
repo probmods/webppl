@@ -239,6 +239,10 @@ function warn(msg) {
   }
 }
 
+function fatal(msg) {
+  throw msg;
+}
+
 function jsnew(ctor, arg) {
   return new ctor(arg);
 }
@@ -271,5 +275,6 @@ module.exports = {
   timeif: timeif,
   pipeline: pipeline,
   warn: warn,
+  fatal: fatal,
   jsnew: jsnew
 };
