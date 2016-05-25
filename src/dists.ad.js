@@ -623,7 +623,7 @@ var Binomial = makeDistributionType({
     return (lnfact(n) - lnfact(n - val) - lnfact(val) +
             // avoid returning 0 * -Infinity, which is NaN
             (val == 0 ? 0 : val * Math.log(p)) +
-            (n - val == 0 ? 0 : (n - val) * Math.log(1-p)));
+            (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
   },
   support: function() {
     return _.range(this.params.n).concat(this.params.n);
