@@ -673,7 +673,12 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
 };
 
 var Infer = function(options, wpplFn) {
-  assert.ok(_.isObject(options), 'Infer: options argument not given.');
+  if (!util.isObject(options)) {
+    util.fatal('Infer: expected first argument to be an options object.');
+  }
+  if (!_.isFunction(wpplFn)) {
+    util.fatal('Infer: expected second argument to be a function.');
+  }
 
   // Map from camelCase options to PascalCase coroutine names. Also
   // used to ensure the supplied method name is a valid inference
@@ -689,8 +694,12 @@ var Infer = function(options, wpplFn) {
   };
 
   var methodName = options.method;
-  assert.ok(methodName, 'Infer: the option \'method\' must be specified.');
-  assert.ok(_.has(methodMap, methodName), 'Infer: unknown method \'' + methodName + '\'.');
+  if (methodName === undefined) {
+    util.fatal('Infer: the \'method\' option must be specified.');
+  }
+  if (!_.has(methodMap, methodName)) {
+    util.fatal('Infer: unknown method \'' + methodName + '\'.');
+  }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));
 };

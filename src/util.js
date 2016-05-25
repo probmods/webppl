@@ -239,8 +239,17 @@ function warn(msg) {
   }
 }
 
+function fatal(msg) {
+  throw msg;
+}
+
 function jsnew(ctor, arg) {
   return new ctor(arg);
+}
+
+// Unlike _.isObject this returns false for arrays and functions.
+function isObject(x) {
+  return x !== undefined && Object.getPrototypeOf(x) === Object.prototype;
 }
 
 module.exports = {
@@ -271,5 +280,7 @@ module.exports = {
   timeif: timeif,
   pipeline: pipeline,
   warn: warn,
-  jsnew: jsnew
+  fatal: fatal,
+  jsnew: jsnew,
+  isObject: isObject
 };
