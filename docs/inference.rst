@@ -1,57 +1,75 @@
 Inference
 =========
 
+.. js:function:: Infer(options, thunk)
+
+   :param object options: Inference options.
+   :param function thunk: Program to perform inference in.
+
+``Infer`` computes the marginal distribution on return values of a
+program. The program is specified as a function of zero arguments,
+also known as a `thunk`.
+
+The inference algorithm to use must be specified using the ``method``
+option. For example::
+
+  Infer({method: 'enumerate'}, thunk)
+
+The following algorithms are available:
+
 Enumeration
 -----------
 
-.. js:function:: Enumerate(thunk[, maxExecutions])
+.. js:function:: Infer({method: 'enumerate'[, ...]}, thunk)
 
-   :param function thunk: Program to perform inference in.
-   :param number maxExecutions: Maximum number of (complete) executions to enumerate.
-   :returns: Marginal ERP
+   This method performs inference by enumeration.
 
-   This method performs inference by enumeration. If ``maxExecutions``
-   is not specified, exhaustive enumeration is performed. Otherwise,
-   paths through the program are explored using a "most probable first"
-   heuristic until the maximum number of executions is reached.
+   The following options are supported:
 
-   Alternative search strategies are available using the following
-   methods:
+   .. describe:: maxExecutions
 
-   * :js:func:`EnumerateBreadthFirst`
-   * :js:func:`EnumerateDepthFirst`
-   * :js:func:`EnumerateLikelyFirst`.
+      Maximum number of (complete) executions to enumerate.
+
+      Default: ``Infinity``
+
+   .. describe:: strategy
+
+      The traversal strategy used to explore executions. Either
+      ``'likelyFirst'``, ``'depthFirst'`` or ``'breadthFirst'``.
+
+      Default: ``'likelyFirst'`` if ``maxExecutions`` is finite,
+      ``'depthFirst'`` otherwise.
 
    Example usage::
 
-     Enumerate(model, 10);
-
-.. js:function:: EnumerateBreadthFirst(thunk[, maxExecutions])
-
-   See :js:func:`Enumerate`
-
-.. js:function:: EnumerateDepthFirst(thunk[, maxExecutions])
-
-   See :js:func:`Enumerate`
-
-.. js:function:: EnumerateLikelyFirst(thunk[, maxExecutions])
-
-   See :js:func:`Enumerate`
+     Infer({method: 'enumerate', maxExecutions: 10}, thunk);
+     Infer({method: 'enumerate', strategy: 'breadthFirst'}, thunk);
 
 Rejection Sampling
 ------------------
 
-.. js:function:: Rejection(thunk, numSamples[, maxScore, incremental])
-
-   :param function thunk: Program to perform inference in.
-   :param number numSamples: The number of samples to take.
-   :param number maxScore: An upper bound on the total factor score
-                           per-execution. Only required for
-                           incremental mode.
-   :param boolean incremental: Enable incremental mode. Default: ``false``.
-   :returns: Marginal ERP
+.. js:function:: Infer({method: 'rejection'[, ...]}, thunk)
 
    This method performs inference using rejection sampling.
+
+   The following options are supported:
+
+   .. describe:: samples
+
+      The number of samples to take.
+
+      Default: ``1``
+
+   .. describe:: maxScore
+
+      An upper bound on the total factor score per-execution. Only
+      required for incremental mode.
+
+   .. describe:: incremental
+
+      Enable incremental mode.
+
+      Default: ``false``
 
    Incremental mode improves efficiency by rejecting samples before
    execution reaches the end of the program where possible. This
@@ -63,16 +81,12 @@ Rejection Sampling
 
    Example usage::
 
-     Rejection(model, 100);
+     Infer({method: 'rejection', samples: 100}, thunk);
 
 MCMC
 ----
 
-.. js:function:: MCMC(thunk[, options])
-
-   :param function thunk: Program to perform inference in.
-   :param object options: Options.
-   :returns: Marginal ERP
+.. js:function:: Infer({method: 'MCMC'[, ...]}, thunk)
 
    This method performs inference using Markov chain Monte Carlo.
 
@@ -115,21 +129,21 @@ MCMC
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
    Example usage::
 
-     MCMC(model, { samples: 1000, lag: 100, burn: 5 });
+     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5}, thunk);
 
 Kernels
 ^^^^^^^
@@ -142,7 +156,7 @@ The following kernels are available:
 
 Example usage::
 
-    MCMC(model, { kernel: 'MH' });
+    Infer({method: 'MCMC', kernel: 'MH'}, thunk);
 
 .. describe:: HMC
 
@@ -168,34 +182,35 @@ Example usage::
 
 Example usage::
 
-    MCMC(model, { kernel: 'HMC' });
-    MCMC(model, { kernel: { HMC: { steps: 10, stepSize: 1 }}});
+    Infer({method: 'MCMC', kernel: 'HMC'}, thunk);
+    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}}, thunk);
 
 Incremental MH
 --------------
 
-.. js:function:: IncrementalMH(thunk, numIterations[, options])
-
-   :param function thunk: Program to perform inference in.
-   :param number numIterations: The total number of iterations to
-                                perform. (Including burn-in and lag.)
-   :param object options: Options.
-   :returns: Marginal ERP
+.. js:function:: Infer({method: 'incrementalMH'[, ...]}, thunk)
 
    This method performs inference using C3. [ritchie15]_
 
    The following options are supported:
 
+      .. describe:: samples
+
+         The number of samples to take.
+
+         Default: ``100``
+
       .. describe:: lag
 
-         The number of iterations to perform before collecting
+         The number of additional iterations to perform between
          samples.
 
          Default: ``0``
 
       .. describe:: burn
 
-         The number of iterations to perform between samples.
+         The number of additional iterations to perform before
+         collecting samples.
 
          Default: ``0``
 
@@ -210,30 +225,53 @@ Incremental MH
 
          When ``true``, maintain an array of all samples taken. This
          is available via the ``samples`` property of the returned
-         marginal ERP. ``justSample`` implies ``onlyMAP``.
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
 
          Default: ``false``
 
       .. describe:: onlyMAP
 
-         When ``true``, return a delta ERP on the sampled value with
-         the highest score instead of a marginal ERP built from all
-         samples.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
    Example usage::
 
-     IncrementalMH(model, 100, { lag: 5, burn: 10 });
+     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, thunk);
+
+   To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
+
+      var model = function() {
+        var hmm = function(n, obs) {
+          if (n === 0) return true;
+          else {
+            var prev = hmm(n-1, obs);
+            var state = transition(prev);
+            observation(state, obs[n]);
+            query.add(n, state);
+            return state;
+          }
+        };
+        hmm(100, observed_data);
+        return query;
+      }
+      Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, model);
+
+   ``query`` is a write-only table which can be returned from a program (and thus marginalized). The only operation it supports is adding named values:
+
+      .. js:function:: query.add(name, value)
+
+         :param any name: Name of value to be added to query. Will be converted to string, as Javascript object keys are.
+         :param any value: Value to be added to query.
+         :returns: undefined
+
 
 SMC
 ---
 
-.. js:function:: SMC(thunk[, options])
-
-   :param function thunk: Program to perform inference in.
-   :param object options: Options.
-   :returns: Marginal ERP
+.. js:function:: Infer({method: 'SMC'[, ...]}, thunk)
 
    This method performs inference using sequential Monte Carlo. When
    ``rejuvSteps`` is 0, this method is also known as a particle
@@ -263,7 +301,7 @@ SMC
 
    Example usage::
 
-     SMC(model, { particles: 100, rejuvSteps: 5 });
+     Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
 
 .. rubric:: Bibliography
 
@@ -279,4 +317,5 @@ SMC
 .. [ritchie15] Daniel Ritchie, Andreas Stuhlmüller, and Noah D.
                Goodman. "C3: Lightweight Incrementalized MCMC for
                Probabilistic Programs using Continuations and Callsite
-               Caching." arXiv preprint arXiv:1509.02151 (2015).
+               Caching." International Conference on Artificial
+               Intelligence and Statistics. 2016.

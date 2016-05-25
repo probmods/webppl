@@ -72,7 +72,7 @@ function runNaming(test, code, newCode, expected) {
   check(test, code, newCode, expected, eval(newCode)(''));
 }
 
-var transformAstCps = compose(cps, transformAstNaming);
+var transformAstCps = compose(cps, varargs, transformAstNaming);
 function runCps(test, code, newCode, expected) {
   eval(newCode)(function(actual) {
     check(test, code, newCode, expected, actual);
@@ -90,10 +90,10 @@ function runStorepassing(test, code, newCode, expected) {
 var transformAstOptimize = compose(optimize, transformAstStorepassing);
 var runOptimize = runStorepassing;
 
-var transformAstVarargs = compose(varargs, transformAstOptimize);
-var runVarargs = runOptimize;
+var transformAstVarargs = transformAstStorepassing;
+var runVarargs = runStorepassing;
 
-var transformAstTrampoline = compose(trampoline, transformAstVarargs);
+var transformAstTrampoline = compose(trampoline, transformAstOptimize);
 
 function runTrampoline(test, code, newCode, expected) {
   var f = eval(newCode);
@@ -658,16 +658,12 @@ var tests = {
              'foo(3, 4);'),
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
-    // FIXME: This test currently fails because varargs happens after
-    //        cps which introduces additional closures. To fix this,
-    //        move the varargs transform up earlier in the order of
-    //        transforms?
-    // { name: 'testVarargs4',
-    //   code: ("var bar = function(){return function(xs){return xs;}};;" +
-    //          "var foo = function(){return bar()(arguments)};" +
-    //          "foo(3, 4);"),
-    //   expected: [3, 4],
-    //   runners: [runVarargsTest, runTrampolineTest] },
+    { name: 'testVarargs4',
+      code: ('var bar = function(){return function(xs){return xs;}};;' +
+             'var foo = function(){return bar()(arguments)};' +
+             'foo(3, 4);'),
+      expected: [3, 4],
+      runners: [runVarargsTest, runTrampolineTest] },
     { name: 'testApply',
       code: ('var foo = function(x, y){return x + y};' +
              'var bar = function(){ return apply(foo, arguments); };' +

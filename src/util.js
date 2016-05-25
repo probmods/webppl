@@ -179,6 +179,13 @@ function mergeDefaults(options, defaults) {
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
 
+function throwUnlessOpts(options, fnName) {
+  assert.ok(fnName);
+  if (options !== undefined && !_.isObject(options)) {
+    throw fnName + ' expected an options object but received: ' + JSON.stringify(options);
+  }
+}
+
 function InfToJSON(k, v) {
   if (v === Infinity) {
     return 'Infinity';
@@ -232,6 +239,19 @@ function warn(msg) {
   }
 }
 
+function fatal(msg) {
+  throw msg;
+}
+
+function jsnew(ctor, arg) {
+  return new ctor(arg);
+}
+
+// Unlike _.isObject this returns false for arrays and functions.
+function isObject(x) {
+  return x !== undefined && Object.getPrototypeOf(x) === Object.prototype;
+}
+
 module.exports = {
   trampolineRunners: trampolineRunners,
   random: random,
@@ -251,6 +271,7 @@ module.exports = {
   prettyJSON: prettyJSON,
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
+  throwUnlessOpts: throwUnlessOpts,
   sum: sum,
   product: product,
   asArray: asArray,
@@ -258,5 +279,8 @@ module.exports = {
   deserialize: deserialize,
   timeif: timeif,
   pipeline: pipeline,
-  warn: warn
+  warn: warn,
+  fatal: fatal,
+  jsnew: jsnew,
+  isObject: isObject
 };

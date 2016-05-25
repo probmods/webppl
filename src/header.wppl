@@ -1,90 +1,132 @@
 'no caching';
 
-// ERPs
+// Distributions (note: this gets macro transformed)
 
-var flip = function(theta) {
-  var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP, [theta]);
+defineDistConstructors(
+    Bernoulli
+    Uniform
+    UniformDrift
+    RandomInteger
+    Gaussian
+    GaussianDrift
+    MultivariateGaussian
+    Cauchy
+    Discrete
+    Gamma
+    Exponential
+    Beta
+    Binomial
+    Multinomial
+    Poisson
+    Dirichlet
+    DirichletDrift
+    Categorical
+    Delta);
+
+// Helpers to sample from distributions.
+
+var bernoulli = function(arg) {
+  var params = dists.isParams(arg) ? arg : {p: arg};
+  return sample(Bernoulli(params));
 };
 
-var randomInteger = function(n) {
-  return sample(randomIntegerERP, [n]);
+var randomInteger = function(arg) {
+  var params = dists.isParams(arg) ? arg : {n: arg};
+  return sample(RandomInteger(params));
 };
 
-var discrete = function(ps) {
-  return sample(discreteERP, [ps]);
+var discrete = function(arg) {
+  var params = dists.isParams(arg) ? arg : {ps: arg};
+  return sample(Discrete(params));
 };
 
-var categorical = function(ps, vs) {
-  return vs[discrete(ps)];
+var multinomial = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  return sample(Multinomial(params));
 };
 
-var multinomial = function(ps, n) {
-  return sample(multinomialERP, [ps, n]);
+var gaussian = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(Gaussian(params));
 };
 
-var gaussian = function(mu, sigma) {
-  return sample(gaussianERP, [mu, sigma]);
+var multivariateGaussian = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  return sample(MultivariateGaussian(params));
 };
 
-var multivariateGaussian = function(mu, cov) {
-  return sample(multivariateGaussianERP, [mu, cov]);
+var cauchy = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  return sample(Cauchy(params));
 };
 
-var cauchy = function(location, scale) {
-  return sample(cauchyERP, [location, scale]);
+var uniform = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(Uniform(params));
 };
 
-var uniform = function(a, b) {
-  return sample(uniformERP, [a, b]);
+var dirichlet = function(arg) {
+  var params = dists.isParams(arg) ? arg : {alpha: arg};
+  return sample(Dirichlet(params));
 };
 
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP, [l.length])];
+var poisson = function(arg) {
+  var params = dists.isParams(arg) ? arg : {mu: arg};
+  return sample(Poisson(params));
 };
 
-var dirichlet = function(alpha) {
-  return sample(dirichletERP, alpha);
+var binomial = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  return sample(Binomial(params));
 };
 
-var poisson = function(mu) {
-  return sample(poissonERP, [mu]);
+var beta = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  return sample(Beta(params));
 };
 
-var binomial = function(p, n) {
-  return sample(binomialERP, [p, n]);
+var exponential = function(arg) {
+  var params = dists.isParams(arg) ? arg : {a: arg};
+  return sample(Exponential(params));
 };
 
-var beta = function(a, b) {
-  return sample(betaERP, [a, b]);
+var gamma = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  return sample(Gamma(params));
 };
 
-var exponential = function(a) {
-  return sample(exponentialERP, [a]);
+// Other distribution helpers
+
+var flip = function(p) {
+  var params = {p: (p !== undefined) ? p : .5};
+  return sample(Bernoulli(params));
 };
 
-var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale]);
+var categorical = function(arg1, arg2) {
+  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  return params.vs[discrete(params.ps)];
 };
 
-var deltaERP = function(v) {
-  return _top.makeCategoricalERP([1.0], [v]);
+var delta = function(arg) {
+  var params = dists.isParams(arg) ? arg : {v: arg};
+  return sample(Delta(params));
 };
 
-var categoricalERP = function(ps, vs, extraParams) {
-  return _top.makeCategoricalERP(ps, vs, extraParams);
+var uniformDraw = function(arg) {
+  var vs = dists.isParams(arg) ? arg.vs : arg;
+  return vs[sample(RandomInteger({n: vs.length}))];
 };
 
-var multiplexERP = function(vs, erps) {
-  return _top.makeMultiplexERP(vs, erps);
+var serializeDist = function(d) {
+  return dists.serialize(d);
 };
 
-var serializeERP = function(erp) {
-  return _top.serializeERP(erp);
+var deserializeDist = function(JSONString) {
+  return dists.deserialize(JSONString);
 };
 
-var deserializeERP = function(JSONString) {
-  return _top.deserializeERP(JSONString);
+var withImportanceDist = function(d, importanceDist) {
+  return dists.withImportanceDist(d, importanceDist);
 };
 
 // XRPs
@@ -95,7 +137,7 @@ var makeBetaBernoulli = function(pseudocounts) {
   globalStore[bbname] = pseudocounts;
   return function() {
     var pc = globalStore[bbname];  // get current sufficient stats
-    var val = sample(bernoulliERP, [pc[0] / (pc[0] + pc[1])]);  // sample from predictive.
+    var val = sample(Bernoulli({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
     globalStore[bbname] = [pc[0] + val, pc[1] + !val];  // update sufficient stats
     return val;
   };
@@ -115,7 +157,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   return function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(Discrete({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
@@ -186,22 +228,22 @@ var trueF = function() {
 
 // Probability computations & calculations
 
-var MAP = function(erp) {
-  return erp.MAP();
+var MAP = function(dist) {
+  return dist.MAP();
 };
 
-var expectation = function(erp, func) {
+var expectation = function(dist, func) {
   var f = func || idF;
-  var supp = erp.support([]);
+  var supp = dist.support();
   return mapReduce1(plus,
                     function(s) {
-                      return Math.exp(erp.score([], s)) * f(s);
+                      return Math.exp(dist.score(s)) * f(s);
                     },
                     supp);
 };
 
-var entropy = function(erp) {
-  return erp.entropy();
+var entropy = function(dist) {
+  return dist.entropy();
 };
 
 // Data structures & higher-order functions
@@ -628,4 +670,36 @@ var ParticleFilter = function(wpplFn, particles) {
 
 var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
+};
+
+var Infer = function(options, wpplFn) {
+  if (!util.isObject(options)) {
+    util.fatal('Infer: expected first argument to be an options object.');
+  }
+  if (!_.isFunction(wpplFn)) {
+    util.fatal('Infer: expected second argument to be a function.');
+  }
+
+  // Map from camelCase options to PascalCase coroutine names. Also
+  // used to ensure the supplied method name is a valid inference
+  // routine.
+  var methodMap = {
+    SMC: SMC,
+    MCMC: MCMC,
+    PMCMC: PMCMC,
+    asyncPF: AsyncPF,
+    rejection: Rejection,
+    enumerate: Enumerate,
+    incrementalMH: IncrementalMH
+  };
+
+  var methodName = options.method;
+  if (methodName === undefined) {
+    util.fatal('Infer: the \'method\' option must be specified.');
+  }
+  if (!_.has(methodMap, methodName)) {
+    util.fatal('Infer: unknown method \'' + methodName + '\'.');
+  }
+  var method = methodMap[methodName];
+  return method(wpplFn, _.omit(options, 'method'));
 };

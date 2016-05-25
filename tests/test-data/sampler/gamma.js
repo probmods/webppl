@@ -1,8 +1,6 @@
-var erp = require('../../../src/erp.js');
-
-var util = require('../../../src/util.js');
-
-var statistics = require('../../../src/statistics.js');
+var dists = require('../../../src/dists');
+var util = require('../../../src/util');
+var statistics = require('../../../src/statistics');
 
 var ln = Math.log,
     pow = Math.pow,
@@ -12,12 +10,12 @@ var ln = Math.log,
 
 module.exports = {
   name: 'gamma',
-  sampler: erp.gammaERP.sample,
+  sampler: dists.gammaSample,
   inSupport: function(params, x) {
     return typeof x === 'number' && x > 0 && x < Infinity;
   },
   settings: [
-    // params are sampled to the ERP sampler
+    // params are passed to the sampler
     // n is the number of samples we'll take
     // reltol declares which stats we'll run for a single parameter value
     // and the acceptable relative tolerance for each

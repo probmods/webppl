@@ -3,14 +3,13 @@
 var _ = require('underscore');
 var util = require('../util');
 var ad = require('../ad');
-var erp = require('../erp');
+var dists = require('../dists');
 
-var Histogram = function() {
+var CountAggregator = function() {
   this.hist = {};
 };
 
-Histogram.prototype.add = function(value) {
-  var value = ad.valueRec(value);
+CountAggregator.prototype.add = function(value) {
   var k = util.serialize(value);
   if (this.hist[k] === undefined) {
     this.hist[k] = { count: 0, val: value };
@@ -27,8 +26,8 @@ function normalize(hist) {
   });
 }
 
-Histogram.prototype.toERP = function() {
-  return erp.makeMarginalERP(normalize(this.hist));
+CountAggregator.prototype.toDist = function() {
+  return new dists.Marginal({dist: normalize(this.hist)});
 };
 
-module.exports = Histogram;
+module.exports = CountAggregator;

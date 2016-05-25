@@ -2,11 +2,11 @@
 
 var _ = require('underscore');
 var util = require('../util');
-var erp = require('../erp');
+var dists = require('../dists');
 var Trace = require('../trace');
 
 var assert = require('assert');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -14,6 +14,7 @@ module.exports = function(env) {
   var kernels = require('./kernels')(env);
 
   function SMC(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'SMC');
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
@@ -24,8 +25,8 @@ module.exports = function(env) {
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
-    this.adRequired = this.rejuvKernel.adRequired;
     this.performRejuv = this.rejuvSteps > 0;
+    this.adRequired = this.performRejuv && this.rejuvKernel.adRequired;
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
@@ -52,19 +53,18 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, erp, params) {
-    var importanceERP = erp.importanceERP || erp;
-    var _params = ad.valueRec(params);
-    var _val = importanceERP.sample(_params);
-    var val = this.adRequired && importanceERP.isContinuous ? ad.lift(_val) : _val;
-    var importanceScore = importanceERP.score(_params, _val);
-    var choiceScore = erp.score(_params, _val);
+  SMC.prototype.sample = function(s, k, a, dist) {
+    var importanceDist = dist.importanceDist || dist;
+    var _val = importanceDist.sample();
+    var val = this.adRequired && importanceDist.isContinuous ? ad.lift(_val) : _val;
+    var importanceScore = importanceDist.score(_val);
+    var choiceScore = dist.score(_val);
     var particle = this.currentParticle();
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv) {
-      particle.trace.addChoice(erp, params, val, a, s, k);
+      particle.trace.addChoice(dist, val, a, s, k);
     }
-    particle.logWeight += choiceScore - importanceScore;
+    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
     return k(s, val);
   };
 
@@ -132,7 +132,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = erp.discreteSample(newWeights);
+      j = dists.discreteSample(newWeights);
       newParticles.push(particles[j].copy());
     }
 
@@ -257,7 +257,10 @@ module.exports = function(env) {
   SMC.prototype.finish = function(s, val) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
-    var hist = new Histogram();
+    var hist = new CountAggregator();
+    var addToHist = this.adRequired ?
+        function(value) { hist.add(ad.valueRec(value)); } :
+        hist.add.bind(hist);
     var logAvgW = _.first(this.completeParticles).logWeight;
 
     return util.cpsForEach(
@@ -268,15 +271,15 @@ module.exports = function(env) {
                 this.rejuvSteps,
                 kernels.sequence(
                     this.rejuvKernel,
-                    kernels.tap(function(trace) { hist.add(trace.value); })));
+                    kernels.tap(function(trace) { addToHist(trace.value); })));
             return chain(k, particle.trace);
           } else {
-            hist.add(particle.trace.value);
+            addToHist(particle.trace.value);
             return k();
           }
         }.bind(this),
         function() {
-          var dist = hist.toERP();
+          var dist = hist.toDist();
           dist.normalizationConstant = logAvgW;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
@@ -286,7 +289,7 @@ module.exports = function(env) {
 
   SMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  // Restrict rejuvenation to erps that come after proposal boundary.
+  // Restrict rejuvenation to choices that come after proposal boundary.
   function setProposalBoundary(s, k, a) {
     if (env.coroutine.currentParticle) {
       var particle = env.coroutine.currentParticle();

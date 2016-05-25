@@ -13,26 +13,27 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    func: 'Rejection',
+    method: 'rejection',
     settings: {
-      args: [3000],
+      args: { samples: 3000 },
       hist: { tol: 0.05 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 }
     },
     models: {
-      deterministic: { args: [10], hist: { tol: 0 } },
+      deterministic: { args: { samples: 10 }, hist: { tol: 0 } },
       flips: true,
       geometric: true,
       randomInteger: true,
-      gaussian: { args: [10000] },
-      uniform: { args: [10000] },
+      gaussian: { args: { samples: 10000 } },
+      uniform: { args: { samples: 10000 } },
       beta: true,
       exponential: true,
       binomial: true,
       multinomial: true,
       poisson: true,
       cauchy: true,
+      delta: { args: { samples: 10 }, hist: { exact: true } },
       mixed1: true,
       mixed2: true,
       mixed3: true,
@@ -43,8 +44,9 @@ var tests = [
   },
   {
     name: 'Enumerate',
+    method: 'enumerate',
     settings: {
-      args: [],
+      args: {},
       MAP: { check: true }
     },
     models: {
@@ -53,10 +55,10 @@ var tests = [
       incrementalBinomial: true,
       deterministic: { hist: { exact: true } },
       store: { hist: { exact: true } },
-      geometric: { args: [10] },
+      geometric: { args: { maxExecutions: 10 } },
+      delta: { args: { exact: true } },
       cache: true,
       withCaching: true,
-      optionalErpParams: true,
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
       nestedEnumDiscrete: true
@@ -64,23 +66,33 @@ var tests = [
   },
   {
     name: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
-      args: [5000],
+      args: { samples: 5000 },
       hist: { tol: 0.1 }
-      //MAP: { tol: 0.1, check: true }
+      //MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
-      deterministic: { hist: { tol: 0 }, args: [100] },
+      deterministic: { hist: { tol: 0 }, args: { samples: 100 } },
       cache: true,
-      store: { hist: { tol: 0 }, args: [100] },
+      store: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [100000] },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 100000 } },
+      gaussianDrift: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: { samples: 80000, burn: 20000 }
+      },
+      uniformDrift: {
+        mean: { tol: 0.4 },
+        std: { tol: 0.4 },
+        args: { samples: 200000 }
+      },
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
-      onlyMAP: { mean: { tol: 0.1 }, args: [150, { onlyMAP: true }] },
+      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -94,9 +106,9 @@ var tests = [
   },
   {
     name: 'IMHjustSample',
-    func: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
-      args: [100, { justSample: true }]
+      args: { samples: 100, justSample: true }
     },
     models: {
       deterministic: { hist: { tol: 0 } }
@@ -105,53 +117,53 @@ var tests = [
   {
     name: 'PMCMC',
     settings: {
-      args: [1000, 5],
+      args: { particles: 1000, sweeps: 5 },
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
       cache: true,
-      deterministic: { hist: { tol: 0 }, args: [30, 30] },
-      store: { hist: { tol: 0 }, args: [30, 30] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [1000, 100] },
-      withCaching: true,
-      optionalErpParams: true
+      deterministic: { hist: { tol: 0 }, args: { particles: 30, sweeps: 30 } },
+      store: { hist: { tol: 0 }, args: { particles: 30, sweeps: 30 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, sweeps: 100 } },
+      withCaching: true
     }
   },
   {
     name: 'AsyncPF',
+    method: 'asyncPF',
     settings: {
-      args: [1000, 1000],
+      args: { particles: 1000, bufferSize: 1000 },
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true }
+      MAP: { tol: 0.15, check: true }
     },
     models: {
       simple: true,
-      store: { hist: { tol: 0 }, args: [100, 100] },
-      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: [10000, 1000] },
+      store: { hist: { tol: 0 }, args: { particles: 100, bufferSize: 100 } },
+      gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000, bufferSize: 1000 } },
       withCaching: true
     }
   },
   {
     name: 'Rejection',
+    method: 'rejection',
     settings: {
-      args: [1000],
+      args: { samples: 1000 },
       hist: { tol: 0.1 }
     },
     models: {
       simple: true,
       cache: true,
       deterministic: { hist: { tol: 0 } },
-      upweight: { args: [1000, 10] },
-      incrementalBinomial: { args: [1000, -2] },
+      upweight: { args: { samples: 1000, maxScore: 10 } },
+      incrementalBinomial: { args: { samples: 1000, maxScore: -2 } },
       store: { hist: { tol: 0 } },
       geometric: true,
       varFactors1: true,
       varFactors2: true,
       withCaching: true,
-      optionalErpParams: true,
       nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -166,28 +178,27 @@ var tests = [
   },
   {
     name: 'IncrementalRejection',
-    func: 'Rejection',
+    method: 'rejection',
     settings: {
-      args: [1000, 0, true],
+      args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
     },
     models: {
       simple: true,
       cache: true,
-      incrementalBinomial: { args: [1000, -2, true] },
+      incrementalBinomial: { args: { samples: 1000, maxScore: -2, incremental: true } },
       store: { hist: { tol: 0 } },
       geometric: true,
-      varFactors2: true,
-      optionalErpParams: true
+      varFactors2: true
     }
   },
   {
     name: 'ParticleFilter',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000 }
     },
     models: {
@@ -204,7 +215,6 @@ var tests = [
       importance2: { args: { particles: 3000 } },
       importance3: true,
       withCaching: true,
-      optionalErpParams: true,
       nestedEnum1: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum2: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum3: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -218,11 +228,11 @@ var tests = [
   },
   {
     name: 'ParticleFilterRejuvMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000, rejuvSteps: 10 }
     },
     models: {
@@ -233,27 +243,27 @@ var tests = [
       store2: { hist: { tol: 0 }, args: { particles: 30, rejuvSteps: 30 } },
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
-      drift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
+      gaussianDrift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
+      uniformDrift: { mean: { tol: 0.4 }, std: { tol: 0.4 }, args: { particles: 1000, rejuvSteps: 15 } },
       varFactors1: true,
       varFactors2: true,
       importance: true,
       importance2: { args: { particles: 3000, rejuvSteps: 10 } },
       importance3: true,
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
     }
   },
   {
     name: 'ParticleFilterRejuvHMC',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 },
       logZ: { check: true, tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1000, rejuvSteps: 10, rejuvKernel: 'HMC' }
     },
     models: {
@@ -261,9 +271,13 @@ var tests = [
       deterministic: { hist: { tol: 0 } },
       store: { hist: { tol: 0 } },
       store2: { hist: { tol: 0 } },
-      drift: {
+      gaussianDrift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 }
+      },
+      uniformDrift: {
+        mean: { tol: 0.4 },
+        std: { tol: 0.4 }
       },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       gaussianMean: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
@@ -272,10 +286,10 @@ var tests = [
   },
   {
     name: 'ParticleFilterAsMH',
-    func: 'SMC',
+    method: 'SMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { particles: 1, rejuvSteps: 10000, rejuvKernel: { MH: { permissive: true } } }
     },
     models: {
@@ -297,16 +311,15 @@ var tests = [
       importance: true,
       importance2: true,
       importance3: true,
-      optionalErpParams: true,
       variableSupport: true
     }
   },
   {
     name: 'MH',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
-      MAP: { tol: 0.1, check: true },
+      MAP: { tol: 0.15, check: true },
       args: { samples: 5000 }
     },
     models: {
@@ -317,13 +330,17 @@ var tests = [
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { samples: 80000, burn: 20000 } },
-      drift: {
+      gaussianDrift: {
         mean: { tol: 0.3 },
         std: { tol: 0.3 },
         args: { samples: 80000, burn: 20000 }
       },
+      uniformDrift: {
+        mean: { tol: 0.4 },
+        std: { tol: 0.4 },
+        args: { samples: 200000, burn: 1 }
+      },
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
@@ -340,23 +357,22 @@ var tests = [
   },
   {
     name: 'HMC',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.2 },
       std: { tol: 0.2 },
-      MAP: { tol: 0.1, check: true },
-      args: { samples: 1000, kernel: 'HMC' }
+      MAP: { tol: 0.15, check: true },
+      args: { samples: 5000, kernel: 'HMC' }
     },
     models: {
-      deterministic: { hist: { tol: 0 } },
+      deterministic: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
       simple: true,
       cache: true,
-      store: { hist: { tol: 0 } },
-      store2: { hist: { tol: 0 } },
-      geometric: { samples: 5000, kernel: 'HMC' },
+      store: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
+      store2: { hist: { tol: 0 }, args: { samples: 100, kernel: 'HMC' } },
+      geometric: true,
       withCaching: true,
-      optionalErpParams: true,
       variableSupport: true,
       query: true,
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
@@ -436,7 +452,7 @@ var tests = [
       constrainedSum: {
         hist: { tol: 0.1 },
         args: {
-          samples: 500,
+          samples: 700,
           burn: 50,
           kernel: { HMC: { steps: 50, stepSize: 0.004 } }
         }
@@ -456,12 +472,20 @@ var tests = [
           kernel: { HMC: { steps: 20, stepSize: 0.2 } }
         }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: {
+        mean: { tol: 0.075 },
+        std: { tol: 0.075 },
+        args: {
+          samples: 1500,
+          burn: 1500,
+          kernel: { HMC: { steps: 50, stepSize: 0.01 }}
+        }
+      }
     }
   },
   {
     name: 'HMConly',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       hist: { tol: 0.1 },
       mean: { tol: 0.3 },
@@ -475,7 +499,7 @@ var tests = [
   },
   {
     name: 'MHjustSample',
-    func: 'MCMC',
+    method: 'MCMC',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -486,15 +510,14 @@ var tests = [
 ];
 
 var wpplRunInference = function(modelName, testDef) {
-  var inferenceFunc = testDef.func || testDef.name;
   var inferenceArgs = getInferenceArgs(testDef, modelName);
   var progText = [
     helpers.loadModel(testDataDir, modelName),
-    inferenceFunc, '(', ['model'].concat(inferenceArgs).join(', '), ');'
+    'Infer(', inferenceArgs, ', model);'
   ].join('');
   try {
     var retVal;
-    webppl.run(progText, function(store, erp) { retVal = { store: store, erp: erp }; });
+    webppl.run(progText, function(store, dist) { retVal = { store: store, dist: dist }; });
     return retVal;
   } catch (e) {
     console.log('Exception: ' + e);
@@ -523,33 +546,33 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return _.isArray(args) ? args.map(util.serialize) : util.serialize(args);
+  return util.serialize(_.extendOwn({}, args, {method: testDef.method || testDef.name}));
 };
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.erp.hist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.erp.hist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.erp.hist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.dist.params.dist), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {
-      helpers.testWithinTolerance(test, result.erp.normalizationConstant, expected, args.tol, 'logZ');
+      helpers.testWithinTolerance(test, result.dist.normalizationConstant, expected, args.tol, 'logZ');
     }
   },
   MAP: function(test, result, expected, args) {
     if (args.check) {
-      var map = result.erp.MAP();
+      var map = result.dist.MAP();
       helpers.testEqual(test, map.val, expected.val, 'MAP value');
-      helpers.testWithinTolerance(test, map.prob, expected.prob, args.tol, 'MAP probabilty');
+      helpers.testWithinTolerance(test, map.score, expected.score, args.tol, 'MAP score');
     }
   },
   store: function(test, result, expected, args) {

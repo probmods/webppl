@@ -2,7 +2,7 @@
 
 var _ = require('underscore');
 var assert = require('assert');
-var isErp = require('./erp').isErp;
+var isDist = require('./dists').isDist;
 var ad = require('./ad');
 
 var Trace = function(wpplFn, s, k, a) {
@@ -50,12 +50,11 @@ Trace.prototype.continue = function() {
   }
 };
 
-Trace.prototype.addChoice = function(erp, params, val, address, store, continuation) {
+Trace.prototype.addChoice = function(dist, val, address, store, continuation) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
-  // assert(isErp(erp));
-  // assert(_.isUndefined(params) || _.isArray(params));
+  // assert(isDist(dist));
   // assert(_.isString(address));
   // assert(_.isObject(store));
   // assert(_.isFunction(continuation));
@@ -63,8 +62,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   var choice = {
     k: continuation,
     address: address,
-    erp: erp,
-    params: params,
+    dist: dist,
     // Record the score without adding the choiceScore. This is the score we'll
     // need if we regen from this choice.
     score: this.score,
@@ -76,7 +74,7 @@ Trace.prototype.addChoice = function(erp, params, val, address, store, continuat
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score = ad.scalar.add(this.score, erp.score(params, val));
+  this.score = ad.scalar.add(this.score, dist.score(val));
   // this.checkConsistency();
 };
 

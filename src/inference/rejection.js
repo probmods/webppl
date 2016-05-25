@@ -9,27 +9,32 @@
 'use strict';
 
 var _ = require('underscore');
-var erp = require('../erp');
 var assert = require('assert');
 var util = require('../util');
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
-  function Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental) {
+  function Rejection(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'Rejection');
+    options = util.mergeDefaults(options, {
+      samples: 1,
+      maxScore: 0,
+      incremental: false
+    });
+    this.numSamples = options.samples;
+    this.maxScore = options.maxScore;
+    this.incremental = options.incremental;
     this.s = s;
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxScore = (maxScore === undefined) ? 0 : maxScore;
-    this.incremental = incremental;
-    this.hist = new Histogram();
-    this.numSamples = (numSamples === undefined) ? 1 : numSamples;
+    this.hist = new CountAggregator();
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    if (!_.isNumber(numSamples) || numSamples <= 0) {
-      throw 'numSamples should be a positive integer.';
+    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
+      throw 'samples should be a positive integer.';
     }
 
     if (this.incremental) {
@@ -43,8 +48,8 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
-  Rejection.prototype.sample = function(s, k, a, erp, params) {
-    return k(s, erp.sample(params));
+  Rejection.prototype.sample = function(s, k, a, dist) {
+    return k(s, dist.sample());
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {
@@ -75,7 +80,7 @@ module.exports = function(env) {
 
     if (this.numSamples === 0) {
       env.coroutine = this.oldCoroutine;
-      return this.k(this.s, this.hist.toERP());
+      return this.k(this.s, this.hist.toDist());
     } else {
       return this.run();
     }
@@ -83,8 +88,8 @@ module.exports = function(env) {
 
   Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function rej(s, k, a, wpplFn, numSamples, maxScore, incremental) {
-    return new Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental).run();
+  function rej(s, k, a, wpplFn, options) {
+    return new Rejection(s, k, a, wpplFn, options).run();
   }
 
   return {

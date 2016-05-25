@@ -1,0 +1,1 @@
+expectation(Categorical({ps: [.3, .5, .2], vs: [0, 1, 2]}), idF);

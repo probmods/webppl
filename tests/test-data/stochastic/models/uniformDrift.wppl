@@ -1,0 +1,6 @@
+var model = function() {
+  var x = sample(UniformDrift({a: -3, b: 6, r: 0.2}));
+  condition(x >= 0);
+
+  return x;
+};

@@ -7,13 +7,13 @@
 var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
-var erp = require('../erp');
+var dists = require('../dists');
 var Trace = require('../trace');
 var ad = require('../ad');
 
 module.exports = function(env) {
 
-  var mvErpNames = ['multivariateGaussian', 'dirichlet', 'dirichletDrift'];
+  var mvDistNames = ['MultivariateGaussian', 'Dirichlet', 'DirichletDrift'];
 
   function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
@@ -35,20 +35,20 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  HMCKernel.prototype.sample = function(s, k, a, erp, params) {
+  HMCKernel.prototype.sample = function(s, k, a, dist) {
     var prevChoice = this.prevTrace.findChoice(a);
     if (!prevChoice) {
       throw 'HMC does not support structural continuous variables.';
     }
 
     var val;
-    if (erp.isContinuous) {
+    if (dist.isContinuous) {
       var prevVal = ad.value(prevChoice.val);
       var _val = prevVal + this.stepSize * this.momentum[a];
 
       // Handle constraints.
-      if (erp.support) {
-        var support = erp.support(params);
+      if (dist.support) {
+        var support = dist.support();
         var lower = support.lower;
         var upper = support.upper;
 
@@ -65,13 +65,13 @@ module.exports = function(env) {
       }
       val = ad.lift(_val);
     } else {
-      if (_.contains(mvErpNames, erp.name)) {
+      if (_.contains(mvDistNames, dist.meta.name)) {
         throw 'Multivariate distributions are not yet supported by HMC.';
       }
       val = prevChoice.val;
     }
 
-    this.trace.addChoice(erp, params, val, a, s, k);
+    this.trace.addChoice(dist, val, a, s, k);
     return k(s, val);
   };
 
@@ -131,8 +131,8 @@ module.exports = function(env) {
   function sampleMomentum(trace) {
     var momentum = {};
     _.each(trace.choices, function(choice) {
-      if (choice.erp.isContinuous) {
-        momentum[choice.address] = erp.gaussianERP.sample([0, 1]);
+      if (choice.dist.isContinuous) {
+        momentum[choice.address] = dists.gaussianSample(0, 1);
       }
     });
     return momentum;
@@ -182,7 +182,7 @@ module.exports = function(env) {
 
       var stepSize = this.stepSize * scaleFactor;
       _.each(trace.choices, function(choice) {
-        if (choice.erp.isContinuous) {
+        if (choice.dist.isContinuous) {
           this.momentum[choice.address] += stepSize * ad.derivative(choice.val);
         }
       }, this);

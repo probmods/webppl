@@ -10,24 +10,29 @@
 var _ = require('underscore');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
-var Distribution = require('../aggregation/distribution');
+var ScoreAggregator = require('../aggregation/ScoreAggregator');
 
 module.exports = function(env) {
 
-  function Enumerate(store, k, a, wpplFn, maxExecutions, Q) {
+  function Enumerate(store, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'Enumerate');
+    options = util.mergeDefaults(options, {
+      maxExecutions: Infinity
+    });
+    this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
-    this.marginal = new Distribution(); // We will accumulate the marginal distribution here
+    this.marginal = new ScoreAggregator(); // We will accumulate the marginal distribution here
     this.numCompletedExecutions = 0;
     this.store = store; // will be reinstated at the end
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxExecutions = maxExecutions || Infinity;
 
     // Queue of states that we have yet to explore.  This queue is a
     // bunch of computation states. Each state is a continuation, a
     // value to apply it to, and a score.
-    this.queue = Q;
+    var strategy = strategies[options.strategy] || defaultStrategy(options.maxExecutions);
+    this.queue = strategy.makeQ();
 
     // Move old coroutine out of the way
     // and install this as the current handler
@@ -58,31 +63,31 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(erp, params) {
-    // Find support of this erp:
-    if (erp.isContinuous || !erp.support) {
-      console.error(erp, params);
-      throw 'Enumerate can only be used with ERPs that have finite support.';
+  var getSupport = function(dist) {
+    // Find support of this distribution:
+    if (dist.isContinuous || !dist.support) {
+      console.error(dist);
+      throw 'Enumerate can only be used with distributions that have finite support.';
     }
-    var supp = erp.support(params);
+    var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
-      console.error(erp, params);
-      throw 'Enumerate encountered ERP with empty support!';
+      console.error(dist);
+      throw 'Enumerate encountered a distribution with empty support!';
     }
 
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, k, a, erp, params) {
-    var support = getSupport(erp, params);
+  Enumerate.prototype.sample = function(store, k, a, dist) {
+    var support = getSupport(dist);
 
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
-          k, value, this.score + erp.score(params, value), store);
+          k, value, this.score + dist.score(value), store);
     }, this);
 
     // Call the next state on the queue
@@ -98,8 +103,8 @@ module.exports = function(env) {
     return k(s);
   };
 
-  Enumerate.prototype.sampleWithFactor = function(store, k, a, erp, params, scoreFn) {
-    var support = getSupport(erp, params);
+  Enumerate.prototype.sampleWithFactor = function(store, k, a, dist, scoreFn) {
+    var support = getSupport(dist);
 
     // Allows extra factors to be taken into account in making
     // exploration decisions:
@@ -107,7 +112,7 @@ module.exports = function(env) {
     return util.cpsForEach(
         function(value, i, support, nextK) {
           return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + erp.score(params, value) + extraScore;
+            var score = env.coroutine.score + dist.score(value) + extraScore;
             env.coroutine.enqueueContinuation(k, value, score, store);
             return nextK();
           }, a, value);
@@ -136,50 +141,52 @@ module.exports = function(env) {
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;
       // Return from enumeration by calling original continuation with original store:
-      return this.k(this.store, this.marginal.toERP());
+      return this.k(this.store, this.marginal.toDist());
     }
   };
 
   Enumerate.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  //helper wraps with 'new' to make a new copy of Enumerate and set 'this' correctly..
-  function enuPriority(s, k, a, wpplFn, maxExecutions) {
-    var q = new PriorityQueue(function(a, b) {
-      return a.score - b.score;
-    });
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
-  }
+  var strategies = {
+    'likelyFirst': {
+      makeQ: function() {
+        return new PriorityQueue(function(a, b) {
+          return a.score - b.score;
+        });
+      }
+    },
+    'depthFirst': {
+      makeQ: function() {
+        var q = [];
+        q.size = function() {
+          return q.length;
+        };
+        q.enq = q.push;
+        q.deq = q.pop;
+        return q;
+      }
+    },
+    'breadthFirst': {
+      makeQ: function() {
+        var q = [];
+        q.size = function() {
+          return q.length;
+        };
+        q.enq = q.push;
+        q.deq = q.shift;
+        return q;
+      }
+    }
+  };
 
-  function enuFilo(s, k, a, wpplFn, maxExecutions) {
-    var q = [];
-    q.size = function() {
-      return q.length;
-    };
-    q.enq = q.push;
-    q.deq = q.pop;
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
-  }
-
-  function enuFifo(s, k, a, wpplFn, maxExecutions) {
-    var q = [];
-    q.size = function() {
-      return q.length;
-    };
-    q.enq = q.push;
-    q.deq = q.shift;
-    return new Enumerate(s, k, a, wpplFn, maxExecutions, q).run();
-  }
-
-  function enuDefault(s, k, a, wpplFn, maxExecutions) {
-    var enu = _.isFinite(maxExecutions) ? enuPriority : enuFilo;
-    return enu(s, k, a, wpplFn, maxExecutions);
+  function defaultStrategy(maxExecutions) {
+    return strategies[_.isFinite(maxExecutions) ? 'likelyFirst' : 'depthFirst'];
   }
 
   return {
-    Enumerate: enuDefault,
-    EnumerateBreadthFirst: enuFifo,
-    EnumerateDepthFirst: enuFilo,
-    EnumerateLikelyFirst: enuPriority
+    Enumerate: function(s, k, a, wpplFn, options) {
+      return new Enumerate(s, k, a, wpplFn, options).run();
+    }
   };
 
 };

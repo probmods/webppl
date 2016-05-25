@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var fs = require('fs');
 var webppl = require('../src/main');
-var erp = require('../src/erp');
+var dists = require('../src/dists');
 
 var examplesDir = './examples/';
 
@@ -21,8 +21,7 @@ var examples = [
   'pcfgIncremental',
   'scalarImplicature',
   'semanticParsing',
-  'pragmaticsWithSemanticParsing',
-  'multiplex'
+  'pragmaticsWithSemanticParsing'
 ];
 
 var loadExample = function(example) {
@@ -35,7 +34,7 @@ var generateTestCases = function() {
     exports[example] = function(test) {
       test.doesNotThrow(function() {
         webppl.run(loadExample(example), function(s, val) {
-          test.ok(erp.isErp(val));
+          test.ok(dists.isDist(val));
         });
       });
       test.done();

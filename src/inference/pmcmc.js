@@ -4,9 +4,9 @@
 'use strict';
 
 var _ = require('underscore');
-var erp = require('../erp');
+var dists = require('../dists');
 var util = require('../util')
-var Histogram = require('../aggregation/histogram');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -14,8 +14,9 @@ module.exports = function(env) {
     return xs[xs.length - 1];
   }
 
-  function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps) {
 
+  function PMCMC(s, cc, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'PMCMC');
     // Move old coroutine out of the way and install this as the
     // current handler.
     this.oldCoroutine = env.coroutine;
@@ -29,13 +30,13 @@ module.exports = function(env) {
     // Setup inference variables
     this.particleIndex = 0;  // marks the active particle
     this.retainedParticle = undefined;
-    this.numSweeps = numSweeps;
+    this.numSweeps = options.sweeps;
     this.sweep = 0;
     this.wpplFn = wpplFn;
     this.address = a;
-    this.numParticles = numParticles;
+    this.numParticles = options.particles;
     this.resetParticles();
-    this.hist = new Histogram();
+    this.hist = new CountAggregator();
   }
 
   PMCMC.prototype.run = function() {
@@ -81,8 +82,8 @@ module.exports = function(env) {
     return ((this.particleIndex + 1) === this.particles.length);
   };
 
-  PMCMC.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+  PMCMC.prototype.sample = function(s, cc, a, dist) {
+    return cc(s, dist.sample());
   };
 
   PMCMC.prototype.particleAtStep = function(particle, step) {
@@ -120,7 +121,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = erp.discreteSample(weights);
+      j = dists.discreteSample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 
@@ -189,7 +190,7 @@ module.exports = function(env) {
         env.coroutine = this.oldCoroutine;
 
         // Return from particle filter by calling original continuation:
-        return this.k(this.oldStore, this.hist.toERP());
+        return this.k(this.oldStore, this.hist.toDist());
 
       }
     }
@@ -197,8 +198,8 @@ module.exports = function(env) {
 
   PMCMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
-    return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();
+  function pmc(s, cc, a, wpplFn, options) {
+    return new PMCMC(s, cc, a, wpplFn, options).run();
   }
 
   return {

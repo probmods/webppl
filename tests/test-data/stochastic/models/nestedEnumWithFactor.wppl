@@ -1,10 +1,10 @@
 var model = function() {
   var x = uniform(0, 1);
-  var marginal = Enumerate(function() {
+  var marginal = Infer({method: 'enumerate'}, function() {
     var z = flip(x);
     factor(!z ? 0 : -2);
     return z;
   });
-  factor(marginal.score([], true));
+  factor(marginal.score(true));
   return x;
 };

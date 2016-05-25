@@ -1,5 +1,5 @@
 var makeCoin = function(p) {
-  return Enumerate(function() {return flip(p);});
+  return Infer({method: 'enumerate'}, function() {return flip(p);});
 };
 
 var FairCoin = makeCoin(.5);

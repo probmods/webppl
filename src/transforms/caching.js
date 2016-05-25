@@ -27,21 +27,22 @@ var cacheExempt = [
   'sampleWithFactor'
 ];
 var cacheExemptTable = {};
-_.each(cacheExempt, function(erpname) {
-  cacheExemptTable[erpname] = true;
+_.each(cacheExempt, function(funcName) {
+  cacheExemptTable[funcName] = true;
 });
 cacheExempt = cacheExemptTable;
 
 function shouldCache(callee) {
-  // Don't cache 'primitive' functions. It actually could be benficial to cache
+  // Don't cache 'primitive' functions. It actually could be beneficial to cache
   //    these in some cases, but correctly binding 'this' will require some
   //    systemic changes that I don't want to deal with right now.
   if (isPrimitive(callee))
     return false;
-  // Don't cache ERPs or other coroutine functions that deal with ERPs.
+  // Don't cache sampling helpers or other coroutine functions that
+  // deal with distributions.
   // Why do this? If the cache adaptation decides to remove one of these functions,
-  //    then that function will have the same address as the ERP it's dealing with,
-  //    so the adapter will also try to remove the ERP.
+  //    then that function will have the same address as the distribution it's dealing with,
+  //    so the adapter will also try to remove the distribution.
   // Basically, a core assumption of IncrementalMH is that all cache nodes have unique
   //    addresses.
   if (callee.type === Syntax.Identifier && cacheExempt[callee.name])
@@ -67,11 +68,23 @@ function cachingMain(node) {
   return estraverse.replace(node, { leave: exit });
 }
 
+
+function isImhIdentifier(node) {
+  return node.type === 'Identifier' && node.name === 'IncrementalMH';
+}
+
+function isImhInferMethodOption(node) {
+  return node.type === 'Property' &&
+      ((node.key.type === 'Identifier' && node.key.name === 'method') ||
+      (node.key.type === 'Literal' && node.key.value === 'method')) &&
+      (node.value.type === 'Literal' && node.value.value === 'incrementalMH');
+}
+
 function transformRequired(programAST) {
   var flag = false;
   estraverse.traverse(programAST, {
     enter: function(node) {
-      if (node.type === 'Identifier' && node.name === 'IncrementalMH') {
+      if (isImhIdentifier(node) || isImhInferMethodOption(node)) {
         flag = true;
         this.break();
       }
