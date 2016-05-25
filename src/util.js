@@ -247,6 +247,11 @@ function jsnew(ctor, arg) {
   return new ctor(arg);
 }
 
+// Unlike _.isObject this returns false for arrays and functions.
+function isObject(x) {
+  return x !== undefined && Object.getPrototypeOf(x) === Object.prototype;
+}
+
 module.exports = {
   trampolineRunners: trampolineRunners,
   random: random,
@@ -276,5 +281,6 @@ module.exports = {
   pipeline: pipeline,
   warn: warn,
   fatal: fatal,
-  jsnew: jsnew
+  jsnew: jsnew,
+  isObject: isObject
 };
