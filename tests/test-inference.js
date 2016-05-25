@@ -472,7 +472,15 @@ var tests = [
           kernel: { HMC: { steps: 20, stepSize: 0.2 } }
         }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: {
+        mean: { tol: 0.075 },
+        std: { tol: 0.075 },
+        args: {
+          samples: 1500,
+          burn: 1500,
+          kernel: { HMC: { steps: 50, stepSize: 0.01 }}
+        }
+      }
     }
   },
   {
