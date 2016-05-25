@@ -66,7 +66,15 @@ function showFriendlyError(error) {
 
   if (error.stack) {
     console.log('Stack trace:');
-    console.log(error.stack.slice(error.stack.indexOf('\n') + 1));
+    // Here we show only the call sites on the stack and not the error
+    // message. Note that excluding only the first line of
+    // `error.stack` isn't sufficient as the message can span multiple
+    // lines.
+    error.stack.split('\n').forEach(function(line) {
+      if (line.startsWith('    at ')) {
+        console.log(line);
+      }
+    });
   }
 }
 
