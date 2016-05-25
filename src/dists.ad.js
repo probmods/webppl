@@ -623,9 +623,31 @@ var Binomial = makeDistributionType({
       return -Infinity;
     }
 
-    // exact formula
-    // OPTIMIZE: can save some work in the lnfactExacts
-    return (lnfactExact(n) - lnfactExact(n - val) - lnfactExact(val) +
+    // exact formula is log{ binomial(n,x) * p^x * (1-p)^(n-x) }
+    // = log(binomial(n,x)) + x*log(p) + (n-x)*log(1-p)
+    // where binomial(n,x) is the binomial function
+
+    // optimized computation of log(binomial(n,x))
+    // binomial(n,x) is n! / (x! * (n-x)!)
+    // compute the log of this:
+    var logNumPermutations = 0;
+    // let o be the larger of x and n-x
+    // and m be the smaller
+    var m, o;
+    if (val < n - val) {
+      m = val;
+      o = n - val
+    } else {
+      m = n - val;
+      o = val;
+    }
+
+    for (var i = o + 1; i <= n; i++) {
+      logNumPermutations += Math.log(i);
+    }
+    logNumPermutations -= lnfactExact(m);
+
+    return (logNumPermutations +
             // avoid returning 0 * -Infinity, which is NaN
             (val == 0 ? 0 : val * Math.log(p)) +
             (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
