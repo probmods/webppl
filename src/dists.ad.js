@@ -619,6 +619,10 @@ var Binomial = makeDistributionType({
     var p = this.params.p;
     var n = this.params.n;
 
+    if (!_.contains(this.support, val)) {
+      return -Infinity;
+    }
+
     // exact formula
     // OPTIMIZE: can save some work in the lnfactExacts
     return (lnfactExact(n) - lnfactExact(n - val) - lnfactExact(val) +
