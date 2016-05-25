@@ -625,7 +625,7 @@ var Binomial = makeDistributionType({
             (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
   },
   support: function() {
-    return _.range(this.params.n).concat(this.params.n);
+    return _.range(0, this.params.n + 1);
   }
 });
 
