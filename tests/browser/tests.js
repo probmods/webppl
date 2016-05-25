@@ -2,7 +2,7 @@
 
 QUnit.test('run', function(test) {
   var done = test.async();
-  webppl.run('Enumerate(flip)', function(s, dist) {
+  webppl.run('Infer({method: "enumerate"}, flip)', function(s, dist) {
     test.ok(_.isEqual([false, true], dist.support().sort()));
     done();
   });
@@ -11,7 +11,7 @@ QUnit.test('run', function(test) {
 QUnit.test('run twice', function(test) {
   var done = test.async(2);
   _.times(2, function() {
-    webppl.run('Enumerate(flip)', function(s, dist) {
+    webppl.run('Infer({method: "enumerate"}, flip)', function(s, dist) {
       test.ok(_.isEqual([false, true], dist.support().sort()));
       done();
     });

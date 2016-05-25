@@ -1,5 +1,5 @@
 var e = cache(function(x) {
-  return Enumerate(function() {
+  return Infer({method: 'enumerate'}, function() {
     var a = flip(0.5) & flip(0.5);
     factor(a ? 2 : Math.log(0.3));
     return a & x;

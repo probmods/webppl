@@ -1,13 +1,13 @@
 var model = function() {
   var x = uniform(0, 1);
 
-  var firstMarginal = Enumerate(function() {
+  var firstMarginal = Infer({method: 'enumerate'}, function() {
     var y = flip(x);
     factor(!y ? 0 : -3);
     return y;
   });
 
-  var secondMarginal = Enumerate(function() {
+  var secondMarginal = Infer({method: 'enumerate'}, function() {
     var z = sample(firstMarginal);
     factor(z ? 1 : -1);
     return z;
