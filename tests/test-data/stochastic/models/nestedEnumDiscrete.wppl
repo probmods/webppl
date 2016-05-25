@@ -1,4 +1,4 @@
-var marginal = Enumerate(function() {
+var marginal = Infer({method: 'enumerate'}, function() {
   var x = flip();
   var y = flip();
   factor((x | y) ? 0 : -Infinity);
