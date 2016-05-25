@@ -620,7 +620,8 @@ var Binomial = makeDistributionType({
     var n = this.params.n;
 
     // exact formula
-    return (lnfact(n) - lnfact(n - val) - lnfact(val) +
+    // OPTIMIZE: can save some work in the lnfactExacts
+    return (lnfactExact(n) - lnfactExact(n - val) - lnfactExact(val) +
             // avoid returning 0 * -Infinity, which is NaN
             (val == 0 ? 0 : val * Math.log(p)) +
             (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
@@ -736,7 +737,18 @@ function lnfact(x) {
   return sum;
 }
 
-
+function lnfactExact(x) {
+  'use ad';
+  if (x < 1) {
+    x = 1;
+  }
+  var t = 0;
+  while (x > 1) {
+    t += Math.log(x);
+    x -= 1;
+  }
+  return t;
+}
 
 var Poisson = makeDistributionType({
   name: 'Poisson',
