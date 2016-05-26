@@ -164,15 +164,13 @@ function histStd(hist) {
 }
 
 function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var allOk = (expectedHist !== undefined);
-  _.each(
-      expectedHist,
-      function(expectedValue, key) {
-        var value = actualHist[key] || 0;
-        var testPassed = Math.abs(value - expectedValue) <= tolerance;
-        allOk = allOk && testPassed;
-      });
-  return allOk;
+  if (expectedHist === undefined) {
+    return false;
+  }
+  return _.all(expectedHist, function(expectedValue, key) {
+    var value = actualHist[key] || 0;
+    return Math.abs(value - expectedValue) <= tolerance;
+  });
 }
 
 function mergeDefaults(options, defaults) {
