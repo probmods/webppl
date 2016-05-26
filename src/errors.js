@@ -109,7 +109,7 @@ function getErrorPosition(error) {
   firstStackFrame.columnNumber--;
   firstStackFrame.sourceMapped = false;
 
-  if (error.sourceMaps === undefined) {
+  if (error.sourceMaps === undefined || firstStackFrame.native) {
     return firstStackFrame;
   }
 
