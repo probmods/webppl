@@ -163,8 +163,16 @@ function histStd(hist) {
   }));
 }
 
-function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  if (expectedHist === undefined) {
+function sameKeys(obj1, obj2) {
+  return _.size(obj1) === _.size(obj2) &&
+      _.all(_.keys(obj1), function(key) { return _.has(obj2, key); });
+}
+
+function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSupport) {
+  if (expectedHist === undefined || actualHist === undefined) {
+    return false;
+  }
+  if (exactSupport && !sameKeys(actualHist, expectedHist)) {
     return false;
   }
   return _.all(expectedHist, function(expectedValue, key) {
