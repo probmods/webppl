@@ -54,12 +54,17 @@ Distribution.prototype = {
     if (_.has(this, 'params')) {
       return [this.meta.name, '(', inspect(this.params), ')'].join('');
     } else {
-      // This isn't an instance of a distribution type, so reinspect
-      // while ignoring this custom inspection method.
+      // This isn't an instance of a distribution type.
+      // e.g. Uniform.prototype.inspect()
+      // Reinspect while ignoring this custom inspection method.
       var opts = options ? _.clone(options) : {};
       opts.customInspect = false;
       return inspect(this, opts);
     }
+  },
+
+  toString: function() {
+    return this.inspect();
   },
 
   isContinuous: false,
@@ -181,7 +186,7 @@ function makeDistributionType(options) {
   dist.prototype.constructor = dist;
 
   // Note that meta-data is not inherited from the parent.
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -849,6 +854,8 @@ function binomialG(x) {
   return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
 }
 
+// see lemma 6.1 from Ahrens & Dieter's
+// Computer Methods for Sampling from Gamma, Beta, Poisson and Binomial Distributions
 function binomialSample(p, n) {
   var k = 0;
   var N = 10;
@@ -889,32 +896,9 @@ var Binomial = makeDistributionType({
     'use ad';
     var p = this.params.p;
     var n = this.params.n;
-    if (n > 20 && n * p > 5 && n * (1 - p) > 5) {
-      // large n, reasonable p approximation
-      var s = val;
-      var inv2 = 1 / 2;
-      var inv3 = 1 / 3;
-      var inv6 = 1 / 6;
-      if (s >= n) {
-        return -Infinity;
-      }
-      var q = 1 - p;
-      var S = s + inv2;
-      var T = n - s - inv2;
-      var d1 = s + inv6 - (n + inv3) * p;
-      var d2 = q / (s + inv2) - p / (T + inv2) + (q - inv2) / (n + 1);
-      d2 = d1 + 0.02 * d2;
-      var num = 1 + q * binomialG(S / (n * p)) + p * binomialG(T / (n * q));
-      var den = (n + inv6) * p * q;
-      var z = num / den;
-      var invsd = Math.sqrt(z);
-      z = d2 * invsd;
-      return gaussianScore(0, 1, z) + Math.log(invsd);
-    } else {
-      // exact formula
-      return (lnfact(n) - lnfact(n - val) - lnfact(val) +
-          val * Math.log(p) + (n - val) * Math.log(1 - p));
-    }
+    // exact formula
+    return (lnfact(n) - lnfact(n - val) - lnfact(val) +
+            val * Math.log(p) + (n - val) * Math.log(1 - p));
   },
   support: function() {
     return _.range(this.params.n).concat(this.params.n);
@@ -1150,6 +1134,7 @@ function discreteSample(theta) {
 
 var Marginal = makeDistributionType({
   name: 'Marginal',
+  internal: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
@@ -1218,6 +1203,29 @@ var Categorical = makeDistributionType({
   },
   support: function() {
     return this.params.vs;
+  }
+});
+
+var Delta = makeDistributionType({
+  name: 'Delta',
+  desc: 'Discrete distribution that assigns probability one to the single ' +
+    'element in its support. This is only useful in special circumstances as sampling ' +
+    'from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` ' +
+    'distribution parameterized by a random choice should not be used with MCMC based inference, ' +
+    'as doing so produces incorrect results.',
+  params: [{name: 'v', desc: 'support element'}],
+  mixins: [finiteSupport],
+  constructor: function() {
+    this.v = util.serialize(this.params.v);
+  },
+  sample: function() {
+    return ad.value(this.params.v);
+  },
+  score: function(val) {
+    return util.serialize(val) === this.v ? 0 : -Infinity;
+  },
+  support: function() {
+    return [this.params.v];
   }
 });
 

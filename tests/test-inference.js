@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    method: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },
@@ -33,6 +33,7 @@ var tests = [
       multinomial: true,
       poisson: true,
       cauchy: true,
+      delta: { args: { samples: 10 }, hist: { exact: true } },
       mixed1: true,
       mixed2: true,
       mixed3: true,
@@ -43,6 +44,7 @@ var tests = [
   },
   {
     name: 'Enumerate',
+    method: 'enumerate',
     settings: {
       args: {},
       MAP: { check: true }
@@ -54,6 +56,7 @@ var tests = [
       deterministic: { hist: { exact: true } },
       store: { hist: { exact: true } },
       geometric: { args: { maxExecutions: 10 } },
+      delta: { args: { exact: true } },
       cache: true,
       withCaching: true,
       earlyExit: { hist: { exact: true } },
@@ -63,6 +66,7 @@ var tests = [
   },
   {
     name: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
       args: { samples: 5000 },
       hist: { tol: 0.1 }
@@ -102,7 +106,7 @@ var tests = [
   },
   {
     name: 'IMHjustSample',
-    method: 'IncrementalMH',
+    method: 'incrementalMH',
     settings: {
       args: { samples: 100, justSample: true }
     },
@@ -128,6 +132,7 @@ var tests = [
   },
   {
     name: 'AsyncPF',
+    method: 'asyncPF',
     settings: {
       args: { particles: 1000, bufferSize: 1000 },
       hist: { tol: 0.1 },
@@ -143,6 +148,7 @@ var tests = [
   },
   {
     name: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 1000 },
       hist: { tol: 0.1 }
@@ -172,7 +178,7 @@ var tests = [
   },
   {
     name: 'IncrementalRejection',
-    method: 'Rejection',
+    method: 'rejection',
     settings: {
       args: { samples: 1000, incremental: true },
       hist: { tol: 0.1 }
@@ -466,7 +472,15 @@ var tests = [
           kernel: { HMC: { steps: 20, stepSize: 0.2 } }
         }
       },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: {
+        mean: { tol: 0.075 },
+        std: { tol: 0.075 },
+        args: {
+          samples: 1500,
+          burn: 1500,
+          kernel: { HMC: { steps: 50, stepSize: 0.01 }}
+        }
+      }
     }
   },
   {

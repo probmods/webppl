@@ -44,6 +44,25 @@ module.exports = {
       test.done();
     }
 
+  },
+
+  testIsObject: {
+    test1: function(test) {
+      test.strictEqual(util.isObject({}), true);
+      test.done();
+    },
+    test2: function(test) {
+      test.strictEqual(util.isObject([]), false);
+      test.done();
+    },
+    test3: function(test) {
+      test.strictEqual(util.isObject(function() {}), false);
+      test.done();
+    },
+    test4: function(test) {
+      test.strictEqual(util.isObject(undefined), false);
+      test.done();
+    }
   }
 
 };
