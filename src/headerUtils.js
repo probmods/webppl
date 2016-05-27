@@ -81,33 +81,31 @@ module.exports = function(env) {
     return k(s, new Tensor(dims));
   };
 
-  // Provides a convinient wrapper around the primitive registerParams.
-  // Will be simplified once all params are tensor valued.
-  var param = function(s, k, a, arg1, arg2, arg3) {
+  // Provides a convinient wrapper around the primitive
+  // registerParams.
+  var tensorParam = function(s, k, a, dims, mean, sd) {
+
     var name = env.getRelativeAddress(a);
     var params = env.registerParams(name, function() {
-      var val;
-      if (_.isArray(arg1)) {
-        // param(dims, mean, std)
-        var dims = arg1;
-        var mean = (arg2 !== undefined) ? arg2 : 0;
-        var sd = (arg3 !== undefined) ? arg3 : 0;
-        val = new Tensor(dims);
-        if (sd === 0) {
-          val.fill(mean);
-        } else {
-          for (var i = 0; i < val.length; i++) {
-            val.data[i] = dists.gaussianSample(mean, sd);
-          }
-        }
+
+      mean = (mean !== undefined) ? mean : 0;
+      sd = (sd !== undefined) ? sd : 0;
+
+      // Initialization.
+
+      var val = new Tensor(dims);
+      if (sd === 0) {
+        val.fill(mean);
       } else {
-        // TODO: Init. from Gaussian.
-        // param(mean, std)
-        val = arg1;
+        for (var i = 0; i < val.length; i++) {
+          val.data[i] = dists.gaussianSample(mean, sd);
+        }
       }
-      // Wrap as `registerParams` tracks an array of parameters for
-      // each name/address.
+
+      // registerParams tracks an array of parameters for each
+      // name/address.
       return [val];
+
     });
     return k(s, params[0]);
   };
@@ -204,7 +202,7 @@ module.exports = function(env) {
     Vector: Vector,
     Matrix: Matrix,
     zeros: zeros,
-    param: param,
+    tensorParam: tensorParam,
     getRelativeAddress: getRelativeAddress,
     mapData: mapData,
     readJSON: readJSON,

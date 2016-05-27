@@ -3,9 +3,17 @@
 var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
-var generic = require('../generic');
+var Tensor = require('../tensor');
 
 // TODO: Implement AdaDelta: http://arxiv.org/abs/1212.5701
+
+function zerosLike(tensor) {
+  return new Tensor(tensor.dims);
+}
+
+function onesLike(tensor) {
+  return new Tensor(tensor.dims).fill(1);
+}
 
 module.exports = {
 
@@ -23,13 +31,13 @@ module.exports = {
     return function(params, grads, step, name) {
       if (!_.has(vObj, name)) {
         vObj[name] = grads.map(function(g) {
-          return generic.zerosLike(g);
+          return zerosLike(g);
         });
       }
       var v = vObj[name];
       for (var i = 0; i < grads.length; i++) {
-        v[i] = generic.sub(generic.scalarMul(v[i], mu), generic.scalarMul(grads[i], stepSize));
-        params[i] = generic.add(params[i], v[i]);
+        v[i] = (v[i].mul(mu)).sub(grads[i].mul(stepSize));
+        params[i] = params[i].add(v[i]);
       }
     };
   },
@@ -46,14 +54,14 @@ module.exports = {
       if (!_.has(g2Obj, name)) {
         g2Obj[name] = grads.map(function(g) {
           // Start with small non-zero g2 to avoid divide by zero.
-          return generic.scalarMul(generic.onesLike(g), 0.001);
+          return onesLike(g).mul(0.001);
         });
       }
 
       var g2 = g2Obj[name];
       for (var i = 0; i < grads.length; i++) {
-        g2[i] = generic.add(g2[i], generic.mul(grads[i], grads[i]));
-        params[i] = generic.sub(params[i], generic.scalarMul(generic.div(grads[i], generic.sqrt(g2[i])), stepSize));
+        g2[i] = g2[i].add(grads[i].mul(grads[i]));
+        params[i] = params[i].sub(grads[i].div(g2[i].sqrt()).mul(stepSize));
       }
     };
   },
@@ -68,23 +76,14 @@ module.exports = {
     return function(params, grads, step, name) {
       if (!_.has(g2Obj, name)) {
         g2Obj[name] = grads.map(function(g) {
-          return generic.zerosLike(g);
+          return zerosLike(g);
         });
       }
 
       var g2 = g2Obj[name];
       for (var i = 0; i < grads.length; i++) {
-
-        g2[i] = generic.add(generic.scalarMul(g2[i], decayRate),
-                            generic.scalarMul(generic.mul(grads[i], grads[i]), 1 - decayRate));
-
-        params[i] = generic.sub(
-            params[i],
-            generic.scalarMul(
-                generic.div(
-                    grads[i],
-                    generic.sqrt(generic.scalarAdd(g2[i], 1e-8))),
-                stepSize));
+        g2[i] = g2[i].mul(decayRate).add(grads[i].mul(grads[i]).mul(1 - decayRate));
+        params[i] = params[i].sub(grads[i].div(g2[i].add(1e-8).sqrt()).mul(stepSize));
       }
     };
   },
@@ -110,27 +109,19 @@ module.exports = {
       var t = step + 1;
 
       if (!_.has(mObj, name)) {
-        mObj[name] = grads.map(generic.zerosLike);
-        vObj[name] = grads.map(generic.zerosLike);
+        mObj[name] = grads.map(zerosLike);
+        vObj[name] = grads.map(zerosLike);
       }
 
       var m = mObj[name];
       var v = vObj[name];
 
       for (var i = 0; i < grads.length; i++) {
-        m[i] = generic.add(generic.scalarMul(m[i], decayRate1),
-                           generic.scalarMul(grads[i], 1 - decayRate1));
-        v[i] = generic.add(generic.scalarMul(v[i], decayRate2),
-                           generic.scalarMul(generic.mul(grads[i], grads[i]), 1 - decayRate2));
+        m[i] = m[i].mul(decayRate1).add(grads[i].mul(1 - decayRate1));
+        v[i] = v[i].mul(decayRate2).add(grads[i].mul(grads[i]).mul(1 - decayRate2));
 
         var alpha_t = stepSize * Math.sqrt(1 - Math.pow(decayRate2, t)) / (1 - Math.pow(decayRate1, t));
-        params[i] = generic.sub(
-            params[i],
-            generic.scalarMul(
-                generic.div(
-                    m[i],
-                    generic.scalarAdd(generic.sqrt(v[i]), eps)),
-                alpha_t));
+        params[i] = params[i].sub(m[i].div(v[i].sqrt().add(eps)).mul(alpha_t));
       }
     };
   }

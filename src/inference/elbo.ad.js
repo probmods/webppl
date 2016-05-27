@@ -16,7 +16,6 @@
 var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
-var generic = require('../generic');
 var ad = require('../ad');
 var Tensor = require('../tensor');
 
@@ -302,7 +301,7 @@ module.exports = function(env) {
         var gs = g[a];
         assert.strictEqual(gs.length, hs.length);
         for (var i = 0; i < gs.length; i++) {
-          gs[i] = generic.add(gs[i], hs[i]);
+          gs[i] = gs[i].add(hs[i]);
         }
       }
     });
@@ -312,7 +311,7 @@ module.exports = function(env) {
     // In-place division by a scalar.
     _.each(g, function(gs) {
       for (var i = 0; i < gs.length; i++) {
-        gs[i] = generic.scalarDiv(gs[i], s);
+        gs[i] = gs[i].div(s);
       }
     });
   }

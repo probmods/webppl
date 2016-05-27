@@ -13,7 +13,6 @@ var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
 var optMethods = require('./optMethods');
-var generic = require('../generic');
 
 module.exports = function(env) {
 
@@ -107,14 +106,22 @@ module.exports = function(env) {
 
   }
 
+  function allZero(tensor) {
+    return !tensor.anyreduce();
+  }
+
+  function allFinite(tensor) {
+    return tensor.data.every(_.isFinite);
+  }
+
   function checkGradients(gradObj) {
     // Emit warning when component of gradient is zero.
     _.each(gradObj, function(grads, name) {
       _.each(grads, function(g, i) {
-        if (generic.allZero(g)) {
+        if (allZero(g)) {
           logGradWarning(name, i, 'zero');
         }
-        if (!generic.allFinite(g)) {
+        if (!allFinite(g)) {
           // Catches NaN, ±Infinity.
           logGradWarning(name, i, 'not finite');
         }
@@ -135,7 +142,7 @@ module.exports = function(env) {
     var normsq = 0;
     _.each(gradObj, function(gs) {
       _.each(gs, function(g) {
-        normsq += generic.sum(generic.mul(g, g));
+        normsq += g.mul(g).sumreduce();
       });
     });
     return Math.sqrt(normsq);
@@ -146,7 +153,7 @@ module.exports = function(env) {
     // In-place multiplication by a scalar.
     _.each(g, function(gs) {
       for (var i = 0; i < gs.length; i++) {
-        gs[i] = generic.scalarMul(gs[i], s);
+        gs[i] = gs[i].mul(s);
       }
     });
   }
