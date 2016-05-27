@@ -263,10 +263,20 @@ module.exports = function(env) {
       assert.notStrictEqual(this.logp0, undefined);
       assert.notStrictEqual(this.logq0, undefined);
       assert.notStrictEqual(this.logr0, undefined);
+
+      var noreparam = strictEqual(this.logq, this.logr);
       var m = this.mapDataMultiplier - 1;
+
       this.logp += m * (this.logp - this.logp0);
       this.logq += m * (this.logq - this.logq0);
-      this.logr += m * (this.logr - this.logr0);
+      if (noreparam) {
+        // The reparameterization trick has not been used yet.
+        // Continue representing logq and loqr with the same ad node.
+        this.logr = this.logq;
+      } else {
+        this.logr += m * (this.logr - this.logr0);
+      }
+
       this.mapDataMultiplier = this.logp0 = this.logq0 = this.logr0 = undefined;
     },
 
