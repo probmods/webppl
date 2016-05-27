@@ -1,36 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-  
+
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <title>webppl - probabilistic programming for the web</title>
 
     <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
     <link rel="stylesheet" href="http://dippl.org/node_modules/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="http://dippl.org/node_modules/codemirror/theme/neat.css">
-    <link rel="stylesheet" href="http://dippl.org/assets/css/code.css">        
+    <link rel="stylesheet" href="http://dippl.org/assets/css/code.css">
     <link rel="stylesheet" href="webppl.css">
-    
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-    <script src="http://dippl.org/bower_components/jquery-autosize/jquery.autosize.min.js"></script>      
-    <script src="http://dippl.org/bower_components/react/JSXTransformer.js"></script>
-    <script src="http://dippl.org/bower_components/react/react-with-addons.min.js"></script>
+    <script src="http://dippl.org/bower_components/jquery-autosize/jquery.autosize.min.js"></script>
+    <!-- <script src="http://dippl.org/bower_components/react/JSXTransformer.js"></script> -->
+    <!-- <script src="https://fb.me/react-with-addons-15.1.0.js"></script> -->
+    <!-- <script src="http://dippl.org/bower_components/react/react-with-addons.min.js"></script> -->
     <script src="http://dippl.org/bower_components/showdown/compressed/showdown.js"></script>
     <script src="http://dippl.org/node_modules/codemirror/lib/codemirror.js"></script>
     <script src="http://dippl.org/bower_components/d3/d3.min.js"></script>
     <script src="http://dippl.org/bower_components/dimple/dist/dimple.v2.1.0.js"></script>
-    <script src="http://dippl.org/bower_components/underscore/underscore.js"></script>    
+    <script src="http://dippl.org/bower_components/underscore/underscore.js"></script>
     <script src="http://dippl.org/node_modules/codemirror/mode/javascript/javascript.js"></script>
-    <script src="http://dippl.org/assets/js/webppl.min.js"></script>    
+    <script src="http://dippl.org/assets/js/webppl.min.js"></script>
     <script src="http://dippl.org/assets/js/custom.js"></script>
     <script src="http://dippl.org/assets/js/cm-folding.js"></script>
     <script src="http://dippl.org/assets/js/cm-comments.js"></script>
-    <script src="initializeEditor.js"></script>
-    <script src="http://dippl.org/assets/js/editor.js" type="text/jsx"></script>        
+    <script src="homepage.js"></script>
+    <!-- <script src="http://dippl.org/assets/js/editor.js" type="text/jsx"></script> -->
+    <!-- <script src="webppl-editor.js"></script> -->
+
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -60,10 +63,10 @@
       <div class="panel panel-default">
         <div class="panel-body editor-panel-body">
           <div id="reactEditor">
-          </div>          
+          </div>
         </div>
       </div>
-  
+
       <div class="row marketing">
         <div class="col-lg-6">
           <h4>Local install</h4>
@@ -74,12 +77,12 @@
           </ol>
           <p>Now, the <code>webppl</code> command is globally available.</p>
           <p>To upgrade to the latest version, run <code class="nobreak">npm update -g webppl</code>.</p>
-          
+
           <h4>Documentation</h4>
           <p>The primary reference for webppl is our web book, <a href="http://dippl.org/">The Design and Implementation of Probabilistic Programming Languages</a>.</p>
-          
+
           <p>To learn more about how to set up and use webppl, take a look at <a href="http://docs.webppl.org">our documentation</a> and <a href="https://github.com/probmods/webppl/tree/master/examples">the examples</a>.</p>
-          
+
           <p>For probabilistic modeling in general, our other web book, <a href="https://probmods.org/">Probabilistic Models of Cognition</a>, might be of interest.</p>
 
           <h4>Contributions</h4>
@@ -91,7 +94,7 @@
 
           <h4>Pronunciation</h4>
           <p>Say &ldquo;web people&rdquo;.</p>
-                    
+
           <h4>License</h4>
           <p>The webppl code base is open source and freely available for commerical and non-commercial use under the <a href="https://github.com/probmods/webppl/blob/master/LICENSE.md">MIT license</a>.</p>
 
@@ -112,7 +115,7 @@
 
           <h4>Acknowledgments</h4>
           <p>The webppl project is supported by grants from DARPA, under agreement number FA8750-14-2-0009, and the Office of Naval Research, grant number N00014-13-1-0788.</p>
-          
+
         </div>
       </div>
 
@@ -126,4 +129,3 @@
 
   </body>
 </html>
-
