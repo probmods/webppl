@@ -44,7 +44,7 @@ updateNet.setTraining(true)
 
 var updateContext = function(val) {
   var dataVec = daipp.val2vec(val)
-  var address = getRelativeAddress()
+  var address = getObsFnAddress()
   var addressVec = daipp.val2vec(address)
   var context = globalStore.context
 
@@ -74,7 +74,7 @@ predictNet.setTraining(true)
 
 var DAIPPguide = function(dist, val) {
   var dataVec = daipp.val2vec(val)
-  var address = getRelativeAddress()
+  var address = getObsFnAddress()
   //TODO: at the moment the address will be a single string, so val2vec will learn a separate embedding per address. we may want to split the string into an array (of syntax sites); in that case val2vec will use an RNN along the array, making related addresses have related vectors.
   var addressVec = daipp.val2vec(address)
   // var context = zeros([daipp.latentSize]) //for testing how much the context net matters...

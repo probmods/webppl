@@ -114,6 +114,17 @@ module.exports = function(env) {
     return k(s, env.getRelativeAddress(a));
   }
 
+  // Returns the part of the stack address which has been added since
+  // entering the inner-most mapData. Outside of any mapData the
+  // address relative to the inner-most coroutine is returned.
+  //
+  // TODO: Is there a way to implement this that runs in constant
+  // time.
+  function getObsFnAddress(s, k, a) {
+    var rel = env.getRelativeAddress(a);
+    return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
+  }
+
   var mapDataIndices = {};
 
   // Do we need to make sure we construct the return array in a way
@@ -170,9 +181,7 @@ module.exports = function(env) {
           // but undefineds off add?
           return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
         };
-        // TODO: Do we still need indices in the addresses now we have
-        // access to them in mapData?
-      }, a.concat('_$$' + ix), arr[i]);
+      }, a.concat('_$$' + ix), arr[i]); // getObsFnAddress relies on the magic string _$$
     }
   }
 
@@ -204,6 +213,7 @@ module.exports = function(env) {
     zeros: zeros,
     tensorParam: tensorParam,
     getRelativeAddress: getRelativeAddress,
+    getObsFnAddress: getObsFnAddress,
     mapData: mapData,
     readJSON: readJSON,
     readDataSetJSON: readDataSetJSON,
