@@ -10,6 +10,7 @@ var _ = require('underscore');
 var sweet = require('sweet.js');
 
 var cps = require('./transforms/cps').cps;
+var addFilename = require('./transforms/addFilename').addFilename;
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var store = require('./transforms/store').store;
@@ -51,7 +52,8 @@ function concatPrograms(programs) {
 }
 
 function parse(code, macros, filename) {
-  return sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+  var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros });
+  return addFilename(compiled, filename);
 }
 
 function parseAll(bundles) {
@@ -135,6 +137,23 @@ function copyAst(ast) {
   return ret;
 }
 
+function generateCodeAndMap(code, filename, bundles, ast) {
+  var codeAndMap = escodegen.generate(ast, {
+    sourceMap: true,
+    sourceMapWithCode: true
+  });
+
+  var sourceMap = JSON.parse(codeAndMap.map);
+  // Embed the original source in the source map for later use in
+  // error handling.
+  sourceMap.sourcesContent = sourceMap.sources.map(function(fn) {
+    return (fn === filename) ? code : _.findWhere(bundles, {filename: fn}).code;
+  });
+  codeAndMap.map = sourceMap;
+
+  return codeAndMap;
+}
+
 function compile(code, options) {
   options = util.mergeDefaults(options, {
     verbose: false,
@@ -165,39 +184,59 @@ function compile(code, options) {
       console.log('Caching transform will be applied.');
     }
 
+    var generateCode = _.partial(generateCodeAndMap, code, options.filename, bundles);
+
     return util.pipeline([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
       util.pipeline(transforms),
-      options.generateCode ? escodegen.generate : _.identity
+      options.generateCode ? generateCode : _.identity
     ])(asts);
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
+function addSourceMap(error, sourceMap) {
+  if (error instanceof Error) {
+    if (error.sourceMaps === undefined) {
+      error.sourceMaps = [];
+    }
+    error.sourceMaps.push(sourceMap);
+  }
+}
 
 function run(code, k, options) {
   options = _.defaults(options || {},
                        {runner: util.runningInBrowser() ? 'web' : 'cli'});
 
-  var runner = util.trampolineRunners[options.runner];
-  var compiledCode = compile(code, options);
+  var codeWithMap = compile(code, options);
+
+  var runner = util.trampolineRunners[options.runner](function(e) {
+    addSourceMap(e, codeWithMap.map);
+    throw e;
+  });
 
   util.timeif(options.verbose, 'run', function() {
-    eval.call(global, compiledCode)(runner)({}, k, '');
+    eval.call(global, codeWithMap.code)(runner)({}, k, '');
   });
 }
 
 // Make webppl eval available within webppl
 // runner is one of 'cli','web'
-global.webpplEval = function(s, k, a, code, runner) {
-  if (runner === undefined) {
-    runner = util.runningInBrowser() ? 'web' : 'cli'
+global.webpplEval = function(s, k, a, code, runnerName) {
+  if (runnerName === undefined) {
+    runnerName = util.runningInBrowser() ? 'web' : 'cli'
   }
-  var compiledCode = compile(code);
-  return eval.call(global, compiledCode)(util.trampolineRunners[runner])(s, k, a);
+  var codeWithMap = compile(code, {filename: 'webppl:eval'});
+
+  var runner = util.trampolineRunners[runnerName](function(e) {
+    addSourceMap(e, codeWithMap.map);
+    throw e;
+  });
+
+  return eval.call(global, codeWithMap.code)(runner)(s, k, a);
 };
 
 module.exports = {
