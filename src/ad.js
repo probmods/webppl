@@ -7,15 +7,15 @@ var special = require('./special');
 
 // TODO: Get this stuff into adnn?
 
-// TODO: Handle tensors.
-// This requires preserving the prototype (see #384) and handling
-// Float64Arrays. We can /consider/ switching all the (params &&
-// params.map(ad.value)) to ad.valueRec(params) once this is done.
 var valueRec = function(x) {
   if (ad.isLifted(x)) {
     return x.x;
   } else if (_.isArray(x)) {
     return _.map(x, valueRec);
+  } else if (x instanceof Tensor) {
+    // Optimization: tensors don't contain tapes, so return now rather
+    // than descend into the tensor object.
+    return x;
   } else if (_.isObject(x) && !_.isFunction(x)) {
     // Ensure prototype chain is preserved
     var proto = Object.getPrototypeOf(x);
