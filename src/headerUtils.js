@@ -86,7 +86,7 @@ module.exports = function(env) {
   var tensorParam = function(s, k, a, dims, mean, sd) {
 
     var name = util.relativizeAddress(env, a);
-    var params = env.registerParams(name, function() {
+    var params = util.registerParams(env, name, function() {
 
       mean = (mean !== undefined) ? mean : 0;
       sd = (sd !== undefined) ? sd : 0;

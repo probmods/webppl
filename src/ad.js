@@ -3,7 +3,6 @@
 var _ = require('underscore');
 var ad = require('adnn/ad');
 var Tensor = require('./tensor');
-var util = require('./util');
 var special = require('./special');
 
 // TODO: Get this stuff into adnn?

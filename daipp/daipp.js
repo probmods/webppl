@@ -6,6 +6,7 @@ var nn = require('adnn/nn');
 var dists = require('../src/dists.js');
 var LRU = require('lru-cache');
 var serialize = require('../src/util').serialize;
+var util = require('../src/util');
 
 module.exports = function(env) {
 
@@ -115,20 +116,20 @@ module.exports = function(env) {
 
     // registerParams is made globally available in the WebPPL header.
     if (nn.getParameters().length > 0) {
-      registerParams(nn.name,
-                     function() {
-                       var params = nn.getParameters().map(ad.value);
-                       // Replace the adnn initialization with 'xavier
-                       // initialization'.
-                       // One further advantage of this is that
-                       // initialization can be made repeatable using
-                       // webppl's --random-seed option.
-                       params.forEach(xavierInit);
-                       // It's OK that we don't re-lift params here,
-                       // registerParams handles this.
-                       return params;
-                     },
-                     nn.setParameters.bind(nn));
+      util.registerParams(env, nn.name,
+                          function() {
+                            var params = nn.getParameters().map(ad.value);
+                            // Replace the adnn initialization with 'xavier
+                            // initialization'.
+                            // One further advantage of this is that
+                            // initialization can be made repeatable using
+                            // webppl's --random-seed option.
+                            params.forEach(xavierInit);
+                            // It's OK that we don't re-lift params here,
+                            // registerParams handles this.
+                            return params;
+                          },
+                          nn.setParameters.bind(nn));
     }
 
     // Fast version, assuming all nets take at most one argument

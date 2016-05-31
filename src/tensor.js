@@ -3,7 +3,6 @@
 var assert = require('assert');
 var _ = require('underscore');
 var Tensor = require('adnn/tensor');
-var inspect = require('util').inspect;
 var statistics = require('./statistics');
 var special = require('./special');
 
