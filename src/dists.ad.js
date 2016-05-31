@@ -488,24 +488,10 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
-
-// TODO: Don't export this from here. I think we'll want to call it
-// from wppl code, so move elsewhere.
-var logistic = function(x) {
+var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
   var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
-
-  // // Numeric stability.
-  // // TODO: Make this less messy.
-  // // There's no Tensor max. Can't use Math.max.apply as Math.max is
-  // // rewritten to use ad. The ad version only takes 2 args.
-  // var max = ad.value(u).toFlatArray().reduce(function(a, b) { return Math.max(a, b); });
-  // var v = ad.tensor.exp(ad.tensor.sub(u, max));
-  // var ret = ad.tensor.div(v, ad.tensor.sumreduce(v));
-  // return ret;
-
-  // Use new softmax function here instead
   return ad.tensor.softmax(u);
 };
 
@@ -516,7 +502,7 @@ var LogisticNormal = makeDistributionType({
   params: [{name: 'mu'}, {name: 'sigma'}],
   mixins: [continuousSupport],
   sample: function() {
-    return logistic(diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma)));
+    return squishToProbSimplex(diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma)));
   },
   score: function(val) {
     var mu = this.params.mu;
@@ -547,7 +533,7 @@ var LogisticNormal = makeDistributionType({
   transform: function(x) {
     var mu = this.params.mu;
     var sigma = this.params.sigma;
-    return logistic(ad.tensor.add(ad.tensor.mul(sigma, x), mu));
+    return squishToProbSimplex(ad.tensor.add(ad.tensor.mul(sigma, x), mu));
   }
 });
 
@@ -1271,7 +1257,7 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   withImportanceDist: withImportanceDist,
-  logistic: logistic,
+  squishToProbSimplex: squishToProbSimplex,
   isDist: isDist,
   isParams: isParams
 };
