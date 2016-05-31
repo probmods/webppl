@@ -117,9 +117,16 @@ module.exports = function(env) {
       var rel = util.relativizeAddress(env, a);
       var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
       assert.notStrictEqual(guideVal, undefined);
-      assert.ok(!ad.isLifted(guideVal), 'Unexpected AD node in example trace.');
-      this.logq += guideDist.score(guideVal);
-      return k(s, guideVal);
+
+      // We unlift guideVal to maintain the separation between the ad
+      // graph we're building in order to optimize the parameters and
+      // any ad graphs associated with the example traces. (The
+      // choices in an example trace can be ad nodes when they are
+      // generated with SMC + HMC rejuv.)
+      var _guideVal = ad.value(guideVal);
+
+      this.logq += guideDist.score(_guideVal);
+      return k(s, _guideVal);
     },
 
     factor: function(s, k, a, score) {
