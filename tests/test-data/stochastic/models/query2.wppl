@@ -1,0 +1,5 @@
+var model = function() {
+  query.add('x', flip());
+  query.add('y', flip());
+  return query;
+};

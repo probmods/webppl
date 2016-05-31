@@ -182,16 +182,22 @@ function histStd(hist) {
   }));
 }
 
-function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var allOk = (expectedHist !== undefined);
-  _.each(
-      expectedHist,
-      function(expectedValue, key) {
-        var value = actualHist[key] || 0;
-        var testPassed = Math.abs(value - expectedValue) <= tolerance;
-        allOk = allOk && testPassed;
-      });
-  return allOk;
+function sameKeys(obj1, obj2) {
+  return _.size(obj1) === _.size(obj2) &&
+      _.all(_.keys(obj1), function(key) { return _.has(obj2, key); });
+}
+
+function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSupport) {
+  if (expectedHist === undefined || actualHist === undefined) {
+    return false;
+  }
+  if (exactSupport && !sameKeys(actualHist, expectedHist)) {
+    return false;
+  }
+  return _.all(expectedHist, function(expectedValue, key) {
+    var value = actualHist[key] || 0;
+    return Math.abs(value - expectedValue) <= tolerance;
+  });
 }
 
 function mergeDefaults(options, defaults) {
