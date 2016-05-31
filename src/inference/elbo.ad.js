@@ -99,7 +99,7 @@ module.exports = function(env) {
         // for statistical efficiency we drop terms with zero
         // expectation where possible.
 
-        var useLR = strictEqual(this.logq, this.logr);
+        var useLR = sameAdNode(this.logq, this.logr);
 
         // Sanity check.
 
@@ -178,7 +178,7 @@ module.exports = function(env) {
         val = dist.sample();
         var score = dist.score(val);
 
-        if (strictEqual(this.logq, this.logr)) {
+        if (sameAdNode(this.logq, this.logr)) {
           // The reparameterization trick has not been used yet.
           // Continue representing logq and loqr with the same ad
           // node.
@@ -263,7 +263,7 @@ module.exports = function(env) {
       assert.notStrictEqual(this.logq0, undefined);
       assert.notStrictEqual(this.logr0, undefined);
 
-      var noreparam = strictEqual(this.logq, this.logr);
+      var noreparam = sameAdNode(this.logq, this.logr);
       var m = this.mapDataMultiplier - 1;
 
       this.logp += m * (this.logp - this.logp0);
@@ -316,11 +316,10 @@ module.exports = function(env) {
     });
   }
 
-  // TODO: Fix ad transform of ===.
-  //
-  // The ad macros changes the semantics of === for some (non ad node)
-  // types. This is a work-around for use within 'adified' functions.
-  function strictEqual(a, b) {
+  function sameAdNode(a, b) {
+    // We can't use === directly within an ad transformed function as
+    // doing so checks the equality of the values stored at the nodes
+    // rather than the nodes themselves.
     return a === b;
   }
 
