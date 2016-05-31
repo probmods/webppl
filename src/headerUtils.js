@@ -85,7 +85,7 @@ module.exports = function(env) {
   // registerParams.
   var tensorParam = function(s, k, a, dims, mean, sd) {
 
-    var name = env.getRelativeAddress(a);
+    var name = util.relativizeAddress(env, a);
     var params = env.registerParams(name, function() {
 
       mean = (mean !== undefined) ? mean : 0;
@@ -110,10 +110,6 @@ module.exports = function(env) {
     return k(s, params[0]);
   };
 
-  function getRelativeAddress(s, k, a) {
-    return k(s, env.getRelativeAddress(a));
-  }
-
   // Returns the part of the stack address which has been added since
   // entering the inner-most mapData. Outside of any mapData the
   // address relative to the inner-most coroutine is returned.
@@ -121,7 +117,7 @@ module.exports = function(env) {
   // TODO: Is there a way to implement this that runs in constant
   // time.
   function getObsFnAddress(s, k, a) {
-    var rel = env.getRelativeAddress(a);
+    var rel = util.relativizeAddress(env, a);
     return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
   }
 
@@ -139,7 +135,7 @@ module.exports = function(env) {
       throw 'Invalid batchSize in mapData.';
     }
 
-    var rel = env.getRelativeAddress(a);
+    var rel = util.relativizeAddress(env, a);
 
     // Query the coroutine to determine the subset of the data to map
     // over. The indices of the data used on the previous invocation
@@ -212,7 +208,6 @@ module.exports = function(env) {
     Matrix: Matrix,
     zeros: zeros,
     tensorParam: tensorParam,
-    getRelativeAddress: getRelativeAddress,
     getObsFnAddress: getObsFnAddress,
     mapData: mapData,
     readJSON: readJSON,

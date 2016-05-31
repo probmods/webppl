@@ -112,34 +112,6 @@ module.exports = function(env) {
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
 
-  env.getRelativeAddress = function(address) {
-    // Takes a full stack address and returns a new address relative
-    // to the entry address of the current coroutine. This requires
-    // each coroutine to save its entry address as `this.a`.
-
-    // Note that the strategy used here needs to match up with the
-    // strategy used when relativizing trace addresses. (Because
-    // `getRelativeAddress` is used within EUBO to perform choice
-    // look-ups.)
-
-    // This is a JS function for ease of calling from within
-    // coroutines. The webppl version comes from wrapping this in
-    // headerUtils.js.
-
-    // A better way to implement this might be to have each coroutine
-    // inherit this implementation from a base "class". Within a
-    // coroutine we'd then call `getRelativeAddress` on `this` rather
-    // than `env`. This might also help with `incrementalize` and
-    // `getParam`.
-
-    // TODO: Does slicing addresses scale? (Also see #150.)
-
-    assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
-    var baseAddress = env.coroutine.a;
-    assert.ok(address.startsWith(baseAddress));
-    return address.slice(baseAddress.length);
-  };
-
   env.registerParams = function(name, getParams, setParams) {
 
     // getParams is expected to be a function which is used to
