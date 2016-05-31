@@ -39,16 +39,13 @@ module.exports = function(env) {
               hist.add(val);
               return next();
             }, this.a);
-          },
+          }.bind(this),
 
           // Continuation.
           function() {
             env.coroutine = this.coroutine;
             return this.k(this.s, hist.toDist());
-          },
-
-          this
-      );
+          }.bind(this));
 
     },
 

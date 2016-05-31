@@ -41,16 +41,14 @@ module.exports = function(env) {
               logWeights.push(logWeight);
               return next();
             });
-          },
+          }.bind(this),
 
           // Loop continuation.
           function() {
             var logESS = computeLogESS(logWeights);
             env.coroutine = this.coroutine;
             return this.k(this.s, Math.exp(logESS));
-          },
-
-          this);
+          }.bind(this));
 
     },
 

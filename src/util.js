@@ -124,12 +124,12 @@ function cpsForEach(func, cont, xs, i) {
   }
 }
 
-function cpsLoop(n, func, cont, ctx) {
+function cpsLoop(n, func, cont) {
   function loop(i) {
     if (i === n) {
-      return cont.call(ctx);
+      return cont();
     } else {
-      return func.call(ctx, i, function() {
+      return func(i, function() {
         return function() { // insert trampoline step
           return loop(i + 1);
         };

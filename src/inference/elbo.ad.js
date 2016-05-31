@@ -62,7 +62,7 @@ module.exports = function(env) {
             elbo += elbo_i;
             return next();
           });
-        },
+        }.bind(this),
 
         // Loop continuation.
         function() {
@@ -70,9 +70,7 @@ module.exports = function(env) {
           elbo /= this.opts.samples;
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
-        },
-
-        this);
+        }.bind(this));
 
     },
 
