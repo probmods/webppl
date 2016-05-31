@@ -18,6 +18,7 @@ var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
 var Tensor = require('../tensor');
+var paramgrad = require('../paramgrad');
 
 module.exports = function(env) {
 
@@ -58,7 +59,7 @@ module.exports = function(env) {
         function(i, next) {
           this.iter = i;
           return this.estimateGradient(function(g, elbo_i) {
-            addEqG(grad, g); // Accumulate gradient estimates.
+            paramgrad.addEq(grad, g); // Accumulate gradient estimates.
             elbo += elbo_i;
             return next();
           });
@@ -66,7 +67,7 @@ module.exports = function(env) {
 
         // Loop continuation.
         function() {
-          divEqG(grad, this.opts.samples);
+          paramgrad.divEq(grad, this.opts.samples);
           elbo /= this.opts.samples;
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
@@ -281,38 +282,6 @@ module.exports = function(env) {
     constructor: ELBO
 
   };
-
-  // TODO: Duplicated in eubo.ad.js, so extract. Could also include
-  // the logic required to (deep)clone a params object.
-
-  // Arithmetic on param/grad objects.
-
-  function addEqG(g, h) {
-    // In-place addition.
-
-    // TODO: Update tensors in-place to minimize allocation.
-
-    _.each(h, function(hs, a) {
-      if (!_.has(g, a)) {
-        g[a] = hs;
-      } else {
-        var gs = g[a];
-        assert.strictEqual(gs.length, hs.length);
-        for (var i = 0; i < gs.length; i++) {
-          gs[i] = gs[i].add(hs[i]);
-        }
-      }
-    });
-  }
-
-  function divEqG(g, s) {
-    // In-place division by a scalar.
-    _.each(g, function(gs) {
-      for (var i = 0; i < gs.length; i++) {
-        gs[i] = gs[i].div(s);
-      }
-    });
-  }
 
   function sameAdNode(a, b) {
     // We can't use === directly within an ad transformed function as

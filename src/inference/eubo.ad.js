@@ -16,6 +16,7 @@ var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
 var Tensor = require('../tensor');
+var paramgrad = require('../paramgrad');
 
 module.exports = function(env) {
 
@@ -59,7 +60,7 @@ module.exports = function(env) {
         // Body.
         function(trace, i, traces, next) {
           return this.estimateGradient(trace, function(g, eubo_i) {
-            addEqG(grad, g); // Accumulate gradient estimates.
+            paramgrad.addEq(grad, g); // Accumulate gradient estimates.
             eubo += eubo_i;
             return next();
           });
@@ -67,7 +68,7 @@ module.exports = function(env) {
 
         // Continuation.
         function() {
-          divEqG(grad, traces.length);
+          paramgrad.divEq(grad, traces.length);
           eubo /= traces.length;
           env.coroutine = this.coroutine;
           return this.cont(grad, eubo);
@@ -150,35 +151,6 @@ module.exports = function(env) {
       return miniBatch;
     }
   };
-
-  // Arithmetic on param/grad objects.
-
-  function addEqG(g, h) {
-    // In-place addition.
-
-    // TODO: Update tensors in-place to minimize allocation.
-
-    _.each(h, function(hs, a) {
-      if (!_.has(g, a)) {
-        g[a] = hs;
-      } else {
-        var gs = g[a];
-        assert.strictEqual(gs.length, hs.length);
-        for (var i = 0; i < gs.length; i++) {
-          gs[i] = gs[i].add(hs[i]);
-        }
-      }
-    });
-  }
-
-  function divEqG(g, s) {
-    // In-place division by a scalar.
-    _.each(g, function(gs) {
-      for (var i = 0; i < gs.length; i++) {
-        gs[i] = gs[i].div(s);
-      }
-    });
-  }
 
   return function() {
     var coroutine = Object.create(EUBO.prototype);
