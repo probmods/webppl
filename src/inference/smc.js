@@ -312,7 +312,6 @@ module.exports = function(env) {
         function() {
           var dist = hist.toDist();
           dist.normalizationConstant = logAvgW;
-          traces.forEach(function(trace) { trace.relativizeAddresses(); });
           dist.traces = traces;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);

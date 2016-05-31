@@ -115,7 +115,7 @@ module.exports = function(env) {
 
       var guideDist = options.guide;
       var rel = util.relativizeAddress(env, a);
-      var guideVal = this.trace.findChoice(rel).val;
+      var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
       assert.notStrictEqual(guideVal, undefined);
       assert.ok(!ad.isLifted(guideVal), 'Unexpected AD node in example trace.');
       this.logq += guideDist.score(guideVal);
