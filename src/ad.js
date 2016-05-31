@@ -5,8 +5,6 @@ var ad = require('adnn/ad');
 var Tensor = require('./tensor');
 var special = require('./special');
 
-// TODO: Get this stuff into adnn?
-
 var valueRec = function(x) {
   if (ad.isLifted(x)) {
     return x.x;
