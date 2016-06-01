@@ -58,10 +58,10 @@ function norm(g) {
   return Math.sqrt(normsq);
 }
 
-function clip(g, threshold, norm) {
+function clip(g, threshold, normOfG) {
   assert.ok(_.isNumber(threshold));
-  if (norm > threshold) {
-    mulEq(g, threshold / norm);
+  if (normOfG > threshold) {
+    mulEq(g, threshold / normOfG);
     assert.ok(Math.abs(threshold - norm(g)) < 1e-10);
   }
 }
