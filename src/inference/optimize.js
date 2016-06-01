@@ -48,9 +48,7 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
-    var paramObj = _.mapObject(options.params, function(arr) {
-      return arr.map(function(tensor) { return tensor.clone(); });
-    });
+    var paramObj = paramgrad.deepCopy(options.params);
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);

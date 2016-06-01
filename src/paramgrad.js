@@ -66,10 +66,25 @@ function clip(g, threshold, normOfG) {
   }
 }
 
+function copy(g) {
+  // Shallow copy.
+  return _.mapObject(g, function(arr) {
+    return arr.slice();
+  });
+}
+
+function deepCopy(g) {
+  return _.mapObject(g, function(arr) {
+    return arr.map(function(tensor) { return tensor.clone(); });
+  });
+}
+
 module.exports = {
   addEq: addEq,
   mulEq: mulEq,
   divEq: divEq,
   norm: norm,
-  clip: clip
+  clip: clip,
+  copy: copy,
+  deepCopy: deepCopy
 };

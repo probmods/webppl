@@ -8,6 +8,7 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var paramgrad = require('../paramgrad');
 
 module.exports = function(env) {
 
@@ -35,9 +36,10 @@ module.exports = function(env) {
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
-    this.params = _.mapObject(options.params, function(arr) {
-      return arr.slice();
-    });
+
+    // Perform a copy to avoid modifying the input when SMC causes
+    // previously unseen params to be initialized.
+    this.params = paramgrad.copy(options.params);
 
     this.particles = [];
     this.completeParticles = [];
