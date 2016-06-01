@@ -13,7 +13,7 @@ var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
 var optMethods = require('adnn/opt');
-var paramgrad = require('../paramgrad');
+var paramStruct = require('../paramStruct');
 
 
 module.exports = function(env) {
@@ -48,7 +48,7 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
-    var paramObj = paramgrad.deepCopy(options.params);
+    var paramObj = paramStruct.deepCopy(options.params);
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);
@@ -69,12 +69,12 @@ module.exports = function(env) {
             }
 
             if (options.clip || options.showGradNorm) {
-              var norm = paramgrad.norm(gradObj);
+              var norm = paramStruct.norm(gradObj);
               if (options.showGradNorm) {
                 console.log('L2 norm of gradient: ' + norm);
               }
               if (options.clip) {
-                paramgrad.clip(gradObj, options.clip, norm);
+                paramStruct.clip(gradObj, options.clip, norm);
               }
             }
 

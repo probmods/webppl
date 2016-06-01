@@ -18,7 +18,7 @@ var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
 var Tensor = require('../tensor');
-var paramgrad = require('../paramgrad');
+var paramStruct = require('../paramStruct');
 
 module.exports = function(env) {
 
@@ -59,7 +59,7 @@ module.exports = function(env) {
         function(i, next) {
           this.iter = i;
           return this.estimateGradient(function(g, elbo_i) {
-            paramgrad.addEq(grad, g); // Accumulate gradient estimates.
+            paramStruct.addEq(grad, g); // Accumulate gradient estimates.
             elbo += elbo_i;
             return next();
           });
@@ -67,7 +67,7 @@ module.exports = function(env) {
 
         // Loop continuation.
         function() {
-          paramgrad.divEq(grad, this.opts.samples);
+          paramStruct.divEq(grad, this.opts.samples);
           elbo /= this.opts.samples;
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);

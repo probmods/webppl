@@ -16,7 +16,7 @@ var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
 var Tensor = require('../tensor');
-var paramgrad = require('../paramgrad');
+var paramStruct = require('../paramStruct');
 
 module.exports = function(env) {
 
@@ -60,7 +60,7 @@ module.exports = function(env) {
         // Body.
         function(trace, i, traces, next) {
           return this.estimateGradient(trace, function(g, eubo_i) {
-            paramgrad.addEq(grad, g); // Accumulate gradient estimates.
+            paramStruct.addEq(grad, g); // Accumulate gradient estimates.
             eubo += eubo_i;
             return next();
           });
@@ -68,7 +68,7 @@ module.exports = function(env) {
 
         // Continuation.
         function() {
-          paramgrad.divEq(grad, traces.length);
+          paramStruct.divEq(grad, traces.length);
           eubo /= traces.length;
           env.coroutine = this.coroutine;
           return this.cont(grad, eubo);

@@ -1,11 +1,11 @@
-// Operations on the data structure that holds guide parameter
+// Operations on the data structure that holds guide parameters or
 // gradients.
 
 // The data structure looks like this:
 
 // {
-//   name1: [grad11, grad12, ...],
-//   name2: [grad21, grad22, ...],
+//   name1: [tensor11, tensor12, ...],
+//   name2: [tensor21, tensor22, ...],
 //   ...
 // }
 
