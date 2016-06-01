@@ -12,8 +12,9 @@
 var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
-var optMethods = require('./optMethods');
+var optMethods = require('adnn/opt');
 var paramgrad = require('../paramgrad');
+
 
 module.exports = function(env) {
 
@@ -43,13 +44,12 @@ module.exports = function(env) {
     });
 
     var optimizer = subOptions(options.method, function(name, opts) {
+      name = (name === 'gd') ? 'sgd' : name;
       return optMethods[name](opts);
     });
 
-    // TODO: We'll need to deep copy the input parameters once updates
-    // modify parameters in-place.
     var paramObj = _.mapObject(options.params, function(arr) {
-      return arr.slice();
+      return arr.map(function(tensor) { return tensor.clone(); });
     });
 
     var showProgress = _.throttle(function(i, objective) {
@@ -86,12 +86,7 @@ module.exports = function(env) {
 
             history.push(objective);
 
-            _.each(gradObj, function(grads, name) {
-              assert.ok(_.has(paramObj, name));
-              var params = paramObj[name];
-              assert.strictEqual(params.length, grads.length);
-              optimizer(params, grads, i, name);
-            });
+            optimizer(gradObj, paramObj, i);
 
             return next();
           });
