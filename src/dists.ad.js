@@ -261,9 +261,6 @@ var Bernoulli = makeDistributionType({
   }
 });
 
-// TODO: Fix that the following return NaN rather than -Infinity.
-// MultivariateBernoulli({ps: Vector([1, 0])}).score(Vector([0, 0]));
-
 // TODO: The support here is {0, 1}^n rather than {true, false} as in
 // the univariate case.
 
@@ -274,14 +271,13 @@ function mvBernoulliScore(ps, x) {
   assert.ok(ad.value(x).dims[1] === 1);
   assert.ok(ad.value(x).dims[0] === ad.value(ps).dims[0]);
 
-  var logp = ad.tensor.log(ps);
   var xSub1 = ad.tensor.sub(x, 1);
   var pSub1 = ad.tensor.sub(ps, 1);
 
-  return ad.tensor.sumreduce(ad.tensor.sub(
-    ad.tensor.mul(x, logp),
-    ad.tensor.mul(xSub1, ad.tensor.log(ad.tensor.neg(pSub1)))
-  ));
+  return ad.tensor.sumreduce(
+    ad.tensor.add(
+      ad.tensor.log(ad.tensor.pow(ps, x)),
+      ad.tensor.log(ad.tensor.pow(ad.tensor.neg(pSub1), ad.tensor.neg(xSub1)))));
 }
 
 
