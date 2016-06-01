@@ -99,7 +99,9 @@ Distributions
 
 .. js:function:: MultivariateBernoulli({ps: ...})
 
-  * ps
+  * ps: *probabilities*
+
+  Distribution over a vector of independent Bernoulli variables. Each element of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which has support ``{true, false}``.
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 

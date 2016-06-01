@@ -261,9 +261,6 @@ var Bernoulli = makeDistributionType({
   }
 });
 
-// TODO: The support here is {0, 1}^n rather than {true, false} as in
-// the univariate case.
-
 function mvBernoulliScore(ps, x) {
   assert.ok(ad.value(ps).rank === 2);
   assert.ok(ad.value(ps).dims[1] === 1);
@@ -283,7 +280,10 @@ function mvBernoulliScore(ps, x) {
 
 var MultivariateBernoulli = makeDistributionType({
   name: 'MultivariateBernoulli',
-  params: [{name: 'ps'}],
+  desc: 'Distribution over a vector of independent Bernoulli variables. Each element ' +
+    'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
+    'has support ``{true, false}``.',
+  params: [{name: 'ps', desc: 'probabilities'}],
   mixins: [finiteSupport],
   sample: function() {
     var ps = ad.value(this.params.ps);
