@@ -12,8 +12,6 @@
 var assert = require('assert');
 var _ = require('underscore');
 
-// TODO: Update tensors in-place to minimize allocation.
-
 function addEq(g, h) {
   // In-place addition.
   _.each(h, function(hs, a) {
@@ -23,7 +21,7 @@ function addEq(g, h) {
       var gs = g[a];
       assert.strictEqual(gs.length, hs.length);
       for (var i = 0; i < gs.length; i++) {
-        gs[i] = gs[i].add(hs[i]);
+        gs[i].addeq(hs[i]);
       }
     }
   });
@@ -33,7 +31,7 @@ function mulEq(g, s) {
   // In-place multiplication by a scalar.
   _.each(g, function(gs) {
     for (var i = 0; i < gs.length; i++) {
-      gs[i] = gs[i].mul(s);
+      gs[i].muleq(s);
     }
   });
 }
@@ -42,7 +40,7 @@ function divEq(g, s) {
   // In-place division by a scalar.
   _.each(g, function(gs) {
     for (var i = 0; i < gs.length; i++) {
-      gs[i] = gs[i].div(s);
+      gs[i].diveq(s);
     }
   });
 }
