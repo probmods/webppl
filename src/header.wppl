@@ -12,7 +12,7 @@ defineDistConstructors(
     GaussianDrift
     MultivariateGaussian
     DiagCovGaussian
-    MatrixGaussian
+    TensorGaussian
     Cauchy
     Discrete
     DiscreteOneHot

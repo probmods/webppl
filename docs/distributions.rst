@@ -84,12 +84,6 @@ Distributions
   * mu
   * sigma
 
-.. js:function:: MatrixGaussian({mu: ..., sigma: ..., dims: ...})
-
-  * mu
-  * sigma
-  * dims
-
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: *probabilities*
@@ -117,6 +111,14 @@ Distributions
   * n
 
   Uniform distribution on {0,1,...,n-1}
+
+.. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
+
+  * mu: *mean*
+  * sigma: *standard deviation*
+  * dims: *dimension of tensor*
+
+  Distribution over a tensor of independent Gaussian variables.
 
 .. js:function:: Uniform({a: ..., b: ...})
 

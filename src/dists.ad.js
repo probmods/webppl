@@ -552,14 +552,11 @@ var LogisticNormal = makeDistributionType({
 });
 
 
-function matrixGaussianScore(mu, sigma, dims, x) {
+function tensorGaussianScore(mu, sigma, dims, x) {
   var _x = ad.value(x);
-
-  assert.ok(_.isNumber(mu));
-  assert.ok(_.isNumber(sigma));
-  assert.ok(_.isArray(dims));
-  assert.strictEqual(dims.length, 2);
-  assert.ok(_.isEqual(dims, _x.dims));
+  if (!isTensor(_x) || !_.isEqual(_x.dims, dims)) {
+    return -Infinity;
+  }
 
   var d = _x.length;
   var dLog2Pi = d * LOG_2PI;
@@ -571,25 +568,30 @@ function matrixGaussianScore(mu, sigma, dims, x) {
   return ad.scalar.mul(-0.5, ad.scalar.sum(dLog2Pi, _2dLogSigma, z));
 }
 
-// params: [mean, cov, [rows, cols]]
-
-// Currently only supports the case where each dim is an independent
-// Gaussian and mu and sigma are shared by all dims.
-
-// It might be useful to extend this to allow mean to be a matrix etc.
-
-var MatrixGaussian = makeDistributionType({
-  name: 'MatrixGaussian',
-  params: [{name: 'mu'}, {name: 'sigma'}, {name: 'dims'}],
+var TensorGaussian = makeDistributionType({
+  name: 'TensorGaussian',
+  desc: 'Distribution over a tensor of independent Gaussian variables.',
+  params: [
+    {name: 'mu', desc: 'mean'},
+    {name: 'sigma', desc: 'standard deviation'},
+    {name: 'dims', desc: 'dimension of tensor'}
+  ],
   mixins: [continuousSupport],
+  constructor: function() {
+    if (!_.isNumber(this.params.mu)) {
+      throw new Error(this.meta.name + ': mu should be a number.');
+    }
+    if (!_.isNumber(this.params.sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a number.');
+    }
+    if (!Array.isArray(this.params.dims)) {
+      throw new Error(this.meta.name + ': dims should be an array.');
+    }
+  },
   sample: function() {
     var mu = ad.value(this.params.mu);
     var sigma = ad.value(this.params.sigma);
     var dims = this.params.dims;
-
-    assert.ok(_.isNumber(mu));
-    assert.ok(_.isNumber(sigma));
-    assert.strictEqual(dims.length, 2);
 
     var x = new Tensor(dims);
     var n = x.length;
@@ -599,7 +601,7 @@ var MatrixGaussian = makeDistributionType({
     return x;
   },
   score: function(x) {
-    return matrixGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
+    return tensorGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
   }
 });
 
@@ -1246,7 +1248,7 @@ module.exports = {
   GaussianDrift: GaussianDrift,
   MultivariateGaussian: MultivariateGaussian,
   DiagCovGaussian: DiagCovGaussian,
-  MatrixGaussian: MatrixGaussian,
+  TensorGaussian: TensorGaussian,
   LogisticNormal: LogisticNormal,
   Cauchy: Cauchy,
   Discrete: Discrete,
