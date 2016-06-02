@@ -96,6 +96,24 @@ function isParams(x) {
   return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x) && x !== null;
 }
 
+function isTensor(t) {
+  return t instanceof Tensor;
+}
+
+function isMatrix(t) {
+  return t instanceof Tensor && t.rank === 2;
+}
+
+function isVector(t) {
+  return t instanceof Tensor && t.rank === 2 && t.dims[1] === 1;
+}
+
+function eqDim0(v, w) {
+  // Useful for checking two vectors have the same length, or that the
+  // dimension of a vector and matrix match.
+  return v.dims[0] === w.dims[0];
+}
+
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
