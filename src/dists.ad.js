@@ -394,11 +394,6 @@ var GaussianDrift = makeDistributionType({
 
 
 function mvGaussianSample(mu, cov) {
-  assert.ok(mu.rank === 2);
-  assert.ok(mu.dims[1] === 1);
-  assert.ok(cov.rank === 2);
-  assert.ok(cov.dims[0] === cov.dims[1]);
-  assert.ok(mu.dims[0] === cov.dims[0]);
   var d = mu.dims[0];
   var z = new Tensor([d, 1]);
   for (var i = 0; i < d; i++) {
@@ -409,13 +404,13 @@ function mvGaussianSample(mu, cov) {
 }
 
 function mvGaussianScore(mu, cov, x) {
+  var _x = ad.value(x);
   var _mu = ad.value(mu);
   var _cov = ad.value(cov);
-  assert.ok(_mu.rank === 2);
-  assert.ok(_mu.dims[1] === 1);
-  assert.ok(_cov.rank === 2);
-  assert.ok(_cov.dims[0] === _cov.dims[1]);
-  assert.ok(_mu.dims[0] === _cov.dims[0]);
+  if (!isVector(_x) || !eqDim0(_x, _mu)) {
+    return -Infinity;
+  }
+
   var d = _mu.dims[0];
   var dLog2Pi = d * LOG_2PI;
   var logDetCov = ad.scalar.log(ad.tensor.determinant(cov));
@@ -432,6 +427,19 @@ function mvGaussianScore(mu, cov, x) {
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
   params: [{name: 'mu', desc: 'mean vector'}, {name: 'cov', desc: 'covariance matrix'}],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _cov = ad.value(this.params.cov);
+    if (!isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!isMatrix(_cov)) {
+      throw new Error(this.meta.name + ': cov should be a matrix.');
+    }
+    if (!eqDim0(_mu, _cov)) {
+      throw new Error(this.meta.name + ': dimension mismatch between mu and cov.');
+    }
+  },
   sample: function() {
     return mvGaussianSample(ad.value(this.params.mu), ad.value(this.params.cov));
   },
