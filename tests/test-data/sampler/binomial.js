@@ -24,7 +24,7 @@ module.exports = {
     {params: [0.5, 22], n: 1e06, skip: ['mode', 'skew', 'kurtosis']},
 
     // just check support for large n
-    // {params: [0.5, 100000], n: 1e06, skip: ['mean','variance', 'mode', 'skew', 'kurtosis']}
+    {params: [0.5, 100000], n: 1e06, skip: ['mean', 'variance', 'mode', 'skew', 'kurtosis']}
   ],
   moment: function(params, N) {
     // returns the Nth moment

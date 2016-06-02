@@ -581,7 +581,7 @@ function binomialSample(p, n) {
   var N = 10;
   var a, b;
   while (n > N) {
-    a = 1 + n / 2;
+    a = Math.floor(1 + n / 2);
     b = 1 + n - a;
     var x = betaSample(a, b);
     if (x >= p) {
