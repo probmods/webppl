@@ -490,10 +490,8 @@ var DiagCovGaussian = makeDistributionType({
     return diagCovGaussianScore(this.params.mu, this.params.sigma, x);
   },
   base: function() {
-    var d = ad.value(this.params.mu).dims[0];
-    var mu = new Tensor([d, 1]);
-    var sigma = new Tensor([d, 1]).fill(1);
-    return new DiagCovGaussian({mu: mu, sigma: sigma});
+    var dims = ad.value(this.params.mu).dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
   },
   transform: function(x) {
     var mu = this.params.mu;
@@ -539,10 +537,8 @@ var LogisticNormal = makeDistributionType({
     return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
   },
   base: function() {
-    var d = ad.value(this.params.mu).dims[0];
-    var mu = new Tensor([d, 1]);
-    var sigma = new Tensor([d, 1]).fill(1);
-    return new DiagCovGaussian({mu: mu, sigma: sigma});
+    var dims = ad.value(this.params.mu).dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
   },
   transform: function(x) {
     var mu = this.params.mu;
