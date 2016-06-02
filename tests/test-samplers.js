@@ -43,7 +43,8 @@ var sampleStatisticFunctions = {
 }
 
 var distMetadataList = [
-  require('./test-data/sampler/gamma')
+  require('./test-data/sampler/gamma'),
+  require('./test-data/sampler/binomial')
 ];
 
 var generateSettingTest = function(seed, distMetadata, settings) {
@@ -72,11 +73,16 @@ var generateSettingTest = function(seed, distMetadata, settings) {
     // use for loop because some nodes don't define map()
     // for Float64Array
     var allInSupport = true;
+    var outsideSupport = [];
     for (var i = 0, ii = samples.length; i < ii; i++) {
-      allInSupport = allInSupport && distMetadata.inSupport(params, samples[i]);
+      var inSupport = distMetadata.inSupport(params, samples[i]);
+      allInSupport = allInSupport && inSupport;
+      if (!inSupport) {
+        outsideSupport.push(samples[i])
+      }
     }
 
-    test.ok(allInSupport);
+    test.ok(allInSupport, 'support test failed ' + outsideSupport.slice(0, 10).join(', '));
 
     // then check each populationStatisticFunction
     _.each(populationStatisticFunctions, function(statFn, statName) {
