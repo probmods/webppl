@@ -693,32 +693,6 @@ var Discrete = makeDistributionType({
 });
 
 
-var DiscreteOneHot = new makeDistributionType({
-  name: 'DiscreteOneHot',
-  params: [{name: 'ps'}],
-  sample: function() {
-    var ps = this.params.ps;
-    var i = multinomialSample(ps.data);
-    var d = ps.length;
-    var x = new Tensor([d, 1]);
-    x.data[i] = 1;
-    return x;
-  },
-  score: function(x) {
-    var ps = this.params.ps;
-    return ad.scalar.log(ad.tensor.sumreduce(ad.tensor.mul(ps, x)));
-  },
-  support: function() {
-    var ps = ad.value(this.params.ps);
-    var d = ps.length;
-    return _.range(d).map(function(i) {
-      var x = new Tensor([d, 1]);
-      x.data[i] = 1;
-      return x;
-    });
-  }
-});
-
 // an implementation of Marsaglia & Tang, 2000:
 // A Simple Method for Generating Gamma Variables
 function gammaSample(shape, scale) {
@@ -1263,7 +1237,6 @@ module.exports = {
   LogisticNormal: LogisticNormal,
   Cauchy: Cauchy,
   Discrete: Discrete,
-  DiscreteOneHot: DiscreteOneHot,
   Gamma: Gamma,
   Exponential: Exponential,
   Beta: Beta,

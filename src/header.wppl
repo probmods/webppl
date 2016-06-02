@@ -15,7 +15,6 @@ defineDistConstructors(
     TensorGaussian
     Cauchy
     Discrete
-    DiscreteOneHot
     Gamma
     Exponential
     Beta

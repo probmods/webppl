@@ -58,10 +58,6 @@ Distributions
 
   Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]
 
-.. js:function:: DiscreteOneHot({ps: ...})
-
-  * ps
-
 .. js:function:: Exponential({a: ...})
 
   * a: *rate*
