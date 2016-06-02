@@ -9,6 +9,7 @@ var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
 var dists = require('./src/dists');
+var errors = require('./src/errors');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
@@ -34,11 +35,15 @@ function run(code, packages, verbose, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  webppl.run(code, topK, {
-    bundles: webppl.parsePackageCode(packages, verbose),
-    filename: programFile,
-    verbose: verbose
-  });
+  try {
+    webppl.run(code, topK, {
+      bundles: webppl.parsePackageCode(packages, verbose),
+      filename: programFile,
+      verbose: verbose
+    });
+  } catch (e) {
+    errors.showFriendlyError(e);
+  }
 }
 
 var lines = function(ar) {
@@ -60,7 +65,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
     verbose: verbose
   };
 
-  var compiledBody = webppl.compile(code, compileOptions);
+  var compiledBody = webppl.compile(code, compileOptions).code;
 
   compiledCode += lines([
     'var __runner__ = ' + cliRunner.toString() + ';',

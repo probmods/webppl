@@ -489,7 +489,7 @@ function prepare(code, verbose) {
     transforms: [thunkify, naming, cps, optimize],
     verbose: verbose,
     generateCode: false
-  });
+  }).code;
 }
 
 module.exports = {

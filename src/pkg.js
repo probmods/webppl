@@ -85,7 +85,7 @@ var load = function(pkg) {
     headers: pkg.headers,
     wppl: pkg.wppl.map(function(path) {
       return {
-        code: fs.readFileSync(path.full),
+        code: fs.readFileSync(path.full, 'utf8'),
         filename: path.full
       };
     }),

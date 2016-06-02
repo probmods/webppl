@@ -617,29 +617,6 @@ var TensorGaussian = makeDistributionType({
 });
 
 
-var Delta = makeDistributionType({
-  name: 'Delta',
-  params: [{name: 'v'}],
-  mixins: [finiteSupport],
-  sample: function() {
-    return ad.value(this.params.v);
-  },
-  score: function(x) {
-    // We really need a generic equality check here, but I might get
-    // away with this for VI for now. Don't want to serialize as with
-    // categorical as that's too slow for large matrices. matrices.
-    assert.ok(this.params.v === x);
-    return 0;
-  },
-  // TODO: Test reparameterization works.
-  base: function() {
-    return this;
-  },
-  transform: function(x) {
-    return this.params.v;
-  }
-});
-
 
 var Cauchy = makeDistributionType({
   name: 'Cauchy',
@@ -1202,17 +1179,20 @@ var Delta = makeDistributionType({
     'as doing so produces incorrect results.',
   params: [{name: 'v', desc: 'support element'}],
   mixins: [finiteSupport],
-  constructor: function() {
-    this.v = util.serialize(this.params.v);
-  },
   sample: function() {
     return ad.value(this.params.v);
   },
   score: function(val) {
-    return util.serialize(val) === this.v ? 0 : -Infinity;
+    return val === this.params.v ? 0 : -Infinity;
   },
   support: function() {
     return [this.params.v];
+  },
+  base: function() {
+    return this;
+  },
+  transform: function(x) {
+    return this.params.v;
   }
 });
 

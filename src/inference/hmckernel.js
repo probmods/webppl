@@ -151,6 +151,7 @@ module.exports = function(env) {
     // variables.
     this.prevTrace = trace;
     this.trace = this.prevTrace.fresh();
+
     // Once the WebPPL program has finished we need to call cont to
     // continue inference. Since the program will call env.exit once
     // finished, we save cont here in order to resume inference as
@@ -159,6 +160,8 @@ module.exports = function(env) {
     // stored as part of the trace, and when invoked by a different
     // MCMC kernel execution would jump back here.
     this.positionStepCont = cont;
+
+    env.query.clear();
     return this.trace.continue();
   };
 

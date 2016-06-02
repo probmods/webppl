@@ -92,6 +92,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -343,6 +344,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -375,6 +377,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
       mixed1: true,
       mixed1Factor: true,
@@ -555,7 +558,7 @@ var testFunctions = {
     var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
-    test.ok(eq(actual, expected, args.tol), msg);
+    test.ok(eq(actual, expected, args.tol, args.exactSupport), msg);
   },
   mean: function(test, result, expected, args) {
     helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');

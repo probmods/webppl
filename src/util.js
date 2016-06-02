@@ -7,30 +7,49 @@ var ad = require('./ad');
 
 var rng = Math.random;
 
-var trampolineRunners = {
-  web: function f(t) {
-    var lastPauseTime = Date.now();
-
-    if (f.__cancel__) {
-      f.__cancel__ = false;
-    } else {
-      while (t) {
-        var currTime = Date.now();
-        if (currTime - lastPauseTime > 100) {
-          // NB: return is crucial here as it exits the while loop
-          // and i'm using return rather than break because we might
-          // one day want to cancel the timer
-          return setTimeout(function() { f(t) }, 0);
-        } else {
-          t = t();
-        }
+function withErrorHandling(handler, f) {
+  return function(x) {
+    try {
+      return f(x);
+    } catch (e) {
+      if (handler) {
+        handler(e);
+      } else {
+        throw e;
       }
     }
+  };
+}
+
+var trampolineRunners = {
+  web: function(handler) {
+    var f = withErrorHandling(handler, function(t) {
+      var lastPauseTime = Date.now();
+
+      if (f.__cancel__) {
+        f.__cancel__ = false;
+      } else {
+        while (t) {
+          var currTime = Date.now();
+          if (currTime - lastPauseTime > 100) {
+            // NB: return is crucial here as it exits the while loop
+            // and i'm using return rather than break because we might
+            // one day want to cancel the timer
+            return setTimeout(function() { f(t) }, 0);
+          } else {
+            t = t();
+          }
+        }
+      }
+    });
+    return f;
   },
-  cli: function(t) {
-    while (t) {
-      t = t()
-    }
+  cli: function(handler) {
+    return withErrorHandling(handler, function(t) {
+      while (t) {
+        t = t()
+      }
+    });
   }
 }
 
@@ -166,16 +185,22 @@ function histStd(hist) {
   }));
 }
 
-function histsApproximatelyEqual(actualHist, expectedHist, tolerance) {
-  var allOk = (expectedHist !== undefined);
-  _.each(
-      expectedHist,
-      function(expectedValue, key) {
-        var value = actualHist[key] || 0;
-        var testPassed = Math.abs(value - expectedValue) <= tolerance;
-        allOk = allOk && testPassed;
-      });
-  return allOk;
+function sameKeys(obj1, obj2) {
+  return _.size(obj1) === _.size(obj2) &&
+      _.all(_.keys(obj1), function(key) { return _.has(obj2, key); });
+}
+
+function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSupport) {
+  if (expectedHist === undefined || actualHist === undefined) {
+    return false;
+  }
+  if (exactSupport && !sameKeys(actualHist, expectedHist)) {
+    return false;
+  }
+  return _.all(expectedHist, function(expectedValue, key) {
+    var value = actualHist[key] || 0;
+    return Math.abs(value - expectedValue) <= tolerance;
+  });
 }
 
 function mergeDefaults(options, defaults) {
