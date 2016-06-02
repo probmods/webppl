@@ -442,13 +442,7 @@ var MultivariateGaussian = makeDistributionType({
 
 
 function diagCovGaussianSample(mu, sigma) {
-  assert.strictEqual(mu.rank, 2);
-  assert.strictEqual(sigma.rank, 2);
-  assert.strictEqual(mu.dims[1], 1);
-  assert.strictEqual(sigma.dims[1], 1);
-  assert.strictEqual(mu.dims[0], sigma.dims[0]);
   var d = mu.dims[0];
-
   var x = new Tensor([d, 1]);
   var n = x.length;
   while (n--) {
@@ -458,17 +452,13 @@ function diagCovGaussianSample(mu, sigma) {
 }
 
 function diagCovGaussianScore(mu, sigma, x) {
+  var _x = ad.value(x);
   var _mu = ad.value(mu);
-  var _sigma = ad.value(sigma);
-
-  assert.strictEqual(_mu.rank, 2);
-  assert.strictEqual(_sigma.rank, 2);
-  assert.strictEqual(_mu.dims[1], 1);
-  assert.strictEqual(_sigma.dims[1], 1);
-  assert.strictEqual(_mu.dims[0], _sigma.dims[0]);
+  if (!isVector(_x) || !eqDim0(_x, _mu)) {
+    return -Infinity;
+  }
 
   var d = _mu.dims[0];
-
   var dLog2Pi = d * LOG_2PI;
   var logDetCov = ad.scalar.mul(2, ad.tensor.sumreduce(ad.tensor.log(sigma)));
   var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
@@ -481,8 +471,25 @@ function diagCovGaussianScore(mu, sigma, x) {
 
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
-  params: [{name: 'mu'}, {name: 'sigma'}],
+  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix.',
+  params: [
+    {name: 'mu', desc: 'vector of means'},
+    {name: 'sigma', desc: 'vector of standard deviations'}
+  ],
   mixins: [continuousSupport],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!isVector(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a vector.');
+    }
+    if (!eqDim0(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    }
+  },
   sample: function() {
     return diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
   },

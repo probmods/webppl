@@ -39,8 +39,10 @@ Distributions
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu
-  * sigma
+  * mu: *vector of means*
+  * sigma: *vector of standard deviations*
+
+  Multivariate Gaussian distribution with diagonal covariance matrix.
 
 .. js:function:: Dirichlet({alpha: ...})
 
