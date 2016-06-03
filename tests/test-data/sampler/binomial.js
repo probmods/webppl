@@ -11,6 +11,7 @@ var ln = Math.log,
 module.exports = {
   name: 'binomial',
   sampler: dists.binomialSample,
+  type: 'integer',
   inSupport: function(params, x) {
     var n = params[1];
     return typeof x === 'number' && x % 1 === 0 & x >= 0 && x <= n;
