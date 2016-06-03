@@ -14,7 +14,7 @@ var examples = [
   'geometric',
   'hmm',
   'hmmIncremental',
-  // 'lda',
+  'lda',
   'ldaCollapsed',
   'linearRegression',
   'logisticRegression',

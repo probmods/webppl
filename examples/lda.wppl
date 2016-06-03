@@ -15,26 +15,19 @@ var docs = {
   'doc5': 'bear wolf bear python bear wolf bear wolf bear wolf'.split(' ')
 };
 
-
-// Constants and helper functions
-
-var ones = function(n) {
-  return repeat(n, function() {return 1.0;});
-}
-
 // Model
 
 var makeWordDist = function() {
-  return dirichlet(ones(vocabulary.length));
+  return dirichlet(ones([vocabulary.length, 1]));
 };
 
 var makeTopicDist = function() {
-  return dirichlet(ones(_.size(topics)));
+  return dirichlet(ones([_.size(topics), 1]));
 };
 
 var discreteFactor = function(vs, ps, v) {
   var i = indexOf(v, vs);
-  factor(Math.log(ps[i]));
+  factor(Math.log(T.get(ps, i)));
 }
 
 var model = function() {

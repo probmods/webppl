@@ -81,6 +81,10 @@ module.exports = function(env) {
     return k(s, new Tensor(dims));
   };
 
+  var ones = function(s, k, a, dims) {
+    return k(s, new Tensor(dims).fill(1));
+  };
+
   // Provides a convinient wrapper around the primitive
   // registerParams.
   var tensorParam = function(s, k, a, dims, mean, sd) {
@@ -207,6 +211,7 @@ module.exports = function(env) {
     Vector: Vector,
     Matrix: Matrix,
     zeros: zeros,
+    ones: ones,
     tensorParam: tensorParam,
     getObsFnAddress: getObsFnAddress,
     mapData: mapData,

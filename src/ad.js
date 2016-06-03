@@ -27,6 +27,11 @@ var valueRec = function(x) {
 
 ad.valueRec = valueRec;
 
+// TODO: Review before merging.
+// Experimental alias for ad.tensorEntry, which is an awkward thing to
+// have to call from webppl code.
+ad.tensor.get = ad.tensorEntry;
+
 ad.tensor.logGamma = ad.newUnaryFunction({
   OutputType: Tensor,
   name: 'logGamma',
