@@ -619,7 +619,7 @@ var Binomial = makeDistributionType({
     var p = this.params.p;
     var n = this.params.n;
 
-    if (!_.contains(this.support(), val)) {
+    if (!(typeof val === 'number' && val >= 0 && val <= n && val % 1 === 0)) {
       return -Infinity;
     }
 
