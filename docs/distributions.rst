@@ -50,7 +50,7 @@ Distributions
 
 .. js:function:: DirichletDrift({alpha: ...})
 
-  * alpha: *array of concentration parameters*
+  * alpha: *vector of concentration parameters*
 
 .. js:function:: Discrete({ps: ...})
 

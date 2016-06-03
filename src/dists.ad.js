@@ -1084,10 +1084,10 @@ var Dirichlet = makeDistributionType({
 var DirichletDrift = makeDistributionType({
   name: 'DirichletDrift',
   parent: Dirichlet,
-  params: [{name: 'alpha', desc: 'array of concentration parameters'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters'}],
   driftKernel: function(prevVal) {
     var concentration = 10;
-    var alpha = prevVal.map(function(x) { return concentration * x; });
+    var alpha = prevVal.mul(10);
     return new Dirichlet({alpha: alpha});
   }
 });
