@@ -130,7 +130,7 @@ var MarkdownInputBox = React.createClass({
   },
 
   setFocus: function(){
-    $(this.getDOMNode()).find("textarea").focus();
+    $(ReactDOM.findDOMNode(this)).find("textarea").focus();
   },
 
   onFocus: function(){
@@ -262,13 +262,13 @@ var FileSelector = React.createClass({
               <span>File:</span>
               <select value={this.props.selectedFile} onChange={this.handleChange}>
                 {this.props.fileIdsWithNames.map(function(idWithName){
-                  return <option key={idWithName.id} value={idWithName.id}>{idWithName.name}</option>;
+                  return <option key={"file" + idWithName.id} value={idWithName.id}>{idWithName.name}</option>;
                 })}
               <option key="__new__" value="new">New file</option>
               </select>
               {this.props.selectedFile != 0 ?
-               [<button onClick={this.props.renameFile}>rename</button>,
-                <button onClick={this.props.deleteFile}>delete</button>] :
+               [<button key='file-rename' onClick={this.props.renameFile}>rename</button>,
+                <button key='file-delete' onClick={this.props.deleteFile}>delete</button>] :
                []}
            </div>);
   }
