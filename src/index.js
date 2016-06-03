@@ -139,7 +139,6 @@ var MarkdownInputBox = React.createClass({
 
   handleChange: function(event){
     var text = event.target.value;
-    this.userChangedText = true;
     this.setState({text: text});
     this.props.updateText(text);
   },
@@ -169,10 +168,6 @@ var MarkdownInputBox = React.createClass({
   },
 
   shouldComponentUpdate: function(nextProps, nextState){
-    if (this.userChangedText){
-      this.userChangedText = false;
-      return false;
-    }
     return (nextState.text != this.state.text) || (nextState.hasFocus != this.state.hasFocus);
   }
 });
