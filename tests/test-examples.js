@@ -7,8 +7,6 @@ var dists = require('../src/dists');
 
 var examplesDir = './examples/';
 
-// TODO: Update examples to work with tensor valued dists.
-
 var examples = [
   'binomial',
   'geometric',
@@ -18,7 +16,7 @@ var examples = [
   'ldaCollapsed',
   'linearRegression',
   'logisticRegression',
-  // 'multivariateRegression',
+  'multivariateRegression',
   'pcfg',
   'pcfgIncremental',
   'scalarImplicature',
