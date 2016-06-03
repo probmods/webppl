@@ -10,6 +10,8 @@ var cx = require('classnames');
 var showdown = require('showdown');
 var converter = new showdown.Converter();
 
+var $ = require('jquery');
+var autosize = require('autosize');
 var _ = require('underscore');
 
 // For object with integer keys, return max(keys) + 1 (or 0 if empty)
@@ -119,9 +121,7 @@ var CodeInputBox = React.createClass({
   }
 });
 
-
 var MarkdownInputBox = React.createClass({
-
   getInitialState: function(){
     return {text: this.props.initialText, hasFocus: false};
   },
@@ -160,12 +160,12 @@ var MarkdownInputBox = React.createClass({
   },
 
   componentDidMount: function(){
-    $(".editorBlock textarea").autosize();
+    autosize($(".editorBlock textarea"));
     this.props.updateText(this.state.text);
   },
 
   componentDidUpdate: function(){
-    $(".editorBlock textarea").trigger('autosize.resize');
+    $(".editorBlock textarea").trigger('autosize:update');
   },
 
   shouldComponentUpdate: function(nextProps, nextState){
@@ -227,15 +227,14 @@ var MarkdownOutputBox = React.createClass({
   },
 
   componentDidMount: function(){
-    $('#editorMarkdown').autosize();
+    autosize($('#editorMarkdown'));
   },
 
   componentDidUpdate: function(){
-    $("#editorMarkdown").trigger('autosize.resize');
+    $("#editorMarkdown").trigger('autosize:update');
   }
 
 });
-
 
 var FileSelector = React.createClass({
 
@@ -254,7 +253,7 @@ var FileSelector = React.createClass({
               <span>File:</span>
               <select value={this.props.selectedFile} onChange={this.handleChange}>
                 {this.props.fileIdsWithNames.map(function(idWithName){
-                  return <option key={"file" + idWithName.id} value={idWithName.id}>{idWithName.name}</option>;
+                  return <option key={idWithName.id} value={idWithName.id}>{idWithName.name}</option>;
                 })}
               <option key="__new__" value="new">New file</option>
               </select>
@@ -482,7 +481,7 @@ var WebpplEditor = React.createClass({
     var newMarkdownOutputOpen = !this.state.markdownOutputOpen;
     this.setState({markdownOutputOpen: newMarkdownOutputOpen});
     if (newMarkdownOutputOpen){
-      setTimeout(function(){$('#editorMarkdown').autosize();}, 500);
+      setTimeout(function(){autosize($('#editorMarkdown'));}, 500);
     }
   },
 
