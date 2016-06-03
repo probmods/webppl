@@ -1046,14 +1046,11 @@ function dirichletSample(alpha) {
 }
 
 function dirichletScore(alpha, val) {
-  var _alpha = ad.value(alpha);
   var _val = ad.value(val);
-
-  assert.ok(_alpha.rank === 2);
-  assert.ok(_alpha.dims[1] === 1); // i.e. vector
-  assert.ok(_val.rank === 2);
-  assert.ok(_val.dims[1] === 1); // i.e. vector
-  assert.ok(_alpha.dims[0] === _val.dims[0]);
+  var _alpha = ad.value(alpha);
+  if (!isVector(_val) || !eqDim0(_val, _alpha)) {
+    return -Infinity;
+  }
 
   return ad.scalar.add(
     ad.tensor.sumreduce(
@@ -1067,7 +1064,13 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
-  params: [{name: 'alpha', desc: 'array of concentration parameters'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters'}],
+  constructor: function() {
+    var _alpha = ad.value(this.params.alpha);
+    if (!isVector(_alpha)) {
+      throw new Error(this.meta.name + ': alpha should be a vector.');
+    }
+  },
   sample: function() {
     return dirichletSample(ad.value(this.params.alpha));
   },
