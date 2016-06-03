@@ -642,29 +642,43 @@ function sum(xs) {
 
 
 
-function discreteScore(probs, val) {
+function inDiscreteSupport(val, dim) {
+  return (val === Math.floor(val)) && (0 <= val) && (val < dim);
+};
+
+function discreteScoreVector(probs, val) {
   var _probs = ad.value(probs);
   assert.ok(_probs.rank === 2);
   assert.ok(_probs.dims[1] === 1); // i.e. vector
   var d = _probs.dims[0];
-  var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < d);
-  return inSupport ?
+  return inDiscreteSupport(val, d) ?
       ad.scalar.log(ad.scalar.div(ad.tensorEntry(probs, val), ad.tensor.sumreduce(probs))) :
       -Infinity;
+}
+
+function discreteScoreArray(probs, val) {
+  'use ad';
+  var d = probs.length;
+  return inDiscreteSupport(val, d) ? Math.log(probs[val] / sum(probs)) : -Infinity;
 }
 
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]',
-  params: [{name: 'ps', desc: 'array of probabilities'}],
+  params: [{name: 'ps', desc: 'array or vector of probabilities'}],
   mixins: [finiteSupport],
   sample: function() {
-    return discreteSample(ad.value(this.params.ps).data);
+    var ps = _.isArray(this.params.ps) ?
+          this.params.ps.map(ad.value) :
+          ad.value(this.params.ps).data;
+    return discreteSample(ps);
   },
   score: function(val) {
-    return discreteScore(this.params.ps, val);
+    var scoreFn = _.isArray(this.params.ps) ? discreteScoreArray : discreteScoreVector;
+    return scoreFn(this.params.ps, val);
   },
   support: function() {
+    // This does the right thing for arrays and vectors.
     return _.range(ad.value(this.params.ps).length);
   }
 });

@@ -54,7 +54,7 @@ Distributions
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: *array of probabilities*
+  * ps: *array or vector of probabilities*
 
   Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]
 
