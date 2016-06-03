@@ -1,3 +1,11 @@
+.CodeMirror {
+    font-size: 12px
+}
+
+.wpedit .result pre {
+    background-color: white;
+}
+
 /* Literate editor */
 
 div#editorBlocks {
