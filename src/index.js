@@ -42,7 +42,6 @@ _.mixin({
 
 });
 
-
 // CodeMirror component for React
 // Based on https://github.com/brigand/react-edit/
 
@@ -108,13 +107,10 @@ var CodeInputBox = React.createClass({
       currentBlock: this.state.hasFocus,
       codeBlock: true
     });
+    // TODO: pass onBlur, onFocus to react-codemirror's onFocusChange prop
     return (<div className={blockClasses}>
-            <pre>
-              <CodeMirrorComponent code={this.props.initialCode}
-                                   onChange={this.props.updateCode}
-                                   onBlur={this.onBlur}
-                                   onFocus={this.onFocus} />
-            </pre>
+            <CodeEditor code={this.props.initialCode}
+                        onChange={this.props.updateCode} />
             <button className="removeBlock" onClick={this.props.removeMe}>x</button>
             <button className="moveUp" onClick={this.props.moveUp}>▲</button>
             <button className="moveDown" onClick={this.props.moveDown}>▼</button>
