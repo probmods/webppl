@@ -45,7 +45,8 @@
     "showdown": "^1.4.1",
     "sweet.js": "^0.7.4",
     "through2": "^2.0.1",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "webppl-editor": "probmods/webppl-editor"
   },
   "devDependencies": {
     "babel-preset-react": "^6.5.0",
