@@ -128,7 +128,12 @@ var generateSettingTest = function(seed, distMetadata, settings) {
       autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
 
 
-      var sampleStatisticFunction = sampleStatisticFunctions[statName];
+      var sampleStatisticFunction;
+      if (statName == 'mode') {
+        sampleStatisticFunction = (distMetadata.type == 'integer') ? statistics.mode : statistics.kdeMode
+      } else {
+        sampleStatisticFunction = sampleStatisticFunctions[statName];
+      }
       var actualResult = sampleStatisticFunction(samples);
 
       var tolerance;
