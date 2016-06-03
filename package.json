@@ -26,7 +26,6 @@
     "immutable": "^3.7.5",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
-    "numeric": "^1.2.6",
     "priorityqueuejs": "~1.0.0",
     "seedrandom": "^2.4.2",
     "source-map": "^0.5.3",
