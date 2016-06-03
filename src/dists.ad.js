@@ -92,10 +92,6 @@ var deserialize = function(JSONString) {
   return new Categorical({ps: obj.probs, vs: obj.support});
 };
 
-function isParams(x) {
-  return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x) && x !== null;
-}
-
 function isTensor(t) {
   return t instanceof Tensor;
 }
@@ -1252,6 +1248,5 @@ module.exports = {
   deserialize: deserialize,
   withImportanceDist: withImportanceDist,
   squishToProbSimplex: squishToProbSimplex,
-  isDist: isDist,
-  isParams: isParams
+  isDist: isDist
 };
