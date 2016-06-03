@@ -5,6 +5,10 @@ var wpEditor = require('webppl-editor');
 global.wpEditor = wpEditor // so viz works
 var CodeEditor = wpEditor.ReactComponent;
 
+// // TODO: bundle viz here too
+// var viz = require('webppl-viz');
+// global.viz = viz;
+
 var cx = require('classnames');
 
 var showdown = require('showdown');
