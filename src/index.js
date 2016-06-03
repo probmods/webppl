@@ -1,6 +1,10 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 
+var wpEditor = require('webppl-editor');
+global.wpEditor = wpEditor // so viz works
+var CodeEditor = wpEditor.ReactComponent;
+
 var cx = require('classnames');
 
 var converter = new Showdown.converter();
@@ -83,7 +87,6 @@ var CodeMirrorComponent = React.createClass({
     return nextProps.code !== this.props.code;
   }
 });
-
 
 var CodeInputBox = React.createClass({
 
@@ -511,13 +514,7 @@ var WebpplEditor = React.createClass({
                                                moveDown={that.moveBlock.bind(that, block.id, "down")}
                                                key={that.state.selectedFile + '-' + block.id} />);
       } else if (block.type === "code") {
-        var renderedBlock = (<CodeInputBox initialCode={block.content}
-                                           updateCode={that.updateBlockContent.bind(that, block.id)}
-                                           removeMe={that.removeBlock.bind(that, block.id)}
-                                           moveUp={that.moveBlock.bind(that, block.id, "up")}
-                                           moveDown={that.moveBlock.bind(that, block.id, "down")}
-                                           key={that.state.selectedFile + '-' + block.id} />);
-        // var renderedBlock = (<CodeEditor code={block.content} />);
+        var renderedBlock = (<CodeEditor key={block.id} code={block.content} language="webppl" />);
       } else {
         console.error("Unknown block type: ", block.type);
       }
@@ -559,7 +556,7 @@ var geometricCode = ['var geometric = function(){',
 var localState = localStorage.getItem("WebPPLEditorState");
 
 if (localState === null){
-  // block ids are separate from ordering indices (and only happen to coincide here)  
+  // block ids are separate from ordering indices (and only happen to coincide here)
   var initState = {
     selectedFile: 0,
     markdownOutputOpen: false,
