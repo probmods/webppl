@@ -514,7 +514,12 @@ var WebpplEditor = React.createClass({
                                                moveDown={that.moveBlock.bind(that, block.id, "down")}
                                                key={that.state.selectedFile + '-' + block.id} />);
       } else if (block.type === "code") {
-        var renderedBlock = (<CodeEditor key={block.id} code={block.content} language="webppl" />);
+        var renderedBlock = (<CodeInputBox initialCode={block.content}
+                                           updateCode={that.updateBlockContent.bind(that, block.id)}
+                                           removeMe={that.removeBlock.bind(that, block.id)}
+                                           moveUp={that.moveBlock.bind(that, block.id, "up")}
+                                           moveDown={that.moveBlock.bind(that, block.id, "down")}
+                                           key={that.state.selectedFile + '-' + block.id} />);
       } else {
         console.error("Unknown block type: ", block.type);
       }
