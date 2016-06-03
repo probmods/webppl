@@ -7,7 +7,8 @@ var CodeEditor = wpEditor.ReactComponent;
 
 var cx = require('classnames');
 
-var converter = new Showdown.converter();
+var showdown = require('showdown');
+var converter = new showdown.Converter();
 
 // For object with integer keys, return max(keys) + 1 (or 0 if empty)
 
@@ -20,14 +21,12 @@ var nextIntegerKey = function(obj){
   }
 };
 
-
 // Extend _.indexOf to work with functions instead of values
 // Based on http://stackoverflow.com/questions/12356642/
 
 var indexOfValue = _.indexOf; // save a reference to the core implementation
 
 _.mixin({
-
     // return the index of the first array element passing a test
     indexOf: function(array, test) {
         // delegate to standard indexOf if the test isn't a function
