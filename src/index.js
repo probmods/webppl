@@ -10,6 +10,8 @@ var cx = require('classnames');
 var showdown = require('showdown');
 var converter = new showdown.Converter();
 
+var _ = require('underscore');
+
 // For object with integer keys, return max(keys) + 1 (or 0 if empty)
 
 var nextIntegerKey = function(obj){
