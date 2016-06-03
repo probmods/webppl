@@ -72,7 +72,7 @@ module.exports = {
     kurtosis: function(params) {
       var p = params[0];
       var n = params[1];
-      return (1 - 6 * p * (1 - p)) / (n * p * (1 - p));
+      return 3 + (1 - 6 * p * (1 - p)) / (n * p * (1 - p));
 
     }
   }
