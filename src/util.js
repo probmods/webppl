@@ -277,7 +277,10 @@ function jsnew(ctor, arg) {
 
 // Unlike _.isObject this returns false for arrays and functions.
 function isObject(x) {
-  return x !== undefined && x !== null && Object.getPrototypeOf(x) === Object.prototype;
+  return x !== undefined &&
+         x !== null &&
+         typeof x === 'object' && // required for Node <= 0.12
+         Object.getPrototypeOf(x) === Object.prototype;
 }
 
 function relativizeAddress(env, address) {
