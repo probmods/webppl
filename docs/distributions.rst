@@ -79,8 +79,10 @@ Distributions
 
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
-  * mu
-  * sigma
+  * mu: *vector of means*
+  * sigma: *vector of standard deviations*
+
+  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 

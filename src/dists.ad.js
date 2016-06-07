@@ -518,12 +518,32 @@ var squishToProbSimplex = function(x) {
   return ad.tensor.softmax(u);
 };
 
-// TODO: Generalize to allow correlations.
+// Atchison, J., and Sheng M. Shen. "Logistic-normal distributions:
+// Some properties and uses." Biometrika 67.2 (1980): 261-272.
 
 var LogisticNormal = makeDistributionType({
   name: 'LogisticNormal',
-  params: [{name: 'mu'}, {name: 'sigma'}],
+  desc: 'A distribution over probability vectors obtained by transforming a random variable ' +
+    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then ' +
+    'the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.',
+  params: [
+    {name: 'mu', desc: 'vector of means'},
+    {name: 'sigma', desc: 'vector of standard deviations'}
+  ],
   mixins: [continuousSupport],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!isVector(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a vector.');
+    }
+    if (!eqDim0(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    }
+  },
   sample: function() {
     return squishToProbSimplex(diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma)));
   },
@@ -531,20 +551,17 @@ var LogisticNormal = makeDistributionType({
     var mu = this.params.mu;
     var sigma = this.params.sigma;
     var _mu = ad.value(mu);
-    var _sigma = ad.value(sigma);
     var _val = ad.value(val);
 
-    assert.ok(_val.dims[0] - 1 === _mu.dims[0]);
+    if (!isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
+      return -Infinity;
+    }
 
     var d = _mu.dims[0];
-
     var u = ad.tensor.reshape(ad.tensor.range(val, 0, d), [d, 1]);
-
     var u_last = ad.tensorEntry(val, d);
     var inv = ad.tensor.log(ad.tensor.div(u, u_last));
-
     var normScore = diagCovGaussianScore(mu, sigma, inv);
-
     return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
   },
   base: function() {
