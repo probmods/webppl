@@ -129,10 +129,6 @@ var deserializeDist = function(JSONString) {
   return dists.deserialize(JSONString);
 };
 
-var withImportanceDist = function(d, importanceDist) {
-  return dists.withImportanceDist(d, importanceDist);
-};
-
 // XRPs
 
 var makeBetaBernoulli = function(pseudocounts) {

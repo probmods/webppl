@@ -1226,12 +1226,6 @@ var Delta = makeDistributionType({
   }
 });
 
-function withImportanceDist(dist, importanceDist) {
-  var newDist = clone(dist);
-  newDist.importanceDist = importanceDist;
-  return newDist;
-}
-
 module.exports = {
   // distributions
   Uniform: Uniform,
@@ -1266,7 +1260,6 @@ module.exports = {
   // helpers
   serialize: serialize,
   deserialize: deserialize,
-  withImportanceDist: withImportanceDist,
   squishToProbSimplex: squishToProbSimplex,
   isDist: isDist
 };
