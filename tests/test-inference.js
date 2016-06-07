@@ -519,6 +519,7 @@ var tests = [
       std: { tol: 0.1 }
     },
     models: {
+      deterministic: true,
       guidedFlip: true,
       guidedGaussian: {
         args: { samples: 5000, steps: 100, estimator: {ELBO: {samples: 100}} }

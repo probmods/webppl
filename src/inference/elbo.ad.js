@@ -126,7 +126,9 @@ module.exports = function(env) {
               this.logq * scoreDiff :
               this.logr * scoreDiff + this.logq - this.logp;
 
-        objective.backprop();
+        if (ad.isLifted(objective)) { // handle guides with zero parameters
+          objective.backprop();
+        }
 
         var grads = _.mapObject(this.paramsSeen, function(params) {
           return params.map(ad.derivative);
