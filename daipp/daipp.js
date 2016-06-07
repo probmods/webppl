@@ -25,16 +25,19 @@ module.exports = function(env) {
 
   // TODO: Move to adnn.
   function xavierInit(t) {
+    var scale;
     if (t.rank === 1) {
-      t.zero();
+      // Init. biases to tiny values to avoid zero gradient warnings
+      // on first optimization step.
+      scale = 1e-5;
     } else if (t.rank === 2) {
-      var scale = 1 / Math.sqrt(t.dims[1]);
-      var n = t.length;
-      while (n--) {
-        t.data[n] = dists.gaussianSample(0, scale);
-      }
+      scale = 1 / Math.sqrt(t.dims[1]);
     } else {
       throw 'xavierInit: Unexpected rank.';
+    }
+    var n = t.length;
+    while (n--) {
+      t.data[n] = dists.gaussianSample(0, scale);
     }
   }
 
