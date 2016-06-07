@@ -33,7 +33,7 @@ try {
   var rejection = require('./inference/rejection');
   var incrementalmh = require('./inference/incrementalmh');
   var optimize = require('./inference/optimize');
-  var sampleGuide = require('./inference/sampleGuide');
+  var forwardSample = require('./inference/forwardSample');
   var evaluateGuide = require('./inference/evaluateGuide');
   var headerUtils = require('./headerUtils');
   var Query = require('./query').Query;
@@ -145,7 +145,7 @@ module.exports = function(env) {
   // Inference functions and header utils
   var headerModules = [
     enumerate, asyncpf, mcmc, incrementalmh, pmcmc,
-    smc, rejection, optimize, sampleGuide, evaluateGuide, headerUtils
+    smc, rejection, optimize, forwardSample, evaluateGuide, headerUtils
   ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));

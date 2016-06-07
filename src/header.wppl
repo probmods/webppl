@@ -672,6 +672,10 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };
 
+var SampleGuide = function(wpplFn, options) {
+  return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
+};
+
 var Infer = function(options, wpplFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
@@ -690,7 +694,8 @@ var Infer = function(options, wpplFn) {
     asyncPF: AsyncPF,
     rejection: Rejection,
     enumerate: Enumerate,
-    incrementalMH: IncrementalMH
+    incrementalMH: IncrementalMH,
+    forward: ForwardSample
   };
 
   var methodName = options.method;

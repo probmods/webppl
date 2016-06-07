@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    method: 'rejection',
+    method: 'forward',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },

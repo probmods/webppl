@@ -1,16 +1,19 @@
+// Coroutine to sample from the guide or target program, ignoring
+// factor statements.
+
 'use strict';
 
 var _ = require('underscore');
-var assert = require('assert');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function SampleGuide(s, k, a, wpplFn, options) {
+  function ForwardSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
+      guide: false, // true = sample guide, false = sample target
       params: {}
     });
 
@@ -24,7 +27,7 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  SampleGuide.prototype = {
+  ForwardSample.prototype = {
 
     run: function() {
 
@@ -50,11 +53,11 @@ module.exports = function(env) {
     },
 
     sample: function(s, k, a, dist, options) {
-      if (!(options && _.has(options, 'guide'))) {
+      if (this.opts.guide && !(options && _.has(options, 'guide'))) {
         throw 'Guide not specified.';
       }
-      var guideDist = options.guide;
-      return k(s, guideDist.sample());
+      var distribution = this.opts.guide ? options.guide : dist;
+      return k(s, distribution.sample());
     },
 
     factor: function(s, k, a, score) {
@@ -62,14 +65,14 @@ module.exports = function(env) {
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
-    constructor: SampleGuide
+    constructor: ForwardSample
 
   };
 
   return {
-    SampleGuide: function() {
-      var coroutine = Object.create(SampleGuide.prototype);
-      SampleGuide.apply(coroutine, arguments);
+    ForwardSample: function() {
+      var coroutine = Object.create(ForwardSample.prototype);
+      ForwardSample.apply(coroutine, arguments);
       return coroutine.run();
     }
   };
