@@ -38,12 +38,12 @@ module.exports = function(env) {
 
     // Create a (cps) function which takes parameters to gradient
     // estimates.
-    var estimator = subOptions(options.estimator, function(name, opts) {
+    var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
       opts = util.mergeDefaults(opts, _.pick(options, 'verbose', 'debug'));
       return _.partial(estimators[name], wpplFn, s, a, opts);
     });
 
-    var optimizer = subOptions(options.method, function(name, opts) {
+    var optimizer = util.getValAndOpts(options.method, function(name, opts) {
       name = (name === 'gd') ? 'sgd' : name;
       return optMethods[name](opts);
     });
@@ -131,24 +131,6 @@ module.exports = function(env) {
       console.warn('Gradient for param ' + name + ':' + i + ' is ' + problem + '.');
       issuedGradWarning[key] = true;
     }
-  }
-
-  // 'gd' => cont('gd', {})
-  // {gd: options} => cont('gd', options)
-  // {gd: options, otherKey: {}} => throw
-
-  function subOptions(obj, cont) {
-    var args;
-    if (_.isString(obj)) {
-      args = [obj, {}];
-    } else {
-      if (_.size(obj) !== 1) {
-        throw 'Invalid options.';
-      }
-      var key = _.keys(obj)[0];
-      args = [key, obj[key]];
-    }
-    return cont.apply(null, args);
   }
 
   return {

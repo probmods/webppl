@@ -214,6 +214,31 @@ function throwUnlessOpts(options, fnName) {
   }
 }
 
+// When using an object to fake named function parameters we sometimes
+// accept a string *or* and object as a way of passing both a string
+// *and* a related set of sub options. This helper takes such a value,
+// extracts the string and object, passes them through a continuation
+// and returns the result.
+
+// getValAndOpts('foo', (name, opts) => [name, opts])
+// => ['foo', {}]
+// getValAndOpts({foo: {bar: 0}}, (name, opts) => [name, opts])
+// => ['foo', {bar: 0}]
+
+function getValAndOpts(obj, cont) {
+  var args;
+  if (_.isString(obj)) {
+    args = [obj, {}];
+  } else {
+    if (_.size(obj) !== 1) {
+      throw 'Expected an object with a single key but received: ' + JSON.stringify(obj);
+    }
+    var key = _.keys(obj)[0];
+    args = [key, obj[key]];
+  }
+  return cont.apply(null, args);
+}
+
 function InfToJSON(k, v) {
   if (v === Infinity) {
     return 'Infinity';
@@ -384,6 +409,7 @@ module.exports = {
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
   throwUnlessOpts: throwUnlessOpts,
+  getValAndOpts: getValAndOpts,
   sum: sum,
   product: product,
   asArray: asArray,
