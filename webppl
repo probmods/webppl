@@ -27,8 +27,6 @@ function topK(s,x) {
   printWebPPLValue(x);
 };
 
-var cliRunner = util.trampolineRunners.cli;
-
 function run(code, packages, verbose, programFile) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
@@ -68,7 +66,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
   var compiledBody = webppl.compile(code, compileOptions).code;
 
   compiledCode += lines([
-    'var __runner__ = ' + cliRunner.toString() + ';',
+    'var __runner__ = util.trampolineRunners.cli();',
     printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
