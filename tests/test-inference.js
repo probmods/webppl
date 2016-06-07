@@ -509,6 +509,21 @@ var tests = [
     models: {
       deterministic: { hist: { tol: 0 } }
     }
+  },
+  {
+    name: 'VI',
+    settings: {
+      args: { samples: 1000, steps: 1000 },
+      hist: { tol: 0.1 },
+      mean: { tol: 0.1 },
+      std: { tol: 0.1 }
+    },
+    models: {
+      guidedFlip: true,
+      guidedGaussian: {
+        args: { samples: 5000, steps: 100, estimator: {ELBO: {samples: 100}} }
+      }
+    }
   }
 ];
 

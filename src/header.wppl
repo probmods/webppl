@@ -676,6 +676,11 @@ var SampleGuide = function(wpplFn, options) {
   return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
 };
 
+var Variational = function(wpplFn, options) {
+  var params = Optimize(wpplFn, _.omit(options, 'samples'));
+  return SampleGuide(wpplFn, _.extendOwn({params: params}, _.pick(options, 'samples')));
+};
+
 var Infer = function(options, wpplFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
@@ -695,7 +700,8 @@ var Infer = function(options, wpplFn) {
     rejection: Rejection,
     enumerate: Enumerate,
     incrementalMH: IncrementalMH,
-    forward: ForwardSample
+    forward: ForwardSample,
+    VI: Variational // TODO: Lower case 'vi' would be nicer?
   };
 
   var methodName = options.method;
