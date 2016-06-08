@@ -39,7 +39,8 @@ var tests = [
       mixed3: true,
       mixed4: true,
       bivariateGaussian: true,
-      indirectDependency: true
+      indirectDependency: true,
+      guidedFlip: true
     }
   },
   {
@@ -61,7 +62,8 @@ var tests = [
       withCaching: true,
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
-      nestedEnumDiscrete: true
+      nestedEnumDiscrete: true,
+      guidedFlip: true
     }
   },
   {
@@ -102,7 +104,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      guidedFlip: true
     }
   },
   {
@@ -174,7 +177,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumDiscrete: true,
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -224,7 +228,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -253,7 +258,8 @@ var tests = [
       importance3: true,
       withCaching: true,
       variableSupport: true,
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -282,7 +288,8 @@ var tests = [
       },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       gaussianMean: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
-      gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } }
+      gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
+      guidedFlip: true
     }
   },
   {
@@ -354,7 +361,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      guidedFlip: true
     }
   },
   {
@@ -482,6 +490,13 @@ var tests = [
           samples: 1500,
           burn: 1500,
           kernel: { HMC: { steps: 50, stepSize: 0.01 }}
+        }
+      },
+      guidedGaussian: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
         }
       }
     }
