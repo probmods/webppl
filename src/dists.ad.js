@@ -765,6 +765,9 @@ function lnfact(x) {
 
 function lnfactExact(x) {
   'use ad';
+  if (x < 0) {
+    throw new Error('lnfactExact called on negative argument ' + x);
+  }
   if (x < 1) {
     x = 1;
   }
