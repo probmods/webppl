@@ -26,7 +26,7 @@ module.exports = function(env) {
   function Optimize(s, k, a, wpplFn, options) {
     options = util.mergeDefaults(options, {
       params: {},
-      method: 'gd',
+      method: 'adagrad',
       estimator: 'ELBO',
       steps: 1,
       clip: false,              // false = no clipping, otherwise specifies threshold.

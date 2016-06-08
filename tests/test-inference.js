@@ -513,7 +513,7 @@ var tests = [
   {
     name: 'VI',
     settings: {
-      args: { samples: 1000, steps: 1000 },
+      args: { samples: 1000, steps: 1000, optMethod: 'gd' },
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },
       std: { tol: 0.1 }
@@ -522,7 +522,11 @@ var tests = [
       deterministic: true,
       guidedFlip: true,
       guidedGaussian: {
-        args: { samples: 5000, steps: 100, estimator: {ELBO: {samples: 100}} }
+        args: {
+          samples: 5000,
+          steps: 100,
+          optMethod: 'gd',
+          estimator: {ELBO: {samples: 100}} }
       }
     }
   }
