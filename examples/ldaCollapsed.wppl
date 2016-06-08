@@ -20,7 +20,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
   var ddObserve = function(val) {
     var pc = globalStore[ddname];  // get current sufficient stats
-    factor(Discrete({ps: normalize(pc)}).score(val));
+    factor(score(Discrete({ps: normalize(pc)}), val));
     // score based on predictive distribution (normalize counts)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
   };

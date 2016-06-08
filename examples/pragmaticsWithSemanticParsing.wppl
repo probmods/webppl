@@ -160,7 +160,7 @@ var speaker = cache(function(world) {
   Infer({method: 'enumerate', maxExecutions: 100}, function() {
     var utterance = utterancePrior()
     var L = literalListener(utterance)
-    factor(L.score(world))
+    factor(score(L, world))
     return utterance
   })
 })
@@ -170,7 +170,7 @@ var listener = function(utterance) {
     var world = worldPrior(2, function(w) {return 1}) //use vacuous meaning to avoid any guide...
     //    var world = worldPrior(2, meaning(utterance)) //guide by literal meaning
     var S = speaker(world)
-    factor(S.score(utterance))
+    factor(score(S, utterance))
     return isall(world)
   })
 }

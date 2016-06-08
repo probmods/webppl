@@ -5,6 +5,6 @@ var model = function() {
     factor(!z ? 0 : -2);
     return z;
   });
-  factor(marginal.score(true));
+  factor(score(marginal, true));
   return x;
 };

@@ -42,7 +42,7 @@ var transition = function(lastPos, secondLastPos) {
 
 var observeConstrained = function(pos, trueObs) {
   return map2(
-      function(x, obs) { factor(Gaussian({mu: x, sigma: 5}).score(obs)); },
+      function(x, obs) { factor(score(Gaussian({mu: x, sigma: 5}), obs)); },
       pos,
       trueObs
   );
