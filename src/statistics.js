@@ -108,6 +108,13 @@ function kde(samps, kernel) {
   return results;
 }
 
+function mode(samps) {
+  // TODO: accommodate multimodality
+  // tally values and sort
+  var tallied = _.sortBy(_.pairs(_.countBy(samps)), '1');
+  return _.last(tallied)[0];
+}
+
 // estimate the mode of a continuous distribution from some
 // samples by computing kde and returning the bin with
 // max density
@@ -138,5 +145,6 @@ module.exports = {
   skew: skew,
   kurtosis: kurtosis,
   kde: kde,
-  kdeMode: kdeMode
+  kdeMode: kdeMode,
+  mode: mode
 }

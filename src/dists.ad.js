@@ -583,7 +583,7 @@ function binomialSample(p, n) {
   var N = 10;
   var a, b;
   while (n > N) {
-    a = 1 + n / 2;
+    a = Math.floor(1 + n / 2);
     b = 1 + n - a;
     var x = betaSample(a, b);
     if (x >= p) {
@@ -923,10 +923,10 @@ var Categorical = makeDistributionType({
 var Delta = makeDistributionType({
   name: 'Delta',
   desc: 'Discrete distribution that assigns probability one to the single ' +
-    'element in its support. This is only useful in special circumstances as sampling ' +
-    'from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` ' +
-    'distribution parameterized by a random choice should not be used with MCMC based inference, ' +
-    'as doing so produces incorrect results.',
+      'element in its support. This is only useful in special circumstances as sampling ' +
+      'from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` ' +
+      'distribution parameterized by a random choice should not be used with MCMC based inference, ' +
+      'as doing so produces incorrect results.',
   params: [{name: 'v', desc: 'support element'}],
   mixins: [finiteSupport],
   constructor: function() {
@@ -972,6 +972,7 @@ module.exports = {
   Categorical: Categorical,
   Delta: Delta,
   // rng
+  binomialSample: binomialSample,
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
   gammaSample: gammaSample,
