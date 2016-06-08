@@ -48,7 +48,7 @@ function Distribution() {}
 Distribution.prototype = {
 
   toJSON: function() {
-    throw 'Not implemented';
+    throw new Error('Not implemented');
   },
 
   inspect: function(depth, options) {
@@ -88,7 +88,7 @@ var serialize = function(dist) {
 var deserialize = function(JSONString) {
   var obj = util.deserialize(JSONString);
   if (!obj.probs || !obj.support) {
-    throw 'Cannot deserialize a non-distribution JSON object: ' + JSONString;
+    throw new Error('Cannot deserialize a non-distribution JSON object: ' + JSONString);
   }
   return new Categorical({ps: obj.probs, vs: obj.support});
 };
@@ -147,7 +147,7 @@ function makeDistributionType(options) {
   ['name', 'params'].forEach(function(name) {
     if (!_.has(options, name)) {
       console.log(options);
-      throw 'makeDistributionType: ' + name + ' is required.';
+      throw new Error('makeDistributionType: ' + name + ' is required.');
     }
   });
 
@@ -156,7 +156,9 @@ function makeDistributionType(options) {
     var originalScoreFn = options.score;
     options.score = function(val) {
       if (arguments.length !== 1) {
-        throw 'The score method of ' + this.meta.name + ' expected 1 argument but received ' + arguments.length + '.';
+        throw new Error('The score method of ' + this.meta.name +
+                        ' expected 1 argument but received ' +
+                        arguments.length + '.');
       }
       return originalScoreFn.call(this, val);
     };
@@ -170,11 +172,11 @@ function makeDistributionType(options) {
   // uses the default constructor.
   var dist = function(params) {
     if (params === undefined) {
-      throw 'Parameters not supplied to ' + this.meta.name + ' distribution.';
+      throw new Error('Parameters not supplied to ' + this.meta.name + ' distribution.');
     }
     parameterNames.forEach(function(p) {
       if (!params.hasOwnProperty(p)) {
-        throw 'Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.';
+        throw new Error('Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.');
       }
     }, this);
     this.params = params;
@@ -194,7 +196,7 @@ function makeDistributionType(options) {
 
   ['sample', 'score'].forEach(function(method) {
     if (!dist.prototype[method]) {
-      throw 'makeDistributionType: method "' + method + '" not defined for ' + options.name;
+      throw new Error('makeDistributionType: method "' + method + '" not defined for ' + options.name);
     }
   });
 

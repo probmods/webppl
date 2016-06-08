@@ -34,7 +34,7 @@ module.exports = function(env) {
     env.coroutine = this;
 
     if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
-      throw 'samples should be a positive integer.';
+      throw new Error('samples should be a positive integer.');
     }
 
     if (this.incremental) {
