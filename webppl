@@ -22,8 +22,7 @@ function printWebPPLValue(x) {
   }
 };
 
-function topK(s,x) {
-  console.log('\n* Program return value:\n');
+function topK(s, x) {
   printWebPPLValue(x);
 };
 
@@ -107,7 +106,6 @@ function main() {
 
   // Load webppl code
   var programFile = argv._[0];
-  console.log('Processing', programFile);
 
   var code = fs.readFileSync(programFile, 'utf8');
   var processCode = argv.compile ? compile : run;
