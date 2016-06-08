@@ -542,9 +542,7 @@ var takeWhile = function(p, ar) {
 };
 
 var indexOf = function(x, xs) {
-  // prototype method doesn't return falsy value if not found
-  var i = xs.indexOf(x);
-  return i < 0 ? undefined : i
+  return xs.indexOf(x);
 };
 
 var minWith = function(f, ar) {
