@@ -55,7 +55,7 @@ module.exports = function(env) {
       return k(s, dist.sample());
     },
     factor: function() {
-      throw 'factor allowed only inside inference.';
+      throw new Error('factor allowed only inside inference.');
     },
     exit: function(s, r) {
       return r;
@@ -70,7 +70,7 @@ module.exports = function(env) {
 
   env.sample = function(s, k, a, dist) {
     if (!dists.isDist(dist)) {
-      throw 'sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".';
+      throw new Error('sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".');
     }
     return env.coroutine.sample(s, k, a, dist);
   };

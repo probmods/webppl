@@ -67,14 +67,14 @@ module.exports = function(env) {
     // Find support of this distribution:
     if (dist.isContinuous || !dist.support) {
       console.error(dist);
-      throw 'Enumerate can only be used with distributions that have finite support.';
+      throw new Error('Enumerate can only be used with distributions that have finite support.');
     }
     var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
       console.error(dist);
-      throw 'Enumerate encountered a distribution with empty support!';
+      throw new Error('Enumerate encountered a distribution with empty support!');
     }
 
     return supp;
@@ -136,7 +136,7 @@ module.exports = function(env) {
       return this.nextInQueue();
     } else {
       if (this.marginal.size === 0) {
-        throw 'All paths explored by Enumerate have probability zero.';
+        throw new Error('All paths explored by Enumerate have probability zero.');
       }
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;

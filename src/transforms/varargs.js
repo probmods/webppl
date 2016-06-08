@@ -30,7 +30,7 @@ function popFn(node) {
 
 function getEnclosingFunctionNode() {
   if (fnStack.length === 0) {
-    throw 'Used "arguments" outside of function context!';
+    throw new Error('Used "arguments" outside of function context!');
   }
   return fnStack[fnStack.length - 1];
 }

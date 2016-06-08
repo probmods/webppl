@@ -117,7 +117,7 @@ module.exports = function(env) {
       var prevWBar = lk[lk.length - 1].wbar;
       var wbar = -Math.log(denom) + util.logsumexp([Math.log(lk.length) + prevWBar,
                                                     Math.log(currMultiplicity) + currWeight]);
-      if (wbar > 0) throw 'Positive weight!!'; // sanity check
+      if (wbar > 0) throw new Error('Positive weight!!'); // sanity check
       var logRatio = currWeight - wbar;
       var numChildrenAndWeight = [];
 
