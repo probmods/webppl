@@ -322,7 +322,7 @@ function relativizeAddress(env, address) {
 
   assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
   var baseAddress = env.coroutine.a;
-  assert.ok(address.startsWith(baseAddress), 'Address prefix mismatch.');
+  assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
   return address.slice(baseAddress.length);
 }
 
