@@ -618,12 +618,42 @@ var Binomial = makeDistributionType({
     'use ad';
     var p = this.params.p;
     var n = this.params.n;
-    // exact formula
-    return (lnfact(n) - lnfact(n - val) - lnfact(val) +
-            val * Math.log(p) + (n - val) * Math.log(1 - p));
+
+    if (!(typeof val === 'number' && val >= 0 && val <= n && val % 1 === 0)) {
+      return -Infinity;
+    }
+
+    // exact formula is log{ binomial(n,x) * p^x * (1-p)^(n-x) }
+    // = log(binomial(n,x)) + x*log(p) + (n-x)*log(1-p)
+    // where binomial(n,x) is the binomial function
+
+    // optimized computation of log(binomial(n,x))
+    // binomial(n,x) is n! / (x! * (n-x)!)
+    // compute the log of this:
+    var logNumPermutations = 0;
+    // let o be the larger of x and n-x
+    // and m be the smaller
+    var m, o;
+    if (val < n - val) {
+      m = val;
+      o = n - val
+    } else {
+      m = n - val;
+      o = val;
+    }
+
+    for (var i = o + 1; i <= n; i++) {
+      logNumPermutations += Math.log(i);
+    }
+    logNumPermutations -= lnfactExact(m);
+
+    return (logNumPermutations +
+            // avoid returning 0 * -Infinity, which is NaN
+            (val == 0 ? 0 : val * Math.log(p)) +
+            (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
   },
   support: function() {
-    return _.range(this.params.n).concat(this.params.n);
+    return _.range(0, this.params.n + 1);
   }
 });
 
@@ -733,7 +763,21 @@ function lnfact(x) {
   return sum;
 }
 
-
+function lnfactExact(x) {
+  'use ad';
+  if (x < 0) {
+    throw new Error('lnfactExact called on negative argument ' + x);
+  }
+  if (x < 1) {
+    x = 1;
+  }
+  var t = 0;
+  while (x > 1) {
+    t += Math.log(x);
+    x -= 1;
+  }
+  return t;
+}
 
 var Poisson = makeDistributionType({
   name: 'Poisson',
