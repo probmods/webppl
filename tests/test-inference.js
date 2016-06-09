@@ -52,6 +52,7 @@ var tests = [
     },
     models: {
       simple: true,
+      simpleSoft: true,
       upweight: true,
       incrementalBinomial: true,
       deterministic: { hist: { exact: true } },
@@ -528,21 +529,20 @@ var tests = [
   {
     name: 'VI',
     settings: {
-      args: { samples: 1000, steps: 1000, optMethod: 'gd' },
+      args: {
+        samples: 5000,
+        steps: 100,
+        optMethod: 'gd',
+        estimator: {ELBO: {samples: 100}} },
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },
       std: { tol: 0.1 }
     },
     models: {
+      simpleSoft: true,
       deterministic: true,
       guidedFlip: true,
-      guidedGaussian: {
-        args: {
-          samples: 5000,
-          steps: 100,
-          optMethod: 'gd',
-          estimator: {ELBO: {samples: 100}} }
-      }
+      guidedGaussian: true
     }
   }
 ];

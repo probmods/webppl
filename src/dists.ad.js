@@ -110,6 +110,23 @@ function eqDim0(v, w) {
   return v.dims[0] === w.dims[0];
 }
 
+function RealInterval(a, b) {
+  this.a = a;
+  this.b = b;
+}
+
+function gt(a) {
+  return new RealInterval(a, Infinity);
+}
+
+function lt(b) {
+  return new RealInterval(-Infinity, b);
+}
+
+function interval(a, b) {
+  return new RealInterval(a, b);
+}
+
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
@@ -258,7 +275,7 @@ var UniformDrift = makeDistributionType({
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
   desc: 'Distribution on {true,false}',
-  params: [{name: 'p', desc: 'probability of true'}],
+  params: [{name: 'p', desc: 'probability of true', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -357,7 +374,10 @@ function gaussianScore(mu, sigma, x) {
 
 var Gaussian = makeDistributionType({
   name: 'Gaussian',
-  params: [{name: 'mu', desc: 'mean'}, {name: 'sigma', desc: 'standard deviation'}],
+  params: [
+    {name: 'mu', desc: 'mean'},
+    {name: 'sigma', desc: 'standard deviation', domain: gt(0)}
+  ],
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));

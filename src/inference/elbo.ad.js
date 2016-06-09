@@ -23,6 +23,7 @@ var paramStruct = require('../paramStruct');
 module.exports = function(env) {
 
   var headerUtils = require('../headerUtils')(env);
+  var meanfield = require('./meanfield')(env);
 
   function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
@@ -142,13 +143,8 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-
-      // TODO: Default to mean-field?
-      if (!_.has(options, 'guide')) {
-        throw 'Guide not specified.';
-      }
-
-      var guideVal = this.sampleGuide(options.guide, options);
+      var guideDist = options.guide || meanfield.guideDist(dist, a);
+      var guideVal = this.sampleGuide(guideDist, options);
       this.sampleTarget(dist, guideVal);
       return k(s, guideVal);
     },
