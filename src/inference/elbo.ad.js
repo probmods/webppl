@@ -1,7 +1,7 @@
 // Estimates the gradient of the ELBO.
 
 // The estimator used is a combination of the
-// likelihood-ratio/REINFORCE estimator and the "reparameterized
+// likelihood-ratio/REINFORCE estimator and the "reparameterization
 // trick" based estimator.
 
 // Note that not all parameters are passed explicitly. Parameters are
