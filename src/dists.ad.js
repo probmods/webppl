@@ -314,7 +314,7 @@ var MultivariateBernoulli = makeDistributionType({
   desc: 'Distribution over a vector of independent Bernoulli variables. Each element ' +
     'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
     'has support ``{true, false}``.',
-  params: [{name: 'ps', desc: 'probabilities'}],
+  params: [{name: 'ps', desc: 'probabilities', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
     var ps = ad.value(this.params.ps);
@@ -401,7 +401,10 @@ var Gaussian = makeDistributionType({
 
 var GaussianDrift = makeDistributionType({
   name: 'GaussianDrift',
-  params: [{name: 'mu', desc: 'mean'}, {name: 'sigma', desc: 'standard deviation'}],
+  params: [
+    {name: 'mu', desc: 'mean'},
+    {name: 'sigma', desc: 'standard deviation', domain: gt(0)}
+  ],
   parent: Gaussian,
   driftKernel: function(curVal) {
     return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
@@ -498,7 +501,7 @@ var DiagCovGaussian = makeDistributionType({
   desc: 'Multivariate Gaussian distribution with diagonal covariance matrix.',
   params: [
     {name: 'mu', desc: 'vector of means'},
-    {name: 'sigma', desc: 'vector of standard deviations'}
+    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
   constructor: function() {
@@ -548,7 +551,7 @@ var LogisticNormal = makeDistributionType({
     'the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.',
   params: [
     {name: 'mu', desc: 'vector of means'},
-    {name: 'sigma', desc: 'vector of standard deviations'}
+    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
   constructor: function() {
@@ -617,7 +620,7 @@ var TensorGaussian = makeDistributionType({
   desc: 'Distribution over a tensor of independent Gaussian variables.',
   params: [
     {name: 'mu', desc: 'mean'},
-    {name: 'sigma', desc: 'standard deviation'},
+    {name: 'sigma', desc: 'standard deviation', domain: gt(0)},
     {name: 'dims', desc: 'dimension of tensor'}
   ],
   mixins: [continuousSupport],
@@ -653,7 +656,7 @@ var TensorGaussian = makeDistributionType({
 
 var Cauchy = makeDistributionType({
   name: 'Cauchy',
-  params: [{name: 'location'}, {name: 'scale'}],
+  params: [{name: 'location'}, {name: 'scale', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -698,7 +701,7 @@ function discreteScoreArray(probs, val) {
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]',
-  params: [{name: 'ps', desc: 'array or vector of probabilities'}],
+  params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
     var ps = _.isArray(this.params.ps) ?
@@ -783,7 +786,7 @@ function expGammaScore(shape, scale, val) {
 
 var Gamma = makeDistributionType({
   name: 'Gamma',
-  params: [{name: 'shape'}, {name: 'scale'}],
+  params: [{name: 'shape', domain: gt(0)}, {name: 'scale', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
@@ -802,7 +805,7 @@ var Gamma = makeDistributionType({
 
 var Exponential = makeDistributionType({
   name: 'Exponential',
-  params: [{name: 'a', desc: 'rate'}],
+  params: [{name: 'a', desc: 'rate', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -828,7 +831,7 @@ function logBeta(a, b) {
 
 var Beta = makeDistributionType({
   name: 'Beta',
-  params: [{name: 'a'}, {name: 'b'}],
+  params: [{name: 'a', domain: gt(0)}, {name: 'b', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
@@ -898,7 +901,10 @@ function binomialSample(p, n) {
 var Binomial = makeDistributionType({
   name: 'Binomial',
   desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
-  params: [{name: 'p', desc: 'success probability'}, {name: 'n', desc: 'number of trials'}],
+  params: [
+    {name: 'p', desc: 'success probability', domain: interval(0, 1)},
+    {name: 'n', desc: 'number of trials'}
+  ],
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -937,7 +943,10 @@ function multinomialSample(theta, n) {
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
   desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
-  params: [{name: 'ps', desc: 'probabilities'}, {name: 'n', desc: 'number of trials'}],
+  params: [
+    {name: 'ps', desc: 'probabilities', domain: interval(0, 1)},
+    {name: 'n', desc: 'number of trials'}
+  ],
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -1026,7 +1035,7 @@ function lnfact(x) {
 
 var Poisson = makeDistributionType({
   name: 'Poisson',
-  params: [{name: 'mu'}],
+  params: [{name: 'mu', domain: gt(0)}],
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -1101,7 +1110,7 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
-  params: [{name: 'alpha', desc: 'vector of concentration parameters'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   constructor: function() {
     var _alpha = ad.value(this.params.alpha);
     if (!isVector(_alpha)) {
@@ -1121,7 +1130,7 @@ var Dirichlet = makeDistributionType({
 var DirichletDrift = makeDistributionType({
   name: 'DirichletDrift',
   parent: Dirichlet,
-  params: [{name: 'alpha', desc: 'vector of concentration parameters'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   driftKernel: function(prevVal) {
     var concentration = 10;
     var alpha = prevVal.mul(10);
@@ -1197,7 +1206,10 @@ var Marginal = makeDistributionType({
 var Categorical = makeDistributionType({
   name: 'Categorical',
   desc: 'Distribution over elements of vs with P(vs[i]) = ps[i]',
-  params: [{name: 'ps', desc: 'array of probabilities'}, {name: 'vs', desc: 'support'}],
+  params: [
+    {name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
+    {name: 'vs', desc: 'support'}
+  ],
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
