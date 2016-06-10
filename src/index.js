@@ -1,13 +1,10 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 
-var wpEditor = require('webppl-editor');
-global.wpEditor = wpEditor // so viz works
+require('webppl-editor');
 var CodeEditor = wpEditor.ReactComponent;
 
-// // TODO: bundle viz here too
-// var viz = require('webppl-viz');
-// global.viz = viz;
+require('webppl-viz');
 
 var cx = require('classnames');
 
@@ -31,7 +28,6 @@ var nextIntegerKey = function(obj){
 
 // Extend _.indexOf to work with functions instead of values
 // Based on http://stackoverflow.com/questions/12356642/
-
 var indexOfValue = _.indexOf; // save a reference to the core implementation
 
 _.mixin({
