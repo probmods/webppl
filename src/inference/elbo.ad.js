@@ -143,7 +143,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      var guideDist = options.guide || meanfield.guideDist(dist, a);
+      var guideDist = options.guide || meanfield.guideDist(dist, a, this.opts.verbose);
       var guideVal = this.sampleGuide(guideDist, options);
       this.sampleTarget(dist, guideVal);
       return k(s, guideVal);

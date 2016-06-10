@@ -689,7 +689,7 @@ var OptimizeThenSample = function(wpplFn, options) {
   var optimMethodOpt = _.has(options, 'optMethod') ? {method: options.optMethod} : {};
   var optimOpts = _.extendOwn(_.omit(options, 'samples', 'optMethod'), optimMethodOpt);
   var params = Optimize(wpplFn, optimOpts);
-  return SampleGuide(wpplFn, _.extendOwn({params: params}, _.pick(options, 'samples')));
+  return SampleGuide(wpplFn, _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose')));
 };
 
 var Infer = function(options, wpplFn) {

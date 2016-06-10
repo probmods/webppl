@@ -6,7 +6,7 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function guideDist(targetDist, sampleAddress) {
+  function guideDist(targetDist, sampleAddress, verbose) {
 
     // Include the distribution name in the guide parameter name to
     // avoid collisions when the distribution type changes between
@@ -23,7 +23,7 @@ module.exports = function(env) {
       var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
 
       var name = baseName + paramName;
-      var param = registerParam(name, paramSpec.dims);
+      var param = registerParam(name, paramSpec.dims, verbose);
 
       // Apply squishing.
       if (domain) {
@@ -44,9 +44,11 @@ module.exports = function(env) {
 
   }
 
-  function registerParam(name, dims) {
+  function registerParam(name, dims, verbose) {
     return util.registerParams(env, name, function() {
-      console.log('Initializing mean-field parameter: ' + name);
+      if (verbose) {
+        console.log('Initializing mean-field parameter: ' + name);
+      }
       // TODO: Set the initial value of the parameters to the value of
       // the parameters of the target distribution? This would be
       // fiddly in the presence of squishing.

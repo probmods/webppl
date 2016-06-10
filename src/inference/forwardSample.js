@@ -16,6 +16,7 @@ module.exports = function(env) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
       guide: false, // true = sample guide, false = sample target
+      verbose: false,
       params: {}
     });
 
@@ -56,7 +57,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       var distribution = this.opts.guide ?
-          (options && options.guide) || meanfield.guideDist(dist, a) :
+          (options && options.guide) || meanfield.guideDist(dist, a, this.opts.verbose) :
           dist;
       return k(s, distribution.sample());
     },
