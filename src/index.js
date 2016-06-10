@@ -547,7 +547,7 @@ var geometricCode = ['var geometric = function(){',
                      '  return x',
                      '}',
                      '',
-                     'print(Enumerate(conditionedGeometric, {maxExecutions: 10}))'].join('\n');
+                     'viz.auto(Enumerate(conditionedGeometric, {maxExecutions: 10}))'].join('\n');
 
 var localState = localStorage.getItem("WebPPLEditorState");
 
