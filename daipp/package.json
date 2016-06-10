@@ -1,7 +1,0 @@
-{
-  "name": "daipp",
-  "webppl": {
-    "wppl": ["daipp.wppl", "tests/helpers.wppl"],
-    "headers": ["daipp.js"]
-  }
-}
