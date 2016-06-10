@@ -530,7 +530,8 @@ var tests = [
     }
   },
   {
-    name: 'VI',
+    name: 'OptimizeELBO',
+    method: 'optimize',
     settings: {
       args: {
         samples: 5000,

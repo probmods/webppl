@@ -676,10 +676,10 @@ var SampleGuide = function(wpplFn, options) {
   return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
 };
 
-var Variational = function(wpplFn, options) {
-  // Both Infer and Optimize currently take a 'method' option, so when
-  // doing VI we look out for an 'optMethod' option and rename/pass
-  // that on to Optimize as 'method'.
+var OptimizeThenSample = function(wpplFn, options) {
+  // Both Infer and Optimize currently take a 'method' option, so here
+  // we look out for an 'optMethod' option and rename/pass that on to
+  // Optimize as 'method'.
 
   // TODO: Consider renaming Optimize's 'method' option to
   // 'optMethod'.
@@ -712,7 +712,7 @@ var Infer = function(options, wpplFn) {
     enumerate: Enumerate,
     incrementalMH: IncrementalMH,
     forward: ForwardSample,
-    VI: Variational // TODO: Lower case 'vi' would be nicer?
+    optimize: OptimizeThenSample
   };
 
   var methodName = options.method;
