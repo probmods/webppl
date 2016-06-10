@@ -38,6 +38,7 @@ try {
   var headerUtils = require('./headerUtils');
   var Query = require('./query').Query;
   var ad = require('./ad');
+  var Tensor = require('./tensor');
 } catch (e) {
   if (e.code === 'MODULE_NOT_FOUND') {
     console.error(e.message);
@@ -139,7 +140,8 @@ module.exports = function(env) {
     ad: ad,
     nn: nn,
     T: ad.tensor,
-    dists: dists
+    dists: dists,
+    __Tensor: Tensor // HACK: required for daipp
   });
 
   // Inference functions and header utils
