@@ -39,7 +39,7 @@ module.exports = function(env) {
   HMCKernel.prototype.sample = function(s, k, a, dist) {
     var prevChoice = this.prevTrace.findChoice(a);
     if (!prevChoice) {
-      throw 'HMC does not support structural continuous variables.';
+      throw new Error('HMC does not support structural continuous variables.');
     }
 
     var val;
@@ -67,7 +67,7 @@ module.exports = function(env) {
       val = ad.lift(_val);
     } else {
       if (_.contains(mvDistNames, dist.meta.name)) {
-        throw 'Multivariate distributions are not yet supported by HMC.';
+        throw new Error('Multivariate distributions are not yet supported by HMC.');
       }
       val = prevChoice.val;
     }

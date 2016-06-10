@@ -651,12 +651,12 @@ module.exports = function(env) {
     for (var i = 0; i < this.distsAdded.length; i++) {
       var addr = this.distsAdded[i].address;
       if (!this.distNodeMap.get(addr))
-        throw "WTF - hash table doesn't contain node " + addr + ' that we added (' + tag + ')';
+        throw new Error('WTF - hash table doesn\'t contain node ' + addr + ' that we added (' + tag + ')');
     }
     for (var i = 0; i < this.distsRemoved.length; i++) {
       var addr = this.distsRemoved[i].address;
       if (this.distNodeMap.get(addr))
-        throw 'WTF - hash table contains node ' + addr + ' that we removed (' + tag + ')';
+        throw new Error('WTF - hash table contains node ' + addr + ' that we removed (' + tag + ')');
     }
   };
 
@@ -983,7 +983,7 @@ module.exports = function(env) {
     // If the node stack is empty, then we must be looking up the root on a
     //    re-run from start
     } else if (this.nodeStack.length === 0) {
-      if (a !== this.cacheRoot.address) throw 'Wrong address for cache root lookup';
+      if (a !== this.cacheRoot.address) throw new Error('Wrong address for cache root lookup');
       cacheNode = this.cacheRoot;
       cacheNode.registerInputChanges(s, k, fn, args);
     // Otherwise, do the general thing.
@@ -1031,7 +1031,7 @@ module.exports = function(env) {
         // Keep nodes ordered according to execution order: if
         // i !== nexti, then swap those two.
         if (i !== nexti) {
-          // if (i < nexti) throw "WTF - cache node found *before* first possible location";
+          // if (i < nexti) throw new Error('WTF - cache node found *before* first possible location');
           if (!hasSnapshotForProperty(parentNode, 'children')) {
             nodes = nodes.slice();
             updateProperty(parentNode, 'children', nodes);
@@ -1087,7 +1087,7 @@ module.exports = function(env) {
     var stack = [this.cacheRoot];
     while (stack.length > 0) {
       var node = stack.pop();
-      if (!node.reachable) throw 'WTF - found unreachable node in cache.';
+      if (!node.reachable) throw new Error('WTF - found unreachable node in cache.');
       if (node.children !== undefined)
         for (var i = 0; i < node.children.length; i++)
           stack.push(node.children[i]);

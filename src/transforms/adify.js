@@ -23,7 +23,7 @@ function expandMacrosInFunction(node) {
   } else if (node.type === 'FunctionDeclaration') {
     return expandMacros(generate(node)).body[0];
   } else {
-    throw 'Unknown type.';
+    throw new Error('Unknown type.');
   }
 }
 
@@ -31,7 +31,7 @@ function isMarkedForGlobalTransform(ast) {
   assert.ok(ast.type === 'Program');
   var body = ast.body;
   if (!(body.length > 0 && isUseStrictExpr(body[0]))) {
-    throw 'Expected program to enable strict mode.';
+    throw new Error('Expected program to enable strict mode.');
   }
   return body.length > 1 && isUseAdExpr(body[1]);
 }

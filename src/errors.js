@@ -109,13 +109,14 @@ function getErrorPosition(error) {
   firstStackFrame.columnNumber--;
   firstStackFrame.sourceMapped = false;
 
-  if (error.sourceMaps === undefined || firstStackFrame.native) {
+  if (error.sourceMaps === undefined ||
+      !firstStackFrame.functionName.startsWith('eval')) {
     return firstStackFrame;
   }
 
-  // Check whether the error occurred in compiled code. We only need
-  // to check the first source map as this is the one added when the
-  // error was first caught.
+  // Error occurred in evaled/compiled code.
+  // We only need to check the first source map as this is the one
+  // added when the error was first caught.
 
   var mapConsumer = new SourceMap.SourceMapConsumer(error.sourceMaps[0]);
   var originalPosition = mapConsumer.originalPositionFor({
@@ -123,16 +124,13 @@ function getErrorPosition(error) {
     column: firstStackFrame.columnNumber
   });
 
-  if (originalPosition.source === null) {
-    return firstStackFrame;
-  } else {
-    return {
-      fileName: originalPosition.source,
-      lineNumber: originalPosition.line,
-      columnNumber: originalPosition.column,
-      sourceMapped: true
-    };
-  }
+  return {
+    fileName: originalPosition.source,
+    lineNumber: originalPosition.line,
+    columnNumber: originalPosition.column,
+    sourceMapped: true
+  };
+
 }
 
 module.exports = {

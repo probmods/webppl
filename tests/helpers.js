@@ -43,7 +43,7 @@ var testWithinTolerance = function(test, actual, expected, tolerance, name, verb
     actual: actual,
     tolerance: tolerance
   });
-  var isOk = absDiff < tolerance;
+  var isOk = absDiff <= tolerance;
   if (!isOk && verbose) {
     console.log(msg)
   }
