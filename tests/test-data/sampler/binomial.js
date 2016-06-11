@@ -23,24 +23,24 @@ module.exports = {
     // and the acceptable relative tolerance for each
 
     // edge cases
-    {params: [0.0, 1], n: 1e02, skip: ['skew', 'kurtosis'], reltol: {mode: 0.05}},
-    {params: [1.0, 1], n: 1e02, skip: ['mode', 'skew', 'kurtosis'], reltol: {mode: 0.05}},
-    {params: [0.0, 201], n: 1e02, skip: ['skew', 'kurtosis'], reltol: {mode: 0.05}},
-    {params: [1.0, 201], n: 1e02, skip: ['mode', 'skew', 'kurtosis'], reltol: {mode: 0.05}},
+    {params: [0.0, 1], n: 1e02, skip: ['skew', 'kurtosis'], reltol: {mode: 0.1}},
+    {params: [1.0, 1], n: 1e02, skip: ['mode', 'skew', 'kurtosis'], reltol: {mode: 0.1}},
+    {params: [0.0, 201], n: 1e02, skip: ['skew', 'kurtosis'], reltol: {mode: 0.1}},
+    {params: [1.0, 201], n: 1e02, skip: ['mode', 'skew', 'kurtosis'], reltol: {mode: 0.1}},
 
 
-    {params: [0.1, 1], n: 1e04, skip: ['skew', 'kurtosis'], reltol: {mode: 0.05}},
-    {params: [0.9, 1], n: 1e04, skip: ['skew', 'kurtosis'], reltol: {mode: 0.05}},
+    {params: [0.1, 1], n: 1e04, skip: ['skew', 'kurtosis'], reltol: {mode: 0.1}},
+    {params: [0.9, 1], n: 1e04, skip: ['skew', 'kurtosis'], reltol: {mode: 0.1}},
 
-    {params: [0.5, 22], n: 1e05, reltol: {mode: 0.05}},
+    {params: [0.5, 22], n: 1e05, reltol: {mode: 0.1}},
 
-    {params: [0.37, 51], n: 1e05, reltol: {mode: 0.05}},
-    {params: [0.37, 101], n: 1e05, reltol: {mode: 0.05}},
-    {params: [0.37, 201], n: 1e05, reltol: {mode: 0.05}},
-    {params: [0.37, 100000], n: 1e05, reltol: {mode: 0.05}},
+    {params: [0.37, 51], n: 1e05, reltol: {mode: 0.1}},
+    {params: [0.37, 101], n: 1e05, reltol: {mode: 0.1}},
+    {params: [0.37, 201], n: 1e05, reltol: {mode: 0.1}},
+    {params: [0.37, 100000], n: 1e05, reltol: {mode: 0.1}},
 
-    {params: [0.001, 201], n: 1e05, reltol: {mode: 0.05}},
-    {params: [0.999, 201], n: 1e05, reltol: {mode: 0.05}}
+    {params: [0.001, 201], n: 1e05, reltol: {mode: 0.1}},
+    {params: [0.999, 201], n: 1e05, reltol: {mode: 0.1}}
   ],
   moment: function(params, N) {
     // returns the Nth moment
