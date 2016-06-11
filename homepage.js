@@ -87907,25 +87907,6 @@ var nextIntegerKey = function (obj) {
   }
 };
 
-// Extend _.indexOf to work with functions instead of values
-// Based on http://stackoverflow.com/questions/12356642/
-var indexOfValue = _.indexOf; // save a reference to the core implementation
-
-_.mixin({
-  // return the index of the first array element passing a test
-  indexOf: function (array, test) {
-    // delegate to standard indexOf if the test isn't a function
-    if (!_.isFunction(test)) return indexOfValue(array, test);
-    // otherwise, look for the index
-    for (var x = 0; x < array.length; x++) {
-      if (test(array[x])) return x;
-    }
-    // not found, return fail value
-    return -1;
-  }
-
-});
-
 var CodeInputBox = React.createClass({
   displayName: 'CodeInputBox',
 
@@ -88341,7 +88322,7 @@ var WebpplEditor = React.createClass({
     var orderedBlockList = getOrderedBlockList(this.currentBlocks());
 
     // Figure out where blockId is in that list
-    var i = _.indexOf(orderedBlockList, function (block) {
+    var i = _.findIndex(orderedBlockList, function (block) {
       return block.id == blockId;
     });
 
