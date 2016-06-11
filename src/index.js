@@ -45,6 +45,37 @@ _.mixin({
 
 });
 
+var CodeInputBox = React.createClass({
+
+  getInitialState: function(){
+    return {hasFocus: false};
+  },
+
+  onFocus: function(){
+    this.setState({hasFocus: true});
+  },
+
+  onBlur: function(){
+    this.setState({hasFocus: false});
+  },
+
+  render: function(){
+    var blockClasses = cx({
+      editorBlock: true,
+      currentBlock: this.state.hasFocus,
+      codeBlock: true
+    });
+    // TODO: pass onBlur, onFocus to react-codemirror's onFocusChange prop
+    return (<div className={blockClasses}>
+            <CodeEditor code={this.props.initialCode}
+                        onChange={this.props.updateCode} />
+            <button className="removeBlock" onClick={this.props.removeMe}>x</button>
+            <button className="moveUp" onClick={this.props.moveUp}>▲</button>
+            <button className="moveDown" onClick={this.props.moveDown}>▼</button>
+           </div>);
+  }
+});
+
 var MarkdownInputBox = React.createClass({
   getInitialState: function(){
     return {text: this.props.initialText, hasFocus: false};
