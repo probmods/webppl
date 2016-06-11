@@ -23,12 +23,13 @@ node_modules : package.json
 	npm install
 
 webppl.js : webppl-version.txt
-	rm -f webppl.js
 	mv node_modules node_modules_gh_pages
 	git checkout $(WEBPPLVERSION)
 	npm install
 	grunt browserify
-	cp bundle/webppl.js .
+	mv bundle/webppl.js new-webppl.js
 	git checkout $(ORIGBRANCH)
 	rm -rf node_modules
 	mv node_modules_gh_pages node_modules
+	rm -f webppl.js
+	mv new-webppl.js webppl.js
