@@ -22,6 +22,7 @@ node_modules : package.json
 	npm install
 
 webppl.js : package.json
+	rm -f webppl.js
 	mv node_modules node_modules_gh_pages
 	git checkout dev
 	npm install
