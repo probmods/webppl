@@ -125,3 +125,5 @@ Distributions
   * b: *Upper bound (real > a)*
   * r: *drift kernel radius*
 
+  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]
+

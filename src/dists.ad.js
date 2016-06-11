@@ -229,7 +229,7 @@ var Uniform = makeDistributionType({
 
 var UniformDrift = makeDistributionType({
   name: 'UniformDrift',
-  decs: 'Drift version of Uniform. ' +
+  desc: 'Drift version of Uniform. ' +
       'Drift kernels are used to narrow search during inference. ' +
       'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
   params: [{name: 'a', desc: 'Lower bound (real)'},
