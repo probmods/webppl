@@ -1,7 +1,7 @@
 SHELL=/bin/bash
 ORIGBRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
-build : homepage.js webppl-viz.css webppl-editor.css
+build : homepage.js webppl-viz.css webppl-editor.css webppl.js
 
 homepage.js : src/index.js ../editor/src/index.js node_modules
 	node_modules/browserify/bin/cmd.js -t [babelify --presets [react] ] src/index.js -o homepage.js
