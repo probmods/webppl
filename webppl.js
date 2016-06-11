@@ -57824,7 +57824,7 @@ var naming = require('./transforms/naming').naming;
 var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
 var analyze = require('./analysis/main').analyze;
-var version = 'v0.7.0-5465ebc';
+var version = 'v0.7.0-1252f4d';
 var packages = [];
 var load = _.once(function () {
     packages.forEach(function (pkg) {
