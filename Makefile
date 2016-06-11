@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 ORIGBRANCH=$(shell git rev-parse --abbrev-ref HEAD)
+WEBPPLVERSION=$(shell cat webppl-version.txt)
 
 build : homepage.js webppl-viz.css webppl-editor.css webppl.js
 
@@ -21,10 +22,10 @@ watch : src/index.js node_modules
 node_modules : package.json
 	npm install
 
-webppl.js : package.json
+webppl.js : webppl-version.txt
 	rm -f webppl.js
 	mv node_modules node_modules_gh_pages
-	git checkout dev
+	git checkout $(WEBPPLVERSION)
 	npm install
 	grunt browserify
 	cp bundle/webppl.js .
