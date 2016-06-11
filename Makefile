@@ -1,8 +1,19 @@
-homepage.js : src/index.js ../editor/src/index.js
+build : homepage.js webppl-viz.css webppl-editor.css
+
+homepage.js : src/index.js ../editor/src/index.js node_modules
 	node_modules/browserify/bin/cmd.js -t [babelify --presets [react] ] src/index.js -o homepage.js
 
 mirror :
 	rsync --exclude=".git" --exclude="node_modules/" -rLvz . corn:~/WWW/wp-site-core
 
-watch : src/index.js
+webppl-viz.css : node_modules/webppl-viz/src/style.css node_modules
+	cp "$<" "$@"
+
+webppl-editor.css: node_modules node_modules/webppl-editor/src/component.css node_modules/codemirror/lib/codemirror.css
+	cat node_modules/webppl-editor/src/component.css node_modules/codemirror/lib/codemirror.css > "$@"
+
+watch : src/index.js node_modules
 	node_modules/watchify/bin/cmd.js -v -t [babelify --presets [react] ] src/index.js -o homepage.js
+
+node_modules : package.json
+	npm install
