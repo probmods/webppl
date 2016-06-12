@@ -19,11 +19,11 @@ var util = require('../util');
 var ad = require('../ad');
 var Tensor = require('../tensor');
 var paramStruct = require('../paramStruct');
+var guide = require('../guide');
 
 module.exports = function(env) {
 
   var headerUtils = require('../headerUtils')(env);
-  var meanfield = require('./meanfield')(env);
 
   function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
@@ -143,7 +143,18 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      var guideDist = options.guide || meanfield.guideDist(dist, a, this.opts.verbose);
+      var guideDist;
+      if (options.guide) {
+        guideDist = options.guide;
+      } else {
+        guideDist = guide.independent(dist, a, env);
+        if (this.step === 0 &&
+            this.opts.verbose &&
+            !this.mfWarningIssued) {
+          this.mfWarningIssued = true;
+          console.log('ELBO: Defaulting to mean-field for one or more choices.');
+        }
+      }
       var guideVal = this.sampleGuide(guideDist, options);
       this.sampleTarget(dist, guideVal);
       return k(s, guideVal);

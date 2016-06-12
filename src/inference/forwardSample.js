@@ -7,10 +7,9 @@ var _ = require('underscore');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var guide = require('../guide');
 
 module.exports = function(env) {
-
-  var meanfield = require('./meanfield')(env);
 
   function ForwardSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
@@ -57,7 +56,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       var distribution = this.opts.guide ?
-          (options && options.guide) || meanfield.guideDist(dist, a, this.opts.verbose) :
+          (options && options.guide) || guide.independent(dist, a, env) :
           dist;
       return k(s, distribution.sample());
     },

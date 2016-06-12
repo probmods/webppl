@@ -10,6 +10,54 @@ var gt = require('./domain').gt;
 
 var T = ad.tensor;
 
+// Returns an independent guide distribution for the given target
+// distribution, sample address pair. Guiding all choices with
+// independent guide distributions and optimizing the elbo yields
+// mean-field variational inference.
+function independent(targetDist, sampleAddress, env) {
+
+  // Include the distribution name in the guide parameter name to
+  // avoid collisions when the distribution type changes between
+  // calls. (As a result of the distribution passed depending on a
+  // random choice.)
+  var relativeAddress = util.relativizeAddress(env, sampleAddress);
+  var baseName = relativeAddress + '$mf$' + targetDist.meta.name + '$';
+
+  var distSpec = spec(targetDist);
+
+  var guideParams = _.mapObject(distSpec.params, function(paramSpec, paramName) {
+
+    var dims = paramSpec.dims; // e.g. [2, 1]
+    var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
+
+    var name = baseName + paramName;
+    var param = registerParam(env, name, paramSpec.dims);
+
+    // Apply squishing.
+    if (domain) {
+      // Assume that domain is a RealInterval.
+      param = squishFn(domain.a, domain.b)(param);
+    }
+
+    // Collapse tensor with dims=[1] to scalar.
+    if (dims.length === 1 && dims[0] === 1) {
+      param = ad.tensorEntry(param, 0);
+    }
+
+    return param;
+
+  });
+
+  return new distSpec.type(guideParams);
+
+}
+
+function registerParam(env, name, dims) {
+  return util.registerParams(env, name, function() {
+    return [new Tensor(dims)];
+  })[0];
+}
+
 // This function specifies an appropriate guide distribution for the
 // given target distribution. This specification is abstract, given in
 // terms of the distribution type, and a description of the parameters
@@ -105,6 +153,5 @@ function squishFn(a, b) {
 }
 
 module.exports = {
-  spec: spec,
-  squishFn: squishFn
+  independent: independent
 };
