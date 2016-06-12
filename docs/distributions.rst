@@ -96,7 +96,7 @@ Distributions
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
   * mu: *mean vector (array of reals)*
-  * cov: *covariance matrix  (array of array of realsthat must be symmetric positive semidefinite)*
+  * cov: *covariance matrix  (array of array of reals that must be symmetric positive semidefinite)*
 
   n-dimensional Gaussian.
 
@@ -114,15 +114,15 @@ Distributions
 
 .. js:function:: Uniform({a: ..., b: ...})
 
-  * a: *Lower bound (real)*
-  * b: *Upper bound (real > a)*
+  * a: *lower bound (real)*
+  * b: *upper bound (real > a)*
 
   Continuous uniform distribution on [a, b]
 
 .. js:function:: UniformDrift({a: ..., b: ..., r: ...})
 
-  * a: *Lower bound (real)*
-  * b: *Upper bound (real > a)*
+  * a: *lower bound (real)*
+  * b: *upper bound (real > a)*
   * r: *drift kernel radius*
 
   Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]

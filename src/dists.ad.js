@@ -208,8 +208,8 @@ function makeDistributionType(options) {
 var Uniform = makeDistributionType({
   name: 'Uniform',
   desc: 'Continuous uniform distribution on [a, b]',
-  params: [{name: 'a', desc: 'Lower bound (real)'},
-	   {name: 'b', desc: 'Upper bound (real > a)'}],
+  params: [{name: 'a', desc: 'lower bound (real)'},
+	   {name: 'b', desc: 'upper bound (real > a)'}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -232,8 +232,8 @@ var UniformDrift = makeDistributionType({
   desc: 'Drift version of Uniform. ' +
       'Drift kernels are used to narrow search during inference. ' +
       'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
-  params: [{name: 'a', desc: 'Lower bound (real)'},
-	   {name: 'b', desc: 'Upper bound (real > a)'},
+  params: [{name: 'a', desc: 'lower bound (real)'},
+	   {name: 'b', desc: 'upper bound (real > a)'},
 	   {name: 'r', desc: 'drift kernel radius'}],
   parent: Uniform,
   driftKernel: function(prevVal) {
@@ -367,7 +367,7 @@ var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
   desc: 'n-dimensional Gaussian.',
   params: [{name: 'mu', desc: 'mean vector (array of reals)'},
-	   {name: 'cov', desc: 'covariance matrix  (array of array of reals' +
+	   {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
 	    'that must be symmetric positive semidefinite)'}],
   sample: function() {
     return multivariateGaussianSample(this.params.mu, this.params.cov);
