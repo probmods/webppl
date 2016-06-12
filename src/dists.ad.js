@@ -238,7 +238,8 @@ function makeDistributionType(options) {
 var Uniform = makeDistributionType({
   name: 'Uniform',
   desc: 'Continuous uniform distribution on [a, b]',
-  params: [{name: 'a'}, {name: 'b'}],
+  params: [{name: 'a', desc: 'lower bound (real)'},
+           {name: 'b', desc: 'upper bound (real > a)'}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -258,7 +259,12 @@ var Uniform = makeDistributionType({
 
 var UniformDrift = makeDistributionType({
   name: 'UniformDrift',
-  params: [{name: 'a'}, {name: 'b'}, {name: 'r', desc: 'drift kernel radius'}],
+  desc: 'Drift version of Uniform. ' +
+      'Drift kernels are used to narrow search during inference. ' +
+      'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
+  params: [{name: 'a', desc: 'lower bound (real)'},
+           {name: 'b', desc: 'upper bound (real > a)'},
+           {name: 'r', desc: 'drift kernel radius'}],
   parent: Uniform,
   driftKernel: function(prevVal) {
     // propose from the window [prevVal - r, prevVal + r]
@@ -277,7 +283,7 @@ var UniformDrift = makeDistributionType({
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
   desc: 'Distribution on {true,false}',
-  params: [{name: 'p', desc: 'probability of true', domain: interval(0, 1)}],
+  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -339,7 +345,7 @@ var MultivariateBernoulli = makeDistributionType({
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
   desc: 'Uniform distribution on {0,1,...,n-1}',
-  params: [{name: 'n'}],
+  params: [{name: 'n', desc: 'number of possible values (integer >= 1)'}],
   mixins: [finiteSupport],
   sample: function() {
     return Math.floor(util.random() * this.params.n);
@@ -376,10 +382,9 @@ function gaussianScore(mu, sigma, x) {
 
 var Gaussian = makeDistributionType({
   name: 'Gaussian',
-  params: [
-    {name: 'mu', desc: 'mean'},
-    {name: 'sigma', desc: 'standard deviation', domain: gt(0)}
-  ],
+  desc: 'Distribution over reals.',
+  params: [{name: 'mu', desc: 'mean (real)'},
+           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
@@ -403,10 +408,11 @@ var Gaussian = makeDistributionType({
 
 var GaussianDrift = makeDistributionType({
   name: 'GaussianDrift',
-  params: [
-    {name: 'mu', desc: 'mean'},
-    {name: 'sigma', desc: 'standard deviation', domain: gt(0)}
-  ],
+  desc: 'Drift version of Gaussian. ' +
+      'Drift kernels are used to narrow search during inference. ' +
+      'Currently, the parameters guiding this narrowing are hard-coded.',
+  params: [{name: 'mu', desc: 'mean (real)'},
+           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
   parent: Gaussian,
   driftKernel: function(curVal) {
     return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
@@ -447,7 +453,10 @@ function mvGaussianScore(mu, cov, x) {
 
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
-  params: [{name: 'mu', desc: 'mean vector'}, {name: 'cov', desc: 'covariance matrix'}],
+  desc: 'n-dimensional Gaussian.',
+  params: [{name: 'mu', desc: 'mean vector (array of reals)'},
+           {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
+            'that must be symmetric positive semidefinite)'}],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _cov = ad.value(this.params.cov);
@@ -658,7 +667,9 @@ var TensorGaussian = makeDistributionType({
 
 var Cauchy = makeDistributionType({
   name: 'Cauchy',
-  params: [{name: 'location'}, {name: 'scale', domain: gt(0)}],
+  desc: 'Distribution over ``[-Infinity, Infinity]``',
+  params: [{name: 'location', desc: '(real in [-Infinity, Infinity])'},
+           {name: 'scale', desc: '(real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -702,7 +713,7 @@ function discreteScoreArray(probs, val) {
 
 var Discrete = makeDistributionType({
   name: 'Discrete',
-  desc: 'Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]',
+  desc: 'Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
   params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
@@ -788,7 +799,9 @@ function expGammaScore(shape, scale, val) {
 
 var Gamma = makeDistributionType({
   name: 'Gamma',
-  params: [{name: 'shape', domain: gt(0)}, {name: 'scale', domain: gt(0)}],
+  desc: 'Distribution over positive reals.',
+  params: [{name: 'shape', desc: 'shape parameter (real)', domain: gt(0)},
+           {name: 'scale', desc: 'scale parameter (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
@@ -807,7 +820,8 @@ var Gamma = makeDistributionType({
 
 var Exponential = makeDistributionType({
   name: 'Exponential',
-  params: [{name: 'a', desc: 'rate', domain: gt(0)}],
+  desc: 'Distribution on ``[0, Infinity]``',
+  params: [{name: 'a', desc: 'rate (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -833,7 +847,9 @@ function logBeta(a, b) {
 
 var Beta = makeDistributionType({
   name: 'Beta',
-  params: [{name: 'a', domain: gt(0)}, {name: 'b', domain: gt(0)}],
+  desc: 'Distribution on [0, 1]',
+  params: [{name: 'a', desc: 'shape (real)', domain: gt(0)},
+           {name: 'b', desc: 'shape (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
@@ -903,10 +919,8 @@ function binomialSample(p, n) {
 var Binomial = makeDistributionType({
   name: 'Binomial',
   desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
-  params: [
-    {name: 'p', desc: 'success probability', domain: interval(0, 1)},
-    {name: 'n', desc: 'number of trials'}
-  ],
+  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)},
+           {name: 'n', desc: 'number of trials (integer > 0)'}],
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -915,12 +929,42 @@ var Binomial = makeDistributionType({
     'use ad';
     var p = this.params.p;
     var n = this.params.n;
-    // exact formula
-    return (lnfact(n) - lnfact(n - val) - lnfact(val) +
-            val * Math.log(p) + (n - val) * Math.log(1 - p));
+
+    if (!(typeof val === 'number' && val >= 0 && val <= n && val % 1 === 0)) {
+      return -Infinity;
+    }
+
+    // exact formula is log{ binomial(n,x) * p^x * (1-p)^(n-x) }
+    // = log(binomial(n,x)) + x*log(p) + (n-x)*log(1-p)
+    // where binomial(n,x) is the binomial function
+
+    // optimized computation of log(binomial(n,x))
+    // binomial(n,x) is n! / (x! * (n-x)!)
+    // compute the log of this:
+    var logNumPermutations = 0;
+    // let o be the larger of x and n-x
+    // and m be the smaller
+    var m, o;
+    if (val < n - val) {
+      m = val;
+      o = n - val
+    } else {
+      m = n - val;
+      o = val;
+    }
+
+    for (var i = o + 1; i <= n; i++) {
+      logNumPermutations += Math.log(i);
+    }
+    logNumPermutations -= lnfactExact(m);
+
+    return (logNumPermutations +
+            // avoid returning 0 * -Infinity, which is NaN
+            (val == 0 ? 0 : val * Math.log(p)) +
+            (n - val == 0 ? 0 : (n - val) * Math.log(1 - p)));
   },
   support: function() {
-    return _.range(this.params.n).concat(this.params.n);
+    return _.range(0, this.params.n + 1);
   }
 });
 
@@ -945,10 +989,8 @@ function multinomialSample(theta, n) {
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
   desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
-  params: [
-    {name: 'ps', desc: 'probabilities', domain: interval(0, 1)},
-    {name: 'n', desc: 'number of trials'}
-  ],
+  params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)', domain: interval(0, 1)},
+           {name: 'n', desc: 'number of trials (integer > 0)'}],
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -1033,11 +1075,26 @@ function lnfact(x) {
   return sum;
 }
 
-
+function lnfactExact(x) {
+  'use ad';
+  if (x < 0) {
+    throw new Error('lnfactExact called on negative argument ' + x);
+  }
+  if (x < 1) {
+    x = 1;
+  }
+  var t = 0;
+  while (x > 1) {
+    t += Math.log(x);
+    x -= 1;
+  }
+  return t;
+}
 
 var Poisson = makeDistributionType({
   name: 'Poisson',
-  params: [{name: 'mu', domain: gt(0)}],
+  desc: 'Distribution over integers.',
+  params: [{name: 'mu', desc: 'mean (real)', domain: gt(0)}],
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -1112,6 +1169,7 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
+  desc: 'Distribution over arrays of probabilities.',
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   constructor: function() {
     var _alpha = ad.value(this.params.alpha);
@@ -1131,6 +1189,9 @@ var Dirichlet = makeDistributionType({
 
 var DirichletDrift = makeDistributionType({
   name: 'DirichletDrift',
+  desc: 'Drift version of Dirichlet. ' +
+      'Drift kernels are used to narrow search during inference. ' +
+      'Currently, the parameters guiding this narrowing are hard-coded.',
   parent: Dirichlet,
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   driftKernel: function(prevVal) {
@@ -1207,11 +1268,9 @@ var Marginal = makeDistributionType({
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  desc: 'Distribution over elements of vs with P(vs[i]) = ps[i]',
-  params: [
-    {name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
-    {name: 'vs', desc: 'support'}
-  ],
+  desc: 'Distribution over elements of vs with ``P(vs[i]) = ps[i]``',
+  params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
+           {name: 'vs', desc: 'support (array of values)'}],
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
