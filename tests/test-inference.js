@@ -550,7 +550,15 @@ var tests = [
       withCaching: true,
       gaussianMean: true,
       guidedFlip: true,
-      guidedGaussian: true
+      guidedGaussian: true,
+      dirichlet: {
+        args: {
+          samples: 5000,
+          steps: 1000,
+          optMethod: 'gd',
+          estimator: { ELBO: { samples: 1 } }
+        }
+      }
     }
   }
 ];

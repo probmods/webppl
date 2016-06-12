@@ -3,6 +3,8 @@ var _ = require('underscore');
 var util = require('./util');
 var Tensor = require('./tensor');
 var ad = require('./ad');
+var dists = require('./dists');
+var gt = require('./domain').gt;
 
 var T = ad.tensor;
 
@@ -38,9 +40,12 @@ var T = ad.tensor;
 
 // TODO: Better name?
 function spec(targetDist) {
-  // TODO: Add custom logic for Dirichlet, MultivariateGaussian.
-  // Uniform?
-  return defaultSpec(targetDist);
+  // TODO: Add custom logic for MultivariateGaussian. Uniform?
+  if (targetDist instanceof dists.Dirichlet) {
+    return dirichletSpec(targetDist);
+  } else {
+    return defaultSpec(targetDist);
+  }
 }
 
 function defaultSpec(targetDist) {
@@ -65,6 +70,17 @@ function defaultSpec(targetDist) {
   return {
     type: targetDist.constructor,
     params: _.object(paramSpec)
+  };
+}
+
+function dirichletSpec(targetDist) {
+  var d = ad.value(targetDist.params.alpha).length - 1;
+  return {
+    type: dists.LogisticNormal,
+    params: {
+      mu: {dims: [d, 1]},
+      sigma: {dims: [d, 1], domain: gt(0)}
+    }
   };
 }
 
