@@ -10,6 +10,8 @@ Contents:
    usage
    inference
    distributions
+   guides
+   tensors
    debugging
    packages
    development/index

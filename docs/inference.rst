@@ -303,6 +303,35 @@ SMC
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
 
+Optimization
+------------
+
+.. js:function:: Infer({method: 'optimize'[, ...]}, thunk)
+
+   This method performs inference by optimizing the parameters of the
+   :ref:`guide program<guides>`. The marginal distribution is a
+   histogram constructed from samples drawn from the guide program
+   using the optimized parameters.
+
+   The following options are supported:
+
+      .. describe:: steps
+
+         The number of optimization steps to take.
+
+         Default: ``1``
+
+      .. describe:: samples
+
+         The number of samples used to construct the marginal
+         distribution.
+
+         Default: ``1``
+
+   Example usage::
+
+     Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
+
 .. rubric:: Bibliography
 
 .. [wingate11] David Wingate, Andreas Stuhlmüller, and Noah D.
