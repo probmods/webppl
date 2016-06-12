@@ -31,7 +31,7 @@ module.exports = function(env) {
       steps: 1,
       clip: false,              // false = no clipping, otherwise specifies threshold.
       showGradNorm: false,
-      debug: true,              // TODO: Switch default before merging.
+      checkGradients: true,
       verbose: true,
       onFinish: function(s, k, a) { return k(s); }
     });
@@ -39,7 +39,7 @@ module.exports = function(env) {
     // Create a (cps) function which takes parameters to gradient
     // estimates.
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
-      opts = util.mergeDefaults(opts, _.pick(options, 'verbose', 'debug'));
+      opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
       return _.partial(estimators[name], wpplFn, s, a, opts);
     });
 
@@ -64,7 +64,7 @@ module.exports = function(env) {
         function(i, next) {
 
           return estimator(paramObj, i, function(gradObj, objective) {
-            if (options.debug) {
+            if (options.checkGradients) {
               checkGradients(gradObj);
             }
 
