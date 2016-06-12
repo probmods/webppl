@@ -57,4 +57,7 @@ ad.scalar.logGamma = ad.newUnaryFunction({
   }
 });
 
+// HACK: Used to access Tensor in daipp.
+ad.tensor['__Tensor'] = Tensor;
+
 module.exports = ad;

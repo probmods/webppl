@@ -140,8 +140,7 @@ module.exports = function(env) {
     ad: ad,
     nn: nn,
     T: ad.tensor,
-    dists: dists,
-    __Tensor: Tensor // HACK: required for daipp
+    dists: dists
   });
 
   // Inference functions and header utils
