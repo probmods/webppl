@@ -51,9 +51,6 @@ module.exports = function(env) {
       if (verbose) {
         console.log('Initializing mean-field parameter: ' + name);
       }
-      // TODO: Set the initial value of the parameters to the value of
-      // the parameters of the target distribution? This would be
-      // fiddly in the presence of squishing.
       return [new Tensor(dims)];
     })[0];
   }

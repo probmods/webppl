@@ -317,9 +317,6 @@ function relativizeAddress(env, address) {
   // strategy used when relativizing trace addresses. (Because
   // `relativizeAddress` is used within EUBO to perform choice
   // look-ups.)
-
-  // TODO: Does slicing addresses scale? (Also see #150.)
-
   assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
   var baseAddress = env.coroutine.a;
   assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
@@ -335,9 +332,6 @@ var registerParams = function(env, name, getParams, setParams) {
   // return lifted params. However, in the case of NN, `getParams`
   // returns params already lifted. Hence, `getParams()` is replaced
   // with `getParams().map(ad.value)` throughout this function.
-
-  // TODO: Don't lift params if the current coroutine isn't tracking
-  // paramsSeen?
 
   var paramStore = env.coroutine.params;
   var paramsSeen = env.coroutine.paramsSeen;

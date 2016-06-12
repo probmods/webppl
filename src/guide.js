@@ -35,14 +35,7 @@ var T = ad.tensor;
 // dims=[1] for that parameter. It is the responsibility of callers to
 // turn this back into a scalar before use.
 
-// TODO: Cache the result? Since the dimension isn't part of the type
-// we'd have to use a key based on both the type and the dimension of
-// the target distribution. Note that we don't have a standard way to
-// talk about the dimension of a distribution.
-
-// TODO: Better name?
 function spec(targetDist) {
-  // TODO: Add custom logic for MultivariateGaussian. Uniform?
   if (targetDist instanceof dists.Dirichlet) {
     return dirichletSpec(targetDist);
   } else {
@@ -89,11 +82,6 @@ function dirichletSpec(targetDist) {
 function softplus(x) {
   return T.log(T.add(T.exp(x), 1));
 }
-
-// TODO: Memoize? (How would doing so interact with daipp?)
-
-// (Note that a and b can be ±Infinity. Caution required if using JSON
-// serialization.)
 
 // Returns a function that maps a (potentially lifted) tensor of
 // (unbounded) reals to the interval [a,b] element-wise.

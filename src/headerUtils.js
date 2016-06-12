@@ -116,19 +116,12 @@ module.exports = function(env) {
   // Returns the part of the stack address which has been added since
   // entering the inner-most mapData. Outside of any mapData the
   // address relative to the inner-most coroutine is returned.
-  //
-  // TODO: Is there a way to implement this that runs in constant
-  // time.
   function getObsFnAddress(s, k, a) {
     var rel = util.relativizeAddress(env, a);
     return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
   }
 
   var mapDataIndices = {};
-
-  // Do we need to make sure we construct the return array in a way
-  // that plays nicely with coroutines that fork the execution on
-  // random choices? Also, scaling: #174.
 
   function mapData(s, k, a, data, obsFn, options) {
 
@@ -175,9 +168,6 @@ module.exports = function(env) {
       var ix = _.isEmpty(add) ? i : add[i];
       return f(s, function(s, v) {
         return function() {
-          // FIXME: this currently returns an array with size
-          // arr.length... do we want one with shape of original data
-          // but undefineds off add?
           return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
         };
       }, a.concat('_$$' + ix), arr[i]); // getObsFnAddress relies on the magic string _$$

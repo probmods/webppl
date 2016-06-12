@@ -680,12 +680,6 @@ var OptimizeThenSample = function(wpplFn, options) {
   // Both Infer and Optimize currently take a 'method' option, so here
   // we look out for an 'optMethod' option and rename/pass that on to
   // Optimize as 'method'.
-
-  // TODO: Consider renaming Optimize's 'method' option to
-  // 'optMethod'.
-  // Doing so is less pretty, but it saves a little option munging
-  // here and make things consistent across Optimize and Infer.
-
   var optimMethodOpt = _.has(options, 'optMethod') ? {method: options.optMethod} : {};
   var optimOpts = _.extendOwn(_.omit(options, 'samples', 'optMethod'), optimMethodOpt);
   var params = Optimize(wpplFn, optimOpts);
