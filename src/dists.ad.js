@@ -36,6 +36,8 @@ var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
+var gt = require('./domain').gt;
+var interval = require('./domain').interval;
 
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
@@ -108,23 +110,6 @@ function eqDim0(v, w) {
   // Useful for checking two vectors have the same length, or that the
   // dimension of a vector and matrix match.
   return v.dims[0] === w.dims[0];
-}
-
-function RealInterval(a, b) {
-  this.a = a;
-  this.b = b;
-}
-
-function gt(a) {
-  return new RealInterval(a, Infinity);
-}
-
-function lt(b) {
-  return new RealInterval(-Infinity, b);
-}
-
-function interval(a, b) {
-  return new RealInterval(a, b);
 }
 
 // Mixins.
