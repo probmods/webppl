@@ -9,6 +9,8 @@
 //   ...
 // }
 
+'use strict';
+
 var assert = require('assert');
 var _ = require('underscore');
 
