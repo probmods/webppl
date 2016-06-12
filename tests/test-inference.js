@@ -37,6 +37,8 @@ var tests = [
       dirichlet: true,
       multivariateGaussian: true,
       multivariateBernoulli: true,
+      diagCovGaussian: true,
+      tensorGaussian: true,
       mixed1: true,
       mixed2: true,
       mixed3: true,
