@@ -3,7 +3,6 @@
 var _ = require('underscore');
 var serialize = require('./util').serialize
 var Tensor = require('./tensor');
-var child_process = require('child_process');
 var LRU = require('lru-cache');
 var ad = require('./ad');
 var assert = require('assert');

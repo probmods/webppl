@@ -17,13 +17,10 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
-var Tensor = require('../tensor');
 var paramStruct = require('../paramStruct');
 var guide = require('../guide');
 
 module.exports = function(env) {
-
-  var headerUtils = require('../headerUtils')(env);
 
   function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {

@@ -15,7 +15,6 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
-var Tensor = require('../tensor');
 var paramStruct = require('../paramStruct');
 
 module.exports = function(env) {
