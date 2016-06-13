@@ -172,9 +172,6 @@ module.exports = function(env) {
         val = dist.transform(z);
         this.logq += dist.score(val);
 
-        // console.log('Sampled ' + ad.value(val));
-        // console.log('  ' + dist + ' reparameterized as ' + baseDist + ' + transform');
-
       } else if (options.reparam && !(dist.base && dist.transform)) {
         // Warn when reparameterization is explicitly requested but
         // isn't supported by the distribution.
@@ -195,8 +192,6 @@ module.exports = function(env) {
           this.logr += score;
           this.logq += score;
         }
-        // trace('Sampled ' + val + ' for ' + a);
-        // trace('  ' + dist);
       }
 
       return val;
