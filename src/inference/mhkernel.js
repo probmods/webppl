@@ -42,7 +42,7 @@ module.exports = function(env) {
     env.query.clear();
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
-    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.dist, true);
+    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.dist, undefined, true);
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {
@@ -59,7 +59,7 @@ module.exports = function(env) {
     return k(s);
   };
 
-  MHKernel.prototype.sample = function(s, k, a, dist, forceSample) {
+  MHKernel.prototype.sample = function(s, k, a, dist, options, forceSample) {
     var _val, val;
     var prevChoice = this.oldTrace.findChoice(a);
 
