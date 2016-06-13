@@ -539,7 +539,8 @@ var tests = [
         samples: 5000,
         steps: 100,
         optMethod: 'gd',
-        estimator: { ELBO: { samples: 120 } }
+        estimator: { ELBO: { samples: 120 } },
+        verbose: false
       },
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },
@@ -548,7 +549,10 @@ var tests = [
     models: {
       simpleSoft: true,
       deterministic: true,
-      store2: { hist: { exact: true } },
+      store2: {
+        hist: { exact: true },
+        args: { verbose: false, checkGradients: false }
+      },
       withCaching: true,
       gaussianMean: true,
       guidedFlip: true,
@@ -558,7 +562,8 @@ var tests = [
           samples: 5000,
           steps: 1000,
           optMethod: 'gd',
-          estimator: { ELBO: { samples: 1 } }
+          estimator: { ELBO: { samples: 1 } },
+          verbose: false
         }
       }
     }
