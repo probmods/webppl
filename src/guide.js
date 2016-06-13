@@ -91,6 +91,10 @@ function spec(targetDist) {
   }
 }
 
+// The default is a guide of the same type as the target. We determine
+// the dimension of the parameters by looking at the target
+// distribution instance, and get information about their domain from
+// the distribution meta-data.
 function defaultSpec(targetDist) {
   var paramSpec = _.map(targetDist.meta.params, function(paramMeta) {
 

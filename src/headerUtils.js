@@ -122,6 +122,8 @@ module.exports = function(env) {
 
   var mapDataIndices = {};
 
+  // This is been developed as part of daipp. It's probably still
+  // buggy.
   function mapData(s, k, a, data, obsFn, options) {
 
     options = util.mergeDefaults(options, {batchSize: data.length});

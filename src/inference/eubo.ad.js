@@ -9,6 +9,9 @@
 // Only the gradients of parameters seen during sampling are returned.
 // All other gradients are taken to be zero.
 
+// This is been developed as part of daipp. While it is expected to
+// work it is unfinished and untested.
+
 'use strict';
 
 var _ = require('underscore');
