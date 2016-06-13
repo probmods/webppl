@@ -312,11 +312,6 @@ function relativizeAddress(env, address) {
   // Takes the env and a full stack address and returns a new address
   // relative to the entry address of the current coroutine. This
   // requires each coroutine to save its entry address as `this.a`.
-
-  // Note that the strategy used here needs to match up with the
-  // strategy used when relativizing trace addresses. (Because
-  // `relativizeAddress` is used within EUBO to perform choice
-  // look-ups.)
   assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
   var baseAddress = env.coroutine.a;
   assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
