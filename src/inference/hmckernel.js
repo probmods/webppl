@@ -107,7 +107,7 @@ module.exports = function(env) {
 
     // Main HMC loop.
     // The leapfrog method. (See page 8 of "MCMC using Hamiltonian
-    // dynamics.)
+    // dynamics".)
     return util.cpsIterate(
         this.steps - 1,
         this.oldTrace,
