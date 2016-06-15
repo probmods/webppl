@@ -541,12 +541,6 @@ var takeWhile = function(p, ar) {
   return ar.slice(0, helper(0));
 };
 
-var indexOf = function(x, xs) {
-  // prototype method doesn't return falsy value if not found
-  var i = xs.indexOf(x);
-  return i < 0 ? undefined : i
-};
-
 var minWith = function(f, ar) {
   var fn = function(_ar, _best) {
     if (_ar.length === 0) {
