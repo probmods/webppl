@@ -317,63 +317,6 @@ var mapIndexed = function(fn, l) {
   return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
 }
 
-var _ringAround = function(l, n) {
-  return l.slice(n).concat(l.slice(0, n));
-};
-
-var ringForward = function(l, n) {
-  return _ringAround(l, n === undefined ? -1 : -n);
-};
-
-var ringBackward = function(l, n) {
-  return _ringAround(l, n === undefined ? 1 : n);
-};
-
-// map through the cartesian product l1 * l2
-var mapPairs2 = function(f, l1, l2) {
-  var res = map(function(a) {
-    return map(function(b) {
-      return f(a, b);
-    }, l2)
-  }, l1);
-  return [].concat.apply([], res); // flatten
-};
-
-// map through all 2-combinations of elements in l
-// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
-// ['a','c'], and ['b','c']
-var mapPairsC = function(f, l) {
-  var n = l.length;
-
-  var helper = function(i) {
-    if (i === n) {
-      return [];
-    } else {
-      // compute {f(i,j)} where j \in {i+1,...,n}
-      var r = mapN(
-          function(k) {
-            var j = i + k + 1;
-            return f(l[i], l[j])
-          },
-          n - (i + 1));
-
-      return append(r, helper(i + 1))
-    }
-  }
-
-  return helper(0);
-};
-
-// map through all 2-tuples of elements in l
-// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
-// ['a','c'], ['b','a'], ['b','c'], ['c','a'], ['c','b']
-var mapPairsNC = function(f, l) {
-  var res = mapPairs2(function(a, b) {
-    return a === b ? undefined : f(a, b);
-  }, l, l);
-  return remove(undefined, res);
-};
-
 var mapObject = function(fn, obj) {
   return _.object(
       map(
@@ -498,48 +441,6 @@ var remove = function(a, ar) {
   }, ar);
 };
 
-var insertAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i));
-}
-
-var removeAt = function(ar, i) {
-  return ar.slice(0, i).concat(ar.slice(i + 1));
-}
-
-var replaceAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i + 1));
-}
-
-var drop = function(n, ar) {
-  return n > ar.length ? [] : ar.slice(n);
-};
-
-var take = function(n, ar) {
-  return n >= ar.length ? ar : ar.slice(0, n);
-};
-
-var dropWhile = function(p, ar) {
-  var n = ar.length;
-  var helper = function(i) {
-    if (i === n) {
-      return n;
-    }
-    return p(ar[i]) ? helper(i + 1) : i;
-  }
-  return ar.slice(helper(0));
-};
-
-var takeWhile = function(p, ar) {
-  var n = ar.length;
-  var helper = function(i) {
-    if (i === n) {
-      return n;
-    }
-    return p(ar[i]) ? helper(i + 1) : i;
-  }
-
-  return ar.slice(0, helper(0));
-};
 
 var minWith = function(f, ar) {
   var fn = function(_ar, _best) {
