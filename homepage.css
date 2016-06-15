@@ -2,8 +2,21 @@
     font-size: 12px
 }
 
-.wpedit .result pre {
+#reactEditor .wpedit .result pre {
     background-color: white;
+}
+
+#reactEditor .wpedit {
+    margin-left: 10px;
+    padding-top: 11px;
+}
+
+#reactEditor .wpedit .CodeMirror {
+    border: 1px solid #aaa;
+}
+
+#reactEditor .wpedit .result {
+    margin-top: 0;
 }
 
 /* Literate editor */

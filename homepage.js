@@ -37456,10 +37456,30 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 var process = module.exports = {};
 
-// cached from whatever global is present so that test runners that stub it don't break things.
-var cachedSetTimeout = setTimeout;
-var cachedClearTimeout = clearTimeout;
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
 
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+(function () {
+  try {
+    cachedSetTimeout = setTimeout;
+  } catch (e) {
+    cachedSetTimeout = function () {
+      throw new Error('setTimeout is not defined');
+    }
+  }
+  try {
+    cachedClearTimeout = clearTimeout;
+  } catch (e) {
+    cachedClearTimeout = function () {
+      throw new Error('clearTimeout is not defined');
+    }
+  }
+} ())
 var queue = [];
 var draining = false;
 var currentQueue;
@@ -69877,7 +69897,8 @@ var nullFilter;
             [{
                     type: 'filter',
                     test: filteredFields.map(function (fieldName) {
-                        return 'datum.' + fieldName + '!==null';
+                        return '(datum.' + fieldName + '!==null' +
+                            ' && !isNaN(datum.' + fieldName + '))';
                     }).join(' && ')
                 }] : [];
     }
@@ -70807,9 +70828,9 @@ var LayerModel = (function (_super) {
         return true;
     };
     LayerModel.prototype.compatibleSource = function (child) {
-        var sourceUrl = this.data().url;
+        var data = this.data();
         var childData = child.component.data;
-        var compatible = !childData.source || (sourceUrl && sourceUrl === childData.source.url);
+        var compatible = !childData.source || (data && data.url === childData.source.url);
         return compatible;
     };
     return LayerModel;
@@ -71214,79 +71235,105 @@ var area;
     area.markType = markType;
     function properties(model) {
         var p = {};
-        var orient = model.config().mark.orient;
-        if (orient !== undefined) {
-            p.orient = { value: orient };
+        var config = model.config();
+        var _orient = orient(config.mark.orient);
+        if (_orient) {
+            p.orient = _orient;
         }
-        var stack = model.stack();
-        var xFieldDef = model.encoding().x;
-        if (stack && channel_1.X === stack.fieldChannel) {
-            p.x = {
-                scale: model.scaleName(channel_1.X),
-                field: model.field(channel_1.X, { suffix: '_start' })
-            };
+        p.x = x(model.encoding().x, model.scaleName(channel_1.X), model.stack());
+        var _x2 = x2(model.encoding().x, model.scaleName(channel_1.X), model.stack(), config.mark.orient);
+        if (_x2) {
+            p.x2 = _x2;
         }
-        else if (fielddef_1.isMeasure(xFieldDef)) {
-            p.x = { scale: model.scaleName(channel_1.X), field: model.field(channel_1.X) };
-        }
-        else if (fielddef_1.isDimension(xFieldDef)) {
-            p.x = {
-                scale: model.scaleName(channel_1.X),
-                field: model.field(channel_1.X, { binSuffix: '_mid' })
-            };
-        }
-        if (orient === 'horizontal') {
-            if (stack && channel_1.X === stack.fieldChannel) {
-                p.x2 = {
-                    scale: model.scaleName(channel_1.X),
-                    field: model.field(channel_1.X, { suffix: '_end' })
-                };
-            }
-            else {
-                p.x2 = {
-                    scale: model.scaleName(channel_1.X),
-                    value: 0
-                };
-            }
-        }
-        var yFieldDef = model.encoding().y;
-        if (stack && channel_1.Y === stack.fieldChannel) {
-            p.y = {
-                scale: model.scaleName(channel_1.Y),
-                field: model.field(channel_1.Y, { suffix: '_start' })
-            };
-        }
-        else if (fielddef_1.isMeasure(yFieldDef)) {
-            p.y = {
-                scale: model.scaleName(channel_1.Y),
-                field: model.field(channel_1.Y)
-            };
-        }
-        else if (fielddef_1.isDimension(yFieldDef)) {
-            p.y = {
-                scale: model.scaleName(channel_1.Y),
-                field: model.field(channel_1.Y, { binSuffix: '_mid' })
-            };
-        }
-        if (orient !== 'horizontal') {
-            if (stack && channel_1.Y === stack.fieldChannel) {
-                p.y2 = {
-                    scale: model.scaleName(channel_1.Y),
-                    field: model.field(channel_1.Y, { suffix: '_end' })
-                };
-            }
-            else {
-                p.y2 = {
-                    scale: model.scaleName(channel_1.Y),
-                    value: 0
-                };
-            }
+        p.y = y(model.encoding().y, model.scaleName(channel_1.Y), model.stack());
+        var _y2 = y2(model.encoding().y, model.scaleName(channel_1.Y), model.stack(), config.mark.orient);
+        if (_y2) {
+            p.y2 = _y2;
         }
         common_1.applyColorAndOpacity(p, model);
         common_1.applyMarkConfig(p, model, ['interpolate', 'tension']);
         return p;
     }
     area.properties = properties;
+    function orient(orient) {
+        if (orient) {
+            return { value: orient };
+        }
+        return undefined;
+    }
+    function x(fieldDef, scaleName, stack) {
+        if (stack && channel_1.X === stack.fieldChannel) {
+            return {
+                scale: scaleName,
+                field: fielddef_1.field(fieldDef, { suffix: '_start' })
+            };
+        }
+        else if (fielddef_1.isMeasure(fieldDef)) {
+            return { scale: scaleName, field: fielddef_1.field(fieldDef) };
+        }
+        else if (fielddef_1.isDimension(fieldDef)) {
+            return {
+                scale: scaleName,
+                field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+            };
+        }
+        return undefined;
+    }
+    function x2(fieldDef, scaleName, stack, orient) {
+        if (orient === 'horizontal') {
+            if (stack && channel_1.X === stack.fieldChannel) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { suffix: '_end' })
+                };
+            }
+            else {
+                return {
+                    scale: scaleName,
+                    value: 0
+                };
+            }
+        }
+        return undefined;
+    }
+    function y(fieldDef, scaleName, stack) {
+        if (stack && channel_1.Y === stack.fieldChannel) {
+            return {
+                scale: scaleName,
+                field: fielddef_1.field(fieldDef, { suffix: '_start' })
+            };
+        }
+        else if (fielddef_1.isMeasure(fieldDef)) {
+            return {
+                scale: scaleName,
+                field: fielddef_1.field(fieldDef)
+            };
+        }
+        else if (fielddef_1.isDimension(fieldDef)) {
+            return {
+                scale: scaleName,
+                field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+            };
+        }
+        return undefined;
+    }
+    function y2(fieldDef, scaleName, stack, orient) {
+        if (orient !== 'horizontal') {
+            if (stack && channel_1.Y === stack.fieldChannel) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { suffix: '_end' })
+                };
+            }
+            else {
+                return {
+                    scale: scaleName,
+                    value: 0
+                };
+            }
+        }
+        return undefined;
+    }
     function labels(model) {
         return undefined;
     }
@@ -71479,6 +71526,7 @@ var bar;
 },{"../../channel":251,"../../fielddef":289,"../common":253}],275:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
+var fielddef_1 = require('../../fielddef');
 var common_1 = require('../common');
 var line;
 (function (line) {
@@ -71488,39 +71536,45 @@ var line;
     line.markType = markType;
     function properties(model) {
         var p = {};
-        if (model.has(channel_1.X)) {
-            p.x = {
-                scale: model.scaleName(channel_1.X),
-                field: model.field(channel_1.X, { binSuffix: '_mid' })
-            };
-        }
-        else {
-            p.x = { value: 0 };
-        }
-        if (model.has(channel_1.Y)) {
-            p.y = {
-                scale: model.scaleName(channel_1.Y),
-                field: model.field(channel_1.Y, { binSuffix: '_mid' })
-            };
-        }
-        else {
-            p.y = { field: { group: 'height' } };
+        var config = model.config();
+        p.x = x(model.encoding().x, model.scaleName(channel_1.X), config);
+        p.y = y(model.encoding().y, model.scaleName(channel_1.Y), config);
+        var _size = size(model.encoding().size, config);
+        if (_size) {
+            p.strokeWidth = _size;
         }
         common_1.applyColorAndOpacity(p, model);
         common_1.applyMarkConfig(p, model, ['interpolate', 'tension']);
-        var size = sizeValue(model);
-        if (size) {
-            p.strokeWidth = { value: size };
-        }
         return p;
     }
     line.properties = properties;
-    function sizeValue(model) {
-        var fieldDef = model.fieldDef(channel_1.SIZE);
-        if (fieldDef && fieldDef.value !== undefined) {
-            return fieldDef.value;
+    function x(fieldDef, scaleName, config) {
+        if (fieldDef) {
+            if (fieldDef.field) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+                };
+            }
         }
-        return model.config().mark.lineSize;
+        return { value: 0 };
+    }
+    function y(fieldDef, scaleName, config) {
+        if (fieldDef) {
+            if (fieldDef.field) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+                };
+            }
+        }
+        return { field: { group: 'height' } };
+    }
+    function size(fieldDef, config) {
+        if (fieldDef && fieldDef.value !== undefined) {
+            return { value: fieldDef.value };
+        }
+        return { value: config.mark.lineSize };
     }
     function labels(model) {
         return undefined;
@@ -71528,7 +71582,7 @@ var line;
     line.labels = labels;
 })(line = exports.line || (exports.line = {}));
 
-},{"../../channel":251,"../common":253}],276:[function(require,module,exports){
+},{"../../channel":251,"../../fielddef":289,"../common":253}],276:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var mark_1 = require('../../mark');
@@ -71931,6 +71985,7 @@ var text;
 },{"../../channel":251,"../../type":297,"../../util":298,"../common":253}],280:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
+var fielddef_1 = require('../../fielddef');
 var common_1 = require('../common');
 var tick;
 (function (tick) {
@@ -71940,60 +71995,68 @@ var tick;
     tick.markType = markType;
     function properties(model) {
         var p = {};
-        if (model.has(channel_1.X)) {
-            p.xc = {
-                scale: model.scaleName(channel_1.X),
-                field: model.field(channel_1.X, { binSuffix: '_mid' })
-            };
+        var config = model.config();
+        p.xc = x(model.encoding().x, model.scaleName(channel_1.X), config);
+        p.yc = y(model.encoding().y, model.scaleName(channel_1.Y), config);
+        if (config.mark.orient === 'horizontal') {
+            p.width = size(model.encoding().size, model.scaleName(channel_1.SIZE), config, (model.scale(channel_1.X) || {}).bandSize);
+            p.height = { value: config.mark.tickThickness };
         }
         else {
-            p.xc = { value: model.config().scale.bandSize / 2 };
-        }
-        if (model.has(channel_1.Y)) {
-            p.yc = {
-                scale: model.scaleName(channel_1.Y),
-                field: model.field(channel_1.Y, { binSuffix: '_mid' })
-            };
-        }
-        else {
-            p.yc = { value: model.config().scale.bandSize / 2 };
-        }
-        if (model.config().mark.orient === 'horizontal') {
-            p.width = model.has(channel_1.SIZE) ? {
-                scale: model.scaleName(channel_1.SIZE),
-                field: model.field(channel_1.SIZE)
-            } : {
-                value: sizeValue(model, channel_1.X)
-            };
-            p.height = { value: model.config().mark.tickThickness };
-        }
-        else {
-            p.width = { value: model.config().mark.tickThickness };
-            p.height = model.has(channel_1.SIZE) ? {
-                scale: model.scaleName(channel_1.SIZE),
-                field: model.field(channel_1.SIZE)
-            } : {
-                value: sizeValue(model, channel_1.Y)
-            };
+            p.width = { value: config.mark.tickThickness };
+            p.height = size(model.encoding().size, model.scaleName(channel_1.SIZE), config, (model.scale(channel_1.Y) || {}).bandSize);
         }
         common_1.applyColorAndOpacity(p, model);
         return p;
     }
     tick.properties = properties;
-    function sizeValue(model, channel) {
-        var fieldDef = model.fieldDef(channel_1.SIZE);
-        if (fieldDef && fieldDef.value !== undefined) {
-            return fieldDef.value;
+    function x(fieldDef, scaleName, config) {
+        if (fieldDef) {
+            if (fieldDef.field) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+                };
+            }
+            else if (fieldDef.value) {
+                return { value: fieldDef.value };
+            }
         }
-        var scaleConfig = model.config().scale;
-        var markConfig = model.config().mark;
-        if (markConfig.tickSize) {
-            return markConfig.tickSize;
+        return { value: config.scale.bandSize / 2 };
+    }
+    function y(fieldDef, scaleName, config) {
+        if (fieldDef) {
+            if (fieldDef.field) {
+                return {
+                    scale: scaleName,
+                    field: fielddef_1.field(fieldDef, { binSuffix: '_mid' })
+                };
+            }
+            else if (fieldDef.value) {
+                return { value: fieldDef.value };
+            }
         }
-        var bandSize = model.has(channel) ?
-            model.scale(channel).bandSize :
-            scaleConfig.bandSize;
-        return bandSize / 1.5;
+        return { value: config.scale.bandSize / 2 };
+    }
+    function size(fieldDef, scaleName, config, scaleBandSize) {
+        if (fieldDef) {
+            if (fieldDef.field) {
+                return {
+                    scale: scaleName,
+                    field: fieldDef.field
+                };
+            }
+            else if (fieldDef.value !== undefined) {
+                return { value: fieldDef.value };
+            }
+        }
+        if (config.mark.tickSize) {
+            return { value: config.mark.tickSize };
+        }
+        var bandSize = scaleBandSize !== undefined ?
+            scaleBandSize :
+            config.scale.bandSize;
+        return { value: bandSize / 1.5 };
     }
     function labels(model) {
         return undefined;
@@ -72001,7 +72064,7 @@ var tick;
     tick.labels = labels;
 })(tick = exports.tick || (exports.tick = {}));
 
-},{"../../channel":251,"../common":253}],281:[function(require,module,exports){
+},{"../../channel":251,"../../fielddef":289,"../common":253}],281:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../channel');
 var encoding_1 = require('../encoding');
@@ -73991,7 +74054,7 @@ exports.timeUnit = vlTimeUnit;
 exports.type = vlType;
 exports.util = vlUtil;
 exports.validate = vlValidate;
-exports.version = '1.0.11';
+exports.version = '1.0.12';
 
 },{"./bin":250,"./channel":251,"./compile/compile":254,"./config":286,"./data":287,"./encoding":288,"./fielddef":289,"./shorthand":293,"./spec":295,"./timeunit":296,"./type":297,"./util":298,"./validate":299}],302:[function(require,module,exports){
 var ts = Date.now();
@@ -85716,6 +85779,9 @@ var CodeEditor = React.createClass({
       job();
     }
   },
+  getCode: function () {
+    return this.refs.editor ? this.refs.editor.getCodeMirror().getValue() : this.props.code;
+  },
   addResult: function (result) {
     // discovered alternate form of setState on my own
     // but later stumbled on a good explanation of why we need it at
@@ -85895,7 +85961,6 @@ if (typeof exports !== 'undefined') {
   if (typeof module !== 'undefined' && module.exports) {
     exports = module.exports = wpEditor;
   }
-  exports.wpEditor = wpEditor;
 }
 
 if (typeof window !== 'undefined') {
