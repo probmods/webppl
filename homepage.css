@@ -1,0 +1,273 @@
+.CodeMirror {
+    font-size: 12px
+}
+
+#reactEditor .wpedit .result pre {
+    background-color: white;
+}
+
+#reactEditor .wpedit {
+    margin-left: 10px;
+    padding-top: 11px;
+}
+
+#reactEditor .wpedit .CodeMirror {
+    border: 1px solid #aaa;
+}
+
+#reactEditor .wpedit .result {
+    margin-top: 0;
+}
+
+/* Literate editor */
+
+div#editorBlocks {
+   margin-top: 5em;
+}
+
+div#editorControls {
+   margin-top: 30px;
+   width: 100%;
+   text-align: right;
+}
+
+div#editorButtons {
+   margin-top: 1em;
+   display: block;
+   text-align: right;
+}
+
+div#editorControls div#fileSelector {
+   float: left;
+}
+
+div#editorControls button {
+   margin-left: 5px
+}
+
+div#fileSelector span {
+   margin-right: 5px;
+}
+
+div#fileSelector select {
+   margin-right: 5px;
+}
+
+div.editorBlock {
+   position: relative;
+}
+
+button.removeBlock, button.moveUp, button.moveDown {
+   position: absolute;
+   opacity: 0.3;
+   left: -30px;
+   font-size: 10px;
+   width: 30px;
+   height: 17px;
+}
+
+.codeBlock button.removeBlock {
+   top: 10px;
+}
+.codeBlock button.moveUp {
+   top: 25px;
+}
+.codeBlock button.moveDown {
+   top: 40px;
+}
+
+.markdownBlock button.removeBlock {
+   top: 0px;
+}
+.markdownBlock button.moveUp {
+   top: 15px;
+}
+.markdownBlock button.moveDown {
+   top: 30px;
+}
+
+div.currentBlock button.removeBlock,
+   div.currentBlock button.moveUp,
+      div.currentBlock button.moveDown {
+         opacity: 1;
+      }
+
+.editorBlock textarea {
+   display: block;
+   border: none;
+   border-left: 2px dotted #ccc;
+   margin: 9.5px;
+   padding-left: .5em;
+   background-color: #fff;
+   margin-bottom: .5em;
+   width: 100%;
+}
+
+textarea#editorMarkdown {
+   background-color: #fff;
+   width: 90%;
+   font-family: monospace;
+   font-size: 13px;
+   padding: .5em;
+   border: 1px solid #ccc;
+   margin: 4em;
+}
+
+.markdownBlock textarea {
+   opacity: 0;
+   position: absolute;
+   z-index: -10;
+}
+
+.markdownBlock .preview {
+   opacity: 1;
+   margin: 9.5px;
+   position: relative;
+   z-index: 10;
+   min-height: 40px;
+}
+
+.markdownBlock.currentBlock .preview {
+   opacity: 0;
+   position: absolute;
+   z-index: -10;
+}
+
+.markdownBlock.currentBlock textarea {
+   opacity: 1;
+   position: relative;
+   z-index: 10;
+}
+
+/* Space out content a bit */
+body {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+/* Everything but the jumbotron gets side spacing for mobile first views */
+.header,
+.marketing,
+.footer {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+/* Custom page header */
+.header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e5e5;
+}
+/* Make the masthead heading the same height as the navigation */
+.header h3 {
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 40px;
+}
+
+/* Custom page footer */
+.footer {
+  padding-top: 19px;
+  color: #777;
+  border-top: 1px solid #e5e5e5;
+}
+
+/* Customize container */
+@media (min-width: 768px) {
+  .container {
+    max-width: 730px;
+  }
+}
+.container-narrow > hr {
+  margin: 30px 0;
+}
+
+/* Main marketing message and sign up button */
+.jumbotron {
+  text-align: center;
+  border-bottom: 1px solid #e5e5e5;
+}
+.jumbotron .btn {
+  padding: 14px 24px;
+  font-size: 21px;
+}
+
+/* Supporting marketing content */
+.marketing {
+  margin: 40px 0;
+}
+.marketing p + h4 {
+  margin-top: 28px;
+}
+
+/* Responsive: Portrait tablets and up */
+@media screen and (min-width: 768px) {
+  /* Remove the padding we set earlier */
+  .header,
+  .marketing,
+  .footer {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  /* Space out the masthead */
+  .header {
+    margin-bottom: 30px;
+  }
+  /* Remove the bottom border on the jumbotron for visual effect */
+  .jumbotron {
+    border-bottom: 0;
+  }
+}
+
+
+h3.logo {
+   font-style: italic
+}
+
+h3.logo a:hover, h3.logo a:active, h3.logo a:focus, h3.logo a:visited {
+   text-decoration: none;
+}
+
+div.citation {
+  padding-left: 20px;
+  font-style: italic;
+}
+
+code.nobreak {
+  white-space: nowrap;
+}
+
+span.logo-main {
+   color: #C81039;
+}
+span.logo-bold {
+   font-weight: bold;
+   color: #C81039;
+}
+
+span.logo-tagline {
+   font-weight: 100;
+   padding-left: 5px;
+   color: #333;
+}
+
+div.main-lead {
+   padding-top: 20px;
+   padding-bottom: 5px;
+   background-color: brown;
+   color: white;
+}
+
+div.editor-panel-body {
+   margin-left: 30px;
+   margin-top: -70px;
+}
+
+#bibtex {
+   display: none;
+   overflow: auto;
+   word-wrap: normal;
+   white-space: pre;
+   padding-left: 20px;
+   font-size: 10px;
+}

@@ -1,0 +1,44 @@
+{
+  "name": "webppl-homepage",
+  "version": "0.7.0",
+  "description": "homepage for webppl",
+  "main": "src/index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "dependencies": {
+    "autosize": "^3.0.15",
+    "babel-preset-react": "^6.5.0",
+    "babelify": "^7.3.0",
+    "brfs": "^0.0.8",
+    "browserify": "^13.0.1",
+    "browserify-shim": "^3.8.12",
+    "browserify-versionify": "^1.0.6",
+    "classnames": "^2.2.5",
+    "jquery": "^2.2.4",
+    "jstransform": "^11.0.3",
+    "react": "^15.1.0",
+    "react-dom": "^15.1.0",
+    "showdown": "^1.4.1",
+    "underscore": "^1.8.3",
+    "vega": "^2.5.1",
+    "watchify": "^3.7.0",
+    "webppl-editor": "probmods/webppl-editor",
+    "webppl-viz": "github:probmods/webppl-viz"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/probmods/webppl.git#gh-pages"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/probmods/webppl/issues"
+  },
+  "homepage": "https://github.com/probmods/webppl/tree/gh-pages#readme"
+}

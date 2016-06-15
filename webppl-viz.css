@@ -1,0 +1,145 @@
+svg {
+}
+
+.bar {
+	fill: steelblue;
+}
+
+.axis text {
+	font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+.line {
+	fill: none;
+	stroke: steelblue;
+	stroke-width: 1.5px;
+}
+
+.marginals {
+	padding: 30px;
+}
+
+.scatters {
+	padding: 30px;
+}
+
+.plot_header {
+	display: block;
+	margin: auto auto;
+	text-align: center;
+}
+
+.wviz-table {
+    border-collapse: collapse;
+    margin: 0.5em;
+    font-size: 12px;
+}
+
+.wviz-table th, .wviz-table tr, .wviz-table td {
+    border: 1px solid #ccc;
+}
+
+.wviz-table th, .wviz-table td {
+    padding: 0.2em 0.4em
+}
+
+.graphComponent {
+    min-height: 16px;
+    position: relative;
+}
+
+.graphComponent .settings {
+    /* took the unicode page for wrench, cropped in gimp, converted to base64 */
+    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4AQFFy8hX9J6FgAAAXtJREFUWMPF1sErREEcwPHvksNuWdpknQhJHKwbF7n5F2hv8g84ivwNJMlxc3IixcFNciKRctiSlBSSrc0B4bnMq23MzMvuvN+b+vV6b16/+bx5028GEm7Nlucpde0F+oE0UJHGHQKBFrtAjxRgArg0IN6AGcmZWAY+NMQ3MCyJ6ANKGuIhiUX7oiFSjSZs+uf7gXaf9fVlY0Ax4p12w4Ic9AWYVAkPgFFDfxYoGwBLvgAtNUk/gUWtKJ0ZBg+AKtDtC3GjJb8CVoFny+Bh3AE5H4CpiIFccaHKdcNtAfiqE1Hy9SsGgPs6EVs+dsNXYAW4VTvgDrAOHKv+HJCx5CsAj8B5nNWwE9iMmIkiAm3PMviPWkfjcQNSwLZjFqpAPm5ExnJmCKMCdMSNaAWuHYhTifXQpc4HNsSRBGLIcHKqjQ0JxAjw7kDMSyCmI2rEnARiNgJRkECsOQAihQpg34F4AtokECcORFkCkFZl2YYQaXk15YkBwqP/H8AvTZXrVJHfk8kAAAAASUVORK5CYII=');
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.graphComponent .settings.white {
+    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4AQGABoNxOfOWAAAALhJREFUWMPFl0ESxSAIQw33vzPd/N9x2qrUkuDSGcsjBKqtFS9M9t3d/dwAoARoffDboUQY2zk0g0tTQKXEUgFW7cMKrNT4CmjVbWj/zFbGyjTeUIERCCv4sAR9QLYySPvQphnTTLibgKn6PTwH1KUAw1xvIMCqdRQCTNNFIKijOASpaL2ZEqZ0fLoCGX6AtN4PEJCb7gKBEud3EChrvx8ESmcA+w9IH0QZEOW3YsklZPq6UmU6gjgACguA99rcYpwAAAAASUVORK5CYII=');
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+
+}
+
+.actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    overflow: hidden;
+    z-index: 2;
+    color: black
+}
+
+.actions ul {
+    padding: 0;
+    margin: 0 0 0 16px;
+    list-style-type: none;
+}
+
+.actions li {
+    cursor: pointer
+}
+
+.actions.expanded {
+    width: auto;
+    height: auto;
+    padding: 0em 1em;
+    margin: 0;
+    background-color: rgba(1,1,1,0.8);
+    transition: background-color 0.4s;
+    color: white
+}
+
+.actions a {
+    color: white;
+    text-decoration: none;
+}
+
+.graphComponent .content {
+    float: left
+}
+
+.clearboth {
+    clear: both
+}
+
+.thumbnail {
+    float: left;
+    margin: 0.1em;
+}
+
+.thumbnail svg {
+    border: 1px solid gray;
+}
+
+.thumbnail svg:hover {
+    background-color: LightSteelBlue;
+}
