@@ -94,24 +94,6 @@ var deserialize = function(JSONString) {
   return new Categorical({ps: obj.probs, vs: obj.support});
 };
 
-function isTensor(t) {
-  return t instanceof Tensor;
-}
-
-function isMatrix(t) {
-  return t instanceof Tensor && t.rank === 2;
-}
-
-function isVector(t) {
-  return t instanceof Tensor && t.rank === 2 && t.dims[1] === 1;
-}
-
-function eqDim0(v, w) {
-  // Useful for checking two vectors have the same length, or that the
-  // dimension of a vector and matrix match.
-  return v.dims[0] === w.dims[0];
-}
-
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
@@ -419,7 +401,7 @@ function mvGaussianScore(mu, cov, x) {
   var _x = ad.value(x);
   var _mu = ad.value(mu);
   var _cov = ad.value(cov);
-  if (!isVector(_x) || !eqDim0(_x, _mu)) {
+  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
     return -Infinity;
   }
 
@@ -445,13 +427,13 @@ var MultivariateGaussian = makeDistributionType({
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _cov = ad.value(this.params.cov);
-    if (!isVector(_mu)) {
+    if (!util.isVector(_mu)) {
       throw new Error(this.meta.name + ': mu should be a vector.');
     }
-    if (!isMatrix(_cov)) {
+    if (!util.isMatrix(_cov)) {
       throw new Error(this.meta.name + ': cov should be a matrix.');
     }
-    if (!eqDim0(_mu, _cov)) {
+    if (!util.tensorEqDim0(_mu, _cov)) {
       throw new Error(this.meta.name + ': dimension mismatch between mu and cov.');
     }
   },
@@ -477,7 +459,7 @@ function diagCovGaussianSample(mu, sigma) {
 function diagCovGaussianScore(mu, sigma, x) {
   var _x = ad.value(x);
   var _mu = ad.value(mu);
-  if (!isVector(_x) || !eqDim0(_x, _mu)) {
+  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
     return -Infinity;
   }
 
@@ -503,13 +485,13 @@ var DiagCovGaussian = makeDistributionType({
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!isVector(_mu)) {
+    if (!util.isVector(_mu)) {
       throw new Error(this.meta.name + ': mu should be a vector.');
     }
-    if (!isVector(_sigma)) {
+    if (!util.isVector(_sigma)) {
       throw new Error(this.meta.name + ': sigma should be a vector.');
     }
-    if (!eqDim0(_mu, _sigma)) {
+    if (!util.tensorEqDim0(_mu, _sigma)) {
       throw new Error(this.meta.name + ': mu and sigma should have the same length.');
     }
   },
@@ -553,13 +535,13 @@ var LogisticNormal = makeDistributionType({
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!isVector(_mu)) {
+    if (!util.isVector(_mu)) {
       throw new Error(this.meta.name + ': mu should be a vector.');
     }
-    if (!isVector(_sigma)) {
+    if (!util.isVector(_sigma)) {
       throw new Error(this.meta.name + ': sigma should be a vector.');
     }
-    if (!eqDim0(_mu, _sigma)) {
+    if (!util.tensorEqDim0(_mu, _sigma)) {
       throw new Error(this.meta.name + ': mu and sigma should have the same length.');
     }
   },
@@ -572,7 +554,7 @@ var LogisticNormal = makeDistributionType({
     var _mu = ad.value(mu);
     var _val = ad.value(val);
 
-    if (!isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
+    if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
       return -Infinity;
     }
 
@@ -597,7 +579,7 @@ var LogisticNormal = makeDistributionType({
 
 function tensorGaussianScore(mu, sigma, dims, x) {
   var _x = ad.value(x);
-  if (!isTensor(_x) || !_.isEqual(_x.dims, dims)) {
+  if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
     return -Infinity;
   }
 
@@ -1138,7 +1120,7 @@ function dirichletSample(alpha) {
 function dirichletScore(alpha, val) {
   var _val = ad.value(val);
   var _alpha = ad.value(alpha);
-  if (!isVector(_val) || !eqDim0(_val, _alpha)) {
+  if (!util.isVector(_val) || !util.tensorEqDim0(_val, _alpha)) {
     return -Infinity;
   }
 
@@ -1158,7 +1140,7 @@ var Dirichlet = makeDistributionType({
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   constructor: function() {
     var _alpha = ad.value(this.params.alpha);
-    if (!isVector(_alpha)) {
+    if (!util.isVector(_alpha)) {
       throw new Error(this.meta.name + ': alpha should be a vector.');
     }
   },

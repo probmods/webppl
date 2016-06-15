@@ -4,6 +4,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var seedrandom = require('seedrandom');
 var ad = require('./ad');
+var Tensor = require('./tensor');
 
 var rng = Math.random;
 
@@ -308,6 +309,24 @@ function isObject(x) {
          Object.getPrototypeOf(x) === Object.prototype;
 }
 
+function isTensor(t) {
+  return t instanceof Tensor;
+}
+
+function isMatrix(t) {
+  return t instanceof Tensor && t.rank === 2;
+}
+
+function isVector(t) {
+  return t instanceof Tensor && t.rank === 2 && t.dims[1] === 1;
+}
+
+function tensorEqDim0(v, w) {
+  // Useful for checking two vectors have the same length, or that the
+  // dimension of a vector and matrix match.
+  return v.dims[0] === w.dims[0];
+}
+
 function relativizeAddress(env, address) {
   // Takes the env and a full stack address and returns a new address
   // relative to the entry address of the current coroutine. This
@@ -410,6 +429,10 @@ module.exports = {
   fatal: fatal,
   jsnew: jsnew,
   isObject: isObject,
+  isTensor: isTensor,
+  isVector: isVector,
+  isMatrix: isMatrix,
+  tensorEqDim0: tensorEqDim0,
   relativizeAddress: relativizeAddress,
   registerParams: registerParams
 };
