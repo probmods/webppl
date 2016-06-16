@@ -328,9 +328,27 @@ Optimization
 
          Default: ``1``
 
+      .. describe:: optMethod
+
+         The optimization method used. The following methods are
+         available:
+
+         * ``'sgd'``
+         * ``'adagrad'``
+         * ``'rmsprop'``
+         * ``'adam'``
+
+         Each method takes a ``stepSize`` sub-option, see below for
+         example usage. Additional method specific options are
+         available, see the `adnn optimization module`_ for details.
+
+         Default: ``'adagrad'``
+
    Example usage::
 
      Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
+     Infer({method: 'optimize', optMethod: 'sgd'}, thunk);
+     Infer({method: 'optimize', optMethod: {sgd: {stepSize: 1}}}, thunk);
 
 .. rubric:: Bibliography
 
@@ -348,3 +366,5 @@ Optimization
                Probabilistic Programs using Continuations and Callsite
                Caching." International Conference on Artificial
                Intelligence and Statistics. 2016.
+
+.. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt
