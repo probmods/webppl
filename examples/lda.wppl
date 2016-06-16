@@ -26,7 +26,7 @@ var makeTopicDist = function() {
 };
 
 var discreteFactor = function(vs, ps, v) {
-  var i = indexOf(v, vs);
+  var i = vs.indexOf(v);
   factor(Math.log(T.get(ps, i)));
 }
 
