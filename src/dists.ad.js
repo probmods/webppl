@@ -760,7 +760,7 @@ function expGammaSample(shape, scale) {
 function expGammaScore(shape, scale, val) {
   'use ad';
   var x = val;
-  return (shape - 1) * x - Math.exp(x) / scale - Math.logGamma(shape) - shape * Math.log(scale);
+  return (shape - 1) * x - Math.exp(x) / scale - ad.scalar.logGamma(shape) - shape * Math.log(scale);
 }
 
 
@@ -777,7 +777,7 @@ var Gamma = makeDistributionType({
     'use ad';
     var shape = this.params.shape;
     var scale = this.params.scale;
-    return (shape - 1) * Math.log(x) - x / scale - Math.logGamma(shape) - shape * Math.log(scale);
+    return (shape - 1) * Math.log(x) - x / scale - ad.scalar.logGamma(shape) - shape * Math.log(scale);
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -806,7 +806,7 @@ var Exponential = makeDistributionType({
 
 function logBeta(a, b) {
   'use ad';
-  return Math.logGamma(a) + Math.logGamma(b) - Math.logGamma(a + b);
+  return ad.scalar.logGamma(a) + ad.scalar.logGamma(b) - ad.scalar.logGamma(a + b);
 }
 
 
