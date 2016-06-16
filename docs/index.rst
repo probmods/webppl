@@ -12,6 +12,7 @@ Contents:
    distributions
    guides
    tensors
+   globalstore
    debugging
    packages
    development/index
