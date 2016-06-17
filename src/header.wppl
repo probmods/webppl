@@ -163,47 +163,6 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
-// Arithmetic and other functionals
-
-var plus = function(a, b) {
-  return a + b;
-};
-var minus = function(a, b) {
-  return a - b;
-};
-var mult = function(a, b) {
-  return a * b;
-};
-var div = function(a, b) {
-  return a / b;
-};
-
-var and = function(a, b) {
-  return a && b
-}
-var or = function(a, b) {
-  return a || b
-}
-
-var eq = function(a, b) {
-  return a === b;
-};
-var neq = function(a, b) {
-  return a != b;
-};
-var lt = function(a, b) {
-  return a < b;
-};
-var gt = function(a, b) {
-  return a > b;
-};
-var leq = function(a, b) {
-  return a <= b;
-};
-var geq = function(a, b) {
-  return a >= b;
-};
-
 var isEven = function(v) {
   return v % 2 === 0;
 };
@@ -235,11 +194,9 @@ var MAP = function(dist) {
 var expectation = function(dist, func) {
   var f = func || idF;
   var supp = dist.support();
-  return mapReduce1(plus,
-                    function(s) {
-                      return Math.exp(dist.score(s)) * f(s);
-                    },
-                    supp);
+  return reduce(function(s, acc) {
+    return acc + Math.exp(dist.score(s)) * f(s);
+  }, 0, supp);
 };
 
 var entropy = function(dist) {
@@ -340,37 +297,22 @@ var reduce = function(fn, init, ar) {
   return helper(0);
 };
 
-// sugar for reduce(f, g(init), map(g,ar))
-var mapReduce = function(f, init, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(init),
-                ar);
-};
-
-// sugar for reduce(f, g(last(ar)), map(g, butLast(ar)))
-var mapReduce1 = function(f, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(ar[ar.length - 1]),
-                ar.slice(0, -1));
-};
-
 var sum = function(l) {
-  return reduce(plus, 0, l);
+  return reduce(function(a, b) { return a + b; }, 0, l);
 };
 var product = function(l) {
-  return reduce(mult, 1, l);
+  return reduce(function(a, b) { return a * b; }, 1, l);
 };
 
 var listMean = function(l) {
-  return reduce(plus, 0, l) / l.length;
+  return sum(l) / l.length;
 };
 var listVar = function(l, mu) {
   var mu = mu === undefined ? listMean(l) : mu;
-  return mapReduce1(plus, function(a) {
-    return (a - mu) * (a - mu);
-  }, l) / l.length;
+  return reduce(function(a, acc) {
+    return acc + (a - mu) * (a - mu);
+  }, 0, l) / l.length;
+
 };
 var listStdev = function(l, mu) {
   return Math.sqrt(listVar(l, mu));
@@ -384,19 +326,15 @@ var normalize = function(xs) {
 };
 
 var all = function(p, l) {
-  if (l.length === 0) {
-    return true
-  } else {
-    return mapReduce1(and, p, l);
-  }
+  return reduce(function(x, acc) {
+    return acc && p(x);
+  }, true, l);
 };
 
 var any = function(p, l) {
-  if (l.length === 0) {
-    return false
-  } else {
-    return mapReduce1(or, p, l);
-  }
+  return reduce(function(x, acc) {
+    return acc || p(x);
+  }, false, l);
 };
 
 var zip = function(xs, ys) {
@@ -536,6 +474,14 @@ var _sort = function(l, pred, key) {
                  _sort(everyOther(l.slice(1)), pred, key),
                  pred,
                  key));
+};
+
+var lt = function(a, b) {
+  return a < b;
+};
+
+var gt = function(a, b) {
+  return a > b;
 };
 
 var sort = function(l, pred, key) {

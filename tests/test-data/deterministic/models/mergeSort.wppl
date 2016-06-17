@@ -10,6 +10,10 @@ var records = mapN(
     10000
     );
 
+var eq = function(x, y) {
+  return x === y;
+};
+
 [
   _merge([1, 5, 6], [2, 4, 7], lt, idF),
   _merge([], [2, 4, 7], lt, idF),

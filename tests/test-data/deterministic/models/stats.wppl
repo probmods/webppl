@@ -1,0 +1,5 @@
+[
+  listMean([1, 2, 6]),
+  listVar([1, 4, 7]),
+  listStdev([1, 2])
+];
