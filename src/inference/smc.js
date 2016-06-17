@@ -8,6 +8,7 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var paramStruct = require('../paramStruct');
 
 module.exports = function(env) {
 
@@ -19,7 +20,10 @@ module.exports = function(env) {
       particles: 100,
       rejuvSteps: 0,
       rejuvKernel: 'MH',
-      finalRejuv: true
+      finalRejuv: true,
+      saveTraces: false,
+      ignoreGuide: false,
+      params: {}
     });
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -30,6 +34,12 @@ module.exports = function(env) {
     this.performFinalRejuv = this.performRejuv && options.finalRejuv;
     this.numParticles = options.particles;
     this.debug = options.debug;
+    this.saveTraces = options.saveTraces;
+    this.ignoreGuide = options.ignoreGuide;
+
+    // Perform a copy to avoid modifying the input when SMC causes
+    // previously unseen params to be initialized.
+    this.params = paramStruct.copy(options.params);
 
     this.particles = [];
     this.completeParticles = [];
@@ -43,8 +53,10 @@ module.exports = function(env) {
       this.particles.push(new Particle(trace));
     }
 
-    this.k = k;
     this.s = s;
+    this.k = k;
+    this.a = a;
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -53,18 +65,29 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
-  SMC.prototype.sample = function(s, k, a, dist) {
-    var importanceDist = dist.importanceDist || dist;
-    var _val = importanceDist.sample();
-    var val = this.adRequired && importanceDist.isContinuous ? ad.lift(_val) : _val;
-    var importanceScore = importanceDist.score(_val);
-    var choiceScore = dist.score(_val);
+  SMC.prototype.sample = function(s, k, a, dist, options) {
+    var _val, choiceScore, importanceScore;
+
+    if (options && _.has(options, 'guide') && !this.ignoreGuide) {
+      // Guide available.
+      var importanceDist = options.guide;
+      _val = importanceDist.sample();
+      choiceScore = dist.score(_val);
+      importanceScore = importanceDist.score(_val);
+    } else {
+      // No guide, sample from prior.
+      _val = dist.sample();
+      choiceScore = importanceScore = dist.score(_val);
+    }
+
     var particle = this.currentParticle();
+    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
+
+    var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
     // Optimization: Choices are not required for PF without rejuvenation.
-    if (this.performRejuv) {
+    if (this.performRejuv || this.saveTraces) {
       particle.trace.addChoice(dist, val, a, s, k);
     }
-    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
     return k(s, val);
   };
 
@@ -258,9 +281,16 @@ module.exports = function(env) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
     var hist = new CountAggregator();
-    var addToHist = this.adRequired ?
-        function(value) { hist.add(ad.valueRec(value)); } :
-        hist.add.bind(hist);
+    var traces = [];
+
+    var aggregate = function(trace) {
+      var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
+      hist.add(value);
+      if (this.saveTraces) {
+        traces.push(trace);
+      }
+    }.bind(this);
+
     var logAvgW = _.first(this.completeParticles).logWeight;
 
     return util.cpsForEach(
@@ -271,16 +301,25 @@ module.exports = function(env) {
                 this.rejuvSteps,
                 kernels.sequence(
                     this.rejuvKernel,
-                    kernels.tap(function(trace) { addToHist(trace.value); })));
+                    kernels.tap(aggregate)));
             return chain(k, particle.trace);
           } else {
-            addToHist(particle.trace.value);
+            aggregate(particle.trace);
             return k();
           }
         }.bind(this),
         function() {
           var dist = hist.toDist();
           dist.normalizationConstant = logAvgW;
+          if (this.saveTraces) {
+            dist.traces = traces;
+            // Even though SMC doesn't modify guide parameters, it may
+            // cause parameters not previously seen to be initialized.
+            // Subsequent optimization should happen on the parameters
+            // that generated the example traces, so we return them
+            // here.
+            dist.guideParams = this.params;
+          }
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
         }.bind(this),

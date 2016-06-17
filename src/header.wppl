@@ -4,12 +4,15 @@
 
 defineDistConstructors(
     Bernoulli
+    MultivariateBernoulli
     Uniform
     UniformDrift
     RandomInteger
     Gaussian
     GaussianDrift
     MultivariateGaussian
+    DiagCovGaussian
+    TensorGaussian
     Cauchy
     Discrete
     Gamma
@@ -20,78 +23,79 @@ defineDistConstructors(
     Poisson
     Dirichlet
     DirichletDrift
+    LogisticNormal
     Categorical
     Delta);
 
 // Helpers to sample from distributions.
 
 var bernoulli = function(arg) {
-  var params = dists.isParams(arg) ? arg : {p: arg};
+  var params = util.isObject(arg) ? arg : {p: arg};
   return sample(Bernoulli(params));
 };
 
 var randomInteger = function(arg) {
-  var params = dists.isParams(arg) ? arg : {n: arg};
+  var params = util.isObject(arg) ? arg : {n: arg};
   return sample(RandomInteger(params));
 };
 
 var discrete = function(arg) {
-  var params = dists.isParams(arg) ? arg : {ps: arg};
+  var params = util.isObject(arg) ? arg : {ps: arg};
   return sample(Discrete(params));
 };
 
 var multinomial = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  var params = util.isObject(arg1) ? arg1 : {ps: arg1, n: arg2};
   return sample(Multinomial(params));
 };
 
 var gaussian = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
   return sample(Gaussian(params));
 };
 
 var multivariateGaussian = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, cov: arg2};
   return sample(MultivariateGaussian(params));
 };
 
 var cauchy = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  var params = util.isObject(arg1) ? arg1 : {location: arg1, scale: arg2};
   return sample(Cauchy(params));
 };
 
 var uniform = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
   return sample(Uniform(params));
 };
 
 var dirichlet = function(arg) {
-  var params = dists.isParams(arg) ? arg : {alpha: arg};
+  var params = util.isObject(arg) ? arg : {alpha: arg};
   return sample(Dirichlet(params));
 };
 
 var poisson = function(arg) {
-  var params = dists.isParams(arg) ? arg : {mu: arg};
+  var params = util.isObject(arg) ? arg : {mu: arg};
   return sample(Poisson(params));
 };
 
 var binomial = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  var params = util.isObject(arg1) ? arg1 : {p: arg1, n: arg2};
   return sample(Binomial(params));
 };
 
 var beta = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
   return sample(Beta(params));
 };
 
 var exponential = function(arg) {
-  var params = dists.isParams(arg) ? arg : {a: arg};
+  var params = util.isObject(arg) ? arg : {a: arg};
   return sample(Exponential(params));
 };
 
 var gamma = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  var params = util.isObject(arg1) ? arg1 : {shape: arg1, scale: arg2};
   return sample(Gamma(params));
 };
 
@@ -103,17 +107,17 @@ var flip = function(p) {
 };
 
 var categorical = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  var params = util.isObject(arg1) ? arg1 : {ps: arg1, vs: arg2};
   return params.vs[discrete(params.ps)];
 };
 
 var delta = function(arg) {
-  var params = dists.isParams(arg) ? arg : {v: arg};
+  var params = util.isObject(arg) ? arg : {v: arg};
   return sample(Delta(params));
 };
 
 var uniformDraw = function(arg) {
-  var vs = dists.isParams(arg) ? arg.vs : arg;
+  var vs = util.isObject(arg) ? arg.vs : arg;
   return vs[sample(RandomInteger({n: vs.length}))];
 };
 
@@ -123,10 +127,6 @@ var serializeDist = function(d) {
 
 var deserializeDist = function(JSONString) {
   return dists.deserialize(JSONString);
-};
-
-var withImportanceDist = function(d, importanceDist) {
-  return dists.withImportanceDist(d, importanceDist);
 };
 
 // XRPs
@@ -508,6 +508,20 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };
 
+var SampleGuide = function(wpplFn, options) {
+  return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
+};
+
+var OptimizeThenSample = function(wpplFn, options) {
+  // Both Infer and Optimize currently take a 'method' option, so here
+  // we look out for an 'optMethod' option and rename/pass that on to
+  // Optimize as 'method'.
+  var optimMethodOpt = _.has(options, 'optMethod') ? {method: options.optMethod} : {};
+  var optimOpts = _.extendOwn(_.omit(options, 'samples', 'optMethod'), optimMethodOpt);
+  var params = Optimize(wpplFn, optimOpts);
+  return SampleGuide(wpplFn, _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose')));
+};
+
 var Infer = function(options, wpplFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
@@ -526,7 +540,9 @@ var Infer = function(options, wpplFn) {
     asyncPF: AsyncPF,
     rejection: Rejection,
     enumerate: Enumerate,
-    incrementalMH: IncrementalMH
+    incrementalMH: IncrementalMH,
+    forward: ForwardSample,
+    optimize: OptimizeThenSample
   };
 
   var methodName = options.method;
@@ -538,4 +554,13 @@ var Infer = function(options, wpplFn) {
   }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));
+};
+
+// Convenience function to create scalar valued parameters.
+var scalarParam = function(mean, sd) {
+  return ad.tensorEntry(tensorParam([1], mean, sd), 0);
+};
+
+var param = function(a1, a2, a3) {
+  return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
 };

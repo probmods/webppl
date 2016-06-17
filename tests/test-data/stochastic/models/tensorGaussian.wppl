@@ -1,0 +1,5 @@
+var sigma = 1 / Math.sqrt(2);
+var model = function() {
+  var x = sample(TensorGaussian({mu: 1.5, sigma: sigma, dims: [2]}));
+  return T.sumreduce(x);
+};

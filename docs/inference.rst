@@ -303,6 +303,53 @@ SMC
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
 
+Optimization
+------------
+
+.. js:function:: Infer({method: 'optimize'[, ...]}, thunk)
+
+   This method performs inference by optimizing the parameters of the
+   :ref:`guide program<guides>`. The marginal distribution is a
+   histogram constructed from samples drawn from the guide program
+   using the optimized parameters.
+
+   The following options are supported:
+
+      .. describe:: steps
+
+         The number of optimization steps to take.
+
+         Default: ``1``
+
+      .. describe:: samples
+
+         The number of samples used to construct the marginal
+         distribution.
+
+         Default: ``1``
+
+      .. describe:: optMethod
+
+         The optimization method used. The following methods are
+         available:
+
+         * ``'sgd'``
+         * ``'adagrad'``
+         * ``'rmsprop'``
+         * ``'adam'``
+
+         Each method takes a ``stepSize`` sub-option, see below for
+         example usage. Additional method specific options are
+         available, see the `adnn optimization module`_ for details.
+
+         Default: ``'adagrad'``
+
+   Example usage::
+
+     Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
+     Infer({method: 'optimize', optMethod: 'sgd'}, thunk);
+     Infer({method: 'optimize', optMethod: {sgd: {stepSize: 1}}}, thunk);
+
 .. rubric:: Bibliography
 
 .. [wingate11] David Wingate, Andreas Stuhlmüller, and Noah D.
@@ -319,3 +366,5 @@ SMC
                Probabilistic Programs using Continuations and Callsite
                Caching." International Conference on Artificial
                Intelligence and Statistics. 2016.
+
+.. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt

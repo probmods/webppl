@@ -11,7 +11,7 @@ var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
 var helpers = require('./helpers');
-var statistics = require('../src/statistics');
+var statistics = require('../src/math/statistics');
 
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays

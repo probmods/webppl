@@ -20,6 +20,7 @@
 
 var assert = require('assert');
 var _ = require('underscore');
+var nn = require('adnn/nn');
 
 try {
   var util = require('./util');
@@ -29,12 +30,14 @@ try {
   var asyncpf = require('./inference/asyncpf');
   var pmcmc = require('./inference/pmcmc');
   var smc = require('./inference/smc');
-  var variational = require('./inference/variational');
   var rejection = require('./inference/rejection');
   var incrementalmh = require('./inference/incrementalmh');
+  var optimize = require('./inference/optimize');
+  var forwardSample = require('./inference/forwardSample');
   var headerUtils = require('./headerUtils');
   var Query = require('./query').Query;
   var ad = require('./ad');
+  var Tensor = require('./tensor');
 } catch (e) {
   if (e.code === 'MODULE_NOT_FOUND') {
     console.error(e.message);
@@ -68,11 +71,11 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
-  env.sample = function(s, k, a, dist) {
+  env.sample = function(s, k, a, dist, options) {
     if (!dists.isDist(dist)) {
       throw new Error('sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".');
     }
-    return env.coroutine.sample(s, k, a, dist);
+    return env.coroutine.sample(s, k, a, dist, options);
   };
 
   env.factor = function(s, k, a, score) {
@@ -109,7 +112,6 @@ module.exports = function(env) {
   // Inference coroutines are responsible for managing this correctly.
   env.query = new Query();
 
-
   // Exports
 
   var exports = {
@@ -135,13 +137,15 @@ module.exports = function(env) {
     util: util,
     assert: assert,
     ad: ad,
+    nn: nn,
+    T: ad.tensor,
     dists: dists
   });
 
   // Inference functions and header utils
   var headerModules = [
     enumerate, asyncpf, mcmc, incrementalmh, pmcmc,
-    smc, variational, rejection, headerUtils
+    smc, rejection, optimize, forwardSample, headerUtils
   ];
   headerModules.forEach(function(mod) {
     addExports(mod(env));

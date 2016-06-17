@@ -30,6 +30,7 @@ module.exports = function(env) {
 
     this.cont = cont;
     this.oldTrace = oldTrace;
+    this.a = oldTrace.baseAddress; // Support relative addressing.
 
     this.coroutine = env.coroutine;
     env.coroutine = this;

@@ -21,7 +21,6 @@
 //   discrete distributions with finite support) or an object with
 //   'lower' and 'upper' properties (for continuous distributions with
 //   bounded support).
-// - dist.grad(val) gives the gradient of score at val wrt params.
 // - dist.driftKernel(prevVal) is a distribution for making mh
 //   proposals conditioned on the previous value
 //
@@ -32,11 +31,13 @@
 
 'use strict';
 
-var numeric = require('numeric');
+var Tensor = require('./tensor');
 var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
+var gt = require('./domain').gt;
+var interval = require('./domain').interval;
 
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
@@ -93,10 +94,6 @@ var deserialize = function(JSONString) {
   return new Categorical({ps: obj.probs, vs: obj.support});
 };
 
-function isParams(x) {
-  return typeof x === 'object' && !Array.isArray(x) && !ad.isLifted(x) && x !== null;
-}
-
 // Mixins.
 
 // The motivation for using mixins is that there isn't an obviously
@@ -136,7 +133,7 @@ var continuousSupport = {
 };
 
 
-var methodNames = ['sample', 'score', 'support', 'grad', 'print', 'driftKernel'];
+var methodNames = ['sample', 'score', 'support', 'print', 'driftKernel', 'base', 'transform'];
 
 function makeDistributionType(options) {
   options = util.mergeDefaults(options, {
@@ -209,7 +206,7 @@ var Uniform = makeDistributionType({
   name: 'Uniform',
   desc: 'Continuous uniform distribution on [a, b]',
   params: [{name: 'a', desc: 'lower bound (real)'},
-	   {name: 'b', desc: 'upper bound (real > a)'}],
+           {name: 'b', desc: 'upper bound (real > a)'}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -233,8 +230,8 @@ var UniformDrift = makeDistributionType({
       'Drift kernels are used to narrow search during inference. ' +
       'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
   params: [{name: 'a', desc: 'lower bound (real)'},
-	   {name: 'b', desc: 'upper bound (real > a)'},
-	   {name: 'r', desc: 'drift kernel radius'}],
+           {name: 'b', desc: 'upper bound (real > a)'},
+           {name: 'r', desc: 'drift kernel radius'}],
   parent: Uniform,
   driftKernel: function(prevVal) {
     // propose from the window [prevVal - r, prevVal + r]
@@ -253,7 +250,7 @@ var UniformDrift = makeDistributionType({
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
   desc: 'Distribution on {true,false}',
-  params: [{name: 'p', desc: 'success probability (probability in [0, 1])'}],
+  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -267,10 +264,47 @@ var Bernoulli = makeDistributionType({
   },
   support: function() {
     return [true, false];
+  }
+});
+
+function mvBernoulliScore(ps, x) {
+  assert.ok(ad.value(ps).rank === 2);
+  assert.ok(ad.value(ps).dims[1] === 1);
+  assert.ok(ad.value(x).rank === 2);
+  assert.ok(ad.value(x).dims[1] === 1);
+  assert.ok(ad.value(x).dims[0] === ad.value(ps).dims[0]);
+
+  var xSub1 = ad.tensor.sub(x, 1);
+  var pSub1 = ad.tensor.sub(ps, 1);
+
+  return ad.tensor.sumreduce(
+    ad.tensor.add(
+      ad.tensor.log(ad.tensor.pow(ps, x)),
+      ad.tensor.log(ad.tensor.pow(ad.tensor.neg(pSub1), ad.tensor.neg(xSub1)))));
+}
+
+
+var MultivariateBernoulli = makeDistributionType({
+  name: 'MultivariateBernoulli',
+  desc: 'Distribution over a vector of independent Bernoulli variables. Each element ' +
+    'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
+    'has support ``{true, false}``.',
+  params: [{name: 'ps', desc: 'probabilities', domain: interval(0, 1)}],
+  mixins: [finiteSupport],
+  sample: function() {
+    var ps = ad.value(this.params.ps);
+    assert.ok(ps.rank === 2);
+    assert.ok(ps.dims[1] === 1);
+    var d = ps.dims[0];
+    var x = new Tensor([d, 1]);
+    var n = x.length;
+    while (n--) {
+      x.data[n] = util.random() < ps.data[n];
+    }
+    return x;
   },
-  grad: function(val) {
-    //FIXME: check domain
-    return val ? [1 / this.params.p] : [-1 / this.params.p];
+  score: function(x) {
+    return mvBernoulliScore(this.params.ps, x);
   }
 });
 
@@ -317,14 +351,23 @@ var Gaussian = makeDistributionType({
   name: 'Gaussian',
   desc: 'Distribution over reals.',
   params: [{name: 'mu', desc: 'mean (real)'},
-	   {name: 'sigma', desc: 'standard deviation (real > 0)'}],
+           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
   },
   score: function(x) {
     return gaussianScore(this.params.mu, this.params.sigma, x);
-  }
+  },
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    // Transform a sample x from the base distribution to the
+    // distribution described by params.
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return ad.scalar.add(ad.scalar.mul(sigma, x), mu);  }
 });
 
 
@@ -336,7 +379,7 @@ var GaussianDrift = makeDistributionType({
       'Drift kernels are used to narrow search during inference. ' +
       'Currently, the parameters guiding this narrowing are hard-coded.',
   params: [{name: 'mu', desc: 'mean (real)'},
-	   {name: 'sigma', desc: 'standard deviation (real > 0)'}],
+           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
   parent: Gaussian,
   driftKernel: function(curVal) {
     return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
@@ -344,22 +387,34 @@ var GaussianDrift = makeDistributionType({
 });
 
 
-function multivariateGaussianSample(mu, cov) {
-  var xs = mu.map(function() {return gaussianSample(0, 1);});
-  var svd = numeric.svd(cov);
-  var scaledV = svd.V.map(function(x) {
-    return numeric.mul(numeric.sqrt(svd.S), x);
-  });
-  xs = numeric.dot(xs, numeric.transpose(scaledV));
-  return numeric.add(xs, mu);
+function mvGaussianSample(mu, cov) {
+  var d = mu.dims[0];
+  var z = new Tensor([d, 1]);
+  for (var i = 0; i < d; i++) {
+    z.data[i] = gaussianSample(0, 1);
+  }
+  var L = cov.cholesky();
+  return L.dot(z).add(mu);
 }
 
-function multivariateGaussianScore(mu, cov, x) {
-  var n = mu.length;
-  var coeffs = n * LOG_2PI + Math.log(numeric.det(cov));
-  var xSubMu = numeric.sub(x, mu);
-  var exponents = numeric.dot(numeric.dot(xSubMu, numeric.inv(cov)), xSubMu);
-  return -0.5 * (coeffs + exponents);
+function mvGaussianScore(mu, cov, x) {
+  var _x = ad.value(x);
+  var _mu = ad.value(mu);
+  var _cov = ad.value(cov);
+  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
+    return -Infinity;
+  }
+
+  var d = _mu.dims[0];
+  var dLog2Pi = d * LOG_2PI;
+  var logDetCov = ad.scalar.log(ad.tensor.determinant(cov));
+  var z = ad.tensor.sub(x, mu);
+  var zT = ad.tensor.transpose(z);
+  var prec = ad.tensor.inverse(cov);
+  return ad.scalar.mul(-0.5, ad.scalar.add(
+    dLog2Pi, ad.scalar.add(
+      logDetCov,
+      ad.tensorEntry(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
 }
 
 
@@ -367,13 +422,211 @@ var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
   desc: 'n-dimensional Gaussian.',
   params: [{name: 'mu', desc: 'mean vector (array of reals)'},
-	   {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
-	    'that must be symmetric positive semidefinite)'}],
+           {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
+            'that must be symmetric positive semidefinite)'}],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _cov = ad.value(this.params.cov);
+    if (!util.isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!util.isMatrix(_cov)) {
+      throw new Error(this.meta.name + ': cov should be a matrix.');
+    }
+    if (!util.tensorEqDim0(_mu, _cov)) {
+      throw new Error(this.meta.name + ': dimension mismatch between mu and cov.');
+    }
+  },
   sample: function() {
-    return multivariateGaussianSample(this.params.mu, this.params.cov);
+    return mvGaussianSample(ad.value(this.params.mu), ad.value(this.params.cov));
   },
   score: function(val) {
-    return multivariateGaussianScore(this.params.mu, this.params.cov, val);
+    return mvGaussianScore(this.params.mu, this.params.cov, val);
+  }
+});
+
+
+function diagCovGaussianSample(mu, sigma) {
+  var d = mu.dims[0];
+  var x = new Tensor([d, 1]);
+  var n = x.length;
+  while (n--) {
+    x.data[n] = gaussianSample(mu.data[n], sigma.data[n]);
+  }
+  return x;
+}
+
+function diagCovGaussianScore(mu, sigma, x) {
+  var _x = ad.value(x);
+  var _mu = ad.value(mu);
+  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
+    return -Infinity;
+  }
+
+  var d = _mu.dims[0];
+  var dLog2Pi = d * LOG_2PI;
+  var logDetCov = ad.scalar.mul(2, ad.tensor.sumreduce(ad.tensor.log(sigma)));
+  var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
+
+  return ad.scalar.mul(-0.5, ad.scalar.add(
+    dLog2Pi, ad.scalar.add(
+      logDetCov,
+      ad.tensor.sumreduce(ad.tensor.mul(z, z)))));
+}
+
+var DiagCovGaussian = makeDistributionType({
+  name: 'DiagCovGaussian',
+  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix.',
+  params: [
+    {name: 'mu', desc: 'vector of means'},
+    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
+  ],
+  mixins: [continuousSupport],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!util.isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!util.isVector(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a vector.');
+    }
+    if (!util.tensorEqDim0(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    }
+  },
+  sample: function() {
+    return diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
+  },
+  score: function(x) {
+    return diagCovGaussianScore(this.params.mu, this.params.sigma, x);
+  },
+  base: function() {
+    var dims = ad.value(this.params.mu).dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
+  },
+  transform: function(x) {
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return ad.tensor.add(ad.tensor.mul(sigma, x), mu);
+  }
+});
+
+var squishToProbSimplex = function(x) {
+  // Map a d dimensional vector onto the d simplex.
+  var d = ad.value(x).dims[0];
+  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
+  return ad.tensor.softmax(u);
+};
+
+// Atchison, J., and Sheng M. Shen. "Logistic-normal distributions:
+// Some properties and uses." Biometrika 67.2 (1980): 261-272.
+
+var LogisticNormal = makeDistributionType({
+  name: 'LogisticNormal',
+  desc: 'A distribution over probability vectors obtained by transforming a random variable ' +
+    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then ' +
+    'the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.',
+  params: [
+    {name: 'mu', desc: 'vector of means'},
+    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
+  ],
+  mixins: [continuousSupport],
+  constructor: function() {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!util.isVector(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a vector.');
+    }
+    if (!util.isVector(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a vector.');
+    }
+    if (!util.tensorEqDim0(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    }
+  },
+  sample: function() {
+    return squishToProbSimplex(diagCovGaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma)));
+  },
+  score: function(val) {
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    var _mu = ad.value(mu);
+    var _val = ad.value(val);
+
+    if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
+      return -Infinity;
+    }
+
+    var d = _mu.dims[0];
+    var u = ad.tensor.reshape(ad.tensor.range(val, 0, d), [d, 1]);
+    var u_last = ad.tensorEntry(val, d);
+    var inv = ad.tensor.log(ad.tensor.div(u, u_last));
+    var normScore = diagCovGaussianScore(mu, sigma, inv);
+    return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
+  },
+  base: function() {
+    var dims = ad.value(this.params.mu).dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
+  },
+  transform: function(x) {
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return squishToProbSimplex(ad.tensor.add(ad.tensor.mul(sigma, x), mu));
+  }
+});
+
+
+function tensorGaussianScore(mu, sigma, dims, x) {
+  var _x = ad.value(x);
+  if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
+    return -Infinity;
+  }
+
+  var d = _x.length;
+  var dLog2Pi = d * LOG_2PI;
+  var _2dLogSigma = ad.scalar.mul(2 * d, ad.scalar.log(sigma));
+  var sigma2 = ad.scalar.pow(sigma, 2);
+  var xSubMu = ad.tensor.sub(x, mu);
+  var z = ad.scalar.div(ad.tensor.sumreduce(ad.tensor.mul(xSubMu, xSubMu)), sigma2);
+
+  return ad.scalar.mul(-0.5, ad.scalar.sum(dLog2Pi, _2dLogSigma, z));
+}
+
+var TensorGaussian = makeDistributionType({
+  name: 'TensorGaussian',
+  desc: 'Distribution over a tensor of independent Gaussian variables.',
+  params: [
+    {name: 'mu', desc: 'mean'},
+    {name: 'sigma', desc: 'standard deviation', domain: gt(0)},
+    {name: 'dims', desc: 'dimension of tensor'}
+  ],
+  mixins: [continuousSupport],
+  constructor: function() {
+    if (!_.isNumber(this.params.mu)) {
+      throw new Error(this.meta.name + ': mu should be a number.');
+    }
+    if (!_.isNumber(this.params.sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a number.');
+    }
+    if (!Array.isArray(this.params.dims)) {
+      throw new Error(this.meta.name + ': dims should be an array.');
+    }
+  },
+  sample: function() {
+    var mu = ad.value(this.params.mu);
+    var sigma = ad.value(this.params.sigma);
+    var dims = this.params.dims;
+
+    var x = new Tensor(dims);
+    var n = x.length;
+    while (n--) {
+      x.data[n] = gaussianSample(mu, sigma);
+    }
+    return x;
+  },
+  score: function(x) {
+    return tensorGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
   }
 });
 
@@ -383,7 +636,7 @@ var Cauchy = makeDistributionType({
   name: 'Cauchy',
   desc: 'Distribution over ``[-Infinity, Infinity]``',
   params: [{name: 'location', desc: '(real in [-Infinity, Infinity])'},
-	   {name: 'scale', desc: '(real > 0)'}],
+           {name: 'scale', desc: '(real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -404,46 +657,48 @@ function sum(xs) {
 }
 
 
+
+function inDiscreteSupport(val, dim) {
+  return (val === Math.floor(val)) && (0 <= val) && (val < dim);
+};
+
+function discreteScoreVector(probs, val) {
+  var _probs = ad.value(probs);
+  assert.ok(_probs.rank === 2);
+  assert.ok(_probs.dims[1] === 1); // i.e. vector
+  var d = _probs.dims[0];
+  return inDiscreteSupport(val, d) ?
+      ad.scalar.log(ad.scalar.div(ad.tensorEntry(probs, val), ad.tensor.sumreduce(probs))) :
+      -Infinity;
+}
+
+function discreteScoreArray(probs, val) {
+  'use ad';
+  var d = probs.length;
+  return inDiscreteSupport(val, d) ? Math.log(probs[val] / sum(probs)) : -Infinity;
+}
+
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array of probabilities in [0,1]'}],
+  params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
   mixins: [finiteSupport],
   sample: function() {
-    return discreteSample(this.params.ps.map(ad.value));
+    var ps = _.isArray(this.params.ps) ?
+          this.params.ps.map(ad.value) :
+          ad.value(this.params.ps).data;
+    return discreteSample(ps);
   },
   score: function(val) {
-    'use ad';
-    var n = this.params.ps.length;
-    var inSupport = (val === Math.floor(val)) && (0 <= val) && (val < n);
-    return inSupport ? Math.log(this.params.ps[val] / sum(this.params.ps)) : -Infinity;
+    var scoreFn = _.isArray(this.params.ps) ? discreteScoreArray : discreteScoreVector;
+    return scoreFn(this.params.ps, val);
   },
-  support: function(params) {
-    return _.range(this.params.ps.length);
+  support: function() {
+    // This does the right thing for arrays and vectors.
+    return _.range(ad.value(this.params.ps).length);
   }
 });
 
-
-var gammaCof = [
-  76.18009172947146,
-  -86.50532032941677,
-  24.01409824083091,
-  -1.231739572450155,
-  0.1208650973866179e-2,
-  -0.5395239384953e-5];
-
-function logGamma(xx) {
-  'use ad';
-  var x = xx - 1.0;
-  var tmp = x + 5.5;
-  tmp -= (x + 0.5) * Math.log(tmp);
-  var ser = 1.000000000190015;
-  for (var j = 0; j <= 5; j++) {
-    x += 1;
-    ser += gammaCof[j] / x;
-  }
-  return -tmp + Math.log(2.5066282746310005 * ser);
-}
 
 // an implementation of Marsaglia & Tang, 2000:
 // A Simple Method for Generating Gamma Variables
@@ -505,15 +760,15 @@ function expGammaSample(shape, scale) {
 function expGammaScore(shape, scale, val) {
   'use ad';
   var x = val;
-  return (shape - 1) * x - Math.exp(x) / scale - logGamma(shape) - shape * Math.log(scale);
+  return (shape - 1) * x - Math.exp(x) / scale - ad.scalar.logGamma(shape) - shape * Math.log(scale);
 }
 
 
 var Gamma = makeDistributionType({
   name: 'Gamma',
   desc: 'Distribution over positive reals.',
-  params: [{name: 'shape', desc: 'shape parameter (real > 0)'},
-	   {name: 'scale', desc: 'scale parameter (real > 0)'}],
+  params: [{name: 'shape', desc: 'shape parameter (real)', domain: gt(0)},
+           {name: 'scale', desc: 'scale parameter (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
@@ -522,7 +777,7 @@ var Gamma = makeDistributionType({
     'use ad';
     var shape = this.params.shape;
     var scale = this.params.scale;
-    return (shape - 1) * Math.log(x) - x / scale - logGamma(shape) - shape * Math.log(scale);
+    return (shape - 1) * Math.log(x) - x / scale - ad.scalar.logGamma(shape) - shape * Math.log(scale);
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -533,7 +788,7 @@ var Gamma = makeDistributionType({
 var Exponential = makeDistributionType({
   name: 'Exponential',
   desc: 'Distribution on ``[0, Infinity]``',
-  params: [{name: 'a', desc: 'rate (real > 0)'}],
+  params: [{name: 'a', desc: 'rate (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -551,7 +806,7 @@ var Exponential = makeDistributionType({
 
 function logBeta(a, b) {
   'use ad';
-  return logGamma(a) + logGamma(b) - logGamma(a + b);
+  return ad.scalar.logGamma(a) + ad.scalar.logGamma(b) - ad.scalar.logGamma(a + b);
 }
 
 
@@ -560,8 +815,8 @@ function logBeta(a, b) {
 var Beta = makeDistributionType({
   name: 'Beta',
   desc: 'Distribution on [0, 1]',
-  params: [{name: 'a', desc: 'shape (real > 0)'},
-	   {name: 'b', desc: 'shape (real > 0)'}],
+  params: [{name: 'a', desc: 'shape (real)', domain: gt(0)},
+           {name: 'b', desc: 'shape (real)', domain: gt(0)}],
   mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
@@ -631,8 +886,8 @@ function binomialSample(p, n) {
 var Binomial = makeDistributionType({
   name: 'Binomial',
   desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
-  params: [{name: 'p', desc: 'success probability (probability in [0,1])'},
-	   {name: 'n', desc: 'number of trials (integer > 0)'}],
+  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)},
+           {name: 'n', desc: 'number of trials (integer > 0)'}],
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -701,8 +956,8 @@ function multinomialSample(theta, n) {
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
   desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
-  params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)'},
-	   {name: 'n', desc: 'number of trials (integer > 0)'}],
+  params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)', domain: interval(0, 1)},
+           {name: 'n', desc: 'number of trials (integer > 0)'}],
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -806,7 +1061,7 @@ function lnfactExact(x) {
 var Poisson = makeDistributionType({
   name: 'Poisson',
   desc: 'Distribution over integers.',
-  params: [{name: 'mu', desc: 'mean (real >0)'}],
+  params: [{name: 'mu', desc: 'mean (real)', domain: gt(0)}],
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -835,51 +1090,62 @@ var Poisson = makeDistributionType({
 });
 
 function dirichletSample(alpha) {
-  var n = alpha.length;
-
+  assert.ok(alpha.rank === 2);
+  assert.ok(alpha.dims[1] === 1); // i.e. vector
+  var n = alpha.dims[0];
   var ssum = 0;
-  var theta = [];
+  var theta = new Tensor([n, 1]);
   var t;
+
   // sample n gammas
   for (var i = 0; i < n; i++) {
-    t = gammaSample(alpha[i], 1);
-    theta[i] = t;
-    ssum = ssum + t;
+    t = gammaSample(alpha.data[i], 1);
+    theta.data[i] = t;
+    ssum += t;
   }
 
   // normalize and catch under/overflow
   for (var j = 0; j < n; j++) {
-    theta[j] /= ssum;
-    if (theta[j] === 0) {
-      theta[j] = Number.EPSILON
+    theta.data[j] /= ssum;
+    if (theta.data[j] === 0) {
+      theta.data[j] = Number.EPSILON
     }
-    if (theta[j] === 1) {
-      theta[j] = 1 - Number.EPSILON
+    if (theta.data[j] === 1) {
+      theta.data[j] = 1 - Number.EPSILON
     }
   }
   return theta;
 }
 
 function dirichletScore(alpha, val) {
-  var theta = val;
-  var asum = 0;
-  for (var i = 0; i < alpha.length; i++) {
-    asum += alpha[i];
+  var _val = ad.value(val);
+  var _alpha = ad.value(alpha);
+  if (!util.isVector(_val) || !util.tensorEqDim0(_val, _alpha)) {
+    return -Infinity;
   }
-  var logp = logGamma(asum);
-  for (var j = 0; j < alpha.length; j++) {
-    logp += (alpha[j] - 1) * Math.log(theta[j]);
-    logp -= logGamma(alpha[j]);
-  }
-  return logp;
+
+  return ad.scalar.add(
+    ad.tensor.sumreduce(
+      ad.tensor.sub(
+        ad.tensor.mul(
+          ad.tensor.sub(alpha, 1),
+          ad.tensor.log(val)),
+        ad.tensor.logGamma(alpha))),
+    ad.scalar.logGamma(ad.tensor.sumreduce(alpha)));
 }
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
   desc: 'Distribution over arrays of probabilities.',
-  params: [{name: 'alpha', desc: 'concentration parameters (array of reals > 0)'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
+  constructor: function() {
+    var _alpha = ad.value(this.params.alpha);
+    if (!util.isVector(_alpha)) {
+      throw new Error(this.meta.name + ': alpha should be a vector.');
+    }
+  },
   sample: function() {
-    return dirichletSample(this.params.alpha);
+    return dirichletSample(ad.value(this.params.alpha));
   },
   score: function(val) {
     return dirichletScore(this.params.alpha, val);
@@ -894,10 +1160,10 @@ var DirichletDrift = makeDistributionType({
       'Drift kernels are used to narrow search during inference. ' +
       'Currently, the parameters guiding this narrowing are hard-coded.',
   parent: Dirichlet,
-  params: [{name: 'alpha', desc: 'concentration parameters (array of reals > 0)'}],
+  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   driftKernel: function(prevVal) {
     var concentration = 10;
-    var alpha = prevVal.map(function(x) { return concentration * x; });
+    var alpha = prevVal.mul(10);
     return new Dirichlet({alpha: alpha});
   }
 });
@@ -970,8 +1236,8 @@ var Marginal = makeDistributionType({
 var Categorical = makeDistributionType({
   name: 'Categorical',
   desc: 'Distribution over elements of vs with ``P(vs[i]) = ps[i]``',
-  params: [{name: 'ps', desc: 'probabilities (array of probabilities in [0,1])'},
-	   {name: 'vs', desc: 'support (array of values)'}],
+  params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
+           {name: 'vs', desc: 'support (array of values)'}],
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
@@ -1003,35 +1269,36 @@ var Delta = makeDistributionType({
       'as doing so produces incorrect results.',
   params: [{name: 'v', desc: 'support element'}],
   mixins: [finiteSupport],
-  constructor: function() {
-    this.v = util.serialize(this.params.v);
-  },
   sample: function() {
     return ad.value(this.params.v);
   },
   score: function(val) {
-    return util.serialize(val) === this.v ? 0 : -Infinity;
+    return val === this.params.v ? 0 : -Infinity;
   },
   support: function() {
     return [this.params.v];
+  },
+  base: function() {
+    return this;
+  },
+  transform: function(x) {
+    return this.params.v;
   }
 });
-
-function withImportanceDist(dist, importanceDist) {
-  var newDist = clone(dist);
-  newDist.importanceDist = importanceDist;
-  return newDist;
-}
 
 module.exports = {
   // distributions
   Uniform: Uniform,
   UniformDrift: UniformDrift,
   Bernoulli: Bernoulli,
+  MultivariateBernoulli: MultivariateBernoulli,
   RandomInteger: RandomInteger,
   Gaussian: Gaussian,
   GaussianDrift: GaussianDrift,
   MultivariateGaussian: MultivariateGaussian,
+  DiagCovGaussian: DiagCovGaussian,
+  TensorGaussian: TensorGaussian,
+  LogisticNormal: LogisticNormal,
   Cauchy: Cauchy,
   Discrete: Discrete,
   Gamma: Gamma,
@@ -1054,7 +1321,6 @@ module.exports = {
   // helpers
   serialize: serialize,
   deserialize: deserialize,
-  withImportanceDist: withImportanceDist,
-  isDist: isDist,
-  isParams: isParams
+  squishToProbSimplex: squishToProbSimplex,
+  isDist: isDist
 };

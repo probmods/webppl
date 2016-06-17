@@ -33,12 +33,22 @@ var header = [
 ].join('\n');
 
 var t = makeTemplates({
-  func:          '.. js:function:: <%= name %>({<%= args %>})\n',
-  arg:           '<%= name %>: ...',
-  param:         '  * <%= name %>',
-  paramWithDesc: '  * <%= name %>: *<%= desc %>*',
-  desc:          '  <%= desc %>\n'
+  func:            '.. js:function:: <%= name %>({<%= args %>})\n',
+  arg:             '<%= name %>: ...',
+  param:           '  * <%= name %>: <%= desc %>',
+  paramWithDomain: '  * <%= name %>: <%= desc %> *(<%= domain %>)*',
+  desc:            '  <%= desc %>\n'
 });
+
+function formatDomain(interval) {
+  if (interval.a === -Infinity) {
+    return '<' + interval.b;
+  } else if (interval.b === Infinity) {
+    return '>' + interval.a;
+  } else {
+    return 'in [' + [interval.a, interval.b] + ']';
+  }
+}
 
 var body = getMetaData().map(function(meta) {
 
@@ -50,7 +60,11 @@ var body = getMetaData().map(function(meta) {
   }));
 
   meta.params.forEach(function(param) {
-    out.push((param.desc ? t.paramWithDesc : t.param)(param));
+    var p = _.extendOwn({desc: ''}, param);
+    if (p.domain) {
+      p.domain = formatDomain(p.domain);
+    }
+    out.push((param.domain ? t.paramWithDomain : t.param)(p));
   });
 
   out.push('');

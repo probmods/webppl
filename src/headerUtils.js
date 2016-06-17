@@ -1,8 +1,13 @@
 'use strict';
 
+var _ = require('underscore');
 var serialize = require('./util').serialize
+var Tensor = require('./tensor');
 var LRU = require('lru-cache');
 var ad = require('./ad');
+var assert = require('assert');
+var util = require('./util');
+var dists = require('./dists');
 
 module.exports = function(env) {
 
@@ -62,11 +67,61 @@ module.exports = function(env) {
     }
   };
 
+  var Vector = function(s, k, a, arr) {
+    return k(s, new Tensor([arr.length, 1]).fromFlatArray(arr));
+  };
+
+  var Matrix = function(s, k, a, arr) {
+    return k(s, new Tensor([arr.length, arr[0].length]).fromArray(arr));
+  };
+
+  var zeros = function(s, k, a, dims) {
+    return k(s, new Tensor(dims));
+  };
+
+  var ones = function(s, k, a, dims) {
+    return k(s, new Tensor(dims).fill(1));
+  };
+
+  // Provides a convinient wrapper around the primitive
+  // registerParams.
+  var tensorParam = function(s, k, a, dims, mean, sd) {
+
+    var name = util.relativizeAddress(env, a);
+    var params = util.registerParams(env, name, function() {
+
+      mean = (mean !== undefined) ? mean : 0;
+      sd = (sd !== undefined) ? sd : 0;
+
+      // Initialization.
+
+      var val = new Tensor(dims);
+      if (sd === 0) {
+        val.fill(mean);
+      } else {
+        for (var i = 0; i < val.length; i++) {
+          val.data[i] = dists.gaussianSample(mean, sd);
+        }
+      }
+
+      // registerParams tracks an array of parameters for each
+      // name/address.
+      return [val];
+
+    });
+    return k(s, params[0]);
+  };
+
   return {
     display: display,
     cache: cache,
     apply: apply,
-    _Fn: _Fn
+    _Fn: _Fn,
+    Vector: Vector,
+    Matrix: Matrix,
+    zeros: zeros,
+    ones: ones,
+    tensorParam: tensorParam
   };
 
 };

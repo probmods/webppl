@@ -3,6 +3,8 @@
 var _ = require('underscore');
 var assert = require('assert');
 var seedrandom = require('seedrandom');
+var ad = require('./ad');
+var Tensor = require('./tensor');
 
 var rng = Math.random;
 
@@ -142,18 +144,20 @@ function cpsForEach(func, cont, xs, i) {
   }
 }
 
-function cpsLoop(n, func, cont, i) {
-  assert(_.isNumber(n), 'Number expected.');
-  i = (i === undefined) ? 0 : i;
-  if (i === n) {
-    return cont();
-  } else {
-    return func(i, function() {
-      return function() { // insert trampoline step
-        return cpsLoop(n, func, cont, i + 1);
-      };
-    });
+function cpsLoop(n, func, cont) {
+  function loop(i) {
+    if (i === n) {
+      return cont();
+    } else {
+      return func(i, function() {
+        return function() { // insert trampoline step
+          return loop(i + 1);
+        };
+      });
+    }
   }
+  assert(_.isNumber(n), 'Number expected.');
+  return loop(0);
 }
 
 function cpsIterate(n, initial, func, cont) {
@@ -209,6 +213,31 @@ function throwUnlessOpts(options, fnName) {
   if (options !== undefined && !_.isObject(options)) {
     throw fnName + ' expected an options object but received: ' + JSON.stringify(options);
   }
+}
+
+// When using an object to fake named function parameters we sometimes
+// accept a string *or* and object as a way of passing both a string
+// *and* a related set of sub options. This helper takes such a value,
+// extracts the string and object, passes them through a continuation
+// and returns the result.
+
+// getValAndOpts('foo', (name, opts) => [name, opts])
+// => ['foo', {}]
+// getValAndOpts({foo: {bar: 0}}, (name, opts) => [name, opts])
+// => ['foo', {bar: 0}]
+
+function getValAndOpts(obj, cont) {
+  var args;
+  if (_.isString(obj)) {
+    args = [obj, {}];
+  } else {
+    if (_.size(obj) !== 1) {
+      throw 'Expected an object with a single key but received: ' + JSON.stringify(obj);
+    }
+    var key = _.keys(obj)[0];
+    args = [key, obj[key]];
+  }
+  return cont.apply(null, args);
 }
 
 function InfToJSON(k, v) {
@@ -274,8 +303,99 @@ function jsnew(ctor, arg) {
 
 // Unlike _.isObject this returns false for arrays and functions.
 function isObject(x) {
-  return x !== undefined && Object.getPrototypeOf(x) === Object.prototype;
+  return x !== undefined &&
+         x !== null &&
+         typeof x === 'object' && // required for Node <= 0.12
+         Object.getPrototypeOf(x) === Object.prototype;
 }
+
+function isTensor(t) {
+  return t instanceof Tensor;
+}
+
+function isMatrix(t) {
+  return t instanceof Tensor && t.rank === 2;
+}
+
+function isVector(t) {
+  return t instanceof Tensor && t.rank === 2 && t.dims[1] === 1;
+}
+
+function tensorEqDim0(v, w) {
+  // Useful for checking two vectors have the same length, or that the
+  // dimension of a vector and matrix match.
+  return v.dims[0] === w.dims[0];
+}
+
+function relativizeAddress(env, address) {
+  // Takes the env and a full stack address and returns a new address
+  // relative to the entry address of the current coroutine. This
+  // requires each coroutine to save its entry address as `this.a`.
+  assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
+  var baseAddress = env.coroutine.a;
+  assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
+  return address.slice(baseAddress.length);
+}
+
+var registerParams = function(env, name, getParams, setParams) {
+
+  // getParams is expected to be a function which is used to
+  // initialize parameters the first time they are encoutered. At
+  // present I consider it to be `registerParams` responsibility to
+  // perform lifting of params, so ideally `getParams` would not
+  // return lifted params. However, in the case of NN, `getParams`
+  // returns params already lifted. Hence, `getParams()` is replaced
+  // with `getParams().map(ad.value)` throughout this function.
+
+  var paramStore = env.coroutine.params;
+  var paramsSeen = env.coroutine.paramsSeen;
+
+  if (paramStore === undefined) {
+
+    // Some coroutines ignore the guide when sampling (e.g. MH as
+    // rejuv kernel) but still have to execute it while executing
+    // the target. To ensure the guide doesn't error out, we return
+    // something sensible from registerParams in such cases.
+
+    return getParams().map(ad.value);
+
+  } else if (paramsSeen && _.has(paramsSeen, name)) {
+
+    // We've already lifted these params during this execution.
+    // Re-use ad graph nodes.
+
+    return paramsSeen[name];
+
+  } else {
+
+    // This is the first time we've encounter these params during
+    // this execution. we will lift params at this point.
+
+    var params;
+
+    if (_.has(paramStore, name)) {
+      // Seen on previous execution. Fetch from store and lift.
+      params = paramStore[name].map(ad.lift);
+    } else {
+      // Never seen. Fetch initial values, add to store and lift.
+      var _params = getParams().map(ad.value);
+      paramStore[name] = _params;
+      params = _params.map(ad.lift);
+    }
+
+    if (paramsSeen) {
+      paramsSeen[name] = params;
+    }
+
+    // Callback with the fresh ad graph nodes.
+    if (setParams) {
+      setParams(params);
+    }
+
+    return params;
+  }
+
+};
 
 module.exports = {
   trampolineRunners: trampolineRunners,
@@ -297,6 +417,7 @@ module.exports = {
   runningInBrowser: runningInBrowser,
   mergeDefaults: mergeDefaults,
   throwUnlessOpts: throwUnlessOpts,
+  getValAndOpts: getValAndOpts,
   sum: sum,
   product: product,
   asArray: asArray,
@@ -307,5 +428,11 @@ module.exports = {
   warn: warn,
   fatal: fatal,
   jsnew: jsnew,
-  isObject: isObject
+  isObject: isObject,
+  isTensor: isTensor,
+  isVector: isVector,
+  isMatrix: isMatrix,
+  tensorEqDim0: tensorEqDim0,
+  relativizeAddress: relativizeAddress,
+  registerParams: registerParams
 };

@@ -1,4 +1,4 @@
-var stats = require('../../statistics');
+var stats = require('../../math/statistics');
 var fs = require('fs');
 var os = require('os');
 
