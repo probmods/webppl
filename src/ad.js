@@ -3,7 +3,7 @@
 var _ = require('underscore');
 var ad = require('adnn/ad');
 var Tensor = require('./tensor');
-var special = require('./special');
+var special = require('./math/special');
 
 var valueRec = function(x) {
   if (ad.isLifted(x)) {

@@ -1,7 +1,7 @@
 'use strict';
 
 var Tensor = require('adnn/tensor');
-var special = require('./special');
+var special = require('./math/special');
 
 Tensor.prototype.logGamma = function() {
   var out = new Tensor(this.dims);

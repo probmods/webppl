@@ -1,6 +1,6 @@
 var dists = require('../../../src/dists');
 var util = require('../../../src/util');
-var statistics = require('../../../src/statistics');
+var statistics = require('../../../src/math/statistics');
 
 var ln = Math.log,
     pow = Math.pow,

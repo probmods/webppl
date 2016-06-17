@@ -1,6 +1,6 @@
 'use strict';
 
-var stats = require('../src/statistics');
+var stats = require('../src/math/statistics');
 
 module.exports = {
 
