@@ -41,7 +41,7 @@ try {
 } catch (e) {
   if (e.code === 'MODULE_NOT_FOUND') {
     console.error(e.message);
-    console.error('Run ./script/adify and try again.');
+    console.error('Run ./scripts/adify and try again.');
     process.exit();
   } else {
     throw e;
