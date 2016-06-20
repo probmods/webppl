@@ -1,0 +1,6 @@
+var model = function() {
+  var mu = multivariateGaussian(Vector([0]), Vector([4]));
+  factor(MultivariateGaussian({mu: mu, cov: Vector([1])}).score(Vector([5.5])));
+  factor(MultivariateGaussian({mu: mu, cov: Vector([1])}).score(Vector([6.5])));
+  return T.get(mu, 0);
+};

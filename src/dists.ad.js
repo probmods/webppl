@@ -132,6 +132,10 @@ var continuousSupport = {
   isContinuous: true
 };
 
+// Flag to indicate that HMC is not supported by a distribution.
+var noHMC = {
+  noHMC: true
+};
 
 var methodNames = ['sample', 'score', 'support', 'print', 'driftKernel', 'base', 'transform'];
 
@@ -424,6 +428,7 @@ var MultivariateGaussian = makeDistributionType({
   params: [{name: 'mu', desc: 'mean vector (array of reals)'},
            {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
             'that must be symmetric positive semidefinite)'}],
+  mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _cov = ad.value(this.params.cov);
@@ -531,7 +536,7 @@ var LogisticNormal = makeDistributionType({
     {name: 'mu', desc: 'vector of means'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
-  mixins: [continuousSupport],
+  mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
@@ -577,6 +582,15 @@ var LogisticNormal = makeDistributionType({
 });
 
 
+function tensorGaussianSample(mu, sigma, dims) {
+  var x = new Tensor(dims);
+  var n = x.length;
+  while (n--) {
+    x.data[n] = gaussianSample(mu, sigma);
+  }
+  return x;
+}
+
 function tensorGaussianScore(mu, sigma, dims, x) {
   var _x = ad.value(x);
   if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
@@ -617,13 +631,7 @@ var TensorGaussian = makeDistributionType({
     var mu = ad.value(this.params.mu);
     var sigma = ad.value(this.params.sigma);
     var dims = this.params.dims;
-
-    var x = new Tensor(dims);
-    var n = x.length;
-    while (n--) {
-      x.data[n] = gaussianSample(mu, sigma);
-    }
-    return x;
+    return tensorGaussianSample(mu, sigma, dims);
   },
   score: function(x) {
     return tensorGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
@@ -1138,6 +1146,7 @@ var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
   desc: 'Distribution over arrays of probabilities.',
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
+  mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _alpha = ad.value(this.params.alpha);
     if (!util.isVector(_alpha)) {
@@ -1316,6 +1325,7 @@ module.exports = {
   binomialSample: binomialSample,
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
+  tensorGaussianSample: tensorGaussianSample,
   gammaSample: gammaSample,
   dirichletSample: dirichletSample,
   // helpers

@@ -10,10 +10,15 @@ var util = require('../util');
 var dists = require('../dists');
 var Trace = require('../trace');
 var ad = require('../ad');
+var Tensor = require('../tensor');
+var generic = require('../math/genericArithmetic');
+
+var addEq = generic.addEq;
+var add = generic.add;
+var mul = generic.mul;
+var sum = generic.sum;
 
 module.exports = function(env) {
-
-  var mvDistNames = ['MultivariateGaussian', 'Dirichlet', 'DirichletDrift'];
 
   function HMCKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
@@ -44,10 +49,18 @@ module.exports = function(env) {
 
     var val;
     if (dist.isContinuous) {
+      if (dist.noHMC) {
+        throw new Error('HMC does not yet support the ' + dist.meta.name + ' distribution');
+      }
+
       var prevVal = ad.value(prevChoice.val);
-      var _val = prevVal + this.stepSize * this.momentum[a];
+      var _val = add(prevVal, mul(this.momentum[a], this.stepSize));
 
       // Handle constraints.
+
+      // We only have constraints on scalar valued distributions at
+      // present. The following is implemented using scalar math ops
+      // for readability.
       if (dist.support) {
         var support = dist.support();
         var lower = support.lower;
@@ -66,9 +79,6 @@ module.exports = function(env) {
       }
       val = ad.lift(_val);
     } else {
-      if (_.contains(mvDistNames, dist.meta.name)) {
-        throw new Error('Multivariate distributions are not yet supported by HMC.');
-      }
       val = prevChoice.val;
     }
 
@@ -129,11 +139,19 @@ module.exports = function(env) {
         }.bind(this));
   };
 
+  function stdGaussianSampleLike(x) {
+    // Sample a value with same type (scalar/tensor) and dimension as
+    // x from a standard Gaussian.
+    return x instanceof Tensor ?
+        dists.tensorGaussianSample(0, 1, x.dims) :
+        dists.gaussianSample(0, 1);
+  }
+
   function sampleMomentum(trace) {
     var momentum = {};
     _.each(trace.choices, function(choice) {
       if (choice.dist.isContinuous) {
-        momentum[choice.address] = dists.gaussianSample(0, 1);
+        momentum[choice.address] = stdGaussianSampleLike(ad.value(choice.val));
       }
     });
     return momentum;
@@ -187,7 +205,9 @@ module.exports = function(env) {
       var stepSize = this.stepSize * scaleFactor;
       _.each(trace.choices, function(choice) {
         if (choice.dist.isContinuous) {
-          this.momentum[choice.address] += stepSize * ad.derivative(choice.val);
+          this.momentum[choice.address] = addEq(
+              this.momentum[choice.address],
+              mul(ad.derivative(choice.val), stepSize));
         }
       }, this);
     }
@@ -195,8 +215,11 @@ module.exports = function(env) {
 
   function computeH(trace, momentum) {
     var score = ad.value(trace.score);
-    var kinetic = 0.5 * _.reduce(momentum, function(memo, p) { return memo + p * p; }, 0);
-    return score - kinetic;
+    var kinetic = 0.5 * _.reduce(momentum, function(memo, p) {
+      return memo + sum(mul(p, p));
+    }, 0);
+    var x = score - kinetic;
+    return x;
   }
 
   HMCKernel.prototype.finish = function(trace, accepted) {
