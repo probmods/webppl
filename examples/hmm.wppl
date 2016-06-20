@@ -1,0 +1,27 @@
+var transition = function(s) {
+  return s ? flip(0.7) : flip(0.3);
+};
+
+var observe = function(s) {
+  return s ? flip(0.9) : flip(0.1);
+};
+
+var hmm = function(n) {
+  var prev = (n == 1) ? {states: [true], observations: []} : hmm(n - 1);
+  var newState = transition(prev.states[prev.states.length - 1]);
+  var newObs = observe(newState);
+  return {
+    states: prev.states.concat([newState]),
+    observations: prev.observations.concat([newObs])
+  };
+};
+
+var trueObservations = [true, false, false, false];
+
+var dist = Infer({method: 'enumerate'}, function() {
+  var r = hmm(4);
+  factor(_.isEqual(r.observations, trueObservations) ? 0 : -Infinity);
+  return r.states;
+});
+
+viz.table(dist);

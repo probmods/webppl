@@ -3802,10 +3802,23 @@ module.exports = charenc;
     for (;;) {
       if (bidi ? to == from || to == moveVisually(lineObj, from, 1) : to - from <= 1) {
         var ch = x < fromX || x - fromX <= toX - x ? from : to;
+        var outside = ch == from ? fromOutside : toOutside
         var xDiff = x - (ch == from ? fromX : toX);
+        // This is a kludge to handle the case where the coordinates
+        // are after a line-wrapped line. We should replace it with a
+        // more general handling of cursor positions around line
+        // breaks. (Issue #4078)
+        if (toOutside && !bidi && !/\s/.test(lineObj.text.charAt(ch)) && xDiff > 0 &&
+            ch < lineObj.text.length && preparedMeasure.view.measure.heights.length > 1) {
+          var charSize = measureCharPrepared(cm, preparedMeasure, ch, "right");
+          if (innerOff <= charSize.bottom && innerOff >= charSize.top && Math.abs(x - charSize.right) < xDiff) {
+            outside = false
+            ch++
+            xDiff = x - charSize.right
+          }
+        }
         while (isExtendingChar(lineObj.text.charAt(ch))) ++ch;
-        var pos = PosWithInfo(lineNo, ch, ch == from ? fromOutside : toOutside,
-                              xDiff < -1 ? -1 : xDiff > 1 ? 1 : 0);
+        var pos = PosWithInfo(lineNo, ch, outside, xDiff < -1 ? -1 : xDiff > 1 ? 1 : 0);
         return pos;
       }
       var step = Math.ceil(dist / 2), middle = from + step;
@@ -4529,6 +4542,7 @@ module.exports = charenc;
     // Let the drag handler handle this.
     if (webkit) display.scroller.draggable = true;
     cm.state.draggingText = dragEnd;
+    dragEnd.copy = mac ? e.altKey : e.ctrlKey
     // IE's approach to draggable
     if (display.scroller.dragDrop) display.scroller.dragDrop();
     on(document, "mouseup", dragEnd);
@@ -4759,7 +4773,7 @@ module.exports = charenc;
       try {
         var text = e.dataTransfer.getData("Text");
         if (text) {
-          if (cm.state.draggingText && !(mac ? e.altKey : e.ctrlKey))
+          if (cm.state.draggingText && !cm.state.draggingText.copy)
             var selected = cm.listSelections();
           setSelectionNoUndo(cm.doc, simpleSelection(pos, pos));
           if (selected) for (var i = 0; i < selected.length; ++i)
@@ -9771,7 +9785,7 @@ module.exports = charenc;
 
   // THE END
 
-  CodeMirror.version = "5.15.2";
+  CodeMirror.version = "5.16.0";
 
   return CodeMirror;
 });
@@ -22999,9 +23013,10 @@ module.exports = {
     utc:      function() { return utcAutoFormat(); }
   },
 
-  month:    monthFormat,  // format month name from integer code
-  day:      dayFormat,    // format week day name from integer code
-  quarter:  quarterFormat // format quarter number from integer code
+  month:      monthFormat,      // format month name from integer code
+  day:        dayFormat,        // format week day name from integer code
+  quarter:    quarterFormat,    // format quarter name from timestamp
+  utcQuarter: utcQuarterFormat  // format quarter name from utc timestamp
 };
 
 // -- Locales ----
@@ -23188,8 +23203,12 @@ function dayFormat(day, abbreviate) {
   return (tmpDate.setMonth(0), tmpDate.setDate(2 + day), f(tmpDate));
 }
 
-function quarterFormat(month) {
-  return Math.floor(month / 3) + 1;
+function quarterFormat(date) {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
+function utcQuarterFormat(date) {
+  return Math.floor(date.getUTCMonth() / 3) + 1;
 }
 
 },{"./util":40,"d3-format":13,"d3-time":15,"d3-time-format":14}],26:[function(require,module,exports){
@@ -23752,7 +23771,7 @@ var PARSERS = {
   integer: util.number,
   number:  util.number,
   date:    util.date,
-  string:  function(x) { return x==='' ? null : x; }
+  string:  function(x) { return x == null || x === '' ? null : x + ''; }
 };
 
 var TESTS = {
@@ -23840,7 +23859,7 @@ module.exports = type;
 var util = require('./util');
 
 var dl = {
-  version:    '1.7.0',
+  version:    '1.7.1',
   load:       require('./import/load'),
   read:       require('./import/read'),
   type:       require('./import/type'),
@@ -24603,7 +24622,8 @@ var context = {
   pad:        util.pad,
   day:        format.day,
   month:      format.month,
-  quarter:    format.quarter
+  quarter:    format.quarter,
+  utcQuarter: format.utcQuarter
 };
 
 function template(text) {
@@ -24784,6 +24804,9 @@ function template_var(text, variable, properties) {
         break;
       case 'quarter':
         src = 'this.quarter(' + src + ')';
+        break;
+      case 'quarter-utc':
+        src = 'this.utcQuarter(' + src + ')';
         break;
       default:
         throw Error('Unrecognized template filter: ' + f);
@@ -25194,30 +25217,23 @@ u.comparator = function(sort) {
     sign.push(s);
     return u.accessor(f);
   });
-  return function(a,b) {
-    var i, n, f, x, y;
+  return function(a, b) {
+    var i, n, f, c;
     for (i=0, n=sort.length; i<n; ++i) {
-      f = sort[i]; x = f(a); y = f(b);
-      if (x < y) return -1 * sign[i];
-      if (x > y) return sign[i];
+      f = sort[i];
+      c = u.cmp(f(a), f(b));
+      if (c) return c * sign[i];
     }
     return 0;
   };
 };
 
 u.cmp = function(a, b) {
-  if (a < b) {
-    return -1;
-  } else if (a > b) {
-    return 1;
-  } else if (a >= b) {
-    return 0;
-  } else if (a === null) {
-    return -1;
-  } else if (b === null) {
-    return 1;
-  }
-  return NaN;
+  return (a < b || a == null) && b != null ? -1 :
+    (a > b || b == null) && a != null ? 1 :
+    ((b = b instanceof Date ? +b : b),
+     (a = a instanceof Date ? +a : a)) !== a && b === b ? -1 :
+    b !== b && a === a ? 1 : 0;
 };
 
 u.numcmp = function(a, b) { return a - b; };
@@ -75388,7 +75404,9 @@ module.exports = {
 };
 
 },{"./util":324}],322:[function(require,module,exports){
-var util = require('./util');
+var util = require('./util'),
+    parse = require('../../../path/parse'),
+    render = require('../../../path/render');
 
 var sqrt3 = Math.sqrt(3),
     tan30 = Math.tan(30 * Math.PI / 180);
@@ -75453,15 +75471,34 @@ function path(g, o) {
       g.moveTo(x, y-ry);
       g.lineTo(x+rx, y+ry);
       g.lineTo(x-rx, y+ry);
+      break;
+
+    // custom shape
+    default:
+      var pathArray = resize(parse(o.shape), size);
+      render(g, pathArray, x, y);
   }
   g.closePath();
+}
+
+// Scale custom shapes (defined within a unit square) by given size.
+function resize(path, size) {
+  var sz = Math.sqrt(size),
+      i, n, j, m, curr;
+
+  for (i=0, n=path.length; i<n; ++i) {
+    for (curr=path[i], j=1, m=curr.length; j<m; ++j) {
+      curr[j] *= sz;
+    }
+  }
+  return path;
 }
 
 module.exports = {
   draw: util.drawAll(path),
   pick: util.pickPath(path)
 };
-},{"./util":324}],323:[function(require,module,exports){
+},{"../../../path/parse":306,"../../../path/render":307,"./util":324}],323:[function(require,module,exports){
 var Bounds = require('../../../util/Bounds'),
     textBounds = require('../../../util/bound').text,
     text = require('../../../util/text'),
@@ -76437,6 +76474,7 @@ module.exports = {
 },{"./SVGHandler":326,"./SVGRenderer":327,"./SVGStringRenderer":328}],330:[function(require,module,exports){
 var text = require('../../util/text'),
     SVG = require('../../util/svg'),
+    symbolTypes = SVG.symbolTypes,
     textAlign = SVG.textAlign,
     path = SVG.path;
 
@@ -76546,8 +76584,11 @@ module.exports = {
     tag:  'path',
     type: 'symbol',
     attr: function(emit, o) {
+      var pathStr = !o.shape || symbolTypes[o.shape] ?
+        path.symbol(o) : path.resize(o.shape, o.size);
+
       emit('transform', translateItem(o));
-      emit('d', path.symbol(o));
+      emit('d', pathStr);
     }
   },
   text: {
@@ -76569,7 +76610,7 @@ module.exports = {
       }
 
       emit('text-anchor', textAlign[o.align] || 'start');
-      
+
       if (a) {
         t = translate(x, y) + ' rotate('+a+')';
         if (dx || dy) t += ' ' + translate(dx, dy);
@@ -77416,7 +77457,9 @@ module.exports = {
 };
 },{"../util/bound":336}],340:[function(require,module,exports){
 (function (global){
-var d3_svg = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null).svg;
+var dl = require('datalib'),
+    d3_svg = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null).svg,
+    parse = require('../path/parse');
 
 function x(o)     { return o.x || 0; }
 function y(o)     { return o.y || 0; }
@@ -77451,8 +77494,29 @@ module.exports = {
         .interpolate(o.interpolate || 'linear')
         .tension(o.tension || 0.7)
         (items);
+    },
+    resize: function(pathStr, size) {
+      var path = parse(pathStr),
+          newPath = '',
+          command, current, index, i, n, j, m;
+
+      size = Math.sqrt(size);
+      for (i=0, n=path.length; i<n; ++i) {
+        for (command=path[i], j=0, m=command.length; j<m; ++j) {
+          if (command[j] === 'Z') break;
+          if ((current = +command[j]) === current) {
+            // if number, need to resize
+            index = pathStr.indexOf(current);
+            newPath += pathStr.substring(0, index) + (current * size);
+            pathStr  = pathStr.substring(index + (current+'').length);
+          }
+        }
+      }
+
+      return newPath + 'Z';
     }
   },
+  symbolTypes: dl.toMap(d3_svg.symbolTypes),
   textAlign: {
     'left':   'start',
     'center': 'middle',
@@ -77488,7 +77552,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],341:[function(require,module,exports){
+},{"../path/parse":306,"datalib":36}],341:[function(require,module,exports){
 function size(item) {
   return item.fontSize != null ? item.fontSize : 11;
 }
@@ -85426,6 +85490,15 @@ function getErrorPosition(error) {
   // NB: this differs from core webppl; here, we want to highlight the nearest place
   // of responsibility in the user's code.
   var firstStackFrame = _.findWhere(parsedError, { fileName: '<anonymous>' });
+
+  // if error occurred in library code, identify it in the message but don't highlight
+  // anything
+  if (!firstStackFrame) {
+    var file = _.last(parsedError[0].fileName.split("/"));
+    error.message = "Error in " + file + ": " + error.message;
+    return null;
+  }
+
   // Switch from 1 to 0 indexed.
   firstStackFrame.columnNumber--;
   firstStackFrame.sourceMapped = false;
@@ -85978,6 +86051,7 @@ global.d3 = d3;
 
 var vl = require('vega-lite');
 var vg = require('vega');
+global.vg = vg;
 
 var React = require('react');
 var ReactDOM = require('react-dom');
@@ -85993,6 +86067,12 @@ function runningInBrowser() {
 function isErp(x) {
   // TODO: take from dippl
   return x.support && x.score;
+}
+
+function getScores(erp) {
+  return _.map(erp.support(), function (state) {
+    return scorer(erp, state);
+  });
 }
 
 function scorer(erp, val) {
@@ -86143,7 +86223,9 @@ kindPrinter.r = function (types, support, scores) {
     return _.extend({ prob: Math.exp(x[1]) }, x[0]);
   });
 
-  var densityEstimates = kde(values);
+  var probs = _.pluck(data, 'prob');
+
+  var densityEstimates = kde(values, { weights: probs });
 
   var vlSpec = {
     "data": { "values": densityEstimates },
@@ -86745,19 +86827,103 @@ var GraphComponent = React.createClass({
 function renderSpec(spec, regularVega) {
   // OPTIMIZE: don't mutate spec (but probably don't just want to clone either, since
   // data can be large)
-  if (!_.has(spec, 'config')) {
-    spec.config = { numberFormat: '.1e' };
-  } else {
-    if (!_.has(spec.config, 'numberFormat')) {
-      spec.config.numberFormat = '.1e';
-    }
-  }
-
-  // TODO:
-  // for each quantitative field that is displayed, pick a better number format
-  // (ideally, do this to the axis labels, not all the data)
 
   var vgSpec = regularVega ? spec : vl.compile(spec).spec;
+
+  var formatterKeys = [',r',
+  //',g',
+  ',.1r', ',.2r', ',.3r', ',.4r', ',.5r', ',.6r',
+  //',.1g',',.2g',',.3g',',.4g',',.5g',',.6g',
+  '.1e'];
+  var formatters = _.object(formatterKeys, _.map(formatterKeys, function (s) {
+    return d3.format(s);
+  }));
+
+  // format axes: try to guess a good number formatter and format
+  // axes so they don't overlap
+  var allData = vgSpec.data;
+  _.each(vgSpec.marks, function (mark) {
+    var scales = mark.scales;
+    _.each(mark.axes, function (axis) {
+      var scale = _.findWhere(scales, { name: axis.scale }),
+          scaleDomain = scale.domain;
+
+      var domain;
+      if (_.isArray(scaleDomain)) {
+        domain = scaleDomain;
+      } else {
+        var dataSource = scale.domain.data,
+            dataField = scale.domain.field || 'item';
+        domain = _.pluck(_.findWhere(allData, { name: dataSource }).values, dataField);
+      }
+
+      // get tick values
+      var sc = d3.scale.linear();
+      sc.domain(domain);
+      sc.range([scale.rangeMin, scale.rangeMax]);
+      if (scale.nice) {
+        sc.nice();
+      }
+      var ticks = sc.ticks(axis.ticks);
+
+      // score formatters by the length of the longest string they produce on ticks
+      var scores = _.map(formatterKeys, function (key) {
+        var f = formatters[key];
+        var strings = _.map(ticks, function (tick) {
+          return f(tick);
+        });
+        var stringsAdjusted;
+        // require that formatter produces different strings for different ticks
+        var score;
+        if (_.unique(strings).length < strings.length) {
+          score = 9999999999;
+        } else {
+          // don't penalize for commas
+          stringsAdjusted = _.map(strings, function (s) {
+            return s.replace(',', '');
+          });
+          var lengths = _.pluck(stringsAdjusted, 'length');
+          score = _.max(lengths);
+        };
+        return { key: key,
+          score: score + (key == '.1e' ? 1 : 0),
+          strings: strings,
+          stringsAdjusted
+        }; // extra penalty for .1e
+      });
+
+      // get best formatter
+      var bestScore = _.min(_.pluck(scores, 'score'));
+      var bestKeys = _.pluck(_.where(scores, { score: bestScore }), 'key');
+
+      // break ties: prefer, in this order:
+      // ,r > ,g >  ,.Xr > ,.Xg > ,.1e
+
+      var bestKey = _.find(bestKeys, function (key) {
+        return key == ',r';
+      }) || _.find(bestKeys, function (key) {
+        return key == ',g';
+      }) || _.find(bestKeys, function (key) {
+        return key.indexOf('g') > -1;
+      }) || _.find(bestKeys, function (key) {
+        return key.indexOf('r') > -1;
+      }) || bestKeys[0];
+
+      axis.format = bestKey;
+
+      if (axis.type == 'x') {
+        axis.properties = {
+          labels: {
+            // TODO: the actual strings that show up in the picture can differ
+            // from what we compute here, so i'm just using a large constant angle
+            // as a temporary hack
+            angle: { "value": bestScore < 4 ? 0 : 30 },
+            align: { "value": 'left' }
+          }
+        };
+      }
+    });
+  });
 
   var resultContainer;
 
@@ -87097,19 +87263,27 @@ function heatMap(samples) {
 
 // TODO: should you be able to pass this an erp too?
 // TODO: rename as kde
-function density(samples, options) {
+function density(x, options) {
   options = _.defaults(options || {}, { bounds: 'auto' });
+
+  function extractNumber(z) {
+    return _.isNumber(z) ? z : _.values(z)[0];
+  }
+
+  var xIsErp = isErp(x);
+  var support = xIsErp ? _.map(x.support(), extractNumber) : x,
+      weights = xIsErp ? _.map(getScores(x), Math.exp) : false;
 
   var min, max;
   if (options.bounds == 'auto') {
-    min = _.min(samples);
-    max = _.max(samples);
+    min = _.min(support);
+    max = _.max(support);
   } else {
     min = options.bounds[0];
     max = options.bounds[1];
   }
 
-  var densityEstimate = kde(samples, options);
+  var densityEstimate = kde(support, _.extend({ weights: weights }, options));
 
   var vlSpec = {
     "data": { values: densityEstimate },
@@ -87185,7 +87359,9 @@ function table(obj, options) {
     return;
   }
 
-  options = _.defaults(options || {}, { log: false });
+  options = _.defaults(options || {}, { log: false,
+    top: false
+  });
 
   var erp;
   if (_.isArray(obj)) {
@@ -87204,6 +87380,10 @@ function table(obj, options) {
   var sortedZipped = _.sortBy(_.zip(support, scores), function (z) {
     return -z[1];
   });
+
+  if (options.top) {
+    sortedZipped = sortedZipped.slice(0, options.top);
+  }
 
   var tableString = '<table class="wviz-table"><tr><th>state</th><th>' + (options.log ? 'log probability' : 'probability') + '</th>';
 
@@ -87743,11 +87923,13 @@ var _ = require('underscore');
 var d3 = require('d3');
 
 // input: a list of samples and, optionally, a kernel function
-// output: a list of estimated densities (range is min to max and number of bins is 100)
-// TODO: make numBins and bandwidth options (with visible vega knobs?)
+// output: a list of estimated densities
 function kde(samps, options) {
   options = _.defaults(options || {}, { bounds: 'auto',
-    kernel: 'epanechnikov'
+    bandwidth: 'auto',
+    kernel: 'epanechnikov',
+    numPoints: 100,
+    weights: false
   });
 
   var kernel;
@@ -87760,20 +87942,39 @@ function kde(samps, options) {
     kernel = options.kernel;
   }
 
+  // add weights
+  var isWeighted = _.isArray(options.weights),
+      weights = options.weights;
+
   // get optimal bandwidth
   // HT http://en.wikipedia.org/wiki/Kernel_density_estimation#Practical_estimation_of_the_bandwidth
   // to support ERP as argument, we need to know the number of samples from an ERP
   // (TODO: submit PR for webppl where Histogram.prototype.toERP preserves this info)
-  var n = samps.length;
-  var mean = samps.reduce(function (x, y) {
-    return x + y;
-  }) / n;
+  var mean = 0,
+      n = samps.length;
+  var sumWeights = 0;
+  if (isWeighted) {
+    for (var i = 0; i < n; i++) {
+      sumWeights += weights[i];
+      mean += weights[i] * samps[i];
+    }
+    mean = mean / sumWeights;
+  } else {
+    mean = samps.reduce(function (x, y) {
+      return x + y;
+    }) / n;
+  }
 
-  var s = Math.sqrt(samps.reduce(function (acc, x) {
-    return acc + Math.pow(x - mean, 2);
-  }) / (n - 1));
-
-  var bandwidth = 1.06 * s * Math.pow(n, -0.2);
+  var bandwidth;
+  if (options.bandwidth == 'auto') {
+    var s = Math.sqrt(samps.reduce(function (acc, x, i) {
+      return acc + (isWeighted ? weights[i] : 1) * Math.pow(x - mean, 2);
+    }, 0) / (isWeighted ? sumWeights : n - 1));
+    // TODO: silverman's rule can fail
+    bandwidth = 1.06 * s * Math.pow(n, -0.2);
+  } else {
+    bandwidth = options.bandwidth;
+  }
 
   var min, max;
   if (options.bounds == 'auto') {
@@ -87784,18 +87985,22 @@ function kde(samps, options) {
     max = options.bounds[1];
   }
 
-  var numBins = 100;
-  var binWidth = (max - min) / numBins;
+  var numPoints = options.numPoints;
+  var binWidth = (max - min) / numPoints;
 
   var results = [];
 
-  for (var i = 0; i <= numBins; i++) {
+  for (var i = 0; i <= numPoints; i++) {
     var x = min + i * binWidth;
     var kernelSum = 0;
     for (var j = 0, jj = samps.length; j < jj; j++) {
-      kernelSum += kernel((x - samps[j]) / bandwidth);
+      var w = isWeighted ? weights[j] : 1;
+      kernelSum += w * kernel((x - samps[j]) / bandwidth);
     }
-    results.push({ item: x, density: kernelSum / (n * bandwidth) });
+    results.push({
+      item: x,
+      density: kernelSum / ((isWeighted ? sumWeights : n) * bandwidth)
+    });
   }
   return results;
 }
@@ -87942,6 +88147,7 @@ module.exports = {
 };
 
 },{"d3":16,"underscore":230}],409:[function(require,module,exports){
+var fs = require('fs');
 var React = require('react');
 var ReactDOM = require('react-dom');
 
@@ -88498,9 +88704,6 @@ var WebpplEditor = React.createClass({
   }
 });
 
-// initial code if nothing is saved in localstorage
-var geometricCode = ['var geometric = function(){', '  return flip(.5) ? 0 : geometric() + 1', '}', '', 'var conditionedGeometric = function(){', '  var x = geometric()', '  factor(x > 2 ? 0 : -Infinity)', '  return x', '}', '', 'viz.auto(Enumerate(conditionedGeometric, {maxExecutions: 10}))'].join('\n');
-
 var localState = localStorage.getItem("WebPPLEditorState");
 
 if (localState === null) {
@@ -88512,7 +88715,31 @@ if (localState === null) {
       0: {
         name: 'Default',
         blocks: {
-          1: { type: "code", content: geometricCode, orderingKey: 1 }
+          1: { type: "code", content: "var geometric = function() {\n  return flip(.5) ? 0 : geometric() + 1;\n}\n\nvar conditionedGeometric = function() {\n  var x = geometric();\n  factor(x > 2 ? 0 : -Infinity);\n  return x;\n}\n\nvar dist = Infer(\n  {method: 'enumerate', maxExecutions: 10}, \n  conditionedGeometric);\n\nviz.auto(dist);\n", orderingKey: 1 }
+        }
+      },
+      1: {
+        name: 'Linear Regression',
+        blocks: {
+          1: { type: "code", content: "var xs = [0, 1, 2, 3];\nvar ys = [0, 1, 4, 6];\n\nvar model = function() {\n  var m = gaussian(0, 2);\n  var b = gaussian(0, 2);\n  var sigma = gamma(1, 1);\n\n  var f = function(x) {\n    return m * x + b;\n  };\n\n  map2(\n    function(x, y) {\n      factor(Gaussian({mu: f(x), sigma: sigma}).score(y));\n    },\n    xs,\n    ys);\n\n  return f(4);\n}\n\nviz.auto(Infer({method: 'MCMC', samples: 10000}, model));\n", orderingKey: 1 }
+        }
+      },
+      2: {
+        name: 'Logistic Regression',
+        blocks: {
+          1: { type: "code", content: "var xs = [-10, -5, 2, 6, 10];\nvar labels = [false, false, true, true, true];\n\nvar model = function() {\n  var m = gaussian(0, 1);\n  var b = gaussian(0, 1);\n  var sigma = gamma(1, 1);\n\n  var y = function(x) {\n    return gaussian(m * x + b, sigma);\n  };\n  var sigmoid = function(x) {\n    return 1 / (1 + Math.exp(-1 * y(x)));\n  };\n\n  map2(\n    function(x, label) {\n      factor(Bernoulli({p: sigmoid(x)}).score(label));\n    },\n    xs,\n    labels);\n\n  return sigmoid(8);\n};\n\nviz.auto(Infer({method: 'MCMC', samples: 10000, burn: 2000}, model));\n", orderingKey: 1 }
+        }
+      },
+      3: {
+        name: 'Scalar Implicature',
+        blocks: {
+          1: { type: "code", content: "var worldPrior = function() {\n  var num_nice_people = randomInteger(4);  // 3 people.. 0-3 can be nice.\n  return num_nice_people;\n};\n\nvar utterancePrior = function() {\n  var utterances = ['some of the people are nice',\n                    'all of the people are nice',\n                    'none of the people are nice'];\n  var i = randomInteger(utterances.length);\n  return utterances[i];\n}\n\nvar meaning = function(utt, world) {\n  return (utt == 'some of the people are nice' ? world > 0 :\n          utt == 'all of the people are nice' ? world == 3 :\n          utt == 'none of the people are nice' ? world == 0 :\n          true);\n};\n\nvar literalListener = cache(function(utterance) {\n  return Infer({method: 'enumerate'}, function() {\n    var world = worldPrior();\n    var m = meaning(utterance, world);\n    factor(m ? 0 : -Infinity);\n    return world;\n  });\n});\n\nvar speaker = cache(function(world) {\n  return Infer({method: 'enumerate'}, function() {\n    var utterance = utterancePrior();\n    var L = literalListener(utterance);\n    factor(L.score(world));\n    return utterance;\n  });\n});\n\nvar listener = function(utterance) {\n  return Infer({method: 'enumerate'}, function() {\n    var world = worldPrior();\n    var S = speaker(world);\n    factor(S.score(utterance));\n    return world;\n  });\n};\n\nviz.auto(listener('some of the people are nice'));\n", orderingKey: 1 }
+        }
+      },
+      4: {
+        name: 'Hidden Markov Model',
+        blocks: {
+          1: { type: "code", content: "var transition = function(s) {\n  return s ? flip(0.7) : flip(0.3);\n};\n\nvar observe = function(s) {\n  return s ? flip(0.9) : flip(0.1);\n};\n\nvar hmm = function(n) {\n  var prev = (n == 1) ? {states: [true], observations: []} : hmm(n - 1);\n  var newState = transition(prev.states[prev.states.length - 1]);\n  var newObs = observe(newState);\n  return {\n    states: prev.states.concat([newState]),\n    observations: prev.observations.concat([newObs])\n  };\n};\n\nvar trueObservations = [true, false, false, false];\n\nvar dist = Infer({method: 'enumerate'}, function() {\n  var r = hmm(4);\n  factor(_.isEqual(r.observations, trueObservations) ? 0 : -Infinity);\n  return r.states;\n});\n\nviz.table(dist);\n", orderingKey: 1 }
         }
       }
     }
@@ -88528,4 +88755,4 @@ $(function () {
   }
 });
 
-},{"autosize":1,"classnames":5,"jquery":68,"react":215,"react-dom":77,"showdown":216,"underscore":230,"webppl-editor":405,"webppl-viz":406}]},{},[409]);
+},{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":215,"react-dom":77,"showdown":216,"underscore":230,"webppl-editor":405,"webppl-viz":406}]},{},[409]);

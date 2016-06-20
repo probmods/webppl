@@ -1,0 +1,15 @@
+var geometric = function() {
+  return flip(.5) ? 0 : geometric() + 1;
+}
+
+var conditionedGeometric = function() {
+  var x = geometric();
+  factor(x > 2 ? 0 : -Infinity);
+  return x;
+}
+
+var dist = Infer(
+  {method: 'enumerate', maxExecutions: 10}, 
+  conditionedGeometric);
+
+viz.auto(dist);

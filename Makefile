@@ -5,7 +5,7 @@ WEBPPLVERSION=$(shell cat webppl-version.txt)
 build : homepage.js webppl-viz.css webppl-editor.css webppl.js
 
 homepage.js : src/index.js ../editor/src/index.js node_modules
-	node_modules/browserify/bin/cmd.js -t [babelify --presets [react] ] src/index.js -o homepage.js
+	node_modules/browserify/bin/cmd.js -t [babelify --presets [react] ] -t brfs src/index.js -o homepage.js
 
 mirror :
 	rsync --exclude=".git" --exclude="node_modules/" -rLvz . corn:~/WWW/wp-site-core

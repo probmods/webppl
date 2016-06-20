@@ -1,3 +1,4 @@
+var fs = require('fs');
 var React = require('react');
 var ReactDOM = require('react-dom');
 
@@ -472,19 +473,6 @@ var WebpplEditor = React.createClass({
   }
 });
 
-// initial code if nothing is saved in localstorage
-var geometricCode = ['var geometric = function(){',
-                     '  return flip(.5) ? 0 : geometric() + 1',
-                     '}',
-                     '',
-                     'var conditionedGeometric = function(){',
-                     '  var x = geometric()',
-                     '  factor(x > 2 ? 0 : -Infinity)',
-                     '  return x',
-                     '}',
-                     '',
-                     'viz.auto(Enumerate(conditionedGeometric, {maxExecutions: 10}))'].join('\n');
-
 var localState = localStorage.getItem("WebPPLEditorState");
 
 if (localState === null){
@@ -496,9 +484,33 @@ if (localState === null){
       0 : {
         name: 'Default',
         blocks: {
-          1: {type: "code", content: geometricCode, orderingKey: 1}
+          1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/geometric.wppl', 'utf8'), orderingKey: 1}
         }
-      }
+      },
+      1: {
+        name: 'Linear Regression',
+        blocks: {
+          1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/linear-regression.wppl', 'utf8'), orderingKey: 1}
+        }
+      },
+      2: {
+        name: 'Logistic Regression',
+        blocks: {
+          1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/logistic-regression.wppl', 'utf8'), orderingKey: 1}
+        }
+      },
+      3: {
+        name: 'Scalar Implicature',
+        blocks: {
+          1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/scalar-implicature.wppl', 'utf8'), orderingKey: 1}
+        }
+      },
+      4: {
+        name: 'Hidden Markov Model',
+        blocks: {
+          1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/hmm.wppl', 'utf8'), orderingKey: 1}
+        }
+      }      
     }
   };
   localStorage.WebPPLEditorState = JSON.stringify(initState);
