@@ -437,7 +437,15 @@ var tests = [
           kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
+      tensorGaussian: true,
+      diagCovGaussian: {
+        args: {
+          samples: 10000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
       gaussianMean: true,
+      mvGaussianMean: true,
       gaussianMeanVar: {
         args: {
           samples: 1000,
