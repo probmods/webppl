@@ -101,6 +101,10 @@ exclude_patterns = ['_build']
 # output. They are ignored by default.
 #show_authors = False
 
+# The default language to highlight source code in.
+# http://www.sphinx-doc.org/en/stable/config.html#confval-highlight_language
+highlight_language = 'javascript'
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
