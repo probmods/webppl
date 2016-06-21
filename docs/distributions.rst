@@ -5,7 +5,7 @@ Distributions
 
   * p: success probability *(in [0,1])*
 
-  Distribution on {true,false}
+  Distribution over ``{true, false}``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Bernoulli_distribution>`__
 
@@ -14,7 +14,7 @@ Distributions
   * a: shape (real) *(>0)*
   * b: shape (real) *(>0)*
 
-  Distribution on [0, 1]
+  Distribution over ``[0, 1]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Beta_distribution>`__
 
@@ -23,7 +23,7 @@ Distributions
   * p: success probability *(in [0,1])*
   * n: number of trials (integer > 0)
 
-  Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials
+  Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Binomial_distribution>`__
 
@@ -32,7 +32,7 @@ Distributions
   * ps: array of probabilities *(in [0,1])*
   * vs: support (array of values)
 
-  Distribution over elements of vs with ``P(vs[i]) = ps[i]``
+  Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
@@ -76,7 +76,7 @@ Distributions
 
   * ps: array or vector of probabilities *(in [0,1])*
 
-  Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
+  Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
@@ -84,7 +84,7 @@ Distributions
 
   * a: rate (real) *(>0)*
 
-  Distribution on ``[0, Infinity]``
+  Distribution over ``[0, Infinity]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Exponential_distribution>`__
 
@@ -125,7 +125,7 @@ Distributions
   * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
   * n: number of trials (integer > 0)
 
-  Distribution over counts for n independent ``Discrete({ps: ps})`` trials
+  Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Multinomial_distribution>`__
 
@@ -156,7 +156,7 @@ Distributions
 
   * n: number of possible values (integer >= 1)
 
-  Uniform distribution on {0,1,...,n-1}
+  Uniform distribution over ``{0,1,...,n-1}``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
 
@@ -173,7 +173,7 @@ Distributions
   * a: lower bound (real)
   * b: upper bound (real > a)
 
-  Continuous uniform distribution on [a, b]
+  Continuous uniform distribution over ``[a, b]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
 
@@ -183,5 +183,5 @@ Distributions
   * b: upper bound (real > a)
   * r: drift kernel radius
 
-  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]
+  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.
 

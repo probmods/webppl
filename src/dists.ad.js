@@ -208,7 +208,7 @@ function makeDistributionType(options) {
 
 var Uniform = makeDistributionType({
   name: 'Uniform',
-  desc: 'Continuous uniform distribution on [a, b]',
+  desc: 'Continuous uniform distribution over ``[a, b]``',
   params: [{name: 'a', desc: 'lower bound (real)'},
            {name: 'b', desc: 'upper bound (real > a)'}],
   wikipedia: 'Uniform_distribution_(continuous)',
@@ -233,7 +233,7 @@ var UniformDrift = makeDistributionType({
   name: 'UniformDrift',
   desc: 'Drift version of Uniform. ' +
       'Drift kernels are used to narrow search during inference. ' +
-      'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
+      'UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.',
   params: [{name: 'a', desc: 'lower bound (real)'},
            {name: 'b', desc: 'upper bound (real > a)'},
            {name: 'r', desc: 'drift kernel radius'}],
@@ -254,7 +254,7 @@ var UniformDrift = makeDistributionType({
 
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
-  desc: 'Distribution on {true,false}',
+  desc: 'Distribution over ``{true, false}``',
   params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)}],
   wikipedia: true,
   mixins: [finiteSupport],
@@ -317,7 +317,7 @@ var MultivariateBernoulli = makeDistributionType({
 
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
-  desc: 'Uniform distribution on {0,1,...,n-1}',
+  desc: 'Uniform distribution over ``{0,1,...,n-1}``',
   params: [{name: 'n', desc: 'number of possible values (integer >= 1)'}],
   wikipedia: 'Uniform_distribution_(discrete)',
   mixins: [finiteSupport],
@@ -698,7 +698,7 @@ function discreteScoreArray(probs, val) {
 
 var Discrete = makeDistributionType({
   name: 'Discrete',
-  desc: 'Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
+  desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
   params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
   wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
@@ -807,7 +807,7 @@ var Gamma = makeDistributionType({
 
 var Exponential = makeDistributionType({
   name: 'Exponential',
-  desc: 'Distribution on ``[0, Infinity]``',
+  desc: 'Distribution over ``[0, Infinity]``',
   params: [{name: 'a', desc: 'rate (real)', domain: gt(0)}],
   wikipedia: true,
   mixins: [continuousSupport],
@@ -835,7 +835,7 @@ function logBeta(a, b) {
 
 var Beta = makeDistributionType({
   name: 'Beta',
-  desc: 'Distribution on [0, 1]',
+  desc: 'Distribution over ``[0, 1]``',
   params: [{name: 'a', desc: 'shape (real)', domain: gt(0)},
            {name: 'b', desc: 'shape (real)', domain: gt(0)}],
   wikipedia: true,
@@ -907,7 +907,7 @@ function binomialSample(p, n) {
 
 var Binomial = makeDistributionType({
   name: 'Binomial',
-  desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
+  desc: 'Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.',
   params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)},
            {name: 'n', desc: 'number of trials (integer > 0)'}],
   wikipedia: true,
@@ -978,7 +978,7 @@ function multinomialSample(theta, n) {
 
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
-  desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
+  desc: 'Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.',
   params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)', domain: interval(0, 1)},
            {name: 'n', desc: 'number of trials (integer > 0)'}],
   wikipedia: true,
@@ -1264,7 +1264,7 @@ var Marginal = makeDistributionType({
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  desc: 'Distribution over elements of vs with ``P(vs[i]) = ps[i]``',
+  desc: 'Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``',
   params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
