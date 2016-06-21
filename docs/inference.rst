@@ -17,6 +17,8 @@ option. For example::
 
 The following algorithms are available:
 
+.. _enumerate:
+
 Enumeration
 -----------
 
