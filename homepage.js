@@ -88755,4 +88755,23 @@ $(function () {
   }
 });
 
+// Bibtex
+
+function setBibtex() {
+  $('#toggle-bibtex').click(function () {
+    $('#bibtex').toggle();return false;
+  });
+}
+
+function setDate() {
+  var today = new Date();
+  var dd = today.getDate();
+  var mm = today.getMonth() + 1; //January is 0!
+  var yyyy = today.getFullYear();
+  $(".date").text(yyyy + '-' + mm + '-' + dd);
+}
+
+$(setBibtex);
+$(setDate);
+
 },{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":215,"react-dom":77,"showdown":216,"underscore":230,"webppl-editor":405,"webppl-viz":406}]},{},[409]);
