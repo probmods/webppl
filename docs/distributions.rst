@@ -7,12 +7,16 @@ Distributions
 
   Distribution on {true,false}
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Bernoulli_distribution>`__
+
 .. js:function:: Beta({a: ..., b: ...})
 
   * a: shape (real) *(>0)*
   * b: shape (real) *(>0)*
 
   Distribution on [0, 1]
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Beta_distribution>`__
 
 .. js:function:: Binomial({p: ..., n: ...})
 
@@ -21,6 +25,8 @@ Distributions
 
   Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Binomial_distribution>`__
+
 .. js:function:: Categorical({ps: ..., vs: ...})
 
   * ps: array of probabilities *(in [0,1])*
@@ -28,12 +34,16 @@ Distributions
 
   Distribution over elements of vs with ``P(vs[i]) = ps[i]``
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
+
 .. js:function:: Cauchy({location: ..., scale: ...})
 
   * location: (real in [-Infinity, Infinity])
   * scale: (real) *(>0)*
 
   Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Cauchy_distribution>`__
 
 .. js:function:: Delta({v: ...})
 
@@ -54,6 +64,8 @@ Distributions
 
   Distribution over arrays of probabilities.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
+
 .. js:function:: DirichletDrift({alpha: ...})
 
   * alpha: vector of concentration parameters *(>0)*
@@ -66,11 +78,15 @@ Distributions
 
   Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
+
 .. js:function:: Exponential({a: ...})
 
   * a: rate (real) *(>0)*
 
   Distribution on ``[0, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Exponential_distribution>`__
 
 .. js:function:: Gamma({shape: ..., scale: ...})
 
@@ -79,12 +95,16 @@ Distributions
 
   Distribution over positive reals.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Gamma_distribution>`__
+
 .. js:function:: Gaussian({mu: ..., sigma: ...})
 
   * mu: mean (real)
   * sigma: standard deviation (real) *(>0)*
 
   Distribution over reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
 .. js:function:: GaussianDrift({mu: ..., sigma: ...})
 
@@ -107,6 +127,8 @@ Distributions
 
   Distribution over counts for n independent ``Discrete({ps: ps})`` trials
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multinomial_distribution>`__
+
 .. js:function:: MultivariateBernoulli({ps: ...})
 
   * ps: probabilities *(in [0,1])*
@@ -120,17 +142,23 @@ Distributions
 
   n-dimensional Gaussian.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`__
+
 .. js:function:: Poisson({mu: ...})
 
   * mu: mean (real) *(>0)*
 
   Distribution over integers.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Poisson_distribution>`__
+
 .. js:function:: RandomInteger({n: ...})
 
   * n: number of possible values (integer >= 1)
 
   Uniform distribution on {0,1,...,n-1}
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
 
 .. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
 
@@ -146,6 +174,8 @@ Distributions
   * b: upper bound (real > a)
 
   Continuous uniform distribution on [a, b]
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
 
 .. js:function:: UniformDrift({a: ..., b: ..., r: ...})
 
