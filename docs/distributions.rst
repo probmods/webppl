@@ -5,28 +5,36 @@ Distributions
 
   * p: success probability *(in [0,1])*
 
-  Distribution on {true,false}
+  Distribution over ``{true, false}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Bernoulli_distribution>`__
 
 .. js:function:: Beta({a: ..., b: ...})
 
   * a: shape (real) *(>0)*
   * b: shape (real) *(>0)*
 
-  Distribution on [0, 1]
+  Distribution over ``[0, 1]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Beta_distribution>`__
 
 .. js:function:: Binomial({p: ..., n: ...})
 
   * p: success probability *(in [0,1])*
   * n: number of trials (integer > 0)
 
-  Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials
+  Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Binomial_distribution>`__
 
 .. js:function:: Categorical({ps: ..., vs: ...})
 
   * ps: array of probabilities *(in [0,1])*
   * vs: support (array of values)
 
-  Distribution over elements of vs with ``P(vs[i]) = ps[i]``
+  Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
 .. js:function:: Cauchy({location: ..., scale: ...})
 
@@ -34,6 +42,8 @@ Distributions
   * scale: (real) *(>0)*
 
   Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Cauchy_distribution>`__
 
 .. js:function:: Delta({v: ...})
 
@@ -43,16 +53,18 @@ Distributions
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu: vector of means
+  * mu: mean vector
   * sigma: vector of standard deviations *(>0)*
 
-  Multivariate Gaussian distribution with diagonal covariance matrix.
+  Multivariate Gaussian distribution with diagonal covariance matrix. If ``mu`` and ``sigma`` are vectors of length ``d`` then the distribution is over vectors of length ``d``.
 
 .. js:function:: Dirichlet({alpha: ...})
 
   * alpha: vector of concentration parameters *(>0)*
 
-  Distribution over arrays of probabilities.
+  Distribution over probability vectors. If ``alpha`` has length ``d`` then the distribution is over probability vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
 
 .. js:function:: DirichletDrift({alpha: ...})
 
@@ -64,13 +76,17 @@ Distributions
 
   * ps: array or vector of probabilities *(in [0,1])*
 
-  Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
+  Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
 .. js:function:: Exponential({a: ...})
 
   * a: rate (real) *(>0)*
 
-  Distribution on ``[0, Infinity]``
+  Distribution over ``[0, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Exponential_distribution>`__
 
 .. js:function:: Gamma({shape: ..., scale: ...})
 
@@ -79,12 +95,16 @@ Distributions
 
   Distribution over positive reals.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Gamma_distribution>`__
+
 .. js:function:: Gaussian({mu: ..., sigma: ...})
 
   * mu: mean (real)
   * sigma: standard deviation (real) *(>0)*
 
   Distribution over reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
 .. js:function:: GaussianDrift({mu: ..., sigma: ...})
 
@@ -95,17 +115,19 @@ Distributions
 
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
-  * mu: vector of means
+  * mu: mean vector
   * sigma: vector of standard deviations *(>0)*
 
-  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.
+  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
   * n: number of trials (integer > 0)
 
-  Distribution over counts for n independent ``Discrete({ps: ps})`` trials
+  Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multinomial_distribution>`__
 
 .. js:function:: MultivariateBernoulli({ps: ...})
 
@@ -115,10 +137,12 @@ Distributions
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
-  * mu: mean vector (array of reals)
-  * cov: covariance matrix  (array of array of reals that must be symmetric positive semidefinite)
+  * mu: mean vector
+  * cov: covariance matrix (must be symmetric positive semidefinite)
 
-  n-dimensional Gaussian.
+  Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`__
 
 .. js:function:: Poisson({mu: ...})
 
@@ -126,11 +150,15 @@ Distributions
 
   Distribution over integers.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Poisson_distribution>`__
+
 .. js:function:: RandomInteger({n: ...})
 
   * n: number of possible values (integer >= 1)
 
-  Uniform distribution on {0,1,...,n-1}
+  Uniform distribution over ``{0,1,...,n-1}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
 
 .. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
 
@@ -145,7 +173,9 @@ Distributions
   * a: lower bound (real)
   * b: upper bound (real > a)
 
-  Continuous uniform distribution on [a, b]
+  Continuous uniform distribution over ``[a, b]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
 
 .. js:function:: UniformDrift({a: ..., b: ..., r: ...})
 
@@ -153,5 +183,5 @@ Distributions
   * b: upper bound (real > a)
   * r: drift kernel radius
 
-  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]
+  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.
 

@@ -190,7 +190,7 @@ function makeDistributionType(options) {
   dist.prototype.constructor = dist;
 
   // Note that meta-data is not inherited from the parent.
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -208,9 +208,10 @@ function makeDistributionType(options) {
 
 var Uniform = makeDistributionType({
   name: 'Uniform',
-  desc: 'Continuous uniform distribution on [a, b]',
+  desc: 'Continuous uniform distribution over ``[a, b]``',
   params: [{name: 'a', desc: 'lower bound (real)'},
            {name: 'b', desc: 'upper bound (real > a)'}],
+  wikipedia: 'Uniform_distribution_(continuous)',
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -232,7 +233,7 @@ var UniformDrift = makeDistributionType({
   name: 'UniformDrift',
   desc: 'Drift version of Uniform. ' +
       'Drift kernels are used to narrow search during inference. ' +
-      'UniformDrift proposes from a symmetric window around the current value x, [x-r, x+r]',
+      'UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.',
   params: [{name: 'a', desc: 'lower bound (real)'},
            {name: 'b', desc: 'upper bound (real > a)'},
            {name: 'r', desc: 'drift kernel radius'}],
@@ -253,8 +254,9 @@ var UniformDrift = makeDistributionType({
 
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
-  desc: 'Distribution on {true,false}',
+  desc: 'Distribution over ``{true, false}``',
   params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)}],
+  wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
     return util.random() < ad.value(this.params.p);
@@ -315,8 +317,9 @@ var MultivariateBernoulli = makeDistributionType({
 
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
-  desc: 'Uniform distribution on {0,1,...,n-1}',
+  desc: 'Uniform distribution over ``{0,1,...,n-1}``',
   params: [{name: 'n', desc: 'number of possible values (integer >= 1)'}],
+  wikipedia: 'Uniform_distribution_(discrete)',
   mixins: [finiteSupport],
   sample: function() {
     return Math.floor(util.random() * this.params.n);
@@ -356,6 +359,7 @@ var Gaussian = makeDistributionType({
   desc: 'Distribution over reals.',
   params: [{name: 'mu', desc: 'mean (real)'},
            {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
+  wikipedia: 'Normal_distribution',
   mixins: [continuousSupport],
   sample: function() {
     return gaussianSample(ad.value(this.params.mu), ad.value(this.params.sigma));
@@ -424,10 +428,13 @@ function mvGaussianScore(mu, cov, x) {
 
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
-  desc: 'n-dimensional Gaussian.',
-  params: [{name: 'mu', desc: 'mean vector (array of reals)'},
-           {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
-            'that must be symmetric positive semidefinite)'}],
+  desc: 'Multivariate Gaussian distribution with full covariance matrix. ' +
+    'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
+    'then the distribution is over vectors of length ``d``.',
+  params: [{name: 'mu', desc: 'mean vector'},
+           {name: 'cov', desc: 'covariance matrix ' +
+            '(must be symmetric positive semidefinite)'}],
+  wikipedia: 'Multivariate_normal_distribution',
   mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
@@ -481,9 +488,11 @@ function diagCovGaussianScore(mu, sigma, x) {
 
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
-  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix.',
+  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix. ' +
+    'If ``mu`` and ``sigma`` are vectors of length ``d`` then ' +
+    'the distribution is over vectors of length ``d``.',
   params: [
-    {name: 'mu', desc: 'vector of means'},
+    {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
@@ -530,10 +539,10 @@ var squishToProbSimplex = function(x) {
 var LogisticNormal = makeDistributionType({
   name: 'LogisticNormal',
   desc: 'A distribution over probability vectors obtained by transforming a random variable ' +
-    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then ' +
-    'the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.',
+    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` ' +
+    'then the distribution is over probability vectors of length ``d+1``.',
   params: [
-    {name: 'mu', desc: 'vector of means'},
+    {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport, noHMC],
@@ -645,6 +654,7 @@ var Cauchy = makeDistributionType({
   desc: 'Distribution over ``[-Infinity, Infinity]``',
   params: [{name: 'location', desc: '(real in [-Infinity, Infinity])'},
            {name: 'scale', desc: '(real)', domain: gt(0)}],
+  wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -688,8 +698,9 @@ function discreteScoreArray(probs, val) {
 
 var Discrete = makeDistributionType({
   name: 'Discrete',
-  desc: 'Distribution on ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
+  desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
   params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
+  wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
   sample: function() {
     var ps = _.isArray(this.params.ps) ?
@@ -777,6 +788,7 @@ var Gamma = makeDistributionType({
   desc: 'Distribution over positive reals.',
   params: [{name: 'shape', desc: 'shape parameter (real)', domain: gt(0)},
            {name: 'scale', desc: 'scale parameter (real)', domain: gt(0)}],
+  wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
     return gammaSample(ad.value(this.params.shape), ad.value(this.params.scale));
@@ -795,8 +807,9 @@ var Gamma = makeDistributionType({
 
 var Exponential = makeDistributionType({
   name: 'Exponential',
-  desc: 'Distribution on ``[0, Infinity]``',
+  desc: 'Distribution over ``[0, Infinity]``',
   params: [{name: 'a', desc: 'rate (real)', domain: gt(0)}],
+  wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
@@ -822,9 +835,10 @@ function logBeta(a, b) {
 
 var Beta = makeDistributionType({
   name: 'Beta',
-  desc: 'Distribution on [0, 1]',
+  desc: 'Distribution over ``[0, 1]``',
   params: [{name: 'a', desc: 'shape (real)', domain: gt(0)},
            {name: 'b', desc: 'shape (real)', domain: gt(0)}],
+  wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
     return betaSample(ad.value(this.params.a), ad.value(this.params.b));
@@ -893,9 +907,10 @@ function binomialSample(p, n) {
 
 var Binomial = makeDistributionType({
   name: 'Binomial',
-  desc: 'Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials',
+  desc: 'Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.',
   params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)},
            {name: 'n', desc: 'number of trials (integer > 0)'}],
+  wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
     return binomialSample(ad.value(this.params.p), this.params.n);
@@ -963,9 +978,10 @@ function multinomialSample(theta, n) {
 
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
-  desc: 'Distribution over counts for n independent ``Discrete({ps: ps})`` trials',
+  desc: 'Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.',
   params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)', domain: interval(0, 1)},
            {name: 'n', desc: 'number of trials (integer > 0)'}],
+  wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
     return multinomialSample(this.params.ps.map(ad.value), this.params.n);
@@ -1070,6 +1086,7 @@ var Poisson = makeDistributionType({
   name: 'Poisson',
   desc: 'Distribution over integers.',
   params: [{name: 'mu', desc: 'mean (real)', domain: gt(0)}],
+  wikipedia: true,
   sample: function() {
     var k = 0;
     var mu = ad.value(this.params.mu);
@@ -1144,8 +1161,11 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
-  desc: 'Distribution over arrays of probabilities.',
+  desc: 'Distribution over probability vectors. ' +
+    'If ``alpha`` has length ``d`` then the distribution ' +
+    'is over probability vectors of length ``d``.',
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
+  wikipedia: true,
   mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _alpha = ad.value(this.params.alpha);
@@ -1244,9 +1264,10 @@ var Marginal = makeDistributionType({
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  desc: 'Distribution over elements of vs with ``P(vs[i]) = ps[i]``',
+  desc: 'Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``',
   params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
+  wikipedia: true,
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.

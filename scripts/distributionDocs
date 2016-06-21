@@ -37,7 +37,8 @@ var t = makeTemplates({
   arg:             '<%= name %>: ...',
   param:           '  * <%= name %>: <%= desc %>',
   paramWithDomain: '  * <%= name %>: <%= desc %> *(<%= domain %>)*',
-  desc:            '  <%= desc %>\n'
+  desc:            '  <%= desc %>\n',
+  wikiEntry:     '  `Wikipedia entry <https://en.wikipedia.org/wiki/<%= page %>>`__\n'
 });
 
 function formatDomain(interval) {
@@ -71,6 +72,11 @@ var body = getMetaData().map(function(meta) {
 
   if (meta.desc) {
     out.push(t.desc(meta));
+  }
+
+  if (meta.wikipedia) {
+    var page = (meta.wikipedia === true) ? meta.name + '_distribution' : meta.wikipedia;
+    out.push(t.wikiEntry({page: page}));
   }
 
   return out;
