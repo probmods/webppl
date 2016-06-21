@@ -428,10 +428,12 @@ function mvGaussianScore(mu, cov, x) {
 
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
-  desc: 'n-dimensional Gaussian.',
-  params: [{name: 'mu', desc: 'mean vector (array of reals)'},
-           {name: 'cov', desc: 'covariance matrix  (array of array of reals ' +
-            'that must be symmetric positive semidefinite)'}],
+  desc: 'Multivariate Gaussian distribution with full covariance matrix. ' +
+    'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
+    'then the distribution is over vectors of length ``d``.',
+  params: [{name: 'mu', desc: 'mean vector'},
+           {name: 'cov', desc: 'covariance matrix ' +
+            '(must be symmetric positive semidefinite)'}],
   wikipedia: 'Multivariate_normal_distribution',
   mixins: [continuousSupport],
   constructor: function() {
@@ -486,9 +488,11 @@ function diagCovGaussianScore(mu, sigma, x) {
 
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
-  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix.',
+  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix. ' +
+    'If ``mu`` and ``sigma`` are vectors of length ``d`` then ' +
+    'the distribution is over vectors of length ``d``.',
   params: [
-    {name: 'mu', desc: 'vector of means'},
+    {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
@@ -535,10 +539,10 @@ var squishToProbSimplex = function(x) {
 var LogisticNormal = makeDistributionType({
   name: 'LogisticNormal',
   desc: 'A distribution over probability vectors obtained by transforming a random variable ' +
-    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then ' +
-    'the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.',
+    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` ' +
+    'then the distribution is over probability vectors of length ``d+1``.',
   params: [
-    {name: 'mu', desc: 'vector of means'},
+    {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport, noHMC],
@@ -1157,7 +1161,9 @@ function dirichletScore(alpha, val) {
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
-  desc: 'Distribution over arrays of probabilities.',
+  desc: 'Distribution over probability vectors. ' +
+    'If ``alpha`` has length ``d`` then the distribution ' +
+    'is over probability vectors of length ``d``.',
   params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
   wikipedia: true,
   mixins: [continuousSupport, noHMC],

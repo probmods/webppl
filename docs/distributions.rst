@@ -53,16 +53,16 @@ Distributions
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu: vector of means
+  * mu: mean vector
   * sigma: vector of standard deviations *(>0)*
 
-  Multivariate Gaussian distribution with diagonal covariance matrix.
+  Multivariate Gaussian distribution with diagonal covariance matrix. If ``mu`` and ``sigma`` are vectors of length ``d`` then the distribution is over vectors of length ``d``.
 
 .. js:function:: Dirichlet({alpha: ...})
 
   * alpha: vector of concentration parameters *(>0)*
 
-  Distribution over arrays of probabilities.
+  Distribution over probability vectors. If ``alpha`` has length ``d`` then the distribution is over probability vectors of length ``d``.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
 
@@ -115,10 +115,10 @@ Distributions
 
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
-  * mu: vector of means
+  * mu: mean vector
   * sigma: vector of standard deviations *(>0)*
 
-  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` has length d then the distribution is over probability vectors of length d+1, i.e. the d dimensional simplex.
+  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
@@ -137,10 +137,10 @@ Distributions
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
-  * mu: mean vector (array of reals)
-  * cov: covariance matrix  (array of array of reals that must be symmetric positive semidefinite)
+  * mu: mean vector
+  * cov: covariance matrix (must be symmetric positive semidefinite)
 
-  n-dimensional Gaussian.
+  Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`__
 
