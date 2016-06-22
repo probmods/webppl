@@ -9,6 +9,7 @@ Contents:
    quickstart
    usage
    inference
+   optimization
    distributions
    guides
    tensors

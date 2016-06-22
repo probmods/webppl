@@ -1,3 +1,5 @@
+.. _inference:
+
 Inference
 =========
 
@@ -305,23 +307,24 @@ SMC
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
 
+   By default SMC uses the prior as the importance distribution. Other
+   distributions can be used by specifying :ref:`guide distributions
+   <guides>`. This can be useful when you know something about the
+   posterior distribution as specifying an importance distribution
+   that is closer to the posterior than the prior will improve the
+   statistical efficiency of inference.
+
 Optimization
 ------------
 
 .. js:function:: Infer({method: 'optimize'[, ...]}, thunk)
 
-   This method performs inference by optimizing the parameters of the
-   :ref:`guide program<guides>`. The marginal distribution is a
+   This method performs inference by :ref:`optimizing <optimization>`
+   the parameters of the guide program. The marginal distribution is a
    histogram constructed from samples drawn from the guide program
    using the optimized parameters.
 
    The following options are supported:
-
-      .. describe:: steps
-
-         The number of optimization steps to take.
-
-         Default: ``1``
 
       .. describe:: samples
 
@@ -330,27 +333,12 @@ Optimization
 
          Default: ``1``
 
-      .. describe:: optMethod
-
-         The optimization method used. The following methods are
-         available:
-
-         * ``'sgd'``
-         * ``'adagrad'``
-         * ``'rmsprop'``
-         * ``'adam'``
-
-         Each method takes a ``stepSize`` sub-option, see below for
-         example usage. Additional method specific options are
-         available, see the `adnn optimization module`_ for details.
-
-         Default: ``'adagrad'``
+   In addition, all of the options supported by :ref:`Optimize
+   <optimize>` are also supported here.
 
    Example usage::
 
      Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
-     Infer({method: 'optimize', optMethod: 'sgd'}, thunk);
-     Infer({method: 'optimize', optMethod: {sgd: {stepSize: 1}}}, thunk);
 
 .. rubric:: Bibliography
 
@@ -368,5 +356,3 @@ Optimization
                Probabilistic Programs using Continuations and Callsite
                Caching." International Conference on Artificial
                Intelligence and Statistics. 2016.
-
-.. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt

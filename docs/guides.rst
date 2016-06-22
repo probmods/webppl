@@ -3,38 +3,27 @@
 Guides
 ======
 
-Creating parameters
--------------------
+.. this should end up as part of the ``sample`` docs
 
-.. js:function:: scalarParam(mean, sd)
+A random choice is denoted by::
 
-   :param real mean: mean (optional)
-   :param number sd: standard deviation (optional)
+  sample(dist);
 
-   Creates a new scalar valued parameter initialized with a draw from
-   a Gaussian distribution.
+Where ``dist`` is either a :ref:`primitive distribution
+<distributions>` object or the result of :ref:`marginal inference
+<inference>`.
 
-   If ``sd`` is omitted the initial value is ``mean``. If ``mean`` is
-   omitted it defaults to zero.
+For example::
 
-   Example::
+  sample(Cauchy(params));
 
-     scalarParam(0, 1)
+A number of inference strategies make use of an auxiliary distribution
+which we call a *guide distribution*. They are specified like so::
 
-.. js:function:: tensorParam(dims, mean, sd)
+  sample(dist, {guide: guideDist});
 
-   :param array dims: dimension of tensor
-   :param number mu: mean (optional)
-   :param number sd: standard deviation (optional)
+Where ``guideDist`` is also a distribution object.
 
-   Creates a new tensor valued parameter. Each element is initialized
-   with an independent draw from a Gaussian distribution.
+For example::
 
-   If ``sd`` is omitted the initial value of each element is ``mean``.
-   If ``mean`` is omitted it defaults to zero.
-
-   Example::
-
-     tensorParam([10, 10], 0, 0.01)
-
-.. js:function:: param(arg1, arg2, arg3)
+  sample(Cauchy(params), {guide: Gaussian(guideParams)});

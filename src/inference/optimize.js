@@ -26,7 +26,7 @@ module.exports = function(env) {
   function Optimize(s, k, a, wpplFn, options) {
     options = util.mergeDefaults(options, {
       params: {},
-      method: 'adagrad',
+      optMethod: 'adagrad',
       estimator: 'ELBO',
       steps: 1,
       clip: false,              // false = no clipping, otherwise specifies threshold.
@@ -43,7 +43,7 @@ module.exports = function(env) {
       return _.partial(estimators[name], wpplFn, s, a, opts);
     });
 
-    var optimizer = util.getValAndOpts(options.method, function(name, opts) {
+    var optimizer = util.getValAndOpts(options.optMethod, function(name, opts) {
       name = (name === 'gd') ? 'sgd' : name;
       return optMethods[name](opts);
     });
