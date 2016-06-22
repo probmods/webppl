@@ -206,7 +206,7 @@ function multivariateGaussianSample(params) {
   var cov = params[1];
   var xs = mu.map(function() {return gaussianSample([0, 1]);});
   var svd = numeric.svd(cov);
-  var scaledV = numeric.transpose(svd.V).map(function(x) {
+  var scaledV = svd.V.map(function(x) {
     return numeric.mul(numeric.sqrt(svd.S), x);
   });
   xs = numeric.dot(xs, numeric.transpose(scaledV));

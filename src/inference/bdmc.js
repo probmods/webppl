@@ -13,7 +13,8 @@ module.exports = function(env){
       steps: 20,
       samples: 1,
       returnMean: true,
-      observeTable: undefined
+      observeTable: undefined,
+      exactSample: undefined
     });
 
     var weights = [];
@@ -33,6 +34,8 @@ module.exports = function(env){
 
       run = function(s, initialTrace) {
 
+        var beginTime = (new Date()).getTime()
+
         var factorCoeff = 0;
         var increment = 1/options.steps;
         var weight = 0;
@@ -47,11 +50,16 @@ module.exports = function(env){
         var mhChainKernel = repeatKernel(options.steps, mhStepKernel);
 
         return mhChainKernel(function(trace){
-          return k(weight);
+          var endTime = (new Date()).getTime();
+          var time = (endTime - beginTime)/1000;
+          return k([weight, time]);
         }, initialTrace);
       }
-    
-      return initialize();
+      
+      if (options.exactSample === undefined)
+        return initialize();
+      else
+        return run(s, options.exactSample);
     }
 
     return util.cpsLoop(options.samples, function(i, next){
@@ -62,9 +70,18 @@ module.exports = function(env){
     }, function(){
       if (options.returnMean) {
         var sum = 0;
-        for (var i = 0; i < weights.length; i ++)
-          sum += weights[i];
-        return k(s, sum/options.samples);
+        var sum_sq = 0;
+        var time_sum = 0
+        for (var i = 0; i < weights.length; i ++) {
+          var weight = weights[i][0];
+          var time = weights[i][1];
+          sum += weight;
+          sum_sq += weight*weight;
+          time_sum += time;
+        }
+        var mean = sum/options.samples;
+        var variance = sum_sq/options.samples - mean*mean;
+        return k(s, [mean, Math.sqrt(variance), time_sum/options.samples]);
       } else {
         return k(s, weights);
       }
@@ -76,107 +93,69 @@ module.exports = function(env){
     var options = util.mergeDefaults(options, {
       steps: 20,
       samples: 10,
-      bounces: 0,
       returnMean: true,
       observeTable: undefined,
-      mcmcSteps: 20,
       exactSample: undefined
     });
+
+    assert(options.exactSample !== undefined);
 
     var weights = [];
 
     // To be used with util.cpsLoop
     var singleSample = function (k) {
 
-      var mcmc, run;
-
-      // Code mostly copied from mcmc.js.
-      var mcmc = function() {
-
-        var mcmcInitialize, mcmcRun;
-
-        mcmcInitialize = function() {
-          if (options.observeTable !== undefined)
-            return Initialize(s, mcmcRun, a, wpplFn,
-              {observeMode: 'use', observeTable: options.observeTable});
-          else
-            return Initialize(s, mcmcRun, a, wpplFn, {observeMode: 'none'});  
-          };
-
-          mcmcRun = function(s, initialTrace) {
-          var kernel = function(k, trace) {
-            return MHKernel(k, trace, {observeTable: options.observeTable});
-          }
-          var chain = repeatKernel(options.mcmcSteps, kernel);
-          return chain(run, initialTrace);
-        };
-
-        return mcmcInitialize();
-      }
-
+      var run;
 
       run = function(initialTrace) {
 
         var factorCoeff = 1;
         var step = 1/options.steps;
         var weight = 0;
-        var singleWeights = [];
 
-        var reverseKernel = function(k, trace) {
+        var beginTime = (new Date()).getTime();
+
+        var mhKernel = function(k, trace) {
           weight -= step*(trace.score-trace.sampleScore);
           factorCoeff -= step;
           return MHKernel(k, trace,
             {factorCoeff: factorCoeff, observeTable: options.observeTable});
         }
 
-        var reverseChainKernelUnupdated = repeatKernel(options.steps, reverseKernel);
-
-        // Initial factorCoeff should be 1.
-        var reverseChainKernel = function(k, trace) {
-          return reverseChainKernelUnupdated(function(trace1){
-            singleWeights.push(-1.0*weight);
-            return k(trace1);
-          }, trace);
-        }
-
-        var forwardKernel = function(k, trace) {
-          weight += step*(trace.score-trace.sampleScore);
-          factorCoeff += step;
-          return MHKernel(k, trace,
-            {factorCoeff: factorCoeff, observeTable: options.observeTable});
-        }
-
-        // Initial factorCoeff should be 0.
-        var forwardChainKernel = repeatKernel(options.steps, forwardKernel);
-
-        var bounceChainKernel = repeatKernel(options.bounces,
-          sequenceKernels(forwardChainKernel, reverseChainKernel));
-
-        var mhChainKernel = sequenceKernels(reverseChainKernel, bounceChainKernel);
+        var mhChainKernel = repeatKernel(options.steps, mhKernel);
 
         return mhChainKernel(function(trace){
-          return k(singleWeights);
+          var endTime = (new Date()).getTime();
+          var time = (endTime - beginTime)/1000;
+          return k([-1.0*weight, time]);
           // return k([singleWeights[singleWeights.length-1]]);
         }, initialTrace);
       }
     
-      if (options.exactSample === undefined)
-        return mcmc();
-      else
-        return run(options.exactSample);
+      return run(options.exactSample);
     }
 
     return util.cpsLoop(options.samples, function(i, next){
-      return singleSample(function(singleWeights){
-        Array.prototype.push.apply(weights, singleWeights);
+      return singleSample(function(weight){
+        // Array.prototype.push.apply(weights, singleWeights);
+        weights.push(weight);
         return next();
       })
     }, function(){
       if (options.returnMean) {
         var sum = 0;
-        for (var i = 0; i < weights.length; i++)
-          sum += weights[i];
-        return k(s, sum/weights.length);
+        var sum_sq = 0;
+        var time_sum = 0;
+        for (var i = 0; i < weights.length; i++) {
+          var weight = weights[i][0];
+          var time = weights[i][1];
+          sum += weight;
+          sum_sq += weight*weight;
+          time_sum += time;
+        }
+        var mean = sum/weights.length;
+        var variance = sum_sq/weights.length - mean*mean;
+        return k(s, [mean, Math.sqrt(variance), time_sum/weights.length]);
         // var sum = util.logsumexp(weights);
         // return k(s, weights.length/Math.exp(sum));
       } else {
@@ -191,15 +170,30 @@ module.exports = function(env){
       samples: 1,
     });
 
-    var initialize, observeTable, exactSample;
+    var initialize, priorInitialize, postInitialize, observeTable;
+    var priorSample, postSample;
+
     var gaps = [];
 
-    initialize = function(k) {
+    postInitialize = function(k) {
       return Initialize(s, function(s, trace, table) {
         observeTable = table;
-        exactSample = trace;
+        postSample = trace;
         return k();
       }, a, wpplFn, {observeMode: 'build'})
+    }
+
+    priorInitialize = function(k) {
+      return Initialize(s, function(s, trace){
+        priorSample = trace;
+        return k();
+      }, a, wpplFn, {observeMode: 'use', observeTable: observeTable})
+    }
+
+    initialize = function(k) {
+      return postInitialize(function(){
+        return priorInitialize(k);
+      })
     }
 
     var singleBDMC = function(k, steps, samples) {
@@ -212,7 +206,8 @@ module.exports = function(env){
           steps: steps,
           samples: samples,
           returnMean: true,
-          observeTable: observeTable
+          observeTable: observeTable,
+          exactSample: priorSample
         }
         
         return AIS(s, function(s, weight) {
@@ -229,7 +224,7 @@ module.exports = function(env){
           returnMean: true,
           observeTable: observeTable,
           mcmcSteps: -1,
-          exactSample: exactSample
+          exactSample: postSample
         }
 
         return RAIS(s, function(s, weight){
@@ -248,7 +243,7 @@ module.exports = function(env){
     return initialize(function(){
       return util.cpsLoop(options.steps.length, function(i, next){
         return singleBDMC(function(aisWeight, raisWeight){
-          gaps.push([aisWeight, raisWeight]);
+          gaps.push([aisWeight[0], aisWeight[1], aisWeight[2], raisWeight[0], raisWeight[1], raisWeight[2]]);
           console.log((i+1) + '/' + options.steps.length + ' done ...');
           return next();
         }, options.steps[i], options.samples);
