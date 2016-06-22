@@ -861,9 +861,9 @@ function betaSample(a, b) {
   var x = gammaSample(a, 1);
   var y = x / (x + gammaSample(b, 1));
   if (y === 0) {
-    y = Number.EPSILON;
+    y = Number.MIN_VALUE;
   } else if (y === 1) {
-    y = 1 - Number.EPSILON;
+    y = 1 - Number.EPSILON / 2;
   }
   return y;
 }
@@ -1139,10 +1139,10 @@ function dirichletSample(alpha) {
   for (var j = 0; j < n; j++) {
     theta.data[j] /= ssum;
     if (theta.data[j] === 0) {
-      theta.data[j] = Number.EPSILON
+      theta.data[j] = Number.MIN_VALUE;
     }
     if (theta.data[j] === 1) {
-      theta.data[j] = 1 - Number.EPSILON
+      theta.data[j] = 1 - Number.EPSILON / 2;
     }
   }
   return theta;
