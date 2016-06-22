@@ -18,7 +18,7 @@ For example::
   sample(Cauchy(params));
 
 A number of inference strategies make use of an auxiliary distribution
-which we call a *guide distribution*. There are specified like so::
+which we call a *guide distribution*. They are specified like so::
 
   sample(dist, {guide: guideDist});
 
