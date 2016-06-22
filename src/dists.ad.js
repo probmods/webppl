@@ -859,7 +859,13 @@ var Beta = makeDistributionType({
 
 function betaSample(a, b) {
   var x = gammaSample(a, 1);
-  return x / (x + gammaSample(b, 1));
+  var y = x / (x + gammaSample(b, 1));
+  if (y === 0) {
+    y = Number.EPSILON;
+  } else if (y === 1) {
+    y = 1 - Number.EPSILON;
+  }
+  return y;
 }
 
 
