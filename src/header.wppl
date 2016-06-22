@@ -513,13 +513,9 @@ var SampleGuide = function(wpplFn, options) {
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
-  // Both Infer and Optimize currently take a 'method' option, so here
-  // we look out for an 'optMethod' option and rename/pass that on to
-  // Optimize as 'method'.
-  var optimMethodOpt = _.has(options, 'optMethod') ? {method: options.optMethod} : {};
-  var optimOpts = _.extendOwn(_.omit(options, 'samples', 'optMethod'), optimMethodOpt);
-  var params = Optimize(wpplFn, optimOpts);
-  return SampleGuide(wpplFn, _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose')));
+  var params = Optimize(wpplFn, _.omit(options, 'samples'));
+  var opts = _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose'));
+  return SampleGuide(wpplFn, opts);
 };
 
 var Infer = function(options, wpplFn) {
