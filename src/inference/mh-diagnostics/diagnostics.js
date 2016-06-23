@@ -1,4 +1,4 @@
-var stats = require('../../statistics');
+var stats = require('../../math/statistics');
 var fs = require('fs');
 var os = require('os');
 
@@ -8,7 +8,7 @@ function geweke(traces, first, last, intervals) {
   var last = typeof last !== 'undefined' ? last : 0.5;
   var intervals = typeof intervals !== 'undefined' ? intervals : 20;
   if (first + last >= 1.0) {
-    throw 'Error: Intervals should sum to less than 1.0.';
+    throw new Error('Error: Intervals should sum to less than 1.0.');
   }
   var zscores = [];
   var end = traces.length;

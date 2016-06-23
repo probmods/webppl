@@ -5,8 +5,9 @@ node_modules
 npm-debug.log
 bundle/
 docs/_build
-docs/_static
 docs/_templates
 src/dists.js
 src/inference/enumerate.js
+src/inference/elbo.js
+src/inference/eubo.js
 src/aggregation/ScoreAggregator.js

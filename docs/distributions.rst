@@ -1,107 +1,189 @@
+.. _distributions:
+
 Distributions
 =============
 
 .. js:function:: Bernoulli({p: ...})
 
-  * p: *probability of true*
+  * p: success probability *(in [0,1])*
 
-  Distribution on {true,false}
+  Distribution over ``{true, false}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Bernoulli_distribution>`__
 
 .. js:function:: Beta({a: ..., b: ...})
 
-  * a
-  * b
+  * a: shape (real) *(>0)*
+  * b: shape (real) *(>0)*
+
+  Distribution over ``[0, 1]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Beta_distribution>`__
 
 .. js:function:: Binomial({p: ..., n: ...})
 
-  * p: *success probability*
-  * n: *number of trials*
+  * p: success probability *(in [0,1])*
+  * n: number of trials (integer > 0)
 
-  Distribution over the number of successes for n independent ``Bernoulli({p: p})`` trials
+  Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Binomial_distribution>`__
 
 .. js:function:: Categorical({ps: ..., vs: ...})
 
-  * ps: *array of probabilities*
-  * vs: *support*
+  * ps: array of probabilities *(in [0,1])*
+  * vs: support (array of values)
 
-  Distribution over elements of vs with P(vs[i]) = ps[i]
+  Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
 .. js:function:: Cauchy({location: ..., scale: ...})
 
-  * location
-  * scale
+  * location: (real in [-Infinity, Infinity])
+  * scale: (real) *(>0)*
+
+  Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Cauchy_distribution>`__
 
 .. js:function:: Delta({v: ...})
 
-  * v: *support element*
+  * v: support element
 
   Discrete distribution that assigns probability one to the single element in its support. This is only useful in special circumstances as sampling from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` distribution parameterized by a random choice should not be used with MCMC based inference, as doing so produces incorrect results.
 
+.. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
+
+  * mu: mean vector
+  * sigma: vector of standard deviations *(>0)*
+
+  Multivariate Gaussian distribution with diagonal covariance matrix. If ``mu`` and ``sigma`` are vectors of length ``d`` then the distribution is over vectors of length ``d``.
+
 .. js:function:: Dirichlet({alpha: ...})
 
-  * alpha: *array of concentration parameters*
+  * alpha: vector of concentration parameters *(>0)*
+
+  Distribution over probability vectors. If ``alpha`` has length ``d`` then the distribution is over probability vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
 
 .. js:function:: DirichletDrift({alpha: ...})
 
-  * alpha: *array of concentration parameters*
+  * alpha: vector of concentration parameters *(>0)*
+
+  Drift version of Dirichlet. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: *array of probabilities*
+  * ps: array or vector of probabilities *(in [0,1])*
 
-  Distribution on {0,1,...,ps.length-1} with P(i) proportional to ps[i]
+  Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
 .. js:function:: Exponential({a: ...})
 
-  * a: *rate*
+  * a: rate (real) *(>0)*
+
+  Distribution over ``[0, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Exponential_distribution>`__
 
 .. js:function:: Gamma({shape: ..., scale: ...})
 
-  * shape
-  * scale
+  * shape: shape parameter (real) *(>0)*
+  * scale: scale parameter (real) *(>0)*
+
+  Distribution over positive reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Gamma_distribution>`__
 
 .. js:function:: Gaussian({mu: ..., sigma: ...})
 
-  * mu: *mean*
-  * sigma: *standard deviation*
+  * mu: mean (real)
+  * sigma: standard deviation (real) *(>0)*
+
+  Distribution over reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
 .. js:function:: GaussianDrift({mu: ..., sigma: ...})
 
-  * mu: *mean*
-  * sigma: *standard deviation*
+  * mu: mean (real)
+  * sigma: standard deviation (real) *(>0)*
+
+  Drift version of Gaussian. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
+
+.. js:function:: LogisticNormal({mu: ..., sigma: ...})
+
+  * mu: mean vector
+  * sigma: vector of standard deviations *(>0)*
+
+  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
-  * ps: *probabilities*
-  * n: *number of trials*
+  * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
+  * n: number of trials (integer > 0)
 
-  Distribution over counts for n independent ``Discrete({ps: ps})`` trials
+  Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multinomial_distribution>`__
+
+.. js:function:: MultivariateBernoulli({ps: ...})
+
+  * ps: probabilities *(in [0,1])*
+
+  Distribution over a vector of independent Bernoulli variables. Each element of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which has support ``{true, false}``.
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
-  * mu: *mean vector*
-  * cov: *covariance matrix*
+  * mu: mean vector
+  * cov: covariance matrix (must be symmetric positive semidefinite)
+
+  Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`__
 
 .. js:function:: Poisson({mu: ...})
 
-  * mu
+  * mu: mean (real) *(>0)*
+
+  Distribution over integers.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Poisson_distribution>`__
 
 .. js:function:: RandomInteger({n: ...})
 
-  * n
+  * n: number of possible values (integer >= 1)
 
-  Uniform distribution on {0,1,...,n-1}
+  Uniform distribution over ``{0,1,...,n-1}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
+
+.. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
+
+  * mu: mean
+  * sigma: standard deviation *(>0)*
+  * dims: dimension of tensor
+
+  Distribution over a tensor of independent Gaussian variables.
 
 .. js:function:: Uniform({a: ..., b: ...})
 
-  * a
-  * b
+  * a: lower bound (real)
+  * b: upper bound (real > a)
 
-  Continuous uniform distribution on [a, b]
+  Continuous uniform distribution over ``[a, b]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
 
 .. js:function:: UniformDrift({a: ..., b: ..., r: ...})
 
-  * a
-  * b
-  * r: *drift kernel radius*
+  * a: lower bound (real)
+  * b: upper bound (real > a)
+  * r: drift kernel radius
+
+  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.
 

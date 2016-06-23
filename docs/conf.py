@@ -101,6 +101,10 @@ exclude_patterns = ['_build']
 # output. They are ignored by default.
 #show_authors = False
 
+# The default language to highlight source code in.
+# http://www.sphinx-doc.org/en/stable/config.html#confval-highlight_language
+highlight_language = 'javascript'
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
@@ -136,6 +140,11 @@ todo_include_todos = False
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# https://obda.net/blog/custom-css-and-js-for-sphinx-generated-documentation/
+html_context = {
+    'css_files': ['_static/custom.css']
+}
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

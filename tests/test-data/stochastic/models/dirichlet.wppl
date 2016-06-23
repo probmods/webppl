@@ -1,0 +1,8 @@
+var model = function() {
+  var x = dirichlet(Vector([.1, .2, .6]));
+  return T.sumreduce(T.range(x, 0, 2));
+};
+
+// ak = a0+a1+a2
+// E[x0+x1] = (a0 + a1) / ak
+// var[x0+x1] = (a0*(ak-a0) + a1*(ak-a1) - 2*a2*a1) / (ak^2 * (ak+1))

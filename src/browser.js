@@ -42,8 +42,9 @@ function compile(code, options) {
   if (options === undefined) {
     options = {};
   }
-  var optionsExtended = _.extend({bundles: load()}, options);
-  return webppl.compile(code, optionsExtended);
+  var optionsExtended = _.extend({bundles: load()}, _.omit(options, 'sourceMap'));
+  var codeAndMap = webppl.compile(code, optionsExtended);
+  return options.sourceMap ? codeAndMap : codeAndMap.code;
 }
 
 function webpplCPS(code) {

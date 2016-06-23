@@ -13,7 +13,7 @@ var testDataDir = './tests/test-data/stochastic/';
 var tests = [
   {
     name: 'ForwardSample',
-    method: 'rejection',
+    method: 'forward',
     settings: {
       args: { samples: 3000 },
       hist: { tol: 0.05 },
@@ -34,12 +34,18 @@ var tests = [
       poisson: true,
       cauchy: true,
       delta: { args: { samples: 10 }, hist: { exact: true } },
+      dirichlet: true,
+      multivariateGaussian: true,
+      multivariateBernoulli: true,
+      diagCovGaussian: true,
+      tensorGaussian: true,
       mixed1: true,
       mixed2: true,
       mixed3: true,
       mixed4: true,
       bivariateGaussian: true,
-      indirectDependency: true
+      indirectDependency: true,
+      guidedFlip: true
     }
   },
   {
@@ -51,6 +57,7 @@ var tests = [
     },
     models: {
       simple: true,
+      simpleSoft: true,
       upweight: true,
       incrementalBinomial: true,
       deterministic: { hist: { exact: true } },
@@ -61,7 +68,8 @@ var tests = [
       withCaching: true,
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
-      nestedEnumDiscrete: true
+      nestedEnumDiscrete: true,
+      guidedFlip: true
     }
   },
   {
@@ -92,6 +100,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -101,7 +110,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      guidedFlip: true
     }
   },
   {
@@ -173,7 +183,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumDiscrete: true,
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -223,7 +234,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -252,7 +264,8 @@ var tests = [
       importance3: true,
       withCaching: true,
       variableSupport: true,
-      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } }
+      nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guidedFlip: true
     }
   },
   {
@@ -281,7 +294,8 @@ var tests = [
       },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       gaussianMean: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
-      gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } }
+      gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
+      guidedFlip: true
     }
   },
   {
@@ -343,6 +357,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -352,7 +367,8 @@ var tests = [
       nestedEnum6: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } }
+      nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
+      guidedFlip: true
     }
   },
   {
@@ -375,6 +391,7 @@ var tests = [
       withCaching: true,
       variableSupport: true,
       query: true,
+      query2: { hist: { tol: 0.1, exactSupport: true } },
       onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
       mixed1: true,
       mixed1Factor: true,
@@ -420,7 +437,15 @@ var tests = [
           kernel: { HMC: { steps: 5, stepSize: 1 } }
         }
       },
+      tensorGaussian: true,
+      diagCovGaussian: {
+        args: {
+          samples: 10000,
+          kernel: { HMC: { steps: 5, stepSize: 1 } }
+        }
+      },
       gaussianMean: true,
+      mvGaussianMean: true,
       gaussianMeanVar: {
         args: {
           samples: 1000,
@@ -480,6 +505,13 @@ var tests = [
           burn: 1500,
           kernel: { HMC: { steps: 50, stepSize: 0.01 }}
         }
+      },
+      guidedGaussian: {
+        args: {
+          samples: 1000,
+          burn: 10,
+          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+        }
       }
     }
   },
@@ -505,6 +537,43 @@ var tests = [
     },
     models: {
       deterministic: { hist: { tol: 0 } }
+    }
+  },
+  {
+    name: 'OptimizeELBO',
+    method: 'optimize',
+    settings: {
+      args: {
+        samples: 5000,
+        steps: 100,
+        optMethod: 'gd',
+        estimator: { ELBO: { samples: 120 } },
+        verbose: false
+      },
+      hist: { tol: 0.1 },
+      mean: { tol: 0.1 },
+      std: { tol: 0.1 }
+    },
+    models: {
+      simpleSoft: true,
+      deterministic: true,
+      store2: {
+        hist: { exact: true },
+        args: { verbose: false, checkGradients: false }
+      },
+      withCaching: true,
+      gaussianMean: true,
+      guidedFlip: true,
+      guidedGaussian: true,
+      dirichlet: {
+        args: {
+          samples: 5000,
+          steps: 1000,
+          optMethod: 'gd',
+          estimator: { ELBO: { samples: 1 } },
+          verbose: false
+        }
+      }
     }
   }
 ];
@@ -555,7 +624,7 @@ var testFunctions = {
     var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
-    test.ok(eq(actual, expected, args.tol), msg);
+    test.ok(eq(actual, expected, args.tol, args.exactSupport), msg);
   },
   mean: function(test, result, expected, args) {
     helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');

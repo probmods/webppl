@@ -9,6 +9,7 @@ var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
 var dists = require('./src/dists');
+var errors = require('./src/errors');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
@@ -21,12 +22,9 @@ function printWebPPLValue(x) {
   }
 };
 
-function topK(s,x) {
-  console.log('\n* Program return value:\n');
+function topK(s, x) {
   printWebPPLValue(x);
 };
-
-var cliRunner = util.trampolineRunners.cli;
 
 function run(code, packages, verbose, programFile) {
   packages.forEach(function(pkg) {
@@ -34,11 +32,15 @@ function run(code, packages, verbose, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  webppl.run(code, topK, {
-    bundles: webppl.parsePackageCode(packages, verbose),
-    filename: programFile,
-    verbose: verbose
-  });
+  try {
+    webppl.run(code, topK, {
+      bundles: webppl.parsePackageCode(packages, verbose),
+      filename: programFile,
+      verbose: verbose
+    });
+  } catch (e) {
+    errors.showFriendlyError(e);
+  }
 }
 
 var lines = function(ar) {
@@ -60,10 +62,10 @@ function compile(code, packages, verbose, programFile, outputFile) {
     verbose: verbose
   };
 
-  var compiledBody = webppl.compile(code, compileOptions);
+  var compiledBody = webppl.compile(code, compileOptions).code;
 
   compiledCode += lines([
-    'var __runner__ = ' + cliRunner.toString() + ';',
+    'var __runner__ = util.trampolineRunners.cli();',
     printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
@@ -104,7 +106,6 @@ function main() {
 
   // Load webppl code
   var programFile = argv._[0];
-  console.log('Processing', programFile);
 
   var code = fs.readFileSync(programFile, 'utf8');
   var processCode = argv.compile ? compile : run;

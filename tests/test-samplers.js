@@ -11,7 +11,7 @@ var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
 var helpers = require('./helpers');
-var statistics = require('../src/statistics');
+var statistics = require('../src/math/statistics');
 
 var repeat = function(n, f) {
   // used typedarray because node can run out of memory easily with lots of big arrays
@@ -43,7 +43,8 @@ var sampleStatisticFunctions = {
 }
 
 var distMetadataList = [
-  require('./test-data/sampler/gamma')
+  require('./test-data/sampler/gamma'),
+  require('./test-data/sampler/binomial')
 ];
 
 var generateSettingTest = function(seed, distMetadata, settings) {
@@ -72,11 +73,16 @@ var generateSettingTest = function(seed, distMetadata, settings) {
     // use for loop because some nodes don't define map()
     // for Float64Array
     var allInSupport = true;
+    var outsideSupport = [];
     for (var i = 0, ii = samples.length; i < ii; i++) {
-      allInSupport = allInSupport && distMetadata.inSupport(params, samples[i]);
+      var inSupport = distMetadata.inSupport(params, samples[i]);
+      allInSupport = allInSupport && inSupport;
+      if (!inSupport) {
+        outsideSupport.push(samples[i])
+      }
     }
 
-    test.ok(allInSupport);
+    test.ok(allInSupport, 'support test failed ' + outsideSupport.slice(0, 10).join(', '));
 
     // then check each populationStatisticFunction
     _.each(populationStatisticFunctions, function(statFn, statName) {
@@ -122,7 +128,12 @@ var generateSettingTest = function(seed, distMetadata, settings) {
       autoTolerance = autoToleranceMultiple[statName] * sqrt(samplingDistVariance);
 
 
-      var sampleStatisticFunction = sampleStatisticFunctions[statName];
+      var sampleStatisticFunction;
+      if (statName == 'mode') {
+        sampleStatisticFunction = (distMetadata.type == 'integer') ? statistics.mode : statistics.kdeMode
+      } else {
+        sampleStatisticFunction = sampleStatisticFunctions[statName];
+      }
       var actualResult = sampleStatisticFunction(samples);
 
       var tolerance;

@@ -131,7 +131,7 @@ function isPrimitive(node) {
           (!node.computed) && types.Identifier.check(node.property));
     default:
       console.log(node);
-      throw "isPrimitive doesn't handle node";
+      throw new Error("isPrimitive doesn't handle node");
   }
 }
 

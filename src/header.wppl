@@ -4,12 +4,15 @@
 
 defineDistConstructors(
     Bernoulli
+    MultivariateBernoulli
     Uniform
     UniformDrift
     RandomInteger
     Gaussian
     GaussianDrift
     MultivariateGaussian
+    DiagCovGaussian
+    TensorGaussian
     Cauchy
     Discrete
     Gamma
@@ -20,78 +23,79 @@ defineDistConstructors(
     Poisson
     Dirichlet
     DirichletDrift
+    LogisticNormal
     Categorical
     Delta);
 
 // Helpers to sample from distributions.
 
 var bernoulli = function(arg) {
-  var params = dists.isParams(arg) ? arg : {p: arg};
+  var params = util.isObject(arg) ? arg : {p: arg};
   return sample(Bernoulli(params));
 };
 
 var randomInteger = function(arg) {
-  var params = dists.isParams(arg) ? arg : {n: arg};
+  var params = util.isObject(arg) ? arg : {n: arg};
   return sample(RandomInteger(params));
 };
 
 var discrete = function(arg) {
-  var params = dists.isParams(arg) ? arg : {ps: arg};
+  var params = util.isObject(arg) ? arg : {ps: arg};
   return sample(Discrete(params));
 };
 
 var multinomial = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, n: arg2};
+  var params = util.isObject(arg1) ? arg1 : {ps: arg1, n: arg2};
   return sample(Multinomial(params));
 };
 
 var gaussian = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
   return sample(Gaussian(params));
 };
 
 var multivariateGaussian = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {mu: arg1, cov: arg2};
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, cov: arg2};
   return sample(MultivariateGaussian(params));
 };
 
 var cauchy = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {location: arg1, scale: arg2};
+  var params = util.isObject(arg1) ? arg1 : {location: arg1, scale: arg2};
   return sample(Cauchy(params));
 };
 
 var uniform = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
   return sample(Uniform(params));
 };
 
 var dirichlet = function(arg) {
-  var params = dists.isParams(arg) ? arg : {alpha: arg};
+  var params = util.isObject(arg) ? arg : {alpha: arg};
   return sample(Dirichlet(params));
 };
 
 var poisson = function(arg) {
-  var params = dists.isParams(arg) ? arg : {mu: arg};
+  var params = util.isObject(arg) ? arg : {mu: arg};
   return sample(Poisson(params));
 };
 
 var binomial = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {p: arg1, n: arg2};
+  var params = util.isObject(arg1) ? arg1 : {p: arg1, n: arg2};
   return sample(Binomial(params));
 };
 
 var beta = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {a: arg1, b: arg2};
+  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
   return sample(Beta(params));
 };
 
 var exponential = function(arg) {
-  var params = dists.isParams(arg) ? arg : {a: arg};
+  var params = util.isObject(arg) ? arg : {a: arg};
   return sample(Exponential(params));
 };
 
 var gamma = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {shape: arg1, scale: arg2};
+  var params = util.isObject(arg1) ? arg1 : {shape: arg1, scale: arg2};
   return sample(Gamma(params));
 };
 
@@ -103,17 +107,17 @@ var flip = function(p) {
 };
 
 var categorical = function(arg1, arg2) {
-  var params = dists.isParams(arg1) ? arg1 : {ps: arg1, vs: arg2};
+  var params = util.isObject(arg1) ? arg1 : {ps: arg1, vs: arg2};
   return params.vs[discrete(params.ps)];
 };
 
 var delta = function(arg) {
-  var params = dists.isParams(arg) ? arg : {v: arg};
+  var params = util.isObject(arg) ? arg : {v: arg};
   return sample(Delta(params));
 };
 
 var uniformDraw = function(arg) {
-  var vs = dists.isParams(arg) ? arg.vs : arg;
+  var vs = util.isObject(arg) ? arg.vs : arg;
   return vs[sample(RandomInteger({n: vs.length}))];
 };
 
@@ -123,10 +127,6 @@ var serializeDist = function(d) {
 
 var deserializeDist = function(JSONString) {
   return dists.deserialize(JSONString);
-};
-
-var withImportanceDist = function(d, importanceDist) {
-  return dists.withImportanceDist(d, importanceDist);
 };
 
 // XRPs
@@ -163,47 +163,6 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
-// Arithmetic and other functionals
-
-var plus = function(a, b) {
-  return a + b;
-};
-var minus = function(a, b) {
-  return a - b;
-};
-var mult = function(a, b) {
-  return a * b;
-};
-var div = function(a, b) {
-  return a / b;
-};
-
-var and = function(a, b) {
-  return a && b
-}
-var or = function(a, b) {
-  return a || b
-}
-
-var eq = function(a, b) {
-  return a === b;
-};
-var neq = function(a, b) {
-  return a != b;
-};
-var lt = function(a, b) {
-  return a < b;
-};
-var gt = function(a, b) {
-  return a > b;
-};
-var leq = function(a, b) {
-  return a <= b;
-};
-var geq = function(a, b) {
-  return a >= b;
-};
-
 var isEven = function(v) {
   return v % 2 === 0;
 };
@@ -235,11 +194,9 @@ var MAP = function(dist) {
 var expectation = function(dist, func) {
   var f = func || idF;
   var supp = dist.support();
-  return mapReduce1(plus,
-                    function(s) {
-                      return Math.exp(dist.score(s)) * f(s);
-                    },
-                    supp);
+  return reduce(function(s, acc) {
+    return acc + Math.exp(dist.score(s)) * f(s);
+  }, 0, supp);
 };
 
 var entropy = function(dist) {
@@ -317,63 +274,6 @@ var mapIndexed = function(fn, l) {
   return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
 }
 
-var _ringAround = function(l, n) {
-  return l.slice(n).concat(l.slice(0, n));
-};
-
-var ringForward = function(l, n) {
-  return _ringAround(l, n === undefined ? -1 : -n);
-};
-
-var ringBackward = function(l, n) {
-  return _ringAround(l, n === undefined ? 1 : n);
-};
-
-// map through the cartesian product l1 * l2
-var mapPairs2 = function(f, l1, l2) {
-  var res = map(function(a) {
-    return map(function(b) {
-      return f(a, b);
-    }, l2)
-  }, l1);
-  return [].concat.apply([], res); // flatten
-};
-
-// map through all 2-combinations of elements in l
-// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
-// ['a','c'], and ['b','c']
-var mapPairsC = function(f, l) {
-  var n = l.length;
-
-  var helper = function(i) {
-    if (i === n) {
-      return [];
-    } else {
-      // compute {f(i,j)} where j \in {i+1,...,n}
-      var r = mapN(
-          function(k) {
-            var j = i + k + 1;
-            return f(l[i], l[j])
-          },
-          n - (i + 1));
-
-      return append(r, helper(i + 1))
-    }
-  }
-
-  return helper(0);
-};
-
-// map through all 2-tuples of elements in l
-// e.g., mapPairsC(f, ['a','b','c']) will operate on ['a','b'],
-// ['a','c'], ['b','a'], ['b','c'], ['c','a'], ['c','b']
-var mapPairsNC = function(f, l) {
-  var res = mapPairs2(function(a, b) {
-    return a === b ? undefined : f(a, b);
-  }, l, l);
-  return remove(undefined, res);
-};
-
 var mapObject = function(fn, obj) {
   return _.object(
       map(
@@ -397,37 +297,22 @@ var reduce = function(fn, init, ar) {
   return helper(0);
 };
 
-// sugar for reduce(f, g(init), map(g,ar))
-var mapReduce = function(f, init, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(init),
-                ar);
-};
-
-// sugar for reduce(f, g(last(ar)), map(g, butLast(ar)))
-var mapReduce1 = function(f, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(ar[ar.length - 1]),
-                ar.slice(0, -1));
-};
-
 var sum = function(l) {
-  return reduce(plus, 0, l);
+  return reduce(function(a, b) { return a + b; }, 0, l);
 };
 var product = function(l) {
-  return reduce(mult, 1, l);
+  return reduce(function(a, b) { return a * b; }, 1, l);
 };
 
 var listMean = function(l) {
-  return reduce(plus, 0, l) / l.length;
+  return sum(l) / l.length;
 };
 var listVar = function(l, mu) {
   var mu = mu === undefined ? listMean(l) : mu;
-  return mapReduce1(plus, function(a) {
-    return (a - mu) * (a - mu);
-  }, l) / l.length;
+  return reduce(function(a, acc) {
+    return acc + (a - mu) * (a - mu);
+  }, 0, l) / l.length;
+
 };
 var listStdev = function(l, mu) {
   return Math.sqrt(listVar(l, mu));
@@ -441,19 +326,15 @@ var normalize = function(xs) {
 };
 
 var all = function(p, l) {
-  if (l.length === 0) {
-    return true
-  } else {
-    return mapReduce1(and, p, l);
-  }
+  return reduce(function(x, acc) {
+    return acc && p(x);
+  }, true, l);
 };
 
 var any = function(p, l) {
-  if (l.length === 0) {
-    return false
-  } else {
-    return mapReduce1(or, p, l);
-  }
+  return reduce(function(x, acc) {
+    return acc || p(x);
+  }, false, l);
 };
 
 var zip = function(xs, ys) {
@@ -498,54 +379,6 @@ var remove = function(a, ar) {
   }, ar);
 };
 
-var insertAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i));
-}
-
-var removeAt = function(ar, i) {
-  return ar.slice(0, i).concat(ar.slice(i + 1));
-}
-
-var replaceAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i + 1));
-}
-
-var drop = function(n, ar) {
-  return n > ar.length ? [] : ar.slice(n);
-};
-
-var take = function(n, ar) {
-  return n >= ar.length ? ar : ar.slice(0, n);
-};
-
-var dropWhile = function(p, ar) {
-  var n = ar.length;
-  var helper = function(i) {
-    if (i === n) {
-      return n;
-    }
-    return p(ar[i]) ? helper(i + 1) : i;
-  }
-  return ar.slice(helper(0));
-};
-
-var takeWhile = function(p, ar) {
-  var n = ar.length;
-  var helper = function(i) {
-    if (i === n) {
-      return n;
-    }
-    return p(ar[i]) ? helper(i + 1) : i;
-  }
-
-  return ar.slice(0, helper(0));
-};
-
-var indexOf = function(x, xs) {
-  // prototype method doesn't return falsy value if not found
-  var i = xs.indexOf(x);
-  return i < 0 ? undefined : i
-};
 
 var minWith = function(f, ar) {
   var fn = function(_ar, _best) {
@@ -614,11 +447,6 @@ var repeat = function(n, fn) {
   return helper(n);
 }
 
-
-var push = function(xs, x) {
-  return xs.concat([x]);
-};
-
 var compose = function(f, g) {
   return function(x) {
     return f(g(x));
@@ -648,6 +476,14 @@ var _sort = function(l, pred, key) {
                  key));
 };
 
+var lt = function(a, b) {
+  return a < b;
+};
+
+var gt = function(a, b) {
+  return a > b;
+};
+
 var sort = function(l, pred, key) {
   return _sort(l, (pred || lt), (key || idF));
 };
@@ -672,6 +508,16 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
 };
 
+var SampleGuide = function(wpplFn, options) {
+  return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
+};
+
+var OptimizeThenSample = function(wpplFn, options) {
+  var params = Optimize(wpplFn, _.omit(options, 'samples'));
+  var opts = _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose'));
+  return SampleGuide(wpplFn, opts);
+};
+
 var Infer = function(options, wpplFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
@@ -690,7 +536,9 @@ var Infer = function(options, wpplFn) {
     asyncPF: AsyncPF,
     rejection: Rejection,
     enumerate: Enumerate,
-    incrementalMH: IncrementalMH
+    incrementalMH: IncrementalMH,
+    forward: ForwardSample,
+    optimize: OptimizeThenSample
   };
 
   var methodName = options.method;
@@ -702,4 +550,13 @@ var Infer = function(options, wpplFn) {
   }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));
+};
+
+// Convenience function to create scalar valued parameters.
+var scalarParam = function(mean, sd) {
+  return ad.tensorEntry(tensorParam([1], mean, sd), 0);
+};
+
+var param = function(a1, a2, a3) {
+  return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
 };

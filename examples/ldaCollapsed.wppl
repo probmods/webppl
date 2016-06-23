@@ -35,7 +35,7 @@ var makeDirichletDiscrete = function(pseudocounts) {
 };
 
 var dirichletDiscreteFactor = function(vs, dd, v) { // NEW
-  var i = indexOf(v, vs);
+  var i = vs.indexOf(v);
   var observe = dd.observe;
   observe(i);
 }

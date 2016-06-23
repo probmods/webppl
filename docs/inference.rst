@@ -1,3 +1,5 @@
+.. _inference:
+
 Inference
 =========
 
@@ -16,6 +18,8 @@ option. For example::
   Infer({method: 'enumerate'}, thunk)
 
 The following algorithms are available:
+
+.. _enumerate:
 
 Enumeration
 -----------
@@ -302,6 +306,39 @@ SMC
    Example usage::
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
+
+   By default SMC uses the prior as the importance distribution. Other
+   distributions can be used by specifying :ref:`guide distributions
+   <guides>`. This can be useful when you know something about the
+   posterior distribution as specifying an importance distribution
+   that is closer to the posterior than the prior will improve the
+   statistical efficiency of inference.
+
+Optimization
+------------
+
+.. js:function:: Infer({method: 'optimize'[, ...]}, thunk)
+
+   This method performs inference by :ref:`optimizing <optimization>`
+   the parameters of the guide program. The marginal distribution is a
+   histogram constructed from samples drawn from the guide program
+   using the optimized parameters.
+
+   The following options are supported:
+
+      .. describe:: samples
+
+         The number of samples used to construct the marginal
+         distribution.
+
+         Default: ``1``
+
+   In addition, all of the options supported by :ref:`Optimize
+   <optimize>` are also supported here.
+
+   Example usage::
+
+     Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
 
 .. rubric:: Bibliography
 

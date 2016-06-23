@@ -44,7 +44,7 @@ module.exports = function(env) {
     }
 
     if (!isKernelOption(obj)) {
-      throw 'Unrecognized kernel option: ' + JSON.stringify(obj);
+      throw new Error('Unrecognized kernel option: ' + JSON.stringify(obj));
     }
 
     var name = _.isString(obj) ? obj : _.keys(obj)[0];

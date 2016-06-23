@@ -69,7 +69,7 @@ var read = function(name_or_path, paths, verbose) {
       }
     } else {
       log(allCandidates);
-      throw 'Could not find WebPPL package: ' + name_or_path;
+      throw new Error('Could not find WebPPL package: ' + name_or_path);
     }
   };
 
@@ -85,7 +85,7 @@ var load = function(pkg) {
     headers: pkg.headers,
     wppl: pkg.wppl.map(function(path) {
       return {
-        code: fs.readFileSync(path.full),
+        code: fs.readFileSync(path.full, 'utf8'),
         filename: path.full
       };
     }),
