@@ -1,2 +1,0 @@
-/* don't use bold on inline code within js:function blocks */
-.rst-content dl:not(.docutils) code { font-weight: normal; }
