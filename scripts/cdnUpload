@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+// this needs to run from the webppl root (not the scripts directory)
+// this also assumes that AWS credentials are available from environment or live in ~/.aws/credentials
+
+'use strict';
+
+var fs = require('fs');
+var AWS = require('aws-sdk');
+
+// TODO: browserify
+
+var version = require('../src/pkginfo').version(),
+    fileName = 'webppl-' + version + '.js';
+
+AWS.config.update({region: 'us-west-2'});
+
+var params = {Bucket: 'cdn.webppl.org',
+              Key: fileName,
+              Body: fs.createReadStream('bundle/webppl.js'),
+              Metadata: { 'Content-Type': 'application/javascript' }
+             };
+
+var s3 = new AWS.S3()
+s3.upload(params)
+  .on('httpUploadProgress', function(evt) {
+    console.log('Uploading: ')
+    console.log(evt);
+    console.log('\n');
+  })
+  .send(function(err, data) {
+    if (err) {
+      console.log('Error uploading')
+      console.log(err);
+    } else {
+      console.log('Success');
+      console.log(data);
+    }
+  });
