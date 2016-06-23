@@ -28,6 +28,7 @@ function makeTemplates(obj) {
 }
 
 var header = [
+  '.. _distributions:\n',
   'Distributions',
   '=============\n'
 ].join('\n');
