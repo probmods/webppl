@@ -256,7 +256,7 @@ var tests = [
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianDrift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
-      uniformDrift: { mean: { tol: 0.4 }, std: { tol: 0.4 }, args: { particles: 1000, rejuvSteps: 15 } },
+      uniformDrift: { mean: { tol: 0.5 }, std: { tol: 0.4 }, args: { particles: 1000, rejuvSteps: 15 } },
       varFactors1: true,
       varFactors2: true,
       importance: true,
@@ -289,7 +289,7 @@ var tests = [
         std: { tol: 0.3 }
       },
       uniformDrift: {
-        mean: { tol: 0.4 },
+        mean: { tol: 0.5 },
         std: { tol: 0.4 }
       },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -350,7 +350,7 @@ var tests = [
         args: { samples: 80000, burn: 20000 }
       },
       uniformDrift: {
-        mean: { tol: 0.4 },
+        mean: { tol: 0.5 },
         std: { tol: 0.4 },
         args: { samples: 200000, burn: 1 }
       },
