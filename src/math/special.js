@@ -20,6 +20,7 @@ function logGamma(xx) {
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
+// https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
 function digamma(x) {
   if (x < 6) {
     return digamma(x + 1) - 1 / x;
