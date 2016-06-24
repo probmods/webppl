@@ -869,18 +869,6 @@ function betaSample(a, b) {
 }
 
 
-function binomialG(x) {
-  'use ad';
-  if (x === 0) {
-    return 1;
-  }
-  if (x === 1) {
-    return 0;
-  }
-  var d = 1 - x;
-  return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
-}
-
 // see lemma 6.1 from Ahrens & Dieter's
 // Computer Methods for Sampling from Gamma, Beta, Poisson and Binomial Distributions
 function binomialSample(p, n) {

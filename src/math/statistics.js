@@ -16,38 +16,6 @@ function expectation(a, func) {
   }, 0) / a.length;
 }
 
-// HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
-var digamma = function(x) {
-  if (x < 6)
-    return digamma(x + 1) - 1 / x;
-
-  return ln(x) -
-      1 / (2 * x) -
-      1 / (12 * pow(x, 2)) +
-      1 / (120 * pow(x, 4)) -
-      1 / (252 * pow(x, 6)) +
-      1 / (240 * pow(x, 8)) -
-      5 / (660 * pow(x, 10)) +
-      691 / (32760 * pow(x, 12)) -
-      1 / (12 * pow(x, 14));
-}
-
-// HT http://ms.mcmaster.ca/peter/s743/trigamma.html
-// (cites formulas from abramowitz & stegun, which you can get at:
-// http://people.math.sfu.ca/~cbm/aands/)
-var trigamma = function(x) {
-  if (x < 30) {
-    return trigamma(x + 1) + 1 / (x * x);
-  }
-
-  return 1 / x +
-      1 / (2 * pow(x, 2)) +
-      1 / (6 * pow(x, 3)) -
-      1 / (30 * pow(x, 5)) +
-      1 / (42 * pow(x, 7)) -
-      1 / (30 * pow(x, 9))
-}
-
 function mean(a) {
   return expectation(a)
 }
@@ -136,8 +104,6 @@ function kdeMode(samps) {
 }
 
 module.exports = {
-  digamma: digamma,
-  trigamma: trigamma,
   mean: mean,
   variance: variance,
   sd: sd,
