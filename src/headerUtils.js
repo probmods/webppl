@@ -112,6 +112,69 @@ module.exports = function(env) {
     return k(s, params[0]);
   };
 
+  // Returns the part of the stack address which has been added since
+  // entering the inner-most mapData. Outside of any mapData the
+  // address relative to the inner-most coroutine is returned.
+  function getObsFnAddress(s, k, a) {
+    var rel = util.relativizeAddress(env, a);
+    return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
+  }
+
+  var mapDataIndices = {};
+
+  // This is been developed as part of daipp. It's probably still
+  // buggy.
+  function mapData(s, k, a, data, obsFn, options) {
+
+    options = util.mergeDefaults(options, {batchSize: data.length});
+
+    if (options.batchSize <= 0 || options.batchSize > data.length) {
+      throw 'Invalid batchSize in mapData.';
+    }
+
+    var rel = util.relativizeAddress(env, a);
+
+    // Query the coroutine to determine the subset of the data to map
+    // over. The indices of the data used on the previous invocation
+    // are passed, allowing the same mini-batch to be used across
+    // steps/inference algorithms.
+    var ix = env.coroutine.mapDataFetch ?
+        env.coroutine.mapDataFetch(mapDataIndices[rel], data, options, rel) :
+        // The empty array stands for all indices, in order. i.e.
+        // `_.range(data.length)`
+        [];
+
+    assert.ok(_.isArray(ix));
+    assert.ok(ix.length >= 0);
+
+    mapDataIndices[rel] = ix;
+
+    var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
+
+    return wpplCpsMapWithAddresses(s, function(s, v) {
+      if (env.coroutine.mapDataFinal) {
+        env.coroutine.mapDataFinal();
+      }
+      return k(s, v);
+    }, a, batch, ix, obsFn);
+  }
+
+  function wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc, i) {
+    i = (i === undefined) ? 0 : i;
+    acc = (acc === undefined) ? [] : acc;
+    if (i === arr.length) {
+      return k(s, acc);
+    } else {
+      // An empty `add` stands for `_.range(arr.length)`.
+      var ix = _.isEmpty(add) ? i : add[i];
+      return f(s, function(s, v) {
+        return function() {
+          return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
+        };
+      }, a.concat('_$$' + ix), arr[i]); // getObsFnAddress relies on the magic string _$$
+    }
+  }
+
   return {
     display: display,
     cache: cache,
@@ -121,7 +184,9 @@ module.exports = function(env) {
     Matrix: Matrix,
     zeros: zeros,
     ones: ones,
-    tensorParam: tensorParam
+    tensorParam: tensorParam,
+    getObsFnAddress: getObsFnAddress,
+    mapData: mapData
   };
 
 };
