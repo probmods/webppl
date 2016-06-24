@@ -34,6 +34,7 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "aws-sdk": "^2.4.1",
     "brfs": "0.0.8",
     "closure-linter-wrapper": "^1.0.1",
     "grunt": "^0.4.5",
