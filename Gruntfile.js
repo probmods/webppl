@@ -131,8 +131,9 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('test-phantomjs', 'Run browser tests in phantomjs.', function() {
+    var timeout = 10; // seconds
     try {
-      var cmd = 'phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html';
+      var cmd = 'phantomjs node_modules/qunit-phantomjs-runner/runner-list.js tests/browser/index.html ' + timeout;
       var output = child_process.execSync(cmd);
       grunt.log.writeln(output);
     } catch (e) {
