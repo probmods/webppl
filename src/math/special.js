@@ -20,6 +20,7 @@ function logGamma(xx) {
   return -tmp + Math.log(2.5066282746310005 * ser);
 }
 
+// HT https://en.wikipedia.org/wiki/Digamma_function#Computation_and_approximation
 function digamma(x) {
   if (x < 6) {
     return digamma(x + 1) - 1 / x;
@@ -35,7 +36,23 @@ function digamma(x) {
       1 / (12 * Math.pow(x, 14));
 }
 
+// HT http://ms.mcmaster.ca/peter/s743/trigamma.html
+// (cites formulas from abramowitz & stegun, which you can get at:
+// http://people.math.sfu.ca/~cbm/aands/)
+function trigamma(x) {
+  if (x < 30) {
+    return trigamma(x + 1) + 1 / (x * x);
+  }
+  return 1 / x +
+      1 / (2 * Math.pow(x, 2)) +
+      1 / (6 * Math.pow(x, 3)) -
+      1 / (30 * Math.pow(x, 5)) +
+      1 / (42 * Math.pow(x, 7)) -
+      1 / (30 * Math.pow(x, 9));
+}
+
 module.exports = {
   logGamma: logGamma,
-  digamma: digamma
+  digamma: digamma,
+  trigamma: trigamma
 };
