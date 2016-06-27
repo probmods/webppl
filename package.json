@@ -49,7 +49,7 @@
     "through2": "^2.0.0"
   },
   "scripts": {
-    "test": "nodeunit tests/test-*.js",
+    "test": "nodeunit tests",
     "postinstall": "node scripts/adify"
   },
   "bugs": {

@@ -3,8 +3,8 @@
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var webppl = require('../src/main');
-var util = require('../src/util');
+var webppl = require('../../src/main');
+var util = require('../../src/util');
 var serialize = util.serialize;
 
 _.templateSettings = {
