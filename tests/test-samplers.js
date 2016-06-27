@@ -10,7 +10,7 @@ var seedrandom = require('seedrandom');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var helpers = require('./helpers');
+var helpers = require('./helpers/helpers');
 var statistics = require('../src/math/statistics');
 
 var repeat = function(n, f) {
