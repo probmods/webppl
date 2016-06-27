@@ -1,3 +1,1 @@
 NOTE: `helpers/helpers.js` cannot be moved to the top-level tests directory. For Windows compatibility, we alias `npm test` to `nodeunit tests`, which runs all the .js files in the top-level directory; helpers.js is not a valid nodeunit file, so this would cause tests to fail.
-
-TODO: document testing infrastructure more
