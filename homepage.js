@@ -55930,7 +55930,7 @@ module.exports = validateDOMNesting;
 module.exports = require('./lib/React');
 
 },{"./lib/React":103}],216:[function(require,module,exports){
-;/*! showdown 17-05-2016 */
+;/*! showdown 21-06-2016 */
 (function(){
 /**
  * Created by Tivie on 13-07-2015.
@@ -56003,6 +56003,11 @@ function getDefaultOpts(simple) {
     smoothLivePreview: {
       default: false,
       describe: 'Prevents weird effects in live previews due to incomplete input',
+      type: 'boolean'
+    },
+    smartIndentationFix: {
+      default: false,
+      description: 'Tries to smartly fix identation in es6 strings',
       type: 'boolean'
     }
   };
@@ -56808,6 +56813,12 @@ showdown.Converter = function (converterOptions) {
     listeners[name].push(callback);
   }
 
+  function rTrimInputText(text) {
+    var rsp = text.match(/^\s*/)[0].length,
+        rgx = new RegExp('^\\s{0,' + rsp + '}', 'gm');
+    return text.replace(rgx, '');
+  }
+
   /**
    * Dispatch an event
    * @private
@@ -56880,6 +56891,10 @@ showdown.Converter = function (converterOptions) {
     // Standardize line endings
     text = text.replace(/\r\n/g, '\n'); // DOS to Unix
     text = text.replace(/\r/g, '\n'); // Mac to Unix
+
+    if (options.smartIndentationFix) {
+      text = rTrimInputText(text);
+    }
 
     // Make sure text begins and ends with a couple of newlines:
     text = '\n\n' + text + '\n\n';
@@ -57356,6 +57371,10 @@ showdown.subParser('codeSpans', function (text, options, globals) {
    (?!`)
    /gm, function(){...});
    */
+
+  if (typeof(text) === 'undefined') {
+    text = '';
+  }
   text = text.replace(/(^|[^\\])(`+)([^\r]*?[^`])\2(?!`)/gm,
     function (wholeMatch, m1, m2, m3) {
       var c = m3;
@@ -57807,7 +57826,7 @@ showdown.subParser('images', function (text, options, globals) {
   text = globals.converter._dispatch('images.before', text, options, globals);
 
   var inlineRegExp    = /!\[(.*?)]\s?\([ \t]*()<?(\S+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*(?:(['"])(.*?)\6[ \t]*)?\)/g,
-      referenceRegExp = /!\[(.*?)][ ]?(?:\n[ ]*)?\[(.*?)]()()()()()/g;
+      referenceRegExp = /!\[([^\]]*?)] ?(?:\n *)?\[(.*?)]()()()()()/g;
 
   function writeImageTag (wholeMatch, altText, linkId, url, width, height, m5, title) {
 
@@ -77589,7 +77608,7 @@ module.exports = {
 
 },{}],342:[function(require,module,exports){
 module.exports = {
-  version: '2.5.2',
+  version: '2.6.0',
   dataflow: require('vega-dataflow'),
   parse: require('./src/parse/'),
   scene: {
@@ -78371,7 +78390,7 @@ config.scene = {
 
 // default axis properties
 config.axis = {
-  orient: 'bottom',
+  layer: 'back',
   ticks: 10,
   padding: 3,
   axisColor: '#000',
@@ -78390,7 +78409,7 @@ config.axis = {
   titleFontWeight: 'bold',
   titleOffset: 'auto',
   titleOffsetAutoMin: 30,
-  titleOffsetAutoMax: Infinity,
+  titleOffsetAutoMax: 10000,
   titleOffsetAutoMargin: 4
 };
 
@@ -78495,7 +78514,8 @@ module.exports = function(opt) {
 };
 },{"../parse":352,"../scene/Scale":368,"./config":346,"datalib":36}],348:[function(require,module,exports){
 var dl = require('datalib'),
-    axs = require('../scene/axis');
+    axs = require('../scene/axis'),
+    themeVal = require('../util/theme-val');
 
 var ORIENT = {
   "x":      "bottom",
@@ -78507,32 +78527,38 @@ var ORIENT = {
 };
 
 function parseAxes(model, spec, axes, group) {
-  var config = model.config();
+  var cfg = config(model);
   (spec || []).forEach(function(def, index) {
-    axes[index] = axes[index] || axs(model);
-    parseAxis(config, def, index, axes[index], group);
+    axes[index] = axes[index] || axs(model, cfg[def.type]);
+    parseAxis(cfg[def.type], def, index, axes[index], group);
   });
 }
 
 function parseAxis(config, def, index, axis, group) {
   // axis scale
+  var scale;
   if (def.scale !== undefined) {
-    axis.scale(group.scale(def.scale));
+    axis.scale(scale = group.scale(def.scale));
+  }
+
+  // grid by scaletype
+  var grid = config.grid;
+  if (dl.isObject(grid)) {
+    config.grid = grid[scale.type] !== undefined ? grid[scale.type] : grid.default;
   }
 
   // axis orientation
-  axis.orient(def.orient || ORIENT[def.type]);
+  axis.orient(themeVal(def, config, 'orient', ORIENT[def.type]));
   // axis offset
-  axis.offset(def.offset || 0);
+  axis.offset(themeVal(def, config, 'offset', 0));
   // axis layer
-  axis.layer(def.layer || "front");
+  axis.layer(themeVal(def, config, 'layer', 'front'));
   // axis grid lines
-  axis.grid(def.grid || false);
+  axis.grid(themeVal(def, config, 'grid', false));
   // axis title
   axis.title(def.title || null);
   // axis title offset
-  axis.titleOffset(def.titleOffset != null ?
-    def.titleOffset : config.axis.titleOffset);
+  axis.titleOffset(themeVal(def, config, 'titleOffset'));
   // axis values
   axis.tickValues(def.values || null);
   // axis label formatting
@@ -78540,26 +78566,23 @@ function parseAxis(config, def, index, axis, group) {
   axis.tickFormatType(def.formatType || null);
   // axis tick subdivision
   axis.tickSubdivide(def.subdivide || 0);
-  // axis tick padding
-  axis.tickPadding(def.tickPadding || config.axis.padding);
+  // axis tick padding (config.padding for backwards compatibility).
+  axis.tickPadding(themeVal(def, config, 'tickPadding', config.padding));
 
   // axis tick size(s)
-  var size = [];
-  if (def.tickSize !== undefined) {
-    for (var i=0; i<3; ++i) size.push(def.tickSize);
-  } else {
-    var ts = config.axis.tickSize;
-    size = [ts, ts, ts];
-  }
-  if (def.tickSizeMajor != null) size[0] = def.tickSizeMajor;
-  if (def.tickSizeMinor != null) size[1] = def.tickSizeMinor;
-  if (def.tickSizeEnd   != null) size[2] = def.tickSizeEnd;
+  var ts = themeVal(def, config, 'tickSize'),
+      size = [ts, ts, ts];
+
+  size[0] = themeVal(def, config, 'tickSizeMajor', size[0]);
+  size[1] = themeVal(def, config, 'tickSizeMinor', size[1]);
+  size[2] = themeVal(def, config, 'tickSizeEnd', size[2]);
+
   if (size.length) {
     axis.tickSize.apply(axis, size);
   }
 
   // axis tick count
-  axis.tickCount(def.ticks || config.axis.ticks);
+  axis.tickCount(themeVal(def, config, 'ticks'));
 
   // style properties
   var p = def.properties;
@@ -78578,8 +78601,18 @@ function parseAxis(config, def, index, axis, group) {
   axis.domainProperties(p && p.axis || {});
 }
 
+function config(model) {
+  var cfg  = model.config(),
+      axis = cfg.axis;
+
+  return {
+    x: dl.extend(dl.duplicate(axis), cfg.axis_x),
+    y: dl.extend(dl.duplicate(axis), cfg.axis_y)
+  };
+}
+
 module.exports = parseAxes;
-},{"../scene/axis":370,"datalib":36}],349:[function(require,module,exports){
+},{"../scene/axis":370,"../util/theme-val":404,"datalib":36}],349:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null);
 
@@ -78665,7 +78698,7 @@ module.exports = parseData;
 var dl = require('datalib'),
     template = dl.template,
     expr = require('vega-expression'),
-    args = ['datum', 'event', 'signals'];
+    args = ['datum', 'parent', 'event', 'signals'];
 
 var compile = expr.compiler(args, {
   idWhiteList: args,
@@ -78817,10 +78850,11 @@ function parseLegends(model, spec, legends, group) {
 
 function parseLegend(def, index, legend, group) {
   // legend scales
-  legend.size  (def.size   ? group.scale(def.size)   : null);
-  legend.shape (def.shape  ? group.scale(def.shape)  : null);
-  legend.fill  (def.fill   ? group.scale(def.fill)   : null);
-  legend.stroke(def.stroke ? group.scale(def.stroke) : null);
+  legend.size   (def.size    ? group.scale(def.size)    : null);
+  legend.shape  (def.shape   ? group.scale(def.shape)   : null);
+  legend.fill   (def.fill    ? group.scale(def.fill)    : null);
+  legend.stroke (def.stroke  ? group.scale(def.stroke)  : null);
+  legend.opacity(def.opacity ? group.scale(def.opacity) : null);
 
   // legend orientation
   if (def.orient) legend.orient(def.orient);
@@ -78852,9 +78886,31 @@ module.exports = parseLegends;
 var dl = require('datalib'),
     parseProperties = require('./properties');
 
-function parseMark(model, mark) {
-  var props = mark.properties,
-      group = mark.marks;
+function parseMark(model, mark, applyDefaults) {
+  var props = mark.properties || (applyDefaults && (mark.properties = {})),
+      enter = props.enter || (applyDefaults && (props.enter = {})),
+      group = mark.marks,
+      config = model.config().marks || {};
+
+  if (applyDefaults) {
+    // for scatter plots, set symbol size specified in config if not in spec
+    if (mark.type === 'symbol' && !enter.size && config.symbolSize) {
+        enter.size = {value: config.symbolSize};
+    }
+
+    // Themes define a default "color" that maps to fill/stroke based on mark type.
+    var colorMap = {
+      arc: 'fill', area: 'fill', rect: 'fill', symbol: 'fill', text: 'fill',
+      line: 'stroke', path: 'stroke', rule: 'stroke'
+    };
+
+    // Set default mark color if no color is given in spec, and only do so for
+    // user-defined marks (not axis/legend marks).
+    var colorProp = colorMap[mark.type];
+    if (!enter[colorProp] && config.color) {
+      enter[colorProp] = {value: config.color};
+    }
+  }
 
   // parse mark property definitions
   dl.keys(props).forEach(function(k) {
@@ -78868,7 +78924,7 @@ function parseMark(model, mark) {
 
   // recurse if group type
   if (group) {
-    mark.marks = group.map(function(g) { return parseMark(model, g); });
+    mark.marks = group.map(function(g) { return parseMark(model, g, true); });
   }
 
   return mark;
@@ -78888,7 +78944,7 @@ function parseRootMark(model, spec, width, height) {
     scales:     spec.scales  || [],
     axes:       spec.axes    || [],
     legends:    spec.legends || [],
-    marks:      (spec.marks || []).map(function(m) { return parseMark(model, m); })
+    marks:      (spec.marks || []).map(function(m) { return parseMark(model, m, true); })
   };
 }
 
@@ -79317,6 +79373,8 @@ function properties(model, mark, spec) {
     deps._nRefs[k] = r;
   }
 
+  parseShape(model, config, spec);
+
   for (i=0, len=names.length; i<len; ++i) {
     ref = spec[name = names[i]];
     code += (i > 0) ? "\n  " : "  ";
@@ -79447,6 +79505,28 @@ function hasPath(mark, vars) {
        vars.tension || vars.interpolate));
 }
 
+var hb = /{{(.*?)}}/g;
+function parseShape(model, config, spec) {
+  var shape = spec.shape,
+      last = 0,
+      value, match;
+
+  if (shape && (value = shape.value)) {
+    if (config.shape && config.shape[value]) {
+      value = config.shape[value];
+    }
+
+    // Parse handlebars
+    shape = '';
+    while ((match = hb.exec(value)) !== null) {
+      shape += value.substring(last, match.index);
+      shape += model.expr(match[1]).fn();
+      last = hb.lastIndex;
+    }
+    spec.shape.value = shape + value.substring(last);
+  }
+}
+
 function rule(model, name, rules, exprs) {
   var config  = model.config(),
       deps = dependencies(),
@@ -79463,7 +79543,7 @@ function rule(model, name, rules, exprs) {
       deps.signals.push.apply(deps.signals, exprFn.globals);
       deps.data.push.apply(deps.data, exprFn.dataSources);
 
-      code += "if (exprs[" + exprs.length + "](item.datum, null)) {" +
+      code += "if (exprs[" + exprs.length + "](item.datum, item.mark.group.datum, null)) {" +
           "\n    d += set(o, "+dl.str(name)+", " +ref.val+");";
       code += rules[i+1] ? "\n  } else " : "  }";
 
@@ -79730,6 +79810,7 @@ module.exports = parseSignals;
 },{"./expr":351,"datalib":36,"vega-dataflow":240}],361:[function(require,module,exports){
 var dl  = require('datalib'),
     log = require('vega-logging'),
+    themeVal = require('../util/theme-val'),
     Model = require('../core/Model'),
     View  = require('../core/View');
 
@@ -79746,20 +79827,23 @@ var dl  = require('datalib'),
       argidx = 2,
       cb = arguments[arglen-1],
       model = new Model(),
-      viewFactory = View.factory;
+      viewFactory = View.factory,
+      config;
 
   if (arglen > argidx && dl.isFunction(arguments[arglen - argidx])) {
     viewFactory = arguments[arglen - argidx];
     ++argidx;
   }
+
   if (arglen > argidx && dl.isObject(arguments[arglen - argidx])) {
     model.config(arguments[arglen - argidx]);
   }
 
+  config = model.config();
   if (dl.isObject(spec)) {
     parse(spec);
   } else if (dl.isString(spec)) {
-    var opts = dl.extend({url: spec}, model.config().load);
+    var opts = dl.extend({url: spec}, config.load);
     dl.json(opts, function(err, spec) {
       if (err) done('SPECIFICATION LOAD FAILED: ' + err);
       else parse(spec);
@@ -79774,9 +79858,10 @@ var dl  = require('datalib'),
       spec = dl.duplicate(spec);
 
       var parsers = require('./'),
-          width   = spec.width || 500,
-          height  = spec.height || 500,
-          padding = parsers.padding(spec.padding);
+          width   = themeVal(spec, config, 'width', 500),
+          height  = themeVal(spec, config, 'height', 500),
+          padding = parsers.padding(themeVal(spec, config, 'padding')),
+          background = themeVal(spec, config, 'background');
 
       // create signals for width, height, padding, and cursor
       model.signal('width', width);
@@ -79790,7 +79875,7 @@ var dl  = require('datalib'),
         height:     height,
         padding:    padding,
         viewport:   spec.viewport || null,
-        background: parsers.background(spec.background),
+        background: parsers.background(background),
         signals:    parsers.signals(model, spec.signals),
         predicates: parsers.predicates(model, spec.predicates),
         marks:      parsers.marks(model, spec, width, height),
@@ -79832,7 +79917,7 @@ var dl  = require('datalib'),
 }
 
 module.exports = parseSpec;
-},{"../core/Model":344,"../core/View":345,"./":352,"datalib":36,"vega-logging":302}],362:[function(require,module,exports){
+},{"../core/Model":344,"../core/View":345,"../util/theme-val":404,"./":352,"datalib":36,"vega-logging":302}],362:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -79845,7 +79930,12 @@ var GATEKEEPER = '_vgGATEKEEPER',
 
 var vgEvent = {
   getItem: function() { return this.item; },
-  getGroup: function(name) { return name ? this.name[name] : this.group; },
+  getGroup: function(name) {
+    var group = name ? this.name[name] : this.group,
+        mark = group && group.mark,
+        interactive = mark && (mark.interactive || mark.interactive === undefined);
+    return interactive ? group : {};
+  },
   getXY: function(item) {
       var p = {x: this.x, y: this.y};
       if (typeof item === 'string') {
@@ -79888,7 +79978,7 @@ function parseStreams(view) {
     view.on(type, function(evt, item) {
       evt.preventDefault(); // stop text selection
       extendEvent(evt, item);
-      fire(internal, type, (item && item.datum) || {}, evt);
+      fire(internal, type, (item && item.datum) || {}, (item && item.mark && item.mark.group && item.mark.group.datum) || {}, evt);
     });
   });
 
@@ -79903,7 +79993,7 @@ function parseStreams(view) {
 
     function handler(evt) {
       extendEvent(evt);
-      fire(external, type, d3.select(this).datum(), evt);
+      fire(external, type, d3.select(this).datum(), this.parentNode && d3.select(this.parentNode).datum(), evt);
     }
 
     for (var i=0; i<elt.length; ++i) {
@@ -79956,7 +80046,7 @@ function parseStreams(view) {
     evt.vg.y = mouse[1] - pad.top;
   }
 
-  function fire(registry, type, datum, evt) {
+  function fire(registry, type, datum, parent, evt) {
     var handlers = registry.handlers[type],
         node = registry.nodes[type],
         cs = df.ChangeSet.create(null, true),
@@ -79964,7 +80054,7 @@ function parseStreams(view) {
         val, i, n, h;
 
     function invoke(f) {
-      return !f.fn(datum, evt);
+      return !f.fn(datum, parent, evt);
     }
 
     for (i=0, n=handlers.length; i<n; ++i) {
@@ -79972,7 +80062,7 @@ function parseStreams(view) {
       filtered = h.filters.some(invoke);
       if (filtered) continue;
 
-      val = h.exp.fn(datum, evt);
+      val = h.exp.fn(datum, parent, evt);
       if (h.spec.scale) {
         val = parseSignals.scale(model, h.spec, val, datum, evt);
       }
@@ -80704,11 +80794,13 @@ proto.init = function(graph, def) {
   this._recursor.evaluate = recurse.bind(this);
 
   var scales = (def.axes||[]).reduce(function(acc, x) {
-    return (acc[x.scale] = 1, acc);
+    acc[x.scale] = 1;
+    return acc;
   }, {});
 
   scales = (def.legends||[]).reduce(function(acc, x) {
-    return (acc[x.size || x.shape || x.fill || x.stroke], acc);
+    acc[x.size || x.shape || x.fill || x.stroke || x.opacity] = 1;
+    return acc;
   }, scales);
 
   this._recursor.dependency(Deps.SCALES, dl.keys(scales));
@@ -80733,8 +80825,21 @@ proto.evaluate = function() {
       return scales[s].reevaluate(output);
     });
 
+    if (!fullUpdate && this._def.axes) {
+      fullUpdate = this._def.axes.reduce(function(acc, a) {
+        return acc || output.scales[a.scale];
+      }, false);
+    }
+
+    if (!fullUpdate && this._def.legends) {
+      fullUpdate = this._def.legends.reduce(function(acc, l) {
+        return acc || output.scales[l.size || l.shape || l.fill || l.stroke];
+      }, false);
+    }
+
     if (fullUpdate) {
-      output.mod = output.mod.concat(Tuple.idFilter(items, output.mod));
+      output.mod = output.mod.concat(Tuple.idFilter(items,
+          output.mod, output.add, output.rem));
     }
   }
 
@@ -80824,7 +80929,7 @@ function recurse(input) {
   }
 
   function updateLegend(l) {
-    var scale = l.size() || l.shape() || l.fill() || l.stroke();
+    var scale = l.size() || l.shape() || l.fill() || l.stroke() || l.opacity();
     if (!input.scales[scale.scaleName]) return;
     l.reset().def();
   }
@@ -80933,7 +81038,7 @@ function buildLegends(input, group) {
 
   parseLegends(this._graph, this._def.legends, legends, group);
   legends.forEach(function(l, i) {
-    var scale = l.size() || l.shape() || l.fill() || l.stroke(),
+    var scale = l.size() || l.shape() || l.fill() || l.stroke() || l.opacity(),
         def = l.def(),
         b = null;
 
@@ -81062,9 +81167,9 @@ function ordinal(scale, rng, group) {
       prev = scale._prev,
       dataDrivenRange = false,
       pad = signal.call(this, def.padding) || 0,
-      outer = def.outerPadding == null ? pad : signal.call(this, def.outerPadding),
+      outer  = def.outerPadding == null ? pad : signal.call(this, def.outerPadding),
       points = def.points && signal.call(this, def.points),
-      round = signal.call(this, def.round) || def.round == null,
+      round  = signal.call(this, def.round) || def.round == null,
       domain, str, spatial=true;
 
   // range pre-processing for data-driven ranges
@@ -81572,9 +81677,8 @@ var dl = require('datalib'),
 var axisBounds = new (require('vega-scenegraph').Bounds)();
 var ORDINAL = 'ordinal';
 
-function axs(model) {
+function axs(model, config) {
   var scale,
-      config = model.config().axis,
       orient = config.orient,
       offset = 0,
       titleOffset = config.titleOffset,
@@ -81585,7 +81689,7 @@ function axs(model) {
       tickMajorSize = config.tickSize,
       tickMinorSize = config.tickSize,
       tickEndSize = config.tickSize,
-      tickPadding = config.padding,
+      tickPadding = config.tickPadding || config.padding,
       tickValues = null,
       tickFormatString = null,
       tickFormatType = null,
@@ -81695,11 +81799,14 @@ function axs(model) {
     dl.extend(m.title, axisTitle(config));
     m.gridLines.properties.enter.stroke = {value: config.gridColor};
     m.gridLines.properties.enter.strokeOpacity = {value: config.gridOpacity};
+    m.gridLines.properties.enter.strokeWidth = {value: config.gridWidth};
+    m.gridLines.properties.enter.strokeDash = {value: config.gridDash};
 
     // extend axis marks based on axis orientation
-    axisTicksExtend(orient, m.gridLines, oldScale, newScale, Infinity, offset);
-    axisTicksExtend(orient, m.majorTicks, oldScale, newScale, tickMajorSize);
-    axisTicksExtend(orient, m.minorTicks, oldScale, newScale, tickMinorSize);
+    axisTicksExtend(orient, m.gridLines, oldScale, newScale, Infinity, scale, config, offset);
+    axisTicksExtend(orient, m.majorTicks, oldScale, newScale, tickMajorSize, scale, config);
+    axisTicksExtend(orient, m.minorTicks, oldScale, newScale, tickMinorSize, scale, config);
+
     axisLabelExtend(orient, m.tickLabels, oldScale, newScale, tickMajorSize, tickPadding);
 
     axisDomainExtend(orient, m.domain, range, tickEndSize);
@@ -81964,7 +82071,7 @@ function axisLabelExtend(orient, labels, oldScale, newScale, size, pad) {
   }
 }
 
-function axisTicksExtend(orient, ticks, oldScale, newScale, size, offset) {
+function axisTicksExtend(orient, ticks, oldRef, newRef, size, scale, config, offset) {
   var sign = (orient === 'left' || orient === 'top') ? -1 : 1;
   if (size === Infinity) {
     size = (orient === 'top' || orient === 'bottom') ?
@@ -81973,33 +82080,43 @@ function axisTicksExtend(orient, ticks, oldScale, newScale, size, offset) {
   } else {
     size = {value: sign * size, offset: offset};
   }
+
+  // Update offset of tick placement to be in between ordinal marks
+  // instead of directly aligned with.
+  if (config.tickPlacement === 'between' && scale.type === ORDINAL) {
+    var rng = scale.range(),
+        tickOffset = 0.5 + (scale.rangeBand() || (rng[1] - rng[0]) / 2);
+    newRef = oldRef = dl.duplicate(newRef);
+    newRef.offset = oldRef.offset = tickOffset;
+  }
+
   if (orient === 'top' || orient === 'bottom') {
     dl.extend(ticks.properties.enter, {
-      x:  oldScale,
+      x:  oldRef,
       y:  {value: 0},
       y2: size
     });
     dl.extend(ticks.properties.update, {
-      x:  newScale,
+      x:  newRef,
       y:  {value: 0},
       y2: size
     });
     dl.extend(ticks.properties.exit, {
-      x:  newScale,
+      x:  newRef,
     });
   } else {
     dl.extend(ticks.properties.enter, {
       x:  {value: 0},
       x2: size,
-      y:  oldScale
+      y:  oldRef
     });
     dl.extend(ticks.properties.update, {
       x:  {value: 0},
       x2: size,
-      y:  newScale
+      y:  newRef
     });
     dl.extend(ticks.properties.exit, {
-      y:  newScale,
+      y:  newRef,
     });
   }
 }
@@ -82155,6 +82272,7 @@ function lgnd(model) {
       shape = null,
       fill  = null,
       stroke  = null,
+      opacity = null,
       spacing = null,
       values  = null,
       formatString = null,
@@ -82184,7 +82302,7 @@ function lgnd(model) {
   function ingest(d, i) { return {data: d, index: i}; }
 
   legend.def = function() {
-    var scale = size || shape || fill || stroke;
+    var scale = size || shape || fill || stroke || opacity;
 
     if (!legendDef.type) {
       legendDef = (scale===fill || scale===stroke) && !discrete(scale.type) ?
@@ -82203,7 +82321,7 @@ function lgnd(model) {
   }
 
   function ordinalDef(scale) {
-    var def = o_legend_def(size, shape, fill, stroke);
+    var def = o_legend_def(size, shape, fill, stroke, opacity);
 
     // generate data
     var data = (values == null ?
@@ -82261,14 +82379,14 @@ function lgnd(model) {
     return def;
   }
 
-  function o_legend_def(size, shape, fill, stroke) {
+  function o_legend_def(size, shape, fill, stroke, opacity) {
     // setup legend marks
     var titles  = dl.extend(m.titles, legendTitle(config)),
         symbols = dl.extend(m.symbols, legendSymbols(config)),
         labels  = dl.extend(m.labels, vLegendLabels(config));
 
     // extend legend marks
-    legendSymbolExtend(symbols, size, shape, fill, stroke);
+    legendSymbolExtend(symbols, size, shape, fill, stroke, opacity);
 
     // add / override custom style properties
     dl.extend(titles.properties.update,  titleStyle);
@@ -82289,7 +82407,7 @@ function lgnd(model) {
       properties: {
         enter: parseProperties(model, 'group', legendStyle),
         legendPosition: {
-          encode: legendPosition,
+          encode: legendPosition.bind(null, config),
           signals: [], scales:[], data: [], fields: []
         }
       }
@@ -82391,7 +82509,7 @@ function lgnd(model) {
       properties: {
         enter: parseProperties(model, 'group', legendStyle),
         legendPosition: {
-          encode: legendPosition,
+          encode: legendPosition.bind(null, config),
           signals: [], scales: [], data: [], fields: []
         }
       }
@@ -82422,6 +82540,12 @@ function lgnd(model) {
   legend.stroke = function(x) {
     if (!arguments.length) return stroke;
     if (stroke !== x) { stroke = x; reset(); }
+    return legend;
+  };
+
+  legend.opacity = function(x) {
+    if (!arguments.length) return opacity;
+    if (opacity !== x) { opacity = x; reset(); }
     return legend;
   };
 
@@ -82511,9 +82635,16 @@ function lgnd(model) {
   return legend;
 }
 
-var LEGEND_ORIENT = {left: 'x1', right: 'x2'};
+var LEGEND_ORIENT = {
+  'left': 'x1',
+  'right': 'x2',
+  'top-left': 'x1',
+  'top-right': 'x2',
+  'bottom-left': 'x1',
+  'bottom-right': 'x2'
+};
 
-function legendPosition(item, group, trans, db, signals, predicates) {
+function legendPosition(config, item, group, trans, db, signals, predicates) {
   var o = trans ? {} : item, i,
       def = item.mark.def,
       offset = def.offset,
@@ -82526,24 +82657,61 @@ function legendPosition(item, group, trans, db, signals, predicates) {
         (group._legendPositions = {right: 0.5, left: 0.5});
 
   o.x = 0.5;
+  o.y = 0.5;
   o.width = lw;
-  o.y = pos[orient];
-  pos[orient] += (o.height = lh) + def.margin;
+  o.height = lh;
 
-  // Calculate axis offset. 
-  var axes  = group.axes, 
-      items = group.axisItems,
-      bound = LEGEND_ORIENT[orient];
-  for (i=0; i<axes.length; ++i) {
-    if (axes[i].orient() === orient) {
-      ao = Math.max(ao, Math.abs(items[i].bounds[bound]));
+  if (orient === 'left' || orient === 'right') {
+    o.y = pos[orient];
+    pos[orient] += lh + def.margin;
+
+    // Calculate axis offset.
+    var axes  = group.axes,
+        items = group.axisItems,
+        bound = LEGEND_ORIENT[orient];
+    for (i=0; i<axes.length; ++i) {
+      if (axes[i].orient() === orient) {
+        ao = Math.max(ao, Math.abs(items[i].bounds[bound]));
+      }
     }
   }
 
-  if (orient === 'left') {
-    o.x -= ao + offset + lw;
-  } else {
-    o.x += ao + offset;
+  switch (orient) {
+    case 'left':
+      o.x -= ao + offset + lw;
+      break;
+    case 'right':
+      o.x += ao + offset;
+      break;
+    case 'top-left':
+      o.x += offset;
+      o.y += offset;
+      break;
+    case 'top-right':
+      o.x += group.width - lw - offset;
+      o.y += offset;
+      break;
+    case 'bottom-left':
+      o.x += offset;
+      o.y += group.height - lh - offset;
+      break;
+    case 'bottom-right':
+      o.x += group.width - lw - offset;
+      o.y += group.height - lh - offset;
+      break;
+  }
+
+  var baseline = config.baseline,
+      totalHeight = 0;
+  for (i=0; i<group.legendItems.length; i++) {
+    var currItem = group.legendItems[i];
+    totalHeight += currItem.bounds.height() + (item.height ? 0 : pad);
+  }
+
+  if (baseline === 'middle') {
+    o.y += offset + (group.height / 2) - (totalHeight / 2);
+  } else if (baseline === 'bottom') {
+    o.y += offset + group.height - totalHeight;
   }
 
   if (trans) trans.interpolate(item, o);
@@ -82552,13 +82720,14 @@ function legendPosition(item, group, trans, db, signals, predicates) {
   return true;
 }
 
-function legendSymbolExtend(mark, size, shape, fill, stroke) {
+function legendSymbolExtend(mark, size, shape, fill, stroke, opacity) {
   var e = mark.properties.enter,
       u = mark.properties.update;
-  if (size)   e.size   = u.size   = {scale: size.scaleName,   field: 'data'};
-  if (shape)  e.shape  = u.shape  = {scale: shape.scaleName,  field: 'data'};
-  if (fill)   e.fill   = u.fill   = {scale: fill.scaleName,   field: 'data'};
-  if (stroke) e.stroke = u.stroke = {scale: stroke.scaleName, field: 'data'};
+  if (size)    e.size    = u.size    = {scale: size.scaleName,   field: 'data'};
+  if (shape)   e.shape   = u.shape   = {scale: shape.scaleName,  field: 'data'};
+  if (fill)    e.fill    = u.fill    = {scale: fill.scaleName,   field: 'data'};
+  if (stroke)  e.stroke  = u.stroke  = {scale: stroke.scaleName, field: 'data'};
+  if (opacity) u.opacity = {scale: opacity.scaleName, field: 'data'};
 }
 
 function legendTitle(config) {
@@ -83859,10 +84028,12 @@ prototype.transform = function(input) {
   log.debug(input, ['formulating']);
 
   var field = this.param('field'),
-      expr = this.param('expr');
+      expr = this.param('expr'),
+      updated = false;
 
   function set(x) {
     Tuple.set(x, field, expr(x));
+    updated = true;
   }
 
   input.add.forEach(set);
@@ -83871,7 +84042,7 @@ prototype.transform = function(input) {
     input.mod.forEach(set);
   }
 
-  input.fields[field] = 1;
+  if (updated) input.fields[field] = 1;
   return input;
 };
 
@@ -84523,7 +84694,7 @@ prototype.set = function(value) {
       return v.field;
     } else if (v.signal !== undefined) {
       p._resolution = true;
-      p._transform.dependency(Deps.SIGNALS, v.signal);
+      p._transform.dependency(Deps.SIGNALS, dl.field(v.signal)[0]);
       p._signals.push({
         index: i,
         value: function(graph) { return graph.signalRef(v.signal); }
@@ -85044,7 +85215,7 @@ prototype.batchTransform = function(input, data) {
 
   // build and assign path strings
   for (var i=0; i<data.length; ++i) {
-    Tuple.set(data[i], pathname, 'M' + polygons[i].join('L') + 'Z');
+    if (polygons[i]) Tuple.set(data[i], pathname, 'M' + polygons[i].join('L') + 'Z');
   }
 
   // return changeset
@@ -85272,6 +85443,17 @@ var dl = require('datalib'),
 dl.extend(u, require('./format'));
 module.exports = dl.extend(u, dl);
 },{"./format":402,"datalib":36}],404:[function(require,module,exports){
+module.exports = function(def, config, property, defaultVal) {
+  if (def[property] !== undefined) {
+    return def[property];
+  } else if (config !== undefined && config[property] !== undefined) {
+    return config[property];
+  } else if (defaultVal !== undefined) {
+    return defaultVal;
+  }
+  return undefined;
+};
+},{}],405:[function(require,module,exports){
 module.exports = function (CodeMirror) {
   'use strict';
 
@@ -85430,7 +85612,7 @@ module.exports = function (CodeMirror) {
   };
 };
 
-},{}],405:[function(require,module,exports){
+},{}],406:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -86041,7 +86223,158 @@ if (typeof window !== 'undefined') {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./folding":404,"codemirror":9,"codemirror/addon/comment/comment":6,"codemirror/addon/edit/closebrackets":7,"codemirror/addon/edit/matchbrackets":8,"codemirror/mode/javascript/javascript":10,"jquery":68,"react":215,"react-codemirror":76,"react-dom":77,"source-map":227,"stack-trace":228,"underscore":230}],406:[function(require,module,exports){
+},{"./folding":405,"codemirror":9,"codemirror/addon/comment/comment":6,"codemirror/addon/edit/closebrackets":7,"codemirror/addon/edit/matchbrackets":8,"codemirror/mode/javascript/javascript":10,"jquery":68,"react":215,"react-codemirror":76,"react-dom":77,"source-map":227,"stack-trace":228,"underscore":230}],407:[function(require,module,exports){
+var $ = require('jquery'),
+    _ = require('underscore');
+var vg = require('vega'),
+    vl = require('vega-lite');
+
+var kde = require('./stats').kde;
+
+function renderArray(specs /*: array */, _options) {
+  var options = _.defaults(_options || {}, { regularVega: false });
+  var nSpecsRemaining = specs.length;
+
+  var resultContainer = wpEditor.makeResultContainer();
+
+  // div that holds selected item
+  var $zoomDiv = $("<div>").addClass("zoomDiv");
+
+  _.each(specs, function (spec) {
+
+    var vgSpec = options.regularVega ? spec : vl.compile(spec).spec;
+    var thumbnailContainer = $('<div>').addClass('thumbnail');
+
+    $(resultContainer).append(thumbnailContainer);
+
+    vg.parse.spec(vgSpec, function (error, chart) {
+      // TODO: current thumbnail sizing is hacky, figure out more idiomatic way
+      var view = chart({ el: thumbnailContainer[0], renderer: 'svg' }).update();
+
+      var $svg = $(view._el).find("svg");
+
+      var origHeight = $svg.attr("height");
+      var origWidth = $svg.attr("width");
+      var origTransform = $svg.children().attr("transform");
+
+      $svg.attr({ height: origHeight * 0.2,
+        width: origWidth * 0.2 });
+
+      $svg.children().attr("transform", "scale(0.2) " + origTransform);
+
+      $svg.click(function () {
+        //console.log('todo')
+
+        var $zoomSvg = $(this).clone().attr({ height: origHeight,
+          width: origWidth });
+
+        debugger;
+        $zoomSvg.children().attr("transform", origTransform);
+
+        $zoomDiv.empty().append($zoomSvg);
+      });
+    });
+  });
+
+  $(resultContainer).append($("<div>").addClass("clearboth")).append($zoomDiv);
+}
+
+// HT http://codereview.stackexchange.com/a/59621
+function perms(data) {
+  data = data.slice(); // make a copy
+  var permutations = [],
+      stack = [];
+
+  function doPerm() {
+    if (data.length == 0) {
+      permutations.push(stack.slice());
+    }
+    for (var i = 0; i < data.length; i++) {
+      var x = data.splice(i, 1);
+      stack.push(x);
+      doPerm();
+      stack.pop();
+      data.splice(i, 0, x);
+    }
+  }
+
+  doPerm();
+  return permutations;
+}
+
+// TODO: move to different file
+var cccr = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
+  var typesExpanded = _.map(types, function (v, k) {
+    return { name: k,
+      type: v };
+  });
+
+  var cDimNames = _(typesExpanded).chain().where({ type: 'categorical' }).pluck('name').value();
+  var rDimNames = _(typesExpanded).chain().where({ type: 'real' }).pluck('name').value();
+
+  var rDimName = rDimNames[0];
+
+  // mapping choices: {c0, c1} -> {facet, color}
+  // TODO: write cccr (use facet_row as well)
+
+  // issue with writing a forward model here: this library is javascript
+  // but we want to call webppl (i guess i precompile the inference and stick it in here)
+
+  var data = _.zip(support, scores).map(function (x) {
+    return _.extend({ prob: Math.exp(x[1]) }, x[0]);
+  });
+
+  var categoricalPermutations = perms(cDimNames);
+
+  var specs = _.map(categoricalPermutations, function (perm) {
+
+    var dataGroupedByC = _.groupBy(data, function (obs) {
+      return JSON.stringify(_.pick(obs, cDimNames));
+    });
+
+    // for each group, get the density estimate and weight each bin within that estimate
+    // by the total group probability
+    var densityEstimates = _.mapObject(dataGroupedByC, function (states, k) {
+
+      var groupWeight = util.sum(_.pluck(states, 'prob'));
+
+      var rValues = _.pluck(states, rDimName);
+      var estimates = kde(rValues);
+      _.each(estimates, function (est) {
+        est.density *= groupWeight;
+      });
+      return estimates;
+    });
+
+    var densityEstimatesTidied = _.chain(densityEstimates).map(function (vs, k) {
+      var kParsed = JSON.parse(k);_.each(vs, function (v) {
+        _.extend(v, kParsed);
+      });
+      return vs;
+    }).flatten(1).value();
+
+    return {
+      "data": { "values": densityEstimatesTidied },
+      "mark": "line",
+      encoding: {
+        column: { type: 'nominal', field: perm[0] },
+        row: { type: 'nominal', field: perm[1] },
+        color: { "type": "nominal", "field": perm[2], axis: { title: perm[2] } },
+        x: { "type": "quantitative", "field": "item", axis: { title: rDimName } },
+        y: { "type": "quantitative", "field": "density" }
+      }
+    };
+  });
+
+  renderArray(specs, {});
+};
+
+module.exports = cccr;
+
+},{"./stats":410,"jquery":68,"underscore":230,"vega":342,"vega-lite":301}],408:[function(require,module,exports){
 (function (global){
 var _ = require('underscore');
 var d3 = require('d3');
@@ -86201,7 +86534,10 @@ function stringifyIfObject(x) {
 
 var kindPrinter = {};
 
-kindPrinter.c = function (types, support, scores) {
+kindPrinter.c = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var fieldNames = _.keys(support[0]);
   var fieldName = fieldNames[0];
 
@@ -86210,10 +86546,13 @@ kindPrinter.c = function (types, support, scores) {
     return Math.exp(score);
   });
 
-  barDispatch(values, probs, { xLabel: fieldName, yLabel: 'frequency' });
+  barWrapper(values, probs, _.extend({ xLabel: fieldName, yLabel: 'frequency' }, options));
 };
 
-kindPrinter.r = function (types, support, scores) {
+kindPrinter.r = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var fieldNames = _.keys(support[0]);
   var fieldName = fieldNames[0];
 
@@ -86236,10 +86575,13 @@ kindPrinter.r = function (types, support, scores) {
     }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 };
 
-kindPrinter.cc = function (types, support, scores) {
+kindPrinter.cc = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var fieldNames = _.keys(support[0]);
   var field1Name = fieldNames[0];
   var field2Name = fieldNames[1];
@@ -86262,10 +86604,13 @@ kindPrinter.cc = function (types, support, scores) {
     config: { mark: { applyColorToBackground: true }, numberFormat: ".1e" }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 };
 
-kindPrinter.cr = function (types, support, scores) {
+kindPrinter.cr = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var typesExpanded = _.map(types, function (v, k) {
     return { name: k,
       type: v };
@@ -86319,10 +86664,13 @@ kindPrinter.cr = function (types, support, scores) {
     }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 };
 
-kindPrinter.rr = function (types, support, scores) {
+kindPrinter.rr = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var fieldNames = _.keys(support[0]);
   var field1Name = fieldNames[0];
   var field2Name = fieldNames[1];
@@ -86346,12 +86694,16 @@ kindPrinter.rr = function (types, support, scores) {
     config: { numberFormat: ".1e" }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 };
 
 // TODO: find the field with the smallest number of values and use that for rows
 // TODO: rewrite once vega-lite can support small multiples of heatmaps (https://github.com/vega/vega-lite/issues/699)
-kindPrinter.ccc = function (types, support, scores) {
+// TODO: can't write this to a file yet because we create a bunch of separate graphs rather than a single one
+kindPrinter.ccc = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var fieldNames = _.keys(support[0]);
   var field1Name = fieldNames[0];
   var field2Name = fieldNames[1];
@@ -86386,7 +86738,10 @@ kindPrinter.ccc = function (types, support, scores) {
   // todo
 };
 
-kindPrinter.ccr = function (types, support, scores) {
+kindPrinter.ccr = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var typesExpanded = _.map(types, function (v, k) {
     return { name: k,
       type: v };
@@ -86394,13 +86749,6 @@ kindPrinter.ccr = function (types, support, scores) {
 
   var cDimNames = _(typesExpanded).chain().where({ type: 'categorical' }).pluck('name').value();
   var rDimNames = _(typesExpanded).chain().where({ type: 'real' }).pluck('name').value();
-
-  // mapping choices: {c0, c1} -> {facet, color}
-  // TODO: write cccr (use facet_row as well)
-
-  // issue with writing a forward model here: this library is javascript
-  // but we want to call webppl (i guess i precompile the inference and stick it in here)
-
   var facetDimName = cDimNames[0];
   var cDimName = cDimNames[1];
   var rDimName = rDimNames[0];
@@ -86439,7 +86787,7 @@ kindPrinter.ccr = function (types, support, scores) {
     return densityBins;
   }).flatten(1).value();
 
-  var vlSpec1 = {
+  var vlSpec = {
     "data": { "values": densityEstimatesTidied },
     "mark": "line",
     encoding: {
@@ -86450,111 +86798,13 @@ kindPrinter.ccr = function (types, support, scores) {
     }
   };
 
-  var vlSpec2 = {
-    "data": { "values": densityEstimatesTidied },
-    "mark": "line",
-    encoding: {
-      x: { "type": "quantitative", "field": "item", axis: { title: rDimName } },
-      y: { "type": "quantitative", "field": "density" },
-      color: { "type": "nominal", "field": facetDimName, axis: { title: facetDimName } },
-      column: { type: 'nominal', field: cDimName }
-    }
-  };
-
-  renderSpec(vlSpec1);
-  //renderArray([vlSpec1, vlSpec2])
+  renderSpec(vlSpec, options);
 };
 
-// HT http://codereview.stackexchange.com/a/59621
-function perms(data) {
-  data = data.slice(); // make a copy
-  var permutations = [],
-      stack = [];
-
-  function doPerm() {
-    if (data.length == 0) {
-      permutations.push(stack.slice());
-    }
-    for (var i = 0; i < data.length; i++) {
-      var x = data.splice(i, 1);
-      stack.push(x);
-      doPerm();
-      stack.pop();
-      data.splice(i, 0, x);
-    }
-  }
-
-  doPerm();
-  return permutations;
-}
-
-kindPrinter.cccr = function (types, support, scores) {
-  var typesExpanded = _.map(types, function (v, k) {
-    return { name: k,
-      type: v };
-  });
-
-  var cDimNames = _(typesExpanded).chain().where({ type: 'categorical' }).pluck('name').value();
-  var rDimNames = _(typesExpanded).chain().where({ type: 'real' }).pluck('name').value();
-
-  var rDimName = rDimNames[0];
-
-  // mapping choices: {c0, c1} -> {facet, color}
-  // TODO: write cccr (use facet_row as well)
-
-  // issue with writing a forward model here: this library is javascript
-  // but we want to call webppl (i guess i precompile the inference and stick it in here)
-
-  var data = _.zip(support, scores).map(function (x) {
-    return _.extend({ prob: Math.exp(x[1]) }, x[0]);
-  });
-
-  var categoricalPermutations = perms(cDimNames);
-
-  var specs = _.map(categoricalPermutations, function (perm) {
-
-    var dataGroupedByC = _.groupBy(data, function (obs) {
-      return JSON.stringify(_.pick(obs, cDimNames));
-    });
-
-    // for each group, get the density estimate and weight each bin within that estimate
-    // by the total group probability
-    var densityEstimates = _.mapObject(dataGroupedByC, function (states, k) {
-
-      var groupWeight = util.sum(_.pluck(states, 'prob'));
-
-      var rValues = _.pluck(states, rDimName);
-      var estimates = kde(rValues);
-      _.each(estimates, function (est) {
-        est.density *= groupWeight;
-      });
-      return estimates;
-    });
-
-    var densityEstimatesTidied = _.chain(densityEstimates).map(function (vs, k) {
-      var kParsed = JSON.parse(k);_.each(vs, function (v) {
-        _.extend(v, kParsed);
-      });
-      return vs;
-    }).flatten(1).value();
-
-    return {
-      "data": { "values": densityEstimatesTidied },
-      "mark": "line",
-      encoding: {
-        column: { type: 'nominal', field: perm[0] },
-        row: { type: 'nominal', field: perm[1] },
-        color: { "type": "nominal", "field": perm[2], axis: { title: perm[2] } },
-        x: { "type": "quantitative", "field": "item", axis: { title: rDimName } },
-        y: { "type": "quantitative", "field": "density" }
-      }
-    };
-  });
-
-  renderArray(specs);
-};
-
-kindPrinter.crr = function (types, support, scores) {
+kindPrinter.crr = function (args, options) {
+  var scores = args.scores,
+      types = args.types,
+      support = args.support;
   var typesExpanded = _.map(types, function (v, k) {
     return { name: k,
       type: v };
@@ -86583,11 +86833,17 @@ kindPrinter.crr = function (types, support, scores) {
     config: { numberFormat: ".1e" }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 };
 
+kindPrinter.cccr = require('./cccr');
+
 // TODO: also expose as viz.parcoords
-function parallelCoordinates(types, support, scores) {
+function parallelCoordinates(args, options) {
+  var types = args.types,
+      support = args.support,
+      scores = args.scores;
+
   var fieldNames = _.keys(support[0]);
 
   var data = _.zip(support, scores).map(function (x) {
@@ -86681,11 +86937,11 @@ function parallelCoordinates(types, support, scores) {
       }
     }]
   };
-  renderSpec(vegaSpec, "regularVega");
+  renderSpec(vegaSpec, _.extend({ regularVega: true }, options));
 }
 
 // automatically render an ERP
-function auto(obj) {
+function auto(obj, options) {
   var getColumnType = function (columnValues) {
     // for now, support real, integer, and categorical
     // some questions:
@@ -86709,10 +86965,12 @@ function auto(obj) {
   if (!isErp(obj)) {
     // TODO: write wpEditor.warn method, use it to inform user that auto only works on ERPs
     // (though maybe this isn't necessary since we are using __print__ decorator in wp-editor?)
-    return null;
+    // maybe warn and fall back to print
+    throw new Error('viz.auto() doesn\'t know how to render ' + obj.toString());
   }
 
   var support = obj.support();
+  // TODO: use switch statement here
   var supportStructure = isVector(support) ? 'vector' : isPseudoDataFrame(support) ? 'pseudodataframe' : isDataFrame(support) ? 'dataframe' : 'other';
 
   // fall back to table when support is not nicely structured
@@ -86758,15 +87016,19 @@ function auto(obj) {
 
   // HACK: use parallel coords for rn where n >= 3
   if (dfKind.indexOf('c') == -1 && dfKind.length >= 3) {
-    parallelCoordinates(columnTypesDict, supportStringified, scores);
+    parallelCoordinates({ types: columnTypesDict,
+      support: supportStringified,
+      scores: scores }, options);
   } else if (_.has(kindPrinter, dfKind)) {
     // NB: passes in supportStringified, not support
-    kindPrinter[dfKind](columnTypesDict, supportStringified, scores);
+    kindPrinter[dfKind]({ types: columnTypesDict,
+      support: supportStringified,
+      scores: scores }, options);
   } else {
     // TODO: switch to warning rather than error
     // (and maybe use wpEditor.put to store the data)
     console.log(dfKind);
-    throw new Error('viz.print() doesn\'t know how to render objects of kind ' + dfKind);
+    throw new Error('viz.auto() doesn\'t know how to render objects of kind ' + dfKind);
   }
 }
 
@@ -86797,7 +87059,7 @@ var GraphComponent = React.createClass({
     var vegaName = md5(vegaStringified).substring(0, 6) + ".vega.json";
 
     var graphUrl = this.state.view == 0 ? null : this.state.view.toImageURL('svg');
-    var graphName = graphUrl == null ? null : md5(graphUrl || "").substring(0, 6) + '.svg';
+    var graphName = graphUrl == null ? null : this.props.fileName || md5(graphUrl || "").substring(0, 6) + '.svg';
 
     // NB: download doesn't work perfectly in safari (it just spawns the picture in a new tab)
     // but that's how it works for the vega online editor too, so leave it here for now
@@ -86824,11 +87086,15 @@ var GraphComponent = React.createClass({
 });
 
 // parse a vega-lite or regular vega description and render it
-function renderSpec(spec, regularVega) {
+function renderSpec(spec, _options) {
+  var options = _.defaults(_options || {}, { regularVega: false,
+    fileName: false
+  });
+
   // OPTIMIZE: don't mutate spec (but probably don't just want to clone either, since
   // data can be large)
 
-  var vgSpec = regularVega ? spec : vl.compile(spec).spec;
+  var vgSpec = options.regularVega ? spec : vl.compile(spec).spec;
 
   var formatterKeys = [',r',
   //',g',
@@ -86931,7 +87197,7 @@ function renderSpec(spec, regularVega) {
     if (wpEditor && wpEditor.makeResultContainer) {
       resultContainer = wpEditor.makeResultContainer();
 
-      var r = React.createElement(GraphComponent, { spec: vgSpec });
+      var r = React.createElement(GraphComponent, _.extend({ spec: vgSpec }, _.pick(options, 'fileName')));
 
       // different possible architectures:
       // - render before making React component, call update(), and pass result as prop
@@ -86956,70 +87222,25 @@ function renderSpec(spec, regularVega) {
       // TODO: if running in browser but editor isn't present, append graphic to body
     }
   } else {
-      vg.parse.spec(vgSpec, function (error, chart) {
-        var view = chart({ renderer: 'svg' }).update();
-        var svgText = view.svg();
-        var hash = md5(svgText).substring(0, 7);
+    vg.parse.spec(vgSpec, function (error, chart) {
+      var view = chart({ renderer: 'svg' }).update();
+      var svgText = view.svg();
+      var fileName = options.fileName || md5(svgText).substring(0, 7) + '.svg';
 
-        require('fs').writeFileSync(hash + '.svg', svgText);
-        console.log("Rendered to " + hash + ".svg");
-      });
-    }
+      require('fs').writeFileSync(fileName, svgText);
+      console.log("Rendered to " + fileName);
+    });
+  }
 }
 
 // parse an array of vega-lite or regular vega descriptions and render them
-function renderArray(specs /*: array */, regularVega) {
-  var nSpecsRemaining = specs.length;
-
-  var resultContainer = wpEditor.makeResultContainer();
-
-  // div that holds selected item
-  var $zoomDiv = $("<div>").addClass("zoomDiv");
-
-  _.each(specs, function (spec) {
-
-    var vgSpec = regularVega ? spec : vl.compile(spec).spec;
-    var thumbnailContainer = $('<div>').addClass('thumbnail');
-
-    $(resultContainer).append(thumbnailContainer);
-
-    vg.parse.spec(vgSpec, function (error, chart) {
-      // TODO: current thumbnail sizing is hacky, figure out more idiomatic way
-      var view = chart({ el: thumbnailContainer[0], renderer: 'svg' }).update();
-
-      var $svg = $(view._el).find("svg");
-
-      var origHeight = $svg.attr("height");
-      var origWidth = $svg.attr("width");
-      var origTransform = $svg.children().attr("transform");
-
-      $svg.attr({ height: origHeight * 0.2,
-        width: origWidth * 0.2 });
-
-      $svg.children().attr("transform", "scale(0.2) " + origTransform);
-
-      $svg.click(function () {
-        //console.log('todo')
-
-        var $zoomSvg = $(this).clone().attr({ height: origHeight,
-          width: origWidth });
-
-        debugger;
-        $zoomSvg.children().attr("transform", origTransform);
-
-        $zoomDiv.empty().append($zoomSvg);
-      });
-    });
-  });
-
-  $(resultContainer).append($("<div>").addClass("clearboth")).append($zoomDiv);
-}
 
 // TODO: groupBy defaults to the third key in df
 // TODO: clean up options stuff
-function barDfs(df, options) {
+function bar(df, options) {
   options = _.defaults(options || {}, { groupBy: false,
-    xType: 'nominal'
+    xType: 'nominal',
+    fileName: false
   });
 
   var xName = _.keys(df[0])[0];
@@ -87061,14 +87282,14 @@ function barDfs(df, options) {
     vlSpec.config = { "facet": { "cell": { "strokeWidth": 0 } } };
   }
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 }
 
-function barDispatch() {
+function barWrapper() {
   var args = _.toArray(arguments);
 
   if (isDataFrame(arguments[0])) {
-    barDfs.apply(null, args);
+    bar.apply(null, args);
   } else {
     var xs = args[0];
     var ys = args[1];
@@ -87078,7 +87299,7 @@ function barDispatch() {
       df.push({ x: xs[i], y: ys[i] });
     }
 
-    barDfs.apply(null, [df].concat(args.slice(2)));
+    bar.apply(null, [df].concat(args.slice(2)));
   }
 }
 
@@ -87132,17 +87353,17 @@ function hist(obj, options) {
       return ((bin.upper + bin.lower) / 2).toExponential(2);
     });
 
-    barDispatch(binLabels, binProbs, { xLabel: 'Bin mean', yLabel: 'Probability', xType: 'quantitative' });
+    barWrapper(binLabels, binProbs, { xLabel: 'Bin mean', yLabel: 'Probability', xType: 'quantitative' });
 
     return;
   }
 
   var supportStringified = support.map(stringifyIfObject);
 
-  barDispatch(supportStringified, probs, { xLabel: 'Value', yLabel: 'Probability' });
+  barWrapper(supportStringified, probs, _.extend({ xLabel: 'Value', yLabel: 'Probability' }, options));
 };
 
-function scatterDfs(df, options) {
+function scatter(df, options) {
 
   options = _.defaults(options || {}, { groupBy: false
   });
@@ -87166,14 +87387,14 @@ function scatterDfs(df, options) {
     };
   }
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 }
 
-function scatterDispatch() {
+function scatterWrapper() {
   var args = _.toArray(arguments);
 
   if (isDataFrame(arguments[0])) {
-    scatterDfs.apply(null, args);
+    scatter.apply(null, args);
   } else {
     var xs = args[0];
     var ys = args[1];
@@ -87183,7 +87404,7 @@ function scatterDispatch() {
       df.push({ x: xs[i], y: ys[i] });
     }
 
-    scatterDfs.apply(null, [df].concat(args.slice(2)));
+    scatter.apply(null, [df].concat(args.slice(2)));
   }
 }
 
@@ -87258,7 +87479,7 @@ function heatMap(samples) {
     "config": { "numberFormat": ".1e" }
   };
 
-  renderSpec(spec, 'regularVega');
+  renderSpec(spec, { regularVega: true });
 }
 
 // TODO: should you be able to pass this an erp too?
@@ -87299,11 +87520,11 @@ function density(x, options) {
     "config": { "mark": { "interpolate": "monotone" } }
   };
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 }
 
 // TODO: show points too
-function lineDfs(df, options) {
+function line(df, options) {
   options = _.defaults(options || {}, { groupBy: false });
 
   var xName = _.keys(df[0])[0];
@@ -87327,13 +87548,13 @@ function lineDfs(df, options) {
     };
   }
 
-  renderSpec(vlSpec);
+  renderSpec(vlSpec, options);
 }
 
-function lineDispatch() {
+function lineWrapper() {
   var args = _.toArray(arguments);
   if (isDataFrame(arguments[0])) {
-    return lineDfs.apply(null, arguments);
+    line.apply(null, arguments);
   } else {
     var xs = args[0];
     var ys = args[1];
@@ -87343,7 +87564,7 @@ function lineDispatch() {
       df.push({ x: xs[i], y: ys[i] });
     }
 
-    return lineDfs(df);
+    line.apply(null, [df].concat(args.slice(2)));
   }
 }
 
@@ -87397,16 +87618,46 @@ function table(obj, options) {
   resultContainer.innerHTML = tableString;
 }
 
+// TODO: display in a wrapped row
+// TODO: optimize
+function marginals(erp, options) {
+  var fullSupport = erp.support(),
+      fullScores = getScores(erp),
+      fullTable = _.map(fullScores, function (score, i) {
+    return _.extend({ __score__: score }, fullSupport[i]);
+  }),
+      fields = _.keys(fullSupport[0]);
+
+  _.each(fields, function (field) {
+    var support = _.unique(_.pluck(fullSupport, field)); // extract field of interest
+
+    var fauxErp = {
+      support: function () {
+        return support;
+      },
+      score: function (fieldValue) {
+        var rows = _.where(fullTable, _.object([field], [fieldValue]));
+        var scores = _.pluck(rows, '__score__');
+        return util.logsumexp(scores);
+      }
+    };
+
+    print(field + ":");
+    viz.auto(fauxErp, options);
+  });
+}
+
 var viz = {
   d3auto: require('./old').print,
   auto: auto,
-  bar: barDispatch,
+  bar: barWrapper,
   hist: hist,
-  scatter: scatterDispatch,
+  scatter: scatterWrapper,
   density: density,
-  line: lineDispatch,
+  line: lineWrapper,
   table: table,
-  heatMap: heatMap
+  heatMap: heatMap,
+  marginals: marginals
 };
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -87418,7 +87669,7 @@ if (typeof window === 'object') {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./old":407,"./stats":408,"d3":16,"fs":3,"jquery":68,"md5":73,"react":215,"react-dom":77,"underscore":230,"vega":342,"vega-lite":301}],407:[function(require,module,exports){
+},{"./cccr":407,"./old":409,"./stats":410,"d3":16,"fs":3,"jquery":68,"md5":73,"react":215,"react-dom":77,"underscore":230,"vega":342,"vega-lite":301}],409:[function(require,module,exports){
 var fs = require('fs');
 
 var numPlots = 0;
@@ -87918,7 +88169,7 @@ function plotMarginals(labels, counts, resultDivSelector) {
 
 module.exports = { print: print };
 
-},{"fs":3}],408:[function(require,module,exports){
+},{"fs":3}],410:[function(require,module,exports){
 var _ = require('underscore');
 var d3 = require('d3');
 
@@ -88146,7 +88397,7 @@ module.exports = {
   kde2d: kde2d
 };
 
-},{"d3":16,"underscore":230}],409:[function(require,module,exports){
+},{"d3":16,"underscore":230}],411:[function(require,module,exports){
 var fs = require('fs');
 var React = require('react');
 var ReactDOM = require('react-dom');
@@ -88774,4 +89025,4 @@ function setDate() {
 $(setBibtex);
 $(setDate);
 
-},{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":215,"react-dom":77,"showdown":216,"underscore":230,"webppl-editor":405,"webppl-viz":406}]},{},[409]);
+},{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":215,"react-dom":77,"showdown":216,"underscore":230,"webppl-editor":406,"webppl-viz":408}]},{},[411]);
