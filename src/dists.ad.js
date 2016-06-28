@@ -751,7 +751,7 @@ function gammaSample(shape, scale) {
 function expGammaSample(shape, scale) {
   if (shape < 1) {
     var r;
-    r = gammaSample(1 + shape, scale) + Math.log(util.random()) / shape;
+    r = expGammaSample(1 + shape, scale) + Math.log(util.random()) / shape;
     if (r === -Infinity) {
       util.warn('log gamma sample underflow, rounded to nearest representable support value');
       return -Number.MAX_VALUE;
