@@ -858,14 +858,17 @@ var Beta = makeDistributionType({
 });
 
 function betaSample(a, b) {
-  var x = gammaSample(a, 1);
-  var y = x / (x + gammaSample(b, 1));
-  if (y === 0) {
-    y = Number.MIN_VALUE;
-  } else if (y === 1) {
-    y = 1 - Number.EPSILON / 2;
+  var log_x = expGammaSample(a, 1);
+  var log_y = expGammaSample(b, 1);
+  var v = 1 / (1 + Math.exp(log_y - log_x));
+  if (v === 0) {
+    util.warn('beta sample underflow, rounded to nearest representable support value');
+    v = Number.MIN_VALUE;
+  } else if (v === 1) {
+    util.warn('beta sample overflow, rounded to nearest representable support value');
+    v = 1 - Number.EPSILON / 2;
   }
-  return y;
+  return v;
 }
 
 
@@ -1337,6 +1340,7 @@ module.exports = {
   Categorical: Categorical,
   Delta: Delta,
   // rng
+  betaSample: betaSample,
   binomialSample: binomialSample,
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
