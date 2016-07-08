@@ -45,6 +45,7 @@ var sampleStatisticFunctions = {
 var distMetadataList = [
   require('./test-data/sampler/gamma'),
   require('./test-data/sampler/binomial'),
+  require('./test-data/sampler/beta'),
   require('./test-data/sampler/gaussian')
 ];
 
