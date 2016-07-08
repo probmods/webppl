@@ -1,17 +1,7 @@
 var dists = require('../../../src/dists');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');
-
-var doubleFactorial = function(x) {
-  var parity = x % 2;
-  var product = 1;
-  for (var i = 1; i <= x; i++) {
-    if (i % 2 == parity) {
-      product *= i
-    }
-  }
-  return product;
-}
+var doubleFactorial = require('../../../src/math/special').doubleFactorial;
 
 module.exports = {
   name: 'gaussian',

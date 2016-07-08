@@ -51,8 +51,21 @@ function trigamma(x) {
       1 / (30 * Math.pow(x, 9));
 }
 
+function doubleFactorial(x) {
+  var parity = x % 2;
+  var product = 1;
+  for (var i = 1; i <= x; i++) {
+    if (i % 2 == parity) {
+      product *= i
+    }
+  }
+  return product;
+}
+
+
 module.exports = {
   logGamma: logGamma,
   digamma: digamma,
-  trigamma: trigamma
+  trigamma: trigamma,
+  doubleFactorial: doubleFactorial
 };
