@@ -334,7 +334,7 @@ var RandomInteger = makeDistributionType({
   }
 });
 
-
+// Leva 1992: A Fast Normal Random Number Generator
 function gaussianSample(mu, sigma) {
   var u, v, x, y, q;
   do {
