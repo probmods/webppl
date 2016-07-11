@@ -19,7 +19,6 @@ var trampoline = require('./transforms/trampoline').trampoline;
 var freevars = require('./transforms/freevars').freevars;
 var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
-var analyze = require('./analysis/main').analyze;
 var util = require('./util');
 
 // Container for coroutine object and shared top-level
@@ -157,7 +156,6 @@ function generateCodeAndMap(code, filename, bundles, ast) {
 function compile(code, options) {
   options = util.mergeDefaults(options, {
     verbose: false,
-    generateCode: true,
     filename: 'webppl:program'
   });
 
@@ -191,7 +189,7 @@ function compile(code, options) {
       concatPrograms,
       doCaching ? freevars : _.identity,
       util.pipeline(transforms),
-      options.generateCode ? generateCode : _.identity
+      generateCode
     ])(asts);
   };
 
@@ -244,6 +242,5 @@ module.exports = {
   requireHeaderWrapper: requireHeaderWrapper,
   parsePackageCode: parsePackageCode,
   run: run,
-  compile: compile,
-  analyze: analyze
+  compile: compile
 };
