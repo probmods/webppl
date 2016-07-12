@@ -18,6 +18,20 @@ QUnit.test('run twice', function(test) {
   });
 });
 
+QUnit.test('error handling', function(test) {
+  var done = test.async();
+  var handler = function(error) {
+    test.ok(error instanceof Error);
+    test.ok(error.wpplRuntimeError);
+    done();
+  };
+  // Have the runner yield frequently to be sure the error occurs from
+  // a setTimeout.
+  var runner = util.trampolineRunners.web(1);
+  var code = 'Infer({method: "MCMC", samples: 1000}, flip); null[0]';
+  webppl.run(code, null, {runner: runner, errorHandlers: [handler]});
+});
+
 QUnit.test('compile', function(test) {
   test.ok(_.isString(webppl.compile('1 + 1')));
 });
@@ -25,7 +39,7 @@ QUnit.test('compile', function(test) {
 QUnit.test('compile with source map', function(test) {
   var codeAndMap = webppl.compile('1 + 1', {sourceMap: true});
   test.ok(_.isString(codeAndMap.code));
-  test.ok(_.isObject(codeAndMap.map));
+  test.ok(_.isObject(codeAndMap.sourceMap));
 });
 
 QUnit.test('cps', function(test) {

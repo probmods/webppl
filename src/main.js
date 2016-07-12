@@ -14,12 +14,14 @@ var addFilename = require('./transforms/addFilename').addFilename;
 var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var store = require('./transforms/store').store;
+var stack = require('./transforms/stack');
 var varargs = require('./transforms/varargs').varargs;
 var trampoline = require('./transforms/trampoline').trampoline;
 var freevars = require('./transforms/freevars').freevars;
 var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var util = require('./util');
+var errors = require('./errors/errors');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -136,21 +138,18 @@ function copyAst(ast) {
   return ret;
 }
 
-function generateCodeAndMap(code, filename, bundles, ast) {
+function generateCodeAndSourceMap(code, filename, bundles, ast) {
   var codeAndMap = escodegen.generate(ast, {
     sourceMap: true,
     sourceMapWithCode: true
   });
-
   var sourceMap = JSON.parse(codeAndMap.map);
   // Embed the original source in the source map for later use in
   // error handling.
   sourceMap.sourcesContent = sourceMap.sources.map(function(fn) {
     return (fn === filename) ? code : _.findWhere(bundles, {filename: fn}).code;
   });
-  codeAndMap.map = sourceMap;
-
-  return codeAndMap;
+  return {code: codeAndMap.code, sourceMap: sourceMap};
 }
 
 function compile(code, options) {
@@ -161,14 +160,24 @@ function compile(code, options) {
 
   var bundles = options.bundles || parsePackageCode([], options.verbose);
 
+  var addressMap;
+  var saveAddressMap = function(obj) {
+    addressMap = obj.map;
+    return obj.ast;
+  };
+
   var transforms = options.transforms || [
     thunkify,
     naming,
+    saveAddressMap,
+    options.debug ? stack.transformF : _.identity,
     varargs,
     cps,
     store,
+    options.debug ? stack.transformK : _.identity,
     optimize,
-    trampoline
+    trampoline,
+    stack.wrapProgram
   ];
 
   function _compile() {
@@ -182,42 +191,60 @@ function compile(code, options) {
       console.log('Caching transform will be applied.');
     }
 
-    var generateCode = _.partial(generateCodeAndMap, code, options.filename, bundles);
+    var generateCodeAndAssets = function(ast) {
+      var obj = generateCodeAndSourceMap(code, options.filename, bundles, ast);
+      obj.addressMap = addressMap;
+      return obj;
+    };
 
     return util.pipeline([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
       util.pipeline(transforms),
-      generateCode
+      generateCodeAndAssets
     ])(asts);
   };
 
   return util.timeif(options.verbose, 'compile', _compile);
 }
 
-function addSourceMap(error, sourceMap) {
-  if (error instanceof Error) {
-    if (error.sourceMaps === undefined) {
-      error.sourceMaps = [];
+function wrapWithHandler(f, handler) {
+  return function(x, y) {
+    try {
+      return f(x, y);
+    } catch (e) {
+      handler(e);
     }
-    error.sourceMaps.push(sourceMap);
-  }
+  };
+}
+
+function wrapRunner(baseRunner, handlers) {
+  var wrappedRunner = handlers.reduce(wrapWithHandler, baseRunner);
+  var runner = function(t) { return wrappedRunner(t, runner); };
+  return runner;
 }
 
 function run(code, k, options) {
-  options = _.defaults(options || {},
-                       {runner: util.runningInBrowser() ? 'web' : 'cli'});
-
-  var codeWithMap = compile(code, options);
-
-  var runner = util.trampolineRunners[options.runner](function(e) {
-    addSourceMap(e, codeWithMap.map);
-    throw e;
+  options = util.mergeDefaults(options, {
+    errorHandlers: []
   });
 
+  var codeAndAssets = compile(code, options);
+
+  var currentAddress = {value: undefined};
+  var defaultHandler = function(error) {
+    errors.extendError(error, codeAndAssets, currentAddress);
+    throw error;
+  };
+  var allErrorHandlers = [defaultHandler].concat(options.errorHandlers);
+
+  // Wrap runner with all error handlers.
+  var baseRunner = options.runner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
+  var runner = wrapRunner(baseRunner, allErrorHandlers);
+
   util.timeif(options.verbose, 'run', function() {
-    eval.call(global, codeWithMap.code)(runner)({}, k, '');
+    eval.call(global, codeAndAssets.code)(currentAddress)(runner)({}, k, '');
   });
 }
 
@@ -227,14 +254,17 @@ global.webpplEval = function(s, k, a, code, runnerName) {
   if (runnerName === undefined) {
     runnerName = util.runningInBrowser() ? 'web' : 'cli'
   }
-  var codeWithMap = compile(code, {filename: 'webppl:eval'});
 
-  var runner = util.trampolineRunners[runnerName](function(e) {
-    addSourceMap(e, codeWithMap.map);
-    throw e;
-  });
+  // On error, throw out the stack. We don't support recovering the
+  // stack from here.
+  var handler = function(error) {
+    throw 'webpplEval error:\n' + error;
+  };
+  var baseRunner = util.trampolineRunners[runnerName]();
+  var runner = wrapRunner(baseRunner, [handler]);
 
-  return eval.call(global, codeWithMap.code)(runner)(s, k, a);
+  var compiledCode = compile(code, {filename: 'webppl:eval'}).code;
+  return eval.call(global, compiledCode)({})(runner)(s, k, a);
 };
 
 module.exports = {

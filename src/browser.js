@@ -52,7 +52,7 @@ function webpplCPS(code) {
 
 function webpplNaming(code) {
   var programAst = esprima.parse(code);
-  var newProgramAst = naming(thunkify(programAst));
+  var newProgramAst = naming(thunkify(programAst)).ast;
   return escodegen.generate(newProgramAst);
 }
 

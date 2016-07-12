@@ -9,7 +9,9 @@ var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
 var dists = require('./src/dists');
-var errors = require('./src/errors');
+var errors = require('./src/errors/errors');
+var parseV8 = require('./src/errors/parsers').parseV8;
+var showError = require('./src/errors/node').showError;
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
@@ -26,7 +28,7 @@ function topK(s, x) {
   printWebPPLValue(x);
 };
 
-function run(code, packages, verbose, programFile) {
+function run(code, packages, verbose, debug, programFile) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
@@ -36,10 +38,23 @@ function run(code, packages, verbose, programFile) {
     webppl.run(code, topK, {
       bundles: webppl.parsePackageCode(packages, verbose),
       filename: programFile,
-      verbose: verbose
+      verbose: verbose,
+      debug: debug
     });
-  } catch (e) {
-    errors.showFriendlyError(e);
+  } catch (error) {
+    if (error instanceof Error && error.wpplRuntimeError) {
+      try {
+        var stack = errors.recoverStack(error, parseV8);
+        showError(error, stack, programFile, debug);
+        process.exitCode = 1;
+      } catch (e) {
+        // If we fail to generate a readable error message re-throw
+        // the original error.
+        throw error;
+      }
+    } else {
+      throw error;
+    }
   }
 }
 
@@ -47,7 +62,7 @@ var lines = function(ar) {
   return ar.join('\n')
 }
 
-function compile(code, packages, verbose, programFile, outputFile) {
+function compile(code, packages, verbose, debug, programFile, outputFile) {
   var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
   packages.forEach(function(pkg) {
     if (pkg.js) { compiledCode += 'var ' + pkg.js.identifier + ' = require("' + pkg.js.path + '");\n'; }
@@ -59,7 +74,8 @@ function compile(code, packages, verbose, programFile, outputFile) {
   var compileOptions = {
     bundles: webppl.parsePackageCode(packages, verbose),
     filename: programFile,
-    verbose: verbose
+    verbose: verbose,
+    debug: debug
   };
 
   var compiledBody = webppl.compile(code, compileOptions).code;
@@ -69,7 +85,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
     printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
-    "main(__runner__)({}, topK, '');"
+    "main({})(__runner__)({}, topK, '');"
   ]);
 
   // Write Javascript code to file
@@ -87,7 +103,7 @@ function compile(code, packages, verbose, programFile, outputFile) {
 
 function main() {
 
-  var argv = parseArgs(process.argv.slice(2));
+  var argv = parseArgs(process.argv.slice(2), {default: {debug: true}});
 
   // Print version if requested
   if (argv.version) {
@@ -126,7 +142,7 @@ function main() {
     util.seedRNG(seed);
   }
 
-  processCode(code, packages, argv.verbose, programFile, outputFile);
+  processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);
 }
 
 main();
