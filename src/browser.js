@@ -63,5 +63,6 @@ global.webppl = {
   cps: webpplCPS,
   naming: webpplNaming,
   analyze: analyze,
-  version: version
+  version: version,
+  packages: packages
 };
