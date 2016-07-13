@@ -574,7 +574,8 @@ var tests = [
           estimator: { ELBO: { samples: 1 } },
           verbose: false
         }
-      }
+      },
+      mapData: true
     }
   }
 ];
