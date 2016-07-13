@@ -112,14 +112,6 @@ module.exports = function(env) {
     return k(s, params[0]);
   };
 
-  // Returns the part of the stack address which has been added since
-  // entering the inner-most mapData. Outside of any mapData the
-  // address relative to the inner-most coroutine is returned.
-  function getObsFnAddress(s, k, a) {
-    var rel = util.relativizeAddress(env, a);
-    return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
-  }
-
   // `mapData` maps a function over an array much like the `map`
   // function. It differs in that the use of `mapData` signals to the
   // language that the random choices in each `obsFn` are
@@ -179,7 +171,7 @@ module.exports = function(env) {
         return function() {
           return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat([v]), i + 1);
         };
-      }, a.concat('_$$' + ix), arr[i]); // getObsFnAddress relies on the magic string _$$
+      }, a.concat('_$$' + ix), arr[i]);
     }
   }
 
@@ -193,7 +185,6 @@ module.exports = function(env) {
     zeros: zeros,
     ones: ones,
     tensorParam: tensorParam,
-    getObsFnAddress: getObsFnAddress,
     mapData: mapData
   };
 
