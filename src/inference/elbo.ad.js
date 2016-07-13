@@ -222,7 +222,7 @@ module.exports = function(env) {
       }
 
       // Store the info needed to compute the correction to account
-      // for the fact we only looked as a subset of the data.
+      // for the fact we only looked at a subset of the data.
 
       assert.ok(!this.mapDataState[address]);
       this.mapDataState[address] = {
