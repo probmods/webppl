@@ -23,7 +23,6 @@
     "estemplate": "^0.4.0",
     "estraverse": "^4.1.0",
     "esutils": "^2.0.2",
-    "immutable": "^3.7.5",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
     "priorityqueuejs": "~1.0.0",

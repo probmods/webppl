@@ -11,7 +11,6 @@ var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
-var analyze = require('./analysis/main').analyze;
 
 // These are populated by the bundle.js browserify transform.
 var version = '';
