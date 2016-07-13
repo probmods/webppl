@@ -33,7 +33,7 @@ function run(code, k, options) {
     options = {};
   }
   var optionsExtended = _.extend({bundles: load()}, options);
-
+  webppl.resetEnv();
   return webppl.run(code, k, optionsExtended);
 }
 
@@ -63,5 +63,6 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  version: version
+  version: version,
+  resetEnv: webppl.resetEnv
 };

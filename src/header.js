@@ -71,6 +71,10 @@ module.exports = function(env) {
 
   env.defaultCoroutine = env.coroutine;
 
+  env.reset = function() {
+    env.coroutine = env.defaultCoroutine;
+  };
+
   env.sample = function(s, k, a, dist, options) {
     if (!dists.isDist(dist)) {
       throw new Error('sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".');
