@@ -209,14 +209,14 @@ module.exports = function(env) {
       return k(s);
     },
 
-    mapDataFetch: function(data, options, address) {
+    mapDataFetch: function(data, batchSize, address) {
 
       var ix;
-      if (options.batchSize === data.length) {
+      if (batchSize === data.length) {
         // Use all the data, in order.
         ix = [];
       } else {
-        ix = _.times(options.batchSize, function() {
+        ix = _.times(batchSize, function() {
           return Math.floor(util.random() * data.length);
         });
       }
@@ -229,7 +229,7 @@ module.exports = function(env) {
         logp: this.logp,
         logq: this.logq,
         logr: this.logr,
-        multiplier: data.length / options.batchSize
+        multiplier: data.length / batchSize
       };
 
       return ix;

@@ -133,7 +133,7 @@ module.exports = function(env) {
     // Query the coroutine to determine the subset of the data to map
     // over.
     var ix = env.coroutine.mapDataFetch ?
-        env.coroutine.mapDataFetch(data, options, a) :
+        env.coroutine.mapDataFetch(data, options.batchSize, a) :
         // The empty array stands for all indices, in order. i.e.
         // `_.range(data.length)`
         [];
