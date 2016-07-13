@@ -23,7 +23,6 @@
     "estemplate": "^0.4.0",
     "estraverse": "^4.1.0",
     "esutils": "^2.0.2",
-    "immutable": "^3.7.5",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
     "priorityqueuejs": "~1.0.0",
@@ -34,6 +33,7 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "aws-sdk": "^2.4.1",
     "brfs": "0.0.8",
     "closure-linter-wrapper": "^1.0.1",
     "grunt": "^0.4.5",
@@ -48,8 +48,8 @@
     "through2": "^2.0.0"
   },
   "scripts": {
-    "test": "nodeunit tests/test-*.js",
-    "postinstall": "./scripts/adify"
+    "test": "nodeunit tests",
+    "postinstall": "node scripts/adify"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"

@@ -1,10 +1,15 @@
+// NOTE: this file cannot live in the top-level tests directory. For compatibility
+// with Windows, we alias `npm test` to `nodeunit tests`, which runs all the .js
+// files in the top-level directory; helpers.js is not a valid nodeunit file, so
+// this would cause tests to fail
+
 'use strict';
 
 var _ = require('underscore');
 var fs = require('fs');
 var assert = require('assert');
-var webppl = require('../src/main');
-var util = require('../src/util');
+var webppl = require('../../src/main');
+var util = require('../../src/util');
 var serialize = util.serialize;
 
 _.templateSettings = {

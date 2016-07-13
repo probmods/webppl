@@ -334,7 +334,7 @@ var RandomInteger = makeDistributionType({
   }
 });
 
-
+// Leva 1992: A Fast Normal Random Number Generator
 function gaussianSample(mu, sigma) {
   var u, v, x, y, q;
   do {
@@ -751,7 +751,7 @@ function gammaSample(shape, scale) {
 function expGammaSample(shape, scale) {
   if (shape < 1) {
     var r;
-    r = gammaSample(1 + shape, scale) + Math.log(util.random()) / shape;
+    r = expGammaSample(1 + shape, scale) + Math.log(util.random()) / shape;
     if (r === -Infinity) {
       util.warn('log gamma sample underflow, rounded to nearest representable support value');
       return -Number.MAX_VALUE;
@@ -858,28 +858,19 @@ var Beta = makeDistributionType({
 });
 
 function betaSample(a, b) {
-  var x = gammaSample(a, 1);
-  var y = x / (x + gammaSample(b, 1));
-  if (y === 0) {
-    y = Number.MIN_VALUE;
-  } else if (y === 1) {
-    y = 1 - Number.EPSILON / 2;
+  var log_x = expGammaSample(a, 1);
+  var log_y = expGammaSample(b, 1);
+  var v = 1 / (1 + Math.exp(log_y - log_x));
+  if (v === 0) {
+    util.warn('beta sample underflow, rounded to nearest representable support value');
+    v = Number.MIN_VALUE;
+  } else if (v === 1) {
+    util.warn('beta sample overflow, rounded to nearest representable support value');
+    v = 1 - Number.EPSILON / 2;
   }
-  return y;
+  return v;
 }
 
-
-function binomialG(x) {
-  'use ad';
-  if (x === 0) {
-    return 1;
-  }
-  if (x === 1) {
-    return 0;
-  }
-  var d = 1 - x;
-  return (1 - (x * x) + (2 * x * Math.log(x))) / (d * d);
-}
 
 // see lemma 6.1 from Ahrens & Dieter's
 // Computer Methods for Sampling from Gamma, Beta, Poisson and Binomial Distributions
@@ -1349,6 +1340,7 @@ module.exports = {
   Categorical: Categorical,
   Delta: Delta,
   // rng
+  betaSample: betaSample,
   binomialSample: binomialSample,
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
