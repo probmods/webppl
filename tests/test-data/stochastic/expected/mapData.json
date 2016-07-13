@@ -1,0 +1,8 @@
+{
+  "hist": {
+    "[false,false]": 0.36,
+    "[false,true]": 0.04,
+    "[true,false]": 0.54,
+    "[true,true]": 0.06
+  }
+}

@@ -69,7 +69,8 @@ var tests = [
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
       nestedEnumDiscrete: true,
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {

@@ -1,0 +1,3 @@
+var model = function() {
+  return mapData({data: [.6, .1]}, flip);
+};
