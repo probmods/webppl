@@ -161,7 +161,7 @@ module.exports = function(env) {
       var ix = _.isEmpty(add) ? i : add[i];
       return f(s, function(s, v) {
         return function() {
-          return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat(v), i + 1);
+          return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat([v]), i + 1);
         };
       }, a.concat('_$$' + ix), arr[i]); // getObsFnAddress relies on the magic string _$$
     }
