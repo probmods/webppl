@@ -242,5 +242,6 @@ module.exports = {
   requireHeaderWrapper: requireHeaderWrapper,
   parsePackageCode: parsePackageCode,
   run: run,
-  compile: compile
+  compile: compile,
+  resetEnv: env.reset
 };
