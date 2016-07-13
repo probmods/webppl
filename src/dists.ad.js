@@ -311,9 +311,26 @@ var MultivariateBernoulli = makeDistributionType({
   },
   score: function(x) {
     return mvBernoulliScore(this.params.ps, x);
+  },
+  support: function() {
+    var dims = this.params.ps.dims;
+    var d = dims[0];
+    var n = Math.pow(2, d);
+    return _.times(n, function(x) {
+      return new Tensor(dims).fromFlatArray(toBinaryArray(x, d));
+    });
   }
 });
 
+function toBinaryArray(x, length) {
+  assert.ok(x >= 0 && x < Math.pow(2, length));
+  var arr = [];
+  for (var i = 0; i < length; i++) {
+    arr.push(x % 2);
+    x = x >> 1;
+  }
+  return arr;
+}
 
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
