@@ -120,8 +120,19 @@ module.exports = function(env) {
     return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
   }
 
-  // This is been developed as part of daipp. It's probably still
-  // buggy.
+  // `mapData` maps a function over an array much like the `map`
+  // function. It differs in that the use of `mapData` signals to the
+  // language that the random choices in each `obsFn` are
+  // conditionally independent given the random choices made before
+  // `mapData`.
+
+  // The way this information is used will be coroutine specific. When
+  // the current coroutine doesn't provide specific handling the
+  // behavior is equivalent to regular `map`.
+
+  // This is still somewhat experimental. The interface may change in
+  // the future.
+
   function mapData(s, k, a, opts, obsFn) {
     opts = opts || {};
 
