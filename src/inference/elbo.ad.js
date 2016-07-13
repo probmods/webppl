@@ -24,8 +24,7 @@ module.exports = function(env) {
 
   function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1,
-      persistentBatches: false
+      samples: 1
     });
 
     // The current values of all initialized parameters.
@@ -208,33 +207,18 @@ module.exports = function(env) {
       return k(s);
     },
 
-    mapDataFetch: function(ixprev, data, options, address) {
-
-      // `ixprev` is an array of the indices used by the last
-      // invocation of this mapData. This will be undefined the on the
-      // first call to a particular mapData. The empty array stands
-      // for all indices.
+    mapDataFetch: function(data, options, address) {
 
       assert.strictEqual(this.mapDataMultiplier, undefined);
       assert.strictEqual(this.logp0, undefined);
       assert.strictEqual(this.logq0, undefined);
       assert.strictEqual(this.logr0, undefined);
 
-      // If `persistentBatches` is enabled then we only draw a fresh
-      // mini-batch on the first execution (sample) of the first step
-      // of `Optimize`. This is the behavior Noah described for an
-      // 'epoch' of wakey/sleepy.
-
       var ix;
 
       if (options.batchSize === data.length) {
         // Use all the data, in order.
         ix = [];
-      } else if (this.opts.persistentBatches && !(this.step === 0 && this.iter === 0)) {
-        // If we're using persistent batches and we're past the first
-        // step of the first iteration, use the same data as the
-        // previous execution.
-        ix = ixprev;
       } else {
         ix = _.times(options.batchSize, function() {
           return Math.floor(util.random() * data.length);

@@ -120,8 +120,6 @@ module.exports = function(env) {
     return k(s, rel.slice(rel.indexOf('_', rel.lastIndexOf('$$'))));
   }
 
-  var mapDataIndices = {};
-
   // This is been developed as part of daipp. It's probably still
   // buggy.
   function mapData(s, k, a, data, obsFn, options) {
@@ -132,14 +130,10 @@ module.exports = function(env) {
       throw 'Invalid batchSize in mapData.';
     }
 
-    var rel = util.relativizeAddress(env, a);
-
     // Query the coroutine to determine the subset of the data to map
-    // over. The indices of the data used on the previous invocation
-    // are passed, allowing the same mini-batch to be used across
-    // steps/inference algorithms.
+    // over.
     var ix = env.coroutine.mapDataFetch ?
-        env.coroutine.mapDataFetch(mapDataIndices[rel], data, options, rel) :
+        env.coroutine.mapDataFetch(data, options, a) :
         // The empty array stands for all indices, in order. i.e.
         // `_.range(data.length)`
         [];
@@ -147,13 +141,11 @@ module.exports = function(env) {
     assert.ok(_.isArray(ix));
     assert.ok(ix.length >= 0);
 
-    mapDataIndices[rel] = ix;
-
     var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
 
     return wpplCpsMapWithAddresses(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
-        env.coroutine.mapDataFinal();
+        env.coroutine.mapDataFinal(a);
       }
       return k(s, v);
     }, a, batch, ix, obsFn);
