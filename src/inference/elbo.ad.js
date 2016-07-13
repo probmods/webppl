@@ -38,6 +38,8 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
+    this.mapDataState = {};
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -209,13 +211,7 @@ module.exports = function(env) {
 
     mapDataFetch: function(data, options, address) {
 
-      assert.strictEqual(this.mapDataMultiplier, undefined);
-      assert.strictEqual(this.logp0, undefined);
-      assert.strictEqual(this.logq0, undefined);
-      assert.strictEqual(this.logr0, undefined);
-
       var ix;
-
       if (options.batchSize === data.length) {
         // Use all the data, in order.
         ix = [];
@@ -228,39 +224,37 @@ module.exports = function(env) {
       // Store the info needed to compute the correction to account
       // for the fact we only looked as a subset of the data.
 
-      // This assumes we don't have nested calls to `mapData`. Once we
-      // do we can use `address` (the relative address of the mapData
-      // call) for book-keeping?
-
-      this.mapDataMultiplier = data.length / options.batchSize;
-      this.logp0 = this.logp;
-      this.logq0 = this.logq;
-      this.logr0 = this.logr;
+      assert.ok(!this.mapDataState[address]);
+      this.mapDataState[address] = {
+        logp: this.logp,
+        logq: this.logq,
+        logr: this.logr,
+        multiplier: data.length / options.batchSize
+      };
 
       return ix;
     },
 
-    mapDataFinal: function() {
+    mapDataFinal: function(address) {
       'use ad';
-      assert.notStrictEqual(this.mapDataMultiplier, undefined);
-      assert.notStrictEqual(this.logp0, undefined);
-      assert.notStrictEqual(this.logq0, undefined);
-      assert.notStrictEqual(this.logr0, undefined);
+
+      var state = this.mapDataState[address];
+      assert.ok(state !== undefined);
 
       var noreparam = sameAdNode(this.logq, this.logr);
-      var m = this.mapDataMultiplier - 1;
+      var m = state.multiplier - 1;
 
-      this.logp += m * (this.logp - this.logp0);
-      this.logq += m * (this.logq - this.logq0);
+      this.logp += m * (this.logp - state.logp);
+      this.logq += m * (this.logq - state.logq);
       if (noreparam) {
         // The reparameterization trick has not been used yet.
         // Continue representing logq and loqr with the same ad node.
         this.logr = this.logq;
       } else {
-        this.logr += m * (this.logr - this.logr0);
+        this.logr += m * (this.logr - state.logr);
       }
 
-      this.mapDataMultiplier = this.logp0 = this.logq0 = this.logr0 = undefined;
+      this.mapDataState[address] = undefined;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
