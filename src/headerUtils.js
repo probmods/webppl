@@ -122,18 +122,23 @@ module.exports = function(env) {
 
   // This is been developed as part of daipp. It's probably still
   // buggy.
-  function mapData(s, k, a, data, obsFn, options) {
+  function mapData(s, k, a, opts, obsFn) {
+    opts = opts || {};
 
-    options = util.mergeDefaults(options, {batchSize: data.length});
+    var data = opts.data;
+    if (!_.isArray(data)) {
+      throw new Error('mapData: No data given.');
+    }
 
-    if (options.batchSize <= 0 || options.batchSize > data.length) {
-      throw 'Invalid batchSize in mapData.';
+    var batchSize = _.has(opts, 'batchSize') ? opts.batchSize : data.length;
+    if (batchSize <= 0 || batchSize > data.length) {
+      throw new Error('mapData: Invalid batchSize.');
     }
 
     // Query the coroutine to determine the subset of the data to map
     // over.
     var ix = env.coroutine.mapDataFetch ?
-        env.coroutine.mapDataFetch(data, options.batchSize, a) :
+        env.coroutine.mapDataFetch(data, batchSize, a) :
         // The empty array stands for all indices, in order. i.e.
         // `_.range(data.length)`
         [];
