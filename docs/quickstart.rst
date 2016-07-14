@@ -1,4 +1,4 @@
-Quick start
+Quick Start
 ===========
 
 Installation 
@@ -22,7 +22,7 @@ Create a file called ``test.wppl``::
     
     var phrase = greeting() + ", " + audience() + "!"
     
-    return phrase
+    phrase
 
 Run it with this command::
 
@@ -31,7 +31,7 @@ Run it with this command::
 Learning
 --------
 
-If you're new to probabilistic programming, `Probabilistic Models of Cognition <https://probmods.org/>`_ is a great place to start learning the paradigm. It uses Church for demonstrations, but the principles will apply when you are using webppl.
+If you're new to probabilistic programming, `Probabilistic Models of Cognition <https://probmods.org/>`_ is a great place to start learning the paradigm. It uses `Church <http://projects.csail.mit.edu/church/wiki/Church>`_ for demonstrations, but the principles will apply when you are using webppl.
 
 The best guide to using webppl is `The Design and Implementation of Probabilistic Programming Languages <http://dippl.org/chapters/02-webppl.html>`_. The `examples <https://github.com/probmods/webppl/tree/master/examples>`_ will also be helpful in learning the syntax.
 
