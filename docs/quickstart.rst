@@ -1,4 +1,4 @@
-Quick start
+Quick Start
 ===========
 
 Install using `nodejs <http://nodejs.org>`_::
