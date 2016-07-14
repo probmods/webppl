@@ -28,7 +28,6 @@ defineDistConstructors(
     Delta);
 
 // Helpers to sample from distributions.
-
 var bernoulli = function(arg) {
   var params = util.isObject(arg) ? arg : {p: arg};
   return sample(Bernoulli(params));
@@ -98,6 +97,26 @@ var gamma = function(arg1, arg2) {
   var params = util.isObject(arg1) ? arg1 : {shape: arg1, scale: arg2};
   return sample(Gamma(params));
 };
+
+var diagCovGaussian = function(arg1, arg2) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(DiagCovGaussian(params))
+}
+
+var multivariateBernoulli = function(arg) {
+  var param = util.isObject(arg) ? arg : {ps: arg}
+  return sample(MultivariateBernoulli(param))
+}
+
+var tensorGaussian = function(arg1, arg2, arg3) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2, dims: arg3}
+  return sample(TensorGaussian(params))
+}
+
+var logisticNormal = function(arg1, arg2) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2}
+  return sample(LogisticNormal(params))
+}
 
 // Other distribution helpers
 
