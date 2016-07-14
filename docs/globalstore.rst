@@ -4,7 +4,7 @@ The Global Store
 Background
 ~~~~~~~~~~
 
-The subset of Javascript supported by WebPPL does not include general
+The subset of JavaScript supported by WebPPL does not include general
 assignment expressions. This means it is not possible to change the
 value bound to a variable, or to modify the contents of a compound
 data structure::
@@ -28,7 +28,7 @@ However, assignment can occasionally be useful, and for this reason
 WebPPL provides a limited form of it through something called the
 global store.
 
-Introducing the Global Store
+Introducing the global store
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The global store is a built-in data structure with special status in
@@ -43,7 +43,7 @@ be modified. Here's a simple example::
   display(globalStore.x) // prints 2
 
 When reading and writing to the global store, it behaves like a plain
-Javascript object. As in Javascript, the value of each property is
+JavaScript object. As in JavaScript, the value of each property is
 initially ``undefined``.
 
 Note that while the store can be modified by assigning and reassigning
@@ -56,7 +56,7 @@ structures referenced by those properties::
   globalStore.foo = {x: 0}
   globalStore.foo.x = 1 // attempting to mutate foo fails
 
-Marginal Inference and the Global Store
+Marginal inference and the global store
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Crucially, all marginal inference algorithms are aware of the global
