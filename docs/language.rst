@@ -1,4 +1,4 @@
-The WebPPL language
+The WebPPL Language
 =========
 
 The WebPPL language begins with a subset of JavaScript, and adds to it primitive distributions and primitives to sample, Infer, etc.
