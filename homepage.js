@@ -85635,6 +85635,10 @@ require('codemirror/addon/comment/comment'); // installs toggleComment
 var SourceMap = require('source-map');
 var stackTrace = require('stack-trace');
 
+var wait = function (ms, f) {
+  return setTimeout(f, ms);
+};
+
 var renderReturnValue = function (x) {
   if (x === undefined) {
     return '';
@@ -85748,17 +85752,40 @@ var ResultText = React.createClass({
 
   shouldComponentUpdate: pureSCU,
   render: function () {
+    var subtype = this.props.subtype || "log";
+    var icon = {
+      log: "",
+      warn: "⚠",
+      error: "x",
+      info: "i"
+    }[this.props.subtype || "log"];
+
+    var spanClass = 'icon ' + subtype;
+
+    var count = this.props.count == 1 || this.props.count === undefined ? "" : "(" + this.props.count + ") ";
+    var message = this.props.message;
+
     return React.createElement(
-      'pre',
-      { key: this.props._key, className: 'text' },
-      this.props.message + ''
+      'div',
+      null,
+      React.createElement(
+        'span',
+        { className: spanClass },
+        icon
+      ),
+      React.createElement(
+        'span',
+        { className: 'count' },
+        count
+      ),
+      React.createElement(
+        'pre',
+        { key: this.props._key, className: 'text' },
+        message
+      )
     );
   }
 });
-
-var wait = function (ms, f) {
-  return setTimeout(f, ms);
-};
 
 var ResultDOM = React.createClass({
   displayName: 'ResultDOM',
@@ -85790,16 +85817,56 @@ var RunButton = React.createClass({
   }
 });
 
-var jobsQueue = [];
-var compileCache = {};
+var ResultMetaDrawer = React.createClass({
+  displayName: 'ResultMetaDrawer',
+
+  render: function () {
+    var items = _.values(_.mapObject(_.omit(this.props, 'visible'), function (v, k) {
+      return React.createElement(
+        'div',
+        { key: k },
+        React.createElement(
+          'b',
+          null,
+          k
+        ),
+        ': ',
+        v
+      );
+    }));
+
+    return React.createElement(
+      'div',
+      { className: 'meta ' + (this.props.visible ? '' : 'hide') },
+      items
+    );
+  }
+});
 
 var ResultList = React.createClass({
   displayName: 'ResultList',
 
   getInitialState: function () {
     return {
+      metaVisible: false,
       minHeight: 0
     };
+  },
+  showMetaDrawer: function () {
+    this.setState({ metaVisible: !this.state.metaVisible });
+  },
+  // auto scroll to bottom (if user is already at the bottom)
+  // HT http://blog.vjeux.com/2013/javascript/scroll-position-with-react.html
+  componentWillUpdate: function () {
+    var node = ReactDOM.findDOMNode(this);
+    // 4 is a fudge factor
+    this.shouldScrollBottom = node.scrollHeight - (node.scrollTop + node.offsetHeight) < 4;
+  },
+  componentDidUpdate: function () {
+    if (this.shouldScrollBottom) {
+      var node = ReactDOM.findDOMNode(this);
+      node.scrollTop = node.scrollHeight;
+    }
   },
   render: function () {
     var renderResult = function (d, k) {
@@ -85825,13 +85892,29 @@ var ResultList = React.createClass({
       minHeight: this.state.minHeight
     };
 
+    var webpplVersion = this.props.webpplVersion;
+    var seed = this.props.seed;
+
     return React.createElement(
       'div',
-      { style: style, className: this.props.newborn ? 'result hide' : 'result' },
+      { style: style, className: 'result ' + (this.props.newborn ? 'hide' : '') },
+      React.createElement(
+        'span',
+        { className: 'drawerButton', onClick: this.showMetaDrawer },
+        '☰'
+      ),
+      React.createElement(ResultMetaDrawer, {
+        visible: this.state.metaVisible,
+        webppl: webpplVersion,
+        seed: seed
+      }),
       list
     );
   }
 });
+
+var jobsQueue = [],
+    compileCache = {};
 
 var CodeEditor = React.createClass({
   displayName: 'CodeEditor',
@@ -85846,7 +85929,6 @@ var CodeEditor = React.createClass({
   // side effects
   // these methods draw to the results div of a particular CodeEditor instance
   // the actively running codebox will inject them into global once it starts running
-  // TODO: remove hist and barChart once webppl-viz stabilizes
   // ------------------------------------------------------------
   print: function (s, k, a, x) {
     // make print work as a regular js function
@@ -85892,12 +85974,7 @@ var CodeEditor = React.createClass({
     // of it shrinking because it's empty and growing again as
     // results populate
     resultList.setState(function (state, props) {
-      //return _.extend({}, state, {minHeight: $resultsDiv.height()})
-
-      return _.extend({}, state, { minHeight: util.sum($resultsDiv.contents().map(function (i, x) {
-          return $(x).height();
-        }))
-      });
+      return _.extend({}, state, { minHeight: $resultsDiv.height() });
     });
 
     // enable only in dev mode
@@ -85917,7 +85994,11 @@ var CodeEditor = React.createClass({
 
     this.endJob = endJob;
 
+    // TODO: incorporate this into the other side effect stuff
+    var nativeConsole = console;
+
     var cleanup = function () {
+      global['console'] = nativeConsole;
       global['print'] = null;
       global['resumeTrampoline'] = null;
       global['onerror'] = null;
@@ -85941,6 +86022,40 @@ var CodeEditor = React.createClass({
     };
 
     var job = function () {
+      // TODO: incorporate this into the other side effect stuff
+      // NB: doing, e.g., nativeConsole.log.apply doesn't work
+      // HT http://stackoverflow.com/a/9521992/351392
+
+      var lastMessages = {};
+      var makeConsoleMethod = function (subtype) {
+        return function () {
+          var args = _.toArray(arguments);
+          var message = args.join(' ');
+          var lastMessage = lastMessages[subtype];
+
+          if (lastMessage == message) {
+            comp.setState(function (state, props) {
+              // TODO: is mutating state okay?
+              var idx = _.findLastIndex(state.results, function (res) {
+                return res.subtype == subtype;
+              });
+              state.results[idx].count += 1;
+              return state;
+            });
+          } else {
+            comp.addResult({ type: 'text', subtype: subtype, message: message, count: 1 });
+            lastMessages[subtype] = message;
+            nativeConsole[subtype](message);
+          }
+        };
+      };
+
+      global['console'] = {
+        log: makeConsoleMethod('log'),
+        info: makeConsoleMethod('info'),
+        warn: makeConsoleMethod('warn'),
+        error: makeConsoleMethod('error')
+      };
 
       // inject this component's side effect methods into global
       var sideEffectMethods = ['print'];
@@ -86020,6 +86135,10 @@ var CodeEditor = React.createClass({
         global['resumeTrampoline'] = runner;
         comp.runner = runner;
 
+        var newSeed = _.now();
+        util.seedRNG(newSeed);
+        comp.setState({ seed: newSeed });
+
         wait(20, function () {
           var _code = eval.call({}, compileCache[code].code)(runner);
           _code({}, endJob, '');
@@ -86073,6 +86192,8 @@ var CodeEditor = React.createClass({
       }
     };
 
+    var webpplVersion = global.webppl ? global.webppl.version : '';
+
     var code = this.refs.editor ? this.refs.editor.getCodeMirror().getValue() : this.props.code;
 
     // TODO: get rid of CodeMirrorComponent ref by running refresh in it's own componentDidMount?
@@ -86091,7 +86212,12 @@ var CodeEditor = React.createClass({
         { className: _.contains(['running'], this.state.execution) ? 'cancel' : 'cancel hide', onClick: this.cancelRun },
         'cancel'
       ),
-      React.createElement(ResultList, { newborn: this.state.newborn, ref: 'resultList', executionState: this.state.execution, list: this.state.results })
+      React.createElement(ResultList, { ref: 'resultList',
+        newborn: this.state.newborn,
+        executionState: this.state.execution,
+        list: this.state.results,
+        seed: this.state.seed,
+        webpplVersion: webpplVersion })
     );
   }
 });
@@ -86100,13 +86226,11 @@ var setupCode = function (preEl, options) {
   // converts <pre><code>...</code></pre>
   // to a CodeMirror instance
 
-  options = _.defaults(options || {}, {
-    trim: true,
+  options = _.defaults(options || {}, { trim: true,
     language: 'webppl'
   });
 
   var parentDiv = preEl.parentNode;
-
   var editorDiv = document.createElement('div');
 
   var code = $(preEl).text();
@@ -86125,7 +86249,6 @@ var setupCode = function (preEl, options) {
     var comp = this;
 
     requestAnimationFrame(function () {
-
       var cm = comp.refs['editor'].getCodeMirror();
 
       parentDiv.replaceChild(editorDiv, preEl);
@@ -86146,9 +86269,9 @@ var setupCode = function (preEl, options) {
   return ret;
 };
 
+var topStore = {};
 var numTopStoreKeys = 0;
 
-var topStore = {};
 var wpEditor = {
   setup: setupCode,
   ReactComponent: CodeEditor,
@@ -86220,6 +86343,7 @@ if (typeof exports !== 'undefined') {
 
 if (typeof window !== 'undefined') {
   window.wpEditor = wpEditor;
+  window.editor = wpEditor;
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})

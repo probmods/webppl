@@ -1,3 +1,25 @@
+.meta {
+    position: absolute;
+    right: 0px;
+    background-color: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 12px;
+    padding: 1em;
+    min-width: 200px;
+}
+
+.drawerButton {
+    position: absolute;
+    right: 0;
+    margin-right: 3px;
+    color: #ccc;
+    z-index: 120;
+}
+
+.drawerButton:hover {
+    cursor: pointer
+}
+
 span.CodeMirror-nonmatchingbracket {color: #f22;}
 
 .CodeMirrorError {
@@ -75,10 +97,14 @@ span.CodeMirror-nonmatchingbracket {color: #f22;}
     border-radius: 2px;
     margin: 0.5em 0;
     min-height: 0.5em;
+    overflow-x: scroll;
+    position: relative;
+    max-height: 600px; /* todo: figure out why a percentage doesn't work here */
 }
 
 .wpedit .result pre {
-    border: none
+    border: none;
+    white-space: pre-wrap;
 }
 
 .wpedit pre.error {
@@ -124,6 +150,36 @@ span.CodeMirror-nonmatchingbracket {color: #f22;}
 
 .wpedit .hidden {
     display: none;
+}
+
+.result .icon {
+    border-radius: 5px;
+    padding: 0 3px;
+    float: left;
+    color: white;
+    margin: 4px 2px 0px 2px;
+    font-size: 12px;
+}
+
+.icon.warn {
+    background-color: orange;
+    color: black
+}
+
+.icon.info {
+    background-color: #2387d2;
+}
+
+.icon.error {
+    background-color: red;
+}
+
+.result .count:not(:empty) {
+    font-family: Helvetica;
+    font-size: 10px;
+    float: left;
+    margin: 5px;
+    color: gray
 }
 /* BASICS */
 
