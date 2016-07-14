@@ -75,10 +75,10 @@ These macros will be visible to the WebPPL program which is been run
 or compiled, and to any WebPPL code within the same package. They will
 not be visible to WebPPL code in other packages.
 
-Javascript functions and libraries
+JavaScript functions and libraries
 ----------------------------------
 
-Any regular Javascript code within a package is made available in WebPPL
+Any regular JavaScript code within a package is made available in WebPPL
 as a global variable. The global variable takes the same name as the
 package except when the package name includes one or more ``-``
 characters. In such cases the name of the global variable is obtained by
@@ -94,7 +94,7 @@ For example, if the package ``my-package`` contains this file::
 Then the function ``myAdd`` will be available in WebPPL as
 ``myPackage.myAdd``.
 
-If your Javascript isn’t in an ``index.js`` file in the root of the
+If your JavaScript isn’t in an ``index.js`` file in the root of the
 package, you should indicate the entry point to your package by adding a
 ``main`` entry to ``package.json``. For example::
 
@@ -120,7 +120,7 @@ access WebPPL internals. Header files have access to the following:
 Let’s use the example of a function that makes the current address
 available in WebPPL:
 
-1. Write a Javascript file that exports a function. The function will be
+1. Write a JavaScript file that exports a function. The function will be
    called with the ``env`` container and should return an object
    containing the functions you want to use::
 

@@ -44,7 +44,7 @@ Enumeration
      Infer({method: 'enumerate', maxExecutions: 10}, model);
      Infer({method: 'enumerate', strategy: 'breadthFirst'}, model);
 
-Rejection Sampling
+Rejection sampling
 ------------------
 
 .. js:function:: Infer({method: 'rejection'[, ...]}, model)
@@ -262,7 +262,7 @@ Incremental MH
 
       .. js:function:: query.add(name, value)
 
-         :param any name: Name of value to be added to query. Will be converted to string, as Javascript object keys are.
+         :param any name: Name of value to be added to query. Will be converted to string, as JavaScript object keys are.
          :param any value: Value to be added to query.
          :returns: undefined
 
