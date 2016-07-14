@@ -28,6 +28,7 @@ defineDistConstructors(
     Delta);
 
 // Helpers to sample from distributions.
+
 var bernoulli = function(arg) {
   var params = util.isObject(arg) ? arg : {p: arg};
   return sample(Bernoulli(params));
