@@ -1,3 +1,21 @@
+.wpedit button {
+    height: 26px !important;
+    padding: 0em 1em !important;
+    background-color: #e0e0e0 !important;
+    background-image: linear-gradient(to bottom,#fff 0,#e0e0e0 100%);
+    border-radius: 4px;
+    border: 1px solid rgb(204,204,204) !important;
+    font-size: 12px !important;
+}
+
+.wpedit button:hover {
+    background-color: #d0d0d0;
+}
+
+.wpedit button:active {
+    background-image: none;
+}
+
 .CodeMirror {
     font-size: 12px
 }
