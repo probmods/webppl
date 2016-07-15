@@ -509,9 +509,8 @@ var tests = [
       },
       guidedGaussian: {
         args: {
-          samples: 1000,
-          burn: 10,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+          samples: 5000,
+          burn: 100
         }
       }
     }
@@ -565,7 +564,15 @@ var tests = [
       withCaching: true,
       gaussianMean: true,
       guidedFlip: true,
-      guidedGaussian: true,
+      guidedGaussian: {
+        mean: { tol: 0.2 },
+        std: { tol: 0.2 },
+        args: {
+          samples: 5000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       dirichlet: {
         args: {
           samples: 5000,
