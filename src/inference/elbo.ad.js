@@ -214,7 +214,7 @@ module.exports = function(env) {
       var ix;
       if (batchSize === data.length) {
         // Use all the data, in order.
-        ix = [];
+        ix = null;
       } else {
         ix = _.times(batchSize, function() {
           return Math.floor(util.random() * data.length);
@@ -229,7 +229,7 @@ module.exports = function(env) {
         logp: this.logp,
         logq: this.logq,
         logr: this.logr,
-        multiplier: data.length / batchSize
+        multiplier: batchSize > 0 ? (data.length / batchSize) - 1 : 0
       };
 
       return ix;
@@ -242,7 +242,7 @@ module.exports = function(env) {
       assert.ok(state !== undefined);
 
       var noreparam = sameAdNode(this.logq, this.logr);
-      var m = state.multiplier - 1;
+      var m = state.multiplier;
 
       this.logp += m * (this.logp - state.logp);
       this.logq += m * (this.logq - state.logq);

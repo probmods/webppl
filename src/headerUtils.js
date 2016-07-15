@@ -134,7 +134,7 @@ module.exports = function(env) {
     }
 
     var batchSize = _.has(opts, 'batchSize') ? opts.batchSize : data.length;
-    if (batchSize <= 0 || batchSize > data.length) {
+    if (batchSize < 0 || batchSize > data.length) {
       throw new Error('mapData: Invalid batchSize.');
     }
 
@@ -142,14 +142,13 @@ module.exports = function(env) {
     // over.
     var ix = env.coroutine.mapDataFetch ?
         env.coroutine.mapDataFetch(data, batchSize, a) :
-        // The empty array stands for all indices, in order. i.e.
+        // null stands for all indices, in order. i.e.
         // `_.range(data.length)`
-        [];
+        null;
 
-    assert.ok(_.isArray(ix));
-    assert.ok(ix.length >= 0);
+    assert.ok(ix === null || _.isArray(ix));
 
-    var batch = _.isEmpty(ix) ? data : ix.map(function(i) { return data[i]; });
+    var batch = _.isArray(ix) ? ix.map(function(i) { return data[i]; }) : data;
 
     return wpplCpsMapWithAddresses(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
@@ -165,8 +164,8 @@ module.exports = function(env) {
     if (i === arr.length) {
       return k(s, acc);
     } else {
-      // An empty `add` stands for `_.range(arr.length)`.
-      var ix = _.isEmpty(add) ? i : add[i];
+      // null stands for `_.range(arr.length)`.
+      var ix = (add === null) ? i : add[i];
       return f(s, function(s, v) {
         return function() {
           return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat([v]), i + 1);
