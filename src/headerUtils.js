@@ -112,6 +112,73 @@ module.exports = function(env) {
     return k(s, params[0]);
   };
 
+  // `mapData` maps a function over an array much like the `map`
+  // function. It differs in that the use of `mapData` signals to the
+  // language that the random choices in each `obsFn` are
+  // conditionally independent given the random choices made before
+  // `mapData`.
+
+  // It is the responsibility of individual coroutines to make use of
+  // this information in an appropriate way. To do so, coroutines
+  // should implement the following methods:
+
+  // mapDataFetch: Called when mapData is entered, providing an
+  // opportunity to perform book-keeping etc. This method should
+  // return an array of indices indicating the data to be mapped over.
+  // Alternatively, null can be returned to indicate that all data
+  // should be used.
+
+  // mapDataFinal: Called once all data have been mapped over.
+
+  // When the current coroutine doesn't provide specific handling the
+  // behavior is equivalent to regular `map`.
+
+  // This is still somewhat experimental. The interface may change in
+  // the future.
+
+  function mapData(s, k, a, opts, obsFn) {
+    opts = opts || {};
+
+    var data = opts.data;
+    if (!_.isArray(data)) {
+      throw new Error('mapData: No data given.');
+    }
+
+    var batchSize = _.has(opts, 'batchSize') ? opts.batchSize : data.length;
+    if (batchSize < 0 || batchSize > data.length) {
+      throw new Error('mapData: Invalid batchSize.');
+    }
+
+    var ix = env.coroutine.mapDataFetch ?
+        env.coroutine.mapDataFetch(data, batchSize, a) :
+        null;
+
+    assert.ok(ix === null || _.isArray(ix));
+
+    return cpsMapData(s, function(s, v) {
+      if (env.coroutine.mapDataFinal) {
+        env.coroutine.mapDataFinal(a);
+      }
+      return k(s, v);
+    }, a, data, ix, obsFn);
+  }
+
+  function cpsMapData(s, k, a, data, indices, f, acc, i) {
+    i = (i === undefined) ? 0 : i;
+    acc = (acc === undefined) ? [] : acc;
+    var length = (indices === null) ? data.length : indices.length;
+    if (i === length) {
+      return k(s, acc);
+    } else {
+      var ix = (indices === null) ? i : indices[i];
+      return f(s, function(s, v) {
+        return function() {
+          return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
+        };
+      }, a.concat('_$$' + ix), data[ix]);
+    }
+  }
+
   return {
     display: display,
     cache: cache,
@@ -121,7 +188,8 @@ module.exports = function(env) {
     Matrix: Matrix,
     zeros: zeros,
     ones: ones,
-    tensorParam: tensorParam
+    tensorParam: tensorParam,
+    mapData: mapData
   };
 
 };

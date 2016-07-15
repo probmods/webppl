@@ -70,7 +70,8 @@ var tests = [
       zeroProb: { hist: { exact: true } },
       nestedEnumDiscrete: true,
       multivariateBernoulli: true,
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -112,7 +113,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -185,7 +187,8 @@ var tests = [
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumDiscrete: true,
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -236,7 +239,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -369,7 +373,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -581,7 +586,8 @@ var tests = [
           estimator: { ELBO: { samples: 1 } },
           verbose: false
         }
-      }
+      },
+      mapData: true
     }
   }
 ];

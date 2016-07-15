@@ -24,8 +24,7 @@ module.exports = function(env) {
 
   function ELBO(wpplFn, s, a, options, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1,
-      persistentBatches: false
+      samples: 1
     });
 
     // The current values of all initialized parameters.
@@ -38,6 +37,8 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+
+    this.mapDataState = {};
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -206,6 +207,54 @@ module.exports = function(env) {
       'use ad';
       this.logp += score;
       return k(s);
+    },
+
+    mapDataFetch: function(data, batchSize, address) {
+
+      var ix;
+      if (batchSize === data.length) {
+        // Use all the data, in order.
+        ix = null;
+      } else {
+        ix = _.times(batchSize, function() {
+          return Math.floor(util.random() * data.length);
+        });
+      }
+
+      // Store the info needed to compute the correction to account
+      // for the fact we only looked at a subset of the data.
+
+      assert.ok(!this.mapDataState[address]);
+      this.mapDataState[address] = {
+        logp: this.logp,
+        logq: this.logq,
+        logr: this.logr,
+        multiplier: batchSize > 0 ? (data.length / batchSize) - 1 : 0
+      };
+
+      return ix;
+    },
+
+    mapDataFinal: function(address) {
+      'use ad';
+
+      var state = this.mapDataState[address];
+      assert.ok(state !== undefined);
+
+      var noreparam = sameAdNode(this.logq, this.logr);
+      var m = state.multiplier;
+
+      this.logp += m * (this.logp - state.logp);
+      this.logq += m * (this.logq - state.logq);
+      if (noreparam) {
+        // The reparameterization trick has not been used yet.
+        // Continue representing logq and loqr with the same ad node.
+        this.logr = this.logq;
+      } else {
+        this.logr += m * (this.logr - state.logr);
+      }
+
+      this.mapDataState[address] = undefined;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
