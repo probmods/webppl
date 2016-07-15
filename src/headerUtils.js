@@ -148,29 +148,28 @@ module.exports = function(env) {
 
     assert.ok(ix === null || _.isArray(ix));
 
-    var batch = _.isArray(ix) ? ix.map(function(i) { return data[i]; }) : data;
-
-    return wpplCpsMapWithAddresses(s, function(s, v) {
+    return cpsMapData(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
         env.coroutine.mapDataFinal(a);
       }
       return k(s, v);
-    }, a, batch, ix, obsFn);
+    }, a, data, ix, obsFn);
   }
 
-  function wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc, i) {
+  function cpsMapData(s, k, a, data, indices, f, acc, i) {
     i = (i === undefined) ? 0 : i;
     acc = (acc === undefined) ? [] : acc;
-    if (i === arr.length) {
+    // null stands for `_.range(data.length)`.
+    var length = (indices === null) ? data.length : indices.length;
+    if (i === length) {
       return k(s, acc);
     } else {
-      // null stands for `_.range(arr.length)`.
-      var ix = (add === null) ? i : add[i];
+      var ix = (indices === null) ? i : indices[i];
       return f(s, function(s, v) {
         return function() {
-          return wpplCpsMapWithAddresses(s, k, a, arr, add, f, acc.concat([v]), i + 1);
+          return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
         };
-      }, a.concat('_$$' + ix), arr[i]);
+      }, a.concat('_$$' + ix), data[ix]);
     }
   }
 
