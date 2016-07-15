@@ -1,3 +1,7 @@
 var model = function() {
-  return mapData({data: [.6, .1]}, flip);
+  return mapData({data: [true, false]}, function(y) {
+    var x = flip();
+    factor(x === y ? 0 : -2);
+    return x;
+  });
 };
