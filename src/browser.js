@@ -19,12 +19,10 @@ var packages = [];
 var load = _.once(function() {
   // Load JS and headers from packages.
   packages.forEach(function(pkg) {
-    console.log('loaded ' + pkg.name + ' [' + pkg.version + ']');
     if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
     pkg.headers.forEach(webppl.requireHeaderWrapper);
   });
   var bundles = webppl.parsePackageCode(packages);
-  console.log('loaded webppl [' + version + ']');
   return bundles;
 });
 
@@ -63,5 +61,6 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  version: version
+  version: version,
+  packages: packages
 };

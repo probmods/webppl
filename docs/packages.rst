@@ -75,10 +75,10 @@ These macros will be visible to the WebPPL program which is been run
 or compiled, and to any WebPPL code within the same package. They will
 not be visible to WebPPL code in other packages.
 
-Javascript functions and libraries
+JavaScript functions and libraries
 ----------------------------------
 
-Any regular Javascript code within a package is made available in WebPPL
+Any regular JavaScript code within a package is made available in WebPPL
 as a global variable. The global variable takes the same name as the
 package except when the package name includes one or more ``-``
 characters. In such cases the name of the global variable is obtained by
@@ -94,7 +94,7 @@ For example, if the package ``my-package`` contains this file::
 Then the function ``myAdd`` will be available in WebPPL as
 ``myPackage.myAdd``.
 
-If your Javascript isn’t in an ``index.js`` file in the root of the
+If your JavaScript isn’t in an ``index.js`` file in the root of the
 package, you should indicate the entry point to your package by adding a
 ``main`` entry to ``package.json``. For example::
 
@@ -120,7 +120,7 @@ access WebPPL internals. Header files have access to the following:
 Let’s use the example of a function that makes the current address
 available in WebPPL:
 
-1. Write a Javascript file that exports a function. The function will be
+1. Write a JavaScript file that exports a function. The function will be
    called with the ``env`` container and should return an object
    containing the functions you want to use::
 
@@ -163,6 +163,43 @@ Package template
 
 The `WebPPL package template`_ provides a scaffold that you can extend to create your own packages.
 
+Useful packages
+---------------
+
+- `json`_: read/write json files
+- `csv`_: read/write csv files
+- `fs`_: read/write files in general
+- `dp`_: dynamic programming (caching for mutually recursive functions)
+- `linked-list`_: linked lists
+- `editor`_: browser based editor
+- `viz`_: visualization utilities
+- `gridworld`_: agent simulations
+- `timeit`_: timing utilities
+- `intercache`_: interpolating cache
+- `adnn`_: automatic differentiation library used for daipp
+- `oed`_: optimal experimental design
+
+These packages are no longer maintained, but may be worth a look:
+
+- `caches`_: cache inference results to disk
+- `formal`_: static analysis in Racket for WebPPL
+- `isosmc`_: utils for defining sequences of distributions for smc
+
 .. _sweet.js: http://sweetjs.org
 .. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules
 .. _WebPPL package template: https://github.com/probmods/webppl-package-template
+.. _json: https://github.com/stuhlmueller/webppl-json
+.. _csv: https://github.com/mhtess/webppl-csv
+.. _fs: https://github.com/null-a/webppl-fs
+.. _dp: https://github.com/stuhlmueller/webppl-dp
+.. _linked-list: https://github.com/null-a/webppl-linked-list
+.. _editor: https://github.com/probmods/webppl-editor
+.. _viz: https://github.com/probmods/webppl-viz
+.. _gridworld: https://github.com/agentmodels/webppl-gridworld
+.. _timeit: https://github.com/stuhlmueller/webppl-timeit
+.. _intercache: https://github.com/stuhlmueller/webppl-intercache
+.. _adnn: https://github.com/dritchie/adnn
+.. _oed: https://github.com/lydaniel/oed
+.. _caches: https://github.com/iffsid/webppl-caches
+.. _formal: https://github.com/kimmyg/webppl-formal
+.. _isosmc: https://github.com/stuhlmueller/isosmc
