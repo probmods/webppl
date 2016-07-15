@@ -13,6 +13,8 @@ var MaxAggregator = require('../aggregation/MaxAggregator');
 
 module.exports = function(env) {
 
+  var getProposalDist = require('./driftKernel')(env).getProposalDist;
+
   // ------------------------------------------------------------------
 
   // Debugging output
@@ -72,13 +74,14 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   // A cached distribution call
-  function DistNode(coroutine, parent, s, k, a, dist) {
+  function DistNode(coroutine, parent, s, k, a, dist, args) {
     this.coroutine = coroutine;
 
     this.store = _.clone(s);
     this.continuation = k;
     this.address = a;
     this.dist = dist;
+    this.args = args;
 
     this.parent = parent;
     this.depth = parent.depth + 1;
@@ -122,10 +125,11 @@ module.exports = function(env) {
     }
   };
 
-  DistNode.prototype.registerInputChanges = function(s, k, dist) {
+  DistNode.prototype.registerInputChanges = function(s, k, dist, args) {
     updateProperty(this, 'store', _.clone(s));
     updateProperty(this, 'continuation', k);
     updateProperty(this, 'index', this.parent.nextChildIdx);
+    updateProperty(this, 'args', args);
     this.reachable = true;
     if (!distEqual(dist, this.dist)) {
       this.needsUpdate = true;
@@ -146,38 +150,49 @@ module.exports = function(env) {
 
   DistNode.prototype.propose = function() {
     var oldval = this.val;
-    var fwdPropDist = this.dist.driftKernel ? this.dist.driftKernel(oldval) : this.dist;
-    var newval = fwdPropDist.sample();
-    tabbedlog(4, this.depth, 'proposing change to distribution.', 'oldval:', oldval, 'newval:', newval);
-    // If the value didn't change, then just bail out (we know the
-    //    the proposal will be accepted)
-    if (oldval === newval) {
-      tabbedlog(4, this.depth, "proposal didn't change value; bailing out early");
-      tabbedlog(5, this.depth, 'value:', this.val);
-      return this.coroutine.exit();
-    } else {
-      updateProperty(this, 'store', _.clone(this.store));
-      updateProperty(this, 'val', newval);
-      this.rescore();
-      var rvsPropDist = this.dist.driftKernel ? this.dist.driftKernel(newval) : this.dist;
-      this.coroutine.rvsPropLP = rvsPropDist.score(oldval);
-      this.coroutine.fwdPropLP = fwdPropDist.score(newval);
-      tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
-          'initial fwdPropLP:', this.coroutine.fwdPropLP);
-      this.needsUpdate = false;
-      if (this.coroutine.doFullRerun) {
-        // Mark every node above this one as needing update, then re-run
-        //    the program from the start
-        for (var node = this.parent; node !== null; node = node.parent)
-          node.needsUpdate = true;
-        return this.coroutine.runFromStart();
-      } else {
-        this.parent.notifyChildChanged(this);
-        // Restore node stack up to this point
-        this.coroutine.restoreStackUpTo(this.parent);
-        return this.execute();
-      }
-    }
+    var sampleOptions = this.args[0];
+
+    return getProposalDist(
+        this.store, this.address, this.dist, sampleOptions, oldval,
+        function(s, fwdPropDist) {
+
+          var newval = fwdPropDist.sample();
+          tabbedlog(4, this.depth, 'proposing change to distribution.', 'oldval:', oldval, 'newval:', newval);
+          // If the value didn't change, then just bail out (we know the
+          //    the proposal will be accepted)
+          if (oldval === newval) {
+            tabbedlog(4, this.depth, "proposal didn't change value; bailing out early");
+            tabbedlog(5, this.depth, 'value:', this.val);
+            return this.coroutine.exit();
+          } else {
+            updateProperty(this, 'store', _.clone(this.store));
+            updateProperty(this, 'val', newval);
+            this.rescore();
+
+            return getProposalDist(
+                s, this.address, this.dist, sampleOptions, newval,
+                function(s, rvsPropDist) {
+                  //var rvsPropDist = this.dist.driftKernel ? this.dist.driftKernel(newval) : this.dist;
+                  this.coroutine.rvsPropLP = rvsPropDist.score(oldval);
+                  this.coroutine.fwdPropLP = fwdPropDist.score(newval);
+                  tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
+                     'initial fwdPropLP:', this.coroutine.fwdPropLP);
+                  this.needsUpdate = false;
+                  if (this.coroutine.doFullRerun) {
+                    // Mark every node above this one as needing update, then re-run
+                    //    the program from the start
+                    for (var node = this.parent; node !== null; node = node.parent)
+                      node.needsUpdate = true;
+                    return this.coroutine.runFromStart();
+                  } else {
+                    this.parent.notifyChildChanged(this);
+                    // Restore node stack up to this point
+                    this.coroutine.restoreStackUpTo(this.parent);
+                    return this.execute();
+                  }
+                }.bind(this));
+          }
+        }.bind(this));
   };
 
   DistNode.prototype.rescore = function() {
@@ -836,8 +851,8 @@ module.exports = function(env) {
     return this.cachelookup(FactorNode, s, k, a, null, [score]).execute();
   };
 
-  IncrementalMH.prototype.sample = function(s, k, a, dist, name) {
-    var n = this.cachelookup(DistNode, s, k, a, dist);
+  IncrementalMH.prototype.sample = function(s, k, a, dist, options, name) {
+    var n = this.cachelookup(DistNode, s, k, a, dist, [options]);
     n.name = name;
     return n.execute();
   };

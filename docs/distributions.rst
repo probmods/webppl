@@ -68,12 +68,6 @@ Distributions
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
 
-.. js:function:: DirichletDrift({alpha: ...})
-
-  * alpha: vector of concentration parameters *(>0)*
-
-  Drift version of Dirichlet. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
-
 .. js:function:: Discrete({ps: ...})
 
   * ps: array or vector of probabilities *(in [0,1])*
@@ -107,13 +101,6 @@ Distributions
   Distribution over reals.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
-
-.. js:function:: GaussianDrift({mu: ..., sigma: ...})
-
-  * mu: mean (real)
-  * sigma: standard deviation (real) *(>0)*
-
-  Drift version of Gaussian. Drift kernels are used to narrow search during inference. Currently, the parameters guiding this narrowing are hard-coded.
 
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
@@ -178,12 +165,4 @@ Distributions
   Continuous uniform distribution over ``[a, b]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
-
-.. js:function:: UniformDrift({a: ..., b: ..., r: ...})
-
-  * a: lower bound (real)
-  * b: upper bound (real > a)
-  * r: drift kernel radius
-
-  Drift version of Uniform. Drift kernels are used to narrow search during inference. UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.
 

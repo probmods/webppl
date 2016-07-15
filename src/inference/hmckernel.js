@@ -41,7 +41,7 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  HMCKernel.prototype.sample = function(s, k, a, dist) {
+  HMCKernel.prototype.sample = function(s, k, a, dist, options) {
     var prevChoice = this.prevTrace.findChoice(a);
     if (!prevChoice) {
       throw new Error('HMC does not support structural continuous variables.');
@@ -82,7 +82,7 @@ module.exports = function(env) {
       val = prevChoice.val;
     }
 
-    this.trace.addChoice(dist, val, a, s, k);
+    this.trace.addChoice(dist, val, a, s, k, options);
     return k(s, val);
   };
 

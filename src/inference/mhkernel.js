@@ -7,6 +7,8 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
+  var getProposalDist = require('./driftKernel')(env).getProposalDist;
+
   function MHKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
       proposalBoundary: 0,
@@ -42,7 +44,7 @@ module.exports = function(env) {
     env.query.clear();
     this.trace = this.oldTrace.upto(this.regenFrom);
     var regen = this.oldTrace.choiceAtIndex(this.regenFrom);
-    return this.sample(_.clone(regen.store), regen.k, regen.address, regen.dist, undefined, true);
+    return this.resample(_.clone(regen.store), regen.k, regen.address, regen.dist, regen.options);
   };
 
   MHKernel.prototype.factor = function(s, k, a, score) {
@@ -59,30 +61,54 @@ module.exports = function(env) {
     return k(s);
   };
 
-  MHKernel.prototype.sample = function(s, k, a, dist, options, forceSample) {
-    var _val, val;
+  MHKernel.prototype.sample = function(s, k, a, dist, options) {
     var prevChoice = this.oldTrace.findChoice(a);
 
-    if (forceSample) {
-      assert(prevChoice);
-      var proposalDist = dist.driftKernel ? dist.driftKernel(prevChoice.val) : dist;
-      _val = proposalDist.sample();
-      val = this.adRequired && proposalDist.isContinuous ? ad.lift(_val) : _val;
-      // Optimization: Bail early if same value is re-sampled.
-      if (!proposalDist.isContinuous && prevChoice.val === val) {
-        return this.finish(this.oldTrace, true);
-      }
+    var val;
+    if (prevChoice) {
+      val = prevChoice.val; // Will be a tape if continuous.
+      this.reused[a] = true;
     } else {
-      if (prevChoice) {
-        val = prevChoice.val; // Will be a tape if continuous.
-        this.reused[a] = true;
-      } else {
-        _val = dist.sample();
-        val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
-      }
+      var _val = dist.sample();
+      val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
     }
 
-    this.trace.addChoice(dist, val, a, s, k);
+    return this.addChoiceToTrace(s, k, a, dist, options, val);
+  };
+
+  // Generation of a new proposal begins here, by re-sampling a value
+  // for the random choice selected as the regen point.
+  MHKernel.prototype.resample = function(s, k, a, dist, options) {
+    var prevChoice = this.oldTrace.findChoice(a);
+    assert(prevChoice);
+
+    return getProposalDist(s, a, dist, options, prevChoice.val, function(s, fwdProposalDist) {
+
+      var _val = fwdProposalDist.sample();
+      var val = this.adRequired && fwdProposalDist.isContinuous ? ad.lift(_val) : _val;
+
+      // Optimization: Bail early if same value is re-sampled.
+      if (!fwdProposalDist.isContinuous && prevChoice.val === val) {
+        return this.finish(this.oldTrace, true);
+      }
+
+      return getProposalDist(s, a, dist, options, val, function(s, revProposalDist) {
+
+        // Store references to the proposal distributions. Getting our
+        // hands on them again later (from the non-CPS acceptance
+        // probability code) would be tricky.
+        this.fwdProposalDist = fwdProposalDist;
+        this.revProposalDist = revProposalDist;
+
+        return this.addChoiceToTrace(s, k, a, dist, options, val);
+
+      }.bind(this));
+
+    }.bind(this));
+  };
+
+  MHKernel.prototype.addChoiceToTrace = function(s, k, a, dist, options, val) {
+    this.trace.addChoice(dist, val, a, s, k, options);
     if (ad.value(this.trace.score) === -Infinity) {
       return this.finish(this.oldTrace, false);
     }
@@ -153,29 +179,22 @@ module.exports = function(env) {
   MHKernel.prototype.acceptProb = function(trace, oldTrace) {
     // assert.notStrictEqual(trace, undefined);
     // assert.notStrictEqual(oldTrace, undefined);
+    // assert.notStrictEqual(this.fwdProposalDist, undefined);
+    // assert.notStrictEqual(this.revProposalDist, undefined);
     // assert(_.isNumber(ad.value(trace.score)));
     // assert(_.isNumber(ad.value(oldTrace.score)));
     // assert(_.isNumber(this.regenFrom));
     // assert(_.isNumber(this.proposalBoundary));
 
-    var fw = this.transitionProb(oldTrace, trace);
-    var bw = this.transitionProb(trace, oldTrace);
+    var fw = this.transitionProb(oldTrace, trace, this.fwdProposalDist);
+    var bw = this.transitionProb(trace, oldTrace, this.revProposalDist);
     var p = Math.exp(ad.value(trace.score) - ad.value(oldTrace.score) + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   };
 
-  MHKernel.prototype.transitionProb = function(fromTrace, toTrace) {
-    // Proposed to distribution.
-    var proposalDist;
+  MHKernel.prototype.transitionProb = function(fromTrace, toTrace, proposalDist) {
     var regenChoice = toTrace.choiceAtIndex(this.regenFrom);
-
-    if (regenChoice.dist.driftKernel) {
-      proposalDist = regenChoice.dist.driftKernel(fromTrace.choiceAtIndex(this.regenFrom).val);
-    } else {
-      proposalDist = regenChoice.dist;
-    }
-
     var score = ad.value(proposalDist.score(regenChoice.val));
 
     // Rest of the trace.

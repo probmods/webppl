@@ -86,7 +86,7 @@ module.exports = function(env) {
     var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv || this.saveTraces) {
-      particle.trace.addChoice(dist, val, a, s, k);
+      particle.trace.addChoice(dist, val, a, s, k, options);
     }
     return k(s, val);
   };

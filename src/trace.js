@@ -50,7 +50,7 @@ Trace.prototype.continue = function() {
   }
 };
 
-Trace.prototype.addChoice = function(dist, val, address, store, continuation) {
+Trace.prototype.addChoice = function(dist, val, address, store, continuation, options) {
   // Called at sample statements.
   // Adds the choice to the DB and updates current score.
 
@@ -63,6 +63,7 @@ Trace.prototype.addChoice = function(dist, val, address, store, continuation) {
     k: continuation,
     address: address,
     dist: dist,
+    options: options, // the options argument passed to sample
     // Record the score without adding the choiceScore. This is the score we'll
     // need if we regen from this choice.
     score: this.score,
