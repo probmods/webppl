@@ -38,7 +38,6 @@ The best guide to using WebPPL is `The Design and Implementation of Probabilisti
 Need help?
 ----------
 
-<<<<<<< HEAD
 If you have any questions about installing WebPPL or need help with your code, you can get help on `the Google group <https://groups.google.com/forum/#!forum/webppl-dev>`_.
 
 Updating WebPPL
