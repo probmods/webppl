@@ -118,8 +118,19 @@ module.exports = function(env) {
   // conditionally independent given the random choices made before
   // `mapData`.
 
-  // The way this information is used will be coroutine specific. When
-  // the current coroutine doesn't provide specific handling the
+  // It is the responsibility of individual coroutines to make use of
+  // this information in an appropriate way. To do so, coroutines
+  // should implement the following methods:
+
+  // mapDataFetch: Called when mapData is entered, providing an
+  // opportunity to perform book-keeping etc. This method should
+  // return an array of indices indicating the data to be mapped over.
+  // Alternatively, null can be returned to indicate that all data
+  // should be used.
+
+  // mapDataFinal: Called once all data have been mapped over.
+
+  // When the current coroutine doesn't provide specific handling the
   // behavior is equivalent to regular `map`.
 
   // This is still somewhat experimental. The interface may change in
@@ -138,12 +149,8 @@ module.exports = function(env) {
       throw new Error('mapData: Invalid batchSize.');
     }
 
-    // Query the coroutine to determine the subset of the data to map
-    // over.
     var ix = env.coroutine.mapDataFetch ?
         env.coroutine.mapDataFetch(data, batchSize, a) :
-        // null stands for all indices, in order. i.e.
-        // `_.range(data.length)`
         null;
 
     assert.ok(ix === null || _.isArray(ix));
@@ -159,7 +166,6 @@ module.exports = function(env) {
   function cpsMapData(s, k, a, data, indices, f, acc, i) {
     i = (i === undefined) ? 0 : i;
     acc = (acc === undefined) ? [] : acc;
-    // null stands for `_.range(data.length)`.
     var length = (indices === null) ? data.length : indices.length;
     if (i === length) {
       return k(s, acc);
