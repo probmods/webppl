@@ -1,5 +1,5 @@
 var model = function() {
-  var a = sample(Gaussian({mu: -2, sigma: 1.5}), {
+  var a = sample(Gaussian({mu: -4, sigma: 2}), {
     guide: Gaussian({
       mu: param(0),
       sigma: Math.exp(param(0))
