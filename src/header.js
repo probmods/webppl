@@ -53,7 +53,7 @@ module.exports = function(env) {
 
   // Inference interface
 
-  env.coroutine = {
+  env.defaultCoroutine = {
     sample: function(s, k, a, dist) {
       return k(s, dist.sample());
     },
@@ -69,7 +69,11 @@ module.exports = function(env) {
     }
   };
 
-  env.defaultCoroutine = env.coroutine;
+  // Called at the start of every program.
+  env.reset = function(s, k, a) {
+    env.coroutine = env.defaultCoroutine;
+    return k(s);
+  };
 
   env.sample = function(s, k, a, dist, options) {
     if (!dists.isDist(dist)) {
@@ -128,7 +132,8 @@ module.exports = function(env) {
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
     incrementalize: env.incrementalize,
-    query: env.query
+    query: env.query,
+    resetEnv: env.reset
   });
 
   // Modules we want to use from webppl
