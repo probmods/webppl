@@ -11,6 +11,8 @@ var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
+var errors = require('./errors/browser');
+var util = require('./util');
 
 // These are populated by the bundle.js browserify transform.
 var version = '';
@@ -27,12 +29,17 @@ var load = _.once(function() {
 });
 
 function run(code, k, options) {
-  if (options === undefined) {
-    options = {};
-  }
-  var optionsExtended = _.extend({bundles: load()}, options);
-
-  return webppl.run(code, k, optionsExtended);
+  options = util.mergeDefaults(options, {
+    filename: 'webppl:program',
+    debug: false,
+    errorHandlers: []
+  });
+  var handlers = options.debug ?
+      [errors.debugHandler(options.filename)].concat(options.errorHandlers) :
+      options.errorHandlers;
+  options.errorHandlers = handlers;
+  options.bundles = load();
+  return webppl.run(code, k, options);
 }
 
 function compile(code, options) {
