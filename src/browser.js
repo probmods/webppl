@@ -66,6 +66,7 @@ function webpplNaming(code) {
 global.webppl = {
   run: run,
   compile: compile,
+  compileBase: webppl.compile,
   cps: webpplCPS,
   naming: webpplNaming,
   version: version,

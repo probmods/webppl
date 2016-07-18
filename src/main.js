@@ -227,10 +227,11 @@ function wrapRunner(baseRunner, handlers) {
 
 function run(code, k, options) {
   options = util.mergeDefaults(options, {
+    compile: compile,
     errorHandlers: []
   });
 
-  var codeAndAssets = compile(code, options);
+  var codeAndAssets = options.compile(code, options);
 
   var currentAddress = {value: undefined};
   var defaultHandler = function(error) {
