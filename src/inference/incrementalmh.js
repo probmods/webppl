@@ -175,7 +175,6 @@ module.exports = function(env) {
             return drift.getProposalDist(
                 s, this.address, this.dist, sampleOptions, newval,
                 function(s, rvsPropDist) {
-                  //var rvsPropDist = this.dist.driftKernel ? this.dist.driftKernel(newval) : this.dist;
                   this.coroutine.rvsPropLP = rvsPropDist.score(oldval);
                   this.coroutine.fwdPropLP = fwdPropDist.score(newval);
                   tabbedlog(1, this.depth, 'initial rvsPropLP:', this.coroutine.rvsPropLP,
