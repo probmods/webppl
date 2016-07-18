@@ -43,10 +43,6 @@ statement using the ``driftKernel`` option like so::
 
   sample(dist, {driftKernel: kernelFn});
 
-Note that the :ref:`distribution <distributions>` returned by the
-drift kernel function ``kernelFn`` should have support everywhere
-``dist`` has support.
-
 To use our ``gaussianKernel`` with a Cauchy random choice we would
 write::
 
