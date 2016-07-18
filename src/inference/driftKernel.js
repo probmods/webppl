@@ -1,5 +1,7 @@
 'use strict';
 
+var util = require('../util');
+
 module.exports = function(env) {
 
   var driftKernelCoroutine = {
@@ -42,8 +44,19 @@ module.exports = function(env) {
     };
   }
 
+  // We show a warning when the score of a drift proposal is -Infinity
+  // as it's likely this is caused by a bug in the drift kernel
+  // function.
+  function proposalWarning(priorDist) {
+    util.warn(
+        'Proposal from drift kernel has zero probability under ' +
+        priorDist.meta.name +
+        ' prior.');
+  }
+
   return {
-    getProposalDist: getProposalDist
+    getProposalDist: getProposalDist,
+    proposalWarning: proposalWarning
   };
 
 };

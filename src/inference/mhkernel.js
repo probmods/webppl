@@ -7,7 +7,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  var getProposalDist = require('./driftKernel')(env).getProposalDist;
+  var drift = require('./driftKernel')(env);
 
   function MHKernel(cont, oldTrace, options) {
     var options = util.mergeDefaults(options, {
@@ -82,7 +82,7 @@ module.exports = function(env) {
     var prevChoice = this.oldTrace.findChoice(a);
     assert(prevChoice);
 
-    return getProposalDist(s, a, dist, options, prevChoice.val, function(s, fwdProposalDist) {
+    return drift.getProposalDist(s, a, dist, options, prevChoice.val, function(s, fwdProposalDist) {
 
       var _val = fwdProposalDist.sample();
       var val = this.adRequired && fwdProposalDist.isContinuous ? ad.lift(_val) : _val;
@@ -92,7 +92,7 @@ module.exports = function(env) {
         return this.finish(this.oldTrace, true);
       }
 
-      return getProposalDist(s, a, dist, options, val, function(s, revProposalDist) {
+      return drift.getProposalDist(s, a, dist, options, val, function(s, revProposalDist) {
 
         // Store references to the proposal distributions. Getting our
         // hands on them again later (from the non-CPS acceptance
@@ -110,6 +110,9 @@ module.exports = function(env) {
   MHKernel.prototype.addChoiceToTrace = function(s, k, a, dist, options, val) {
     this.trace.addChoice(dist, val, a, s, k, options);
     if (ad.value(this.trace.score) === -Infinity) {
+      if (_.has(options, 'driftKernel')) {
+        drift.proposalWarning(dist);
+      }
       return this.finish(this.oldTrace, false);
     }
     return k(s, val);
