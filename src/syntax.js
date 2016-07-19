@@ -13,12 +13,18 @@ function makeGenvar() {
   };
 }
 
-function fail(message, node) {
-  return function() {
-    console.log(node);
-    console.log(message);
-    throw new Error(message);
-  };
+function fail(message, node, simpleMessage) {
+  if (simpleMessage === true) {
+    return function() {
+      throw message;
+    }
+  } else {
+    return function() {
+      console.log(node);
+      console.log(message);
+      throw new Error(message);
+    };
+  }
 }
 
 // a clause matches a node type and calls a destructor with constituents
@@ -114,7 +120,7 @@ function returnify(nodes) {
       clause(Syntax.ReturnStatement, function(argument) {
         return build.returnStatement(argument);
       })
-    ], fail('returnify', nodes[nodes.length - 1]));
+    ], fail('Error: programs must end with a return value. Try adding a return statement at the end of your program (the return keyword is optional).', nodes[nodes.length - 1], true));
 
     return nodes;
   }
