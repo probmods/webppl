@@ -5,8 +5,8 @@ var Syntax = require('estraverse').Syntax;
 var replace = require('estraverse').replace;
 var build = require('ast-types').builders;
 
-var local = '_currentAddress';
-var global = '_globalCurrentAddress';
+var localVarName = '_currentAddress';
+var globalVarName = '_globalCurrentAddress';
 var saveAddressFn = ['_addr', 'save'];
 
 // Transform a function body so that the entry address is:
@@ -20,7 +20,7 @@ function transformFnBody(node) {
 
   var bindAddress = build.variableDeclaration('var', [
     build.variableDeclarator(
-        build.identifier(local),
+        build.identifier(localVarName),
         addressParam)]);
 
   // Use member expression so that this isn't cps'd. Writing as an
@@ -32,7 +32,7 @@ function transformFnBody(node) {
       build.identifier(saveAddressFn[0]),
       build.identifier(saveAddressFn[1])
       ), [
-        build.identifier(global),
+        build.identifier(globalVarName),
         addressParam]));
 
   var expr = build.functionExpression(
@@ -73,8 +73,8 @@ function transformContinuation(node) {
       build.identifier(saveAddressFn[0]),
       build.identifier(saveAddressFn[1])
       ), [
-        build.identifier(global),
-        build.identifier(local)]));
+        build.identifier(globalVarName),
+        build.identifier(localVarName)]));
 
   var expr = build.functionExpression(
       node.id,
@@ -114,7 +114,7 @@ function wrapProgram(node) {
     build.expressionStatement(
         build.functionExpression(
         null,
-        [build.identifier(global)],
+        [build.identifier(globalVarName)],
         build.blockStatement([
           build.returnStatement(expr)
         ])))]);
