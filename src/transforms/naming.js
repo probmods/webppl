@@ -3,7 +3,8 @@
 var _ = require('underscore');
 var Syntax = require('estraverse').Syntax;
 var replace = require('estraverse').replace;
-var build = require('ast-types').builders;
+var build = require('./builders');
+
 
 var makeGensym = require('../util').makeGensym;
 var makeGenvar = require('../syntax').makeGenvar;
@@ -57,7 +58,7 @@ function naming(node, map) {
         var name = node.callee.type === Syntax.Identifier ? node.callee.name : null;
         map[lit.value] = _.extendOwn({name: name}, node.loc);
         return build.callExpression(node.callee,
-            [makeAddressExtension(addresses[0], lit)].concat(node.arguments));
+            [makeAddressExtension(addresses[0], lit)].concat(node.arguments), node.loc);
       }
 
     default:

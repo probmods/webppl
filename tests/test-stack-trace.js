@@ -40,6 +40,12 @@ var testDefs = [
     debug: true
   },
 
+  { name: 'intermediate value not a function',
+    code: 'var f = function() {}; f()();',
+    stack: [{line: 1, col: 23, name: null}],
+    debug: true
+  },
+
   { name: 'header',
     code: 'first(null);',
     stack: [

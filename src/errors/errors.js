@@ -64,6 +64,10 @@ function filterJsStackTrace(stackTrace) {
   return stackTrace.slice(0, ix).concat(stackTrace[ix]);
 }
 
+function filterGensym(name) {
+  return name.slice(0, 7) === '_result' ? null : name;
+}
+
 function sourceMapJsStackTrace(stackTrace, sourceMap) {
   // Takes a parsed stack trace and rewrites webppl entries to refer
   // to their original location in the source program.
@@ -87,7 +91,7 @@ function sourceMapJsStackTrace(stackTrace, sourceMap) {
         columnNumber: pos.column,
         native: entry.native,
         webppl: true,
-        name: pos.name
+        name: filterGensym(pos.name)
       };
     } else {
       return entry;
