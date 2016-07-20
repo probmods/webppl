@@ -105,6 +105,16 @@ var testDefs = [
     debug: true
   },
 
+  // This currently passes only because we call resetEnv in
+  // header.wppl. Without that this would raise an error before we
+  // start using the trampoline runner, which is therefore outside of
+  // any error handlers.
+  { name: 'before first trampoline step',
+    code: 'var a = b; 0',
+    stack: [{line: 1, col: 8, name: 'b'}],
+    debug: true
+  },
+
   // The idea here is to test that the stack is as expected at the
   // error which occurs after we continue from the sample statement
   // for the second time.
