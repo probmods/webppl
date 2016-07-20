@@ -11,7 +11,7 @@ var rng = Math.random;
 var trampolineRunners = {
   web: function(yieldEvery) {
     yieldEvery = yieldEvery || 100;
-    var f = function(t, wrapped) {
+    var f = function(t, wrappedF) {
       var lastPauseTime = Date.now();
 
       if (f.__cancel__) {
@@ -23,7 +23,7 @@ var trampolineRunners = {
             // NB: return is crucial here as it exits the while loop
             // and i'm using return rather than break because we might
             // one day want to cancel the timer
-            return setTimeout(function() { wrapped(t, wrapped); }, 0);
+            return setTimeout(function() { wrappedF(t, wrappedF); }, 0);
           } else {
             t = t();
           }
