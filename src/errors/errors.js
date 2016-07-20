@@ -25,9 +25,9 @@ function addressToStack(address) {
 
 function addressToWpplCallStack(address, addressMap) {
   var stack = addressToStack(address);
-  return stack.map(function(id) {
+  return _.chain(stack).map(function(id) {
     var loc = addressMap[id];
-    return {
+    return loc && {
       fileName: loc.source,
       lineNumber: loc.start.line,
       columnNumber: loc.start.column,
@@ -36,8 +36,7 @@ function addressToWpplCallStack(address, addressMap) {
       name: loc.name,
       id: id
     };
-
-  });
+  }).filter().value();
 }
 
 function recoverStack(error, parseStack) {

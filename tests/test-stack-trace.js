@@ -97,6 +97,14 @@ var testDefs = [
     debug: false
   },
 
+  { name: 'call site not in address map',
+    code: ['mapData({data: [0]}, function(x) {',
+           '  null[0];',
+           '})'].join('\n'),
+    stack: [{line: 2, col: 2, name: null}],
+    debug: true
+  },
+
   // The idea here is to test that the stack is as expected at the
   // error which occurs after we continue from the sample statement
   // for the second time.
