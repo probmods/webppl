@@ -65,11 +65,7 @@ QUnit.test(
     }));
 
 QUnit.test('compile', function(test) {
-  test.ok(_.isString(webppl.compile('1 + 1')));
-});
-
-QUnit.test('compile with source map', function(test) {
-  var codeAndMap = webppl.compile('1 + 1', {sourceMap: true});
+  var codeAndMap = webppl.compile('1 + 1');
   test.ok(_.isString(codeAndMap.code));
   test.ok(_.isObject(codeAndMap.sourceMap));
 });

@@ -28,27 +28,25 @@ var load = _.once(function() {
   return bundles;
 });
 
-function run(code, k, options) {
+function prepare(codeAndAssets, k, options) {
   options = util.mergeDefaults(options, {
     filename: 'webppl:program',
-    debug: false,
     errorHandlers: []
   });
-  var handlers = options.debug ?
-      [errors.debugHandler(options.filename)].concat(options.errorHandlers) :
-      options.errorHandlers;
-  options.errorHandlers = handlers;
-  options.bundles = load();
-  return webppl.run(code, k, options);
+  var extraHandlers = options.debug ? [errors.debugHandler(options.filename)] : [];
+  options.errorHandlers = extraHandlers.concat(options.errorHandlers);
+  return webppl.prepare(codeAndAssets, k, options);
+}
+
+function run(code, k, options) {
+  var codeAndAssets = compile(code, options);
+  prepare(codeAndAssets, k, options).run();
 }
 
 function compile(code, options) {
-  if (options === undefined) {
-    options = {};
-  }
-  var optionsExtended = _.extend({bundles: load()}, _.omit(options, 'sourceMap'));
-  var codeAndMap = webppl.compile(code, optionsExtended);
-  return options.sourceMap ? codeAndMap : codeAndMap.code;
+  options = options || {};
+  var optionsExtended = _.extend({bundles: load()}, options);
+  return webppl.compile(code, optionsExtended);
 }
 
 function webpplCPS(code) {
@@ -64,9 +62,9 @@ function webpplNaming(code) {
 }
 
 global.webppl = {
+  prepare: prepare,
   run: run,
   compile: compile,
-  compileBase: webppl.compile,
   cps: webpplCPS,
   naming: webpplNaming,
   version: version,

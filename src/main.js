@@ -225,13 +225,10 @@ function wrapRunner(baseRunner, handlers) {
   return runner;
 }
 
-function run(code, k, options) {
+function prepare(codeAndAssets, k, options) {
   options = util.mergeDefaults(options, {
-    compile: compile,
     errorHandlers: []
   });
-
-  var codeAndAssets = options.compile(code, options);
 
   var currentAddress = {value: undefined};
   var defaultHandler = function(error) {
@@ -240,13 +237,21 @@ function run(code, k, options) {
   };
   var allErrorHandlers = [defaultHandler].concat(options.errorHandlers);
 
-  // Wrap runner with all error handlers.
-  var baseRunner = options.runner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
+  // Wrap base runner with all error handlers.
+  var baseRunner = options.baseRunner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
-  util.timeif(options.verbose, 'run', function() {
+  var run = function() {
     eval.call(global, codeAndAssets.code)(currentAddress)(runner)({}, k, '');
-  });
+  };
+
+  return {run: run, runner: runner};
+}
+
+function run(code, k, options) {
+  options = options || {};
+  var codeAndAssets = compile(code, options);
+  util.timeif(options.verbose, 'run', prepare(codeAndAssets, k, options).run);
 }
 
 // Make webppl eval available within webppl
@@ -272,6 +277,7 @@ module.exports = {
   requireHeader: requireHeader,
   requireHeaderWrapper: requireHeaderWrapper,
   parsePackageCode: parsePackageCode,
+  prepare: prepare,
   run: run,
   compile: compile
 };
