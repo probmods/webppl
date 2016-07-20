@@ -16,7 +16,7 @@ var saveAddressFn = ['_addr', 'save'];
 // function is evaluated.
 
 function transformFnBody(node) {
-  var addressParam = node.params[0];
+  var addressParam = node.params[2];
 
   var bindAddress = build.variableDeclaration('var', [
     build.variableDeclarator(
@@ -43,20 +43,6 @@ function transformFnBody(node) {
   expr.loc = node.loc;
   return expr;
 }
-
-function transformF(node) {
-  switch (node.type) {
-    case Syntax.FunctionExpression:
-      return transformFnBody(node);
-    default:
-      return node;
-  }
-}
-
-// TODO: When unnecessary continuations are optimized away, *lots* of
-// calls to the save address function are left behind. Make them go
-// away. (Note, switching to an assignment expression here doesn't
-// help.)
 
 // Transform a continuation so that the current address is written to
 // a global variable when the continuation is invoked. This serves two
@@ -87,17 +73,24 @@ function transformContinuation(node) {
 
 // The store, naming and cps transforms have happened, so regular
 // functions have 3+ parameters, continuations have 2.
+
+function isWpplFnExpr(node) {
+  return node.params.length >= 3;
+}
+
 function isContinuation(node) {
   return node.params.length === 2;
 }
 
-function transformK(node) {
+function transform(node) {
   switch (node.type) {
     case Syntax.FunctionExpression:
       if (isContinuation(node)) {
         return transformContinuation(node);
+      } else if (isWpplFnExpr(node)) {
+        return transformFnBody(node);
       } else {
-        return node;
+        throw 'unreachable';
       }
     default:
       return node;
@@ -121,14 +114,9 @@ function wrapProgram(node) {
 }
 
 module.exports = {
-  transformF: function(node) {
+  transform: function(node) {
     return replace(node, {
-      leave: transformF
-    });
-  },
-  transformK: function(node) {
-    return replace(node, {
-      leave: transformK
+      leave: transform
     });
   },
   wrapProgram: wrapProgram

@@ -170,12 +170,11 @@ function compile(code, options) {
     thunkify,
     naming,
     saveAddressMap,
-    options.debug ? stack.transformF : _.identity,
     varargs,
     cps,
     store,
-    options.debug ? stack.transformK : _.identity,
     optimize,
+    options.debug ? stack.transform : _.identity,
     trampoline,
     stack.wrapProgram
   ];
