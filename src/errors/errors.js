@@ -65,7 +65,7 @@ function filterJsStackTrace(stackTrace) {
 }
 
 function filterGensym(name) {
-  return name.slice(0, 7) === '_result' ? null : name;
+  return name === null || name.slice(0, 7) === '_result' ? null : name;
 }
 
 function sourceMapJsStackTrace(stackTrace, sourceMap) {
