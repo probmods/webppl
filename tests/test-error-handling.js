@@ -19,19 +19,19 @@ var tests = [
   function(test) {
     var error = getError('util.fatal("fail")', test);
     test.strictEqual(typeof error, 'string');
-    test.ok(error.includes('fail'));
+    test.ok(error.match(/fail/));
     test.done();
   },
   function(test) {
     var error = getError('webpplEval("a")', test);
     test.strictEqual(typeof error, 'string');
-    test.ok(error.includes('a is not defined'));
+    test.ok(error.match(/a is not defined/));
     test.done();
   },
   function(test) {
     var error = getError('webpplEval("webpplEval(a)")', test);
     test.strictEqual(typeof error, 'string');
-    test.ok(error.includes('a is not defined'));
+    test.ok(error.match(/a is not defined/));
     test.done();
   }
 ];
