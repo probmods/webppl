@@ -55,9 +55,26 @@ function atomize(node, metaK) {
       });
     }),
     clause(Syntax.AssignmentExpression, function(left, right) {
+      var errorMessage = function() {
+        var line = left.loc.start.line;
+        var msg;
+        if (left.type === Syntax.MemberExpression) {
+          if (left.object.name !== 'globalStore') {
+            msg = 'You tried to assign to a field of ' + left.object.name +
+                ', but you can only assign to fields of globalStore';
+          }
+        } else {
+          if (left.name == 'globalStore') {
+            msg = 'You must assign to a field of globalStore, not globalStore itself'
+          } else {
+            msg = 'Did you mean var ' + left.name + ' = ?'
+          }
+        }
+        return 'Line ' + line + ': ' + msg;
+      }
       assert(left.type === Syntax.MemberExpression &&
              left.object.name === 'globalStore',
-             'Assignment is allowed only to fields of globalStore.');
+             errorMessage());
       return atomize(left, function(left) {
         return atomize(right, function(right) {
           return metaK(build.assignmentExpression(node.operator, left, right));
