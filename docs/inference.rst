@@ -335,6 +335,46 @@ Optimization
 
      Infer({method: 'optimize', samples: 100, steps: 100}, model);
 
+Forward Sampling
+----------------
+
+.. js:function:: Infer({method: 'forward'[, ...]}, model)
+
+   This method builds a histogram of return values obtained by
+   repeatedly executing either the target or :ref:`guide <guides>`
+   program given by ``model``.
+
+   While the :ref:`guide <guides>` does not include ``factor``
+   statements by definition, those in the target are ignored by this
+   method.
+
+   When executing the target, this method often corresponds to
+   sampling from the prior of a model.
+
+   The following options are supported:
+
+   .. describe:: samples
+
+      The number of samples to take.
+
+      Default: ``1``
+
+   .. describe:: guide
+
+      When ``true``, execute the guide. Otherwise, execute the target.
+
+      Default: ``false``
+
+   .. describe:: params
+
+      Guide program parameters. Optional, and only used when executing
+      the guide program.
+
+   Example usage::
+
+     Infer({method: 'forward'}, model);
+     Infer({method: 'forward', guide: true, params: optimizedParams}, model);
+
 .. rubric:: Bibliography
 
 .. [wingate11] David Wingate, Andreas Stuhlmüller, and Noah D.
