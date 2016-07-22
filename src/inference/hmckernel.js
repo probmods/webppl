@@ -100,6 +100,15 @@ module.exports = function(env) {
 
   HMCKernel.prototype.run = function() {
 
+    // Immediately return from coroutine if there are no continuous
+    // random choices to propose to.
+    var numChoices = this.oldTrace.choices.reduce(function(acc, c) {
+      return acc + (c.dist.isContinuous ? 1 : 0);
+    }, 0);
+    if (numChoices === 0) {
+      return this.continue(this.oldTrace);
+    }
+
     // Zero derivatives left over from previous HMC iterations, or
     // from the rejuvenation of a particle which shares parts of the
     // ad graph which this trace.
@@ -234,6 +243,10 @@ module.exports = function(env) {
         total: oldInfo.total + 1
       };
     }
+    return this.continue(trace);
+  };
+
+  HMCKernel.prototype.continue = function(trace) {
     env.coroutine = this.coroutine;
     return this.cont(trace);
   };

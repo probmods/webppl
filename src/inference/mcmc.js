@@ -113,8 +113,8 @@ module.exports = function(env) {
   }
 
   function formatOutput(trace, i) {
-    var ratio = (trace.info.accepted / trace.info.total).toFixed(4);
-    return 'Iteration: ' + i + ' | Acceptance ratio: ' + ratio;
+    var ratio = (trace.info.total === 0) ? 0 : trace.info.accepted / trace.info.total;
+    return 'Iteration: ' + i + ' | Acceptance ratio: ' + ratio.toFixed(4);
   }
 
   function makeVMCallbackForPlatform() {

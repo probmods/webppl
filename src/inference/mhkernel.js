@@ -37,7 +37,9 @@ module.exports = function(env) {
   MHKernel.prototype.run = function() {
     this.regenFrom = this.sampleRegenChoice(this.oldTrace);
     if (this.regenFrom < 0) {
-      return this.finish(this.oldTrace, true);
+      // Immediately return from coroutine if there are no random
+      // choices to propose to.
+      return this.continue(this.oldTrace);
     }
     env.query.clear();
     this.trace = this.oldTrace.upto(this.regenFrom);
@@ -114,6 +116,10 @@ module.exports = function(env) {
         total: oldInfo.total + 1
       };
     }
+    return this.continue(trace);
+  };
+
+  MHKernel.prototype.continue = function(trace) {
     env.coroutine = this.coroutine;
     return this.cont(trace);
   };
