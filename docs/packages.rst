@@ -1,5 +1,5 @@
-WebPPL Packages
-===============
+Packages
+========
 
 WebPPL packages are regular Node.js packages optionally extended to
 include WebPPL code, macros and headers.
@@ -170,13 +170,11 @@ Useful packages
 - `csv`_: read/write csv files
 - `fs`_: read/write files in general
 - `dp`_: dynamic programming (caching for mutually recursive functions)
-- `linked-list`_: linked lists
 - `editor`_: browser based editor
 - `viz`_: visualization utilities
 - `gridworld`_: agent simulations
 - `timeit`_: timing utilities
 - `intercache`_: interpolating cache
-- `adnn`_: automatic differentiation library used for daipp
 - `oed`_: optimal experimental design
 
 These packages are no longer maintained, but may be worth a look:
@@ -184,6 +182,7 @@ These packages are no longer maintained, but may be worth a look:
 - `caches`_: cache inference results to disk
 - `formal`_: static analysis in Racket for WebPPL
 - `isosmc`_: utils for defining sequences of distributions for smc
+- `linked-list`_: linked lists
 
 .. _sweet.js: http://sweetjs.org
 .. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules
@@ -192,14 +191,13 @@ These packages are no longer maintained, but may be worth a look:
 .. _csv: https://github.com/mhtess/webppl-csv
 .. _fs: https://github.com/null-a/webppl-fs
 .. _dp: https://github.com/stuhlmueller/webppl-dp
-.. _linked-list: https://github.com/null-a/webppl-linked-list
 .. _editor: https://github.com/probmods/webppl-editor
 .. _viz: https://github.com/probmods/webppl-viz
 .. _gridworld: https://github.com/agentmodels/webppl-gridworld
 .. _timeit: https://github.com/stuhlmueller/webppl-timeit
 .. _intercache: https://github.com/stuhlmueller/webppl-intercache
-.. _adnn: https://github.com/dritchie/adnn
 .. _oed: https://github.com/lydaniel/oed
 .. _caches: https://github.com/iffsid/webppl-caches
 .. _formal: https://github.com/kimmyg/webppl-formal
 .. _isosmc: https://github.com/stuhlmueller/isosmc
+.. _linked-list: https://github.com/null-a/webppl-linked-list
