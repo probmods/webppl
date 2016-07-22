@@ -100,17 +100,17 @@ module.exports = function(env) {
         this.fwdProposalDist = fwdProposalDist;
         this.revProposalDist = revProposalDist;
 
-        return this.addChoiceToTrace(s, k, a, dist, options, val);
+        return this.addChoiceToTrace(s, k, a, dist, options, val, true);
 
       }.bind(this));
 
     }.bind(this));
   };
 
-  MHKernel.prototype.addChoiceToTrace = function(s, k, a, dist, options, val) {
+  MHKernel.prototype.addChoiceToTrace = function(s, k, a, dist, options, val, atResample) {
     this.trace.addChoice(dist, val, a, s, k, options);
     if (ad.value(this.trace.score) === -Infinity) {
-      if (_.has(options, 'driftKernel')) {
+      if (atResample && _.has(options, 'driftKernel')) {
         drift.proposalWarning(dist);
       }
       return this.finish(this.oldTrace, false);

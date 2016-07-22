@@ -119,9 +119,6 @@ module.exports = function(env) {
     // Bail out early if we know proposal will be rejected
     if (this.score === -Infinity) {
       tabbedlog(4, this.depth, 'score became -Infinity; bailing out early');
-      if (_.has(this.args[0], 'driftKernel')) {
-        drift.proposalWarning(this.dist);
-      }
       return this.coroutine.exit();
     } else {
       return this.kontinue();
@@ -171,6 +168,9 @@ module.exports = function(env) {
             updateProperty(this, 'store', _.clone(this.store));
             updateProperty(this, 'val', newval);
             this.rescore();
+            if (this.score === -Infinity && _.has(sampleOptions, 'driftKernel')) {
+              drift.proposalWarning(this.dist);
+            }
 
             return drift.getProposalDist(
                 s, this.address, this.dist, sampleOptions, newval,
