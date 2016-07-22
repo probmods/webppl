@@ -1,7 +1,7 @@
 var webppl = require('../src/main');
 var util = require('../src/util');
 var dists = require('../src/dists');
-var helpers = require('./helpers');
+var helpers = require('./helpers/helpers');
 
 // notes for more extensive tests
 // binomial space: N * P * X

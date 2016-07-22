@@ -3,19 +3,14 @@
 Inference
 =========
 
-.. js:function:: Infer(options, thunk)
+.. js:function:: Infer(options, model)
 
    :param object options: Inference options.
-   :param function thunk: Program to perform inference in.
+   :param function model: Program to perform inference in.
 
-``Infer`` computes the marginal distribution on return values of a
-program. The program is specified as a function of zero arguments,
-also known as a `thunk`.
+``Infer`` computes the marginal distribution on return values of a program `(model)`. The inference algorithm must be specified using the ``method`` option. For example::
 
-The inference algorithm to use must be specified using the ``method``
-option. For example::
-
-  Infer({method: 'enumerate'}, thunk)
+  Infer({method: 'enumerate'}, model)
 
 The following algorithms are available:
 
@@ -24,7 +19,7 @@ The following algorithms are available:
 Enumeration
 -----------
 
-.. js:function:: Infer({method: 'enumerate'[, ...]}, thunk)
+.. js:function:: Infer({method: 'enumerate'[, ...]}, model)
 
    This method performs inference by enumeration.
 
@@ -46,13 +41,13 @@ Enumeration
 
    Example usage::
 
-     Infer({method: 'enumerate', maxExecutions: 10}, thunk);
-     Infer({method: 'enumerate', strategy: 'breadthFirst'}, thunk);
+     Infer({method: 'enumerate', maxExecutions: 10}, model);
+     Infer({method: 'enumerate', strategy: 'breadthFirst'}, model);
 
-Rejection Sampling
+Rejection sampling
 ------------------
 
-.. js:function:: Infer({method: 'rejection'[, ...]}, thunk)
+.. js:function:: Infer({method: 'rejection'[, ...]}, model)
 
    This method performs inference using rejection sampling.
 
@@ -85,12 +80,12 @@ Rejection Sampling
 
    Example usage::
 
-     Infer({method: 'rejection', samples: 100}, thunk);
+     Infer({method: 'rejection', samples: 100}, model);
 
 MCMC
 ----
 
-.. js:function:: Infer({method: 'MCMC'[, ...]}, thunk)
+.. js:function:: Infer({method: 'MCMC'[, ...]}, model)
 
    This method performs inference using Markov chain Monte Carlo.
 
@@ -147,7 +142,7 @@ MCMC
 
    Example usage::
 
-     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5}, thunk);
+     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5}, model);
 
 Kernels
 ^^^^^^^
@@ -160,7 +155,7 @@ The following kernels are available:
 
 Example usage::
 
-    Infer({method: 'MCMC', kernel: 'MH'}, thunk);
+    Infer({method: 'MCMC', kernel: 'MH'}, model);
 
 .. describe:: HMC
 
@@ -186,13 +181,13 @@ Example usage::
 
 Example usage::
 
-    Infer({method: 'MCMC', kernel: 'HMC'}, thunk);
-    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}}, thunk);
+    Infer({method: 'MCMC', kernel: 'HMC'}, model);
+    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}}, model);
 
 Incremental MH
 --------------
 
-.. js:function:: Infer({method: 'incrementalMH'[, ...]}, thunk)
+.. js:function:: Infer({method: 'incrementalMH'[, ...]}, model)
 
    This method performs inference using C3. [ritchie15]_
 
@@ -243,7 +238,7 @@ Incremental MH
 
    Example usage::
 
-     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, thunk);
+     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, model);
 
    To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
 
@@ -267,7 +262,7 @@ Incremental MH
 
       .. js:function:: query.add(name, value)
 
-         :param any name: Name of value to be added to query. Will be converted to string, as Javascript object keys are.
+         :param any name: Name of value to be added to query. Will be converted to string, as JavaScript object keys are.
          :param any value: Value to be added to query.
          :returns: undefined
 
@@ -275,7 +270,7 @@ Incremental MH
 SMC
 ---
 
-.. js:function:: Infer({method: 'SMC'[, ...]}, thunk)
+.. js:function:: Infer({method: 'SMC'[, ...]}, model)
 
    This method performs inference using sequential Monte Carlo. When
    ``rejuvSteps`` is 0, this method is also known as a particle
@@ -305,7 +300,7 @@ SMC
 
    Example usage::
 
-     Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, thunk);
+     Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, model);
 
    By default SMC uses the prior as the importance distribution. Other
    distributions can be used by specifying :ref:`guide distributions
@@ -317,7 +312,7 @@ SMC
 Optimization
 ------------
 
-.. js:function:: Infer({method: 'optimize'[, ...]}, thunk)
+.. js:function:: Infer({method: 'optimize'[, ...]}, model)
 
    This method performs inference by :ref:`optimizing <optimization>`
    the parameters of the guide program. The marginal distribution is a
@@ -338,7 +333,47 @@ Optimization
 
    Example usage::
 
-     Infer({method: 'optimize', samples: 100, steps: 100}, thunk);
+     Infer({method: 'optimize', samples: 100, steps: 100}, model);
+
+Forward Sampling
+----------------
+
+.. js:function:: Infer({method: 'forward'[, ...]}, model)
+
+   This method builds a histogram of return values obtained by
+   repeatedly executing either the target or :ref:`guide <guides>`
+   program given by ``model``.
+
+   While the :ref:`guide <guides>` does not include ``factor``
+   statements by definition, those in the target are ignored by this
+   method.
+
+   When executing the target, this method often corresponds to
+   sampling from the prior of a model.
+
+   The following options are supported:
+
+   .. describe:: samples
+
+      The number of samples to take.
+
+      Default: ``1``
+
+   .. describe:: guide
+
+      When ``true``, execute the guide. Otherwise, execute the target.
+
+      Default: ``false``
+
+   .. describe:: params
+
+      Guide program parameters. Optional, and only used when executing
+      the guide program.
+
+   Example usage::
+
+     Infer({method: 'forward'}, model);
+     Infer({method: 'forward', guide: true, params: optimizedParams}, model);
 
 .. rubric:: Bibliography
 

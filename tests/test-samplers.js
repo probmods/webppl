@@ -10,7 +10,7 @@ var seedrandom = require('seedrandom');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var helpers = require('./helpers');
+var helpers = require('./helpers/helpers');
 var statistics = require('../src/math/statistics');
 
 var repeat = function(n, f) {
@@ -44,7 +44,9 @@ var sampleStatisticFunctions = {
 
 var distMetadataList = [
   require('./test-data/sampler/gamma'),
-  require('./test-data/sampler/binomial')
+  require('./test-data/sampler/binomial'),
+  require('./test-data/sampler/beta'),
+  require('./test-data/sampler/gaussian')
 ];
 
 var generateSettingTest = function(seed, distMetadata, settings) {
@@ -139,8 +141,10 @@ var generateSettingTest = function(seed, distMetadata, settings) {
       var tolerance;
       if (settings.reltol && settings.reltol[statName]) {
         tolerance = abs(settings.reltol[statName] * expectedResult);
+      } else if (settings.abstol && settings.abstol[statName]) {
+        tolerance = settings.abstol[statName];
       } else {
-        tolerance = autoTolerance
+        tolerance = autoTolerance;
       }
 
       helpers.testWithinTolerance(test,

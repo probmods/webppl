@@ -11,7 +11,6 @@ var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
-var analyze = require('./analysis/main').analyze;
 
 // These are populated by the bundle.js browserify transform.
 var version = '';
@@ -20,12 +19,10 @@ var packages = [];
 var load = _.once(function() {
   // Load JS and headers from packages.
   packages.forEach(function(pkg) {
-    console.log('loaded ' + pkg.name + ' [' + pkg.version + ']');
     if (pkg.js) { global[pkg.js.identifier] = pkg.js.path; }
     pkg.headers.forEach(webppl.requireHeaderWrapper);
   });
   var bundles = webppl.parsePackageCode(packages);
-  console.log('loaded webppl [' + version + ']');
   return bundles;
 });
 
@@ -64,5 +61,6 @@ global.webppl = {
   compile: compile,
   cps: webpplCPS,
   naming: webpplNaming,
-  analyze: analyze
+  version: version,
+  packages: packages
 };

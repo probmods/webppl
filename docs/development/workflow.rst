@@ -74,7 +74,7 @@ many of them automatically using::
 Browser version
 ---------------
 
-To generate a version of webppl for in-browser use, run::
+To generate a version of WebPPL for in-browser use, run::
 
     npm install -g browserify uglifyjs
     grunt bundle
@@ -95,7 +95,7 @@ using the ``BROWSER`` environment variable. For example::
 
     BROWSER="Google Chrome" grunt test-browser
 
-Incremental Compilation
+Incremental compilation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Repeatedly making changes to the code and then testing the changes in

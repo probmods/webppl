@@ -6,7 +6,7 @@ var fs = require('fs');
 var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
-var helpers = require('./helpers');
+var helpers = require('./helpers/helpers');
 
 var testDataDir = './tests/test-data/stochastic/';
 
@@ -69,7 +69,9 @@ var tests = [
       earlyExit: { hist: { exact: true } },
       zeroProb: { hist: { exact: true } },
       nestedEnumDiscrete: true,
-      guidedFlip: true
+      multivariateBernoulli: true,
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -111,7 +113,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -184,7 +187,8 @@ var tests = [
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumDiscrete: true,
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -235,7 +239,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -256,7 +261,7 @@ var tests = [
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
       geometric: true,
       gaussianDrift: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 1000, rejuvSteps: 15 } },
-      uniformDrift: { mean: { tol: 0.4 }, std: { tol: 0.4 }, args: { particles: 1000, rejuvSteps: 15 } },
+      uniformDrift: { mean: { tol: 0.5 }, std: { tol: 0.4 }, args: { particles: 1000, rejuvSteps: 15 } },
       varFactors1: true,
       varFactors2: true,
       importance: true,
@@ -289,7 +294,7 @@ var tests = [
         std: { tol: 0.3 }
       },
       uniformDrift: {
-        mean: { tol: 0.4 },
+        mean: { tol: 0.5 },
         std: { tol: 0.4 }
       },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
@@ -350,7 +355,7 @@ var tests = [
         args: { samples: 80000, burn: 20000 }
       },
       uniformDrift: {
-        mean: { tol: 0.4 },
+        mean: { tol: 0.5 },
         std: { tol: 0.4 },
         args: { samples: 200000, burn: 1 }
       },
@@ -368,7 +373,8 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
-      guidedFlip: true
+      guidedFlip: true,
+      mapData: true
     }
   },
   {
@@ -508,9 +514,8 @@ var tests = [
       },
       guidedGaussian: {
         args: {
-          samples: 1000,
-          burn: 10,
-          kernel: { HMC: { steps: 20, stepSize: 0.1 } }
+          samples: 5000,
+          burn: 100
         }
       }
     }
@@ -564,7 +569,15 @@ var tests = [
       withCaching: true,
       gaussianMean: true,
       guidedFlip: true,
-      guidedGaussian: true,
+      guidedGaussian: {
+        mean: { tol: 0.2 },
+        std: { tol: 0.2 },
+        args: {
+          samples: 5000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       dirichlet: {
         args: {
           samples: 5000,
@@ -573,7 +586,8 @@ var tests = [
           estimator: { ELBO: { samples: 1 } },
           verbose: false
         }
-      }
+      },
+      mapData: true
     }
   }
 ];

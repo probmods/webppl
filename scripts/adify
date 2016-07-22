@@ -28,7 +28,7 @@ function adRequirePath(srcFilename) {
   var dir = path.dirname(srcFilename);
   var adFileName = path.join(__dirname, '..', 'src', 'ad.js');
   var adPath = path.normalize(path.dirname(path.relative(dir, adFileName)));
-  return adPath + path.sep + 'ad.js';
+  return adPath + '/' + 'ad.js';
 }
 
 // Don't match text editor temporary files. e.g. src/.#dists.ad.js
