@@ -12,6 +12,7 @@ Contents:
    optimization
    distributions
    guides
+   driftKernels
    header
    arrays
    tensors

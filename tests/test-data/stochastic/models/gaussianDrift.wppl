@@ -2,8 +2,8 @@ var xs = [0, 1, 2, 3];
 var ys = [0, 1, 4, 6];
 
 var model = function() {
-  var m = sample(GaussianDrift({mu: 0, sigma: 2}));
-  var b = sample(GaussianDrift({mu: 0, sigma: 2}));
+  var m = gaussianDrift({mu: 0, sigma: 2});
+  var b = gaussianDrift({mu: 0, sigma: 2});
 
   var sigma = gamma(1, 1);
 
