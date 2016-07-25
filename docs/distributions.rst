@@ -122,6 +122,8 @@ Distributions
 
   A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution#Multivariate_generalization>`__
+
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
