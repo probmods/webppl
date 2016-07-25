@@ -331,10 +331,14 @@ function relativizeAddress(env, address) {
   // Takes the env and a full stack address and returns a new address
   // relative to the entry address of the current coroutine. This
   // requires each coroutine to save its entry address as `this.a`.
-  assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
-  var baseAddress = env.coroutine.a;
-  assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
-  return address.slice(baseAddress.length);
+  if (env.coroutine === env.defaultCoroutine) {
+    return address;
+  } else {
+    assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
+    var baseAddress = env.coroutine.a;
+    assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
+    return address.slice(baseAddress.length);
+  }
 }
 
 var registerParams = function(env, name, getParams, setParams) {
