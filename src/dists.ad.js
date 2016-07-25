@@ -519,6 +519,7 @@ var LogisticNormal = makeDistributionType({
     {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
+  wikipedia: 'Logit-normal_distribution#Multivariate_generalization',
   mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
