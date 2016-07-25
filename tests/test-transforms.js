@@ -365,6 +365,18 @@ var tests = {
 
   ],
 
+  testNoFinalExpression: [
+
+    { name: 'testEmptyProgram',
+      code: '',
+      expected: undefined },
+
+    { name: 'testVariableDeclaration',
+      code: 'var x = 1;',
+      expected: undefined }
+
+  ],
+
   testDebuggerStatement: [
 
     { name: 'test',
