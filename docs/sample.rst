@@ -7,7 +7,7 @@ Sample
    :hidden:
 
    guides
-   driftKernels
+   driftkernels
 
 A generative process is described in WebPPL by combining samples drawn
 from :ref:`distribution objects <distributions>` with deterministic
@@ -38,4 +38,4 @@ to lower case.
 
 The ``sample`` primitive also takes an optional second argument. This
 is used to specify :ref:`guide distributions <guides>` and :ref:`drift
-kernels <driftKernels>`.
+kernels <driftkernels>`.

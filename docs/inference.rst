@@ -153,7 +153,7 @@ The following kernels are available:
 
    Implements single site Metropolis-Hastings. [wingate11]_
 
-   This kernel makes use of any :ref:`drift kernels <driftKernels>`
+   This kernel makes use of any :ref:`drift kernels <driftkernels>`
    specified in the model.
 
 Example usage::
@@ -194,7 +194,7 @@ Incremental MH
 
    This method performs inference using C3. [ritchie15]_
 
-   This method makes use of any :ref:`drift kernels <driftKernels>`
+   This method makes use of any :ref:`drift kernels <driftkernels>`
    specified in the model.
 
    The following options are supported:
