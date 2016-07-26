@@ -6,7 +6,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   quickstart
+   gettingstarted
+   installation
    usage
    inference
    optimization
