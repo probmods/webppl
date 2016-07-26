@@ -5,7 +5,9 @@ WebPPL packages are regular Node.js packages optionally extended to
 include WebPPL code, macros and headers.
 
 To make a package available in your program use the ``--require``
-argument::
+argument:
+
+.. code-block:: none
 
     webppl myFile.wppl --require myPackage
 
@@ -17,7 +19,9 @@ WebPPL will search the following locations for packages:
    Packages can be installed into this directory with
    ``npm install --prefix ~/.webppl myPackage``.
 
-Packages can be loaded from other locations by passing a path::
+Packages can be loaded from other locations by passing a path:
+
+.. code-block:: none
 
     webppl myFile.wppl --require ../myPackage
 
@@ -27,7 +31,9 @@ WebPPL code
 -----------
 
 You can automatically prepend WebPPL files to your code by added a
-``wppl`` entry to ``package.json``. For example::
+``wppl`` entry to ``package.json``. For example:
+
+.. code-block:: json
 
     {
       "name": "my-package",
@@ -53,7 +59,9 @@ Macros
 
 `sweet.js`_ modules can be included in a package as follows:
 
-1. Add a file containing the macros to the package::
+1. Add a file containing the macros to the package:
+
+.. code-block:: none
 
     // macros.sjs
     macro m { /* ... */ }
@@ -62,7 +70,9 @@ Macros
 Note that macros must be exported explicitly using the ``export``
 keyword. See the `sweet.js module documentation`_ for further details.
 
-2. Add a ``macros`` entry to ``package.json``::
+2. Add a ``macros`` entry to ``package.json``:
+
+.. code-block:: json
 
     {
       "name": "my-package",
@@ -96,7 +106,9 @@ Then the function ``myAdd`` will be available in WebPPL as
 
 If your JavaScript isn’t in an ``index.js`` file in the root of the
 package, you should indicate the entry point to your package by adding a
-``main`` entry to ``package.json``. For example::
+``main`` entry to ``package.json``. For example:
+
+.. code-block:: json
 
     {
       "name": "my-package",
@@ -136,7 +148,9 @@ available in WebPPL:
 
        };
 
-2. Add a ``headers`` entry to ``package.json``::
+2. Add a ``headers`` entry to ``package.json``:
+
+.. code-block:: json
 
        {
          "name": "my-package",

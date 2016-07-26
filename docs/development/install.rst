@@ -1,6 +1,8 @@
 Installation from GitHub
 ========================
 
+.. highlight:: none
+
 ::
 
     git clone https://github.com/probmods/webppl.git
