@@ -6,8 +6,8 @@ Distributions
 Distribution objects represent probability distributions, they have
 two principle uses:
 
-1. Samples be generated from a distribution by passing a distribution
-   object to the :ref:`sample <sample>` operator.
+1. Samples can be generated from a distribution by passing a
+   distribution object to the :ref:`sample <sample>` operator.
 
 2. The logarithm of the probability (or density) that a distribution
    assigns to a value can be computed using ``dist.score(val)``. For
