@@ -82,6 +82,16 @@ To generate a version of WebPPL for in-browser use, run::
 The output is written to ``bundle/webppl.js`` and a minified version
 is written to ``bundle/webppl.min.js``.
 
+To use in web pages:
+
+.. code-block:: html
+
+   <script src="webppl.js"></script>
+   <script>webppl.run(...)</script>
+
+We also provide an `in-browser editor
+<https://github.com/probmods/webppl-editor>`_ for WebPPL code.
+
 Testing
 ^^^^^^^
 
