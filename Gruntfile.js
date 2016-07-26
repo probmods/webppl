@@ -143,7 +143,7 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('generate-docs', 'Generate documentation.', function() {
-    var output = child_process.execSync('scripts/distributionDocs > docs/distributions.rst');
+    var output = child_process.execSync('scripts/distributionDocs > docs/primitive-distributions.txt');
     grunt.log.writeln(output);
   });
 };
