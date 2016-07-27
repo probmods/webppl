@@ -107,7 +107,9 @@ function defaultSpec(targetDist) {
     } else if (_.isNumber(targetParam)) {
       dims = [1];
     } else {
-      throw new Error('Cannot generate guide distribution for ' + targetDist);
+      var msg = 'Cannot automatically generate a guide for a ' +
+          targetDist.meta.name + ' distribution.';
+      throw new Error(msg);
     }
 
     return [name, {dims: dims, domain: paramMeta.domain}];
