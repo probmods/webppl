@@ -65,7 +65,7 @@ Optimize
       example usage. Additional method specific options are available,
       see the `adnn optimization module`_ for details.
 
-      Default: ``'adagrad'``
+      Default: ``'adam'``
 
    .. describe:: estimator
 
