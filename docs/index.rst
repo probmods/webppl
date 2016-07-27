@@ -9,7 +9,7 @@ Contents:
    gettingstarted
    installation
    usage
-   inference
+   inference/index
    optimization
    distributions
    sample
