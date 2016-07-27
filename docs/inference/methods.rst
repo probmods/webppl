@@ -1,18 +1,5 @@
-.. _inference:
-
-Inference
-=========
-
-.. js:function:: Infer(options, model)
-
-   :param object options: Inference options.
-   :param function model: Program to perform inference in.
-
-``Infer`` computes the marginal distribution on return values of a program `(model)`. The inference algorithm must be specified using the ``method`` option. For example::
-
-  Infer({method: 'enumerate'}, model)
-
-The following algorithms are available:
+Methods
+=======
 
 .. _enumerate:
 
