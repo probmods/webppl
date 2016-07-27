@@ -597,7 +597,11 @@ var Infer = function(options, wpplFn) {
     util.fatal('Infer: the \'method\' option must be specified.');
   }
   if (!_.has(methodMap, methodName)) {
-    util.fatal('Infer: unknown method \'' + methodName + '\'.');
+    var methodNames = _.keys(methodMap);
+    var msg = 'Infer: \'' + methodName +
+        '\' is not a valid method. The following methods are available: ' +
+        methodNames.join(', ') + '.';
+    util.fatal(msg);
   }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));
