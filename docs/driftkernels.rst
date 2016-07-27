@@ -1,4 +1,4 @@
-.. _driftKernels:
+.. _driftkernels:
 
 Drift Kernels
 =============

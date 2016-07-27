@@ -12,8 +12,7 @@ Contents:
    inference
    optimization
    distributions
-   guides
-   driftKernels
+   sample
    header
    arrays
    tensors
