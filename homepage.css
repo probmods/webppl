@@ -16,6 +16,10 @@
     background-image: none;
 }
 
+.result {
+    background-color: #f5f5f5;
+}
+
 .CodeMirror {
     font-size: 12px
 }
