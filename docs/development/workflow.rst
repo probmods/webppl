@@ -1,6 +1,12 @@
 Workflow
 ========
 
+.. toctree::
+   :maxdepth: 2
+
+   install
+   npm
+
 Committing changes
 ------------------
 
