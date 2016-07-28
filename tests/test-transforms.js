@@ -65,7 +65,7 @@ function check(test, code, newCode, expected, actual) {
   test.done();
 }
 
-var transformAstNaming = compose(naming, function(node) {
+var transformAstNaming = compose(_.property('ast'), naming, function(node) {
   return thunkify(node, fail('transform', node));
 });
 function runNaming(test, code, newCode, expected) {

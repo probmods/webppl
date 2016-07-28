@@ -97,6 +97,7 @@ function atomize(node, metaK) {
       }
       else {
         var x = genvar('result');
+        x.loc = node.loc;
         return cps(node, buildContinuation(x, metaK(x)));
       }
     }),

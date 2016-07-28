@@ -67,6 +67,14 @@ module.exports = function(env) {
     }
   };
 
+  // Called from compiled code to save the current address in the
+  // container `obj`.
+  var _addr = {
+    save: function(obj, address) {
+      obj.value = address;
+    }
+  };
+
   var Vector = function(s, k, a, arr) {
     return k(s, new Tensor([arr.length, 1]).fromFlatArray(arr));
   };
@@ -184,6 +192,7 @@ module.exports = function(env) {
     cache: cache,
     apply: apply,
     _Fn: _Fn,
+    _addr: _addr,
     Vector: Vector,
     Matrix: Matrix,
     zeros: zeros,
