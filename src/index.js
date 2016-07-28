@@ -204,7 +204,7 @@ var FileSelector = React.createClass({
 });
 
 
-var WebpplEditor = React.createClass({
+var LiterateEditor = React.createClass({
 
   getInitialState: function(){
     var localState = localStorage.getItem("WebPPLEditorState");
@@ -521,7 +521,7 @@ $(function() {
 var editorContainer = document.getElementById('reactEditor');
 
 if (editorContainer){
-  ReactDOM.render(<WebpplEditor />, editorContainer)
+  ReactDOM.render(<LiterateEditor />, editorContainer)
 }
 
 });
