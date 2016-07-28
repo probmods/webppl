@@ -1,5 +1,5 @@
-Command Line Usage
-==================
+Usage
+=====
 
 .. highlight:: none
 
