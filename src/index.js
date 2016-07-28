@@ -510,7 +510,7 @@ if (localState === null){
         blocks: {
           1: {type: "code", content: fs.readFileSync(__dirname + '/../examples/hmm.wppl', 'utf8'), orderingKey: 1}
         }
-      }      
+      }
     }
   };
   localStorage.WebPPLEditorState = JSON.stringify(initState);
@@ -541,5 +541,5 @@ function setDate(){
   $(".date").text(yyyy+'-'+mm+'-'+dd);
 }
 
-$(setBibtex);  
+$(setBibtex);
 $(setDate);
