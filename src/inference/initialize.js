@@ -39,7 +39,7 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.factor = function(s, k, a, score) {
-    if (score === -Infinity) {
+    if (ad.value(score) === -Infinity) {
       return this.fail();
     }
     this.trace.score = ad.scalar.add(this.trace.score, score);
