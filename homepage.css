@@ -73,11 +73,17 @@ div.editorBlock {
 
 button.removeBlock, button.moveUp, button.moveDown {
    position: absolute;
-   opacity: 0.3;
+   opacity: 0.15;
    left: -30px;
    font-size: 10px;
-   width: 30px;
-   height: 17px;
+   width: 20px;
+   height: 15px;
+   padding: 0;
+}
+
+
+button.removeBlock:hover, button.moveUp:hover, button.moveDown:hover {
+    opacity: 0.8;
 }
 
 .codeBlock button.removeBlock {
