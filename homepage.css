@@ -1,3 +1,12 @@
+.meta {
+    margin-bottom: 0.5em;
+}
+
+.wpedit .drawerButton {
+    background-color: white !important;
+    border: 1px solid #fff !important;
+    background: none;
+}
 
 .wpedit button {
     height: 26px !important;
@@ -19,7 +28,7 @@
 
 .wpedit .result {
     background-color: #f5f5f5;
-    padding-left: 6px;
+    padding: 6px;
 }
 
 .result pre {
