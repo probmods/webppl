@@ -1,5 +1,4 @@
 
-
 .wpedit button {
     height: 26px !important;
     padding: 0em 1em !important;
@@ -65,7 +64,7 @@
     top: 60px;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 95%;
     border: none;
     overflow: scroll;
 }
@@ -76,7 +75,7 @@ div#editorBlocks {
 
 .maximized #editorControls {
     position: fixed;
-    top: 30px;
+    top: 35px;
     left: 0px;
     padding: 1em 1em 0em 1em;
     z-index: 50;
