@@ -65,7 +65,7 @@ function check(test, code, newCode, expected, actual) {
   test.done();
 }
 
-var transformAstNaming = compose(naming, function(node) {
+var transformAstNaming = compose(_.property('ast'), naming, function(node) {
   return thunkify(node, fail('transform', node));
 });
 function runNaming(test, code, newCode, expected) {
@@ -362,6 +362,18 @@ var tests = {
     { name: 'testEmptyInBlock',
       code: 'plusTwo(3); ; plusTwo(5);',
       expected: 7 }
+
+  ],
+
+  testNoFinalExpression: [
+
+    { name: 'testEmptyProgram',
+      code: '',
+      expected: undefined },
+
+    { name: 'testVariableDeclaration',
+      code: 'var x = 1;',
+      expected: undefined }
 
   ],
 

@@ -1,0 +1,4 @@
+[
+  scalarParam(1),
+  T.sumreduce(tensorParam([3, 2], 1))
+];

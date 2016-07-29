@@ -1,18 +1,5 @@
-.. _inference:
-
-Inference
-=========
-
-.. js:function:: Infer(options, model)
-
-   :param object options: Inference options.
-   :param function model: Program to perform inference in.
-
-``Infer`` computes the marginal distribution on return values of a program `(model)`. The inference algorithm must be specified using the ``method`` option. For example::
-
-  Infer({method: 'enumerate'}, model)
-
-The following algorithms are available:
+Methods
+=======
 
 .. _enumerate:
 
@@ -153,6 +140,9 @@ The following kernels are available:
 
    Implements single site Metropolis-Hastings. [wingate11]_
 
+   This kernel makes use of any :ref:`drift kernels <driftkernels>`
+   specified in the model.
+
 Example usage::
 
     Infer({method: 'MCMC', kernel: 'MH'}, model);
@@ -190,6 +180,9 @@ Incremental MH
 .. js:function:: Infer({method: 'incrementalMH'[, ...]}, model)
 
    This method performs inference using C3. [ritchie15]_
+
+   This method makes use of any :ref:`drift kernels <driftkernels>`
+   specified in the model.
 
    The following options are supported:
 

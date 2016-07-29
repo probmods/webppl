@@ -87,9 +87,13 @@ module.exports = function(env) {
 
       return this.wpplFn(_.clone(this.s), function() {
 
-        var scoreDiff = ad.value(this.logq) - ad.value(this.logp);
+        var _logq = ad.value(this.logq);
+        var _logp = ad.value(this.logp);
+        checkScoreIsFinite(_logq, 'guide');
+        checkScoreIsFinite(_logp, 'target');
+
+        var scoreDiff = _logq - _logp;
         assert.ok(typeof scoreDiff === 'number');
-        assert.ok(_.isFinite(scoreDiff), 'ELBO: scoreDiff is not finite.');
 
         // Objective.
 
@@ -267,6 +271,17 @@ module.exports = function(env) {
     // doing so checks the equality of the values stored at the nodes
     // rather than the nodes themselves.
     return a === b;
+  }
+
+  function checkScoreIsFinite(score, source) {
+    if (!_.isFinite(score)) { // Also catches NaN.
+      var msg = 'ELBO: The score of the previous sample under the ' +
+            source + ' program was ' + score + '.';
+      if (_.isNaN(score)) {
+        msg += ' Reducing the step size may help.';
+      }
+      throw new Error(msg);
+    }
   }
 
   return function() {

@@ -95,7 +95,7 @@ function returnify(nodes) {
     return nodes;
   }
   else {
-    nodes[nodes.length - 1] = match(nodes[nodes.length - 1], [
+    var returnNode = match(nodes[nodes.length - 1], [
       clause(Syntax.BlockStatement, function(body) {
         return build.blockStatement(returnify(body));
       }),
@@ -114,7 +114,13 @@ function returnify(nodes) {
       clause(Syntax.ReturnStatement, function(argument) {
         return build.returnStatement(argument);
       })
-    ], fail('returnify', nodes[nodes.length - 1]));
+    ], function() { return; });
+
+    if (returnNode) {
+      nodes[nodes.length - 1] = returnNode;
+    } else {
+      nodes = nodes.concat(build.returnStatement(build.identifier('undefined')));
+    }
 
     return nodes;
   }

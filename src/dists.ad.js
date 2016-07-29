@@ -21,8 +21,6 @@
 //   discrete distributions with finite support) or an object with
 //   'lower' and 'upper' properties (for continuous distributions with
 //   bounded support).
-// - dist.driftKernel(prevVal) is a distribution for making mh
-//   proposals conditioned on the previous value
 //
 // All distributions should also satisfy the following:
 //
@@ -137,11 +135,10 @@ var noHMC = {
   noHMC: true
 };
 
-var methodNames = ['sample', 'score', 'support', 'print', 'driftKernel', 'base', 'transform'];
+var methodNames = ['sample', 'score', 'support', 'print', 'base', 'transform'];
 
 function makeDistributionType(options) {
   options = util.mergeDefaults(options, {
-    parent: Distribution,
     mixins: []
   });
 
@@ -186,10 +183,9 @@ function makeDistributionType(options) {
     }
   };
 
-  dist.prototype = Object.create(options.parent.prototype);
+  dist.prototype = Object.create(Distribution.prototype);
   dist.prototype.constructor = dist;
 
-  // Note that meta-data is not inherited from the parent.
   dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
@@ -228,29 +224,6 @@ var Uniform = makeDistributionType({
     return { lower: this.params.a, upper: this.params.b };
   }
 });
-
-var UniformDrift = makeDistributionType({
-  name: 'UniformDrift',
-  desc: 'Drift version of Uniform. ' +
-      'Drift kernels are used to narrow search during inference. ' +
-      'UniformDrift proposes from a symmetric window around the current value ``x``, ``[x-r, x+r]``.',
-  params: [{name: 'a', desc: 'lower bound (real)'},
-           {name: 'b', desc: 'upper bound (real > a)'},
-           {name: 'r', desc: 'drift kernel radius'}],
-  parent: Uniform,
-  driftKernel: function(prevVal) {
-    // propose from the window [prevVal - r, prevVal + r]
-    // where r is the proposal radius (defaults to 0.1)
-
-    var r = this.params.r === undefined ? 0.1 : this.params.r;
-
-    return new Uniform({
-      a: Math.max(prevVal - r, this.params.a),
-      b: Math.min(prevVal + r, this.params.b)
-    });
-  }
-});
-
 
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
@@ -393,22 +366,6 @@ var Gaussian = makeDistributionType({
     var mu = this.params.mu;
     var sigma = this.params.sigma;
     return ad.scalar.add(ad.scalar.mul(sigma, x), mu);  }
-});
-
-
-
-
-var GaussianDrift = makeDistributionType({
-  name: 'GaussianDrift',
-  desc: 'Drift version of Gaussian. ' +
-      'Drift kernels are used to narrow search during inference. ' +
-      'Currently, the parameters guiding this narrowing are hard-coded.',
-  params: [{name: 'mu', desc: 'mean (real)'},
-           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
-  parent: Gaussian,
-  driftKernel: function(curVal) {
-    return new Gaussian({mu: curVal, sigma: this.params.sigma * 0.7});
-  }
 });
 
 
@@ -562,6 +519,7 @@ var LogisticNormal = makeDistributionType({
     {name: 'mu', desc: 'mean vector'},
     {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
   ],
+  wikipedia: 'Logit-normal_distribution#Multivariate_generalization',
   mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
@@ -1196,22 +1154,6 @@ var Dirichlet = makeDistributionType({
 });
 
 
-
-var DirichletDrift = makeDistributionType({
-  name: 'DirichletDrift',
-  desc: 'Drift version of Dirichlet. ' +
-      'Drift kernels are used to narrow search during inference. ' +
-      'Currently, the parameters guiding this narrowing are hard-coded.',
-  parent: Dirichlet,
-  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
-  driftKernel: function(prevVal) {
-    var concentration = 10;
-    var alpha = prevVal.mul(10);
-    return new Dirichlet({alpha: alpha});
-  }
-});
-
-
 function discreteSample(theta) {
   var thetaSum = util.sum(theta);
   var x = util.random() * thetaSum;
@@ -1333,12 +1275,10 @@ var Delta = makeDistributionType({
 module.exports = {
   // distributions
   Uniform: Uniform,
-  UniformDrift: UniformDrift,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,
   RandomInteger: RandomInteger,
   Gaussian: Gaussian,
-  GaussianDrift: GaussianDrift,
   MultivariateGaussian: MultivariateGaussian,
   DiagCovGaussian: DiagCovGaussian,
   TensorGaussian: TensorGaussian,
@@ -1352,7 +1292,6 @@ module.exports = {
   Multinomial: Multinomial,
   Poisson: Poisson,
   Dirichlet: Dirichlet,
-  DirichletDrift: DirichletDrift,
   Marginal: Marginal,
   Categorical: Categorical,
   Delta: Delta,

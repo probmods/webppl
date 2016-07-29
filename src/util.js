@@ -8,23 +8,10 @@ var Tensor = require('./tensor');
 
 var rng = Math.random;
 
-function withErrorHandling(handler, f) {
-  return function(x) {
-    try {
-      return f(x);
-    } catch (e) {
-      if (handler) {
-        handler(e);
-      } else {
-        throw e;
-      }
-    }
-  };
-}
-
 var trampolineRunners = {
-  web: function(handler) {
-    var f = withErrorHandling(handler, function(t) {
+  web: function(yieldEvery) {
+    yieldEvery = yieldEvery || 100;
+    var f = function(t, wrappedF) {
       var lastPauseTime = Date.now();
 
       if (f.__cancel__) {
@@ -32,25 +19,25 @@ var trampolineRunners = {
       } else {
         while (t) {
           var currTime = Date.now();
-          if (currTime - lastPauseTime > 100) {
+          if (currTime - lastPauseTime > yieldEvery) {
             // NB: return is crucial here as it exits the while loop
             // and i'm using return rather than break because we might
             // one day want to cancel the timer
-            return setTimeout(function() { f(t) }, 0);
+            return setTimeout(function() { wrappedF(t, wrappedF); }, 0);
           } else {
             t = t();
           }
         }
       }
-    });
+    };
     return f;
   },
-  cli: function(handler) {
-    return withErrorHandling(handler, function(t) {
+  cli: function() {
+    return function(t) {
       while (t) {
         t = t()
       }
-    });
+    };
   }
 }
 
@@ -331,10 +318,14 @@ function relativizeAddress(env, address) {
   // Takes the env and a full stack address and returns a new address
   // relative to the entry address of the current coroutine. This
   // requires each coroutine to save its entry address as `this.a`.
-  assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
-  var baseAddress = env.coroutine.a;
-  assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
-  return address.slice(baseAddress.length);
+  if (env.coroutine === env.defaultCoroutine) {
+    return address;
+  } else {
+    assert.ok(_.has(env.coroutine, 'a'), 'Entry address not saved on coroutine.');
+    var baseAddress = env.coroutine.a;
+    assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
+    return address.slice(baseAddress.length);
+  }
 }
 
 var registerParams = function(env, name, getParams, setParams) {

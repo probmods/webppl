@@ -1,21 +1,33 @@
 WebPPL Documentation
 ====================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
-   quickstart
+   gettingstarted
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Command Line
+
+   installation
    usage
-   inference
-   optimization
-   distributions
-   guides
-   header
-   arrays
-   tensors
-   globalstore
    debugging
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Components
+
+   sample
+   distributions
+   inference/index
+   optimization
+   functions/index
+   globalstore
    packages
-   development/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Development
+
+   development/workflow

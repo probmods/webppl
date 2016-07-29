@@ -27,12 +27,6 @@ function makeTemplates(obj) {
   return _.mapObject(obj, _.template);
 }
 
-var header = [
-  '.. _distributions:\n',
-  'Distributions',
-  '=============\n'
-].join('\n');
-
 var t = makeTemplates({
   func:            '.. js:function:: <%= name %>({<%= args %>})\n',
   arg:             '<%= name %>: ...',
@@ -84,5 +78,4 @@ var body = getMetaData().map(function(meta) {
 
 });
 
-console.log(header);
 console.log(_.flatten(body).join('\n'));

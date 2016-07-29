@@ -1,6 +1,8 @@
 Debugging
 =========
 
+.. highlight:: none
+
 WebPPL provides error messages that try to be informative.
 In addition there is debugging software you can use for WebPPL programs.
 

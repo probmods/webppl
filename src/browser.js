@@ -11,6 +11,8 @@ var optimize = require('./transforms/optimize').optimize;
 var naming = require('./transforms/naming').naming;
 var thunkify = require('./syntax').thunkify;
 var cps = require('./transforms/cps').cps;
+var errors = require('./errors/browser');
+var util = require('./util');
 
 // These are populated by the bundle.js browserify transform.
 var version = '';
@@ -26,22 +28,25 @@ var load = _.once(function() {
   return bundles;
 });
 
-function run(code, k, options) {
-  if (options === undefined) {
-    options = {};
-  }
-  var optionsExtended = _.extend({bundles: load()}, options);
+function prepare(codeAndAssets, k, options) {
+  options = util.mergeDefaults(options, {
+    filename: 'webppl:program',
+    errorHandlers: []
+  });
+  var extraHandlers = options.debug ? [errors.debugHandler(options.filename)] : [];
+  options.errorHandlers = extraHandlers.concat(options.errorHandlers);
+  return webppl.prepare(codeAndAssets, k, options);
+}
 
-  return webppl.run(code, k, optionsExtended);
+function run(code, k, options) {
+  var codeAndAssets = compile(code, options);
+  prepare(codeAndAssets, k, options).run();
 }
 
 function compile(code, options) {
-  if (options === undefined) {
-    options = {};
-  }
-  var optionsExtended = _.extend({bundles: load()}, _.omit(options, 'sourceMap'));
-  var codeAndMap = webppl.compile(code, optionsExtended);
-  return options.sourceMap ? codeAndMap : codeAndMap.code;
+  options = options || {};
+  var optionsExtended = _.extend({bundles: load()}, options);
+  return webppl.compile(code, optionsExtended);
 }
 
 function webpplCPS(code) {
@@ -52,11 +57,12 @@ function webpplCPS(code) {
 
 function webpplNaming(code) {
   var programAst = esprima.parse(code);
-  var newProgramAst = naming(thunkify(programAst));
+  var newProgramAst = naming(thunkify(programAst)).ast;
   return escodegen.generate(newProgramAst);
 }
 
 global.webppl = {
+  prepare: prepare,
   run: run,
   compile: compile,
   cps: webpplCPS,

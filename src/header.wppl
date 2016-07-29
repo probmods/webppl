@@ -8,10 +8,8 @@ defineDistConstructors(
     Bernoulli
     MultivariateBernoulli
     Uniform
-    UniformDrift
     RandomInteger
     Gaussian
-    GaussianDrift
     MultivariateGaussian
     DiagCovGaussian
     TensorGaussian
@@ -24,7 +22,6 @@ defineDistConstructors(
     Multinomial
     Poisson
     Dirichlet
-    DirichletDrift
     LogisticNormal
     Categorical
     Delta);
@@ -101,6 +98,26 @@ var gamma = function(arg1, arg2) {
   return sample(Gamma(params));
 };
 
+var diagCovGaussian = function(arg1, arg2) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(DiagCovGaussian(params));
+};
+
+var multivariateBernoulli = function(arg) {
+  var params = util.isObject(arg) ? arg : {ps: arg};
+  return sample(MultivariateBernoulli(params));
+};
+
+var tensorGaussian = function(arg1, arg2, arg3) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2, dims: arg3};
+  return sample(TensorGaussian(params));
+};
+
+var logisticNormal = function(arg1, arg2) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
+  return sample(LogisticNormal(params));
+};
+
 // Other distribution helpers
 
 var flip = function(p) {
@@ -129,6 +146,38 @@ var serializeDist = function(d) {
 
 var deserializeDist = function(JSONString) {
   return dists.deserialize(JSONString);
+};
+
+// Drift kernel helpers
+
+var gaussianDrift = function(params) {
+  return sample(Gaussian(_.omit(params, 'width')), {
+    driftKernel: function(prevVal) {
+      var width = _.has(params, 'width') ? params.width : params.sigma * 0.7;
+      return Gaussian({mu: prevVal, sigma: width});
+    }
+  });
+};
+
+var dirichletDrift = function(params) {
+  return sample(Dirichlet(_.omit(params, 'concentration')), {
+    driftKernel: function(prevVal) {
+      var c = _.has(params, 'concentration') ? params.concentration : 10;
+      var alpha = T.mul(prevVal, c);
+      return Dirichlet({alpha: alpha});
+    }
+  });
+};
+
+var uniformDrift = function(params) {
+  return sample(Uniform(_.omit(params, 'width')), {
+    driftKernel: function(prevVal) {
+      var width = _.has(params, 'width') ? params.width : 0.1;
+      var a = Math.max(params.a, prevVal - width);
+      var b = Math.min(params.b, prevVal + width);
+      return Uniform({a: a, b: b});
+    }
+  });
 };
 
 // XRPs
@@ -548,7 +597,11 @@ var Infer = function(options, wpplFn) {
     util.fatal('Infer: the \'method\' option must be specified.');
   }
   if (!_.has(methodMap, methodName)) {
-    util.fatal('Infer: unknown method \'' + methodName + '\'.');
+    var methodNames = _.keys(methodMap);
+    var msg = 'Infer: \'' + methodName +
+        '\' is not a valid method. The following methods are available: ' +
+        methodNames.join(', ') + '.';
+    util.fatal(msg);
   }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method'));

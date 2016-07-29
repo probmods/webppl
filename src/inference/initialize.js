@@ -31,15 +31,15 @@ module.exports = function(env) {
     return this.trace.continue();
   };
 
-  Initialize.prototype.sample = function(s, k, a, dist) {
+  Initialize.prototype.sample = function(s, k, a, dist, options) {
     var _val = dist.sample();
     var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
-    this.trace.addChoice(dist, val, a, s, k);
+    this.trace.addChoice(dist, val, a, s, k, options);
     return k(s, val);
   };
 
   Initialize.prototype.factor = function(s, k, a, score) {
-    if (score === -Infinity) {
+    if (ad.value(score) === -Infinity) {
       return this.fail();
     }
     this.trace.score = ad.scalar.add(this.trace.score, score);
