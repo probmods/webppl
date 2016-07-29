@@ -13,6 +13,7 @@ var showdown = require('showdown');
 var converter = new showdown.Converter();
 
 var $ = require('jquery');
+global.$ = $;
 var autosize = require('autosize');
 var _ = require('underscore');
 
@@ -421,7 +422,9 @@ var LiterateEditor = React.createClass({
       setTimeout(function(){autosize($('#editorMarkdown'));}, 500);
     }
   },
-
+  toggleSize: function() {
+    this.setState({maximized: !this.state.maximized})
+  },
   render: function() {
     var that = this;
     var fileIdsWithNames = [];
@@ -453,20 +456,31 @@ var LiterateEditor = React.createClass({
       }
       renderedBlocks.push(renderedBlock);
     });
-    return (<div>
+
+    if (this.state.maximized) {
+      $(".jumbotron, .marketing, .footer").hide()
+      $(".panel, .header").addClass('maximized')
+    } else {
+      $(".header, .jumbotron, .marketing, .footer").show()
+      $(".panel, .header").removeClass('maximized')
+    }
+    var sizeButtonText= this.state.maximized ? '⇙' : '⇗';
+    return (<div className='literate-editor'>
+
+            <div id="editorControls">
+            <FileSelector fileIdsWithNames={fileIdsWithNames}
+            selectedFile={this.state.selectedFile}
+            loadFile={this.loadFile}
+            createFile={this.createFile}
+            deleteFile={this.deleteFile}
+            renameFile={this.renameFile} />
+            <button className="btn btn-default" onClick={this.addCodeBlock}>add code</button>
+            <button className="btn btn-default hidden-xs" onClick={this.addTextBlock}>add text</button>
+            <button className="btn btn-default hidden-xs" onClick={this.toggleMarkdownOutput}>.md</button>
+            <button className="btn btn-default hidden-xs maximize" onClick={this.toggleSize}>{sizeButtonText}</button>
+            </div>
         <div id="editorBlocks">
           {renderedBlocks}
-        </div>
-        <div id="editorControls">
-          <FileSelector fileIdsWithNames={fileIdsWithNames}
-                        selectedFile={this.state.selectedFile}
-                        loadFile={this.loadFile}
-                        createFile={this.createFile}
-                        deleteFile={this.deleteFile}
-                        renameFile={this.renameFile} />
-          <button className="btn btn-default" onClick={this.addCodeBlock}>add code</button>
-          <button className="btn btn-default hidden-xs" onClick={this.addTextBlock}>add text</button>
-          <button className="btn btn-default hidden-xs" onClick={this.toggleMarkdownOutput}>.md</button>
         </div>
         <MarkdownOutputBox blocks={this.currentBlocks()} open={this.state.markdownOutputOpen}/>
       </div>);

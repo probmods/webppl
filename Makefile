@@ -16,7 +16,7 @@ webppl-editor.css: node_modules node_modules/webppl-editor/src/component.css nod
 	cat node_modules/webppl-editor/src/component.css node_modules/codemirror/lib/codemirror.css > "$@"
 
 watch : src/index.js node_modules
-	node_modules/watchify/bin/cmd.js -v -t [babelify --presets [react] ] src/index.js -o homepage.js
+	node_modules/watchify/bin/cmd.js -v -t [babelify --presets [react] ] -t brfs src/index.js -o homepage.js
 
 node_modules : package.json
 	npm install

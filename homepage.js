@@ -90071,7 +90071,7 @@ if (typeof viz !== 'undefined') {
 module.exports = exports;
 
 },{"d3":16,"underscore":234}],418:[function(require,module,exports){
-(function (__dirname){
+(function (global){
 var fs = require('fs');
 var React = require('react');
 var ReactDOM = require('react-dom');
@@ -90087,6 +90087,7 @@ var showdown = require('showdown');
 var converter = new showdown.Converter();
 
 var $ = require('jquery');
+global.$ = $;
 var autosize = require('autosize');
 var _ = require('underscore');
 
@@ -90559,7 +90560,9 @@ var LiterateEditor = React.createClass({
       }, 500);
     }
   },
-
+  toggleSize: function () {
+    this.setState({ maximized: !this.state.maximized });
+  },
   render: function () {
     var that = this;
     var fileIdsWithNames = [];
@@ -90591,14 +90594,18 @@ var LiterateEditor = React.createClass({
       }
       renderedBlocks.push(renderedBlock);
     });
+
+    if (this.state.maximized) {
+      $(".jumbotron, .marketing, .footer").hide();
+      $(".panel, .header").addClass('maximized');
+    } else {
+      $(".header, .jumbotron, .marketing, .footer").show();
+      $(".panel, .header").removeClass('maximized');
+    }
+    var sizeButtonText = this.state.maximized ? '⇙' : '⇗';
     return React.createElement(
       'div',
-      null,
-      React.createElement(
-        'div',
-        { id: 'editorBlocks' },
-        renderedBlocks
-      ),
+      { className: 'literate-editor' },
       React.createElement(
         'div',
         { id: 'editorControls' },
@@ -90622,7 +90629,17 @@ var LiterateEditor = React.createClass({
           'button',
           { className: 'btn btn-default hidden-xs', onClick: this.toggleMarkdownOutput },
           '.md'
+        ),
+        React.createElement(
+          'button',
+          { className: 'btn btn-default hidden-xs maximize', onClick: this.toggleSize },
+          sizeButtonText
         )
+      ),
+      React.createElement(
+        'div',
+        { id: 'editorBlocks' },
+        renderedBlocks
       ),
       React.createElement(MarkdownOutputBox, { blocks: this.currentBlocks(), open: this.state.markdownOutputOpen })
     );
@@ -90640,31 +90657,31 @@ if (localState === null) {
       0: {
         name: 'Default',
         blocks: {
-          1: { type: "code", content: fs.readFileSync(__dirname + '/../examples/geometric.wppl', 'utf8'), orderingKey: 1 }
+          1: { type: "code", content: "var geometric = function() {\n  return flip(.5) ? 0 : geometric() + 1;\n}\n\nvar conditionedGeometric = function() {\n  var x = geometric();\n  factor(x > 2 ? 0 : -Infinity);\n  return x;\n}\n\nvar dist = Infer(\n  {method: 'enumerate', maxExecutions: 10}, \n  conditionedGeometric);\n\nviz.auto(dist);\n", orderingKey: 1 }
         }
       },
       1: {
         name: 'Linear Regression',
         blocks: {
-          1: { type: "code", content: fs.readFileSync(__dirname + '/../examples/linear-regression.wppl', 'utf8'), orderingKey: 1 }
+          1: { type: "code", content: "var xs = [0, 1, 2, 3];\nvar ys = [0, 1, 4, 6];\n\nvar model = function() {\n  var m = gaussian(0, 2);\n  var b = gaussian(0, 2);\n  var sigma = gamma(1, 1);\n\n  var f = function(x) {\n    return m * x + b;\n  };\n\n  map2(\n    function(x, y) {\n      factor(Gaussian({mu: f(x), sigma: sigma}).score(y));\n    },\n    xs,\n    ys);\n\n  return f(4);\n}\n\nviz.auto(Infer({method: 'MCMC', samples: 10000}, model));\n", orderingKey: 1 }
         }
       },
       2: {
         name: 'Logistic Regression',
         blocks: {
-          1: { type: "code", content: fs.readFileSync(__dirname + '/../examples/logistic-regression.wppl', 'utf8'), orderingKey: 1 }
+          1: { type: "code", content: "var xs = [-10, -5, 2, 6, 10];\nvar labels = [false, false, true, true, true];\n\nvar model = function() {\n  var m = gaussian(0, 1);\n  var b = gaussian(0, 1);\n  var sigma = gamma(1, 1);\n\n  var y = function(x) {\n    return gaussian(m * x + b, sigma);\n  };\n  var sigmoid = function(x) {\n    return 1 / (1 + Math.exp(-1 * y(x)));\n  };\n\n  map2(\n    function(x, label) {\n      factor(Bernoulli({p: sigmoid(x)}).score(label));\n    },\n    xs,\n    labels);\n\n  return sigmoid(8);\n};\n\nviz.auto(Infer({method: 'MCMC', samples: 10000, burn: 2000}, model));\n", orderingKey: 1 }
         }
       },
       3: {
         name: 'Scalar Implicature',
         blocks: {
-          1: { type: "code", content: fs.readFileSync(__dirname + '/../examples/scalar-implicature.wppl', 'utf8'), orderingKey: 1 }
+          1: { type: "code", content: "var worldPrior = function() {\n  var num_nice_people = randomInteger(4);  // 3 people.. 0-3 can be nice.\n  return num_nice_people;\n};\n\nvar utterancePrior = function() {\n  var utterances = ['some of the people are nice',\n                    'all of the people are nice',\n                    'none of the people are nice'];\n  var i = randomInteger(utterances.length);\n  return utterances[i];\n}\n\nvar meaning = function(utt, world) {\n  return (utt == 'some of the people are nice' ? world > 0 :\n          utt == 'all of the people are nice' ? world == 3 :\n          utt == 'none of the people are nice' ? world == 0 :\n          true);\n};\n\nvar literalListener = cache(function(utterance) {\n  return Infer({method: 'enumerate'}, function() {\n    var world = worldPrior();\n    var m = meaning(utterance, world);\n    factor(m ? 0 : -Infinity);\n    return world;\n  });\n});\n\nvar speaker = cache(function(world) {\n  return Infer({method: 'enumerate'}, function() {\n    var utterance = utterancePrior();\n    var L = literalListener(utterance);\n    factor(L.score(world));\n    return utterance;\n  });\n});\n\nvar listener = function(utterance) {\n  return Infer({method: 'enumerate'}, function() {\n    var world = worldPrior();\n    var S = speaker(world);\n    factor(S.score(utterance));\n    return world;\n  });\n};\n\nviz.auto(listener('some of the people are nice'));\n", orderingKey: 1 }
         }
       },
       4: {
         name: 'Hidden Markov Model',
         blocks: {
-          1: { type: "code", content: fs.readFileSync(__dirname + '/../examples/hmm.wppl', 'utf8'), orderingKey: 1 }
+          1: { type: "code", content: "var transition = function(s) {\n  return s ? flip(0.7) : flip(0.3);\n};\n\nvar observe = function(s) {\n  return s ? flip(0.9) : flip(0.1);\n};\n\nvar hmm = function(n) {\n  var prev = (n == 1) ? {states: [true], observations: []} : hmm(n - 1);\n  var newState = transition(prev.states[prev.states.length - 1]);\n  var newObs = observe(newState);\n  return {\n    states: prev.states.concat([newState]),\n    observations: prev.observations.concat([newObs])\n  };\n};\n\nvar trueObservations = [true, false, false, false];\n\nvar dist = Infer({method: 'enumerate'}, function() {\n  var r = hmm(4);\n  factor(_.isEqual(r.observations, trueObservations) ? 0 : -Infinity);\n  return r.states;\n});\n\nviz.table(dist);\n", orderingKey: 1 }
         }
       }
     }
@@ -90699,5 +90716,5 @@ function setDate() {
 $(setBibtex);
 $(setDate);
 
-}).call(this,"/src")
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":219,"react-dom":77,"showdown":220,"underscore":234,"webppl-editor":413,"webppl-viz":415}]},{},[418]);

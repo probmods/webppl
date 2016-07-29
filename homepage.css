@@ -1,3 +1,5 @@
+
+
 .wpedit button {
     height: 26px !important;
     padding: 0em 1em !important;
@@ -16,8 +18,14 @@
     background-image: none;
 }
 
-.result {
+.wpedit .result {
     background-color: #f5f5f5;
+    padding-left: 6px;
+}
+
+.result pre {
+    line-height: 1;
+    padding: 0;
 }
 
 .CodeMirror {
@@ -31,7 +39,16 @@
 
 #reactEditor .wpedit .CodeMirror {
     border: 1px solid #aaa;
+    max-height: 200px;
+    height: auto;
 }
+
+#reactEditor .wpedit .CodeMirror, #reactEditor .wpedit .CodeMirror-scroll {
+     /* TODO: why doesn't percent work here but it does in base wp-editor demo? */
+    max-height: 600px;
+    height: auto;
+}
+
 
 #reactEditor .wpedit .result {
     margin-top: 0;
@@ -39,12 +56,34 @@
 
 /* Literate editor */
 
+.panel {
+    position: relative;
+}
+
+.panel.maximized {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    overflow: scroll;
+}
+
 div#editorBlocks {
-   margin-top: 5em;
+    margin-left: 30px
+}
+
+.maximized #editorControls {
+    position: fixed;
+    top: 30px;
+    left: 0px;
+    padding: 1em 1em 0em 1em;
+    z-index: 50;
+    background-color: white;
 }
 
 div#editorControls {
-   margin-top: 30px;
    width: 100%;
    text-align: right;
 }
@@ -73,6 +112,15 @@ div#fileSelector select {
 
 div.editorBlock {
    position: relative;
+}
+
+button.maximize {
+    color: #673ab7;
+    outline: none;
+}
+
+.btn.btn-default, .btn.btn-default:active {
+    outline: none;
 }
 
 button.removeBlock, button.moveUp, button.moveDown {
@@ -109,12 +157,6 @@ button.removeBlock:hover, button.moveUp:hover, button.moveDown:hover {
 .markdownBlock button.moveDown {
    top: 30px;
 }
-
-div.currentBlock button.removeBlock,
-   div.currentBlock button.moveUp,
-      div.currentBlock button.moveDown {
-         opacity: 1;
-      }
 
 .editorBlock textarea {
    display: block;
@@ -182,6 +224,19 @@ body {
   padding-bottom: 20px;
   border-bottom: 1px solid #e5e5e5;
 }
+
+.header.maximized {
+    position: absolute;
+    left: 14px;
+    top: 0;
+}
+
+/* don't show github link in maximized mode */
+.header.maximized nav {
+    display: none
+}
+
+
 /* Make the masthead heading the same height as the navigation */
 .header h3 {
   margin-top: 0;
@@ -248,6 +303,12 @@ h3.logo {
    font-style: italic
 }
 
+h3.logo.maximized {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
 h3.logo a:hover, h3.logo a:active, h3.logo a:focus, h3.logo a:visited {
    text-decoration: none;
 }
@@ -280,11 +341,6 @@ div.main-lead {
    padding-bottom: 5px;
    background-color: brown;
    color: white;
-}
-
-div.editor-panel-body {
-   margin-left: 30px;
-   margin-top: -70px;
 }
 
 #bibtex {
