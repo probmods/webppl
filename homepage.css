@@ -6,6 +6,7 @@
     background-color: white !important;
     border: 1px solid #fff !important;
     background: none;
+    padding: 0.5em 0.5em !important;
 }
 
 .wpedit button {
@@ -69,13 +70,19 @@
 }
 
 .panel.maximized {
-    position: fixed;
+    position: absolute;
     top: 60px;
-    left: 0;
-    width: 100%;
-    height: 95%;
+    left: 50%;
+    margin-left: -350px; /* center absolute positioned element */
+    width: 700px;
+    height: auto;
     border: none;
-    overflow: scroll;
+    box-shadow: none;
+}
+
+.panel.maximized .panel-body {
+    padding: 0px 15px 15px 15px;
+    border: none;
 }
 
 div#editorBlocks {
@@ -84,11 +91,18 @@ div#editorBlocks {
 
 .maximized #editorControls {
     position: fixed;
-    top: 35px;
-    left: 0px;
-    padding: 1em 1em 0em 1em;
+    width: 600px;
+    top: 0.3em;
+    left: 50%;
+    margin-left: -250px;
+    padding: 0;
     z-index: 50;
     background-color: white;
+}
+
+.maximized #fileSelector {
+    margin-top: 0.6em;
+    margin-left: 1em
 }
 
 div#editorControls {
@@ -234,9 +248,12 @@ body {
 }
 
 .header.maximized {
-    position: absolute;
+    position: fixed;
     left: 14px;
     top: 0;
+    z-index: 50;
+    width: 100%;
+    border: none;
 }
 
 /* don't show github link in maximized mode */
@@ -250,6 +267,19 @@ body {
   margin-top: 0;
   margin-bottom: 0;
   line-height: 40px;
+}
+
+.maximized.header h3 {
+    width: 700px;
+    background-color: white;
+    margin: 0 auto;
+    padding-bottom: 0.2em;
+    border-bottom: 1px dashed #C81039;
+    z-index: 600;
+}
+
+.maximized.header .logo-tagline {
+    display: none
 }
 
 /* Custom page footer */
