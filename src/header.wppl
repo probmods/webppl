@@ -547,6 +547,15 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
+var observe = function(dist, val) {
+  if(val !== undefined) {
+    factor(dist.score(val));
+    return val
+  } else {
+    return sample(dist)
+  }
+};
+
 var MH = function(wpplFn, samples, burn) {
   return MCMC(wpplFn, { samples: samples, burn: burn });
 };
