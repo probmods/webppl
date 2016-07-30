@@ -23472,7 +23472,7 @@ var reader = function(data, format) {
 reader.topojson = require('topojson');
 module.exports = reader;
 
-},{"./json":29,"topojson":233}],31:[function(require,module,exports){
+},{"./json":29,"topojson":221}],31:[function(require,module,exports){
 var json = require('./json');
 
 module.exports = function(tree, format) {
@@ -59213,3074 +59213,6 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 },{}],221:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var util = require('./util');
-var has = Object.prototype.hasOwnProperty;
-
-/**
- * A data structure which is a combination of an array and a set. Adding a new
- * member is O(1), testing for membership is O(1), and finding the index of an
- * element is O(1). Removing elements from the set is not supported. Only
- * strings are supported for membership.
- */
-function ArraySet() {
-  this._array = [];
-  this._set = Object.create(null);
-}
-
-/**
- * Static method for creating ArraySet instances from an existing array.
- */
-ArraySet.fromArray = function ArraySet_fromArray(aArray, aAllowDuplicates) {
-  var set = new ArraySet();
-  for (var i = 0, len = aArray.length; i < len; i++) {
-    set.add(aArray[i], aAllowDuplicates);
-  }
-  return set;
-};
-
-/**
- * Return how many unique items are in this ArraySet. If duplicates have been
- * added, than those do not count towards the size.
- *
- * @returns Number
- */
-ArraySet.prototype.size = function ArraySet_size() {
-  return Object.getOwnPropertyNames(this._set).length;
-};
-
-/**
- * Add the given string to this set.
- *
- * @param String aStr
- */
-ArraySet.prototype.add = function ArraySet_add(aStr, aAllowDuplicates) {
-  var sStr = util.toSetString(aStr);
-  var isDuplicate = has.call(this._set, sStr);
-  var idx = this._array.length;
-  if (!isDuplicate || aAllowDuplicates) {
-    this._array.push(aStr);
-  }
-  if (!isDuplicate) {
-    this._set[sStr] = idx;
-  }
-};
-
-/**
- * Is the given string a member of this set?
- *
- * @param String aStr
- */
-ArraySet.prototype.has = function ArraySet_has(aStr) {
-  var sStr = util.toSetString(aStr);
-  return has.call(this._set, sStr);
-};
-
-/**
- * What is the index of the given string in the array?
- *
- * @param String aStr
- */
-ArraySet.prototype.indexOf = function ArraySet_indexOf(aStr) {
-  var sStr = util.toSetString(aStr);
-  if (has.call(this._set, sStr)) {
-    return this._set[sStr];
-  }
-  throw new Error('"' + aStr + '" is not in the set.');
-};
-
-/**
- * What is the element at the given index?
- *
- * @param Number aIdx
- */
-ArraySet.prototype.at = function ArraySet_at(aIdx) {
-  if (aIdx >= 0 && aIdx < this._array.length) {
-    return this._array[aIdx];
-  }
-  throw new Error('No element indexed by ' + aIdx);
-};
-
-/**
- * Returns the array representation of this set (which has the proper indices
- * indicated by indexOf). Note that this is a copy of the internal array used
- * for storing the members so that no one can mess with internal state.
- */
-ArraySet.prototype.toArray = function ArraySet_toArray() {
-  return this._array.slice();
-};
-
-exports.ArraySet = ArraySet;
-
-},{"./util":230}],222:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- *
- * Based on the Base 64 VLQ implementation in Closure Compiler:
- * https://code.google.com/p/closure-compiler/source/browse/trunk/src/com/google/debugging/sourcemap/Base64VLQ.java
- *
- * Copyright 2011 The Closure Compiler Authors. All rights reserved.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above
- *    copyright notice, this list of conditions and the following
- *    disclaimer in the documentation and/or other materials provided
- *    with the distribution.
- *  * Neither the name of Google Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-var base64 = require('./base64');
-
-// A single base 64 digit can contain 6 bits of data. For the base 64 variable
-// length quantities we use in the source map spec, the first bit is the sign,
-// the next four bits are the actual value, and the 6th bit is the
-// continuation bit. The continuation bit tells us whether there are more
-// digits in this value following this digit.
-//
-//   Continuation
-//   |    Sign
-//   |    |
-//   V    V
-//   101011
-
-var VLQ_BASE_SHIFT = 5;
-
-// binary: 100000
-var VLQ_BASE = 1 << VLQ_BASE_SHIFT;
-
-// binary: 011111
-var VLQ_BASE_MASK = VLQ_BASE - 1;
-
-// binary: 100000
-var VLQ_CONTINUATION_BIT = VLQ_BASE;
-
-/**
- * Converts from a two-complement value to a value where the sign bit is
- * placed in the least significant bit.  For example, as decimals:
- *   1 becomes 2 (10 binary), -1 becomes 3 (11 binary)
- *   2 becomes 4 (100 binary), -2 becomes 5 (101 binary)
- */
-function toVLQSigned(aValue) {
-  return aValue < 0
-    ? ((-aValue) << 1) + 1
-    : (aValue << 1) + 0;
-}
-
-/**
- * Converts to a two-complement value from a value where the sign bit is
- * placed in the least significant bit.  For example, as decimals:
- *   2 (10 binary) becomes 1, 3 (11 binary) becomes -1
- *   4 (100 binary) becomes 2, 5 (101 binary) becomes -2
- */
-function fromVLQSigned(aValue) {
-  var isNegative = (aValue & 1) === 1;
-  var shifted = aValue >> 1;
-  return isNegative
-    ? -shifted
-    : shifted;
-}
-
-/**
- * Returns the base 64 VLQ encoded value.
- */
-exports.encode = function base64VLQ_encode(aValue) {
-  var encoded = "";
-  var digit;
-
-  var vlq = toVLQSigned(aValue);
-
-  do {
-    digit = vlq & VLQ_BASE_MASK;
-    vlq >>>= VLQ_BASE_SHIFT;
-    if (vlq > 0) {
-      // There are still more digits in this value, so we must make sure the
-      // continuation bit is marked.
-      digit |= VLQ_CONTINUATION_BIT;
-    }
-    encoded += base64.encode(digit);
-  } while (vlq > 0);
-
-  return encoded;
-};
-
-/**
- * Decodes the next base 64 VLQ value from the given string and returns the
- * value and the rest of the string via the out parameter.
- */
-exports.decode = function base64VLQ_decode(aStr, aIndex, aOutParam) {
-  var strLen = aStr.length;
-  var result = 0;
-  var shift = 0;
-  var continuation, digit;
-
-  do {
-    if (aIndex >= strLen) {
-      throw new Error("Expected more digits in base 64 VLQ value.");
-    }
-
-    digit = base64.decode(aStr.charCodeAt(aIndex++));
-    if (digit === -1) {
-      throw new Error("Invalid base64 digit: " + aStr.charAt(aIndex - 1));
-    }
-
-    continuation = !!(digit & VLQ_CONTINUATION_BIT);
-    digit &= VLQ_BASE_MASK;
-    result = result + (digit << shift);
-    shift += VLQ_BASE_SHIFT;
-  } while (continuation);
-
-  aOutParam.value = fromVLQSigned(result);
-  aOutParam.rest = aIndex;
-};
-
-},{"./base64":223}],223:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var intToCharMap = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
-
-/**
- * Encode an integer in the range of 0 to 63 to a single base 64 digit.
- */
-exports.encode = function (number) {
-  if (0 <= number && number < intToCharMap.length) {
-    return intToCharMap[number];
-  }
-  throw new TypeError("Must be between 0 and 63: " + number);
-};
-
-/**
- * Decode a single base 64 character code digit to an integer. Returns -1 on
- * failure.
- */
-exports.decode = function (charCode) {
-  var bigA = 65;     // 'A'
-  var bigZ = 90;     // 'Z'
-
-  var littleA = 97;  // 'a'
-  var littleZ = 122; // 'z'
-
-  var zero = 48;     // '0'
-  var nine = 57;     // '9'
-
-  var plus = 43;     // '+'
-  var slash = 47;    // '/'
-
-  var littleOffset = 26;
-  var numberOffset = 52;
-
-  // 0 - 25: ABCDEFGHIJKLMNOPQRSTUVWXYZ
-  if (bigA <= charCode && charCode <= bigZ) {
-    return (charCode - bigA);
-  }
-
-  // 26 - 51: abcdefghijklmnopqrstuvwxyz
-  if (littleA <= charCode && charCode <= littleZ) {
-    return (charCode - littleA + littleOffset);
-  }
-
-  // 52 - 61: 0123456789
-  if (zero <= charCode && charCode <= nine) {
-    return (charCode - zero + numberOffset);
-  }
-
-  // 62: +
-  if (charCode == plus) {
-    return 62;
-  }
-
-  // 63: /
-  if (charCode == slash) {
-    return 63;
-  }
-
-  // Invalid base64 digit.
-  return -1;
-};
-
-},{}],224:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-exports.GREATEST_LOWER_BOUND = 1;
-exports.LEAST_UPPER_BOUND = 2;
-
-/**
- * Recursive implementation of binary search.
- *
- * @param aLow Indices here and lower do not contain the needle.
- * @param aHigh Indices here and higher do not contain the needle.
- * @param aNeedle The element being searched for.
- * @param aHaystack The non-empty array being searched.
- * @param aCompare Function which takes two elements and returns -1, 0, or 1.
- * @param aBias Either 'binarySearch.GREATEST_LOWER_BOUND' or
- *     'binarySearch.LEAST_UPPER_BOUND'. Specifies whether to return the
- *     closest element that is smaller than or greater than the one we are
- *     searching for, respectively, if the exact element cannot be found.
- */
-function recursiveSearch(aLow, aHigh, aNeedle, aHaystack, aCompare, aBias) {
-  // This function terminates when one of the following is true:
-  //
-  //   1. We find the exact element we are looking for.
-  //
-  //   2. We did not find the exact element, but we can return the index of
-  //      the next-closest element.
-  //
-  //   3. We did not find the exact element, and there is no next-closest
-  //      element than the one we are searching for, so we return -1.
-  var mid = Math.floor((aHigh - aLow) / 2) + aLow;
-  var cmp = aCompare(aNeedle, aHaystack[mid], true);
-  if (cmp === 0) {
-    // Found the element we are looking for.
-    return mid;
-  }
-  else if (cmp > 0) {
-    // Our needle is greater than aHaystack[mid].
-    if (aHigh - mid > 1) {
-      // The element is in the upper half.
-      return recursiveSearch(mid, aHigh, aNeedle, aHaystack, aCompare, aBias);
-    }
-
-    // The exact needle element was not found in this haystack. Determine if
-    // we are in termination case (3) or (2) and return the appropriate thing.
-    if (aBias == exports.LEAST_UPPER_BOUND) {
-      return aHigh < aHaystack.length ? aHigh : -1;
-    } else {
-      return mid;
-    }
-  }
-  else {
-    // Our needle is less than aHaystack[mid].
-    if (mid - aLow > 1) {
-      // The element is in the lower half.
-      return recursiveSearch(aLow, mid, aNeedle, aHaystack, aCompare, aBias);
-    }
-
-    // we are in termination case (3) or (2) and return the appropriate thing.
-    if (aBias == exports.LEAST_UPPER_BOUND) {
-      return mid;
-    } else {
-      return aLow < 0 ? -1 : aLow;
-    }
-  }
-}
-
-/**
- * This is an implementation of binary search which will always try and return
- * the index of the closest element if there is no exact hit. This is because
- * mappings between original and generated line/col pairs are single points,
- * and there is an implicit region between each of them, so a miss just means
- * that you aren't on the very start of a region.
- *
- * @param aNeedle The element you are looking for.
- * @param aHaystack The array that is being searched.
- * @param aCompare A function which takes the needle and an element in the
- *     array and returns -1, 0, or 1 depending on whether the needle is less
- *     than, equal to, or greater than the element, respectively.
- * @param aBias Either 'binarySearch.GREATEST_LOWER_BOUND' or
- *     'binarySearch.LEAST_UPPER_BOUND'. Specifies whether to return the
- *     closest element that is smaller than or greater than the one we are
- *     searching for, respectively, if the exact element cannot be found.
- *     Defaults to 'binarySearch.GREATEST_LOWER_BOUND'.
- */
-exports.search = function search(aNeedle, aHaystack, aCompare, aBias) {
-  if (aHaystack.length === 0) {
-    return -1;
-  }
-
-  var index = recursiveSearch(-1, aHaystack.length, aNeedle, aHaystack,
-                              aCompare, aBias || exports.GREATEST_LOWER_BOUND);
-  if (index < 0) {
-    return -1;
-  }
-
-  // We have found either the exact element, or the next-closest element than
-  // the one we are searching for. However, there may be more than one such
-  // element. Make sure we always return the smallest of these.
-  while (index - 1 >= 0) {
-    if (aCompare(aHaystack[index], aHaystack[index - 1], true) !== 0) {
-      break;
-    }
-    --index;
-  }
-
-  return index;
-};
-
-},{}],225:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2014 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var util = require('./util');
-
-/**
- * Determine whether mappingB is after mappingA with respect to generated
- * position.
- */
-function generatedPositionAfter(mappingA, mappingB) {
-  // Optimized for most common case
-  var lineA = mappingA.generatedLine;
-  var lineB = mappingB.generatedLine;
-  var columnA = mappingA.generatedColumn;
-  var columnB = mappingB.generatedColumn;
-  return lineB > lineA || lineB == lineA && columnB >= columnA ||
-         util.compareByGeneratedPositionsInflated(mappingA, mappingB) <= 0;
-}
-
-/**
- * A data structure to provide a sorted view of accumulated mappings in a
- * performance conscious manner. It trades a neglibable overhead in general
- * case for a large speedup in case of mappings being added in order.
- */
-function MappingList() {
-  this._array = [];
-  this._sorted = true;
-  // Serves as infimum
-  this._last = {generatedLine: -1, generatedColumn: 0};
-}
-
-/**
- * Iterate through internal items. This method takes the same arguments that
- * `Array.prototype.forEach` takes.
- *
- * NOTE: The order of the mappings is NOT guaranteed.
- */
-MappingList.prototype.unsortedForEach =
-  function MappingList_forEach(aCallback, aThisArg) {
-    this._array.forEach(aCallback, aThisArg);
-  };
-
-/**
- * Add the given source mapping.
- *
- * @param Object aMapping
- */
-MappingList.prototype.add = function MappingList_add(aMapping) {
-  if (generatedPositionAfter(this._last, aMapping)) {
-    this._last = aMapping;
-    this._array.push(aMapping);
-  } else {
-    this._sorted = false;
-    this._array.push(aMapping);
-  }
-};
-
-/**
- * Returns the flat, sorted array of mappings. The mappings are sorted by
- * generated position.
- *
- * WARNING: This method returns internal data without copying, for
- * performance. The return value must NOT be mutated, and should be treated as
- * an immutable borrow. If you want to take ownership, you must make your own
- * copy.
- */
-MappingList.prototype.toArray = function MappingList_toArray() {
-  if (!this._sorted) {
-    this._array.sort(util.compareByGeneratedPositionsInflated);
-    this._sorted = true;
-  }
-  return this._array;
-};
-
-exports.MappingList = MappingList;
-
-},{"./util":230}],226:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-// It turns out that some (most?) JavaScript engines don't self-host
-// `Array.prototype.sort`. This makes sense because C++ will likely remain
-// faster than JS when doing raw CPU-intensive sorting. However, when using a
-// custom comparator function, calling back and forth between the VM's C++ and
-// JIT'd JS is rather slow *and* loses JIT type information, resulting in
-// worse generated code for the comparator function than would be optimal. In
-// fact, when sorting with a comparator, these costs outweigh the benefits of
-// sorting in C++. By using our own JS-implemented Quick Sort (below), we get
-// a ~3500ms mean speed-up in `bench/bench.html`.
-
-/**
- * Swap the elements indexed by `x` and `y` in the array `ary`.
- *
- * @param {Array} ary
- *        The array.
- * @param {Number} x
- *        The index of the first item.
- * @param {Number} y
- *        The index of the second item.
- */
-function swap(ary, x, y) {
-  var temp = ary[x];
-  ary[x] = ary[y];
-  ary[y] = temp;
-}
-
-/**
- * Returns a random integer within the range `low .. high` inclusive.
- *
- * @param {Number} low
- *        The lower bound on the range.
- * @param {Number} high
- *        The upper bound on the range.
- */
-function randomIntInRange(low, high) {
-  return Math.round(low + (Math.random() * (high - low)));
-}
-
-/**
- * The Quick Sort algorithm.
- *
- * @param {Array} ary
- *        An array to sort.
- * @param {function} comparator
- *        Function to use to compare two items.
- * @param {Number} p
- *        Start index of the array
- * @param {Number} r
- *        End index of the array
- */
-function doQuickSort(ary, comparator, p, r) {
-  // If our lower bound is less than our upper bound, we (1) partition the
-  // array into two pieces and (2) recurse on each half. If it is not, this is
-  // the empty array and our base case.
-
-  if (p < r) {
-    // (1) Partitioning.
-    //
-    // The partitioning chooses a pivot between `p` and `r` and moves all
-    // elements that are less than or equal to the pivot to the before it, and
-    // all the elements that are greater than it after it. The effect is that
-    // once partition is done, the pivot is in the exact place it will be when
-    // the array is put in sorted order, and it will not need to be moved
-    // again. This runs in O(n) time.
-
-    // Always choose a random pivot so that an input array which is reverse
-    // sorted does not cause O(n^2) running time.
-    var pivotIndex = randomIntInRange(p, r);
-    var i = p - 1;
-
-    swap(ary, pivotIndex, r);
-    var pivot = ary[r];
-
-    // Immediately after `j` is incremented in this loop, the following hold
-    // true:
-    //
-    //   * Every element in `ary[p .. i]` is less than or equal to the pivot.
-    //
-    //   * Every element in `ary[i+1 .. j-1]` is greater than the pivot.
-    for (var j = p; j < r; j++) {
-      if (comparator(ary[j], pivot) <= 0) {
-        i += 1;
-        swap(ary, i, j);
-      }
-    }
-
-    swap(ary, i + 1, j);
-    var q = i + 1;
-
-    // (2) Recurse on each half.
-
-    doQuickSort(ary, comparator, p, q - 1);
-    doQuickSort(ary, comparator, q + 1, r);
-  }
-}
-
-/**
- * Sort the given array in-place with the given comparator function.
- *
- * @param {Array} ary
- *        An array to sort.
- * @param {function} comparator
- *        Function to use to compare two items.
- */
-exports.quickSort = function (ary, comparator) {
-  doQuickSort(ary, comparator, 0, ary.length - 1);
-};
-
-},{}],227:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var util = require('./util');
-var binarySearch = require('./binary-search');
-var ArraySet = require('./array-set').ArraySet;
-var base64VLQ = require('./base64-vlq');
-var quickSort = require('./quick-sort').quickSort;
-
-function SourceMapConsumer(aSourceMap) {
-  var sourceMap = aSourceMap;
-  if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
-  }
-
-  return sourceMap.sections != null
-    ? new IndexedSourceMapConsumer(sourceMap)
-    : new BasicSourceMapConsumer(sourceMap);
-}
-
-SourceMapConsumer.fromSourceMap = function(aSourceMap) {
-  return BasicSourceMapConsumer.fromSourceMap(aSourceMap);
-}
-
-/**
- * The version of the source mapping spec that we are consuming.
- */
-SourceMapConsumer.prototype._version = 3;
-
-// `__generatedMappings` and `__originalMappings` are arrays that hold the
-// parsed mapping coordinates from the source map's "mappings" attribute. They
-// are lazily instantiated, accessed via the `_generatedMappings` and
-// `_originalMappings` getters respectively, and we only parse the mappings
-// and create these arrays once queried for a source location. We jump through
-// these hoops because there can be many thousands of mappings, and parsing
-// them is expensive, so we only want to do it if we must.
-//
-// Each object in the arrays is of the form:
-//
-//     {
-//       generatedLine: The line number in the generated code,
-//       generatedColumn: The column number in the generated code,
-//       source: The path to the original source file that generated this
-//               chunk of code,
-//       originalLine: The line number in the original source that
-//                     corresponds to this chunk of generated code,
-//       originalColumn: The column number in the original source that
-//                       corresponds to this chunk of generated code,
-//       name: The name of the original symbol which generated this chunk of
-//             code.
-//     }
-//
-// All properties except for `generatedLine` and `generatedColumn` can be
-// `null`.
-//
-// `_generatedMappings` is ordered by the generated positions.
-//
-// `_originalMappings` is ordered by the original positions.
-
-SourceMapConsumer.prototype.__generatedMappings = null;
-Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
-  get: function () {
-    if (!this.__generatedMappings) {
-      this._parseMappings(this._mappings, this.sourceRoot);
-    }
-
-    return this.__generatedMappings;
-  }
-});
-
-SourceMapConsumer.prototype.__originalMappings = null;
-Object.defineProperty(SourceMapConsumer.prototype, '_originalMappings', {
-  get: function () {
-    if (!this.__originalMappings) {
-      this._parseMappings(this._mappings, this.sourceRoot);
-    }
-
-    return this.__originalMappings;
-  }
-});
-
-SourceMapConsumer.prototype._charIsMappingSeparator =
-  function SourceMapConsumer_charIsMappingSeparator(aStr, index) {
-    var c = aStr.charAt(index);
-    return c === ";" || c === ",";
-  };
-
-/**
- * Parse the mappings in a string in to a data structure which we can easily
- * query (the ordered arrays in the `this.__generatedMappings` and
- * `this.__originalMappings` properties).
- */
-SourceMapConsumer.prototype._parseMappings =
-  function SourceMapConsumer_parseMappings(aStr, aSourceRoot) {
-    throw new Error("Subclasses must implement _parseMappings");
-  };
-
-SourceMapConsumer.GENERATED_ORDER = 1;
-SourceMapConsumer.ORIGINAL_ORDER = 2;
-
-SourceMapConsumer.GREATEST_LOWER_BOUND = 1;
-SourceMapConsumer.LEAST_UPPER_BOUND = 2;
-
-/**
- * Iterate over each mapping between an original source/line/column and a
- * generated line/column in this source map.
- *
- * @param Function aCallback
- *        The function that is called with each mapping.
- * @param Object aContext
- *        Optional. If specified, this object will be the value of `this` every
- *        time that `aCallback` is called.
- * @param aOrder
- *        Either `SourceMapConsumer.GENERATED_ORDER` or
- *        `SourceMapConsumer.ORIGINAL_ORDER`. Specifies whether you want to
- *        iterate over the mappings sorted by the generated file's line/column
- *        order or the original's source/line/column order, respectively. Defaults to
- *        `SourceMapConsumer.GENERATED_ORDER`.
- */
-SourceMapConsumer.prototype.eachMapping =
-  function SourceMapConsumer_eachMapping(aCallback, aContext, aOrder) {
-    var context = aContext || null;
-    var order = aOrder || SourceMapConsumer.GENERATED_ORDER;
-
-    var mappings;
-    switch (order) {
-    case SourceMapConsumer.GENERATED_ORDER:
-      mappings = this._generatedMappings;
-      break;
-    case SourceMapConsumer.ORIGINAL_ORDER:
-      mappings = this._originalMappings;
-      break;
-    default:
-      throw new Error("Unknown order of iteration.");
-    }
-
-    var sourceRoot = this.sourceRoot;
-    mappings.map(function (mapping) {
-      var source = mapping.source === null ? null : this._sources.at(mapping.source);
-      if (source != null && sourceRoot != null) {
-        source = util.join(sourceRoot, source);
-      }
-      return {
-        source: source,
-        generatedLine: mapping.generatedLine,
-        generatedColumn: mapping.generatedColumn,
-        originalLine: mapping.originalLine,
-        originalColumn: mapping.originalColumn,
-        name: mapping.name === null ? null : this._names.at(mapping.name)
-      };
-    }, this).forEach(aCallback, context);
-  };
-
-/**
- * Returns all generated line and column information for the original source,
- * line, and column provided. If no column is provided, returns all mappings
- * corresponding to a either the line we are searching for or the next
- * closest line that has any mappings. Otherwise, returns all mappings
- * corresponding to the given line and either the column we are searching for
- * or the next closest column that has any offsets.
- *
- * The only argument is an object with the following properties:
- *
- *   - source: The filename of the original source.
- *   - line: The line number in the original source.
- *   - column: Optional. the column number in the original source.
- *
- * and an array of objects is returned, each with the following properties:
- *
- *   - line: The line number in the generated source, or null.
- *   - column: The column number in the generated source, or null.
- */
-SourceMapConsumer.prototype.allGeneratedPositionsFor =
-  function SourceMapConsumer_allGeneratedPositionsFor(aArgs) {
-    var line = util.getArg(aArgs, 'line');
-
-    // When there is no exact match, BasicSourceMapConsumer.prototype._findMapping
-    // returns the index of the closest mapping less than the needle. By
-    // setting needle.originalColumn to 0, we thus find the last mapping for
-    // the given line, provided such a mapping exists.
-    var needle = {
-      source: util.getArg(aArgs, 'source'),
-      originalLine: line,
-      originalColumn: util.getArg(aArgs, 'column', 0)
-    };
-
-    if (this.sourceRoot != null) {
-      needle.source = util.relative(this.sourceRoot, needle.source);
-    }
-    if (!this._sources.has(needle.source)) {
-      return [];
-    }
-    needle.source = this._sources.indexOf(needle.source);
-
-    var mappings = [];
-
-    var index = this._findMapping(needle,
-                                  this._originalMappings,
-                                  "originalLine",
-                                  "originalColumn",
-                                  util.compareByOriginalPositions,
-                                  binarySearch.LEAST_UPPER_BOUND);
-    if (index >= 0) {
-      var mapping = this._originalMappings[index];
-
-      if (aArgs.column === undefined) {
-        var originalLine = mapping.originalLine;
-
-        // Iterate until either we run out of mappings, or we run into
-        // a mapping for a different line than the one we found. Since
-        // mappings are sorted, this is guaranteed to find all mappings for
-        // the line we found.
-        while (mapping && mapping.originalLine === originalLine) {
-          mappings.push({
-            line: util.getArg(mapping, 'generatedLine', null),
-            column: util.getArg(mapping, 'generatedColumn', null),
-            lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
-          });
-
-          mapping = this._originalMappings[++index];
-        }
-      } else {
-        var originalColumn = mapping.originalColumn;
-
-        // Iterate until either we run out of mappings, or we run into
-        // a mapping for a different line than the one we were searching for.
-        // Since mappings are sorted, this is guaranteed to find all mappings for
-        // the line we are searching for.
-        while (mapping &&
-               mapping.originalLine === line &&
-               mapping.originalColumn == originalColumn) {
-          mappings.push({
-            line: util.getArg(mapping, 'generatedLine', null),
-            column: util.getArg(mapping, 'generatedColumn', null),
-            lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
-          });
-
-          mapping = this._originalMappings[++index];
-        }
-      }
-    }
-
-    return mappings;
-  };
-
-exports.SourceMapConsumer = SourceMapConsumer;
-
-/**
- * A BasicSourceMapConsumer instance represents a parsed source map which we can
- * query for information about the original file positions by giving it a file
- * position in the generated source.
- *
- * The only parameter is the raw source map (either as a JSON string, or
- * already parsed to an object). According to the spec, source maps have the
- * following attributes:
- *
- *   - version: Which version of the source map spec this map is following.
- *   - sources: An array of URLs to the original source files.
- *   - names: An array of identifiers which can be referrenced by individual mappings.
- *   - sourceRoot: Optional. The URL root from which all sources are relative.
- *   - sourcesContent: Optional. An array of contents of the original source files.
- *   - mappings: A string of base64 VLQs which contain the actual mappings.
- *   - file: Optional. The generated file this source map is associated with.
- *
- * Here is an example source map, taken from the source map spec[0]:
- *
- *     {
- *       version : 3,
- *       file: "out.js",
- *       sourceRoot : "",
- *       sources: ["foo.js", "bar.js"],
- *       names: ["src", "maps", "are", "fun"],
- *       mappings: "AA,AB;;ABCDE;"
- *     }
- *
- * [0]: https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit?pli=1#
- */
-function BasicSourceMapConsumer(aSourceMap) {
-  var sourceMap = aSourceMap;
-  if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
-  }
-
-  var version = util.getArg(sourceMap, 'version');
-  var sources = util.getArg(sourceMap, 'sources');
-  // Sass 3.3 leaves out the 'names' array, so we deviate from the spec (which
-  // requires the array) to play nice here.
-  var names = util.getArg(sourceMap, 'names', []);
-  var sourceRoot = util.getArg(sourceMap, 'sourceRoot', null);
-  var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
-  var mappings = util.getArg(sourceMap, 'mappings');
-  var file = util.getArg(sourceMap, 'file', null);
-
-  // Once again, Sass deviates from the spec and supplies the version as a
-  // string rather than a number, so we use loose equality checking here.
-  if (version != this._version) {
-    throw new Error('Unsupported version: ' + version);
-  }
-
-  sources = sources
-    .map(String)
-    // Some source maps produce relative source paths like "./foo.js" instead of
-    // "foo.js".  Normalize these first so that future comparisons will succeed.
-    // See bugzil.la/1090768.
-    .map(util.normalize)
-    // Always ensure that absolute sources are internally stored relative to
-    // the source root, if the source root is absolute. Not doing this would
-    // be particularly problematic when the source root is a prefix of the
-    // source (valid, but why??). See github issue #199 and bugzil.la/1188982.
-    .map(function (source) {
-      return sourceRoot && util.isAbsolute(sourceRoot) && util.isAbsolute(source)
-        ? util.relative(sourceRoot, source)
-        : source;
-    });
-
-  // Pass `true` below to allow duplicate names and sources. While source maps
-  // are intended to be compressed and deduplicated, the TypeScript compiler
-  // sometimes generates source maps with duplicates in them. See Github issue
-  // #72 and bugzil.la/889492.
-  this._names = ArraySet.fromArray(names.map(String), true);
-  this._sources = ArraySet.fromArray(sources, true);
-
-  this.sourceRoot = sourceRoot;
-  this.sourcesContent = sourcesContent;
-  this._mappings = mappings;
-  this.file = file;
-}
-
-BasicSourceMapConsumer.prototype = Object.create(SourceMapConsumer.prototype);
-BasicSourceMapConsumer.prototype.consumer = SourceMapConsumer;
-
-/**
- * Create a BasicSourceMapConsumer from a SourceMapGenerator.
- *
- * @param SourceMapGenerator aSourceMap
- *        The source map that will be consumed.
- * @returns BasicSourceMapConsumer
- */
-BasicSourceMapConsumer.fromSourceMap =
-  function SourceMapConsumer_fromSourceMap(aSourceMap) {
-    var smc = Object.create(BasicSourceMapConsumer.prototype);
-
-    var names = smc._names = ArraySet.fromArray(aSourceMap._names.toArray(), true);
-    var sources = smc._sources = ArraySet.fromArray(aSourceMap._sources.toArray(), true);
-    smc.sourceRoot = aSourceMap._sourceRoot;
-    smc.sourcesContent = aSourceMap._generateSourcesContent(smc._sources.toArray(),
-                                                            smc.sourceRoot);
-    smc.file = aSourceMap._file;
-
-    // Because we are modifying the entries (by converting string sources and
-    // names to indices into the sources and names ArraySets), we have to make
-    // a copy of the entry or else bad things happen. Shared mutable state
-    // strikes again! See github issue #191.
-
-    var generatedMappings = aSourceMap._mappings.toArray().slice();
-    var destGeneratedMappings = smc.__generatedMappings = [];
-    var destOriginalMappings = smc.__originalMappings = [];
-
-    for (var i = 0, length = generatedMappings.length; i < length; i++) {
-      var srcMapping = generatedMappings[i];
-      var destMapping = new Mapping;
-      destMapping.generatedLine = srcMapping.generatedLine;
-      destMapping.generatedColumn = srcMapping.generatedColumn;
-
-      if (srcMapping.source) {
-        destMapping.source = sources.indexOf(srcMapping.source);
-        destMapping.originalLine = srcMapping.originalLine;
-        destMapping.originalColumn = srcMapping.originalColumn;
-
-        if (srcMapping.name) {
-          destMapping.name = names.indexOf(srcMapping.name);
-        }
-
-        destOriginalMappings.push(destMapping);
-      }
-
-      destGeneratedMappings.push(destMapping);
-    }
-
-    quickSort(smc.__originalMappings, util.compareByOriginalPositions);
-
-    return smc;
-  };
-
-/**
- * The version of the source mapping spec that we are consuming.
- */
-BasicSourceMapConsumer.prototype._version = 3;
-
-/**
- * The list of original sources.
- */
-Object.defineProperty(BasicSourceMapConsumer.prototype, 'sources', {
-  get: function () {
-    return this._sources.toArray().map(function (s) {
-      return this.sourceRoot != null ? util.join(this.sourceRoot, s) : s;
-    }, this);
-  }
-});
-
-/**
- * Provide the JIT with a nice shape / hidden class.
- */
-function Mapping() {
-  this.generatedLine = 0;
-  this.generatedColumn = 0;
-  this.source = null;
-  this.originalLine = null;
-  this.originalColumn = null;
-  this.name = null;
-}
-
-/**
- * Parse the mappings in a string in to a data structure which we can easily
- * query (the ordered arrays in the `this.__generatedMappings` and
- * `this.__originalMappings` properties).
- */
-BasicSourceMapConsumer.prototype._parseMappings =
-  function SourceMapConsumer_parseMappings(aStr, aSourceRoot) {
-    var generatedLine = 1;
-    var previousGeneratedColumn = 0;
-    var previousOriginalLine = 0;
-    var previousOriginalColumn = 0;
-    var previousSource = 0;
-    var previousName = 0;
-    var length = aStr.length;
-    var index = 0;
-    var cachedSegments = {};
-    var temp = {};
-    var originalMappings = [];
-    var generatedMappings = [];
-    var mapping, str, segment, end, value;
-
-    while (index < length) {
-      if (aStr.charAt(index) === ';') {
-        generatedLine++;
-        index++;
-        previousGeneratedColumn = 0;
-      }
-      else if (aStr.charAt(index) === ',') {
-        index++;
-      }
-      else {
-        mapping = new Mapping();
-        mapping.generatedLine = generatedLine;
-
-        // Because each offset is encoded relative to the previous one,
-        // many segments often have the same encoding. We can exploit this
-        // fact by caching the parsed variable length fields of each segment,
-        // allowing us to avoid a second parse if we encounter the same
-        // segment again.
-        for (end = index; end < length; end++) {
-          if (this._charIsMappingSeparator(aStr, end)) {
-            break;
-          }
-        }
-        str = aStr.slice(index, end);
-
-        segment = cachedSegments[str];
-        if (segment) {
-          index += str.length;
-        } else {
-          segment = [];
-          while (index < end) {
-            base64VLQ.decode(aStr, index, temp);
-            value = temp.value;
-            index = temp.rest;
-            segment.push(value);
-          }
-
-          if (segment.length === 2) {
-            throw new Error('Found a source, but no line and column');
-          }
-
-          if (segment.length === 3) {
-            throw new Error('Found a source and line, but no column');
-          }
-
-          cachedSegments[str] = segment;
-        }
-
-        // Generated column.
-        mapping.generatedColumn = previousGeneratedColumn + segment[0];
-        previousGeneratedColumn = mapping.generatedColumn;
-
-        if (segment.length > 1) {
-          // Original source.
-          mapping.source = previousSource + segment[1];
-          previousSource += segment[1];
-
-          // Original line.
-          mapping.originalLine = previousOriginalLine + segment[2];
-          previousOriginalLine = mapping.originalLine;
-          // Lines are stored 0-based
-          mapping.originalLine += 1;
-
-          // Original column.
-          mapping.originalColumn = previousOriginalColumn + segment[3];
-          previousOriginalColumn = mapping.originalColumn;
-
-          if (segment.length > 4) {
-            // Original name.
-            mapping.name = previousName + segment[4];
-            previousName += segment[4];
-          }
-        }
-
-        generatedMappings.push(mapping);
-        if (typeof mapping.originalLine === 'number') {
-          originalMappings.push(mapping);
-        }
-      }
-    }
-
-    quickSort(generatedMappings, util.compareByGeneratedPositionsDeflated);
-    this.__generatedMappings = generatedMappings;
-
-    quickSort(originalMappings, util.compareByOriginalPositions);
-    this.__originalMappings = originalMappings;
-  };
-
-/**
- * Find the mapping that best matches the hypothetical "needle" mapping that
- * we are searching for in the given "haystack" of mappings.
- */
-BasicSourceMapConsumer.prototype._findMapping =
-  function SourceMapConsumer_findMapping(aNeedle, aMappings, aLineName,
-                                         aColumnName, aComparator, aBias) {
-    // To return the position we are searching for, we must first find the
-    // mapping for the given position and then return the opposite position it
-    // points to. Because the mappings are sorted, we can use binary search to
-    // find the best mapping.
-
-    if (aNeedle[aLineName] <= 0) {
-      throw new TypeError('Line must be greater than or equal to 1, got '
-                          + aNeedle[aLineName]);
-    }
-    if (aNeedle[aColumnName] < 0) {
-      throw new TypeError('Column must be greater than or equal to 0, got '
-                          + aNeedle[aColumnName]);
-    }
-
-    return binarySearch.search(aNeedle, aMappings, aComparator, aBias);
-  };
-
-/**
- * Compute the last column for each generated mapping. The last column is
- * inclusive.
- */
-BasicSourceMapConsumer.prototype.computeColumnSpans =
-  function SourceMapConsumer_computeColumnSpans() {
-    for (var index = 0; index < this._generatedMappings.length; ++index) {
-      var mapping = this._generatedMappings[index];
-
-      // Mappings do not contain a field for the last generated columnt. We
-      // can come up with an optimistic estimate, however, by assuming that
-      // mappings are contiguous (i.e. given two consecutive mappings, the
-      // first mapping ends where the second one starts).
-      if (index + 1 < this._generatedMappings.length) {
-        var nextMapping = this._generatedMappings[index + 1];
-
-        if (mapping.generatedLine === nextMapping.generatedLine) {
-          mapping.lastGeneratedColumn = nextMapping.generatedColumn - 1;
-          continue;
-        }
-      }
-
-      // The last mapping for each line spans the entire line.
-      mapping.lastGeneratedColumn = Infinity;
-    }
-  };
-
-/**
- * Returns the original source, line, and column information for the generated
- * source's line and column positions provided. The only argument is an object
- * with the following properties:
- *
- *   - line: The line number in the generated source.
- *   - column: The column number in the generated source.
- *   - bias: Either 'SourceMapConsumer.GREATEST_LOWER_BOUND' or
- *     'SourceMapConsumer.LEAST_UPPER_BOUND'. Specifies whether to return the
- *     closest element that is smaller than or greater than the one we are
- *     searching for, respectively, if the exact element cannot be found.
- *     Defaults to 'SourceMapConsumer.GREATEST_LOWER_BOUND'.
- *
- * and an object is returned with the following properties:
- *
- *   - source: The original source file, or null.
- *   - line: The line number in the original source, or null.
- *   - column: The column number in the original source, or null.
- *   - name: The original identifier, or null.
- */
-BasicSourceMapConsumer.prototype.originalPositionFor =
-  function SourceMapConsumer_originalPositionFor(aArgs) {
-    var needle = {
-      generatedLine: util.getArg(aArgs, 'line'),
-      generatedColumn: util.getArg(aArgs, 'column')
-    };
-
-    var index = this._findMapping(
-      needle,
-      this._generatedMappings,
-      "generatedLine",
-      "generatedColumn",
-      util.compareByGeneratedPositionsDeflated,
-      util.getArg(aArgs, 'bias', SourceMapConsumer.GREATEST_LOWER_BOUND)
-    );
-
-    if (index >= 0) {
-      var mapping = this._generatedMappings[index];
-
-      if (mapping.generatedLine === needle.generatedLine) {
-        var source = util.getArg(mapping, 'source', null);
-        if (source !== null) {
-          source = this._sources.at(source);
-          if (this.sourceRoot != null) {
-            source = util.join(this.sourceRoot, source);
-          }
-        }
-        var name = util.getArg(mapping, 'name', null);
-        if (name !== null) {
-          name = this._names.at(name);
-        }
-        return {
-          source: source,
-          line: util.getArg(mapping, 'originalLine', null),
-          column: util.getArg(mapping, 'originalColumn', null),
-          name: name
-        };
-      }
-    }
-
-    return {
-      source: null,
-      line: null,
-      column: null,
-      name: null
-    };
-  };
-
-/**
- * Return true if we have the source content for every source in the source
- * map, false otherwise.
- */
-BasicSourceMapConsumer.prototype.hasContentsOfAllSources =
-  function BasicSourceMapConsumer_hasContentsOfAllSources() {
-    if (!this.sourcesContent) {
-      return false;
-    }
-    return this.sourcesContent.length >= this._sources.size() &&
-      !this.sourcesContent.some(function (sc) { return sc == null; });
-  };
-
-/**
- * Returns the original source content. The only argument is the url of the
- * original source file. Returns null if no original source content is
- * available.
- */
-BasicSourceMapConsumer.prototype.sourceContentFor =
-  function SourceMapConsumer_sourceContentFor(aSource, nullOnMissing) {
-    if (!this.sourcesContent) {
-      return null;
-    }
-
-    if (this.sourceRoot != null) {
-      aSource = util.relative(this.sourceRoot, aSource);
-    }
-
-    if (this._sources.has(aSource)) {
-      return this.sourcesContent[this._sources.indexOf(aSource)];
-    }
-
-    var url;
-    if (this.sourceRoot != null
-        && (url = util.urlParse(this.sourceRoot))) {
-      // XXX: file:// URIs and absolute paths lead to unexpected behavior for
-      // many users. We can help them out when they expect file:// URIs to
-      // behave like it would if they were running a local HTTP server. See
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=885597.
-      var fileUriAbsPath = aSource.replace(/^file:\/\//, "");
-      if (url.scheme == "file"
-          && this._sources.has(fileUriAbsPath)) {
-        return this.sourcesContent[this._sources.indexOf(fileUriAbsPath)]
-      }
-
-      if ((!url.path || url.path == "/")
-          && this._sources.has("/" + aSource)) {
-        return this.sourcesContent[this._sources.indexOf("/" + aSource)];
-      }
-    }
-
-    // This function is used recursively from
-    // IndexedSourceMapConsumer.prototype.sourceContentFor. In that case, we
-    // don't want to throw if we can't find the source - we just want to
-    // return null, so we provide a flag to exit gracefully.
-    if (nullOnMissing) {
-      return null;
-    }
-    else {
-      throw new Error('"' + aSource + '" is not in the SourceMap.');
-    }
-  };
-
-/**
- * Returns the generated line and column information for the original source,
- * line, and column positions provided. The only argument is an object with
- * the following properties:
- *
- *   - source: The filename of the original source.
- *   - line: The line number in the original source.
- *   - column: The column number in the original source.
- *   - bias: Either 'SourceMapConsumer.GREATEST_LOWER_BOUND' or
- *     'SourceMapConsumer.LEAST_UPPER_BOUND'. Specifies whether to return the
- *     closest element that is smaller than or greater than the one we are
- *     searching for, respectively, if the exact element cannot be found.
- *     Defaults to 'SourceMapConsumer.GREATEST_LOWER_BOUND'.
- *
- * and an object is returned with the following properties:
- *
- *   - line: The line number in the generated source, or null.
- *   - column: The column number in the generated source, or null.
- */
-BasicSourceMapConsumer.prototype.generatedPositionFor =
-  function SourceMapConsumer_generatedPositionFor(aArgs) {
-    var source = util.getArg(aArgs, 'source');
-    if (this.sourceRoot != null) {
-      source = util.relative(this.sourceRoot, source);
-    }
-    if (!this._sources.has(source)) {
-      return {
-        line: null,
-        column: null,
-        lastColumn: null
-      };
-    }
-    source = this._sources.indexOf(source);
-
-    var needle = {
-      source: source,
-      originalLine: util.getArg(aArgs, 'line'),
-      originalColumn: util.getArg(aArgs, 'column')
-    };
-
-    var index = this._findMapping(
-      needle,
-      this._originalMappings,
-      "originalLine",
-      "originalColumn",
-      util.compareByOriginalPositions,
-      util.getArg(aArgs, 'bias', SourceMapConsumer.GREATEST_LOWER_BOUND)
-    );
-
-    if (index >= 0) {
-      var mapping = this._originalMappings[index];
-
-      if (mapping.source === needle.source) {
-        return {
-          line: util.getArg(mapping, 'generatedLine', null),
-          column: util.getArg(mapping, 'generatedColumn', null),
-          lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
-        };
-      }
-    }
-
-    return {
-      line: null,
-      column: null,
-      lastColumn: null
-    };
-  };
-
-exports.BasicSourceMapConsumer = BasicSourceMapConsumer;
-
-/**
- * An IndexedSourceMapConsumer instance represents a parsed source map which
- * we can query for information. It differs from BasicSourceMapConsumer in
- * that it takes "indexed" source maps (i.e. ones with a "sections" field) as
- * input.
- *
- * The only parameter is a raw source map (either as a JSON string, or already
- * parsed to an object). According to the spec for indexed source maps, they
- * have the following attributes:
- *
- *   - version: Which version of the source map spec this map is following.
- *   - file: Optional. The generated file this source map is associated with.
- *   - sections: A list of section definitions.
- *
- * Each value under the "sections" field has two fields:
- *   - offset: The offset into the original specified at which this section
- *       begins to apply, defined as an object with a "line" and "column"
- *       field.
- *   - map: A source map definition. This source map could also be indexed,
- *       but doesn't have to be.
- *
- * Instead of the "map" field, it's also possible to have a "url" field
- * specifying a URL to retrieve a source map from, but that's currently
- * unsupported.
- *
- * Here's an example source map, taken from the source map spec[0], but
- * modified to omit a section which uses the "url" field.
- *
- *  {
- *    version : 3,
- *    file: "app.js",
- *    sections: [{
- *      offset: {line:100, column:10},
- *      map: {
- *        version : 3,
- *        file: "section.js",
- *        sources: ["foo.js", "bar.js"],
- *        names: ["src", "maps", "are", "fun"],
- *        mappings: "AAAA,E;;ABCDE;"
- *      }
- *    }],
- *  }
- *
- * [0]: https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.535es3xeprgt
- */
-function IndexedSourceMapConsumer(aSourceMap) {
-  var sourceMap = aSourceMap;
-  if (typeof aSourceMap === 'string') {
-    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
-  }
-
-  var version = util.getArg(sourceMap, 'version');
-  var sections = util.getArg(sourceMap, 'sections');
-
-  if (version != this._version) {
-    throw new Error('Unsupported version: ' + version);
-  }
-
-  this._sources = new ArraySet();
-  this._names = new ArraySet();
-
-  var lastOffset = {
-    line: -1,
-    column: 0
-  };
-  this._sections = sections.map(function (s) {
-    if (s.url) {
-      // The url field will require support for asynchronicity.
-      // See https://github.com/mozilla/source-map/issues/16
-      throw new Error('Support for url field in sections not implemented.');
-    }
-    var offset = util.getArg(s, 'offset');
-    var offsetLine = util.getArg(offset, 'line');
-    var offsetColumn = util.getArg(offset, 'column');
-
-    if (offsetLine < lastOffset.line ||
-        (offsetLine === lastOffset.line && offsetColumn < lastOffset.column)) {
-      throw new Error('Section offsets must be ordered and non-overlapping.');
-    }
-    lastOffset = offset;
-
-    return {
-      generatedOffset: {
-        // The offset fields are 0-based, but we use 1-based indices when
-        // encoding/decoding from VLQ.
-        generatedLine: offsetLine + 1,
-        generatedColumn: offsetColumn + 1
-      },
-      consumer: new SourceMapConsumer(util.getArg(s, 'map'))
-    }
-  });
-}
-
-IndexedSourceMapConsumer.prototype = Object.create(SourceMapConsumer.prototype);
-IndexedSourceMapConsumer.prototype.constructor = SourceMapConsumer;
-
-/**
- * The version of the source mapping spec that we are consuming.
- */
-IndexedSourceMapConsumer.prototype._version = 3;
-
-/**
- * The list of original sources.
- */
-Object.defineProperty(IndexedSourceMapConsumer.prototype, 'sources', {
-  get: function () {
-    var sources = [];
-    for (var i = 0; i < this._sections.length; i++) {
-      for (var j = 0; j < this._sections[i].consumer.sources.length; j++) {
-        sources.push(this._sections[i].consumer.sources[j]);
-      }
-    }
-    return sources;
-  }
-});
-
-/**
- * Returns the original source, line, and column information for the generated
- * source's line and column positions provided. The only argument is an object
- * with the following properties:
- *
- *   - line: The line number in the generated source.
- *   - column: The column number in the generated source.
- *
- * and an object is returned with the following properties:
- *
- *   - source: The original source file, or null.
- *   - line: The line number in the original source, or null.
- *   - column: The column number in the original source, or null.
- *   - name: The original identifier, or null.
- */
-IndexedSourceMapConsumer.prototype.originalPositionFor =
-  function IndexedSourceMapConsumer_originalPositionFor(aArgs) {
-    var needle = {
-      generatedLine: util.getArg(aArgs, 'line'),
-      generatedColumn: util.getArg(aArgs, 'column')
-    };
-
-    // Find the section containing the generated position we're trying to map
-    // to an original position.
-    var sectionIndex = binarySearch.search(needle, this._sections,
-      function(needle, section) {
-        var cmp = needle.generatedLine - section.generatedOffset.generatedLine;
-        if (cmp) {
-          return cmp;
-        }
-
-        return (needle.generatedColumn -
-                section.generatedOffset.generatedColumn);
-      });
-    var section = this._sections[sectionIndex];
-
-    if (!section) {
-      return {
-        source: null,
-        line: null,
-        column: null,
-        name: null
-      };
-    }
-
-    return section.consumer.originalPositionFor({
-      line: needle.generatedLine -
-        (section.generatedOffset.generatedLine - 1),
-      column: needle.generatedColumn -
-        (section.generatedOffset.generatedLine === needle.generatedLine
-         ? section.generatedOffset.generatedColumn - 1
-         : 0),
-      bias: aArgs.bias
-    });
-  };
-
-/**
- * Return true if we have the source content for every source in the source
- * map, false otherwise.
- */
-IndexedSourceMapConsumer.prototype.hasContentsOfAllSources =
-  function IndexedSourceMapConsumer_hasContentsOfAllSources() {
-    return this._sections.every(function (s) {
-      return s.consumer.hasContentsOfAllSources();
-    });
-  };
-
-/**
- * Returns the original source content. The only argument is the url of the
- * original source file. Returns null if no original source content is
- * available.
- */
-IndexedSourceMapConsumer.prototype.sourceContentFor =
-  function IndexedSourceMapConsumer_sourceContentFor(aSource, nullOnMissing) {
-    for (var i = 0; i < this._sections.length; i++) {
-      var section = this._sections[i];
-
-      var content = section.consumer.sourceContentFor(aSource, true);
-      if (content) {
-        return content;
-      }
-    }
-    if (nullOnMissing) {
-      return null;
-    }
-    else {
-      throw new Error('"' + aSource + '" is not in the SourceMap.');
-    }
-  };
-
-/**
- * Returns the generated line and column information for the original source,
- * line, and column positions provided. The only argument is an object with
- * the following properties:
- *
- *   - source: The filename of the original source.
- *   - line: The line number in the original source.
- *   - column: The column number in the original source.
- *
- * and an object is returned with the following properties:
- *
- *   - line: The line number in the generated source, or null.
- *   - column: The column number in the generated source, or null.
- */
-IndexedSourceMapConsumer.prototype.generatedPositionFor =
-  function IndexedSourceMapConsumer_generatedPositionFor(aArgs) {
-    for (var i = 0; i < this._sections.length; i++) {
-      var section = this._sections[i];
-
-      // Only consider this section if the requested source is in the list of
-      // sources of the consumer.
-      if (section.consumer.sources.indexOf(util.getArg(aArgs, 'source')) === -1) {
-        continue;
-      }
-      var generatedPosition = section.consumer.generatedPositionFor(aArgs);
-      if (generatedPosition) {
-        var ret = {
-          line: generatedPosition.line +
-            (section.generatedOffset.generatedLine - 1),
-          column: generatedPosition.column +
-            (section.generatedOffset.generatedLine === generatedPosition.line
-             ? section.generatedOffset.generatedColumn - 1
-             : 0)
-        };
-        return ret;
-      }
-    }
-
-    return {
-      line: null,
-      column: null
-    };
-  };
-
-/**
- * Parse the mappings in a string in to a data structure which we can easily
- * query (the ordered arrays in the `this.__generatedMappings` and
- * `this.__originalMappings` properties).
- */
-IndexedSourceMapConsumer.prototype._parseMappings =
-  function IndexedSourceMapConsumer_parseMappings(aStr, aSourceRoot) {
-    this.__generatedMappings = [];
-    this.__originalMappings = [];
-    for (var i = 0; i < this._sections.length; i++) {
-      var section = this._sections[i];
-      var sectionMappings = section.consumer._generatedMappings;
-      for (var j = 0; j < sectionMappings.length; j++) {
-        var mapping = sectionMappings[j];
-
-        var source = section.consumer._sources.at(mapping.source);
-        if (section.consumer.sourceRoot !== null) {
-          source = util.join(section.consumer.sourceRoot, source);
-        }
-        this._sources.add(source);
-        source = this._sources.indexOf(source);
-
-        var name = section.consumer._names.at(mapping.name);
-        this._names.add(name);
-        name = this._names.indexOf(name);
-
-        // The mappings coming from the consumer for the section have
-        // generated positions relative to the start of the section, so we
-        // need to offset them to be relative to the start of the concatenated
-        // generated file.
-        var adjustedMapping = {
-          source: source,
-          generatedLine: mapping.generatedLine +
-            (section.generatedOffset.generatedLine - 1),
-          generatedColumn: mapping.generatedColumn +
-            (section.generatedOffset.generatedLine === mapping.generatedLine
-            ? section.generatedOffset.generatedColumn - 1
-            : 0),
-          originalLine: mapping.originalLine,
-          originalColumn: mapping.originalColumn,
-          name: name
-        };
-
-        this.__generatedMappings.push(adjustedMapping);
-        if (typeof adjustedMapping.originalLine === 'number') {
-          this.__originalMappings.push(adjustedMapping);
-        }
-      }
-    }
-
-    quickSort(this.__generatedMappings, util.compareByGeneratedPositionsDeflated);
-    quickSort(this.__originalMappings, util.compareByOriginalPositions);
-  };
-
-exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
-
-},{"./array-set":221,"./base64-vlq":222,"./binary-search":224,"./quick-sort":226,"./util":230}],228:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var base64VLQ = require('./base64-vlq');
-var util = require('./util');
-var ArraySet = require('./array-set').ArraySet;
-var MappingList = require('./mapping-list').MappingList;
-
-/**
- * An instance of the SourceMapGenerator represents a source map which is
- * being built incrementally. You may pass an object with the following
- * properties:
- *
- *   - file: The filename of the generated source.
- *   - sourceRoot: A root for all relative URLs in this source map.
- */
-function SourceMapGenerator(aArgs) {
-  if (!aArgs) {
-    aArgs = {};
-  }
-  this._file = util.getArg(aArgs, 'file', null);
-  this._sourceRoot = util.getArg(aArgs, 'sourceRoot', null);
-  this._skipValidation = util.getArg(aArgs, 'skipValidation', false);
-  this._sources = new ArraySet();
-  this._names = new ArraySet();
-  this._mappings = new MappingList();
-  this._sourcesContents = null;
-}
-
-SourceMapGenerator.prototype._version = 3;
-
-/**
- * Creates a new SourceMapGenerator based on a SourceMapConsumer
- *
- * @param aSourceMapConsumer The SourceMap.
- */
-SourceMapGenerator.fromSourceMap =
-  function SourceMapGenerator_fromSourceMap(aSourceMapConsumer) {
-    var sourceRoot = aSourceMapConsumer.sourceRoot;
-    var generator = new SourceMapGenerator({
-      file: aSourceMapConsumer.file,
-      sourceRoot: sourceRoot
-    });
-    aSourceMapConsumer.eachMapping(function (mapping) {
-      var newMapping = {
-        generated: {
-          line: mapping.generatedLine,
-          column: mapping.generatedColumn
-        }
-      };
-
-      if (mapping.source != null) {
-        newMapping.source = mapping.source;
-        if (sourceRoot != null) {
-          newMapping.source = util.relative(sourceRoot, newMapping.source);
-        }
-
-        newMapping.original = {
-          line: mapping.originalLine,
-          column: mapping.originalColumn
-        };
-
-        if (mapping.name != null) {
-          newMapping.name = mapping.name;
-        }
-      }
-
-      generator.addMapping(newMapping);
-    });
-    aSourceMapConsumer.sources.forEach(function (sourceFile) {
-      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-      if (content != null) {
-        generator.setSourceContent(sourceFile, content);
-      }
-    });
-    return generator;
-  };
-
-/**
- * Add a single mapping from original source line and column to the generated
- * source's line and column for this source map being created. The mapping
- * object should have the following properties:
- *
- *   - generated: An object with the generated line and column positions.
- *   - original: An object with the original line and column positions.
- *   - source: The original source file (relative to the sourceRoot).
- *   - name: An optional original token name for this mapping.
- */
-SourceMapGenerator.prototype.addMapping =
-  function SourceMapGenerator_addMapping(aArgs) {
-    var generated = util.getArg(aArgs, 'generated');
-    var original = util.getArg(aArgs, 'original', null);
-    var source = util.getArg(aArgs, 'source', null);
-    var name = util.getArg(aArgs, 'name', null);
-
-    if (!this._skipValidation) {
-      this._validateMapping(generated, original, source, name);
-    }
-
-    if (source != null) {
-      source = String(source);
-      if (!this._sources.has(source)) {
-        this._sources.add(source);
-      }
-    }
-
-    if (name != null) {
-      name = String(name);
-      if (!this._names.has(name)) {
-        this._names.add(name);
-      }
-    }
-
-    this._mappings.add({
-      generatedLine: generated.line,
-      generatedColumn: generated.column,
-      originalLine: original != null && original.line,
-      originalColumn: original != null && original.column,
-      source: source,
-      name: name
-    });
-  };
-
-/**
- * Set the source content for a source file.
- */
-SourceMapGenerator.prototype.setSourceContent =
-  function SourceMapGenerator_setSourceContent(aSourceFile, aSourceContent) {
-    var source = aSourceFile;
-    if (this._sourceRoot != null) {
-      source = util.relative(this._sourceRoot, source);
-    }
-
-    if (aSourceContent != null) {
-      // Add the source content to the _sourcesContents map.
-      // Create a new _sourcesContents map if the property is null.
-      if (!this._sourcesContents) {
-        this._sourcesContents = Object.create(null);
-      }
-      this._sourcesContents[util.toSetString(source)] = aSourceContent;
-    } else if (this._sourcesContents) {
-      // Remove the source file from the _sourcesContents map.
-      // If the _sourcesContents map is empty, set the property to null.
-      delete this._sourcesContents[util.toSetString(source)];
-      if (Object.keys(this._sourcesContents).length === 0) {
-        this._sourcesContents = null;
-      }
-    }
-  };
-
-/**
- * Applies the mappings of a sub-source-map for a specific source file to the
- * source map being generated. Each mapping to the supplied source file is
- * rewritten using the supplied source map. Note: The resolution for the
- * resulting mappings is the minimium of this map and the supplied map.
- *
- * @param aSourceMapConsumer The source map to be applied.
- * @param aSourceFile Optional. The filename of the source file.
- *        If omitted, SourceMapConsumer's file property will be used.
- * @param aSourceMapPath Optional. The dirname of the path to the source map
- *        to be applied. If relative, it is relative to the SourceMapConsumer.
- *        This parameter is needed when the two source maps aren't in the same
- *        directory, and the source map to be applied contains relative source
- *        paths. If so, those relative source paths need to be rewritten
- *        relative to the SourceMapGenerator.
- */
-SourceMapGenerator.prototype.applySourceMap =
-  function SourceMapGenerator_applySourceMap(aSourceMapConsumer, aSourceFile, aSourceMapPath) {
-    var sourceFile = aSourceFile;
-    // If aSourceFile is omitted, we will use the file property of the SourceMap
-    if (aSourceFile == null) {
-      if (aSourceMapConsumer.file == null) {
-        throw new Error(
-          'SourceMapGenerator.prototype.applySourceMap requires either an explicit source file, ' +
-          'or the source map\'s "file" property. Both were omitted.'
-        );
-      }
-      sourceFile = aSourceMapConsumer.file;
-    }
-    var sourceRoot = this._sourceRoot;
-    // Make "sourceFile" relative if an absolute Url is passed.
-    if (sourceRoot != null) {
-      sourceFile = util.relative(sourceRoot, sourceFile);
-    }
-    // Applying the SourceMap can add and remove items from the sources and
-    // the names array.
-    var newSources = new ArraySet();
-    var newNames = new ArraySet();
-
-    // Find mappings for the "sourceFile"
-    this._mappings.unsortedForEach(function (mapping) {
-      if (mapping.source === sourceFile && mapping.originalLine != null) {
-        // Check if it can be mapped by the source map, then update the mapping.
-        var original = aSourceMapConsumer.originalPositionFor({
-          line: mapping.originalLine,
-          column: mapping.originalColumn
-        });
-        if (original.source != null) {
-          // Copy mapping
-          mapping.source = original.source;
-          if (aSourceMapPath != null) {
-            mapping.source = util.join(aSourceMapPath, mapping.source)
-          }
-          if (sourceRoot != null) {
-            mapping.source = util.relative(sourceRoot, mapping.source);
-          }
-          mapping.originalLine = original.line;
-          mapping.originalColumn = original.column;
-          if (original.name != null) {
-            mapping.name = original.name;
-          }
-        }
-      }
-
-      var source = mapping.source;
-      if (source != null && !newSources.has(source)) {
-        newSources.add(source);
-      }
-
-      var name = mapping.name;
-      if (name != null && !newNames.has(name)) {
-        newNames.add(name);
-      }
-
-    }, this);
-    this._sources = newSources;
-    this._names = newNames;
-
-    // Copy sourcesContents of applied map.
-    aSourceMapConsumer.sources.forEach(function (sourceFile) {
-      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-      if (content != null) {
-        if (aSourceMapPath != null) {
-          sourceFile = util.join(aSourceMapPath, sourceFile);
-        }
-        if (sourceRoot != null) {
-          sourceFile = util.relative(sourceRoot, sourceFile);
-        }
-        this.setSourceContent(sourceFile, content);
-      }
-    }, this);
-  };
-
-/**
- * A mapping can have one of the three levels of data:
- *
- *   1. Just the generated position.
- *   2. The Generated position, original position, and original source.
- *   3. Generated and original position, original source, as well as a name
- *      token.
- *
- * To maintain consistency, we validate that any new mapping being added falls
- * in to one of these categories.
- */
-SourceMapGenerator.prototype._validateMapping =
-  function SourceMapGenerator_validateMapping(aGenerated, aOriginal, aSource,
-                                              aName) {
-    if (aGenerated && 'line' in aGenerated && 'column' in aGenerated
-        && aGenerated.line > 0 && aGenerated.column >= 0
-        && !aOriginal && !aSource && !aName) {
-      // Case 1.
-      return;
-    }
-    else if (aGenerated && 'line' in aGenerated && 'column' in aGenerated
-             && aOriginal && 'line' in aOriginal && 'column' in aOriginal
-             && aGenerated.line > 0 && aGenerated.column >= 0
-             && aOriginal.line > 0 && aOriginal.column >= 0
-             && aSource) {
-      // Cases 2 and 3.
-      return;
-    }
-    else {
-      throw new Error('Invalid mapping: ' + JSON.stringify({
-        generated: aGenerated,
-        source: aSource,
-        original: aOriginal,
-        name: aName
-      }));
-    }
-  };
-
-/**
- * Serialize the accumulated mappings in to the stream of base 64 VLQs
- * specified by the source map format.
- */
-SourceMapGenerator.prototype._serializeMappings =
-  function SourceMapGenerator_serializeMappings() {
-    var previousGeneratedColumn = 0;
-    var previousGeneratedLine = 1;
-    var previousOriginalColumn = 0;
-    var previousOriginalLine = 0;
-    var previousName = 0;
-    var previousSource = 0;
-    var result = '';
-    var next;
-    var mapping;
-    var nameIdx;
-    var sourceIdx;
-
-    var mappings = this._mappings.toArray();
-    for (var i = 0, len = mappings.length; i < len; i++) {
-      mapping = mappings[i];
-      next = ''
-
-      if (mapping.generatedLine !== previousGeneratedLine) {
-        previousGeneratedColumn = 0;
-        while (mapping.generatedLine !== previousGeneratedLine) {
-          next += ';';
-          previousGeneratedLine++;
-        }
-      }
-      else {
-        if (i > 0) {
-          if (!util.compareByGeneratedPositionsInflated(mapping, mappings[i - 1])) {
-            continue;
-          }
-          next += ',';
-        }
-      }
-
-      next += base64VLQ.encode(mapping.generatedColumn
-                                 - previousGeneratedColumn);
-      previousGeneratedColumn = mapping.generatedColumn;
-
-      if (mapping.source != null) {
-        sourceIdx = this._sources.indexOf(mapping.source);
-        next += base64VLQ.encode(sourceIdx - previousSource);
-        previousSource = sourceIdx;
-
-        // lines are stored 0-based in SourceMap spec version 3
-        next += base64VLQ.encode(mapping.originalLine - 1
-                                   - previousOriginalLine);
-        previousOriginalLine = mapping.originalLine - 1;
-
-        next += base64VLQ.encode(mapping.originalColumn
-                                   - previousOriginalColumn);
-        previousOriginalColumn = mapping.originalColumn;
-
-        if (mapping.name != null) {
-          nameIdx = this._names.indexOf(mapping.name);
-          next += base64VLQ.encode(nameIdx - previousName);
-          previousName = nameIdx;
-        }
-      }
-
-      result += next;
-    }
-
-    return result;
-  };
-
-SourceMapGenerator.prototype._generateSourcesContent =
-  function SourceMapGenerator_generateSourcesContent(aSources, aSourceRoot) {
-    return aSources.map(function (source) {
-      if (!this._sourcesContents) {
-        return null;
-      }
-      if (aSourceRoot != null) {
-        source = util.relative(aSourceRoot, source);
-      }
-      var key = util.toSetString(source);
-      return Object.prototype.hasOwnProperty.call(this._sourcesContents, key)
-        ? this._sourcesContents[key]
-        : null;
-    }, this);
-  };
-
-/**
- * Externalize the source map.
- */
-SourceMapGenerator.prototype.toJSON =
-  function SourceMapGenerator_toJSON() {
-    var map = {
-      version: this._version,
-      sources: this._sources.toArray(),
-      names: this._names.toArray(),
-      mappings: this._serializeMappings()
-    };
-    if (this._file != null) {
-      map.file = this._file;
-    }
-    if (this._sourceRoot != null) {
-      map.sourceRoot = this._sourceRoot;
-    }
-    if (this._sourcesContents) {
-      map.sourcesContent = this._generateSourcesContent(map.sources, map.sourceRoot);
-    }
-
-    return map;
-  };
-
-/**
- * Render the source map being generated to a string.
- */
-SourceMapGenerator.prototype.toString =
-  function SourceMapGenerator_toString() {
-    return JSON.stringify(this.toJSON());
-  };
-
-exports.SourceMapGenerator = SourceMapGenerator;
-
-},{"./array-set":221,"./base64-vlq":222,"./mapping-list":225,"./util":230}],229:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-var SourceMapGenerator = require('./source-map-generator').SourceMapGenerator;
-var util = require('./util');
-
-// Matches a Windows-style `\r\n` newline or a `\n` newline used by all other
-// operating systems these days (capturing the result).
-var REGEX_NEWLINE = /(\r?\n)/;
-
-// Newline character code for charCodeAt() comparisons
-var NEWLINE_CODE = 10;
-
-// Private symbol for identifying `SourceNode`s when multiple versions of
-// the source-map library are loaded. This MUST NOT CHANGE across
-// versions!
-var isSourceNode = "$$$isSourceNode$$$";
-
-/**
- * SourceNodes provide a way to abstract over interpolating/concatenating
- * snippets of generated JavaScript source code while maintaining the line and
- * column information associated with the original source code.
- *
- * @param aLine The original line number.
- * @param aColumn The original column number.
- * @param aSource The original source's filename.
- * @param aChunks Optional. An array of strings which are snippets of
- *        generated JS, or other SourceNodes.
- * @param aName The original identifier.
- */
-function SourceNode(aLine, aColumn, aSource, aChunks, aName) {
-  this.children = [];
-  this.sourceContents = {};
-  this.line = aLine == null ? null : aLine;
-  this.column = aColumn == null ? null : aColumn;
-  this.source = aSource == null ? null : aSource;
-  this.name = aName == null ? null : aName;
-  this[isSourceNode] = true;
-  if (aChunks != null) this.add(aChunks);
-}
-
-/**
- * Creates a SourceNode from generated code and a SourceMapConsumer.
- *
- * @param aGeneratedCode The generated code
- * @param aSourceMapConsumer The SourceMap for the generated code
- * @param aRelativePath Optional. The path that relative sources in the
- *        SourceMapConsumer should be relative to.
- */
-SourceNode.fromStringWithSourceMap =
-  function SourceNode_fromStringWithSourceMap(aGeneratedCode, aSourceMapConsumer, aRelativePath) {
-    // The SourceNode we want to fill with the generated code
-    // and the SourceMap
-    var node = new SourceNode();
-
-    // All even indices of this array are one line of the generated code,
-    // while all odd indices are the newlines between two adjacent lines
-    // (since `REGEX_NEWLINE` captures its match).
-    // Processed fragments are removed from this array, by calling `shiftNextLine`.
-    var remainingLines = aGeneratedCode.split(REGEX_NEWLINE);
-    var shiftNextLine = function() {
-      var lineContents = remainingLines.shift();
-      // The last line of a file might not have a newline.
-      var newLine = remainingLines.shift() || "";
-      return lineContents + newLine;
-    };
-
-    // We need to remember the position of "remainingLines"
-    var lastGeneratedLine = 1, lastGeneratedColumn = 0;
-
-    // The generate SourceNodes we need a code range.
-    // To extract it current and last mapping is used.
-    // Here we store the last mapping.
-    var lastMapping = null;
-
-    aSourceMapConsumer.eachMapping(function (mapping) {
-      if (lastMapping !== null) {
-        // We add the code from "lastMapping" to "mapping":
-        // First check if there is a new line in between.
-        if (lastGeneratedLine < mapping.generatedLine) {
-          // Associate first line with "lastMapping"
-          addMappingWithCode(lastMapping, shiftNextLine());
-          lastGeneratedLine++;
-          lastGeneratedColumn = 0;
-          // The remaining code is added without mapping
-        } else {
-          // There is no new line in between.
-          // Associate the code between "lastGeneratedColumn" and
-          // "mapping.generatedColumn" with "lastMapping"
-          var nextLine = remainingLines[0];
-          var code = nextLine.substr(0, mapping.generatedColumn -
-                                        lastGeneratedColumn);
-          remainingLines[0] = nextLine.substr(mapping.generatedColumn -
-                                              lastGeneratedColumn);
-          lastGeneratedColumn = mapping.generatedColumn;
-          addMappingWithCode(lastMapping, code);
-          // No more remaining code, continue
-          lastMapping = mapping;
-          return;
-        }
-      }
-      // We add the generated code until the first mapping
-      // to the SourceNode without any mapping.
-      // Each line is added as separate string.
-      while (lastGeneratedLine < mapping.generatedLine) {
-        node.add(shiftNextLine());
-        lastGeneratedLine++;
-      }
-      if (lastGeneratedColumn < mapping.generatedColumn) {
-        var nextLine = remainingLines[0];
-        node.add(nextLine.substr(0, mapping.generatedColumn));
-        remainingLines[0] = nextLine.substr(mapping.generatedColumn);
-        lastGeneratedColumn = mapping.generatedColumn;
-      }
-      lastMapping = mapping;
-    }, this);
-    // We have processed all mappings.
-    if (remainingLines.length > 0) {
-      if (lastMapping) {
-        // Associate the remaining code in the current line with "lastMapping"
-        addMappingWithCode(lastMapping, shiftNextLine());
-      }
-      // and add the remaining lines without any mapping
-      node.add(remainingLines.join(""));
-    }
-
-    // Copy sourcesContent into SourceNode
-    aSourceMapConsumer.sources.forEach(function (sourceFile) {
-      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
-      if (content != null) {
-        if (aRelativePath != null) {
-          sourceFile = util.join(aRelativePath, sourceFile);
-        }
-        node.setSourceContent(sourceFile, content);
-      }
-    });
-
-    return node;
-
-    function addMappingWithCode(mapping, code) {
-      if (mapping === null || mapping.source === undefined) {
-        node.add(code);
-      } else {
-        var source = aRelativePath
-          ? util.join(aRelativePath, mapping.source)
-          : mapping.source;
-        node.add(new SourceNode(mapping.originalLine,
-                                mapping.originalColumn,
-                                source,
-                                code,
-                                mapping.name));
-      }
-    }
-  };
-
-/**
- * Add a chunk of generated JS to this source node.
- *
- * @param aChunk A string snippet of generated JS code, another instance of
- *        SourceNode, or an array where each member is one of those things.
- */
-SourceNode.prototype.add = function SourceNode_add(aChunk) {
-  if (Array.isArray(aChunk)) {
-    aChunk.forEach(function (chunk) {
-      this.add(chunk);
-    }, this);
-  }
-  else if (aChunk[isSourceNode] || typeof aChunk === "string") {
-    if (aChunk) {
-      this.children.push(aChunk);
-    }
-  }
-  else {
-    throw new TypeError(
-      "Expected a SourceNode, string, or an array of SourceNodes and strings. Got " + aChunk
-    );
-  }
-  return this;
-};
-
-/**
- * Add a chunk of generated JS to the beginning of this source node.
- *
- * @param aChunk A string snippet of generated JS code, another instance of
- *        SourceNode, or an array where each member is one of those things.
- */
-SourceNode.prototype.prepend = function SourceNode_prepend(aChunk) {
-  if (Array.isArray(aChunk)) {
-    for (var i = aChunk.length-1; i >= 0; i--) {
-      this.prepend(aChunk[i]);
-    }
-  }
-  else if (aChunk[isSourceNode] || typeof aChunk === "string") {
-    this.children.unshift(aChunk);
-  }
-  else {
-    throw new TypeError(
-      "Expected a SourceNode, string, or an array of SourceNodes and strings. Got " + aChunk
-    );
-  }
-  return this;
-};
-
-/**
- * Walk over the tree of JS snippets in this node and its children. The
- * walking function is called once for each snippet of JS and is passed that
- * snippet and the its original associated source's line/column location.
- *
- * @param aFn The traversal function.
- */
-SourceNode.prototype.walk = function SourceNode_walk(aFn) {
-  var chunk;
-  for (var i = 0, len = this.children.length; i < len; i++) {
-    chunk = this.children[i];
-    if (chunk[isSourceNode]) {
-      chunk.walk(aFn);
-    }
-    else {
-      if (chunk !== '') {
-        aFn(chunk, { source: this.source,
-                     line: this.line,
-                     column: this.column,
-                     name: this.name });
-      }
-    }
-  }
-};
-
-/**
- * Like `String.prototype.join` except for SourceNodes. Inserts `aStr` between
- * each of `this.children`.
- *
- * @param aSep The separator.
- */
-SourceNode.prototype.join = function SourceNode_join(aSep) {
-  var newChildren;
-  var i;
-  var len = this.children.length;
-  if (len > 0) {
-    newChildren = [];
-    for (i = 0; i < len-1; i++) {
-      newChildren.push(this.children[i]);
-      newChildren.push(aSep);
-    }
-    newChildren.push(this.children[i]);
-    this.children = newChildren;
-  }
-  return this;
-};
-
-/**
- * Call String.prototype.replace on the very right-most source snippet. Useful
- * for trimming whitespace from the end of a source node, etc.
- *
- * @param aPattern The pattern to replace.
- * @param aReplacement The thing to replace the pattern with.
- */
-SourceNode.prototype.replaceRight = function SourceNode_replaceRight(aPattern, aReplacement) {
-  var lastChild = this.children[this.children.length - 1];
-  if (lastChild[isSourceNode]) {
-    lastChild.replaceRight(aPattern, aReplacement);
-  }
-  else if (typeof lastChild === 'string') {
-    this.children[this.children.length - 1] = lastChild.replace(aPattern, aReplacement);
-  }
-  else {
-    this.children.push(''.replace(aPattern, aReplacement));
-  }
-  return this;
-};
-
-/**
- * Set the source content for a source file. This will be added to the SourceMapGenerator
- * in the sourcesContent field.
- *
- * @param aSourceFile The filename of the source file
- * @param aSourceContent The content of the source file
- */
-SourceNode.prototype.setSourceContent =
-  function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
-    this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
-  };
-
-/**
- * Walk over the tree of SourceNodes. The walking function is called for each
- * source file content and is passed the filename and source content.
- *
- * @param aFn The traversal function.
- */
-SourceNode.prototype.walkSourceContents =
-  function SourceNode_walkSourceContents(aFn) {
-    for (var i = 0, len = this.children.length; i < len; i++) {
-      if (this.children[i][isSourceNode]) {
-        this.children[i].walkSourceContents(aFn);
-      }
-    }
-
-    var sources = Object.keys(this.sourceContents);
-    for (var i = 0, len = sources.length; i < len; i++) {
-      aFn(util.fromSetString(sources[i]), this.sourceContents[sources[i]]);
-    }
-  };
-
-/**
- * Return the string representation of this source node. Walks over the tree
- * and concatenates all the various snippets together to one string.
- */
-SourceNode.prototype.toString = function SourceNode_toString() {
-  var str = "";
-  this.walk(function (chunk) {
-    str += chunk;
-  });
-  return str;
-};
-
-/**
- * Returns the string representation of this source node along with a source
- * map.
- */
-SourceNode.prototype.toStringWithSourceMap = function SourceNode_toStringWithSourceMap(aArgs) {
-  var generated = {
-    code: "",
-    line: 1,
-    column: 0
-  };
-  var map = new SourceMapGenerator(aArgs);
-  var sourceMappingActive = false;
-  var lastOriginalSource = null;
-  var lastOriginalLine = null;
-  var lastOriginalColumn = null;
-  var lastOriginalName = null;
-  this.walk(function (chunk, original) {
-    generated.code += chunk;
-    if (original.source !== null
-        && original.line !== null
-        && original.column !== null) {
-      if(lastOriginalSource !== original.source
-         || lastOriginalLine !== original.line
-         || lastOriginalColumn !== original.column
-         || lastOriginalName !== original.name) {
-        map.addMapping({
-          source: original.source,
-          original: {
-            line: original.line,
-            column: original.column
-          },
-          generated: {
-            line: generated.line,
-            column: generated.column
-          },
-          name: original.name
-        });
-      }
-      lastOriginalSource = original.source;
-      lastOriginalLine = original.line;
-      lastOriginalColumn = original.column;
-      lastOriginalName = original.name;
-      sourceMappingActive = true;
-    } else if (sourceMappingActive) {
-      map.addMapping({
-        generated: {
-          line: generated.line,
-          column: generated.column
-        }
-      });
-      lastOriginalSource = null;
-      sourceMappingActive = false;
-    }
-    for (var idx = 0, length = chunk.length; idx < length; idx++) {
-      if (chunk.charCodeAt(idx) === NEWLINE_CODE) {
-        generated.line++;
-        generated.column = 0;
-        // Mappings end at eol
-        if (idx + 1 === length) {
-          lastOriginalSource = null;
-          sourceMappingActive = false;
-        } else if (sourceMappingActive) {
-          map.addMapping({
-            source: original.source,
-            original: {
-              line: original.line,
-              column: original.column
-            },
-            generated: {
-              line: generated.line,
-              column: generated.column
-            },
-            name: original.name
-          });
-        }
-      } else {
-        generated.column++;
-      }
-    }
-  });
-  this.walkSourceContents(function (sourceFile, sourceContent) {
-    map.setSourceContent(sourceFile, sourceContent);
-  });
-
-  return { code: generated.code, map: map };
-};
-
-exports.SourceNode = SourceNode;
-
-},{"./source-map-generator":228,"./util":230}],230:[function(require,module,exports){
-/* -*- Mode: js; js-indent-level: 2; -*- */
-/*
- * Copyright 2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-
-/**
- * This is a helper function for getting values from parameter/options
- * objects.
- *
- * @param args The object we are extracting values from
- * @param name The name of the property we are getting.
- * @param defaultValue An optional value to return if the property is missing
- * from the object. If this is not specified and the property is missing, an
- * error will be thrown.
- */
-function getArg(aArgs, aName, aDefaultValue) {
-  if (aName in aArgs) {
-    return aArgs[aName];
-  } else if (arguments.length === 3) {
-    return aDefaultValue;
-  } else {
-    throw new Error('"' + aName + '" is a required argument.');
-  }
-}
-exports.getArg = getArg;
-
-var urlRegexp = /^(?:([\w+\-.]+):)?\/\/(?:(\w+:\w+)@)?([\w.]*)(?::(\d+))?(\S*)$/;
-var dataUrlRegexp = /^data:.+\,.+$/;
-
-function urlParse(aUrl) {
-  var match = aUrl.match(urlRegexp);
-  if (!match) {
-    return null;
-  }
-  return {
-    scheme: match[1],
-    auth: match[2],
-    host: match[3],
-    port: match[4],
-    path: match[5]
-  };
-}
-exports.urlParse = urlParse;
-
-function urlGenerate(aParsedUrl) {
-  var url = '';
-  if (aParsedUrl.scheme) {
-    url += aParsedUrl.scheme + ':';
-  }
-  url += '//';
-  if (aParsedUrl.auth) {
-    url += aParsedUrl.auth + '@';
-  }
-  if (aParsedUrl.host) {
-    url += aParsedUrl.host;
-  }
-  if (aParsedUrl.port) {
-    url += ":" + aParsedUrl.port
-  }
-  if (aParsedUrl.path) {
-    url += aParsedUrl.path;
-  }
-  return url;
-}
-exports.urlGenerate = urlGenerate;
-
-/**
- * Normalizes a path, or the path portion of a URL:
- *
- * - Replaces consecutive slashes with one slash.
- * - Removes unnecessary '.' parts.
- * - Removes unnecessary '<dir>/..' parts.
- *
- * Based on code in the Node.js 'path' core module.
- *
- * @param aPath The path or url to normalize.
- */
-function normalize(aPath) {
-  var path = aPath;
-  var url = urlParse(aPath);
-  if (url) {
-    if (!url.path) {
-      return aPath;
-    }
-    path = url.path;
-  }
-  var isAbsolute = exports.isAbsolute(path);
-
-  var parts = path.split(/\/+/);
-  for (var part, up = 0, i = parts.length - 1; i >= 0; i--) {
-    part = parts[i];
-    if (part === '.') {
-      parts.splice(i, 1);
-    } else if (part === '..') {
-      up++;
-    } else if (up > 0) {
-      if (part === '') {
-        // The first part is blank if the path is absolute. Trying to go
-        // above the root is a no-op. Therefore we can remove all '..' parts
-        // directly after the root.
-        parts.splice(i + 1, up);
-        up = 0;
-      } else {
-        parts.splice(i, 2);
-        up--;
-      }
-    }
-  }
-  path = parts.join('/');
-
-  if (path === '') {
-    path = isAbsolute ? '/' : '.';
-  }
-
-  if (url) {
-    url.path = path;
-    return urlGenerate(url);
-  }
-  return path;
-}
-exports.normalize = normalize;
-
-/**
- * Joins two paths/URLs.
- *
- * @param aRoot The root path or URL.
- * @param aPath The path or URL to be joined with the root.
- *
- * - If aPath is a URL or a data URI, aPath is returned, unless aPath is a
- *   scheme-relative URL: Then the scheme of aRoot, if any, is prepended
- *   first.
- * - Otherwise aPath is a path. If aRoot is a URL, then its path portion
- *   is updated with the result and aRoot is returned. Otherwise the result
- *   is returned.
- *   - If aPath is absolute, the result is aPath.
- *   - Otherwise the two paths are joined with a slash.
- * - Joining for example 'http://' and 'www.example.com' is also supported.
- */
-function join(aRoot, aPath) {
-  if (aRoot === "") {
-    aRoot = ".";
-  }
-  if (aPath === "") {
-    aPath = ".";
-  }
-  var aPathUrl = urlParse(aPath);
-  var aRootUrl = urlParse(aRoot);
-  if (aRootUrl) {
-    aRoot = aRootUrl.path || '/';
-  }
-
-  // `join(foo, '//www.example.org')`
-  if (aPathUrl && !aPathUrl.scheme) {
-    if (aRootUrl) {
-      aPathUrl.scheme = aRootUrl.scheme;
-    }
-    return urlGenerate(aPathUrl);
-  }
-
-  if (aPathUrl || aPath.match(dataUrlRegexp)) {
-    return aPath;
-  }
-
-  // `join('http://', 'www.example.com')`
-  if (aRootUrl && !aRootUrl.host && !aRootUrl.path) {
-    aRootUrl.host = aPath;
-    return urlGenerate(aRootUrl);
-  }
-
-  var joined = aPath.charAt(0) === '/'
-    ? aPath
-    : normalize(aRoot.replace(/\/+$/, '') + '/' + aPath);
-
-  if (aRootUrl) {
-    aRootUrl.path = joined;
-    return urlGenerate(aRootUrl);
-  }
-  return joined;
-}
-exports.join = join;
-
-exports.isAbsolute = function (aPath) {
-  return aPath.charAt(0) === '/' || !!aPath.match(urlRegexp);
-};
-
-/**
- * Make a path relative to a URL or another path.
- *
- * @param aRoot The root path or URL.
- * @param aPath The path or URL to be made relative to aRoot.
- */
-function relative(aRoot, aPath) {
-  if (aRoot === "") {
-    aRoot = ".";
-  }
-
-  aRoot = aRoot.replace(/\/$/, '');
-
-  // It is possible for the path to be above the root. In this case, simply
-  // checking whether the root is a prefix of the path won't work. Instead, we
-  // need to remove components from the root one by one, until either we find
-  // a prefix that fits, or we run out of components to remove.
-  var level = 0;
-  while (aPath.indexOf(aRoot + '/') !== 0) {
-    var index = aRoot.lastIndexOf("/");
-    if (index < 0) {
-      return aPath;
-    }
-
-    // If the only part of the root that is left is the scheme (i.e. http://,
-    // file:///, etc.), one or more slashes (/), or simply nothing at all, we
-    // have exhausted all components, so the path is not relative to the root.
-    aRoot = aRoot.slice(0, index);
-    if (aRoot.match(/^([^\/]+:\/)?\/*$/)) {
-      return aPath;
-    }
-
-    ++level;
-  }
-
-  // Make sure we add a "../" for each component we removed from the root.
-  return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
-}
-exports.relative = relative;
-
-var supportsNullProto = (function () {
-  var obj = Object.create(null);
-  return !('__proto__' in obj);
-}());
-
-function identity (s) {
-  return s;
-}
-
-/**
- * Because behavior goes wacky when you set `__proto__` on objects, we
- * have to prefix all the strings in our set with an arbitrary character.
- *
- * See https://github.com/mozilla/source-map/pull/31 and
- * https://github.com/mozilla/source-map/issues/30
- *
- * @param String aStr
- */
-function toSetString(aStr) {
-  if (isProtoString(aStr)) {
-    return '$' + aStr;
-  }
-
-  return aStr;
-}
-exports.toSetString = supportsNullProto ? identity : toSetString;
-
-function fromSetString(aStr) {
-  if (isProtoString(aStr)) {
-    return aStr.slice(1);
-  }
-
-  return aStr;
-}
-exports.fromSetString = supportsNullProto ? identity : fromSetString;
-
-function isProtoString(s) {
-  if (!s) {
-    return false;
-  }
-
-  var length = s.length;
-
-  if (length < 9 /* "__proto__".length */) {
-    return false;
-  }
-
-  if (s.charCodeAt(length - 1) !== 95  /* '_' */ ||
-      s.charCodeAt(length - 2) !== 95  /* '_' */ ||
-      s.charCodeAt(length - 3) !== 111 /* 'o' */ ||
-      s.charCodeAt(length - 4) !== 116 /* 't' */ ||
-      s.charCodeAt(length - 5) !== 111 /* 'o' */ ||
-      s.charCodeAt(length - 6) !== 114 /* 'r' */ ||
-      s.charCodeAt(length - 7) !== 112 /* 'p' */ ||
-      s.charCodeAt(length - 8) !== 95  /* '_' */ ||
-      s.charCodeAt(length - 9) !== 95  /* '_' */) {
-    return false;
-  }
-
-  for (var i = length - 10; i >= 0; i--) {
-    if (s.charCodeAt(i) !== 36 /* '$' */) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Comparator between two mappings where the original positions are compared.
- *
- * Optionally pass in `true` as `onlyCompareGenerated` to consider two
- * mappings with the same original source/line/column, but different generated
- * line and column the same. Useful when searching for a mapping with a
- * stubbed out mapping.
- */
-function compareByOriginalPositions(mappingA, mappingB, onlyCompareOriginal) {
-  var cmp = mappingA.source - mappingB.source;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalLine - mappingB.originalLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalColumn - mappingB.originalColumn;
-  if (cmp !== 0 || onlyCompareOriginal) {
-    return cmp;
-  }
-
-  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.generatedLine - mappingB.generatedLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  return mappingA.name - mappingB.name;
-}
-exports.compareByOriginalPositions = compareByOriginalPositions;
-
-/**
- * Comparator between two mappings with deflated source and name indices where
- * the generated positions are compared.
- *
- * Optionally pass in `true` as `onlyCompareGenerated` to consider two
- * mappings with the same generated line and column, but different
- * source/name/original line and column the same. Useful when searching for a
- * mapping with a stubbed out mapping.
- */
-function compareByGeneratedPositionsDeflated(mappingA, mappingB, onlyCompareGenerated) {
-  var cmp = mappingA.generatedLine - mappingB.generatedLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-  if (cmp !== 0 || onlyCompareGenerated) {
-    return cmp;
-  }
-
-  cmp = mappingA.source - mappingB.source;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalLine - mappingB.originalLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalColumn - mappingB.originalColumn;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  return mappingA.name - mappingB.name;
-}
-exports.compareByGeneratedPositionsDeflated = compareByGeneratedPositionsDeflated;
-
-function strcmp(aStr1, aStr2) {
-  if (aStr1 === aStr2) {
-    return 0;
-  }
-
-  if (aStr1 > aStr2) {
-    return 1;
-  }
-
-  return -1;
-}
-
-/**
- * Comparator between two mappings with inflated source and name strings where
- * the generated positions are compared.
- */
-function compareByGeneratedPositionsInflated(mappingA, mappingB) {
-  var cmp = mappingA.generatedLine - mappingB.generatedLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = strcmp(mappingA.source, mappingB.source);
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalLine - mappingB.originalLine;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  cmp = mappingA.originalColumn - mappingB.originalColumn;
-  if (cmp !== 0) {
-    return cmp;
-  }
-
-  return strcmp(mappingA.name, mappingB.name);
-}
-exports.compareByGeneratedPositionsInflated = compareByGeneratedPositionsInflated;
-
-},{}],231:[function(require,module,exports){
-/*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
-exports.SourceMapGenerator = require('./lib/source-map-generator').SourceMapGenerator;
-exports.SourceMapConsumer = require('./lib/source-map-consumer').SourceMapConsumer;
-exports.SourceNode = require('./lib/source-node').SourceNode;
-
-},{"./lib/source-map-consumer":227,"./lib/source-map-generator":228,"./lib/source-node":229}],232:[function(require,module,exports){
-exports.get = function(belowFn) {
-  var oldLimit = Error.stackTraceLimit;
-  Error.stackTraceLimit = Infinity;
-
-  var dummyObject = {};
-
-  var v8Handler = Error.prepareStackTrace;
-  Error.prepareStackTrace = function(dummyObject, v8StackTrace) {
-    return v8StackTrace;
-  };
-  Error.captureStackTrace(dummyObject, belowFn || exports.get);
-
-  var v8StackTrace = dummyObject.stack;
-  Error.prepareStackTrace = v8Handler;
-  Error.stackTraceLimit = oldLimit;
-
-  return v8StackTrace;
-};
-
-exports.parse = function(err) {
-  if (!err.stack) {
-    return [];
-  }
-
-  var self = this;
-  var lines = err.stack.split('\n').slice(1);
-
-  return lines
-    .map(function(line) {
-      if (line.match(/^\s*[-]{4,}$/)) {
-        return self._createParsedCallSite({
-          fileName: line,
-          lineNumber: null,
-          functionName: null,
-          typeName: null,
-          methodName: null,
-          columnNumber: null,
-          'native': null,
-        });
-      }
-
-      var lineMatch = line.match(/at (?:(.+)\s+)?\(?(?:(.+?):(\d+):(\d+)|([^)]+))\)?/);
-      if (!lineMatch) {
-        return;
-      }
-
-      var object = null;
-      var method = null;
-      var functionName = null;
-      var typeName = null;
-      var methodName = null;
-      var isNative = (lineMatch[5] === 'native');
-
-      if (lineMatch[1]) {
-        var methodMatch = lineMatch[1].match(/([^\.]+)(?:\.(.+))?/);
-        object = methodMatch[1];
-        method = methodMatch[2];
-        functionName = lineMatch[1];
-        typeName = 'Object';
-      }
-
-      if (method) {
-        typeName = object;
-        methodName = method;
-      }
-
-      if (method === '<anonymous>') {
-        methodName = null;
-        functionName = '';
-      }
-
-      var properties = {
-        fileName: lineMatch[2] || null,
-        lineNumber: parseInt(lineMatch[3], 10) || null,
-        functionName: functionName,
-        typeName: typeName,
-        methodName: methodName,
-        columnNumber: parseInt(lineMatch[4], 10) || null,
-        'native': isNative,
-      };
-
-      return self._createParsedCallSite(properties);
-    })
-    .filter(function(callSite) {
-      return !!callSite;
-    });
-};
-
-exports._createParsedCallSite = function(properties) {
-  var methods = {};
-  for (var property in properties) {
-    var prefix = 'get';
-    if (property === 'native') {
-      prefix = 'is';
-    }
-    var method = prefix + property.substr(0, 1).toUpperCase() + property.substr(1);
-
-    (function(property) {
-      methods[method] = function() {
-        return properties[property];
-      }
-    })(property);
-  }
-
-  var callSite = Object.create(methods);
-  for (var property in properties) {
-    callSite[property] = properties[property];
-  }
-
-  return callSite;
-};
-
-},{}],233:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -62826,7 +59758,7 @@ exports._createParsedCallSite = function(properties) {
   exports.presimplify = presimplify;
 
 }));
-},{}],234:[function(require,module,exports){
+},{}],222:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -64376,7 +61308,7 @@ exports._createParsedCallSite = function(properties) {
   }
 }.call(this));
 
-},{}],235:[function(require,module,exports){
+},{}],223:[function(require,module,exports){
 var DEPS = require('./Dependencies').ALL;
 
 function create(cs, reflow) {
@@ -64408,7 +61340,7 @@ module.exports = {
   create: create,
   copy: copy
 };
-},{"./Dependencies":238}],236:[function(require,module,exports){
+},{"./Dependencies":226}],224:[function(require,module,exports){
 var log = require('vega-logging'),
     Tuple = require('./Tuple'),
     Base = require('./Node').prototype,
@@ -64462,7 +61394,7 @@ prototype.evaluate = function(input) {
 };
 
 module.exports = Collector;
-},{"./ChangeSet":235,"./Node":241,"./Tuple":243,"vega-logging":309}],237:[function(require,module,exports){
+},{"./ChangeSet":223,"./Node":229,"./Tuple":231,"vega-logging":297}],225:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     ChangeSet = require('./ChangeSet'),
@@ -64770,13 +61702,13 @@ function DataSourceListener(ds) {
 
 module.exports = DataSource;
 
-},{"./ChangeSet":235,"./Collector":236,"./Node":241,"./Tuple":243,"datalib":36,"vega-logging":309}],238:[function(require,module,exports){
+},{"./ChangeSet":223,"./Collector":224,"./Node":229,"./Tuple":231,"datalib":36,"vega-logging":297}],226:[function(require,module,exports){
 var deps = module.exports = {
   ALL: ['data', 'fields', 'scales', 'signals']
 };
 deps.ALL.forEach(function(k) { deps[k.toUpperCase()] = k; });
 
-},{}],239:[function(require,module,exports){
+},{}],227:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     Heap = require('./Heap'),
@@ -65112,7 +62044,7 @@ prototype.evaluate = function(pulse, node) {
 
 module.exports = Graph;
 
-},{"./ChangeSet":235,"./Collector":236,"./DataSource":237,"./Dependencies":238,"./Heap":240,"./Signal":242,"./Tuple":243,"datalib":36,"vega-logging":309}],240:[function(require,module,exports){
+},{"./ChangeSet":223,"./Collector":224,"./DataSource":225,"./Dependencies":226,"./Heap":228,"./Signal":230,"./Tuple":231,"datalib":36,"vega-logging":297}],228:[function(require,module,exports){
 function Heap(comparator) {
   this.cmp = comparator;
   this.nodes = [];
@@ -65209,7 +62141,7 @@ function _siftup(array, idx, cmp) {
 
 module.exports = Heap;
 
-},{}],241:[function(require,module,exports){
+},{}],229:[function(require,module,exports){
 var DEPS = require('./Dependencies').ALL,
     nodeID = 0;
 
@@ -65408,7 +62340,7 @@ Node.reset = function() { nodeID = 0; };
 
 module.exports = Node;
 
-},{"./Dependencies":238}],242:[function(require,module,exports){
+},{"./Dependencies":226}],230:[function(require,module,exports){
 var ChangeSet = require('./ChangeSet'),
     Node = require('./Node'), // jshint ignore:line
     Base = Node.prototype;
@@ -65484,7 +62416,7 @@ prototype.off = function(handler) {
 
 module.exports = Signal;
 
-},{"./ChangeSet":235,"./Node":241}],243:[function(require,module,exports){
+},{"./ChangeSet":223,"./Node":229}],231:[function(require,module,exports){
 var tupleID = 0;
 
 function ingest(datum) {
@@ -65554,7 +62486,7 @@ module.exports = {
   }
 };
 
-},{}],244:[function(require,module,exports){
+},{}],232:[function(require,module,exports){
 module.exports = {
   ChangeSet:    require('./ChangeSet'),
   Collector:    require('./Collector'),
@@ -65567,7 +62499,7 @@ module.exports = {
   debug:        require('vega-logging').debug
 };
 
-},{"./ChangeSet":235,"./Collector":236,"./DataSource":237,"./Dependencies":238,"./Graph":239,"./Node":241,"./Signal":242,"./Tuple":243,"vega-logging":309}],245:[function(require,module,exports){
+},{"./ChangeSet":223,"./Collector":224,"./DataSource":225,"./Dependencies":226,"./Graph":227,"./Node":229,"./Signal":230,"./Tuple":231,"vega-logging":297}],233:[function(require,module,exports){
 module.exports = (function() {
   "use strict";
 
@@ -66752,7 +63684,7 @@ module.exports = (function() {
   };
 })();
 
-},{}],246:[function(require,module,exports){
+},{}],234:[function(require,module,exports){
 function toMap(list) {
   var map = {}, i, n;
   for (i=0, n=list.length; i<n; ++i) map[list[i]] = 1;
@@ -66895,7 +63827,7 @@ module.exports = function(opt) {
   return codegen_wrap;
 };
 
-},{"./constants":247,"./functions":248}],247:[function(require,module,exports){
+},{"./constants":235,"./functions":236}],235:[function(require,module,exports){
 module.exports = {
   'NaN':     'NaN',
   'E':       'Math.E',
@@ -66907,7 +63839,7 @@ module.exports = {
   'SQRT1_2': 'Math.SQRT1_2',
   'SQRT2':   'Math.SQRT2'
 };
-},{}],248:[function(require,module,exports){
+},{}],236:[function(require,module,exports){
 module.exports = function(codegen) {
 
   function fncall(name, args, cast, type) {
@@ -67016,7 +63948,7 @@ module.exports = function(codegen) {
   };
 };
 
-},{}],249:[function(require,module,exports){
+},{}],237:[function(require,module,exports){
 var parser = require('./parser'),
     codegen = require('./codegen');
 
@@ -67048,7 +63980,7 @@ var expr = module.exports = {
   functions: require('./functions'),
   constants: require('./constants')
 };
-},{"./codegen":246,"./constants":247,"./functions":248,"./parser":250}],250:[function(require,module,exports){
+},{"./codegen":234,"./constants":235,"./functions":236,"./parser":238}],238:[function(require,module,exports){
 /*
   The following expression parser is based on Esprima (http://esprima.org/).
   Original header comment and license for Esprima is included here:
@@ -69376,7 +66308,7 @@ module.exports = (function() {
   };
 
 })();
-},{}],251:[function(require,module,exports){
+},{}],239:[function(require,module,exports){
 var json = typeof JSON !== 'undefined' ? JSON : require('jsonify');
 
 module.exports = function (obj, opts) {
@@ -69462,7 +66394,7 @@ var objectKeys = Object.keys || function (obj) {
     return keys;
 };
 
-},{"jsonify":69}],252:[function(require,module,exports){
+},{"jsonify":69}],240:[function(require,module,exports){
 "use strict";
 (function (AggregateOp) {
     AggregateOp[AggregateOp["VALUES"] = 'values'] = "VALUES";
@@ -69526,7 +66458,7 @@ exports.SHARED_DOMAIN_OPS = [
     AggregateOp.MAX,
 ];
 
-},{}],253:[function(require,module,exports){
+},{}],241:[function(require,module,exports){
 "use strict";
 (function (AxisOrient) {
     AxisOrient[AxisOrient["TOP"] = 'top'] = "TOP";
@@ -69550,7 +66482,7 @@ exports.defaultFacetAxisConfig = {
     tickSize: 0
 };
 
-},{}],254:[function(require,module,exports){
+},{}],242:[function(require,module,exports){
 "use strict";
 var channel_1 = require('./channel');
 function autoMaxBins(channel) {
@@ -69566,7 +66498,7 @@ function autoMaxBins(channel) {
 }
 exports.autoMaxBins = autoMaxBins;
 
-},{"./channel":255}],255:[function(require,module,exports){
+},{"./channel":243}],243:[function(require,module,exports){
 "use strict";
 var util_1 = require('./util');
 (function (Channel) {
@@ -69689,7 +66621,7 @@ function hasScale(channel) {
 }
 exports.hasScale = hasScale;
 
-},{"./util":305}],256:[function(require,module,exports){
+},{"./util":293}],244:[function(require,module,exports){
 "use strict";
 var axis_1 = require('../axis');
 var channel_1 = require('../channel');
@@ -69983,7 +66915,7 @@ var properties;
     properties.title = title;
 })(properties = exports.properties || (exports.properties = {}));
 
-},{"../axis":253,"../channel":255,"../fielddef":293,"../type":304,"../util":305,"./common":257}],257:[function(require,module,exports){
+},{"../axis":241,"../channel":243,"../fielddef":281,"../type":292,"../util":293,"./common":245}],245:[function(require,module,exports){
 "use strict";
 var mark_1 = require('../mark');
 var channel_1 = require('../channel');
@@ -70102,7 +67034,7 @@ function timeTemplate(templateField, timeUnit, format, shortTimeLabels, config) 
 }
 exports.timeTemplate = timeTemplate;
 
-},{"../channel":255,"../fielddef":293,"../mark":296,"../sort":299,"../spec":300,"../timeunit":302,"../type":304,"../util":305,"./facet":273,"./layer":274,"./unit":287}],258:[function(require,module,exports){
+},{"../channel":243,"../fielddef":281,"../mark":284,"../sort":287,"../spec":288,"../timeunit":290,"../type":292,"../util":293,"./facet":261,"./layer":262,"./unit":275}],246:[function(require,module,exports){
 "use strict";
 var data_1 = require('../data');
 var spec_1 = require('../spec');
@@ -70146,7 +67078,7 @@ function assembleRootGroup(model) {
 }
 exports.assembleRootGroup = assembleRootGroup;
 
-},{"../data":289,"../spec":300,"../util":305,"./common":257}],259:[function(require,module,exports){
+},{"../data":277,"../spec":288,"../util":293,"./common":245}],247:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../channel');
 var config_1 = require('../config');
@@ -70239,7 +67171,7 @@ function orient(mark, encoding, markConfig) {
 }
 exports.orient = orient;
 
-},{"../channel":255,"../config":288,"../encoding":291,"../fielddef":293,"../mark":296,"../util":305}],260:[function(require,module,exports){
+},{"../channel":243,"../config":276,"../encoding":279,"../fielddef":281,"../mark":284,"../util":293}],248:[function(require,module,exports){
 "use strict";
 var bin_1 = require('../../bin');
 var channel_1 = require('../../channel');
@@ -70309,7 +67241,7 @@ var bin;
     bin_2.assemble = assemble;
 })(bin = exports.bin || (exports.bin = {}));
 
-},{"../../bin":254,"../../channel":255,"../../fielddef":293,"../../util":305}],261:[function(require,module,exports){
+},{"../../bin":242,"../../channel":243,"../../fielddef":281,"../../util":293}],249:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var type_1 = require('../../type');
@@ -70361,7 +67293,7 @@ var colorRank;
     colorRank.assemble = assemble;
 })(colorRank = exports.colorRank || (exports.colorRank = {}));
 
-},{"../../channel":255,"../../type":304,"../../util":305}],262:[function(require,module,exports){
+},{"../../channel":243,"../../type":292,"../../util":293}],250:[function(require,module,exports){
 "use strict";
 var util_1 = require('../../util');
 var source_1 = require('./source');
@@ -70466,7 +67398,7 @@ function assembleData(model, data) {
 }
 exports.assembleData = assembleData;
 
-},{"../../util":305,"./bin":260,"./colorrank":261,"./filter":263,"./formatparse":264,"./formula":265,"./nonpositivenullfilter":266,"./nullfilter":267,"./source":268,"./stackscale":269,"./summary":270,"./timeunit":271,"./timeunitdomain":272}],263:[function(require,module,exports){
+},{"../../util":293,"./bin":248,"./colorrank":249,"./filter":251,"./formatparse":252,"./formula":253,"./nonpositivenullfilter":254,"./nullfilter":255,"./source":256,"./stackscale":257,"./summary":258,"./timeunit":259,"./timeunitdomain":260}],251:[function(require,module,exports){
 "use strict";
 var datetime_1 = require('../../datetime');
 var fielddef_1 = require('../../fielddef');
@@ -70572,7 +67504,7 @@ var filter;
     filter_2.assemble = assemble;
 })(filter = exports.filter || (exports.filter = {}));
 
-},{"../../datetime":290,"../../fielddef":293,"../../filter":294,"../../timeunit":302,"../../util":305}],264:[function(require,module,exports){
+},{"../../datetime":278,"../../fielddef":281,"../../filter":282,"../../timeunit":290,"../../util":293}],252:[function(require,module,exports){
 "use strict";
 var fielddef_1 = require('../../fielddef');
 var type_1 = require('../../type');
@@ -70623,7 +67555,7 @@ var formatParse;
     formatParse.parseLayer = parseLayer;
 })(formatParse = exports.formatParse || (exports.formatParse = {}));
 
-},{"../../fielddef":293,"../../type":304,"../../util":305}],265:[function(require,module,exports){
+},{"../../fielddef":281,"../../type":292,"../../util":293}],253:[function(require,module,exports){
 "use strict";
 var util_1 = require('../../util');
 var formula;
@@ -70666,7 +67598,7 @@ var formula;
     formula_1.assemble = assemble;
 })(formula = exports.formula || (exports.formula = {}));
 
-},{"../../util":305}],266:[function(require,module,exports){
+},{"../../util":293}],254:[function(require,module,exports){
 "use strict";
 var scale_1 = require('../../scale');
 var util_1 = require('../../util');
@@ -70718,7 +67650,7 @@ var nonPositiveFilter;
     nonPositiveFilter_1.assemble = assemble;
 })(nonPositiveFilter = exports.nonPositiveFilter || (exports.nonPositiveFilter = {}));
 
-},{"../../scale":297,"../../util":305}],267:[function(require,module,exports){
+},{"../../scale":285,"../../util":293}],255:[function(require,module,exports){
 "use strict";
 var util_1 = require('../../util');
 var DEFAULT_NULL_FILTERS = {
@@ -70786,7 +67718,7 @@ var nullFilter;
     nullFilter.assemble = assemble;
 })(nullFilter = exports.nullFilter || (exports.nullFilter = {}));
 
-},{"../../util":305}],268:[function(require,module,exports){
+},{"../../util":293}],256:[function(require,module,exports){
 "use strict";
 var data_1 = require('../../data');
 var util_1 = require('../../util');
@@ -70872,7 +67804,7 @@ var source;
     source.assemble = assemble;
 })(source = exports.source || (exports.source = {}));
 
-},{"../../data":289,"../../util":305,"./bin":260,"./filter":263,"./formula":265,"./nullfilter":267,"./timeunit":271}],269:[function(require,module,exports){
+},{"../../data":277,"../../util":293,"./bin":248,"./filter":251,"./formula":253,"./nullfilter":255,"./timeunit":259}],257:[function(require,module,exports){
 "use strict";
 var data_1 = require('../../data');
 var fielddef_1 = require('../../fielddef');
@@ -70926,7 +67858,7 @@ var stackScale;
     stackScale.assemble = assemble;
 })(stackScale = exports.stackScale || (exports.stackScale = {}));
 
-},{"../../data":289,"../../fielddef":293}],270:[function(require,module,exports){
+},{"../../data":277,"../../fielddef":281}],258:[function(require,module,exports){
 "use strict";
 var aggregate_1 = require('../../aggregate');
 var data_1 = require('../../data');
@@ -71055,7 +67987,7 @@ var summary;
     summary.assemble = assemble;
 })(summary = exports.summary || (exports.summary = {}));
 
-},{"../../aggregate":252,"../../data":289,"../../fielddef":293,"../../util":305}],271:[function(require,module,exports){
+},{"../../aggregate":240,"../../data":277,"../../fielddef":281,"../../util":293}],259:[function(require,module,exports){
 "use strict";
 var fielddef_1 = require('../../fielddef');
 var timeunit_1 = require('../../timeunit');
@@ -71105,7 +68037,7 @@ var timeUnit;
     timeUnit.assemble = assemble;
 })(timeUnit = exports.timeUnit || (exports.timeUnit = {}));
 
-},{"../../fielddef":293,"../../timeunit":302,"../../type":304,"../../util":305}],272:[function(require,module,exports){
+},{"../../fielddef":281,"../../timeunit":290,"../../type":292,"../../util":293}],260:[function(require,module,exports){
 "use strict";
 var datetime_1 = require('../../datetime');
 var timeunit_1 = require('../../timeunit');
@@ -71157,7 +68089,7 @@ var timeUnitDomain;
     timeUnitDomain.assemble = assemble;
 })(timeUnitDomain = exports.timeUnitDomain || (exports.timeUnitDomain = {}));
 
-},{"../../datetime":290,"../../timeunit":302,"../../util":305}],273:[function(require,module,exports){
+},{"../../datetime":278,"../../timeunit":290,"../../util":293}],261:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -71535,7 +68467,7 @@ function getColumnGridGroups(model) {
         }];
 }
 
-},{"../axis":253,"../channel":255,"../config":288,"../data":289,"../encoding":291,"../fielddef":293,"../scale":297,"../type":304,"../util":305,"./axis":256,"./common":257,"./data/data":262,"./layout":275,"./model":285,"./scale":286}],274:[function(require,module,exports){
+},{"../axis":241,"../channel":243,"../config":276,"../data":277,"../encoding":279,"../fielddef":281,"../scale":285,"../type":292,"../util":293,"./axis":244,"./common":245,"./data/data":250,"./layout":263,"./model":273,"./scale":274}],262:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -71727,7 +68659,7 @@ var LayerModel = (function (_super) {
 }(model_1.Model));
 exports.LayerModel = LayerModel;
 
-},{"../config":288,"../util":305,"../vega.schema":307,"./common":257,"./data/data":262,"./layout":275,"./model":285}],275:[function(require,module,exports){
+},{"../config":276,"../util":293,"../vega.schema":295,"./common":245,"./data/data":250,"./layout":263,"./model":273}],263:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../channel');
 var data_1 = require('../data');
@@ -71884,7 +68816,7 @@ function cardinalityFormula(model, channel) {
         model.field(channel, { datum: true, prefn: 'distinct_' });
 }
 
-},{"../channel":255,"../data":289,"../mark":296,"../scale":297,"../timeunit":302,"../util":305}],276:[function(require,module,exports){
+},{"../channel":243,"../data":277,"../mark":284,"../scale":285,"../timeunit":290,"../util":293}],264:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../channel');
 var fielddef_1 = require('../fielddef');
@@ -72098,7 +69030,7 @@ var properties;
     properties.title = title;
 })(properties = exports.properties || (exports.properties = {}));
 
-},{"../channel":255,"../fielddef":293,"../mark":296,"../type":304,"../util":305,"./common":257,"./scale":286}],277:[function(require,module,exports){
+},{"../channel":243,"../fielddef":281,"../mark":284,"../type":292,"../util":293,"./common":245,"./scale":274}],265:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var config_1 = require('../../config');
@@ -72274,7 +69206,7 @@ var area;
     area.labels = labels;
 })(area = exports.area || (exports.area = {}));
 
-},{"../../channel":255,"../../config":288,"../../fielddef":293,"../common":257}],278:[function(require,module,exports){
+},{"../../channel":243,"../../config":276,"../../fielddef":281,"../common":245}],266:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var config_1 = require('../../config');
@@ -72507,7 +69439,7 @@ var bar;
     bar.labels = labels;
 })(bar = exports.bar || (exports.bar = {}));
 
-},{"../../channel":255,"../../config":288,"../../fielddef":293,"../../scale":297,"../common":257}],279:[function(require,module,exports){
+},{"../../channel":243,"../../config":276,"../../fielddef":281,"../../scale":285,"../common":245}],267:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var fielddef_1 = require('../../fielddef');
@@ -72566,7 +69498,7 @@ var line;
     line.labels = labels;
 })(line = exports.line || (exports.line = {}));
 
-},{"../../channel":255,"../../fielddef":293,"../common":257}],280:[function(require,module,exports){
+},{"../../channel":243,"../../fielddef":281,"../common":245}],268:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var config_1 = require('../../config');
@@ -72770,7 +69702,7 @@ function stackTransform(model, stackFields) {
     return transform;
 }
 
-},{"../../channel":255,"../../config":288,"../../encoding":291,"../../fielddef":293,"../../mark":296,"../../scale":297,"../../util":305,"../common":257,"./area":277,"./bar":278,"./line":279,"./point":281,"./rule":282,"./text":283,"./tick":284}],281:[function(require,module,exports){
+},{"../../channel":243,"../../config":276,"../../encoding":279,"../../fielddef":281,"../../mark":284,"../../scale":285,"../../util":293,"../common":245,"./area":265,"./bar":266,"./line":267,"./point":269,"./rule":270,"./text":271,"./tick":272}],269:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var fielddef_1 = require('../../fielddef');
@@ -72877,7 +69809,7 @@ var square;
     square.labels = labels;
 })(square = exports.square || (exports.square = {}));
 
-},{"../../channel":255,"../../fielddef":293,"../common":257}],282:[function(require,module,exports){
+},{"../../channel":243,"../../fielddef":281,"../common":245}],270:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var config_1 = require('../../config');
@@ -72974,7 +69906,7 @@ var rule;
     rule.labels = labels;
 })(rule = exports.rule || (exports.rule = {}));
 
-},{"../../channel":255,"../../config":288,"../common":257}],283:[function(require,module,exports){
+},{"../../channel":243,"../../config":276,"../common":245}],271:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var common_1 = require('../common');
@@ -73091,7 +70023,7 @@ var text;
     }
 })(text = exports.text || (exports.text = {}));
 
-},{"../../channel":255,"../../fielddef":293,"../../type":304,"../common":257}],284:[function(require,module,exports){
+},{"../../channel":243,"../../fielddef":281,"../../type":292,"../common":245}],272:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../../channel');
 var config_1 = require('../../config');
@@ -73174,7 +70106,7 @@ var tick;
     tick.labels = labels;
 })(tick = exports.tick || (exports.tick = {}));
 
-},{"../../channel":255,"../../config":288,"../../fielddef":293,"../common":257}],285:[function(require,module,exports){
+},{"../../channel":243,"../../config":276,"../../fielddef":281,"../common":245}],273:[function(require,module,exports){
 "use strict";
 var channel_1 = require('../channel');
 var encoding_1 = require('../encoding');
@@ -73347,7 +70279,7 @@ var Model = (function () {
 }());
 exports.Model = Model;
 
-},{"../channel":255,"../encoding":291,"../fielddef":293,"../scale":297,"../util":305}],286:[function(require,module,exports){
+},{"../channel":243,"../encoding":279,"../fielddef":281,"../scale":285,"../util":293}],274:[function(require,module,exports){
 "use strict";
 var aggregate_1 = require('../aggregate');
 var channel_1 = require('../channel');
@@ -73741,7 +70673,7 @@ function zero(scale, channel, fieldDef) {
 }
 exports.zero = zero;
 
-},{"../aggregate":252,"../channel":255,"../config":288,"../data":289,"../fielddef":293,"../mark":296,"../scale":297,"../sort":299,"../stack":301,"../timeunit":302,"../type":304,"../util":305}],287:[function(require,module,exports){
+},{"../aggregate":240,"../channel":243,"../config":276,"../data":277,"../fielddef":281,"../mark":284,"../scale":285,"../sort":287,"../stack":289,"../timeunit":290,"../type":292,"../util":293}],275:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -73940,7 +70872,7 @@ var UnitModel = (function (_super) {
 }(model_1.Model));
 exports.UnitModel = UnitModel;
 
-},{"../aggregate":252,"../channel":255,"../config":288,"../data":289,"../encoding":291,"../fielddef":293,"../mark":296,"../scale":297,"../stack":301,"../type":304,"../util":305,"./axis":256,"./common":257,"./config":259,"./data/data":262,"./layout":275,"./legend":276,"./mark/mark":280,"./model":285,"./scale":286}],288:[function(require,module,exports){
+},{"../aggregate":240,"../channel":243,"../config":276,"../data":277,"../encoding":279,"../fielddef":281,"../mark":284,"../scale":285,"../stack":289,"../type":292,"../util":293,"./axis":244,"./common":245,"./config":247,"./data/data":250,"./layout":263,"./legend":264,"./mark/mark":268,"./model":273,"./scale":274}],276:[function(require,module,exports){
 "use strict";
 var scale_1 = require('./scale');
 var axis_1 = require('./axis');
@@ -74054,7 +70986,7 @@ exports.defaultConfig = {
     facet: exports.defaultFacetConfig,
 };
 
-},{"./axis":253,"./legend":295,"./scale":297}],289:[function(require,module,exports){
+},{"./axis":241,"./legend":283,"./scale":285}],277:[function(require,module,exports){
 "use strict";
 var type_1 = require('./type');
 (function (DataFormatType) {
@@ -74083,7 +71015,7 @@ exports.types = {
     'string': type_1.Type.NOMINAL
 };
 
-},{"./type":304}],290:[function(require,module,exports){
+},{"./type":292}],278:[function(require,module,exports){
 "use strict";
 var util_1 = require('./util');
 function isDateTime(o) {
@@ -74199,7 +71131,7 @@ function dateTimeExpr(d, normalize) {
 }
 exports.dateTimeExpr = dateTimeExpr;
 
-},{"./util":305}],291:[function(require,module,exports){
+},{"./util":293}],279:[function(require,module,exports){
 "use strict";
 var channel_1 = require('./channel');
 var util_1 = require('./util');
@@ -74326,10 +71258,10 @@ function channelMappingReduce(channels, mapping, f, init, thisArg) {
 }
 exports.channelMappingReduce = channelMappingReduce;
 
-},{"./channel":255,"./util":305}],292:[function(require,module,exports){
+},{"./channel":243,"./util":293}],280:[function(require,module,exports){
 "use strict";
 
-},{}],293:[function(require,module,exports){
+},{}],281:[function(require,module,exports){
 "use strict";
 var aggregate_1 = require('./aggregate');
 var scale_1 = require('./scale');
@@ -74451,7 +71383,7 @@ function title(fieldDef, config) {
 }
 exports.title = title;
 
-},{"./aggregate":252,"./scale":297,"./timeunit":302,"./type":304,"./util":305}],294:[function(require,module,exports){
+},{"./aggregate":240,"./scale":285,"./timeunit":290,"./type":292,"./util":293}],282:[function(require,module,exports){
 "use strict";
 var util_1 = require('./util');
 function isEqualFilter(filter) {
@@ -74472,14 +71404,14 @@ function isInFilter(filter) {
 }
 exports.isInFilter = isInFilter;
 
-},{"./util":305}],295:[function(require,module,exports){
+},{"./util":293}],283:[function(require,module,exports){
 "use strict";
 exports.defaultLegendConfig = {
     orient: undefined,
     shortTimeLabels: false
 };
 
-},{}],296:[function(require,module,exports){
+},{}],284:[function(require,module,exports){
 "use strict";
 (function (Mark) {
     Mark[Mark["AREA"] = 'area'] = "AREA";
@@ -74506,7 +71438,7 @@ exports.SQUARE = Mark.SQUARE;
 exports.ERRORBAR = Mark.ERRORBAR;
 exports.PRIMITIVE_MARKS = [exports.AREA, exports.BAR, exports.LINE, exports.POINT, exports.TEXT, exports.TICK, exports.RULE, exports.CIRCLE, exports.SQUARE];
 
-},{}],297:[function(require,module,exports){
+},{}],285:[function(require,module,exports){
 "use strict";
 (function (ScaleType) {
     ScaleType[ScaleType["LINEAR"] = 'linear'] = "LINEAR";
@@ -74549,7 +71481,7 @@ exports.defaultFacetScaleConfig = {
     padding: 16
 };
 
-},{}],298:[function(require,module,exports){
+},{}],286:[function(require,module,exports){
 "use strict";
 var aggregate_1 = require('./aggregate');
 var timeunit_1 = require('./timeunit');
@@ -74639,7 +71571,7 @@ function parseFieldDef(fieldDefShorthand) {
 }
 exports.parseFieldDef = parseFieldDef;
 
-},{"./aggregate":252,"./encoding":291,"./mark":296,"./timeunit":302,"./type":304}],299:[function(require,module,exports){
+},{"./aggregate":240,"./encoding":279,"./mark":284,"./timeunit":290,"./type":292}],287:[function(require,module,exports){
 "use strict";
 (function (SortOrder) {
     SortOrder[SortOrder["ASCENDING"] = 'ascending'] = "ASCENDING";
@@ -74652,7 +71584,7 @@ function isSortField(sort) {
 }
 exports.isSortField = isSortField;
 
-},{}],300:[function(require,module,exports){
+},{}],288:[function(require,module,exports){
 "use strict";
 var config_1 = require('./config');
 var encoding_1 = require('./encoding');
@@ -74843,7 +71775,7 @@ function transpose(spec) {
 }
 exports.transpose = transpose;
 
-},{"./channel":255,"./config":288,"./encoding":291,"./mark":296,"./stack":301,"./util":305}],301:[function(require,module,exports){
+},{"./channel":243,"./config":276,"./encoding":279,"./mark":284,"./stack":289,"./util":293}],289:[function(require,module,exports){
 "use strict";
 var channel_1 = require('./channel');
 var encoding_1 = require('./encoding');
@@ -74892,7 +71824,7 @@ function stack(mark, encoding, config) {
 }
 exports.stack = stack;
 
-},{"./channel":255,"./encoding":291,"./mark":296,"./util":305}],302:[function(require,module,exports){
+},{"./channel":243,"./encoding":279,"./mark":284,"./util":293}],290:[function(require,module,exports){
 "use strict";
 var channel_1 = require('./channel');
 var datetime_1 = require('./datetime');
@@ -75108,10 +72040,10 @@ function template(timeUnit, field, shortTimeLabels) {
 }
 exports.template = template;
 
-},{"./channel":255,"./datetime":290,"./scale":297,"./util":305}],303:[function(require,module,exports){
+},{"./channel":243,"./datetime":278,"./scale":285,"./util":293}],291:[function(require,module,exports){
 "use strict";
 
-},{}],304:[function(require,module,exports){
+},{}],292:[function(require,module,exports){
 "use strict";
 (function (Type) {
     Type[Type["QUANTITATIVE"] = 'quantitative'] = "QUANTITATIVE";
@@ -75143,7 +72075,7 @@ function getFullName(type) {
 }
 exports.getFullName = getFullName;
 
-},{}],305:[function(require,module,exports){
+},{}],293:[function(require,module,exports){
 "use strict";
 var stringify = require('json-stable-stringify');
 var util_1 = require('datalib/src/util');
@@ -75346,7 +72278,7 @@ function differ(dict, other) {
 }
 exports.differ = differ;
 
-},{"datalib/src/bins/bins":22,"datalib/src/generate":26,"datalib/src/util":40,"json-stable-stringify":251}],306:[function(require,module,exports){
+},{"datalib/src/bins/bins":22,"datalib/src/generate":26,"datalib/src/util":40,"json-stable-stringify":239}],294:[function(require,module,exports){
 "use strict";
 var util_1 = require('./util');
 var mark_1 = require('./mark');
@@ -75391,7 +72323,7 @@ function getEncodingMappingError(spec, requiredChannelMap, supportedChannelMap) 
 }
 exports.getEncodingMappingError = getEncodingMappingError;
 
-},{"./mark":296,"./util":305}],307:[function(require,module,exports){
+},{"./mark":284,"./util":293}],295:[function(require,module,exports){
 "use strict";
 var util_1 = require('./util');
 function isUnionedDomain(domain) {
@@ -75409,7 +72341,7 @@ function isDataRefDomain(domain) {
 }
 exports.isDataRefDomain = isDataRefDomain;
 
-},{"./util":305}],308:[function(require,module,exports){
+},{"./util":293}],296:[function(require,module,exports){
 "use strict";
 exports.axis = require('./axis');
 exports.aggregate = require('./aggregate');
@@ -75436,7 +72368,7 @@ exports.util = require('./util');
 exports.validate = require('./validate');
 exports.version = '1.1.0';
 
-},{"./aggregate":252,"./axis":253,"./bin":254,"./channel":255,"./compile/compile":258,"./config":288,"./data":289,"./datetime":290,"./encoding":291,"./facet":292,"./fielddef":293,"./legend":295,"./mark":296,"./scale":297,"./shorthand":298,"./sort":299,"./spec":300,"./stack":301,"./timeunit":302,"./transform":303,"./type":304,"./util":305,"./validate":306}],309:[function(require,module,exports){
+},{"./aggregate":240,"./axis":241,"./bin":242,"./channel":243,"./compile/compile":246,"./config":276,"./data":277,"./datetime":278,"./encoding":279,"./facet":280,"./fielddef":281,"./legend":283,"./mark":284,"./scale":285,"./shorthand":286,"./sort":287,"./spec":288,"./stack":289,"./timeunit":290,"./transform":291,"./type":292,"./util":293,"./validate":294}],297:[function(require,module,exports){
 var ts = Date.now();
 
 function write(msg) {
@@ -75472,7 +72404,7 @@ module.exports = {
   debug: (debug.enable = false, debug)
 };
 
-},{}],310:[function(require,module,exports){
+},{}],298:[function(require,module,exports){
 module.exports = {
   path:       require('./path'),
   render:     require('./render'),
@@ -75484,7 +72416,7 @@ module.exports = {
   toJSON:     require('./util/scene').toJSON,
   fromJSON:   require('./util/scene').fromJSON
 };
-},{"./path":312,"./render":332,"./util/Bounds":338,"./util/Gradient":340,"./util/Item":342,"./util/bound":343,"./util/canvas":344,"./util/scene":346}],311:[function(require,module,exports){
+},{"./path":300,"./render":320,"./util/Bounds":326,"./util/Gradient":328,"./util/Item":330,"./util/bound":331,"./util/canvas":332,"./util/scene":334}],299:[function(require,module,exports){
 var segmentCache = {},
     bezierCache = {},
     join = [].join;
@@ -75599,13 +72531,13 @@ module.exports = {
   }
 };
 
-},{}],312:[function(require,module,exports){
+},{}],300:[function(require,module,exports){
 module.exports = {
   parse:  require('./parse'),
   render: require('./render')
 };
 
-},{"./parse":313,"./render":314}],313:[function(require,module,exports){
+},{"./parse":301,"./render":302}],301:[function(require,module,exports){
 // Path parsing and rendering code adapted from fabric.js -- Thanks!
 var cmdlen = { m:2, l:2, h:1, v:1, c:6, s:4, q:4, t:2, a:7 },
     regexp = [/([MLHVCSQTAZmlhvcsqtaz])/g, /###/, /(\d)([-+])/g, /\s|,|###/];
@@ -75656,7 +72588,7 @@ module.exports = function(pathstr) {
   return result;
 };
 
-},{}],314:[function(require,module,exports){
+},{}],302:[function(require,module,exports){
 var arc = require('./arc');
 
 module.exports = function(g, path, l, t) {
@@ -75952,7 +72884,7 @@ function drawArc(g, x, y, coords) {
   }
 }
 
-},{"./arc":311}],315:[function(require,module,exports){
+},{"./arc":299}],303:[function(require,module,exports){
 function Handler() {
   this._active = null;
   this._handlers = {};
@@ -76002,7 +72934,7 @@ prototype.eventName = function(name) {
 };
 
 module.exports = Handler;
-},{}],316:[function(require,module,exports){
+},{}],304:[function(require,module,exports){
 function Renderer() {
   this._el = null;
   this._bgcolor = null;
@@ -76044,7 +72976,7 @@ prototype.render = function(/*scene, items*/) {
 };
 
 module.exports = Renderer;
-},{}],317:[function(require,module,exports){
+},{}],305:[function(require,module,exports){
 var DOM = require('../../util/dom'),
     Handler = require('../Handler'),
     marks = require('./marks');
@@ -76233,7 +73165,7 @@ prototype.pick = function(scene, x, y, gx, gy) {
 
 module.exports = CanvasHandler;
 
-},{"../../util/dom":345,"../Handler":315,"./marks":324}],318:[function(require,module,exports){
+},{"../../util/dom":333,"../Handler":303,"./marks":312}],306:[function(require,module,exports){
 var DOM = require('../../util/dom'),
     Bounds = require('../../util/Bounds'),
     ImageLoader = require('../../util/ImageLoader'),
@@ -76371,12 +73303,12 @@ prototype.renderAsync = function(scene) {
 
 module.exports = CanvasRenderer;
 
-},{"../../util/Bounds":338,"../../util/ImageLoader":341,"../../util/canvas":344,"../../util/dom":345,"../Renderer":316,"./marks":324}],319:[function(require,module,exports){
+},{"../../util/Bounds":326,"../../util/ImageLoader":329,"../../util/canvas":332,"../../util/dom":333,"../Renderer":304,"./marks":312}],307:[function(require,module,exports){
 module.exports = {
   Handler:  require('./CanvasHandler'),
   Renderer: require('./CanvasRenderer')
 };
-},{"./CanvasHandler":317,"./CanvasRenderer":318}],320:[function(require,module,exports){
+},{"./CanvasHandler":305,"./CanvasRenderer":306}],308:[function(require,module,exports){
 var util = require('./util');
 var halfpi = Math.PI / 2;
 
@@ -76398,7 +73330,7 @@ module.exports = {
   draw: util.drawAll(path),
   pick: util.pickPath(path)
 };
-},{"./util":331}],321:[function(require,module,exports){
+},{"./util":319}],309:[function(require,module,exports){
 var util = require('./util'),
     parse = require('../../../path/parse'),
     render = require('../../../path/render'),
@@ -76433,7 +73365,7 @@ module.exports = {
   nested: true
 };
 
-},{"../../../path/parse":313,"../../../path/render":314,"../../../util/svg":347,"./util":331}],322:[function(require,module,exports){
+},{"../../../path/parse":301,"../../../path/render":302,"../../../util/svg":335,"./util":319}],310:[function(require,module,exports){
 var util = require('./util'),
     EMPTY = [];
 
@@ -76572,7 +73504,7 @@ module.exports = {
   pick: pick
 };
 
-},{"./util":331}],323:[function(require,module,exports){
+},{"./util":319}],311:[function(require,module,exports){
 var util = require('./util');
 
 function draw(g, scene, bounds) {
@@ -76610,7 +73542,7 @@ module.exports = {
   draw: draw,
   pick: util.pick()
 };
-},{"./util":331}],324:[function(require,module,exports){
+},{"./util":319}],312:[function(require,module,exports){
 module.exports = {
   arc:    require('./arc'),
   area:   require('./area'),
@@ -76624,7 +73556,7 @@ module.exports = {
   text:   require('./text')
 };
 
-},{"./arc":320,"./area":321,"./group":322,"./image":323,"./line":325,"./path":326,"./rect":327,"./rule":328,"./symbol":329,"./text":330}],325:[function(require,module,exports){
+},{"./arc":308,"./area":309,"./group":310,"./image":311,"./line":313,"./path":314,"./rect":315,"./rule":316,"./symbol":317,"./text":318}],313:[function(require,module,exports){
 var util = require('./util'),
     parse = require('../../../path/parse'),
     render = require('../../../path/render'),
@@ -76659,7 +73591,7 @@ module.exports = {
   nested: true
 };
 
-},{"../../../path/parse":313,"../../../path/render":314,"../../../util/svg":347,"./util":331}],326:[function(require,module,exports){
+},{"../../../path/parse":301,"../../../path/render":302,"../../../util/svg":335,"./util":319}],314:[function(require,module,exports){
 var util = require('./util'),
     parse = require('../../../path/parse'),
     render = require('../../../path/render');
@@ -76675,7 +73607,7 @@ module.exports = {
   pick: util.pickPath(path)
 };
 
-},{"../../../path/parse":313,"../../../path/render":314,"./util":331}],327:[function(require,module,exports){
+},{"../../../path/parse":301,"../../../path/render":302,"./util":319}],315:[function(require,module,exports){
 var util = require('./util');
 
 function draw(g, scene, bounds) {
@@ -76710,7 +73642,7 @@ module.exports = {
   draw: draw,
   pick: util.pick()
 };
-},{"./util":331}],328:[function(require,module,exports){
+},{"./util":319}],316:[function(require,module,exports){
 var util = require('./util');
 
 function draw(g, scene, bounds) {
@@ -76767,7 +73699,7 @@ module.exports = {
   pick: util.pick(hit)
 };
 
-},{"./util":331}],329:[function(require,module,exports){
+},{"./util":319}],317:[function(require,module,exports){
 var util = require('./util'),
     parse = require('../../../path/parse'),
     render = require('../../../path/render');
@@ -76862,7 +73794,7 @@ module.exports = {
   draw: util.drawAll(path),
   pick: util.pickPath(path)
 };
-},{"../../../path/parse":313,"../../../path/render":314,"./util":331}],330:[function(require,module,exports){
+},{"../../../path/parse":301,"../../../path/render":302,"./util":319}],318:[function(require,module,exports){
 var Bounds = require('../../../util/Bounds'),
     textBounds = require('../../../util/bound').text,
     text = require('../../../util/text'),
@@ -76937,7 +73869,7 @@ module.exports = {
   pick: util.pick(hit)
 };
 
-},{"../../../util/Bounds":338,"../../../util/bound":343,"../../../util/text":348,"./util":331}],331:[function(require,module,exports){
+},{"../../../util/Bounds":326,"../../../util/bound":331,"../../../util/text":336,"./util":319}],319:[function(require,module,exports){
 function drawPathOne(path, g, o, items) {
   if (path(g, items)) return;
 
@@ -77086,13 +74018,13 @@ module.exports = {
   gradient: gradient
 };
 
-},{}],332:[function(require,module,exports){
+},{}],320:[function(require,module,exports){
 module.exports = {
   'canvas': require('./canvas'),
   'svg':    require('./svg')
 };
 
-},{"./canvas":319,"./svg":336}],333:[function(require,module,exports){
+},{"./canvas":307,"./svg":324}],321:[function(require,module,exports){
 var DOM = require('../../util/dom'),
     Handler = require('../Handler');
 
@@ -77158,7 +74090,7 @@ prototype.off = function(type, handler) {
 
 module.exports = SVGHandler;
 
-},{"../../util/dom":345,"../Handler":315}],334:[function(require,module,exports){
+},{"../../util/dom":333,"../Handler":303}],322:[function(require,module,exports){
 var ImageLoader = require('../../util/ImageLoader'),
     Renderer = require('../Renderer'),
     text = require('../../util/text'),
@@ -77583,7 +74515,7 @@ function href() {
 
 module.exports = SVGRenderer;
 
-},{"../../util/ImageLoader":341,"../../util/dom":345,"../../util/svg":347,"../../util/text":348,"../Renderer":316,"./marks":337}],335:[function(require,module,exports){
+},{"../../util/ImageLoader":329,"../../util/dom":333,"../../util/svg":335,"../../util/text":336,"../Renderer":304,"./marks":325}],323:[function(require,module,exports){
 var Renderer = require('../Renderer'),
     ImageLoader = require('../../util/ImageLoader'),
     SVG = require('../../util/svg'),
@@ -77827,7 +74759,7 @@ function escape_text(s) {
 
 module.exports = SVGStringRenderer;
 
-},{"../../util/ImageLoader":341,"../../util/dom":345,"../../util/svg":347,"../../util/text":348,"../Renderer":316,"./marks":337}],336:[function(require,module,exports){
+},{"../../util/ImageLoader":329,"../../util/dom":333,"../../util/svg":335,"../../util/text":336,"../Renderer":304,"./marks":325}],324:[function(require,module,exports){
 module.exports = {
   Handler:  require('./SVGHandler'),
   Renderer: require('./SVGRenderer'),
@@ -77835,7 +74767,7 @@ module.exports = {
     Renderer : require('./SVGStringRenderer')
   }
 };
-},{"./SVGHandler":333,"./SVGRenderer":334,"./SVGStringRenderer":335}],337:[function(require,module,exports){
+},{"./SVGHandler":321,"./SVGRenderer":322,"./SVGStringRenderer":323}],325:[function(require,module,exports){
 var text = require('../../util/text'),
     SVG = require('../../util/svg'),
     symbolTypes = SVG.symbolTypes,
@@ -77986,7 +74918,7 @@ module.exports = {
   }
 };
 
-},{"../../util/svg":347,"../../util/text":348}],338:[function(require,module,exports){
+},{"../../util/svg":335,"../../util/text":336}],326:[function(require,module,exports){
 function Bounds(b) {
   this.clear();
   if (b) this.union(b);
@@ -78115,7 +75047,7 @@ prototype.height = function() {
 
 module.exports = Bounds;
 
-},{}],339:[function(require,module,exports){
+},{}],327:[function(require,module,exports){
 module.exports = function(b) {
   function noop() { }
   function add(x,y) { b.add(x, y); }
@@ -78141,7 +75073,7 @@ module.exports = function(b) {
   };
 };
 
-},{}],340:[function(require,module,exports){
+},{}],328:[function(require,module,exports){
 var gradient_id = 0;
 
 function Gradient(type) {
@@ -78165,7 +75097,7 @@ prototype.stop = function(offset, color) {
 };
 
 module.exports = Gradient;
-},{}],341:[function(require,module,exports){
+},{}],329:[function(require,module,exports){
 (function (global){
 var load = require('datalib/src/import/load');
 
@@ -78244,7 +75176,7 @@ prototype.loadImage = function(uri, callback) {
 module.exports = ImageLoader;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"datalib/src/import/load":32}],342:[function(require,module,exports){
+},{"datalib/src/import/load":32}],330:[function(require,module,exports){
 function Item(mark) {
   this.mark = mark;
 }
@@ -78293,7 +75225,7 @@ prototype.touch = function() {
 };
 
 module.exports = Item;
-},{}],343:[function(require,module,exports){
+},{}],331:[function(require,module,exports){
 var BoundsContext = require('./BoundsContext'),
     Bounds = require('./Bounds'),
     canvas = require('./canvas'),
@@ -78590,7 +75522,7 @@ module.exports = {
   group: group
 };
 
-},{"../path":312,"./Bounds":338,"./BoundsContext":339,"./canvas":344,"./svg":347,"./text":348}],344:[function(require,module,exports){
+},{"../path":300,"./Bounds":326,"./BoundsContext":327,"./canvas":332,"./svg":335,"./text":336}],332:[function(require,module,exports){
 (function (global){
 function instance(w, h) {
   w = w || 1;
@@ -78683,7 +75615,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],345:[function(require,module,exports){
+},{}],333:[function(require,module,exports){
 // create a new DOM element
 function create(doc, tag, ns) {
   return ns ? doc.createElementNS(ns, tag) : doc.createElement(tag);
@@ -78761,7 +75693,7 @@ module.exports = {
   }
 };
 
-},{}],346:[function(require,module,exports){
+},{}],334:[function(require,module,exports){
 var bound = require('../util/bound');
 
 var sets = [
@@ -78819,7 +75751,7 @@ module.exports = {
   toJSON:   toJSON,
   fromJSON: fromJSON
 };
-},{"../util/bound":343}],347:[function(require,module,exports){
+},{"../util/bound":331}],335:[function(require,module,exports){
 (function (global){
 var dl = require('datalib'),
     d3_svg = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null).svg,
@@ -78916,7 +75848,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../path/parse":313,"datalib":36}],348:[function(require,module,exports){
+},{"../path/parse":301,"datalib":36}],336:[function(require,module,exports){
 function size(item) {
   return item.fontSize != null ? item.fontSize : 11;
 }
@@ -78951,7 +75883,7 @@ module.exports = {
   }
 };
 
-},{}],349:[function(require,module,exports){
+},{}],337:[function(require,module,exports){
 module.exports = {
   version: '2.6.1',
   dataflow: require('vega-dataflow'),
@@ -78973,7 +75905,7 @@ module.exports = {
   logging: require('vega-logging'),
   debug: require('vega-logging').debug
 };
-},{"./src/core/config":353,"./src/core/schema":354,"./src/parse/":359,"./src/scene/Bounder":371,"./src/scene/Builder":372,"./src/scene/Encoder":373,"./src/scene/GroupBuilder":374,"./src/scene/visit":379,"./src/transforms":407,"./src/transforms/BatchTransform":381,"./src/transforms/Parameter":397,"./src/transforms/Transform":402,"./src/util":410,"vega-dataflow":244,"vega-logging":309}],350:[function(require,module,exports){
+},{"./src/core/config":341,"./src/core/schema":342,"./src/parse/":347,"./src/scene/Bounder":359,"./src/scene/Builder":360,"./src/scene/Encoder":361,"./src/scene/GroupBuilder":362,"./src/scene/visit":367,"./src/transforms":395,"./src/transforms/BatchTransform":369,"./src/transforms/Parameter":385,"./src/transforms/Transform":390,"./src/util":398,"vega-dataflow":232,"vega-logging":297}],338:[function(require,module,exports){
 var sg = require('vega-scenegraph').render,
     canvas = sg.canvas,
     svg = sg.svg.string,
@@ -79037,7 +75969,7 @@ prototype.initialize = function() {
 };
 
 module.exports = HeadlessView;
-},{"./View":352,"vega-scenegraph":310}],351:[function(require,module,exports){
+},{"./View":340,"vega-scenegraph":298}],339:[function(require,module,exports){
 var dl = require('datalib'),
     df = require('vega-dataflow'),
     ChangeSet = df.ChangeSet,
@@ -79200,7 +76132,7 @@ prototype.fire = function(cs) {
 };
 
 module.exports = Model;
-},{"../parse/expr":358,"../scene/GroupBuilder":374,"../scene/visit":379,"./config":353,"datalib":36,"vega-dataflow":244}],352:[function(require,module,exports){
+},{"../parse/expr":346,"../scene/GroupBuilder":362,"../scene/visit":367,"./config":341,"datalib":36,"vega-dataflow":232}],340:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -79692,7 +76624,7 @@ View.factory = function(model) {
 
 module.exports = View;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../parse/streams":369,"../scene/Encoder":373,"../scene/Transition":376,"./HeadlessView":350,"datalib":36,"vega-dataflow":244,"vega-logging":309,"vega-scenegraph":310}],353:[function(require,module,exports){
+},{"../parse/streams":357,"../scene/Encoder":361,"../scene/Transition":364,"./HeadlessView":338,"datalib":36,"vega-dataflow":232,"vega-logging":297,"vega-scenegraph":298}],341:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     config = {};
@@ -79810,7 +76742,7 @@ config.range = {
 
 module.exports = config;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],354:[function(require,module,exports){
+},{}],342:[function(require,module,exports){
 var dl = require('datalib'),
     parse = require('../parse'),
     Scale = require('../scene/Scale'),
@@ -79857,7 +76789,7 @@ module.exports = function(opt) {
 
   return schema;
 };
-},{"../parse":359,"../scene/Scale":375,"./config":353,"datalib":36}],355:[function(require,module,exports){
+},{"../parse":347,"../scene/Scale":363,"./config":341,"datalib":36}],343:[function(require,module,exports){
 var dl = require('datalib'),
     axs = require('../scene/axis'),
     themeVal = require('../util/theme-val');
@@ -79957,7 +76889,7 @@ function config(model) {
 }
 
 module.exports = parseAxes;
-},{"../scene/axis":377,"../util/theme-val":411,"datalib":36}],356:[function(require,module,exports){
+},{"../scene/axis":365,"../util/theme-val":399,"datalib":36}],344:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null);
 
@@ -79970,7 +76902,7 @@ function parseBg(bg) {
 
 module.exports = parseBg;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],357:[function(require,module,exports){
+},{}],345:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     parseTransforms = require('./transforms'),
@@ -80039,7 +76971,7 @@ parseData.datasource = function(model, d) {
 };
 
 module.exports = parseData;
-},{"./modify":363,"./transforms":370,"datalib":36,"vega-logging":309}],358:[function(require,module,exports){
+},{"./modify":351,"./transforms":358,"datalib":36,"vega-logging":297}],346:[function(require,module,exports){
 var dl = require('datalib'),
     template = dl.template,
     expr = require('vega-expression'),
@@ -80191,7 +77123,7 @@ function wrap(model) {
 wrap.scale = scale;
 wrap.codegen = compile.codegen;
 module.exports = wrap;
-},{"datalib":36,"vega-expression":249}],359:[function(require,module,exports){
+},{"datalib":36,"vega-expression":237}],347:[function(require,module,exports){
 module.exports = {
   axes:       require('./axes'),
   background: require('./background'),
@@ -80210,7 +77142,7 @@ module.exports = {
   streams:    require('./streams'),
   transforms: require('./transforms')
 };
-},{"./axes":355,"./background":356,"./data":357,"./expr":358,"./legends":360,"./mark":361,"./marks":362,"./modify":363,"./padding":364,"./predicates":365,"./properties":366,"./signals":367,"./spec":368,"./streams":369,"./transforms":370,"vega-event-selector":245}],360:[function(require,module,exports){
+},{"./axes":343,"./background":344,"./data":345,"./expr":346,"./legends":348,"./mark":349,"./marks":350,"./modify":351,"./padding":352,"./predicates":353,"./properties":354,"./signals":355,"./spec":356,"./streams":357,"./transforms":358,"vega-event-selector":233}],348:[function(require,module,exports){
 var lgnd = require('../scene/legend');
 
 function parseLegends(model, spec, legends, group) {
@@ -80254,7 +77186,7 @@ function parseLegend(def, index, legend, group) {
 }
 
 module.exports = parseLegends;
-},{"../scene/legend":378}],361:[function(require,module,exports){
+},{"../scene/legend":366}],349:[function(require,module,exports){
 var dl = require('datalib'),
     parseProperties = require('./properties');
 
@@ -80303,7 +77235,7 @@ function parseMark(model, mark, applyDefaults) {
 }
 
 module.exports = parseMark;
-},{"./properties":366,"datalib":36}],362:[function(require,module,exports){
+},{"./properties":354,"datalib":36}],350:[function(require,module,exports){
 var parseMark = require('./mark'),
     parseProperties = require('./properties');
 
@@ -80344,7 +77276,7 @@ function defaults(spec, model) {
 }
 
 module.exports = parseRootMark;
-},{"./mark":361,"./properties":366}],363:[function(require,module,exports){
+},{"./mark":349,"./properties":354}],351:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     df = require('vega-dataflow'),
@@ -80495,7 +77427,7 @@ function parseModify(model, def, ds) {
 }
 
 module.exports = parseModify;
-},{"datalib":36,"vega-dataflow":244,"vega-logging":309}],364:[function(require,module,exports){
+},{"datalib":36,"vega-dataflow":232,"vega-logging":297}],352:[function(require,module,exports){
 var dl = require('datalib');
 
 function parsePadding(pad) {
@@ -80506,7 +77438,7 @@ function parsePadding(pad) {
 }
 
 module.exports = parsePadding;
-},{"datalib":36}],365:[function(require,module,exports){
+},{"datalib":36}],353:[function(require,module,exports){
 var dl = require('datalib');
 
 var types = {
@@ -80701,7 +77633,7 @@ function parseScale(spec, ops) {
 }
 
 module.exports = parsePredicates;
-},{"datalib":36}],366:[function(require,module,exports){
+},{"datalib":36}],354:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -81111,7 +78043,7 @@ function scaleRef(ref) {
 
 module.exports = properties;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"datalib":36,"vega-dataflow":244,"vega-logging":309}],367:[function(require,module,exports){
+},{"datalib":36,"vega-dataflow":232,"vega-logging":297}],355:[function(require,module,exports){
 var dl = require('datalib'),
     expr = require('./expr'),
     SIGNALS = require('vega-dataflow').Dependencies.SIGNALS;
@@ -81179,7 +78111,7 @@ parseSignals.scale = function scale(model, spec, value, datum, evt) {
 };
 
 module.exports = parseSignals;
-},{"./expr":358,"datalib":36,"vega-dataflow":244}],368:[function(require,module,exports){
+},{"./expr":346,"datalib":36,"vega-dataflow":232}],356:[function(require,module,exports){
 var dl  = require('datalib'),
     log = require('vega-logging'),
     themeVal = require('../util/theme-val'),
@@ -81289,7 +78221,7 @@ var dl  = require('datalib'),
 }
 
 module.exports = parseSpec;
-},{"../core/Model":351,"../core/View":352,"../util/theme-val":411,"./":359,"datalib":36,"vega-logging":309}],369:[function(require,module,exports){
+},{"../core/Model":339,"../core/View":340,"../util/theme-val":399,"./":347,"datalib":36,"vega-logging":297}],357:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -81531,7 +78463,7 @@ function parseStreams(view) {
 
 module.exports = parseStreams;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./signals":367,"datalib":36,"vega-dataflow":244,"vega-event-selector":245}],370:[function(require,module,exports){
+},{"./signals":355,"datalib":36,"vega-dataflow":232,"vega-event-selector":233}],358:[function(require,module,exports){
 var dl = require('datalib'),
     transforms = require('../transforms/index');
 
@@ -81555,7 +78487,7 @@ function parseTransforms(model, def) {
 }
 
 module.exports = parseTransforms;
-},{"../transforms/index":407,"datalib":36}],371:[function(require,module,exports){
+},{"../transforms/index":395,"datalib":36}],359:[function(require,module,exports){
 var dl = require('datalib'),
     df = require('vega-dataflow'),
     scene = require('vega-scenegraph'),
@@ -81624,7 +78556,7 @@ proto.evaluate = function(input) {
 };
 
 module.exports = Bounder;
-},{"./Encoder":373,"datalib":36,"vega-dataflow":244,"vega-logging":309,"vega-scenegraph":310}],372:[function(require,module,exports){
+},{"./Encoder":361,"datalib":36,"vega-dataflow":232,"vega-logging":297,"vega-scenegraph":298}],360:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     Item = require('vega-scenegraph').Item,
@@ -81932,7 +78864,7 @@ function keyFunction(key) {
 }
 
 module.exports = Builder;
-},{"../parse/data":357,"./Bounder":371,"./Encoder":373,"datalib":36,"vega-dataflow":244,"vega-logging":309,"vega-scenegraph":310}],373:[function(require,module,exports){
+},{"../parse/data":345,"./Bounder":359,"./Encoder":361,"datalib":36,"vega-dataflow":232,"vega-logging":297,"vega-scenegraph":298}],361:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     df = require('vega-dataflow'),
@@ -82119,7 +79051,7 @@ Encoder.update = function(graph, trans, request, items, dirty) {
 };
 
 module.exports = Encoder;
-},{"./Builder":372,"datalib":36,"vega-dataflow":244,"vega-logging":309,"vega-scenegraph":310}],374:[function(require,module,exports){
+},{"./Builder":360,"datalib":36,"vega-dataflow":232,"vega-logging":297,"vega-scenegraph":298}],362:[function(require,module,exports){
 var dl = require('datalib'),
     df = require('vega-dataflow'),
     Node  = df.Node, // jshint ignore:line
@@ -82423,7 +79355,7 @@ function buildLegends(input, group) {
 }
 
 module.exports = GroupBuilder;
-},{"../parse/axes":355,"../parse/legends":360,"./Builder":372,"./Scale":375,"datalib":36,"vega-dataflow":244,"vega-logging":309}],375:[function(require,module,exports){
+},{"../parse/axes":343,"../parse/legends":348,"./Builder":360,"./Scale":363,"datalib":36,"vega-dataflow":232,"vega-logging":297}],363:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -82934,7 +79866,7 @@ function range(group) {
 
 module.exports = Scale;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transforms/Aggregate":380,"datalib":36,"vega-dataflow":244,"vega-logging":309}],376:[function(require,module,exports){
+},{"../transforms/Aggregate":368,"datalib":36,"vega-dataflow":232,"vega-logging":297}],364:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     bound = require('vega-scenegraph').bound,
@@ -83040,7 +79972,7 @@ function step(elapsed) {
 
 module.exports = Transition;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Builder":372,"vega-dataflow":244,"vega-scenegraph":310}],377:[function(require,module,exports){
+},{"./Builder":360,"vega-dataflow":232,"vega-scenegraph":298}],365:[function(require,module,exports){
 var dl = require('datalib'),
     Tuple = require('vega-dataflow').Tuple,
     parseMark = require('../parse/mark'),
@@ -83630,7 +80562,7 @@ function axisDomain(config) {
 }
 
 module.exports = axs;
-},{"../parse/mark":361,"../util":410,"datalib":36,"vega-dataflow":244,"vega-scenegraph":310}],378:[function(require,module,exports){
+},{"../parse/mark":349,"../util":398,"datalib":36,"vega-dataflow":232,"vega-scenegraph":298}],366:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -84231,7 +81163,7 @@ function hLegendLabels(config) {
 
 module.exports = lgnd;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../parse/mark":361,"../parse/properties":366,"../util":410,"datalib":36,"vega-scenegraph":310}],379:[function(require,module,exports){
+},{"../parse/mark":349,"../parse/properties":354,"../util":398,"datalib":36,"vega-scenegraph":298}],367:[function(require,module,exports){
 module.exports = function visit(node, func) {
   var i, n, s, m, items;
   if (func(node)) return true;
@@ -84245,7 +81177,7 @@ module.exports = function visit(node, func) {
     }
   }
 };
-},{}],380:[function(require,module,exports){
+},{}],368:[function(require,module,exports){
 var dl = require('datalib'),
     df = require('vega-dataflow'),
     log = require('vega-logging'),
@@ -84458,7 +81390,7 @@ prototype.transform = function(input, reset) {
 };
 
 module.exports = Aggregate;
-},{"./Facetor":386,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],381:[function(require,module,exports){
+},{"./Facetor":374,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],369:[function(require,module,exports){
 var Base = require('./Transform').prototype;
 
 function BatchTransform() {
@@ -84483,7 +81415,7 @@ prototype.batchTransform = function(/* input, data, reset */) {
 };
 
 module.exports = BatchTransform;
-},{"./Transform":402}],382:[function(require,module,exports){
+},{"./Transform":390}],370:[function(require,module,exports){
 var dl = require('datalib'),
     Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
@@ -84568,7 +81500,7 @@ prototype.batchTransform = function(input, data) {
 };
 
 module.exports = Bin;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],383:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],371:[function(require,module,exports){
 var df = require('vega-dataflow'),
     Tuple = df.Tuple,
     log = require('vega-logging'),
@@ -84693,7 +81625,7 @@ prototype._rem = function(tuples, get) {
 };
 
 module.exports = CountPattern;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],384:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],372:[function(require,module,exports){
 var dl = require('datalib'),
     df = require('vega-dataflow'),
     ChangeSet = df.ChangeSet,
@@ -84897,7 +81829,7 @@ prototype.batchTransform = function(input, data, reset) {
 };
 
 module.exports = Cross;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],385:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],373:[function(require,module,exports){
 var Transform = require('./Transform'),
     Aggregate = require('./Aggregate');
 
@@ -84944,7 +81876,7 @@ prototype.transform = function(input, reset) {
 };
 
 module.exports = Facet;
-},{"../parse/transforms":370,"./Aggregate":380,"./Transform":402}],386:[function(require,module,exports){
+},{"../parse/transforms":358,"./Aggregate":368,"./Transform":390}],374:[function(require,module,exports){
 var dl = require('datalib'),
     Aggregator = dl.Aggregator,
     Base = Aggregator.prototype,
@@ -85043,7 +81975,7 @@ prototype._on_keep = function(cell) {
 };
 
 module.exports = Facetor;
-},{"datalib":36,"vega-dataflow":244,"vega-logging":309}],387:[function(require,module,exports){
+},{"datalib":36,"vega-dataflow":232,"vega-logging":297}],375:[function(require,module,exports){
 var df = require('vega-dataflow'),
     log = require('vega-logging'),
     Transform = require('./Transform');
@@ -85096,7 +82028,7 @@ prototype.transform = function(input) {
 };
 
 module.exports = Filter;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],388:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],376:[function(require,module,exports){
 var df = require('vega-dataflow'),
     Tuple = df.Tuple,
     log = require('vega-logging'),
@@ -85168,7 +82100,7 @@ prototype.transform = function(input, reset) {
 };
 
 module.exports = Fold;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],389:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],377:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     df = require('vega-dataflow'),
@@ -85377,7 +82309,7 @@ prototype.update = function(active) {
 
 module.exports = Force;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Transform":402,"./screen":408,"vega-dataflow":244,"vega-logging":309}],390:[function(require,module,exports){
+},{"./Transform":390,"./screen":396,"vega-dataflow":232,"vega-logging":297}],378:[function(require,module,exports){
 var df = require('vega-dataflow'),
     Tuple = df.Tuple,
     log = require('vega-logging'),
@@ -85419,7 +82351,7 @@ prototype.transform = function(input) {
 };
 
 module.exports = Formula;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],391:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],379:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -85509,7 +82441,7 @@ prototype.transform = function(input) {
 
 module.exports = Geo;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Transform":402,"./screen":408,"datalib":36,"vega-dataflow":244,"vega-logging":309}],392:[function(require,module,exports){
+},{"./Transform":390,"./screen":396,"datalib":36,"vega-dataflow":232,"vega-logging":297}],380:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -85558,7 +82490,7 @@ prototype.transform = function(input) {
 
 module.exports = GeoPath;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Geo":391,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],393:[function(require,module,exports){
+},{"./Geo":379,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],381:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -85660,7 +82592,7 @@ prototype.batchTransform = function(input, data) {
 
 module.exports = Hierarchy;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./BatchTransform":381,"./Transform":402,"./screen":408,"datalib":36,"vega-dataflow":244,"vega-logging":309}],394:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"./screen":396,"datalib":36,"vega-dataflow":232,"vega-logging":297}],382:[function(require,module,exports){
 var dl = require('datalib'),
     log = require('vega-logging'),
     Tuple = require('vega-dataflow').Tuple,
@@ -85763,7 +82695,7 @@ function partition(data, groupby, orderby) {
 }
 
 module.exports = Impute;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],395:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],383:[function(require,module,exports){
 var Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
     Transform = require('./Transform');
@@ -85890,7 +82822,7 @@ prototype.transform = function(input) {
 };
 
 module.exports = LinkPath;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],396:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],384:[function(require,module,exports){
 var Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
     Transform = require('./Transform');
@@ -85962,7 +82894,7 @@ prototype.transform = function(input, reset) {
 };
 
 module.exports = Lookup;
-},{"./Transform":402,"vega-dataflow":244,"vega-logging":309}],397:[function(require,module,exports){
+},{"./Transform":390,"vega-dataflow":232,"vega-logging":297}],385:[function(require,module,exports){
 var dl = require('datalib'),
     Deps = require('vega-dataflow').Dependencies;
 
@@ -86090,7 +83022,7 @@ prototype.set = function(value) {
 };
 
 module.exports = Parameter;
-},{"datalib":36,"vega-dataflow":244}],398:[function(require,module,exports){
+},{"datalib":36,"vega-dataflow":232}],386:[function(require,module,exports){
 var dl = require('datalib'),
     Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
@@ -86156,7 +83088,7 @@ prototype.batchTransform = function(input, data) {
 };
 
 module.exports = Pie;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],399:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],387:[function(require,module,exports){
 var Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
     Transform = require('./Transform'),
@@ -86210,7 +83142,7 @@ prototype.batchTransform = function(input, data) {
 };
 
 module.exports = Rank;
-},{"./BatchTransform":381,"./Transform":402,"vega-dataflow":244,"vega-logging":309}],400:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"vega-dataflow":232,"vega-logging":297}],388:[function(require,module,exports){
 var dl = require('datalib'),
     log  = require('vega-logging'),
     Transform = require('./Transform');
@@ -86234,7 +83166,7 @@ prototype.transform = function(input) {
 };
 
 module.exports = Sort;
-},{"./Transform":402,"datalib":36,"vega-logging":309}],401:[function(require,module,exports){
+},{"./Transform":390,"datalib":36,"vega-logging":297}],389:[function(require,module,exports){
 var dl = require('datalib'),
     Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
@@ -86332,7 +83264,7 @@ function partition(data, groupby, sortby, field) {
 }
 
 module.exports = Stack;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],402:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],390:[function(require,module,exports){
 var df = require('vega-dataflow'),
     Base = df.Node.prototype, // jshint ignore:line
     Deps = df.Dependencies,
@@ -86393,7 +83325,7 @@ prototype.output = function(map) {
 };
 
 module.exports = Transform;
-},{"./Parameter":397,"vega-dataflow":244}],403:[function(require,module,exports){
+},{"./Parameter":385,"vega-dataflow":232}],391:[function(require,module,exports){
 var dl = require('datalib'),
     Tuple = require('vega-dataflow').Tuple,
     log = require('vega-logging'),
@@ -86458,7 +83390,7 @@ prototype.batchTransform = function(input, data) {
 };
 
 module.exports = Treeify;
-},{"./BatchTransform":381,"./Transform":402,"datalib":36,"vega-dataflow":244,"vega-logging":309}],404:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"datalib":36,"vega-dataflow":232,"vega-logging":297}],392:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
@@ -86547,7 +83479,7 @@ prototype.batchTransform = function(input, data) {
 
 module.exports = Treemap;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./BatchTransform":381,"./Transform":402,"./screen":408,"datalib":36,"vega-dataflow":244,"vega-logging":309}],405:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"./screen":396,"datalib":36,"vega-dataflow":232,"vega-logging":297}],393:[function(require,module,exports){
 (function (global){
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     Tuple = require('vega-dataflow/src/Tuple'),
@@ -86597,7 +83529,7 @@ prototype.batchTransform = function(input, data) {
 
 module.exports = Voronoi;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./BatchTransform":381,"./Transform":402,"./screen":408,"vega-dataflow/src/Tuple":243,"vega-logging":309}],406:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"./screen":396,"vega-dataflow/src/Tuple":231,"vega-logging":297}],394:[function(require,module,exports){
 (function (global){
 var dl = require('datalib'),
     d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
@@ -86709,7 +83641,7 @@ prototype.batchTransform = function(input, data) {
 
 module.exports = Wordcloud;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./BatchTransform":381,"./Transform":402,"./screen":408,"datalib":36,"vega-dataflow/src/Tuple":243,"vega-logging":309,"vega-scenegraph":310}],407:[function(require,module,exports){
+},{"./BatchTransform":369,"./Transform":390,"./screen":396,"datalib":36,"vega-dataflow/src/Tuple":231,"vega-logging":297,"vega-scenegraph":298}],395:[function(require,module,exports){
 module.exports = {
   aggregate:    require('./Aggregate'),
   bin:          require('./Bin'),
@@ -86735,7 +83667,7 @@ module.exports = {
   voronoi:      require('./Voronoi'),
   wordcloud:    require('./Wordcloud')
 };
-},{"./Aggregate":380,"./Bin":382,"./CountPattern":383,"./Cross":384,"./Facet":385,"./Filter":387,"./Fold":388,"./Force":389,"./Formula":390,"./Geo":391,"./GeoPath":392,"./Hierarchy":393,"./Impute":394,"./LinkPath":395,"./Lookup":396,"./Pie":398,"./Rank":399,"./Sort":400,"./Stack":401,"./Treeify":403,"./Treemap":404,"./Voronoi":405,"./Wordcloud":406}],408:[function(require,module,exports){
+},{"./Aggregate":368,"./Bin":370,"./CountPattern":371,"./Cross":372,"./Facet":373,"./Filter":375,"./Fold":376,"./Force":377,"./Formula":378,"./Geo":379,"./GeoPath":380,"./Hierarchy":381,"./Impute":382,"./LinkPath":383,"./Lookup":384,"./Pie":386,"./Rank":387,"./Sort":388,"./Stack":389,"./Treeify":391,"./Treemap":392,"./Voronoi":393,"./Wordcloud":394}],396:[function(require,module,exports){
 module.exports = {
   size:   [{signal: 'width'}, {signal: 'height'}],
   mid:    [{expr: 'width/2'}, {expr: 'height/2'}],
@@ -86744,7 +83676,7 @@ module.exports = {
     {expr: '[width+padding.right, height+padding.bottom]'}
   ]
 };
-},{}],409:[function(require,module,exports){
+},{}],397:[function(require,module,exports){
 var dl = require('datalib');
 
 var TIME    = 'time',
@@ -86808,13 +83740,13 @@ function getFormatter(scale, tickCount, formatType, str) {
 module.exports = {
   getTickFormat: getTickFormat
 };
-},{"datalib":36}],410:[function(require,module,exports){
+},{"datalib":36}],398:[function(require,module,exports){
 var dl = require('datalib'),
     u  = {};
 
 dl.extend(u, require('./format'));
 module.exports = dl.extend(u, dl);
-},{"./format":409,"datalib":36}],411:[function(require,module,exports){
+},{"./format":397,"datalib":36}],399:[function(require,module,exports){
 module.exports = function(def, config, property, defaultVal) {
   if (def[property] !== undefined) {
     return def[property];
@@ -86825,7 +83757,7 @@ module.exports = function(def, config, property, defaultVal) {
   }
   return undefined;
 };
-},{}],412:[function(require,module,exports){
+},{}],400:[function(require,module,exports){
 module.exports = function (CodeMirror) {
   'use strict';
 
@@ -86984,7 +83916,7 @@ module.exports = function (CodeMirror) {
   };
 };
 
-},{}],413:[function(require,module,exports){
+},{}],401:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -87003,9 +83935,6 @@ require('codemirror/addon/edit/matchbrackets');
 require('codemirror/addon/edit/closebrackets');
 require('codemirror/mode/javascript/javascript');
 require('codemirror/addon/comment/comment'); // installs toggleComment
-
-var SourceMap = require('source-map');
-var stackTrace = require('stack-trace');
 
 var wait = function (ms, f) {
   return setTimeout(f, ms);
@@ -87028,65 +83957,6 @@ var renderReturnValue = function (x) {
 
   return JSON.stringify(x);
 };
-
-function addSourceMap(error, sourceMap) {
-  if (error instanceof Error) {
-    if (error.sourceMaps === undefined) {
-      error.sourceMaps = [];
-    }
-    error.sourceMaps.push(sourceMap);
-  }
-}
-
-function getErrorPosition(error) {
-
-  if (!(error instanceof Error)) {
-    return null;
-  }
-
-  var parsedError = stackTrace.parse(error);
-  // NB: this differs from core webppl; here, we want to highlight the nearest place
-  // of responsibility in the user's code.
-  var firstStackFrame = _.findWhere(parsedError, { fileName: '<anonymous>' });
-
-  // if error occurred in library code, identify it in the message but don't highlight
-  // anything
-  if (!firstStackFrame) {
-    var file = _.last(parsedError[0].fileName.split("/"));
-    error.message = "Error in " + file + ": " + error.message;
-    return null;
-  }
-
-  // Switch from 1 to 0 indexed.
-  firstStackFrame.columnNumber--;
-  firstStackFrame.sourceMapped = false;
-
-  if (error.sourceMaps === undefined || firstStackFrame.native) {
-    return firstStackFrame;
-  }
-
-  // Check whether the error occurred in compiled code. We only need
-  // to check the first source map as this is the one added when the
-  // error was first caught.
-
-  var mapConsumer = new SourceMap.SourceMapConsumer(error.sourceMaps[0]);
-  var originalPosition = mapConsumer.originalPositionFor({
-    line: firstStackFrame.lineNumber,
-    column: firstStackFrame.columnNumber
-  });
-
-  if (originalPosition.source === null) {
-    return firstStackFrame;
-  } else {
-    return {
-      fileName: originalPosition.source,
-      lineNumber: originalPosition.line,
-      identifier: originalPosition.name,
-      columnNumber: originalPosition.column,
-      sourceMapped: true
-    };
-  }
-}
 
 var ResultError = React.createClass({
   displayName: 'ResultError',
@@ -87464,18 +84334,8 @@ var CodeEditor = React.createClass({
       // note: React automatically binds methods to their class so we don't need to use .bind here
 
       wpEditor['makeResultContainer'] = comp['makeResultContainer'];
-      // for catching errors in library code like wpEditor.get()
-
-      var handleRunError;
-
-      global.onerror = function (message, source, lineno, colno, e) {
-        console.log('global.onerror triggered');
-        // TODO: if e is not available, also use source, lineno, and colno
-        handleRunError(e || message);
-      };
 
       // run vanilla js
-      // TODO: detect language from codemirror value, not React prop
       if (language == 'javascript') {
         // TODO: grey out the run button but don't show a cancel button
         try {
@@ -87495,52 +84355,75 @@ var CodeEditor = React.createClass({
         return wait(250, job);
       }
 
-      comp.setState({ execution: compileCache[code] ? 'running' : 'compiling' });
+      var handleRunError = function (error) {
+        // For Chrome only...
 
-      // use wait() so that runButton dom changes actually appear
+        // If debug=true is passed to run (as below), then wpplError is
+        // expected to be present when an instance of Error is thrown
+        // running the program
+
+        // This object holds information about the top-most position on the
+        // stack that originated from the user specific program.
+
+        if (error instanceof Error && error.wpplError) {
+
+          // We can use the following information for highlighting a
+          // suitable point in the user program.
+          var wpplError = error.wpplError,
+              lineNumber = wpplError.lineNumber - 1,
+              columnNumber = wpplError.columnNumber,
+              endColumn = wpplError.name ? columnNumber + wpplError.name.length : Infinity;
+          var cm = comp.refs.editor.getCodeMirror();
+          cm.markText({ line: lineNumber, ch: columnNumber }, { line: lineNumber, ch: endColumn }, { className: "CodeMirrorError", clearOnEnter: true });
+        }
+
+        handleError(error);
+      };
+
+      var handleCompileError = function (e) {
+        var message = e.message;
+
+        var cm = comp.refs.editor.getCodeMirror();
+
+        var re_line = /Line ([0-9]+): /;
+        if (re_line.test(message)) {
+          var line = re_line.exec(message)[1] - 1;
+          cm.markText({ line: line, ch: 0 }, { line: line, ch: Infinity }, { className: "CodeMirrorError", clearOnEnter: true });
+        }
+        e.message = "Syntax error: " + e.message.replace(re_line, "");
+        handleError(e);
+      };
+
+      // catch errors in library code (like editor.get())
+      global.onerror = function (message, source, lineno, colno, e) {
+        console.log('global.onerror triggered');
+        // TODO: if e is not available, also use source, lineno, and colno
+        handleRunError(e || message);
+      };
+
+      comp.setState({ execution: 'compiling' });
+
       wait(20, function () {
-        // compile code if we need to
+        // (memoized) compile code
         if (!compileCache[code]) {
           try {
-            compileCache[code] = webppl.compile(code, { sourceMap: true });
+            compileCache[code] = webppl.compile(code, { debug: true });
           } catch (e) {
-            handleError(e);
+            handleCompileError(e);
             return;
           }
         }
 
+        var baseRunner = util.trampolineRunners.web();
+        var compiled = compileCache[code];
+        var prepared = webppl.prepare(compiled, endJob, { errorHandlers: [handleRunError], debug: true, baseRunner: baseRunner });
+        comp.runner = baseRunner;
+        global['resumeTrampoline'] = prepared.runner;
+
         comp.setState({ execution: 'running' });
 
-        var sourceMap = compileCache[code].map;
-        handleRunError = function (e) {
-          addSourceMap(e, sourceMap);
-          var pos = getErrorPosition(e);
-          if (!pos) {
-            return handleError(e);
-          };
-          var lineNumber = pos.lineNumber - 1,
-              columnNumber = pos.columnNumber;
-          var cm = comp.refs.editor.getCodeMirror();
-
-          var endColumn = pos.identifier ? columnNumber + pos.identifier.length : Infinity;
-
-          cm.markText({ line: lineNumber, ch: columnNumber },
-          // TODO: add ending column number
-          { line: lineNumber, ch: endColumn }, { className: "CodeMirrorError", clearOnEnter: true });
-          handleError(e);
-        };
-
-        var runner = util.trampolineRunners.web(handleRunError);
-        global['resumeTrampoline'] = runner;
-        comp.runner = runner;
-
-        var newSeed = _.now();
-        util.seedRNG(newSeed);
-        comp.setState({ seed: newSeed });
-
         wait(20, function () {
-          var _code = eval.call({}, compileCache[code].code)(runner);
-          _code({}, endJob, '');
+          prepared.run();
         });
       });
     };
@@ -87758,7 +84641,7 @@ if (typeof window !== 'undefined') {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./folding":412,"codemirror":9,"codemirror/addon/comment/comment":6,"codemirror/addon/edit/closebrackets":7,"codemirror/addon/edit/matchbrackets":8,"codemirror/mode/javascript/javascript":10,"jquery":68,"react":219,"react-codemirror":76,"react-dom":77,"source-map":231,"stack-trace":232,"underscore":234}],414:[function(require,module,exports){
+},{"./folding":400,"codemirror":9,"codemirror/addon/comment/comment":6,"codemirror/addon/edit/closebrackets":7,"codemirror/addon/edit/matchbrackets":8,"codemirror/mode/javascript/javascript":10,"jquery":68,"react":219,"react-codemirror":76,"react-dom":77,"underscore":222}],402:[function(require,module,exports){
 var $ = require('jquery'),
     _ = require('underscore');
 var vg = require('vega'),
@@ -87909,7 +84792,7 @@ var cccr = function (args, options) {
 
 module.exports = cccr;
 
-},{"./stats":417,"jquery":68,"underscore":234,"vega":349,"vega-lite":308}],415:[function(require,module,exports){
+},{"./stats":405,"jquery":68,"underscore":222,"vega":337,"vega-lite":296}],403:[function(require,module,exports){
 (function (global){
 var _ = require('underscore');
 var d3 = require('d3');
@@ -89337,7 +86220,7 @@ if (typeof module !== 'undefined' && module.exports) {
 global.viz = viz;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./cccr":414,"./old":416,"./stats":417,"d3":16,"fs":3,"jquery":68,"md5":73,"react":219,"react-dom":77,"underscore":234,"vega":349,"vega-lite":308}],416:[function(require,module,exports){
+},{"./cccr":402,"./old":404,"./stats":405,"d3":16,"fs":3,"jquery":68,"md5":73,"react":219,"react-dom":77,"underscore":222,"vega":337,"vega-lite":296}],404:[function(require,module,exports){
 var fs = require('fs');
 
 var numPlots = 0;
@@ -89837,7 +86720,7 @@ function plotMarginals(labels, counts, resultDivSelector) {
 
 module.exports = { print: print };
 
-},{"fs":3}],417:[function(require,module,exports){
+},{"fs":3}],405:[function(require,module,exports){
 var _ = require('underscore');
 var d3 = require('d3');
 
@@ -90070,7 +86953,7 @@ if (typeof viz !== 'undefined') {
 }
 module.exports = exports;
 
-},{"d3":16,"underscore":234}],418:[function(require,module,exports){
+},{"d3":16,"underscore":222}],406:[function(require,module,exports){
 (function (global){
 var fs = require('fs');
 var React = require('react');
@@ -90717,4 +87600,4 @@ $(setBibtex);
 $(setDate);
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":219,"react-dom":77,"showdown":220,"underscore":234,"webppl-editor":413,"webppl-viz":415}]},{},[418]);
+},{"autosize":1,"classnames":5,"fs":3,"jquery":68,"react":219,"react-dom":77,"showdown":220,"underscore":222,"webppl-editor":401,"webppl-viz":403}]},{},[406]);
