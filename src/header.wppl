@@ -548,11 +548,11 @@ var condition = function(bool) {
 };
 
 var observe = function(dist, val) {
-  if(val !== undefined) {
+  if (val !== undefined) {
     factor(dist.score(val));
-    return val
+    return val;
   } else {
-    return sample(dist)
+    return sample(dist);
   }
 };
 
