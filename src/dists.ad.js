@@ -621,6 +621,15 @@ var TensorGaussian = makeDistributionType({
   },
   score: function(x) {
     return tensorGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
+  },
+  base: function() {
+    var dims = this.params.dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
+  },
+  transform: function(x) {
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return ad.tensor.add(ad.tensor.mul(x, sigma), mu);
   }
 });
 
