@@ -587,6 +587,13 @@ var tests = [
           verbose: false
         }
       },
+      tensorGaussian: {
+        args: {
+          samples: 5000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       mapData: true
     }
   }
