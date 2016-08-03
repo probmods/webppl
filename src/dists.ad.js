@@ -601,10 +601,12 @@ var TensorGaussian = makeDistributionType({
   ],
   mixins: [continuousSupport],
   constructor: function() {
-    if (!_.isNumber(this.params.mu)) {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!_.isNumber(_mu)) {
       throw new Error(this.meta.name + ': mu should be a number.');
     }
-    if (!_.isNumber(this.params.sigma)) {
+    if (!_.isNumber(_sigma)) {
       throw new Error(this.meta.name + ': sigma should be a number.');
     }
     if (!Array.isArray(this.params.dims)) {
