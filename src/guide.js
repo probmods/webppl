@@ -93,6 +93,8 @@ function registerParam(env, name, dims) {
 function spec(targetDist) {
   if (targetDist instanceof dists.Dirichlet) {
     return dirichletSpec(targetDist);
+  } else if (targetDist instanceof dists.TensorGaussian) {
+    return tensorGaussianSpec(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
@@ -136,6 +138,17 @@ function dirichletSpec(targetDist) {
     params: {
       mu: {param: {dims: [d, 1]}},
       sigma: {param: {dims: [d, 1], domain: gt(0)}}
+    }
+  };
+}
+
+function tensorGaussianSpec(targetDist) {
+  return {
+    type: dists.TensorGaussian,
+    params: {
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], domain: gt(0)}},
+      dims: {const: targetDist.params.dims}
     }
   };
 }
