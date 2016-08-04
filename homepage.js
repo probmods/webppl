@@ -85597,7 +85597,8 @@ kindPrinter.cccr = require('./cccr');
 function parallelCoordinates(args, options) {
   var types = args.types,
       support = args.support,
-      scores = args.scores;
+      scores = args.scores,
+      options = options || {};
 
   var fieldNames = _.keys(support[0]);
 
@@ -85628,13 +85629,15 @@ function parallelCoordinates(args, options) {
   };
 
   var individualScales = _.map(fieldNames, function (name) {
+    var domain = options.bounds && options.bounds[name] ? options.bounds[name] : { data: 'values', field: name };
+
     return {
       name: name,
       type: "linear",
       range: "height",
       zero: false,
       nice: true,
-      domain: { data: 'values', field: name }
+      domain: domain
     };
   });
 
@@ -86310,7 +86313,7 @@ function heatMap(arg, options) {
       "scale": "x",
       "offset": 16,
       "ticks": 10,
-      "title": keys[0],
+      "title": keys ? keys[0] : 'x',
       "properties": {
         "labels": {
           "angle": {
@@ -86326,7 +86329,7 @@ function heatMap(arg, options) {
       "scale": "y",
       "offset": 16,
       "ticks": 10,
-      "title": keys[1]
+      "title": keys ? keys[1] : 'y'
     }],
     "marks": [{
       "type": "symbol",
@@ -86546,6 +86549,7 @@ var viz = {
   density: density,
   line: lineWrapper,
   table: table,
+  parCoords: parallelCoordinates,
   heatMap: heatMap,
   marginals: marginals,
   renderSpec: renderSpec,
