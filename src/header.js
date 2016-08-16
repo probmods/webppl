@@ -66,7 +66,8 @@ module.exports = function(env) {
     incrementalize: function(s, k, a, fn, args) {
       var args = [s, k, a].concat(args);
       return fn.apply(global, args);
-    }
+    },
+    a: '' // Entry address. Enables relative addressing.
   };
 
   // Called at the start of every program.
