@@ -37,8 +37,8 @@ module.exports = function(env) {
       throw new Error('samples should be a positive integer.');
     }
 
-    if (this.incremental) {
-      assert(this.maxScore <= 0, 'maxScore cannot be positive for incremental rejection.');
+    if (this.incremental && this.maxScore > 0) {
+      util.warn('Rejection: Reduce maxScore to zero for better performance.');
     }
   }
 
