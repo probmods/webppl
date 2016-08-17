@@ -48,8 +48,9 @@ Rejection sampling
 
    .. describe:: maxScore
 
-      An upper bound on the total factor score per-execution. Only
-      required for incremental mode.
+      An upper bound on the total factor score per-execution.
+
+      Default: ``0``
 
    .. describe:: incremental
 
@@ -59,11 +60,8 @@ Rejection sampling
 
    Incremental mode improves efficiency by rejecting samples before
    execution reaches the end of the program where possible. This
-   requires:
-
-   * The ``maxScore`` argument to be given, with ``maxScore <= 0``.
-   * Every call to ``factor(score)`` in the program (across all
-     possible executions) to have ``score <= 0``.
+   requires every call to ``factor(score)`` in the program (across all
+   possible executions) to have ``score <= 0``.
 
    Example usage::
 
