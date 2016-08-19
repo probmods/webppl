@@ -39,9 +39,10 @@ module.exports = function(env) {
 
     // Create a (cps) function which takes parameters to gradient
     // estimates.
+    var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
       opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
-      return _.partial(estimators[name], wpplFn, s, a, opts);
+      return _.partial(estimators[name], wpplFn, s, a, opts, state);
     });
 
     var optimizer = util.getValAndOpts(options.optMethod, function(name, opts) {

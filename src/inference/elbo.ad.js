@@ -22,7 +22,7 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function ELBO(wpplFn, s, a, options, params, step, cont) {
+  function ELBO(wpplFn, s, a, options, state, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
       samples: 1
     });

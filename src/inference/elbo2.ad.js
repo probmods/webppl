@@ -9,9 +9,11 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function ELBO2(wpplFn, s, a, options, params, step, cont) {
+  function ELBO2(wpplFn, s, a, options, state, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
+      avgBaselines: false,
+      avgBaselineDecay: 0.9,
       dumpGraph: false, // Write a DOT file representation of first graph to disk.
       showGraph: false  // Show info about the first graph in the console.
     });
@@ -21,6 +23,7 @@ module.exports = function(env) {
     this.params = params;
 
     this.step = step;
+    this.state = state;
     this.cont = cont;
 
     this.wpplFn = wpplFn;
@@ -30,6 +33,10 @@ module.exports = function(env) {
     // Initialize mapData state.
     this.mapDataStack = [{multiplier: 1}];
     this.mapDataIx = {};
+
+    if (!_.has(this.state, 'baselines')) {
+      this.state.baselines = {};
+    }
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -65,7 +72,7 @@ module.exports = function(env) {
     this.deps = new Set(); // TODO: Probably not compatible with older versions of node.
   }
 
-  function SampleNode(parent, logp, logq, logr, reparam, targetDist, multiplier) {
+  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, multiplier) {
     this.id = nodeid++;
     var _logp = ad.value(logp);
     var _logq = ad.value(logq);
@@ -85,6 +92,7 @@ module.exports = function(env) {
     this.logr = logr;
     this.weight = _logq - _logp;
     this.reparam = reparam;
+    this.address = address;
     this.deps = new Set().add(this);
     // Debug info.
     this.targetDist = targetDist;
@@ -191,7 +199,7 @@ module.exports = function(env) {
     });
   }
 
-  function buildObjective(nodes) {
+  function buildObjective(nodes, computeBaseline) {
 
     // Likelihood-ratio term.
     var lr = nodes.reduce(function(acc, node) {
@@ -213,7 +221,8 @@ module.exports = function(env) {
         return weight += node.weight;
       }, 0);
 
-      return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight));
+      var b = computeBaseline(node.address, weight);
+      return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
 
     }, 0);
 
@@ -309,7 +318,7 @@ module.exports = function(env) {
           showGraph(this.nodes);
         }
 
-        var ret = buildObjective(this.nodes);
+        var ret = buildObjective(this.nodes, this.getBaselineFunc());
         ret.objective.backprop();
 
         var grads = _.mapObject(this.paramsSeen, function(params) {
@@ -320,6 +329,29 @@ module.exports = function(env) {
 
       }.bind(this), this.a);
 
+    },
+
+    getBaselineFunc: function() {
+      if (this.opts.avgBaselines) {
+        var decay = this.opts.avgBaselineDecay;
+        var baselines = this.state.baselines;
+        return function(address, weight) {
+          // Initialize.
+          // TODO: The gradient at the first step will be zero using
+          // this approach. This is probably OK, but we might want to
+          // make sure it doesn't trigger a gradient warning, since
+          // that may cause confusion.
+          if (!_.has(baselines, address)) {
+            baselines[address] = weight;
+          }
+          var b = baselines[address];
+          // Update.
+          baselines[address] = decay * b + (1 - decay) * weight;
+          return b;
+        };
+      } else {
+        return function() { return 0; };
+      }
     },
 
     sample: function(s, k, a, dist, options) {
@@ -342,7 +374,7 @@ module.exports = function(env) {
 
       var node = new SampleNode(
         this.prevNode, logp, logq, logr,
-        ret.reparam, dist, m);
+        ret.reparam, a, dist, m);
 
       this.prevNode = node;
       this.nodes.push(node);
