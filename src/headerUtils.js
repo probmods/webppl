@@ -179,7 +179,14 @@ module.exports = function(env) {
       return k(s, acc);
     } else {
       var ix = (indices === null) ? i : indices[i];
+      if (env.coroutine.mapDataEnter) {
+        env.coroutine.mapDataEnter();
+      }
       return f(s, function(s, v) {
+        if (env.coroutine.mapDataLeave) {
+          env.coroutine.mapDataLeave();
+        }
+
         return function() {
           return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
         };
