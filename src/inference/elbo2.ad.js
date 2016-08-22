@@ -14,8 +14,11 @@ module.exports = function(env) {
       samples: 1,
       avgBaselines: false,
       avgBaselineDecay: 0.9,
-      dumpGraph: false, // Write a DOT file representation of first graph to disk.
-      showGraph: false  // Show info about the first graph in the console.
+      // Write a DOT file representation of first graph to disk.
+      dumpGraph: false,
+      // Use local weight of 1 (* multiplier) for sample and factor
+      // nodes.
+      debugWeights: false
     });
 
     // The current values of all initialized parameters.
@@ -69,10 +72,10 @@ module.exports = function(env) {
   function RootNode() {
     this.id = nodeid++;
     this.parents = [];
-    this.deps = new Set(); // TODO: Probably not compatible with older versions of node.
+    this.weight = 0;
   }
 
-  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, multiplier) {
+  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, multiplier, debug) {
     this.id = nodeid++;
     var _logp = ad.value(logp);
     var _logq = ad.value(logq);
@@ -90,20 +93,23 @@ module.exports = function(env) {
     this.logp = logp;
     this.logq = logq;
     this.logr = logr;
-    this.weight = _logq - _logp;
+    this.weight = debug ? multiplier : _logq - _logp;
     this.reparam = reparam;
     this.address = address;
-    this.deps = new Set().add(this);
     // Debug info.
     this.targetDist = targetDist;
     this.multiplier = multiplier;
   }
 
   SampleNode.prototype.label = function() {
-    return this.targetDist.meta.name + '(' + this.id + ')';
+    return [
+      this.targetDist.meta.name + '(' + this.id + ')',
+      'w=' + this.weight,
+      'm=' + this.multiplier
+    ].join('\\n');
   };
 
-  function FactorNode(parent, score, multiplier) {
+  function FactorNode(parent, score, multiplier, debug) {
     this.id = nodeid++;
     var _score = ad.value(score);
     if (!isFinite(_score)) {
@@ -111,45 +117,51 @@ module.exports = function(env) {
     }
     this.parents = [parent];
     this.score = score;
-    this.weight = -_score;
-    this.deps = new Set().add(this);
+    this.weight = debug ? multiplier : -_score;
     // Debug info.
-    this.id = nodeid++;
     this.multiplier = multiplier;
   }
 
   FactorNode.prototype.label = function() {
-    return 'Factor(' + this.id + ')';
+    return [
+      'Factor' + '(' + this.id + ')',
+      'w=' + this.weight,
+      'm=' + this.multiplier
+    ].join('\\n');
   };
 
-  // JoinNode provides a convenient way to collect together multiple
-  // paths after a mapData.
+  // Created when entering mapData.
+  function SplitNode(parent, batchSize, joinNode) {
+    this.id = nodeid++;
+    this.parents = [parent];
+    this.batchSize = batchSize;
+    this.joinNode = joinNode;
+    this.weight = 0;
+  }
+
+  // Created when leaving mapData.
   function JoinNode() {
     this.id = nodeid++;
     this.parents = [];
-    this.deps = new Set();
+    this.weight = 0;
   }
 
-  // TODO: It's possible for this to take quadratic time. Imagine we
-  // have no mapData, then the number of "deps" we copy is O(n) and we
-  // have n sample nodes. Clearly in this case we can do this in
-  // linear time, what's the best way to do better in general?
-
-  // Set union. Note, this modifies s1.
-  function union(s1, s2) {
-    s2.forEach(function(x) { s1.add(x); });
-  }
-
-  function propagateDependencies(nodes) {
-    // Note that this modifies the graph.
+  function propagateWeights(nodes) {
+    // Note that this modifies the weights of graph in-place.
     var i = nodes.length;
     while(--i) {
       var node = nodes[i];
+      if (node instanceof SplitNode) {
+        // Here we account for the fact we've added the score that
+        // accumulated after this mapData once for every execution of
+        // the observation function
+        node.weight -= (node.batchSize - 1) * node.joinNode.weight;
+      }
       node.parents.forEach(function(parent) {
-        union(parent.deps, node.deps);
+        parent.weight += node.weight;
       });
     }
-  }
+  };
 
   var edge = function(parent, child) {
     return '  ' + parent.id + ' -> ' + child.id + ';';
@@ -170,7 +182,9 @@ module.exports = function(env) {
       if (node instanceof FactorNode) {
         append(shape(node, 'box'));
       }
-      if (node instanceof RootNode || node instanceof JoinNode) {
+      if (node instanceof RootNode ||
+          node instanceof JoinNode ||
+          node instanceof SplitNode) {
         append(shape(node, 'point'));
       }
       if (node.label) {
@@ -182,22 +196,6 @@ module.exports = function(env) {
     });
     return 'digraph {\n' + edges.join('\n') + '\n}\n';
   };
-
-  function showGraph(nodes) {
-    console.log('------------------------------');
-    nodes.forEach(function(node) {
-      if (!(node instanceof SampleNode)) { return; }
-      console.log('Node: ' + node.label());
-      console.log('Multiplier: ' + node.multiplier);
-      console.log('Downstream dependencies:');
-      node.deps.forEach(function(d) {
-        if (d !== node) {
-          console.log('  ' + d.label());
-        }
-      });
-      console.log('------------------------------');
-    });
-  }
 
   function buildObjective(nodes, computeBaseline) {
 
@@ -211,19 +209,10 @@ module.exports = function(env) {
         return acc;
       }
 
-      // TODO: This is quadratic. Also see similar comment on
-      // propagateDependencies.
-      var weight = 0;
-      node.deps.forEach(function(node) {
-        if (!(node instanceof SampleNode || node instanceof FactorNode)) {
-          throw 'Unexpected node type as dependency.';
-        }
-        return weight += node.weight;
-      }, 0);
-
+      assert.ok(_.isNumber(node.weight));
+      var weight = node.weight;
       var b = computeBaseline(node.address, weight);
       return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
-
     }, 0);
 
     // Path-wise term. The logp terms are also be used
@@ -244,15 +233,13 @@ module.exports = function(env) {
       };
     }, 0);
 
-    var elbo = nodes.reduce(function(acc, node) {
-      if (node instanceof SampleNode || node instanceof FactorNode) {
-        return acc - node.weight;
-      } else {
-        return acc;
-      }
-    }, 0);
+    var rootNode = nodes[0];
+    assert.ok(rootNode instanceof RootNode);
+    assert.ok(_.isNumber(rootNode.weight));
 
+    var elbo = -rootNode.weight;
     var objective = ad.scalar.add(lr, pw);
+
     return {objective: objective, elbo: elbo};
   }
 
@@ -304,7 +291,7 @@ module.exports = function(env) {
 
       return this.wpplFn(_.clone(this.s), function() {
 
-        propagateDependencies(this.nodes);
+        propagateWeights(this.nodes);
 
         if (this.step === 0 && this.iter === 0 && this.opts.dumpGraph) {
           // To vizualize with Graphviz use:
@@ -312,10 +299,6 @@ module.exports = function(env) {
           var dot = generateDot(this.nodes);
           var fs = require('fs');
           fs.writeFileSync('deps.dot', dot);
-        }
-
-        if (this.step === 0 && this.iter === 0 && this.opts.showGraph) {
-          showGraph(this.nodes);
         }
 
         var ret = buildObjective(this.nodes, this.getBaselineFunc());
@@ -374,7 +357,7 @@ module.exports = function(env) {
 
       var node = new SampleNode(
         this.prevNode, logp, logq, logr,
-        ret.reparam, a, dist, m);
+        ret.reparam, a, dist, m, this.opts.debugWeights);
 
       this.prevNode = node;
       this.nodes.push(node);
@@ -407,7 +390,8 @@ module.exports = function(env) {
 
     factor: function(s, k, a, score, name) {
       var m = top(this.mapDataStack).multiplier;
-      var node = new FactorNode(this.prevNode, ad.scalar.mul(m, score), m);
+      var node = new FactorNode(
+        this.prevNode, ad.scalar.mul(m, score), m, this.opts.debugWeights);
       this.prevNode = node;
       this.nodes.push(node);
       return k(s);
@@ -434,44 +418,53 @@ module.exports = function(env) {
         this.mapDataIx[address] = ix;
       }
 
-      // Compute the multiplier required to account for the fact we're
-      // only looking at a subset of the data.
-      var thisM = batchSize > 0 ? (data.length / batchSize) : 1;
-      var prevM = top(this.mapDataStack).multiplier;
-      var m = thisM * prevM;
+      if (batchSize > 0) {
+        // Compute the multiplier required to account for the fact we're
+        // only looking at a subset of the data.
+        var thisM = data.length / batchSize;
+        var prevM = top(this.mapDataStack).multiplier;
+        var multiplier = thisM * prevM;
 
-      this.mapDataStack.push({
-        prevNode: this.prevNode,
-        join: new JoinNode(),
-        multiplier: m
-      });
+        var joinNode = new JoinNode();
+        var splitNode = new SplitNode(this.prevNode, batchSize, joinNode);
+        this.nodes.push(splitNode);
+
+        this.mapDataStack.push({
+          splitNode: splitNode,
+          joinNode: joinNode,
+          multiplier: multiplier
+        });
+      } else {
+        // Signal to mapDataFinal that the batch was empty.
+        this.mapDataStack.push(null);
+      }
 
       return ix;
     },
 
     mapDataEnter: function() {
       // For every observation function, set the current node back to
-      // the node encountered immediately before entering mapData.
-      this.prevNode = top(this.mapDataStack).prevNode;
+      // the split node.
+      this.prevNode = top(this.mapDataStack).splitNode;
     },
 
     mapDataLeave: function() {
       // Hook-up the join node to the last node on this branch. If
       // there were no sample/factor nodes created in the observation
-      // function then this hooks the join node up the most node
-      // encountered immediately before entering mapData.
-      top(this.mapDataStack).join.parents.push(this.prevNode);
+      // function then this connects the join node directly to the
+      // split node. The correction applied to split nodes in
+      // propagateWeights requires such edges to be present for
+      // correctness.
+      top(this.mapDataStack).joinNode.parents.push(this.prevNode);
     },
 
     mapDataFinal: function(address) {
       var top = this.mapDataStack.pop();
-      var join = top.join;
-      // Handle the degenerate case where the batch is empty.
-      if (join.parents.length === 0) {
-        join.parents.push(top.prevNode);
+      if (top !== null) {
+        var joinNode = top.joinNode;
+        this.prevNode = joinNode;
+        this.nodes.push(joinNode);
       }
-      this.prevNode = join;
-      this.nodes.push(join);
     }
 
   };
