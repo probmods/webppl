@@ -214,6 +214,21 @@ var makeDirichletDiscrete = function(pseudocounts) {
   };
 };
 
+var mem = function(f) {
+  globalStore.memIndex = 1 + (globalStore.memIndex || 0);
+  var key = 'mem' + globalStore.memIndex;
+  return function() {
+    var stringedArgs = key + util.serialize(arguments);
+    if (_.has(globalStore, stringedArgs)) {
+      return globalStore[stringedArgs];
+    } else {
+      var val = apply(f, arguments);
+      globalStore[stringedArgs] = val;
+      return val;
+    }
+  };
+};
+
 var isEven = function(v) {
   return v % 2 === 0;
 };
