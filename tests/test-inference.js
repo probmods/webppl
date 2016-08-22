@@ -375,7 +375,8 @@ var tests = [
       nestedEnum8: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnumWithFactor: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       guidedFlip: true,
-      mapData: true
+      mapData: true,
+      mem: true
     }
   },
   {

@@ -3,7 +3,6 @@ var f = mem(function(name) {
 });
 
 var model = function() {
-  var x = f('x');
-  var y = f('y');
+  assert.ok(f('x') === f('x'));
   return f('x') + f('y');
 };
