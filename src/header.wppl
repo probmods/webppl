@@ -639,3 +639,18 @@ var scalarParam = function(mean, sd) {
 var param = function(a1, a2, a3) {
   return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
 };
+
+
+// Convenience functions for building tensors out of scalars
+var Vector = function(arr) {
+  var n = arr.length;
+  var t = ad.scalarsToTensor(arr);
+  return ad.tensor.reshape(t, [n, 1]);
+};
+var Matrix = function(arr) {
+  var n = arr.length;
+  var m = arr[0].length;
+  var t = ad.scalarsToTensor(_.flatten(arr));
+  return ad.tensor.reshape(t, [n, m]);
+};
+
