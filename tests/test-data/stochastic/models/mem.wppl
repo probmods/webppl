@@ -1,0 +1,9 @@
+var f = mem(function(name) {
+  return flip();
+});
+
+var model = function() {
+  var x = f('x');
+  var y = f('y');
+  return f('x') + f('y');
+};

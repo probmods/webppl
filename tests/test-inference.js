@@ -71,7 +71,8 @@ var tests = [
       nestedEnumDiscrete: true,
       multivariateBernoulli: true,
       guidedFlip: true,
-      mapData: true
+      mapData: true,
+      mem: true
     }
   },
   {
