@@ -257,9 +257,10 @@ function mvBernoulliScore(ps, x) {
   var pSub1 = ad.tensor.sub(ps, 1);
 
   return ad.tensor.sumreduce(
-    ad.tensor.add(
-      ad.tensor.log(ad.tensor.pow(ps, x)),
-      ad.tensor.log(ad.tensor.pow(ad.tensor.neg(pSub1), ad.tensor.neg(xSub1)))));
+    ad.tensor.log(
+      ad.tensor.add(
+        ad.tensor.mul(x, ps),
+        ad.tensor.mul(xSub1, pSub1))));
 }
 
 
