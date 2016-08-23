@@ -1,0 +1,8 @@
+var f = mem(function(name) {
+  return flip();
+});
+
+var model = function() {
+  assert.ok(f('x') === f('x'));
+  return f('x') + f('y');
+};

@@ -28,3 +28,13 @@ Header
 
       var pair = function(x, y) { return [x, y]; };
       mapObject(pair, {a: 1, b: 2}); // => {a: ['a', 1], b: ['b', 2]}
+
+.. js:function:: mem(fn)
+
+   Returns a memoized version of ``fn``. The memoized function is
+   backed by a cache that is local to the current execution.
+
+   Internally, the memoized function compares its arguments by first
+   serializing them with ``JSON.stringify``. This means that memoizing
+   a higher-order function will not work as expected, as all functions
+   serialize to the same string.
