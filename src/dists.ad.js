@@ -1270,7 +1270,7 @@ var Delta = makeDistributionType({
     return ad.value(this.params.v);
   },
   score: function(val) {
-    return val === this.params.v ? 0 : -Infinity;
+    return ad.value(val) === ad.value(this.params.v) ? 0 : -Infinity;
   },
   support: function() {
     return [this.params.v];
