@@ -37,7 +37,7 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      logProgress: false,      // can use an object with {filename:, timeinterval:} properties
+      logProgress: false,      // false, or a .csv filename string.
       onFinish: function(s, k, a) { return k(s); }
     });
 
