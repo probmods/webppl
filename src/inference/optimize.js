@@ -11,6 +11,9 @@
 
 var assert = require('assert');
 var _ = require('underscore');
+var fs = require('fs');
+var nodeutil = require('util');
+var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../paramStruct');
@@ -34,6 +37,7 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
+      logProgress: false,      // can use an object with {filename:, timeinterval:} properties
       onFinish: function(s, k, a) { return k(s); }
     });
 
@@ -57,6 +61,20 @@ module.exports = function(env) {
     }, 200, { trailing: false });
 
     var history = [];
+
+    var logfile, logProgress;
+    if (options.logProgress) {
+      logfile = fs.openSync(options.logProgress, 'w');
+      fs.writeSync(logfile, 'index,iter,time,objective\n');
+
+      var ncalls = 0;
+      var starttime = present();
+      logProgress = _.throttle(function(i, objective) {
+        var t = (present() - starttime)/1000;
+        fs.writeSync(logfile, nodeutil.format('%d,%d,%d,%d\n', ncalls, i, t, objective));
+        ncalls++;
+      }, 200, { trailing: false });
+    }
 
     // Main loop.
     return util.cpsLoop(
@@ -83,6 +101,9 @@ module.exports = function(env) {
             if (options.verbose) {
               showProgress(i, objective);
             }
+            if (options.logProgress) {
+              logProgress(i, objective);
+            }
 
             history.push(objective);
 
@@ -96,6 +117,9 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           return options.onFinish(s, function(s) {
+            if (options.logProgress) {
+              fs.closeSync(logfile);
+            }
             return k(s, paramObj);
           }, a, {history: history});
         });

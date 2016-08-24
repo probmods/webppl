@@ -25,6 +25,7 @@
     "esutils": "^2.0.2",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
+    "present": "^1.0.0",
     "priorityqueuejs": "~1.0.0",
     "seedrandom": "^2.4.2",
     "source-map": "^0.5.3",
