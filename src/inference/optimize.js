@@ -11,7 +11,6 @@
 
 var assert = require('assert');
 var _ = require('underscore');
-var fs = require('fs');
 var nodeutil = require('util');
 var present = require('present');
 var util = require('../util');
@@ -37,7 +36,7 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      logProgress: false,      // false, or a .csv filename string.
+      logProgress: false,      // false, or the number of milliseconds between polling intervals
       onFinish: function(s, k, a) { return k(s); }
     });
 
@@ -62,18 +61,16 @@ module.exports = function(env) {
 
     var history = [];
 
-    var logfile, logProgress;
+    var logdata, logProgress;
     if (options.logProgress) {
-      logfile = fs.openSync(options.logProgress, 'w');
-      fs.writeSync(logfile, 'index,iter,time,objective\n');
-
+      logdata = [];
       var ncalls = 0;
       var starttime = present();
       logProgress = _.throttle(function(i, objective) {
         var t = (present() - starttime)/1000;
-        fs.writeSync(logfile, nodeutil.format('%d,%d,%d,%d\n', ncalls, i, t, objective));
+        logdata.push({index: ncalls, iter: i, time: t, objective: objective});
         ncalls++;
-      }, 200, { trailing: false });
+      }, options.logProgress, { trailing: false });
     }
 
     // Main loop.
@@ -118,7 +115,7 @@ module.exports = function(env) {
         function() {
           return options.onFinish(s, function(s) {
             if (options.logProgress) {
-              fs.closeSync(logfile);
+              paramObj.optimizeProgressLog = logdata;
             }
             return k(s, paramObj);
           }, a, {history: history});
