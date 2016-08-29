@@ -144,7 +144,7 @@ module.exports = function(env) {
       throw new Error('mapData: No data given.');
     }
 
-    var batchSize = _.has(opts, 'batchSize') ? opts.batchSize : data.length;
+    var batchSize = opts.batchSize !== undefined ? opts.batchSize : data.length;
     if (batchSize < 0 || batchSize > data.length) {
       throw new Error('mapData: Invalid batchSize.');
     }
