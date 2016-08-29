@@ -75,14 +75,6 @@ module.exports = function(env) {
     }
   };
 
-  var Vector = function(s, k, a, arr) {
-    return k(s, new Tensor([arr.length, 1]).fromFlatArray(arr));
-  };
-
-  var Matrix = function(s, k, a, arr) {
-    return k(s, new Tensor([arr.length, arr[0].length]).fromArray(arr));
-  };
-
   var zeros = function(s, k, a, dims) {
     return k(s, new Tensor(dims));
   };
@@ -193,8 +185,6 @@ module.exports = function(env) {
     apply: apply,
     _Fn: _Fn,
     _addr: _addr,
-    Vector: Vector,
-    Matrix: Matrix,
     zeros: zeros,
     ones: ones,
     tensorParam: tensorParam,

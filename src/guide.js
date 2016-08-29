@@ -25,31 +25,37 @@ function independent(targetDist, sampleAddress, env) {
 
   var distSpec = spec(targetDist);
 
-  var guideParams = _.mapObject(distSpec.params, function(paramSpec, paramName) {
+  var guideParams = _.mapObject(distSpec.params, function(spec, name) {
 
-    var dims = paramSpec.dims; // e.g. [2, 1]
-    var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
-
-    var name = baseName + paramName;
-    var param = registerParam(env, name, paramSpec.dims);
-
-    // Apply squishing.
-    if (domain) {
-      // Assume that domain is a RealInterval.
-      param = squishFn(domain.a, domain.b)(param);
-    }
-
-    // Collapse tensor with dims=[1] to scalar.
-    if (dims.length === 1 && dims[0] === 1) {
-      param = ad.tensorEntry(param, 0);
-    }
-
-    return param;
+    return _.has(spec, 'param') ?
+        makeParam(spec.param, name, baseName, env) :
+        spec.const;
 
   });
 
   return new distSpec.type(guideParams);
 
+}
+
+function makeParam(paramSpec, paramName, baseName, env) {
+  var dims = paramSpec.dims; // e.g. [2, 1]
+  var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
+
+  var name = baseName + paramName;
+  var param = registerParam(env, name, paramSpec.dims);
+
+  // Apply squishing.
+  if (domain) {
+    // Assume that domain is a RealInterval.
+    param = squishFn(domain.a, domain.b)(param);
+  }
+
+  // Collapse tensor with dims=[1] to scalar.
+  if (dims.length === 1 && dims[0] === 1) {
+    param = ad.tensorEntry(param, 0);
+  }
+
+  return param;
 }
 
 function registerParam(env, name, dims) {
@@ -71,10 +77,11 @@ function registerParam(env, name, dims) {
 // =>
 //
 // {
-//   type: Gaussian,
+//   type: TensorGaussian,
 //   params: {
-//     mu: {dims: [1]},
-//     sigma: {dims: [1], domain: [0, Infinity]}
+//     mu: {param: {dims: [1]}},
+//     sigma: {param: {dims: [1]}},
+//     dims: {const: [0, 1]}
 //   }
 // }
 
@@ -86,6 +93,8 @@ function registerParam(env, name, dims) {
 function spec(targetDist) {
   if (targetDist instanceof dists.Dirichlet) {
     return dirichletSpec(targetDist);
+  } else if (targetDist instanceof dists.TensorGaussian) {
+    return tensorGaussianSpec(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
@@ -112,7 +121,7 @@ function defaultSpec(targetDist) {
       throw new Error(msg);
     }
 
-    return [name, {dims: dims, domain: paramMeta.domain}];
+    return [name, {param: {dims: dims, domain: paramMeta.domain}}];
 
   });
 
@@ -127,8 +136,19 @@ function dirichletSpec(targetDist) {
   return {
     type: dists.LogisticNormal,
     params: {
-      mu: {dims: [d, 1]},
-      sigma: {dims: [d, 1], domain: gt(0)}
+      mu: {param: {dims: [d, 1]}},
+      sigma: {param: {dims: [d, 1], domain: gt(0)}}
+    }
+  };
+}
+
+function tensorGaussianSpec(targetDist) {
+  return {
+    type: dists.TensorGaussian,
+    params: {
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], domain: gt(0)}},
+      dims: {const: targetDist.params.dims}
     }
   };
 }

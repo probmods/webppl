@@ -224,9 +224,11 @@ function wrapRunner(baseRunner, handlers) {
   return runner;
 }
 
+
 function prepare(codeAndAssets, k, options) {
   options = util.mergeDefaults(options, {
-    errorHandlers: []
+    errorHandlers: [],
+    initialStore: {}
   });
 
   var currentAddress = {value: undefined};
@@ -241,7 +243,7 @@ function prepare(codeAndAssets, k, options) {
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
   var run = function() {
-    eval.call(global, codeAndAssets.code)(currentAddress)(runner)({}, k, '');
+    eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
   };
 
   return {run: run, runner: runner};

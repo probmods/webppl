@@ -257,9 +257,10 @@ function mvBernoulliScore(ps, x) {
   var pSub1 = ad.tensor.sub(ps, 1);
 
   return ad.tensor.sumreduce(
-    ad.tensor.add(
-      ad.tensor.log(ad.tensor.pow(ps, x)),
-      ad.tensor.log(ad.tensor.pow(ad.tensor.neg(pSub1), ad.tensor.neg(xSub1)))));
+    ad.tensor.log(
+      ad.tensor.add(
+        ad.tensor.mul(x, ps),
+        ad.tensor.mul(xSub1, pSub1))));
 }
 
 
@@ -601,10 +602,12 @@ var TensorGaussian = makeDistributionType({
   ],
   mixins: [continuousSupport],
   constructor: function() {
-    if (!_.isNumber(this.params.mu)) {
+    var _mu = ad.value(this.params.mu);
+    var _sigma = ad.value(this.params.sigma);
+    if (!_.isNumber(_mu)) {
       throw new Error(this.meta.name + ': mu should be a number.');
     }
-    if (!_.isNumber(this.params.sigma)) {
+    if (!_.isNumber(_sigma)) {
       throw new Error(this.meta.name + ': sigma should be a number.');
     }
     if (!Array.isArray(this.params.dims)) {
@@ -619,6 +622,15 @@ var TensorGaussian = makeDistributionType({
   },
   score: function(x) {
     return tensorGaussianScore(this.params.mu, this.params.sigma, this.params.dims, x);
+  },
+  base: function() {
+    var dims = this.params.dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
+  },
+  transform: function(x) {
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return ad.tensor.add(ad.tensor.mul(x, sigma), mu);
   }
 });
 

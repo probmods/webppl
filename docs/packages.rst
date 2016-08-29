@@ -186,6 +186,7 @@ Useful packages
 - `dp`_: dynamic programming (caching for mutually recursive functions)
 - `editor`_: browser based editor
 - `viz`_: visualization utilities
+- `bda`_: data analysis utilities
 - `agents`_: agent simulations
 - `timeit`_: timing utilities
 - `intercache`_: interpolating cache
@@ -207,6 +208,7 @@ These packages are no longer maintained, but may be worth a look:
 .. _dp: https://github.com/stuhlmueller/webppl-dp
 .. _editor: https://github.com/probmods/webppl-editor
 .. _viz: https://github.com/probmods/webppl-viz
+.. _bda: https://github.com/mhtess/webppl-bda
 .. _agents: https://github.com/agentmodels/webppl-agents
 .. _timeit: https://github.com/stuhlmueller/webppl-timeit
 .. _intercache: https://github.com/stuhlmueller/webppl-intercache
