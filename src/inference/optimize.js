@@ -67,7 +67,7 @@ module.exports = function(env) {
       var ncalls = 0;
       var starttime = present();
       logProgress = _.throttle(function(i, objective) {
-        var t = (present() - starttime)/1000;
+        var t = (present() - starttime) / 1000;
         logdata.push({index: ncalls, iter: i, time: t, objective: objective});
         ncalls++;
       }, options.logProgress, { trailing: false });
