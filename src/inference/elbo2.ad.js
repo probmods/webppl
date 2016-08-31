@@ -14,6 +14,8 @@ module.exports = function(env) {
       samples: 1,
       avgBaselines: false,
       avgBaselineDecay: 0.9,
+      // Weight all factors in the LR term by log p/q.
+      naiveLR: false,
       // Write a DOT file representation of first graph to disk.
       dumpGraph: false,
       // Use local weight of 1 (* multiplier) for sample and factor
@@ -40,6 +42,7 @@ module.exports = function(env) {
     if (!_.has(this.state, 'baselines')) {
       this.state.baselines = {};
     }
+    this.baselineUpdates = {};
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -197,7 +200,11 @@ module.exports = function(env) {
     return 'digraph {\n' + edges.join('\n') + '\n}\n';
   };
 
-  function buildObjective(nodes, computeBaseline) {
+  function buildObjective(nodes, computeBaseline, naiveLR) {
+
+    var rootNode = nodes[0];
+    assert.ok(rootNode instanceof RootNode);
+    assert.ok(_.isNumber(rootNode.weight));
 
     // Likelihood-ratio term.
     var lr = nodes.reduce(function(acc, node) {
@@ -208,10 +215,9 @@ module.exports = function(env) {
       if (!(node instanceof SampleNode)) {
         return acc;
       }
-
       assert.ok(_.isNumber(node.weight));
-      var weight = node.weight;
-      var b = computeBaseline(node.address, weight);
+      var weight = naiveLR ? rootNode.weight : node.weight;
+      var b = computeBaseline(naiveLR ? 'global' : node.address, weight);
       return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
     }, 0);
 
@@ -232,10 +238,6 @@ module.exports = function(env) {
         return acc;
       };
     }, 0);
-
-    var rootNode = nodes[0];
-    assert.ok(rootNode instanceof RootNode);
-    assert.ok(_.isNumber(rootNode.weight));
 
     var elbo = -rootNode.weight;
     var objective = ad.scalar.add(lr, pw);
@@ -301,7 +303,8 @@ module.exports = function(env) {
           fs.writeFileSync('deps.dot', dot);
         }
 
-        var ret = buildObjective(this.nodes, this.getBaselineFunc());
+        var ret = buildObjective(this.nodes, this.getBaselineFunc(), this.opts.naiveLR);
+        this.updateBaselines();
         ret.objective.backprop();
 
         var grads = _.mapObject(this.paramsSeen, function(params) {
@@ -316,25 +319,34 @@ module.exports = function(env) {
 
     getBaselineFunc: function() {
       if (this.opts.avgBaselines) {
-        var decay = this.opts.avgBaselineDecay;
         var baselines = this.state.baselines;
+        var baselineUpdates = this.baselineUpdates;
         return function(address, weight) {
-          // Initialize.
+          // Sanity check. The only time we save a weight for update
+          // more than once is when using naive LR, in which case
+          // weight should always be log p/q.
+          assert.ok(!_.has(baselineUpdates, address) || baselineUpdates[address] === weight);
+          baselineUpdates[address] = weight;
+
           // TODO: The gradient at the first step will be zero using
           // this approach. This is probably OK, but we might want to
           // make sure it doesn't trigger a gradient warning, since
           // that may cause confusion.
-          if (!_.has(baselines, address)) {
-            baselines[address] = weight;
-          }
-          var b = baselines[address];
-          // Update.
-          baselines[address] = decay * b + (1 - decay) * weight;
-          return b;
+          return _.has(baselines, address) ? baselines[address] : weight;
         };
       } else {
         return function() { return 0; };
       }
+    },
+
+    updateBaselines: function() {
+      var decay = this.opts.avgBaselineDecay;
+      var baselines = this.state.baselines;
+      _.each(this.baselineUpdates, function(weight, address) {
+        baselines[address] = _.has(baselines, address) ?
+          decay * baselines[address] + (1 - decay) * weight :
+          weight;
+      });
     },
 
     sample: function(s, k, a, dist, options) {
