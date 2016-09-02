@@ -182,7 +182,7 @@ module.exports = function(env) {
         return function() {
           return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
         };
-      }, a.concat('_$$' + ix), data[ix]);
+      }, a.concat('_$$' + ix), data[ix], ix);
     }
   }
 
