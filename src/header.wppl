@@ -632,12 +632,14 @@ var Infer = function(options, wpplFn) {
 };
 
 // Convenience function to create scalar valued parameters.
-var scalarParam = function(mean, sd) {
-  return ad.tensorEntry(tensorParam([1], mean, sd), 0);
+var scalarParam = function(mean, sd, name) {
+  return ad.tensorEntry(tensorParam([1], mean, sd, name), 0);
 };
 
-var param = function(a1, a2, a3) {
-  return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
+// If a1 is an array, then args are interpreted as: dims, mean, sd, name
+// Otherwise, args are interpreted as mean, sd, name
+var param = function(a1, a2, a3, a4) {
+  return _.isArray(a1) ? tensorParam(a1, a2, a3, a4) : scalarParam(a1, a2, a3);
 };
 
 

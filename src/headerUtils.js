@@ -85,9 +85,9 @@ module.exports = function(env) {
 
   // Provides a convinient wrapper around the primitive
   // registerParams.
-  var tensorParam = function(s, k, a, dims, mean, sd) {
+  var tensorParam = function(s, k, a, dims, mean, sd, name) {
 
-    var name = util.relativizeAddress(env, a);
+    if (name === undefined) name = util.relativizeAddress(env, a);
     var params = util.registerParams(env, name, function() {
 
       mean = (mean !== undefined) ? mean : 0;
