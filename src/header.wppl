@@ -23,6 +23,8 @@ defineDistConstructors(
     Poisson
     Dirichlet
     LogisticNormal
+    LogitNormal
+    IspNormal
     Categorical
     Delta);
 

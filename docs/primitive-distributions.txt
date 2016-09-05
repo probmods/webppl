@@ -106,6 +106,17 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution#Multivariate_generalization>`__
 
+.. js:function:: LogitNormal({mu: ..., sigma: ..., a: ..., b: ...})
+
+  * mu: location (real)
+  * sigma: scale (real) *(>0)*
+  * a: lower bound (real)
+  * b: upper bound (real) *(>a)*
+
+  A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution>`__
+
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
