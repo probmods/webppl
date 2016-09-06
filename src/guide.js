@@ -95,6 +95,12 @@ function spec(targetDist) {
     return dirichletSpec(targetDist);
   } else if (targetDist instanceof dists.TensorGaussian) {
     return tensorGaussianSpec(targetDist);
+  } else if (targetDist instanceof dists.Uniform) {
+    return uniformSpec(targetDist);
+  } else if (targetDist instanceof dists.Gamma) {
+    return gammaSpec(targetDist);
+  } else if (targetDist instanceof dists.Beta) {
+    return betaSpec(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
@@ -149,6 +155,40 @@ function tensorGaussianSpec(targetDist) {
       mu: {param: {dims: [1]}},
       sigma: {param: {dims: [1], domain: gt(0)}},
       dims: {const: targetDist.params.dims}
+    }
+  };
+}
+
+function uniformSpec(targetDist) {
+  return {
+    type: dists.LogitNormal,
+    params: {
+      a: {const: targetDist.params.a},
+      b: {const: targetDist.params.b},
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], domain: gt(0)}}
+    }
+  };
+}
+
+function betaSpec(targetDist) {
+  return {
+    type: dists.LogitNormal,
+    params: {
+      a: {const: 0},
+      b: {const: 1},
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], domain: gt(0)}}
+    }
+  };
+}
+
+function gammaSpec(targetDist) {
+  return {
+    type: dists.IspNormal,
+    params: {
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], domain: gt(0)}}
     }
   };
 }
