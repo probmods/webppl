@@ -121,37 +121,92 @@ Example usage::
 Parameters
 ~~~~~~~~~~
 
-.. js:function:: scalarParam(mean, sd)
+.. js:function:: paramScalar([name])
+.. js:function:: paramScalar(mean, sd[, name])
 
-   :param real mean: mean (optional)
-   :param number sd: standard deviation (optional)
+   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
+   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
+   :param string name: name for the parameter
    :returns: the current value of the parameter
 
-   Creates a new scalar valued parameter initialized with a draw from
-   a Gaussian distribution.
+   Creates (or retrieves) a scalar valued parameter initialized with a draw from
+   a normal distribution.
 
-   If ``sd`` is omitted the initial value is ``mean``. If ``mean`` is
-   omitted it defaults to zero.
+   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
+   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
 
-   Example::
+   Examples::
 
-     scalarParam(0, 1)
+     paramScalar()
+     paramScalar('myparam')
+     paramScalar(0, 0.01, 'myparam')
+     paramScalar(0, 0.01)
 
-.. js:function:: tensorParam(dims, mean, sd)
+.. js:function:: paramVector(n, [name])
+.. js:function:: paramVector(n, mean, sd[, name])
+
+   :param integer n: dimension of vector
+   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
+   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
+   :param string name: name for the parameter
+   :returns: the current value of the parameter
+
+   Creates (or retrieves) a scalar valued parameter initialized with a draw from
+   a normal distribution.
+
+   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
+   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
+
+   Examples::
+
+     paramVector(10)
+     paramVector(10, 'myparam')
+     paramVector(10, 0, 0.01, 'myparam')
+     paramVector(10, 0, 0.01)
+
+.. js:function:: paramMatrix(n, m, [name])
+.. js:function:: paramMatrix(n, m, mean, sd[, name])
+
+   :param integer n: first dimension of matrix
+   :param integer m: second dimension of matrix
+   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
+   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
+   :param string name: name for the parameter
+   :returns: the current value of the parameter
+
+   Creates (or retrieves) a scalar valued parameter initialized with a draw from
+   a normal distribution.
+
+   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
+   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
+
+   Examples::
+
+     paramMatrix(4, 4)
+     paramMatrix(4, 4, 'myparam')
+     paramMatrix(4, 4, 0, 0.01, 'myparam')
+     paramMatrix(4, 4, 0, 0.01)
+
+.. js:function:: paramTensor(dims[, name])
+.. js:function:: paramTensor(dims, mean, sd[, name])
 
    :param array dims: dimension of tensor
-   :param number mu: mean (optional)
-   :param number sd: standard deviation (optional)
+   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
+   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
+   :param string name: name for the parameter
    :returns: the current value of the parameter
 
    Creates a new tensor valued parameter. Each element is initialized
    with an independent draw from a Gaussian distribution.
 
-   If ``sd`` is omitted the initial value of each element is ``mean``.
-   If ``mean`` is omitted it defaults to zero.
+   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
+   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
 
    Example::
 
-     tensorParam([10, 10], 0, 0.01)
+     paramTensor([3, 3, 3])
+     paramTensor([3, 3, 3], 'myparam')
+     paramTensor([3, 3, 3], 0, 0.01, 'myparam')
+     paramTensor([3, 3, 3], 0, 0.01)
 
 .. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt
