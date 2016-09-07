@@ -580,6 +580,27 @@ var tests = [
           verbose: false
         }
       },
+      guidedUniform: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      guidedGamma: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      guidedBeta: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       dirichlet: {
         args: {
           samples: 5000,

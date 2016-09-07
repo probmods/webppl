@@ -257,9 +257,10 @@ function mvBernoulliScore(ps, x) {
   var pSub1 = ad.tensor.sub(ps, 1);
 
   return ad.tensor.sumreduce(
-    ad.tensor.add(
-      ad.tensor.log(ad.tensor.pow(ps, x)),
-      ad.tensor.log(ad.tensor.pow(ad.tensor.neg(pSub1), ad.tensor.neg(xSub1)))));
+    ad.tensor.log(
+      ad.tensor.add(
+        ad.tensor.mul(x, ps),
+        ad.tensor.mul(xSub1, pSub1))));
 }
 
 
@@ -564,6 +565,90 @@ var LogisticNormal = makeDistributionType({
     return squishToProbSimplex(ad.tensor.add(ad.tensor.mul(sigma, x), mu));
   }
 });
+
+
+var LogitNormal = makeDistributionType({
+  name: 'LogitNormal',
+  desc: 'A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.',
+  params: [
+    {name: 'mu', desc: 'location (real)'},
+    {name: 'sigma', desc: 'scale (real)', domain: gt(0)},
+    {name: 'a', desc: 'lower bound (real)'},
+    {name: 'b', desc: 'upper bound (real) *(>a)*'}
+  ],
+  wikipedia: 'Logit-normal_distribution',
+  mixins: [continuousSupport],
+  sample: function() {
+    var a = ad.value(this.params.a);
+    var b = ad.value(this.params.b);
+    var mu = ad.value(this.params.mu);
+    var sigma = ad.value(this.params.sigma);
+    var x = gaussianSample(mu, sigma);
+    return (ad.scalar.sigmoid(x) * (b - a)) + a;
+  },
+  score: function(val) {
+    'use ad';
+    var a = this.params.a;
+    var b = this.params.b;
+    var y = (val - a) / (b - a);
+    var x = Math.log(y / (1 - y));
+    var gaussScore = gaussianScore(this.params.mu, this.params.sigma, x);
+    return gaussScore - Math.log(y * (1 - y) * (b - a));
+  },
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    var a = this.params.a;
+    var b = this.params.b;
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return (ad.scalar.sigmoid((x * sigma) + mu) * (b - a)) + a;
+  },
+  support: function() {
+    return {lower: this.params.a, upper: this.params.b};
+  }
+});
+
+
+
+var IspNormal = makeDistributionType({
+  name: 'IspNormal', // For 'Inverse softplus normal'.
+  internal: true,
+  desc: 'A distribution over positive reals obtained by mapping a Gaussian ' +
+      'distributed variable through the softplus function.',
+  params: [
+    {name: 'mu', desc: 'location (real)'},
+    {name: 'sigma', desc: 'scale (real)', domain: gt(0)}
+  ],
+  mixins: [continuousSupport],
+  sample: function() {
+    var mu = ad.value(this.params.mu);
+    var sigma = ad.value(this.params.sigma);
+    return Math.log(Math.exp(gaussianSample(mu, sigma)) + 1);
+  },
+  score: function(val) {
+    'use ad';
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    var x = Math.log(Math.exp(val) - 1);
+    return gaussianScore(mu, sigma, x) + val - x;
+  },
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return Math.log(Math.exp((x * sigma) + mu) + 1);
+  },
+  support: function() {
+    return { lower: 0, upper: Infinity };
+  }
+});
+
 
 
 function tensorGaussianSample(mu, sigma, dims) {
@@ -1294,6 +1379,8 @@ module.exports = {
   DiagCovGaussian: DiagCovGaussian,
   TensorGaussian: TensorGaussian,
   LogisticNormal: LogisticNormal,
+  LogitNormal: LogitNormal,
+  IspNormal: IspNormal,
   Cauchy: Cauchy,
   Discrete: Discrete,
   Gamma: Gamma,
