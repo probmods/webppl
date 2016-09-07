@@ -305,7 +305,9 @@ module.exports = function(env) {
 
         var ret = buildObjective(this.nodes, this.getBaselineFunc(), this.opts.naiveLR);
         this.updateBaselines();
-        ret.objective.backprop();
+        if (ad.isLifted(ret.objective)) { // Handle programs with zero random choices.
+          ret.objective.backprop();
+        }
 
         var grads = _.mapObject(this.paramsSeen, function(params) {
           return params.map(ad.derivative);
