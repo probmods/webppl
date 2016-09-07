@@ -644,7 +644,7 @@ var Infer = function(options, wpplFn) {
 var paramScalar = function() {
   var na = arguments.length;
   var mu = na <= 1 || (arguments[0] === undefined) ? 0 : arguments[0];
-  var sigma = na <= 1  || (arguments[1] === undefined) ? 0.1 : arguments[1];
+  var sigma = na <= 1 || (arguments[1] === undefined) ? 0.1 : arguments[1];
   var name = na === 1 ? arguments[0] : na === 3 ? arguments[2] : undefined;
   return ad.tensorEntry(paramTensor([1], mu, sigma, name), 0);
 };
@@ -659,8 +659,8 @@ var paramScalar = function() {
 //   4: mu = a1, sigma = a2, name = a3
 var paramVector = function(n) {
   var na = arguments.length;
-  var mu = na <= 2  || (arguments[1] == undefined) ? 0 : arguments[1];
-  var sigma = na <= 2  || (arguments[2] == undefined) ? 0.1 : arguments[2];
+  var mu = na <= 2 || (arguments[1] == undefined) ? 0 : arguments[1];
+  var sigma = na <= 2 || (arguments[2] == undefined) ? 0.1 : arguments[2];
   var name = na === 2 ? arguments[1] : na === 4 ? arguments[3] : undefined;
   return paramTensor([n, 1], mu, sigma, name);
 };

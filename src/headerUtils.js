@@ -98,7 +98,7 @@ module.exports = function(env) {
     var mu = na <= 5 || (arguments[4] === undefined) ? 0 : arguments[4];
     var sigma = na <= 5 || (arguments[5] === undefined) ? 0.1 : arguments[5];
     var name = na === 5 ? arguments[4] : na === 7 ? arguments[6] : undefined;
-    if (name === undefined) name = util.relativizeAddress(env, a);    
+    if (name === undefined) name = util.relativizeAddress(env, a);
 
     var params = util.registerParams(env, name, function() {
 
