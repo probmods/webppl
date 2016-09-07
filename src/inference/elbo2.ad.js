@@ -357,6 +357,12 @@ module.exports = function(env) {
         guideDist = options.guide;
       } else {
         guideDist = guide.independent(dist, a, env);
+        if (this.step === 0 &&
+            this.opts.verbose &&
+            !this.mfWarningIssued) {
+          this.mfWarningIssued = true;
+          console.log('ELBO: Defaulting to mean-field for one or more choices.');
+        }
       }
 
       var ret = this.sampleGuide(guideDist, options);
