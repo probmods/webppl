@@ -225,13 +225,9 @@ module.exports = function(env) {
     // when parameters are used directly in the generative model.
     var pw = nodes.reduce(function(acc, node) {
       if (node instanceof SampleNode) {
-        // TODO: Drop logq here if not reparameterized as expectation
-        // is zero. (I think this is true even when there are
-        // dependencies between guide distributions, but double
-        // check.)
-        return ad.scalar.add(acc, ad.scalar.sub(
-          node.logq, node.logp
-        ));
+        return node.reparam ?
+          ad.scalar.add(acc, ad.scalar.sub(node.logq, node.logp)) :
+          ad.scalar.sub(acc, node.logp);
       } else if (node instanceof FactorNode) {
         return ad.scalar.sub(acc, node.score);
       } else {
