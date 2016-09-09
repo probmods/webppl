@@ -890,6 +890,13 @@ var Exponential = makeDistributionType({
     'use ad';
     return Math.log(this.params.a) - this.params.a * val;
   },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    return Math.log(x) / -this.params.a;
+  },
   support: function() {
     return { lower: 0, upper: Infinity };
   }
