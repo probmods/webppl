@@ -624,6 +624,13 @@ var tests = [
           verbose: false
         }
       },
+      cauchy: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       mapData: true
     }
   }

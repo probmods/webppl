@@ -736,6 +736,15 @@ var Cauchy = makeDistributionType({
     var scale = this.params.scale;
     var location = this.params.location;
     return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return location + scale * Math.tan(180 * (x - 0.5));
   }
 });
 
