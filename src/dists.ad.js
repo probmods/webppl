@@ -729,7 +729,7 @@ var Cauchy = makeDistributionType({
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
-    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(180 * (u - 0.5));
+    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(Math.PI * (u - 0.5));
   },
   score: function(x) {
     'use ad';
@@ -744,7 +744,7 @@ var Cauchy = makeDistributionType({
     'use ad';
     var location = this.params.location;
     var scale = this.params.scale;
-    return location + scale * Math.tan(180 * (x - 0.5));
+    return location + scale * Math.tan(Math.PI * (x - 0.5));
   }
 });
 
