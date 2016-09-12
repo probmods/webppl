@@ -729,13 +729,22 @@ var Cauchy = makeDistributionType({
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
-    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(180 * (u - 0.5));
+    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(Math.PI * (u - 0.5));
   },
   score: function(x) {
     'use ad';
     var scale = this.params.scale;
     var location = this.params.location;
     return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return location + scale * Math.tan(Math.PI * (x - 0.5));
   }
 });
 
@@ -889,6 +898,13 @@ var Exponential = makeDistributionType({
   score: function(val) {
     'use ad';
     return Math.log(this.params.a) - this.params.a * val;
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    return Math.log(x) / -this.params.a;
   },
   support: function() {
     return { lower: 0, upper: Infinity };
