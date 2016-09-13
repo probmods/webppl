@@ -1,6 +1,10 @@
 'no caching';
 
-resetEnv();
+// This function call ensures that all user code is run within the
+// trampoline runnner, and therefore within any error handlers. See
+// the "before first trampoline step" test in test-stack-trace.js for
+// an example of the problem we encounter without this.
+(function() {})();
 
 // Distributions (note: this gets macro transformed)
 

@@ -70,11 +70,12 @@ module.exports = function(env) {
     a: '' // Entry address. Enables relative addressing.
   };
 
-  // Called at the start of every program.
-  env.reset = function(s, k, a) {
+  // Used to ensure that env is in a predictable state when running
+  // multiple programs in a single process.
+  env.reset = function() {
     env.coroutine = env.defaultCoroutine;
-    return k(s);
   };
+  env.reset();
 
   env.sample = function(s, k, a, dist, options) {
     if (!dists.isDist(dist)) {
@@ -133,8 +134,7 @@ module.exports = function(env) {
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
     incrementalize: env.incrementalize,
-    query: env.query,
-    resetEnv: env.reset
+    query: env.query
   });
 
   // Modules we want to use from webppl
