@@ -1,7 +1,5 @@
 'no caching';
 
-resetEnv();
-
 // Distributions (note: this gets macro transformed)
 
 defineDistConstructors(
