@@ -26,6 +26,17 @@ Creation
 
      Matrix([[1, 2], [3, 4]])
 
+.. js:function:: Tensor(dims, arr)
+
+   :param array dims: array of dimension sizes
+   :param array arr: array of values
+
+   Creates a tensor with dimension ``dims`` out of a flat array ``arr``.
+
+   Example::
+
+     Tensor([2, 2, 2], [1, 2, 3, 4, 5, 6, 7, 8])
+
 .. js:function:: zeros(dims)
 
    :param array dims: dimension of tensor
@@ -48,76 +59,7 @@ Creation
 
      ones([10, 1])
 
-Arithmetic
+Operations
 ----------
 
-The following functions operate element-wise. The functions with two
-parameters accept either a tensor or a scalar as their second
-argument.
-
-.. js:function:: T.add(x, y)
-
-   :param tensor x:
-   :param tensor y:
-
-   Element-wise addition.
-
-.. js:function:: T.sub(x, y)
-
-   :param tensor x:
-   :param tensor y:
-
-   Element-wise subtraction.
-
-.. js:function:: T.mul(x, y)
-
-   :param tensor x:
-   :param tensor y:
-
-   Element-wise multiplication.
-
-.. js:function:: T.div(x, y)
-
-   :param tensor x:
-   :param tensor y:
-
-   Element-wise division.
-
-.. js:function:: T.neg(x)
-
-   :param tensor x:
-
-   Element-wise negation.
-
-Linear algebra
---------------
-
-.. js:function:: T.dot(x, y)
-
-   :param matrix x:
-   :param matrix y:
-
-   Matrix multiplication.
-
-Indexing
---------
-
-.. js:function:: T.range(x, start, end)
-
-   :param tensor x:
-   :param integer start:
-   :param integer end:
-
-.. js:function:: T.get(x, index)
-
-   :param tensor x:
-   :param integer index:
-
-Reshaping
----------
-
-.. js:function:: T.transpose(x)
-
-   :param matrix x:
-
-   Matrix transpose.
+WebPPL inherits its Tensor functionality from `adnn <https://github.com/dritchie/adnn>`_. It supports all of the tensor functions documented `here <https://github.com/dritchie/adnn/blob/master/ad/README.md#available-ad-primitive-functions>`_.
