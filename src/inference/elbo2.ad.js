@@ -210,7 +210,18 @@ module.exports = function(env) {
     var lr = nodes.reduce(function(acc, node) {
 
       // TODO: We can exclude reparameterized sample nodes here, since
-      // we know logr doesn't depend on any parameters.
+      // we know logr doesn't depend on any parameters. Or better, we
+      // can probably avoid computing the score of the sample from the
+      // base distribution in the first place. i.e. I think we only
+      // need to compute log q, even for reparameterized choices. We
+      // then weight by `(weight - baseline)` if the choice is not
+      // reparameterized, and don't weight (or weight by 1) otherwise.
+
+      // Maybe we write the math this way too -- just have a sum over
+      // weighted log q terms + log p?
+
+      // The mini-batch stuff handles log q and log r uniformly, so
+      // this approach will work with that I think?
 
       if (!(node instanceof SampleNode)) {
         return acc;
