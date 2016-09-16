@@ -397,7 +397,7 @@ function mvGaussianScore(mu, cov, x) {
   return ad.scalar.mul(-0.5, ad.scalar.add(
     dLog2Pi, ad.scalar.add(
       logDetCov,
-      ad.tensorEntry(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
+      ad.tensor.get(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
 }
 
 
@@ -504,7 +504,7 @@ var DiagCovGaussian = makeDistributionType({
 var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
-  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
+  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.tensor.fromScalars(0)), [d + 1, 1]);
   return ad.tensor.softmax(u);
 };
 
@@ -550,7 +550,7 @@ var LogisticNormal = makeDistributionType({
 
     var d = _mu.dims[0];
     var u = ad.tensor.reshape(ad.tensor.range(val, 0, d), [d, 1]);
-    var u_last = ad.tensorEntry(val, d);
+    var u_last = ad.tensor.get(val, d);
     var inv = ad.tensor.log(ad.tensor.div(u, u_last));
     var normScore = diagCovGaussianScore(mu, sigma, inv);
     return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
@@ -729,13 +729,22 @@ var Cauchy = makeDistributionType({
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
-    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(180 * (u - 0.5));
+    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(Math.PI * (u - 0.5));
   },
   score: function(x) {
     'use ad';
     var scale = this.params.scale;
     var location = this.params.location;
     return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return location + scale * Math.tan(Math.PI * (x - 0.5));
   }
 });
 
@@ -757,7 +766,7 @@ function discreteScoreVector(probs, val) {
   assert.ok(_probs.dims[1] === 1); // i.e. vector
   var d = _probs.dims[0];
   return inDiscreteSupport(val, d) ?
-      ad.scalar.log(ad.scalar.div(ad.tensorEntry(probs, val), ad.tensor.sumreduce(probs))) :
+      ad.scalar.log(ad.scalar.div(ad.tensor.get(probs, val), ad.tensor.sumreduce(probs))) :
       -Infinity;
 }
 
@@ -889,6 +898,13 @@ var Exponential = makeDistributionType({
   score: function(val) {
     'use ad';
     return Math.log(this.params.a) - this.params.a * val;
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    return Math.log(x) / -this.params.a;
   },
   support: function() {
     return { lower: 0, upper: Infinity };
