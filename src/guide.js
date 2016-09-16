@@ -52,7 +52,7 @@ function makeParam(paramSpec, paramName, baseName, env) {
 
   // Collapse tensor with dims=[1] to scalar.
   if (dims.length === 1 && dims[0] === 1) {
-    param = ad.tensorEntry(param, 0);
+    param = ad.tensor.get(param, 0);
   }
 
   return param;

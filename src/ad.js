@@ -27,9 +27,6 @@ var valueRec = function(x) {
 
 ad.valueRec = valueRec;
 
-// Make `tensorEntry` available in webppl as `T.get`.
-ad.tensor.get = ad.tensorEntry;
-
 ad.tensor.logGamma = ad.newUnaryFunction({
   OutputType: Tensor,
   name: 'logGamma',
