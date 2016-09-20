@@ -651,7 +651,7 @@ var paramScalar = function() {
   var mu = na <= 1 || (arguments[0] === undefined) ? 0 : arguments[0];
   var sigma = na <= 1 || (arguments[1] === undefined) ? 0.1 : arguments[1];
   var name = na === 1 ? arguments[0] : na === 3 ? arguments[2] : undefined;
-  return ad.tensorEntry(paramTensor([1], mu, sigma, name), 0);
+  return ad.tensor.get(paramTensor([1], mu, sigma, name), 0);
 };
 
 // Uses:
