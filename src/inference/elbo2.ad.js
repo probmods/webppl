@@ -234,9 +234,10 @@ module.exports = function(env) {
     // Likelihood-ratio term.
     var lr = nodes.reduce(function(acc, node) {
 
-      // TODO: We can exclude reparameterized sample nodes here, since
-      // we know logr doesn't depend on any parameters. Or better, we
-      // can probably avoid computing the score of the sample from the
+      // Exclude reparameterized sample nodes, since we know logr
+      // doesn't depend on any parameters.
+
+      // TODO: can probably avoid computing the score of the sample from the
       // base distribution in the first place. i.e. I think we only
       // need to compute log q, even for reparameterized choices. We
       // then weight by `(weight - baseline)` if the choice is not
@@ -248,7 +249,7 @@ module.exports = function(env) {
       // The mini-batch stuff handles log q and log r uniformly, so
       // this approach will work with that I think?
 
-      if (!(node instanceof SampleNode)) {
+      if (!(node instanceof SampleNode) || node.reparam) {
         return acc;
       }
       assert.ok(_.isNumber(node.weight));
