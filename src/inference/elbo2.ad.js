@@ -78,18 +78,43 @@ module.exports = function(env) {
     this.weight = 0;
   }
 
-  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, multiplier, debug) {
+  // TODO: This is probably too verbose for general use. Either remove
+  // or hide behind a flag?
+  function dumpDistAndVal(dist, x) {
+    console.log('------------------------------');
+    console.log(dist.meta.name);
+    var _x = ad.value(x);
+    console.log(_.isNumber(_x) ? _x : JSON.stringify(_x.toFlatArray()));
+    console.log('------------------------------');
+    _.each(dist.params, function(val, name) {
+      console.log(name);
+      console.log('------------------------------');
+      var _val = ad.value(val);
+      console.log(_.isNumber(_val) ? _val : JSON.stringify(_val.toFlatArray()));
+      console.log('------------------------------');
+    });
+  }
+
+  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, guideDist, value, multiplier, debug) {
     this.id = nodeid++;
     var _logp = ad.value(logp);
     var _logq = ad.value(logq);
     var _logr = ad.value(logr);
+    // TODO: There's no reason these numerical checks need to be
+    // smushed together with the node constructor.
     if (!isFinite(_logp)) {
+      console.log('Address: ' + address);
+      dumpDistAndVal(targetDist, value);
       throw new Error('SampleNode: logp is not finite.');
     }
     if (!isFinite(_logq)) {
+      console.log('Address: ' + address);
+      dumpDistAndVal(guideDist, value);
       throw new Error('SampleNode: logq is not finite.');
     }
     if (!isFinite(_logr)) {
+      console.log('Address: ' + address);
+      dumpDistAndVal(guideDist, value);
       throw new Error('SampleNode: logr is not finite.');
     }
     this.parents = [parent];
@@ -384,7 +409,7 @@ module.exports = function(env) {
 
       var node = new SampleNode(
         this.prevNode, logp, logq, logr,
-        ret.reparam, a, dist, m, this.opts.debugWeights);
+        ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
 
       this.prevNode = node;
       this.nodes.push(node);
