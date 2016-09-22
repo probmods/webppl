@@ -109,6 +109,8 @@ function spec(targetDist) {
     return gammaSpec(targetDist);
   } else if (targetDist instanceof dists.Beta) {
     return betaSpec(targetDist);
+  } else if (targetDist instanceof dists.Discrete) {
+    return discreteSpec(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
@@ -197,6 +199,16 @@ function gammaSpec(targetDist) {
     params: {
       mu: {param: {dims: [1]}},
       sigma: {param: {dims: [1], domain: domains.gt(0)}}
+    }
+  };
+}
+
+function discreteSpec(targetDist) {
+  var d = ad.value(targetDist.params.ps).length;
+  return {
+    type: dists.Discrete,
+    params: {
+      ps: {param: {dims: [d, 1], domain: domains.simplex}}
     }
   };
 }
