@@ -17,8 +17,15 @@ function interval(a, b) {
   return new RealInterval(a, b);
 }
 
+function Simplex() {
+}
+
+var simplex = new Simplex();
+
 module.exports = {
+  RealInterval: RealInterval,
   gt: gt,
   lt: lt,
-  interval: interval
+  interval: interval,
+  simplex: simplex
 };
