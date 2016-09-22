@@ -16,6 +16,8 @@ var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../paramStruct');
+var fs = require('fs');
+var nodeUtil = require('util');
 
 
 module.exports = function(env) {
@@ -36,8 +38,15 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      logProgress: false,      // false, or the number of milliseconds between polling intervals
-      onFinish: function(s, k, a) { return k(s); }
+      onFinish: function(s, k, a) { return k(s); },
+
+      logProgress: false,
+      logProgressFilename: 'optimizeProgress.csv',
+      logProgressThrottle: 200,
+
+      checkpointParams: false,
+      checkpointParamsFilename: 'optimizeParams.json',
+      checkpointParamsThrottle: 10000
     });
 
     // Create a (cps) function which takes parameters to gradient
@@ -61,16 +70,26 @@ module.exports = function(env) {
 
     var history = [];
 
-    var logdata, logProgress;
+    // For writing progress to disk
+    var logFile, logProgress;
     if (options.logProgress) {
-      logdata = [];
+      logFile = fs.openSync(options.logProgressFilename, 'w');
+      fs.writeSync(logFile, 'index,iter,time,objective\n');
       var ncalls = 0;
       var starttime = present();
       logProgress = _.throttle(function(i, objective) {
         var t = (present() - starttime) / 1000;
-        logdata.push({index: ncalls, iter: i, time: t, objective: objective});
+        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d\n', ncalls, i, t, objective));
         ncalls++;
-      }, options.logProgress, { trailing: false });
+      }, options.logProgressThrottle, { trailing: false });
+    }
+
+    // For checkpointing params to disk
+    var checkpointParams;
+    if (options.checkpointParams) {
+      checkpointParams = _.throttle(function() {
+        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(paramObj))
+      }, options.checkpointParamsThrottle, { trailing: false });
     }
 
     // Main loop.
@@ -101,6 +120,9 @@ module.exports = function(env) {
             if (options.logProgress) {
               logProgress(i, objective);
             }
+            if (options.checkpointParams) {
+              checkpointParams();
+            }
 
             history.push(objective);
 
@@ -114,8 +136,9 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           return options.onFinish(s, function(s) {
-            if (options.logProgress) {
-              paramObj.optimizeProgressLog = logdata;
+            if (options.checkpointParams) {
+              // Save final params
+              fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(paramObj))
             }
             return k(s, paramObj);
           }, a, {history: history});
