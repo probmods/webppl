@@ -377,11 +377,19 @@ module.exports = function(env) {
         baselineUpdates[address].mean = mean;
       }
 
-      // TODO: The gradient at the first step will be zero using
-      // this approach. This is probably OK, but we might want to
-      // make sure it doesn't trigger a gradient warning, since
-      // that may cause confusion.
-      return _.has(baselines, address) ? baselines[address] : weight;
+      // During the first step we'd like to use the weight as the
+      // baseline. The hope is that this strategy might avoid very
+      // large gradients on the first step. If the initial baseline
+      // was zero, these large gradients may cause optimization
+      // methods with adaptive step sizes to reduce the step size (for
+      // associated parameters) more than will be necessary once the
+      // baseline takes effect. This might slow the initial phase of
+      // optimization. However, using exactly the weight would cause
+      // the gradient to be zero which in turn would trigger a warning
+      // from Optimize. To avoid this we scale the weight and use that
+      // as the initial baseline.
+
+      return _.has(baselines, address) ? baselines[address] : weight * .99;
     },
 
     updateBaselines: function() {
