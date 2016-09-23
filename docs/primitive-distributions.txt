@@ -65,7 +65,7 @@
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: array or vector of probabilities *(in [0,1])*
+  * ps: array or vector of probabilities *(>0)*
 
   Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
