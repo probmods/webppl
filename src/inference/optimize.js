@@ -146,7 +146,7 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           return options.onFinish(s, function(s) {
-            if (opts.logProgress) {
+            if (options.logProgress) {
               fs.closeSync(logFile);
             }
             if (options.checkpointParams) {
