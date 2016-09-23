@@ -225,59 +225,6 @@ module.exports = function(env) {
     return 'digraph {\n' + edges.join('\n') + '\n}\n';
   };
 
-  function buildObjective(nodes, computeBaseline, naiveLR) {
-
-    var rootNode = nodes[0];
-    assert.ok(rootNode instanceof RootNode);
-    assert.ok(_.isNumber(rootNode.weight));
-
-    // Likelihood-ratio term.
-    var lr = nodes.reduce(function(acc, node) {
-
-      // Exclude reparameterized sample nodes, since we know logr
-      // doesn't depend on any parameters.
-
-      // TODO: can probably avoid computing the score of the sample from the
-      // base distribution in the first place. i.e. I think we only
-      // need to compute log q, even for reparameterized choices. We
-      // then weight by `(weight - baseline)` if the choice is not
-      // reparameterized, and don't weight (or weight by 1) otherwise.
-
-      // Maybe we write the math this way too -- just have a sum over
-      // weighted log q terms + log p?
-
-      // The mini-batch stuff handles log q and log r uniformly, so
-      // this approach will work with that I think?
-
-      if (!(node instanceof SampleNode) || node.reparam) {
-        return acc;
-      }
-      assert.ok(_.isNumber(node.weight));
-      var weight = naiveLR ? rootNode.weight : node.weight;
-      var b = computeBaseline(node.address, weight);
-      return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
-    }, 0);
-
-    // Path-wise term. The logp terms are also be used
-    // when parameters are used directly in the generative model.
-    var pw = nodes.reduce(function(acc, node) {
-      if (node instanceof SampleNode) {
-        return node.reparam ?
-          ad.scalar.add(acc, ad.scalar.sub(node.logq, node.logp)) :
-          ad.scalar.sub(acc, node.logp);
-      } else if (node instanceof FactorNode) {
-        return ad.scalar.sub(acc, node.score);
-      } else {
-        return acc;
-      };
-    }, 0);
-
-    var elbo = -rootNode.weight;
-    var objective = ad.scalar.add(lr, pw);
-
-    return {objective: objective, elbo: elbo};
-  }
-
   ELBO2.prototype = {
 
     run: function() {
@@ -337,7 +284,7 @@ module.exports = function(env) {
           fs.writeFileSync('deps.dot', dot);
         }
 
-        var ret = buildObjective(this.nodes, this.getBaselineFunc(), this.opts.naiveLR);
+        var ret = this.buildObjective(this.getBaselineFunc());
 
         if (ad.isLifted(ret.objective)) { // Handle programs with zero random choices.
           ret.objective.backprop();
@@ -351,6 +298,59 @@ module.exports = function(env) {
 
       }.bind(this), this.a);
 
+    },
+
+    buildObjective: function(computeBaseline) {
+      var naiveLR = this.opts.naiveLR;
+      var rootNode = this.nodes[0];
+      assert.ok(rootNode instanceof RootNode);
+      assert.ok(_.isNumber(rootNode.weight));
+
+      // Likelihood-ratio term.
+      var lr = this.nodes.reduce(function(acc, node) {
+
+        // Exclude reparameterized sample nodes, since we know logr
+        // doesn't depend on any parameters.
+
+        // TODO: can probably avoid computing the score of the sample from the
+        // base distribution in the first place. i.e. I think we only
+        // need to compute log q, even for reparameterized choices. We
+        // then weight by `(weight - baseline)` if the choice is not
+        // reparameterized, and don't weight (or weight by 1) otherwise.
+
+        // Maybe we write the math this way too -- just have a sum over
+        // weighted log q terms + log p?
+
+        // The mini-batch stuff handles log q and log r uniformly, so
+        // this approach will work with that I think?
+
+        if (!(node instanceof SampleNode) || node.reparam) {
+          return acc;
+        }
+        assert.ok(_.isNumber(node.weight));
+        var weight = naiveLR ? rootNode.weight : node.weight;
+        var b = computeBaseline(node.address, weight);
+        return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
+      }, 0);
+
+      // Path-wise term. The logp terms are also be used
+      // when parameters are used directly in the generative model.
+      var pw = this.nodes.reduce(function(acc, node) {
+        if (node instanceof SampleNode) {
+          return node.reparam ?
+            ad.scalar.add(acc, ad.scalar.sub(node.logq, node.logp)) :
+            ad.scalar.sub(acc, node.logp);
+        } else if (node instanceof FactorNode) {
+          return ad.scalar.sub(acc, node.score);
+        } else {
+          return acc;
+        };
+      }, 0);
+
+      var elbo = -rootNode.weight;
+      var objective = ad.scalar.add(lr, pw);
+
+      return {objective: objective, elbo: elbo};
     },
 
     getBaselineFunc: function() {
