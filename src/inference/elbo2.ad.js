@@ -254,7 +254,7 @@ module.exports = function(env) {
       }
       assert.ok(_.isNumber(node.weight));
       var weight = naiveLR ? rootNode.weight : node.weight;
-      var b = computeBaseline(naiveLR ? 'global' : node.address, weight);
+      var b = computeBaseline(node.address, weight);
       return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
     }, 0);
 
@@ -302,6 +302,7 @@ module.exports = function(env) {
         function() {
           paramStruct.divEq(grad, this.opts.samples);
           elbo /= this.opts.samples;
+          this.updateBaselines();
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
         }.bind(this));
@@ -337,7 +338,7 @@ module.exports = function(env) {
         }
 
         var ret = buildObjective(this.nodes, this.getBaselineFunc(), this.opts.naiveLR);
-        this.updateBaselines();
+
         if (ad.isLifted(ret.objective)) { // Handle programs with zero random choices.
           ret.objective.backprop();
         }
@@ -357,11 +358,22 @@ module.exports = function(env) {
         var baselines = this.state.baselines;
         var baselineUpdates = this.baselineUpdates;
         return function(address, weight) {
-          // Sanity check. The only time we save a weight for update
-          // more than once is when using naive LR, in which case
-          // weight should always be log p/q.
-          assert.ok(!_.has(baselineUpdates, address) || baselineUpdates[address] === weight);
-          baselineUpdates[address] = weight;
+
+          // Accumulate the mean of the weights for each factor across
+          // all samples taken this step. These are incorporated into
+          // the running average once all samples have been taken.
+          // Note that each factor is not necessarily encountered the
+          // same number of times.
+
+          if (!_.has(baselineUpdates, address)) {
+            baselineUpdates[address] = {n: 1, mean: weight};
+          } else {
+            var prev = baselineUpdates[address];
+            var n = prev.n + 1;
+            var mean = (prev.n * prev.mean + weight) / n;
+            baselineUpdates[address].n = n;
+            baselineUpdates[address].mean = mean;
+          }
 
           // TODO: The gradient at the first step will be zero using
           // this approach. This is probably OK, but we might want to
@@ -377,11 +389,13 @@ module.exports = function(env) {
     updateBaselines: function() {
       var decay = this.opts.avgBaselineDecay;
       var baselines = this.state.baselines;
-      _.each(this.baselineUpdates, function(weight, address) {
+      // Note that this leaves untouched the estimate of the average
+      // weight for any factors not seen during this step.
+      _.each(this.baselineUpdates, function(obj, address) {
         baselines[address] = _.has(baselines, address) ?
-          decay * baselines[address] + (1 - decay) * weight :
-          weight;
-      });
+          decay * baselines[address] + (1 - decay) * obj.mean :
+          obj.mean;
+      }, this);
     },
 
     sample: function(s, k, a, dist, options) {
