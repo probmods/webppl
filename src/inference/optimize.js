@@ -85,11 +85,21 @@ module.exports = function(env) {
     }
 
     // For checkpointing params to disk
-    var checkpointParams;
+    var saveParams, checkpointParams;
     if (options.checkpointParams) {
-      checkpointParams = _.throttle(function() {
-        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(paramObj))
-      }, options.checkpointParamsThrottle, { trailing: false });
+      saveParams = function() {
+        // Turn tensor data into regular Array before serialization
+        // I think this is faster than using a custom 'replacer' with JSON.stringify?
+        var prms = _.mapObject(paramObj, function(lst) {
+          return lst.map(function(tensor) {
+            var tcopy = _.clone(tensor);
+            tcopy.data = tensor.toFlatArray();
+            return tcopy;
+          });
+        });
+        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
+      };
+      checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
 
     // Main loop.
@@ -136,9 +146,12 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           return options.onFinish(s, function(s) {
+            if (opts.logProgress) {
+              fs.closeSync(logFile);
+            }
             if (options.checkpointParams) {
               // Save final params
-              fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(paramObj))
+              saveParams();
             }
             return k(s, paramObj);
           }, a, {history: history});
