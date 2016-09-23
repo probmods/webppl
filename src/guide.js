@@ -6,7 +6,7 @@ var util = require('./util');
 var Tensor = require('./tensor');
 var ad = require('./ad');
 var dists = require('./dists');
-var gt = require('./domain').gt;
+var domains = require('./domain');
 
 var T = ad.tensor;
 
@@ -40,14 +40,22 @@ function independent(targetDist, sampleAddress, env) {
 function makeParam(paramSpec, paramName, baseName, env) {
   var dims = paramSpec.dims; // e.g. [2, 1]
   var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
-
   var name = baseName + paramName;
-  var param = registerParam(env, name, paramSpec.dims);
+
+  var viParamDim, squish;
+  if (domain) {
+    var ret = squishFn(domain, dims);
+    viParamDim = ret.dimsIn;
+    squish = ret.f;
+  } else {
+    viParamDim = dims;
+  }
+
+  var param = registerParam(env, name, viParamDim);
 
   // Apply squishing.
-  if (domain) {
-    // Assume that domain is a RealInterval.
-    param = squishFn(domain.a, domain.b)(param);
+  if (squish) {
+    param = squish(param);
   }
 
   // Collapse tensor with dims=[1] to scalar.
@@ -101,6 +109,8 @@ function spec(targetDist) {
     return gammaSpec(targetDist);
   } else if (targetDist instanceof dists.Beta) {
     return betaSpec(targetDist);
+  } else if (targetDist instanceof dists.Discrete) {
+    return discreteSpec(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
@@ -143,7 +153,7 @@ function dirichletSpec(targetDist) {
     type: dists.LogisticNormal,
     params: {
       mu: {param: {dims: [d, 1]}},
-      sigma: {param: {dims: [d, 1], domain: gt(0)}}
+      sigma: {param: {dims: [d, 1], domain: domains.gt(0)}}
     }
   };
 }
@@ -153,7 +163,7 @@ function tensorGaussianSpec(targetDist) {
     type: dists.TensorGaussian,
     params: {
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: gt(0)}},
+      sigma: {param: {dims: [1], domain: domains.gt(0)}},
       dims: {const: targetDist.params.dims}
     }
   };
@@ -166,7 +176,7 @@ function uniformSpec(targetDist) {
       a: {const: targetDist.params.a},
       b: {const: targetDist.params.b},
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: gt(0)}}
+      sigma: {param: {dims: [1], domain: domains.gt(0)}}
     }
   };
 }
@@ -178,7 +188,7 @@ function betaSpec(targetDist) {
       a: {const: 0},
       b: {const: 1},
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: gt(0)}}
+      sigma: {param: {dims: [1], domain: domains.gt(0)}}
     }
   };
 }
@@ -188,7 +198,17 @@ function gammaSpec(targetDist) {
     type: dists.IspNormal,
     params: {
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: gt(0)}}
+      sigma: {param: {dims: [1], domain: domains.gt(0)}}
+    }
+  };
+}
+
+function discreteSpec(targetDist) {
+  var d = ad.value(targetDist.params.ps).length;
+  return {
+    type: dists.Discrete,
+    params: {
+      ps: {param: {dims: [d, 1], domain: domains.simplex}}
     }
   };
 }
@@ -197,9 +217,34 @@ function softplus(x) {
   return T.log(T.add(T.exp(x), 1));
 }
 
-// Returns a function that maps a (potentially lifted) tensor of
-// (unbounded) reals to the interval [a,b] element-wise.
-function squishFn(a, b) {
+// Returns a function `f` that maps from tensors of unbounded reals to
+// tensors in `domain` of dimension `dimsOut`. The function `f` takes
+// a tensor of unbounded reals of dimension `dimsIn`.
+
+// Parameters:
+// domain: Output domain
+// dimsOut: Output dimension
+
+// Returns:
+// dimsIn: Input dimension
+// f: Squishing function
+
+function squishFn(domain, dimsOut) {
+  if (domain instanceof domains.RealInterval) {
+    return {dimsIn: dimsOut, f: squishToInterval(domain)};
+  } else if (domain === domains.simplex) {
+    if (dimsOut.length !== 2 || dimsOut[1] !== 1) {
+      throw new Error('Can only map vectors to the probability simplex.');
+    }
+    return {dimsIn: [dimsOut[0] - 1, 1], f: dists.squishToProbSimplex};
+  } else {
+    throw new Error('Unknown domain type.');
+  }
+}
+
+function squishToInterval(domain) {
+  var a = domain.a;
+  var b = domain.b;
   if (a === -Infinity) {
     return function(x) {
       var y = softplus(x);
