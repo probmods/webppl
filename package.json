@@ -19,6 +19,7 @@
     "classnames": "^2.2.5",
     "jquery": "^2.2.4",
     "jstransform": "^11.0.3",
+    "katex": "^0.6.0",
     "react": "^15.1.0",
     "react-dom": "^15.1.0",
     "showdown": "^1.4.1",

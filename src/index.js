@@ -1,6 +1,7 @@
 var fs = require('fs');
 var React = require('react');
 var ReactDOM = require('react-dom');
+var katex = require('katex');
 
 require('webppl-editor');
 var CodeEditor = wpEditor.ReactComponent;
@@ -10,7 +11,6 @@ require('webppl-viz');
 var cx = require('classnames');
 
 var showdown = require('showdown');
-var converter = new showdown.Converter();
 
 var $ = require('jquery');
 global.$ = $;
@@ -27,6 +27,20 @@ var nextIntegerKey = function(obj){
     return 0;
   }
 };
+
+var showdownKatex = function() {
+  return [
+    {
+      type: 'lang',
+      regex: /~D~D([\s\S]+?)~D~D/gm,
+      replace: function(text, group) {
+        return katex.renderToString(group);
+      }
+    }
+  ];
+};
+
+var converter = new showdown.Converter({ extensions: [showdownKatex] });
 
 var CodeInputBox = React.createClass({
 
