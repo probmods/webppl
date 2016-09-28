@@ -1,9 +1,12 @@
 The homepage for webppl.org
 
-This is a React app that uses CommonJS `require()` to include webppl-viz and webppl-editor and assumes that browserified webppl.js is available.
+The homepage is a React app. Because of how React works, we can't just include viz and editor using `<script>` tags -- we have to bake them into our app using `require()` and browserify.
 
-Build with `make build`
+Recipes:
+- Setting up: run `npm install`
+- Building: `make build`
+- Updating dependencies: update package.json with the newer dependencies (e.g., newer versions of viz or editor) and rerun `npm install` and `make build`
+- Deploying: push to Github
 
 Dev notes:
 - Tested with node 6 and npm v3 - not sure if works with earlier versions.
-- We build webppl.js by checking out the dev branch, running `grunt browserify`, and copying the resulting file back into the `gh-pages` branch.
