@@ -50,10 +50,10 @@
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu: mean vector
-  * sigma: vector of standard deviations *(>0)*
+  * mu: mean tensor
+  * sigma: tensor of standard deviations *(>0)*
 
-  Multivariate Gaussian distribution with diagonal covariance matrix. If ``mu`` and ``sigma`` are vectors of length ``d`` then the distribution is over vectors of length ``d``.
+  A distribution over tensors in which each element is independent and Gaussian distributed, with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with diagonal covariance matrix. The distribution is over tensors that have the same shape as the parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.
 
 .. js:function:: Dirichlet({alpha: ...})
 
