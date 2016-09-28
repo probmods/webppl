@@ -33,6 +33,13 @@
     color: black;
     background-color: #ECAAB9;
 }
+
+/* wppl keywords */
+
+.cm-wppl {
+    font-weight: bold
+}
+
 /* -- folding */
 .wpedit .CodeMirror-foldmarker {
     background-color: #ffffcc;
@@ -59,17 +66,39 @@
 .wpedit .result pre {
     border: none;
     white-space: pre-wrap;
+    word-break: break-all;
 }
 
-.wpedit pre.error {
-    background-color: red;
-    color: white;
+.wpedit .result pre.error {
+    color: red;
 }
 
 .wpedit .error-message {
     font-weight: bold;
     text-decoration: underline;
     cursor: pointer
+}
+
+.wpedit .clearButton {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    min-width: 0;
+    color: #ccc;
+    font-weight: bold;
+    margin: 0;
+    padding: 10px;
+    border: none;
+    z-index: 99;
+}
+
+.wpedit .clearButton:hover {
+    background-color: lightcoral;
+    color: black;
+}
+
+.wpedit .clearButton.running {
+    display: none;
 }
 
 /* -- console method intercepting */
@@ -90,6 +119,9 @@
 }
 .icon.error {
     background-color: red;
+}
+.icon.log {
+    display: none
 }
 .result .count:not(:empty) {
     font-family: Helvetica;
@@ -112,23 +144,24 @@
 .wpedit .progress {
     font-size: 11px;
     position: relative;
-    height: 12px;
+    height: 16px;
+    width: 95%;
+    margin: 5px 0px 5px 5px;
+    background-color: bisque
 }
 
 .wpedit .progress .text {
     position: absolute;
-    top: 0;
     left: 0;
+    top: 0;
 }
 
 .wpedit .progress .fill {
     background-color: #99ccff;
-    transition: width 0.08s ease;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
+    /* transition: width 0.08s ease; */
     height: 100%;
+    padding: 0;
+    margin: 0
 }
 
 /* buttons */

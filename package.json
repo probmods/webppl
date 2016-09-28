@@ -1,6 +1,6 @@
 {
   "name": "webppl-homepage",
-  "version": "0.7.0",
+  "version": "0.9.2",
   "description": "homepage for webppl",
   "main": "src/index.js",
   "directories": {
@@ -23,10 +23,9 @@
     "react-dom": "^15.1.0",
     "showdown": "^1.4.1",
     "underscore": "^1.8.3",
-    "vega": "^2.5.1",
     "watchify": "^3.7.0",
-    "webppl-editor": "probmods/webppl-editor#1.0.1",
-    "webppl-viz": "github:probmods/webppl-viz#0.7.5"
+    "webppl-editor": "probmods/webppl-editor#2142089",
+    "webppl-viz": "github:probmods/webppl-viz#0.7.9"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
