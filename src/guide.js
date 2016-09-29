@@ -159,12 +159,12 @@ function dirichletSpec(targetDist) {
 }
 
 function tensorGaussianSpec(targetDist) {
+  var dims = targetDist.params.dims;
   return {
-    type: dists.TensorGaussian,
+    type: dists.DiagCovGaussian,
     params: {
-      mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: domains.gt(0)}},
-      dims: {const: targetDist.params.dims}
+      mu: {param: {dims: dims}},
+      sigma: {param: {dims: dims, domain: domains.gt(0)}}
     }
   };
 }
