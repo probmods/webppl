@@ -93648,8 +93648,11 @@ function runningInBrowser() {
 }
 
 function isDist(x) {
-  // TODO: take from dippl
-  return x.support && x.score;
+  return x.isContinuous || x.support && x.score || x.score /* poisson */;
+}
+
+function isTensor(x) {
+  return x instanceof T.__Tensor;
 }
 
 function getScores(erp) {
@@ -94265,12 +94268,28 @@ function auto(obj, options) {
   if (_.isArray(obj)) {
     dist = samplesToDist(obj);
   } else if (isDist(obj)) {
-    dist = obj;
+    if (!obj.isContinuous) {
+      dist = obj;
+    } else {
+      var n = options.samples || 5000;
+      var name = obj.meta.name;
+      console.info('viz: approximating ' + name + ' with ' + n + ' samples');
+      var samples = [];
+      while (n--) {
+        var sample = obj.sample();
+        // handle distributions that sample tensors, like Dirichlet
+        if (isTensor(sample)) {
+          sample = sample.toFlatArray();
+        }
+        samples.push(sample);
+      }
+      dist = samplesToDist(samples);
+    }
   } else {
     // TODO: write wpEditor.warn method, use it to inform user that auto only works on ERPs
     // (though maybe this isn't necessary since we are using __print__ decorator in wp-editor?)
     // maybe warn and fall back to print
-    throw new Error('auto takes a distribution or a list of samples as an argument');
+    throw new Error('autoviz takes a distribution or a list of samples as an argument');
   }
 
   var support = dist.support();
