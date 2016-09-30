@@ -434,8 +434,8 @@ var MultivariateGaussian = makeDistributionType({
 
 
 function diagCovGaussianSample(mu, sigma) {
-  var d = mu.dims[0];
-  var x = new Tensor([d, 1]);
+  var dims = mu.dims;
+  var x = new Tensor(dims);
   var n = x.length;
   while (n--) {
     x.data[n] = gaussianSample(mu.data[n], sigma.data[n]);
@@ -446,11 +446,11 @@ function diagCovGaussianSample(mu, sigma) {
 function diagCovGaussianScore(mu, sigma, x) {
   var _x = ad.value(x);
   var _mu = ad.value(mu);
-  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
+  if (!util.isTensor(_x) || !util.tensorEqDims(_x, _mu)) {
     return -Infinity;
   }
 
-  var d = _mu.dims[0];
+  var d = _mu.length;
   var dLog2Pi = d * LOG_2PI;
   var logDetCov = ad.scalar.mul(2, ad.tensor.sumreduce(ad.tensor.log(sigma)));
   var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
@@ -461,27 +461,29 @@ function diagCovGaussianScore(mu, sigma, x) {
       ad.tensor.sumreduce(ad.tensor.mul(z, z)))));
 }
 
+
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
-  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix. ' +
-    'If ``mu`` and ``sigma`` are vectors of length ``d`` then ' +
-    'the distribution is over vectors of length ``d``.',
+  desc: 'A distribution over tensors in which each element is independent and Gaussian distributed, ' +
+    'with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with ' +
+    'diagonal covariance matrix. The distribution is over tensors that have the same shape as the ' +
+    'parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.',
   params: [
-    {name: 'mu', desc: 'mean vector'},
-    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
+    {name: 'mu', desc: 'mean tensor'},
+    {name: 'sigma', desc: 'tensor of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!util.isVector(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a vector.');
+    if (!util.isTensor(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a tensor.');
     }
-    if (!util.isVector(_sigma)) {
-      throw new Error(this.meta.name + ': sigma should be a vector.');
+    if (!util.isTensor(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a tensor.');
     }
-    if (!util.tensorEqDim0(_mu, _sigma)) {
-      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    if (!util.tensorEqDims(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should be the same shape.');
     }
   },
   sample: function() {
