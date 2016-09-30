@@ -314,6 +314,18 @@ function tensorEqDim0(v, w) {
   return v.dims[0] === w.dims[0];
 }
 
+function tensorEqDims(t1, t2) {
+  if (t1.dims.length !== t2.dims.length) {
+    return false;
+  }
+  for (var i = 0; i < t1.dims.length; i++) {
+    if (t1.dims[i] !== t2.dims[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function relativizeAddress(env, address) {
   // Takes the env and a full stack address and returns a new address
   // relative to the entry address of the current coroutine. This
@@ -420,6 +432,7 @@ module.exports = {
   isVector: isVector,
   isMatrix: isMatrix,
   tensorEqDim0: tensorEqDim0,
+  tensorEqDims: tensorEqDims,
   relativizeAddress: relativizeAddress,
   registerParams: registerParams
 };
