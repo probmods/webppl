@@ -26,7 +26,7 @@
     "underscore": "^1.8.3",
     "watchify": "^3.7.0",
     "webppl-editor": "probmods/webppl-editor#2142089",
-    "webppl-viz": "github:probmods/webppl-viz#0.7.10"
+    "webppl-viz": "github:probmods/webppl-viz#b727920"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

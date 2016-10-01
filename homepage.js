@@ -94381,11 +94381,12 @@ function auto(obj, options) {
       dist: dist
     }, options);
   } else if (_.has(kindPrinter, dfKind.replace(/i/g, 'c'))) {
+    var transformedKind = dfKind.replace(/i/g, 'c');
     var _typesDict = _.mapObject(columnTypesDict, function (v, k) {
       return v == 'integer' ? 'categorical' : v;
     });
 
-    kindPrinter[dfKind]({ types: _typesDict,
+    kindPrinter[transformedKind]({ types: _typesDict,
       support: supportStringified,
       scores: scores,
       dist: dist
