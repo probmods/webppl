@@ -48,19 +48,20 @@
 
 #reactEditor .wpedit .CodeMirror {
     border: 1px solid #aaa;
-    max-height: 200px;
+    /* max-height: 200px; */
     height: auto;
 }
 
 #reactEditor .wpedit .CodeMirror, #reactEditor .wpedit .CodeMirror-scroll {
      /* TODO: why doesn't percent work here but it does in base wp-editor demo? */
-    max-height: 600px;
+    /* max-height: 600px; */
     height: auto;
 }
 
 
 #reactEditor .wpedit .result {
     margin-top: 0;
+    max-height: none;
 }
 
 /* Literate editor */
