@@ -18,8 +18,8 @@ module.exports = function(env) {
       naiveLR: false,
       // Write a DOT file representation of first graph to disk.
       dumpGraph: false,
-      // Use local weight of 1 (* multiplier) for sample and factor
-      // nodes.
+      // Use local weight of one for all sample and factor nodes. This
+      // is useful for understanding/debugging weight propagation.
       debugWeights: false
     });
 
@@ -114,12 +114,12 @@ module.exports = function(env) {
     this.parents = [parent];
     this.logp = logp;
     this.logq = logq;
-    this.weight = debug ? multiplier : _logq - _logp;
+    this.weight = debug ? 1 : _logq - _logp;
     this.reparam = reparam;
     this.address = address;
+    this.multiplier = multiplier;
     // Debug info.
     this.targetDist = targetDist;
-    this.multiplier = multiplier;
   }
 
   SampleNode.prototype.label = function() {
@@ -138,8 +138,7 @@ module.exports = function(env) {
     }
     this.parents = [parent];
     this.score = score;
-    this.weight = debug ? multiplier : -_score;
-    // Debug info.
+    this.weight = debug ? 1 : -_score;
     this.multiplier = multiplier;
   }
 
@@ -152,10 +151,11 @@ module.exports = function(env) {
   };
 
   // Created when entering mapData.
-  function SplitNode(parent, batchSize, joinNode) {
+  function SplitNode(parent, batchSize, n, joinNode) {
     this.id = nodeid++;
     this.parents = [parent];
     this.batchSize = batchSize;
+    this.n = n; // data.length
     this.joinNode = joinNode;
     this.weight = 0;
   }
@@ -173,10 +173,12 @@ module.exports = function(env) {
     while(--i) {
       var node = nodes[i];
       if (node instanceof SplitNode) {
-        // Here we account for the fact we've added the score that
-        // accumulated after this mapData once for every execution of
-        // the observation function
-        node.weight -= (node.batchSize - 1) * node.joinNode.weight;
+        // Account for (a) the fact that we (potentially) only looked
+        // at a subset of the data (i.e. used mini-batches) and (b)
+        // the weights downstream of the associated join node will
+        // have been included in the split node's weight once for each
+        // execution of the observation function.
+        node.weight = (node.n / node.batchSize) * node.weight - ((node.n - 1) * node.joinNode.weight);
       }
       node.parents.forEach(function(parent) {
         parent.weight += node.weight;
@@ -302,15 +304,15 @@ module.exports = function(env) {
 
       var objective = this.nodes.reduce(function(acc, node) {
         if (node instanceof SampleNode && node.reparam) {
-          return acc + (node.logq - node.logp);
+          return acc + node.multiplier * (node.logq - node.logp);
         } else if (node instanceof SampleNode) {
           assert.ok(!node.param);
           var weight = naiveLR ? rootNode.weight : node.weight;
           assert.ok(_.isNumber(weight));
           var b = this.computeBaseline(node.address, weight);
-          return acc + ((node.logq * (weight - b)) - node.logp);
+          return acc + node.multiplier * ((node.logq * (weight - b)) - node.logp);
         } else if (node instanceof FactorNode) {
-          return acc - node.score;
+          return acc - node.multiplier * node.score;
         } else {
           return acc;
         }
@@ -389,9 +391,9 @@ module.exports = function(env) {
       var ret = this.sampleGuide(guideDist, options);
       var val = ret.val;
 
+      var logp = dist.score(val);
+      var logq = ret.logq;
       var m = top(this.mapDataStack).multiplier;
-      var logp = ad.scalar.mul(m, dist.score(val));
-      var logq = ad.scalar.mul(m, ret.logq);
 
       var node = new SampleNode(
         this.prevNode, logp, logq,
@@ -427,7 +429,7 @@ module.exports = function(env) {
     factor: function(s, k, a, score, name) {
       var m = top(this.mapDataStack).multiplier;
       var node = new FactorNode(
-        this.prevNode, ad.scalar.mul(m, score), m, this.opts.debugWeights);
+        this.prevNode, score, m, this.opts.debugWeights);
       this.prevNode = node;
       this.nodes.push(node);
       return k(s);
@@ -455,15 +457,15 @@ module.exports = function(env) {
       }
 
       if (batchSize > 0) {
+        var joinNode = new JoinNode();
+        var splitNode = new SplitNode(this.prevNode, batchSize, data.length, joinNode);
+        this.nodes.push(splitNode);
+
         // Compute the multiplier required to account for the fact we're
         // only looking at a subset of the data.
         var thisM = data.length / batchSize;
         var prevM = top(this.mapDataStack).multiplier;
         var multiplier = thisM * prevM;
-
-        var joinNode = new JoinNode();
-        var splitNode = new SplitNode(this.prevNode, batchSize, joinNode);
-        this.nodes.push(splitNode);
 
         this.mapDataStack.push({
           splitNode: splitNode,
