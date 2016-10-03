@@ -95,11 +95,10 @@ module.exports = function(env) {
     });
   }
 
-  function SampleNode(parent, logp, logq, logr, reparam, address, targetDist, guideDist, value, multiplier, debug) {
+  function SampleNode(parent, logp, logq, reparam, address, targetDist, guideDist, value, multiplier, debug) {
     this.id = nodeid++;
     var _logp = ad.value(logp);
     var _logq = ad.value(logq);
-    var _logr = ad.value(logr);
     // TODO: There's no reason these numerical checks need to be
     // smushed together with the node constructor.
     if (!isFinite(_logp)) {
@@ -112,15 +111,9 @@ module.exports = function(env) {
       dumpDistAndVal(guideDist, value);
       throw new Error('SampleNode: logq is not finite.');
     }
-    if (!isFinite(_logr)) {
-      console.log('Address: ' + address);
-      dumpDistAndVal(guideDist, value);
-      throw new Error('SampleNode: logr is not finite.');
-    }
     this.parents = [parent];
     this.logp = logp;
     this.logq = logq;
-    this.logr = logr;
     this.weight = debug ? multiplier : _logq - _logp;
     this.reparam = reparam;
     this.address = address;
@@ -301,55 +294,28 @@ module.exports = function(env) {
     },
 
     buildObjective: function() {
+      'use ad';
       var naiveLR = this.opts.naiveLR;
       var rootNode = this.nodes[0];
       assert.ok(rootNode instanceof RootNode);
       assert.ok(_.isNumber(rootNode.weight));
 
-      // Likelihood-ratio term.
-      var lr = this.nodes.reduce(function(acc, node) {
-
-        // Exclude reparameterized sample nodes, since we know logr
-        // doesn't depend on any parameters.
-
-        // TODO: can probably avoid computing the score of the sample from the
-        // base distribution in the first place. i.e. I think we only
-        // need to compute log q, even for reparameterized choices. We
-        // then weight by `(weight - baseline)` if the choice is not
-        // reparameterized, and don't weight (or weight by 1) otherwise.
-
-        // Maybe we write the math this way too -- just have a sum over
-        // weighted log q terms + log p?
-
-        // The mini-batch stuff handles log q and log r uniformly, so
-        // this approach will work with that I think?
-
-        if (!(node instanceof SampleNode) || node.reparam) {
-          return acc;
-        }
-        assert.ok(_.isNumber(node.weight));
-        var weight = naiveLR ? rootNode.weight : node.weight;
-        var b = this.computeBaseline(node.address, weight);
-        return ad.scalar.add(acc, ad.scalar.mul(node.logr, weight - b));
-      }.bind(this), 0);
-
-      // Path-wise term. The logp terms are also be used
-      // when parameters are used directly in the generative model.
-      var pw = this.nodes.reduce(function(acc, node) {
-        if (node instanceof SampleNode) {
-          return node.reparam ?
-            ad.scalar.add(acc, ad.scalar.sub(node.logq, node.logp)) :
-            ad.scalar.sub(acc, node.logp);
+      var objective = this.nodes.reduce(function(acc, node) {
+        if (node instanceof SampleNode && node.reparam) {
+          return acc + (node.logq - node.logp);
+        } else if (node instanceof SampleNode) {
+          assert.ok(!node.param);
+          var weight = naiveLR ? rootNode.weight : node.weight;
+          assert.ok(_.isNumber(weight));
+          var b = this.computeBaseline(node.address, weight);
+          return acc + ((node.logq * (weight - b)) - node.logp);
         } else if (node instanceof FactorNode) {
-          return ad.scalar.sub(acc, node.score);
+          return acc - node.score;
         } else {
           return acc;
-        };
-      }, 0);
-
+        }
+      }.bind(this), 0);
       var elbo = -rootNode.weight;
-      var objective = ad.scalar.add(lr, pw);
-
       return {objective: objective, elbo: elbo};
     },
 
@@ -426,10 +392,9 @@ module.exports = function(env) {
       var m = top(this.mapDataStack).multiplier;
       var logp = ad.scalar.mul(m, dist.score(val));
       var logq = ad.scalar.mul(m, ret.logq);
-      var logr = ad.scalar.mul(m, ret.logr);
 
       var node = new SampleNode(
-        this.prevNode, logp, logq, logr,
+        this.prevNode, logp, logq,
         ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
 
       this.prevNode = node;
@@ -439,26 +404,24 @@ module.exports = function(env) {
     },
 
     sampleGuide: function(dist, options) {
-      var val, logq, logr, reparam;
+      var val, reparam;
 
       if ((!_.has(options, 'reparam') || options.reparam) &&
           dist.base && dist.transform) {
         // Use the reparameterization trick.
         var baseDist = dist.base();
         var z = baseDist.sample();
-        logr = baseDist.score(z);
         val = dist.transform(z);
-        logq = dist.score(val);
         reparam = true;
       } else if (options.reparam && !(dist.base && dist.transform)) {
         throw dist + ' does not support reparameterization.';
       } else {
         val = dist.sample();
-        logq = logr = dist.score(val);
         reparam = false;
       }
 
-      return {val: val, logq: logq, logr: logr, reparam: reparam};
+      var logq = dist.score(val);
+      return {val: val, logq: logq, reparam: reparam};
     },
 
     factor: function(s, k, a, score, name) {
