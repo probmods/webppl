@@ -168,7 +168,7 @@ module.exports = function(env) {
   }
 
   function propagateWeights(nodes) {
-    // Note that this modifies the weights of graph in-place.
+    // Note that this modifies the weights of the graph in-place.
     var i = nodes.length;
     while(--i) {
       var node = nodes[i];
