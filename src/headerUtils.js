@@ -128,14 +128,17 @@ module.exports = function(env) {
   // `mapData`.
 
   // It is the responsibility of individual coroutines to make use of
-  // this information in an appropriate way. To do so, coroutines
-  // should implement the following methods:
+  // this information in an appropriate way. To do so, coroutines can
+  // implement one or more of the following methods:
 
   // mapDataFetch: Called when mapData is entered, providing an
   // opportunity to perform book-keeping etc. This method should
   // return an array of indices indicating the data to be mapped over.
   // Alternatively, null can be returned to indicate that all data
   // should be used.
+
+  // mapDataEnter/mapDataLeave: Called before/after every application
+  // of the observation function.
 
   // mapDataFinal: Called once all data have been mapped over.
 
