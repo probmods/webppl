@@ -19,7 +19,6 @@ var paramStruct = require('../paramStruct');
 var fs = require('fs');
 var nodeUtil = require('util');
 
-
 module.exports = function(env) {
 
   var estimators = {

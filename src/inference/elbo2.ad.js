@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 var assert = require('assert');
+var fs = require('fs');
 var util = require('../util');
 var ad = require('../ad');
 var paramStruct = require('../paramStruct');
@@ -256,7 +257,6 @@ module.exports = function(env) {
           // To vizualize with Graphviz use:
           // dot -Tpng -O deps.dot
           var dot = generateDot(this.nodes);
-          var fs = require('fs');
           fs.writeFileSync('deps.dot', dot);
         }
 
