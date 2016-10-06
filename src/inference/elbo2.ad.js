@@ -78,39 +78,10 @@ module.exports = function(env) {
     this.weight = 0;
   }
 
-  // TODO: This is probably too verbose for general use. Either remove
-  // or hide behind a flag?
-  function dumpDistAndVal(dist, x) {
-    console.log('------------------------------');
-    console.log(dist.meta.name);
-    var _x = ad.value(x);
-    console.log(_.isNumber(_x) ? _x : JSON.stringify(_x.toFlatArray()));
-    console.log('------------------------------');
-    _.each(dist.params, function(val, name) {
-      console.log(name);
-      console.log('------------------------------');
-      var _val = ad.value(val);
-      console.log(_.isNumber(_val) ? _val : JSON.stringify(_val.toFlatArray()));
-      console.log('------------------------------');
-    });
-  }
-
   function SampleNode(parent, logp, logq, reparam, address, targetDist, guideDist, value, multiplier, debug) {
     this.id = nodeid++;
     var _logp = ad.value(logp);
     var _logq = ad.value(logq);
-    // TODO: There's no reason these numerical checks need to be
-    // smushed together with the node constructor.
-    if (!isFinite(_logp)) {
-      console.log('Address: ' + address);
-      dumpDistAndVal(targetDist, value);
-      throw new Error('SampleNode: logp is not finite.');
-    }
-    if (!isFinite(_logq)) {
-      console.log('Address: ' + address);
-      dumpDistAndVal(guideDist, value);
-      throw new Error('SampleNode: logq is not finite.');
-    }
     this.parents = [parent];
     this.logp = logp;
     this.logq = logq;
@@ -133,9 +104,6 @@ module.exports = function(env) {
   function FactorNode(parent, score, multiplier, debug) {
     this.id = nodeid++;
     var _score = ad.value(score);
-    if (!isFinite(_score)) {
-      throw new Error('FactorNode: score is not finite.');
-    }
     this.parents = [parent];
     this.score = score;
     this.weight = debug ? 1 : -_score;
@@ -218,6 +186,18 @@ module.exports = function(env) {
       });
     });
     return 'digraph {\n' + edges.join('\n') + '\n}\n';
+  };
+
+  function checkScoreIsFinite(score, source) {
+    var _score = ad.value(score);
+    if (!isFinite(_score)) { // Also catches NaN.
+      var msg = 'ELBO: The score of the previous sample under the ' +
+            source + ' program was ' + _score + '.';
+      if (_.isNaN(_score)) {
+        msg += ' Reducing the step size may help.';
+      }
+      throw new Error(msg);
+    }
   };
 
   ELBO2.prototype = {
@@ -392,7 +372,10 @@ module.exports = function(env) {
       var val = ret.val;
 
       var logp = dist.score(val);
-      var logq = ret.logq;
+      var logq = guideDist.score(val);
+      checkScoreIsFinite(logp, 'target');
+      checkScoreIsFinite(logq, 'guide');
+
       var m = top(this.mapDataStack).multiplier;
 
       var node = new SampleNode(
@@ -422,11 +405,14 @@ module.exports = function(env) {
         reparam = false;
       }
 
-      var logq = dist.score(val);
-      return {val: val, logq: logq, reparam: reparam};
+
+      return {val: val, reparam: reparam};
     },
 
     factor: function(s, k, a, score, name) {
+      if (!isFinite(ad.value(score))) {
+        throw new Error('ELBO: factor score is not finite.');
+      }
       var m = top(this.mapDataStack).multiplier;
       var node = new FactorNode(
         this.prevNode, score, m, this.opts.debugWeights);
