@@ -111,6 +111,20 @@ The following estimators are available:
 
       Default: ``1``
 
+   .. describe:: avgBaselines
+
+      Enable the "average baseline removal" variance reduction
+      strategy.
+
+      Default: ``true``
+
+   .. describe:: avgBaselineDecay
+
+      The decay rate used in the exponential moving average used to
+      estimate baselines.
+
+      Default: ``0.9``
+
 Example usage::
 
   Optimize(model, {estimator: 'ELBO'});
