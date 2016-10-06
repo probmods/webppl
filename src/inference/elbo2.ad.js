@@ -19,7 +19,8 @@ module.exports = function(env) {
       // Write a DOT file representation of first graph to disk.
       dumpGraph: false,
       // Use local weight of one for all sample and factor nodes. This
-      // is useful for understanding/debugging weight propagation.
+      // is useful in combination with the dumpGraph option for
+      // understanding/debugging weight propagation.
       debugWeights: false
     });
 
@@ -52,23 +53,23 @@ module.exports = function(env) {
     return stack[stack.length - 1];
   }
 
-  // Build a graph to (coarsely) track dependency information so we
-  // can perform *some* Rao-Blackwellization. This simple approach
-  // builds a graph that represents:
+  // The strategy taken here is to build a graph to (coarsely) track
+  // dependency information which we use for variance reduction. This
+  // simple approach builds a graph that represents:
 
-  // 1. How p & q factorize.
+  // 1. The order in which random choices are made.
   // 2. The conditional independence information from mapData.
 
-  // This is used when building the AD graph to remove some
-  // unnecessary terms from the weighting applied to each "grad logq"
-  // factor in the LR part of the objective. This improves on the
-  // naive implementation which weights each factor by logq - logp of
-  // the full execution.
+  // This is used to remove some unnecessary (i.e. upstream) terms
+  // from the weighting applied to each "grad logq" factor in the LR
+  // part of the objective. This improves on the naive implementation
+  // which weights each factor by logq - logp of the full execution.
 
-  // The graph is built as the program executes, then dependencies are
-  // propagated by a separate pass. After this pass, a node's "deps"
-  // property contains all the factors that need to be included in the
-  // weighting of the corresponding grad logq factor.
+  // The graph is built as the program executes. A separate pass then
+  // propagates weights back up the graph, taking account of any
+  // sub-sampling of data that happens at mapData. After this pass, a
+  // node's weight property is the correct weighting for the
+  // corresponding grad logq factor of the objective.
 
   var nodeid = 0;
 
