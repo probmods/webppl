@@ -687,6 +687,29 @@ var paramMatrix = function(n, m) {
 };
 
 
+// Convenience functions for creating maximum likelihood model parameters.
+var modelParamScalar = function() {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: apply(paramScalar, arguments)})
+  });
+};
+var modelParamVector = function() {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: apply(paramVector, arguments)})
+  });
+};
+var modelParamMatrix = function() {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: apply(paramMatrix, arguments)})
+  });
+};
+var modelParamTensor = function() {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: apply(paramTensor, arguments)})
+  });
+};
+
+
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
   var n = arr.length;

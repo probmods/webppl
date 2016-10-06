@@ -202,6 +202,19 @@ function makeDistributionType(options) {
 
 // Distributions
 
+var ImproperUniform = makeDistributionType({
+  name: 'ImproperUniform',
+  desc: 'Improper continuous uniform distribution which has probability one everywhere.',
+  params: [],
+  mixins: [continuousSupport],
+  sample: function() {
+    throw new Error('cannot sample from this improper distribution.')
+  },
+  score: function(val) {
+    return 0;
+  }
+});
+
 var Uniform = makeDistributionType({
   name: 'Uniform',
   desc: 'Continuous uniform distribution over ``[a, b]``',
@@ -1388,6 +1401,7 @@ var Delta = makeDistributionType({
 
 module.exports = {
   // distributions
+  ImproperUniform: ImproperUniform,
   Uniform: Uniform,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,
