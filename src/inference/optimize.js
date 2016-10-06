@@ -52,6 +52,11 @@ module.exports = function(env) {
     // estimates.
     var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
+      if (!_.has(estimators, name)) {
+        throw new Error('Optimize: ' + name + ' is not a valid estimator. ' +
+                        'The following estimators are available: ' +
+                        _.keys(estimators).join(', ') + '.');
+      }
       opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
       return _.partial(estimators[name], wpplFn, s, a, opts, state);
     });
