@@ -5,6 +5,7 @@
 defineDistConstructors(
     Bernoulli
     MultivariateBernoulli
+    ImproperUniform
     Uniform
     RandomInteger
     Gaussian
