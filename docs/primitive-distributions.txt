@@ -50,10 +50,10 @@
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu: mean vector
-  * sigma: vector of standard deviations *(>0)*
+  * mu: mean tensor
+  * sigma: tensor of standard deviations *(>0)*
 
-  Multivariate Gaussian distribution with diagonal covariance matrix. If ``mu`` and ``sigma`` are vectors of length ``d`` then the distribution is over vectors of length ``d``.
+  A distribution over tensors in which each element is independent and Gaussian distributed, with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with diagonal covariance matrix. The distribution is over tensors that have the same shape as the parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.
 
 .. js:function:: Dirichlet({alpha: ...})
 
@@ -65,7 +65,7 @@
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: array or vector of probabilities *(in [0,1])*
+  * ps: array or vector of probabilities *(>0)*
 
   Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
@@ -105,6 +105,17 @@
   A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution#Multivariate_generalization>`__
+
+.. js:function:: LogitNormal({mu: ..., sigma: ..., a: ..., b: ...})
+
+  * mu: location (real)
+  * sigma: scale (real) *(>0)*
+  * a: lower bound (real)
+  * b: upper bound (real) *(>a)*
+
+  A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution>`__
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 

@@ -580,6 +580,27 @@ var tests = [
           verbose: false
         }
       },
+      guidedUniform: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      guidedGamma: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      guidedBeta: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
       dirichlet: {
         args: {
           samples: 5000,
@@ -592,6 +613,20 @@ var tests = [
       tensorGaussian: {
         args: {
           samples: 5000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      exponential: {
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      cauchy: {
+        args: {
+          samples: 10000,
           steps: 10000,
           verbose: false
         }

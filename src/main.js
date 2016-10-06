@@ -243,6 +243,9 @@ function prepare(codeAndAssets, k, options) {
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
   var run = function() {
+    // We reset env since a previous call to run may have raised an
+    // exception and left an inference coroutine installed.
+    env.reset();
     eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
   };
 

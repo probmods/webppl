@@ -51,8 +51,9 @@ function trampoline(node) {
 var driverFn = function(p) {
   return function(runTrampoline) {
     return function(s, k, a) {
-      var t = p(s, k, a);
-      runTrampoline(t);
+      runTrampoline(function() {
+        return p(s, k, a);
+      });
     }
   }
 }

@@ -1,7 +1,5 @@
 'no caching';
 
-resetEnv();
-
 // Distributions (note: this gets macro transformed)
 
 defineDistConstructors(
@@ -23,6 +21,8 @@ defineDistConstructors(
     Poisson
     Dirichlet
     LogisticNormal
+    LogitNormal
+    IspNormal
     Categorical
     Delta);
 
@@ -116,6 +116,11 @@ var tensorGaussian = function(arg1, arg2, arg3) {
 var logisticNormal = function(arg1, arg2) {
   var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
   return sample(LogisticNormal(params));
+};
+
+var logitNormal = function(arg1, arg2, arg3, arg4) {
+  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2, a: arg3, b: arg4};
+  return sample(LogitNormal(params));
 };
 
 // Other distribution helpers
@@ -633,7 +638,7 @@ var Infer = function(options, wpplFn) {
 
 // Convenience function to create scalar valued parameters.
 var scalarParam = function(mean, sd) {
-  return ad.tensorEntry(tensorParam([1], mean, sd), 0);
+  return ad.tensor.get(tensorParam([1], mean, sd), 0);
 };
 
 var param = function(a1, a2, a3) {
@@ -644,13 +649,17 @@ var param = function(a1, a2, a3) {
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
   var n = arr.length;
-  var t = ad.scalarsToTensor(arr);
+  var t = ad.tensor.fromScalars(arr);
   return ad.tensor.reshape(t, [n, 1]);
 };
 var Matrix = function(arr) {
   var n = arr.length;
   var m = arr[0].length;
-  var t = ad.scalarsToTensor(_.flatten(arr));
+  var t = ad.tensor.fromScalars(_.flatten(arr));
   return ad.tensor.reshape(t, [n, m]);
+};
+var Tensor = function(dims, arr) {
+  var t = ad.tensor.fromScalars(arr);
+  return ad.tensor.reshape(t, dims);
 };
 
