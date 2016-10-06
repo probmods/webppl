@@ -12,7 +12,7 @@ module.exports = function(env) {
   function ELBO2(wpplFn, s, a, options, state, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
-      avgBaselines: false,
+      avgBaselines: true,
       avgBaselineDecay: 0.9,
       // Weight all factors in the LR term by log p/q.
       naiveLR: false,
