@@ -1,3 +1,11 @@
+/* print mode: only show header on first page */
+
+@media print {
+    .header, #editorControls {
+        display: none
+    }
+}
+
 .meta {
     margin-bottom: 0.5em;
 }
