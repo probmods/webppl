@@ -1,4 +1,6 @@
 [
   paramScalar(1, 0),
+  // TODO: Make this work.
+  // modelParamScalar(2, 0),
   T.sumreduce(paramTensor([3, 2], 1, 0))
 ];
