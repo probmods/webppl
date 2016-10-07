@@ -95570,12 +95570,12 @@ var CodeInputBox = React.createClass({
       React.createElement(
         'button',
         { className: 'moveUp', onClick: this.props.moveUp },
-        '▲'
+        '\u25B2'
       ),
       React.createElement(
         'button',
         { className: 'moveDown', onClick: this.props.moveDown },
-        '▼'
+        '\u25BC'
       )
     );
   }
@@ -95623,12 +95623,12 @@ var MarkdownInputBox = React.createClass({
       React.createElement(
         'button',
         { className: 'moveUp', onClick: this.props.moveUp },
-        '▲'
+        '\u25B2'
       ),
       React.createElement(
         'button',
         { className: 'moveDown', onClick: this.props.moveDown },
-        '▼'
+        '\u25BC'
       ),
       React.createElement('textarea', { onChange: this.handleChange, onFocus: this.onFocus, onBlur: this.onBlur, value: this.state.text }),
       React.createElement('div', { className: 'preview', onClick: this.setFocus, dangerouslySetInnerHTML: { __html: converter.makeHtml(this.state.text) } })
