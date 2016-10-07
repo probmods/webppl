@@ -135,6 +135,49 @@ Example usage::
 Parameters
 ~~~~~~~~~~
 
+.. js:function:: param([options])
+
+   Retrieves the value of a parameter. If the parameter does not exist
+   it is created, and initialized with a draw from a Gaussian
+   distribution.
+
+   The following options are supported:
+
+   .. describe:: dims
+
+      When ``dims`` is given, ``param`` returns a Tensor of dimension
+      ``dims``. When omitted, ``param`` returns a scalar.
+
+   .. describe:: mu
+
+      The mean of the Gaussian distribution from which the initial
+      parameter value is drawn.
+
+      Default: ``0``
+
+   .. describe:: sigma
+
+      The standard deviation of the Gaussian distribution from which
+      the initial parameter value is drawn. Specify a standard
+      deviation of ``0`` to deterministically initialize the parameter
+      to ``mu``.
+
+      Default: ``0.1``
+
+   .. describe:: name
+
+      The name of the parameter to retrieve. If ``name`` is omitted a
+      default name is automatically generated based on the current
+      stack address, relative to the current coroutine.
+
+   Examples::
+
+     param()
+     param({name: 'myparam'})
+     param({mu: 0, sigma: 0.01, name: 'myparam'})
+     paramScalar({mu: 0, sigma: 0.01})
+
+
 .. js:function:: paramScalar([name])
 .. js:function:: paramScalar(mean, sd[, name])
 

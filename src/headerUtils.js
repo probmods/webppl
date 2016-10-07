@@ -121,6 +121,41 @@ module.exports = function(env) {
     return k(s, params[0]);
   };
 
+  // param provides a convenient wrapper around the primitive
+  // registerParams.
+  var dimsForScalarParam = [1];
+  var param = function(s, k, a, options) {
+    options = util.mergeDefaults(options, {
+      mu: 0,
+      sigma: .1,
+      dims: dimsForScalarParam
+    });
+    var mu = options.mu;
+    var sigma = options.sigma;
+    var dims = options.dims;
+    var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
+
+    var val = util.registerParams(env, name, function() {
+
+      // Initialization.
+
+      var val = new Tensor(dims);
+      if (sigma === 0) {
+        val.fill(mu);
+      } else {
+        for (var i = 0; i < val.length; i++) {
+          val.data[i] = dists.gaussianSample(mu, sigma);
+        }
+      }
+
+      // registerParams tracks an array of parameters for each
+      // name/address.
+      return [val];
+
+    })[0];
+    return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
+  };
+
   // `mapData` maps a function over an array much like the `map`
   // function. It differs in that the use of `mapData` signals to the
   // language that the random choices in each `obsFn` are
@@ -206,6 +241,7 @@ module.exports = function(env) {
     _addr: _addr,
     zeros: zeros,
     ones: ones,
+    param: param,
     paramTensor: paramTensor,
     mapData: mapData
   };
