@@ -169,7 +169,7 @@ function makeDistributionType(options) {
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
   var dist = function(params) {
-    if (params === undefined) {
+    if (params === undefined && parameterNames.length > 0) {
       throw new Error('Parameters not supplied to ' + this.meta.name + ' distribution.');
     }
     parameterNames.forEach(function(p) {
@@ -206,6 +206,7 @@ var ImproperUniform = makeDistributionType({
   name: 'ImproperUniform',
   desc: 'Improper continuous uniform distribution which has probability one everywhere.',
   params: [],
+  internal: true,
   mixins: [continuousSupport],
   sample: function() {
     throw new Error('cannot sample from this improper distribution.')
