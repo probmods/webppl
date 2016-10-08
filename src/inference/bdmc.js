@@ -205,7 +205,7 @@ module.exports = function(env){
         var aisOptions = {
           steps: steps,
           samples: samples,
-          returnMean: true,
+          returnMean: false,
           observeTable: observeTable,
           exactSample: priorSample
         }
@@ -221,7 +221,7 @@ module.exports = function(env){
           steps: steps,
           samples: samples,
           bounces: 0,
-          returnMean: true,
+          returnMean: false,
           observeTable: observeTable,
           mcmcSteps: -1,
           exactSample: postSample
@@ -243,7 +243,7 @@ module.exports = function(env){
     return initialize(function(){
       return util.cpsLoop(options.steps.length, function(i, next){
         return singleBDMC(function(aisWeight, raisWeight){
-          gaps.push([aisWeight[0], aisWeight[1], aisWeight[2], raisWeight[0], raisWeight[1], raisWeight[2]]);
+          gaps.push([JSON.stringify(aisWeight), JSON.stringify(raisWeight)]);
           console.log((i+1) + '/' + options.steps.length + ' done ...');
           return next();
         }, options.steps[i], options.samples);
