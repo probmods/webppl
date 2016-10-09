@@ -12,18 +12,22 @@ module.exports = function(env) {
 
   function Initialize(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
-        observeMode: 'none', // Modes - none, use, build 
-        observeTable: undefined
+        initSampleMode: 'none', // Modes - none, use, build 
+        initObserveMode: 'none', // Modes - none, use, build 
+        cacheTable: undefined
       });
 
-    if (options.observeMode === 'use')
-      assert (options.observeTable !== undefined);
-    else if (options.observeMode === 'build')
-      options.observeTable = {}
+    if (options.initSampleMode === 'use' || options.initObserveMode === 'use')
+      assert (options.cacheTable !== undefined)
+    
+    if (options.initSampleMode === 'build' || options.initObserveMode === 'build')
+      if (options.cacheTable === undefined)
+        options.cacheTable = {}
 
     this.wpplFn = wpplFn;
-    this.observeMode = options.observeMode;
-    this.observeTable = options.observeTable;
+    this.initSampleMode = options.initSampleMode
+    this.initObserveMode = options.initObserveMode;
+    this.cacheTable = options.cacheTable;
     this.s = s;
     this.k = k;
     this.a = a;
@@ -39,7 +43,15 @@ module.exports = function(env) {
   };
 
   Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var val = erp.sample(params);
+    var val;
+    if (this.initSampleMode === 'none') {
+      val = erp.sample(params);
+    } else if (this.initSampleMode === 'build') {
+      val = erp.sample(params);
+      this.cacheTable[a] = val;
+    } else if (this.initSampleMode === 'use') {
+      val = this.cacheTable[a];
+    } else throw new Error ('Invalid sample mode. Shoule be one of - use/build/none');
     this.trace.addChoice(erp, params, val, a, s, k);
     return k(s, val);
   };
@@ -59,18 +71,18 @@ module.exports = function(env) {
     var factorCont = function(val){
       return function(s) {return k(s, val)};
     }
-    if (this.observeMode === 'none') {
+    if (this.initObserveMode === 'none') {
       assert (val !== undefined);
       var score = erp.score(params, val);
       return this.factor(s, factorCont(val), a, score);
-    } else if (this.observeMode === 'build') {
+    } else if (this.initObserveMode === 'build') {
       var val = erp.sample(params);
       var score = erp.score(params, val);
-      this.observeTable[a] = val;
+      this.cacheTable[a] = val;
       return this.factor(s, factorCont(val), a, score);
     }
-    else if (this.observeMode === 'use') {
-      var val = this.observeTable[a];
+    else if (this.initObserveMode === 'use') {
+      var val = this.cacheTable[a];
       var score = (val === undefined) ? -Infinity : erp.score(params, val);
       return this.factor(s, factorCont(val), a, score);
     } else throw new Error ('Invalid observe mode. Shoule be one of - use/build/none');
@@ -90,8 +102,8 @@ module.exports = function(env) {
     assert.notStrictEqual(this.trace.score, -Infinity);
     this.trace.complete(val);
     env.coroutine = this.coroutine;
-    if (this.observeMode === 'build')
-      return this.k(this.s, this.trace, this.observeTable);
+    if (this.initSampleMode === 'build' || this.initObserveMode === 'build')
+      return this.k(this.s, this.trace, this.cacheTable);
     else return this.k(this.s, this.trace);
   };
 

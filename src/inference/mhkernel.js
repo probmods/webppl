@@ -13,7 +13,7 @@ module.exports = function(env) {
       exitFactor: 0,
       permissive: false,
       factorCoeff: 1,
-      observeTable: undefined
+      cacheTable: undefined
     });
 
     if (!options.permissive) {
@@ -26,7 +26,7 @@ module.exports = function(env) {
     this.proposalBoundary = options.proposalBoundary;
     this.exitFactor = options.exitFactor;
     this.factorCoeff = options.factorCoeff;
-    this.observeTable = options.observeTable;
+    this.cacheTable = options.cacheTable;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -94,8 +94,8 @@ module.exports = function(env) {
     var factorCont = function(val){
       return function(s) {return k(s, val)};
     }
-    if (this.observeTable !== undefined) {
-      var val = this.observeTable[a];
+    if (this.cacheTable !== undefined) {
+      var val = this.cacheTable[a];
       assert(val !== undefined);
       var score = (val === undefined) ? -Infinity : erp.score(params, val);
       return this.factor(s, factorCont(val), a, score);

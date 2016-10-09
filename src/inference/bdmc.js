@@ -13,8 +13,9 @@ module.exports = function(env){
       steps: 20,
       samples: 1,
       returnMean: true,
-      observeTable: undefined,
-      exactSample: undefined
+      initSampleMode: 'none',
+      initObserveMode: 'none',
+      cacheTable: undefined,
     });
 
     var weights = [];
@@ -25,11 +26,10 @@ module.exports = function(env){
       var initialize, run, finish;
 
       initialize = function() {
-        if (options.observeTable !== undefined)
           return Initialize(s, run, a, wpplFn,
-            {observeMode: 'use', observeTable: options.observeTable});
-        else
-          return Initialize(s, run, a, wpplFn, {observeMode: 'none'});
+            {initObserveMode: options.initObserveMode,
+             initSampleMode: options.initSampleMode,
+             cacheTable: options.cacheTable});
       };
 
       run = function(s, initialTrace) {
@@ -44,7 +44,7 @@ module.exports = function(env){
           weight += increment*(trace.score-trace.sampleScore);
           factorCoeff += increment;
           return MHKernel(k, trace,
-            {factorCoeff: factorCoeff, observeTable: options.observeTable});  
+            {factorCoeff: factorCoeff, cacheTable: options.cacheTable});  
         }
 
         var mhChainKernel = repeatKernel(options.steps, mhStepKernel);
@@ -56,10 +56,7 @@ module.exports = function(env){
         }, initialTrace);
       }
       
-      if (options.exactSample === undefined)
-        return initialize();
-      else
-        return run(s, options.exactSample);
+      return initialize();
     }
 
     return util.cpsLoop(options.samples, function(i, next){
@@ -94,20 +91,28 @@ module.exports = function(env){
       steps: 20,
       samples: 10,
       returnMean: true,
-      observeTable: undefined,
-      exactSample: undefined
+      initSampleMode: 'none',
+      initObserveMode: 'none',
+      cacheTable: undefined,
     });
 
-    assert(options.exactSample !== undefined);
+    assert(options.cacheTable !== undefined);
 
     var weights = [];
 
     // To be used with util.cpsLoop
     var singleSample = function (k) {
 
-      var run;
+      var initialize, run;
 
-      run = function(initialTrace) {
+      initialize = function() {
+          return Initialize(s, run, a, wpplFn,
+            {initObserveMode: options.initObserveMode,
+             initSampleMode: options.initSampleMode,
+             cacheTable: options.cacheTable});
+      };
+
+      run = function(s, initialTrace) {
 
         var factorCoeff = 1;
         var step = 1/options.steps;
@@ -119,7 +124,7 @@ module.exports = function(env){
           weight -= step*(trace.score-trace.sampleScore);
           factorCoeff -= step;
           return MHKernel(k, trace,
-            {factorCoeff: factorCoeff, observeTable: options.observeTable});
+            {factorCoeff: factorCoeff, cacheTable: options.cacheTable});
         }
 
         var mhChainKernel = repeatKernel(options.steps, mhKernel);
@@ -132,7 +137,7 @@ module.exports = function(env){
         }, initialTrace);
       }
     
-      return run(options.exactSample);
+      return initialize();
     }
 
     return util.cpsLoop(options.samples, function(i, next){
@@ -170,30 +175,13 @@ module.exports = function(env){
       samples: 1,
     });
 
-    var initialize, priorInitialize, postInitialize, observeTable;
-    var priorSample, postSample;
+    var cacheTable, gaps = [];
 
-    var gaps = [];
-
-    postInitialize = function(k) {
+    var initialize = function(k) {
       return Initialize(s, function(s, trace, table) {
-        observeTable = table;
-        postSample = trace;
+        cacheTable = table;
         return k();
-      }, a, wpplFn, {observeMode: 'build'})
-    }
-
-    priorInitialize = function(k) {
-      return Initialize(s, function(s, trace){
-        priorSample = trace;
-        return k();
-      }, a, wpplFn, {observeMode: 'use', observeTable: observeTable})
-    }
-
-    initialize = function(k) {
-      return postInitialize(function(){
-        return priorInitialize(k);
-      })
+      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'build'})
     }
 
     var singleBDMC = function(k, steps, samples) {
@@ -206,8 +194,9 @@ module.exports = function(env){
           steps: steps,
           samples: samples,
           returnMean: false,
-          observeTable: observeTable,
-          exactSample: priorSample
+          initSampleMode: 'use',
+          initObserveMode: 'use',
+          cacheTable: cacheTable
         }
         
         return AIS(s, function(s, weight) {
@@ -222,9 +211,10 @@ module.exports = function(env){
           samples: samples,
           bounces: 0,
           returnMean: false,
-          observeTable: observeTable,
-          mcmcSteps: -1,
-          exactSample: postSample
+          initSampleMode: 'use',
+          initObserveMode: 'use',
+          cacheTable: cacheTable,
+          mcmcSteps: -1
         }
 
         return RAIS(s, function(s, weight){
