@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 var assert = require('assert');
+var fs = require('fs');
 var util = require('../util');
 var Query = require('../query').Query;
 var aggregation = require('../aggregation');
@@ -173,13 +174,24 @@ module.exports = function(env){
     var options = util.mergeDefaults(options, {
       steps: [20],
       samples: 1,
+      loadExactSamplePath: undefined,
+      saveExactSamplePath: undefined,
     });
 
     var cacheTable, gaps = [];
 
     var initialize = function(k) {
+      if (options.loadExactSamplePath !== undefined) {
+        var objString = String(fs.readFileSync(options.loadExactSamplePath));
+        cacheTable = JSON.parse(objString);
+        return k();
+      }
       return Initialize(s, function(s, trace, table) {
         cacheTable = table;
+        if (options.saveExactSamplePath !== undefined) {
+          var objString = JSON.stringify(cacheTable);
+          fs.writeFile(options.saveExactSamplePath, objString);
+        }
         return k();
       }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'build'})
     }
