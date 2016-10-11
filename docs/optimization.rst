@@ -97,6 +97,8 @@ Estimators
 
 The following estimators are available:
 
+.. _elbo:
+
 .. describe:: ELBO
 
    This is the KL divergence between the guide and the target, also
@@ -134,6 +136,8 @@ Example usage::
 
 Parameters
 ~~~~~~~~~~
+
+.. _param:
 
 .. js:function:: param([options])
 
@@ -179,92 +183,18 @@ Parameters
      param({mu: 0, sigma: 0.01, name: 'myparam'})
      param({dims: [10, 10]})
 
-.. js:function:: paramScalar([name])
-.. js:function:: paramScalar(mean, sd[, name])
+.. js:function:: modelParam([options])
 
-   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
-   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
-   :param string name: name for the parameter
-   :returns: the current value of the parameter
+   An analog of ``param`` used to create or retrieve a parameter that
+   can be used directly in the model.
 
-   Creates (or retrieves) a scalar valued parameter initialized with a draw from
-   a normal distribution.
+   Optimizing the :ref:`ELBO <elbo>` yields maximum likelihood
+   estimation for model parameters. ``modelParam`` cannot used with
+   other inference strategies as it does not have an interpretation in
+   the fully Bayesian setting. Attempting to do so will raise an
+   exception.
 
-   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
-   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
-
-   Examples::
-
-     paramScalar()
-     paramScalar('myparam')
-     paramScalar(0, 0.01, 'myparam')
-     paramScalar(0, 0.01)
-
-.. js:function:: paramVector(n, [name])
-.. js:function:: paramVector(n, mean, sd[, name])
-
-   :param integer n: dimension of vector
-   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
-   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
-   :param string name: name for the parameter
-   :returns: the current value of the parameter
-
-   Creates (or retrieves) a scalar valued parameter initialized with a draw from
-   a normal distribution.
-
-   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
-   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
-
-   Examples::
-
-     paramVector(10)
-     paramVector(10, 'myparam')
-     paramVector(10, 0, 0.01, 'myparam')
-     paramVector(10, 0, 0.01)
-
-.. js:function:: paramMatrix(n, m, [name])
-.. js:function:: paramMatrix(n, m, mean, sd[, name])
-
-   :param integer n: first dimension of matrix
-   :param integer m: second dimension of matrix
-   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
-   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
-   :param string name: name for the parameter
-   :returns: the current value of the parameter
-
-   Creates (or retrieves) a scalar valued parameter initialized with a draw from
-   a normal distribution.
-
-   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
-   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
-
-   Examples::
-
-     paramMatrix(4, 4)
-     paramMatrix(4, 4, 'myparam')
-     paramMatrix(4, 4, 0, 0.01, 'myparam')
-     paramMatrix(4, 4, 0, 0.01)
-
-.. js:function:: paramTensor(dims[, name])
-.. js:function:: paramTensor(dims, mean, sd[, name])
-
-   :param array dims: dimension of tensor
-   :param real mean: mean of normal distribution from which initial parameter value is drawn (optional)
-   :param real sd: standard deviation of normal distribution from which initial parameter value is drawn (optional)
-   :param string name: name for the parameter
-   :returns: the current value of the parameter
-
-   Creates a new tensor valued parameter. Each element is initialized
-   with an independent draw from a Gaussian distribution.
-
-   If ``sd`` is omitted the initial value is ``0.1``. If ``mean`` is
-   omitted it defaults to ``0``. If ``name`` is omitted, a default name will be constructed based on where in the program the parameter is created. 
-
-   Example::
-
-     paramTensor([3, 3, 3])
-     paramTensor([3, 3, 3], 'myparam')
-     paramTensor([3, 3, 3], 0, 0.01, 'myparam')
-     paramTensor([3, 3, 3], 0, 0.01)
+   ``modelParam`` supports the same options as ``param``. See the
+   :ref:`documentation for param <param>` for details.
 
 .. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt

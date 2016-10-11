@@ -1,8 +1,8 @@
 var model = function() {
   var a = sample(Gaussian({mu: -4, sigma: 2}), {
     guide: Gaussian({
-      mu: paramScalar(0, 0),
-      sigma: Math.exp(paramScalar(0, 0))
+      mu: param(),
+      sigma: Math.exp(param())
     })
   });
   return a;

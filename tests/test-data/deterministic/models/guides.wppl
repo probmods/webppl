@@ -1,6 +1,4 @@
 [
-  paramScalar(1, 0),
-  // TODO: Make this work.
-  // modelParamScalar(2, 0),
-  T.sumreduce(paramTensor([3, 2], 1, 0))
+  param({mu: 1, sigma: 0}),
+  T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0}))
 ];

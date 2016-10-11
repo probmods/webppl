@@ -637,87 +637,13 @@ var Infer = function(options, wpplFn) {
   return method(wpplFn, _.omit(options, 'method'));
 };
 
-// Convenience functions to create parameters.
-// TODO: Get rid of these, in favor of just having 'param'
-
-// Uses:
-//   paramScalar([name])
-//   paramScalar(mu, sigma, [name])
-// Argument cases:
-//   0: mu = 0, sigma = 0.1, name = undefined
-//   1: mu = 0, sigma = 0.1, name = a0
-//   2: mu = a0, sigma = a1, name = undefined
-//   3: mu = a0, sigma = a1, name = a2
-var paramScalar = function() {
-  var na = arguments.length;
-  var mu = na <= 1 || (arguments[0] === undefined) ? 0 : arguments[0];
-  var sigma = na <= 1 || (arguments[1] === undefined) ? 0.1 : arguments[1];
-  var name = na === 1 ? arguments[0] : na === 3 ? arguments[2] : undefined;
-  return ad.tensor.get(paramTensor([1], mu, sigma, name), 0);
-};
-
-// Uses:
-//   paramVector(n, [name])
-//   paramVector(n, mu, sigma, [name])
-// Argument cases:
-//   1: mu = 0, sigma = 0.1, name = undefined
-//   2: mu = 0, sigma = 0.1, name = a1
-//   3: mu = a1, sigma = a2, name = undefined
-//   4: mu = a1, sigma = a2, name = a3
-var paramVector = function(n) {
-  var na = arguments.length;
-  var mu = na <= 2 || (arguments[1] == undefined) ? 0 : arguments[1];
-  var sigma = na <= 2 || (arguments[2] == undefined) ? 0.1 : arguments[2];
-  var name = na === 2 ? arguments[1] : na === 4 ? arguments[3] : undefined;
-  return paramTensor([n, 1], mu, sigma, name);
-};
-
-// Uses:
-//   paramMatrix(n, m, [name])
-//   paramMatrix(n, m, mu, sigma, [name])
-// Argument cases:
-//   2: mu = 0, sigma = 0.1, name = undefined
-//   3: mu = 0, sigma = 0.1, name = a2
-//   4: mu = a2, sigma = a3, name = undefined
-//   5: mu = a2, sigma = a3, name = a4
-var paramMatrix = function(n, m) {
-  var na = arguments.length;
-  var mu = na <= 3 || (arguments[2] === undefined) ? 0 : arguments[2];
-  var sigma = na <= 3 || (arguments[3] === undefined) ? 0.1 : arguments[3];
-  var name = na === 3 ? arguments[2] : na === 5 ? arguments[4] : undefined;
-  return paramTensor([n, m], mu, sigma, name);
-};
-
-
-// Convenience functions for creating maximum likelihood model parameters.
-var modelParam = function() {
-  // TODO: allow options object to specify prior / regularization type?
+// Convenience function for creating maximum likelihood model
+// parameters.
+var modelParam = function(options) {
   return sample(ImproperUniform(), {
-    guide: Delta({v: apply(param, arguments)});
+    guide: Delta({v: param(options)})
   });
 };
-// TODO: Get rid of these, in favor of just having 'modelParam'
-var modelParamScalar = function() {
-  return sample(ImproperUniform(), {
-    guide: Delta({v: apply(paramScalar, arguments)})
-  });
-};
-var modelParamVector = function() {
-  return sample(ImproperUniform(), {
-    guide: Delta({v: apply(paramVector, arguments)})
-  });
-};
-var modelParamMatrix = function() {
-  return sample(ImproperUniform(), {
-    guide: Delta({v: apply(paramMatrix, arguments)})
-  });
-};
-var modelParamTensor = function() {
-  return sample(ImproperUniform(), {
-    guide: Delta({v: apply(paramTensor, arguments)})
-  });
-};
-
 
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
@@ -735,4 +661,3 @@ var Tensor = function(dims, arr) {
   var t = ad.tensor.fromScalars(arr);
   return ad.tensor.reshape(t, dims);
 };
-
