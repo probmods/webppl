@@ -145,8 +145,10 @@ Parameters
 
    .. describe:: dims
 
-      When ``dims`` is given, ``param`` returns a Tensor of dimension
-      ``dims``. When omitted, ``param`` returns a scalar.
+      When ``dims`` is given, ``param`` returns a tensor of dimension
+      ``dims``. In this case ``dims`` should be an array.
+
+      When ``dims`` is omitted, ``param`` returns a scalar.
 
    .. describe:: mu
 
@@ -175,8 +177,7 @@ Parameters
      param()
      param({name: 'myparam'})
      param({mu: 0, sigma: 0.01, name: 'myparam'})
-     paramScalar({mu: 0, sigma: 0.01})
-
+     param({dims: [10, 10]})
 
 .. js:function:: paramScalar([name])
 .. js:function:: paramScalar(mean, sd[, name])
