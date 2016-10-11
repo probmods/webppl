@@ -23,7 +23,6 @@ module.exports = function(env) {
 
   var estimators = {
     ELBO: require('./elbo')(env),
-    ELBO2: require('./elbo2')(env),
     EUBO: require('./eubo')(env)
   };
 
