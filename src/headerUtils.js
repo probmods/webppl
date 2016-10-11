@@ -83,44 +83,6 @@ module.exports = function(env) {
     return k(s, new Tensor(dims).fill(1));
   };
 
-  // Provides a convenient wrapper around the primitive
-  //   registerParams.
-  // Uses:
-  //   paramTensor(dims, [name])
-  //   paramTensor(dims, mu, sigma, [name])
-  // Argument cases:
-  //   4: mu = 0, sigma = 0.1, name = undefined
-  //   5: mu = 0, sigma = 0.1, name = a4
-  //   6: mu = a4, sigma = a5, name = undefined
-  //   7: mu = a4, sigma = a5, name = a6
-  var paramTensor = function(s, k, a, dims) {
-    var na = arguments.length;
-    var mu = na <= 5 || (arguments[4] === undefined) ? 0 : arguments[4];
-    var sigma = na <= 5 || (arguments[5] === undefined) ? 0.1 : arguments[5];
-    var name = na === 5 ? arguments[4] : na === 7 ? arguments[6] : undefined;
-    if (name === undefined) name = util.relativizeAddress(env, a);
-
-    var params = util.registerParams(env, name, function() {
-
-      // Initialization.
-
-      var val = new Tensor(dims);
-      if (sigma === 0) {
-        val.fill(mu);
-      } else {
-        for (var i = 0; i < val.length; i++) {
-          val.data[i] = dists.gaussianSample(mu, sigma);
-        }
-      }
-
-      // registerParams tracks an array of parameters for each
-      // name/address.
-      return [val];
-
-    });
-    return k(s, params[0]);
-  };
-
   // param provides a convenient wrapper around the primitive
   // registerParams.
   var dimsForScalarParam = [1];
