@@ -53,7 +53,10 @@ module.exports = function(env) {
           function() {
             env.coroutine = this.coroutine;
             var dist = hist.toDist();
-            dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(this.opts.samples);
+            if (!this.opts.guide) {
+              var numSamples = this.opts.samples;
+              dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(numSamples);
+            }
             return this.k(this.s, dist);
           }.bind(this));
 
