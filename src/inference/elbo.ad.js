@@ -492,7 +492,8 @@ module.exports = function(env) {
       }
     },
 
-    incrementalize: env.defaultCoroutine.incrementalize
+    incrementalize: env.defaultCoroutine.incrementalize,
+    constructor: ELBO
 
   };
 
