@@ -490,7 +490,9 @@ module.exports = function(env) {
         this.prevNode = joinNode;
         this.nodes.push(joinNode);
       }
-    }
+    },
+
+    incrementalize: env.defaultCoroutine.incrementalize
 
   };
 
