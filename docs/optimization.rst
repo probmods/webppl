@@ -137,9 +137,9 @@ Parameters
 
 .. js:function:: param([options])
 
-   Retrieves the value of a parameter. If the parameter does not exist
-   it is created, and initialized with a draw from a Gaussian
-   distribution.
+   Retrieves the value of a parameter by name. If the parameter does
+   not exist, it is created and initialized with a draw from a
+   Gaussian distribution.
 
    The following options are supported:
 
