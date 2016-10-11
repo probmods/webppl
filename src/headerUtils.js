@@ -204,7 +204,6 @@ module.exports = function(env) {
     zeros: zeros,
     ones: ones,
     param: param,
-    paramTensor: paramTensor,
     mapData: mapData
   };
 
