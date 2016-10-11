@@ -638,6 +638,7 @@ var Infer = function(options, wpplFn) {
 };
 
 // Convenience functions to create parameters.
+// TODO: Get rid of these, in favor of just having 'param'
 
 // Uses:
 //   paramScalar([name])
@@ -689,6 +690,13 @@ var paramMatrix = function(n, m) {
 
 
 // Convenience functions for creating maximum likelihood model parameters.
+var modelParam = function() {
+  // TODO: allow options object to specify prior / regularization type?
+  return sample(ImproperUniform(), {
+    guide: Delta({v: apply(param, arguments)});
+  });
+};
+// TODO: Get rid of these, in favor of just having 'modelParam'
 var modelParamScalar = function() {
   return sample(ImproperUniform(), {
     guide: Delta({v: apply(paramScalar, arguments)})
