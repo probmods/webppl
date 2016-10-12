@@ -169,7 +169,7 @@ function makeDistributionType(options) {
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
   var dist = function(params) {
-    if (params === undefined) {
+    if (params === undefined && parameterNames.length > 0) {
       throw new Error('Parameters not supplied to ' + this.meta.name + ' distribution.');
     }
     parameterNames.forEach(function(p) {
@@ -201,6 +201,20 @@ function makeDistributionType(options) {
 }
 
 // Distributions
+
+var ImproperUniform = makeDistributionType({
+  name: 'ImproperUniform',
+  desc: 'Improper continuous uniform distribution which has probability one everywhere.',
+  params: [],
+  internal: true,
+  mixins: [continuousSupport],
+  sample: function() {
+    throw new Error('cannot sample from this improper distribution.')
+  },
+  score: function(val) {
+    return 0;
+  }
+});
 
 var Uniform = makeDistributionType({
   name: 'Uniform',
@@ -1373,7 +1387,7 @@ var Delta = makeDistributionType({
     return ad.value(this.params.v);
   },
   score: function(val) {
-    return val === this.params.v ? 0 : -Infinity;
+    return ad.value(val) === ad.value(this.params.v) ? 0 : -Infinity;
   },
   support: function() {
     return [this.params.v];
@@ -1388,6 +1402,7 @@ var Delta = makeDistributionType({
 
 module.exports = {
   // distributions
+  ImproperUniform: ImproperUniform,
   Uniform: Uniform,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,

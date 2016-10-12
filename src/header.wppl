@@ -5,6 +5,7 @@
 defineDistConstructors(
     Bernoulli
     MultivariateBernoulli
+    ImproperUniform
     Uniform
     RandomInteger
     Gaussian
@@ -636,15 +637,13 @@ var Infer = function(options, wpplFn) {
   return method(wpplFn, _.omit(options, 'method'));
 };
 
-// Convenience function to create scalar valued parameters.
-var scalarParam = function(mean, sd) {
-  return ad.tensor.get(tensorParam([1], mean, sd), 0);
+// Convenience function for creating maximum likelihood model
+// parameters.
+var modelParam = function(options) {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: param(options)})
+  });
 };
-
-var param = function(a1, a2, a3) {
-  return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
-};
-
 
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
@@ -662,4 +661,3 @@ var Tensor = function(dims, arr) {
   var t = ad.tensor.fromScalars(arr);
   return ad.tensor.reshape(t, dims);
 };
-

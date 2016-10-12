@@ -22,7 +22,7 @@ var paramStruct = require('../paramStruct');
 
 module.exports = function(env) {
 
-  function EUBO(wpplFn, s, a, options, params, step, cont) {
+  function EUBO(wpplFn, s, a, options, state, params, step, cont) {
     this.opts = util.mergeDefaults(options, {
       miniBatchSize: 1
     });

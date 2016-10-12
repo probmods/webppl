@@ -83,24 +83,30 @@ module.exports = function(env) {
     return k(s, new Tensor(dims).fill(1));
   };
 
-  // Provides a convinient wrapper around the primitive
+  // param provides a convenient wrapper around the primitive
   // registerParams.
-  var tensorParam = function(s, k, a, dims, mean, sd) {
+  var dimsForScalarParam = [1];
+  var param = function(s, k, a, options) {
+    options = util.mergeDefaults(options, {
+      mu: 0,
+      sigma: .1,
+      dims: dimsForScalarParam
+    });
+    var mu = options.mu;
+    var sigma = options.sigma;
+    var dims = options.dims;
+    var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
 
-    var name = util.relativizeAddress(env, a);
-    var params = util.registerParams(env, name, function() {
-
-      mean = (mean !== undefined) ? mean : 0;
-      sd = (sd !== undefined) ? sd : 0;
+    var val = util.registerParams(env, name, function() {
 
       // Initialization.
 
       var val = new Tensor(dims);
-      if (sd === 0) {
-        val.fill(mean);
+      if (sigma === 0) {
+        val.fill(mu);
       } else {
         for (var i = 0; i < val.length; i++) {
-          val.data[i] = dists.gaussianSample(mean, sd);
+          val.data[i] = dists.gaussianSample(mu, sigma);
         }
       }
 
@@ -108,8 +114,8 @@ module.exports = function(env) {
       // name/address.
       return [val];
 
-    });
-    return k(s, params[0]);
+    })[0];
+    return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
   };
 
   // `mapData` maps a function over an array much like the `map`
@@ -119,14 +125,17 @@ module.exports = function(env) {
   // `mapData`.
 
   // It is the responsibility of individual coroutines to make use of
-  // this information in an appropriate way. To do so, coroutines
-  // should implement the following methods:
+  // this information in an appropriate way. To do so, coroutines can
+  // implement one or more of the following methods:
 
   // mapDataFetch: Called when mapData is entered, providing an
   // opportunity to perform book-keeping etc. This method should
   // return an array of indices indicating the data to be mapped over.
   // Alternatively, null can be returned to indicate that all data
   // should be used.
+
+  // mapDataEnter/mapDataLeave: Called before/after every application
+  // of the observation function.
 
   // mapDataFinal: Called once all data have been mapped over.
 
@@ -144,7 +153,7 @@ module.exports = function(env) {
       throw new Error('mapData: No data given.');
     }
 
-    var batchSize = _.has(opts, 'batchSize') ? opts.batchSize : data.length;
+    var batchSize = opts.batchSize !== undefined ? opts.batchSize : data.length;
     if (batchSize < 0 || batchSize > data.length) {
       throw new Error('mapData: Invalid batchSize.');
     }
@@ -171,11 +180,18 @@ module.exports = function(env) {
       return k(s, acc);
     } else {
       var ix = (indices === null) ? i : indices[i];
+      if (env.coroutine.mapDataEnter) {
+        env.coroutine.mapDataEnter();
+      }
       return f(s, function(s, v) {
+        if (env.coroutine.mapDataLeave) {
+          env.coroutine.mapDataLeave();
+        }
+
         return function() {
           return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
         };
-      }, a.concat('_$$' + ix), data[ix]);
+      }, a.concat('_$$' + ix), data[ix], ix);
     }
   }
 
@@ -187,7 +203,7 @@ module.exports = function(env) {
     _addr: _addr,
     zeros: zeros,
     ones: ones,
-    tensorParam: tensorParam,
+    param: param,
     mapData: mapData
   };
 
