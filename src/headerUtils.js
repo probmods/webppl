@@ -118,21 +118,16 @@ module.exports = function(env) {
     return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
   };
 
-  // `mapData` maps a function over an array much like the `map`
-  // function. It differs in that the use of `mapData` signals to the
-  // language that the random choices in each `obsFn` are
-  // conditionally independent given the random choices made before
-  // `mapData`.
-
-  // It is the responsibility of individual coroutines to make use of
-  // this information in an appropriate way. To do so, coroutines can
-  // implement one or more of the following methods:
+  // It is the responsibility of individual coroutines to implement
+  // data sub-sampling and to make use of the conditional independence
+  // information mapData provides. To do so, coroutines can implement
+  // one or more of the following methods:
 
   // mapDataFetch: Called when mapData is entered, providing an
-  // opportunity to perform book-keeping etc. This method should
-  // return an array of indices indicating the data to be mapped over.
-  // Alternatively, null can be returned to indicate that all data
-  // should be used.
+  // opportunity to perform book-keeping etc. When sub-sampling data
+  // this method should return an array of indices indicating the data
+  // to be mapped over. Alternatively, null can be returned to
+  // indicate that all data should be used.
 
   // mapDataEnter/mapDataLeave: Called before/after every application
   // of the observation function.
