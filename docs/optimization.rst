@@ -101,9 +101,8 @@ The following estimators are available:
 
 .. describe:: ELBO
 
-   This is the KL divergence between the guide and the target, also
-   know as the evidence lower-bound. Optimizing this objective yields
-   variational inference.
+   This is the evidence lower bound (ELBO). Optimizing this objective
+   yields variational inference.
 
    The following options are supported:
 
