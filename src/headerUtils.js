@@ -158,12 +158,13 @@ module.exports = function(env) {
         null;
 
     assert.ok(ix === null || _.isArray(ix));
+    var doReturn = ix === null; // We return undefined when sub-sampling data.
 
     return cpsMapData(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
         env.coroutine.mapDataFinal(a);
       }
-      return k(s, v);
+      return k(s, doReturn ? v : undefined);
     }, a, data, ix, obsFn);
   }
 
