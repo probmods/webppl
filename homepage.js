@@ -95527,7 +95527,11 @@ var showdownKatex = function () {
     type: 'lang',
     regex: /~D~D([\s\S]+?)~D~D/gm,
     replace: function (text, group) {
-      return katex.renderToString(group);
+      try {
+        return katex.renderToString(group);
+      } catch (e) {
+        return group;
+      }
     }
   }];
 };
