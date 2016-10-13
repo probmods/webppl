@@ -104,6 +104,14 @@ The following estimators are available:
    This is the evidence lower bound (ELBO). Optimizing this objective
    yields variational inference.
 
+   For best performance use :js:func:`mapData` in place of
+   :js:func:`map` where possible when optimizing this objective. The
+   conditional independence information this provides is used to
+   reduce the variance of gradient estimates which can significantly
+   improve performance, particularly in the presence of discrete
+   random choices. Data sub-sampling is also supported through the use
+   of :js:func:`mapData`.
+
    The following options are supported:
 
    .. describe:: samples

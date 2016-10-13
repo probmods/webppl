@@ -10,6 +10,34 @@ Arrays
 
       map(function(x) { return x + 1; }, [0, 1, 2]); // => [1, 2, 3]
 
+.. js:function:: mapData({data: arr[, batchSize: n]}, fn)
+
+   Returns an array obtained by mapping the function ``fn`` over array
+   ``arr``. Each application of ``fn`` has an element of ``arr`` as
+   its first argument and the index of that element as its second
+   argument.
+
+   ``map`` and ``mapData`` differ in that the use of ``mapData``
+   asserts to the inference back end that all executions of ``fn`` are
+   conditionally independent. This information can potentially be
+   exploited on a per algorithm basis to improve the efficiency of
+   inference.
+
+   ``mapData`` also provides an interface through which inference
+   algorithms can support data sub-sampling. Where supported, the size
+   of a "mini-batch" can be specified using the ``batchSize`` option.
+   When using data sub-sampling the array normally returned by
+   ``mapData`` is not computed in its entirety, so ``undefined`` is
+   returned in its place.
+
+   Only the :ref:`ELBO <elbo>` optimization objective takes advantage
+   of ``mapData`` at this time.
+
+   ::
+
+      mapData({data: [0, 1, 2]}, function(x) { return x + 1; }); // => [1, 2, 3]
+      mapData({data: data, batchSize: 10}, fn);
+
 .. js:function:: map2(fn, arr1, arr2)
 
    Returns an array obtained by mapping the function ``fn`` over
