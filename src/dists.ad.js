@@ -186,7 +186,7 @@ function makeDistributionType(options) {
   dist.prototype = Object.create(Distribution.prototype);
   dist.prototype.constructor = dist;
 
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'wikipedia');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'nohelper', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -207,6 +207,7 @@ var ImproperUniform = makeDistributionType({
   desc: 'Improper continuous uniform distribution which has probability one everywhere.',
   params: [],
   nodoc: true,
+  nohelper: true,
   mixins: [continuousSupport],
   sample: function() {
     throw new Error('cannot sample from this improper distribution.')
@@ -1301,6 +1302,7 @@ function discreteSample(theta) {
 var Marginal = makeDistributionType({
   name: 'Marginal',
   nodoc: true,
+  nohelper: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
@@ -1352,6 +1354,7 @@ var Categorical = makeDistributionType({
   params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
+  nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.

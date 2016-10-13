@@ -73,9 +73,13 @@ function loadMacros(pkg) {
 
 function headerPackage() {
   // Create a pseudo package from the header.
-  var code = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
-  return { wppl: [{ code: code, filename: 'header.wppl' }], macros: [headerMacroModule] };
+  var dists = fs.readFileSync(__dirname + '/dists.wppl', 'utf8');
+  var header = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
+  return { wppl: [
+    { code: dists, filename: 'dists.wppl' },
+    { code: header, filename: 'header.wppl' }
+  ], macros: [headerMacroModule] };
 }
 
 function unpack(packages) {
@@ -183,8 +187,9 @@ function compile(code, options) {
     var macros = _.chain(bundles).pluck('macros').flatten().uniq().value();
     var programAst = parse(code, macros, options.filename);
     var asts = _.pluck(bundles, 'ast').map(copyAst).concat(programAst);
-    assert.strictEqual(bundles[0].filename, 'header.wppl');
-    var doCaching = _.any(asts.slice(1), caching.transformRequired);
+    assert.strictEqual(bundles[0].filename, 'dists.wppl');
+    assert.strictEqual(bundles[1].filename, 'header.wppl');
+    var doCaching = _.any(asts.slice(2), caching.transformRequired);
 
     if (options.verbose && doCaching) {
       console.log('Caching transform will be applied.');
