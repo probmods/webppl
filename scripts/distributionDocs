@@ -30,7 +30,7 @@ function formatDomain(interval) {
   }
 }
 
-var metadata = dists.metadata().filter(function(meta) { return !meta.internal; });
+var metadata = dists.metadata().filter(function(meta) { return !meta.nodoc; });
 
 var body = metadata.map(function(meta) {
 

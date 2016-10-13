@@ -186,7 +186,7 @@ function makeDistributionType(options) {
   dist.prototype = Object.create(Distribution.prototype);
   dist.prototype.constructor = dist;
 
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal', 'wikipedia');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -206,7 +206,7 @@ var ImproperUniform = makeDistributionType({
   name: 'ImproperUniform',
   desc: 'Improper continuous uniform distribution which has probability one everywhere.',
   params: [],
-  internal: true,
+  nodoc: true,
   mixins: [continuousSupport],
   sample: function() {
     throw new Error('cannot sample from this improper distribution.')
@@ -631,7 +631,7 @@ var LogitNormal = makeDistributionType({
 
 var IspNormal = makeDistributionType({
   name: 'IspNormal', // For 'Inverse softplus normal'.
-  internal: true,
+  nodoc: true,
   desc: 'A distribution over positive reals obtained by mapping a Gaussian ' +
       'distributed variable through the softplus function.',
   params: [
@@ -1300,7 +1300,7 @@ function discreteSample(theta) {
 
 var Marginal = makeDistributionType({
   name: 'Marginal',
-  internal: true,
+  nodoc: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
