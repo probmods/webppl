@@ -20,12 +20,12 @@
     "jquery": "^2.2.4",
     "jstransform": "^11.0.3",
     "katex": "^0.6.0",
-    "react": "^15.1.0",
-    "react-dom": "^15.1.0",
+    "react": "^15.3.2",
+    "react-dom": "^15.3.2",
     "showdown": "^1.4.1",
     "underscore": "^1.8.3",
     "watchify": "^3.7.0",
-    "webppl-editor": "probmods/webppl-editor#1.0.5",
+    "webppl-editor": "probmods/webppl-editor#1.0.6",
     "webppl-viz": "github:probmods/webppl-viz#41e5d24"
   },
   "scripts": {
