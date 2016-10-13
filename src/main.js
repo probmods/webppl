@@ -9,6 +9,7 @@ var assert = require('assert');
 var _ = require('underscore');
 var sweet = require('sweet.js');
 
+var ad = require('./transforms/ad').ad;
 var cps = require('./transforms/cps').cps;
 var addFilename = require('./transforms/addFilename').addFilename;
 var optimize = require('./transforms/optimize').optimize;
@@ -171,6 +172,7 @@ function compile(code, options) {
   };
 
   var transforms = options.transforms || [
+    ad,
     thunkify,
     naming,
     saveAddressMap,
