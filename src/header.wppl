@@ -143,7 +143,11 @@ var delta = function(arg) {
 
 var uniformDraw = function(arg) {
   var vs = util.isObject(arg) ? arg.vs : arg;
-  return vs[sample(RandomInteger({n: vs.length}))];
+  if (vs.length == 0) {
+    return undefined;
+  } else {
+    return vs[sample(RandomInteger({n: vs.length}))];
+  }
 };
 
 var serializeDist = function(d) {
