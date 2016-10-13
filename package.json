@@ -30,7 +30,6 @@
     "seedrandom": "^2.4.2",
     "source-map": "^0.5.3",
     "stack-trace": "0.0.9",
-    "sweet.js": "probmods/sweet.js#browserify",
     "underscore": "^1.8.3"
   },
   "devDependencies": {

@@ -61,7 +61,6 @@ var read = function(name_or_path, paths, verbose) {
               full: joinPath(manifestPath)
             };
           }),
-          macros: _.map(manifest.webppl.macros, joinPath),
           version: pkginfo.version(candidate)
         };
       } else {
@@ -88,8 +87,7 @@ var load = function(pkg) {
         code: fs.readFileSync(path.full, 'utf8'),
         filename: path.full
       };
-    }),
-    macros: pkg.macros.map(function(fn) { return fs.readFileSync(fn); })
+    })
   };
 };
 
@@ -124,7 +122,6 @@ var wrappers = {
   wppl: function(path) {
     return '{ code: fs.readFileSync("' + path.full + '", "utf8"), filename: "' + path.rel + '" }';
   },
-  macros: function(path) { return 'fs.readFileSync("' + path + '", "utf8")'; },
   headers: wrapWithRequire,
   identifier: wrapWithQuotes,
   path: wrapWithRequire,

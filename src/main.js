@@ -7,7 +7,6 @@ var esprima = require('esprima');
 var escodegen = require('escodegen');
 var assert = require('assert');
 var _ = require('underscore');
-var sweet = require('sweet.js');
 
 var ad = require('./transforms/ad').ad;
 var cps = require('./transforms/cps').cps;
@@ -53,61 +52,40 @@ function concatPrograms(programs) {
   return programs.reduce(concat, emptyProgram);
 }
 
-function parse(code, macros, filename) {
-  var compiled = sweet.compile(code, { readableNames: true, ast: true, modules: macros });
-  return addFilename(compiled, filename);
+function parse(code, filename) {
+  var ast = esprima.parse(code, {loc: true});
+  return addFilename(ast, filename);
 }
 
 function parseAll(bundles) {
   return bundles.map(function(bundle) {
-    var ast = parse(bundle.code, bundle.macros, bundle.filename);
+    var ast = parse(bundle.code, bundle.filename);
     return _.extendOwn({ ast: ast }, bundle);
   });
 }
 
-function loadMacros(pkg) {
-  return {
-    wppl: pkg.wppl,
-    macros: pkg.macros.map(function(code) { return sweet.loadModule(code); })
-  };
-}
-
 function headerPackage() {
   // Create a pseudo package from the header.
-  var headerMacroModule = fs.readFileSync(__dirname + '/headerMacros.sjs', 'utf8');
   var dists = fs.readFileSync(__dirname + '/dists.wppl', 'utf8');
   var header = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
   return { wppl: [
     { code: dists, filename: 'dists.wppl' },
     { code: header, filename: 'header.wppl' }
-  ], macros: [headerMacroModule] };
+  ]};
 }
 
 function unpack(packages) {
   // Flatten an array of packages into an array of code bundles. A
-  // bundle contains wppl source code, filename and associated macros.
+  // bundle contains wppl source code and its filename.
   //
-  // Package :: { wppl: [String], macros: [LoadedMacroModule] }
-  // Bundle :: { code: String, filename: String, macros: [LoadedMacroModule] }
+  // Package :: { wppl: [{ code: ..., filename: ... }] }
+  // Bundle :: { code: String, filename: String }
   //
   return _.chain(packages).map(function(pkg) {
     return pkg.wppl.map(function(wppl) {
-      return { code: wppl.code, filename: wppl.filename, macros: pkg.macros };
+      return { code: wppl.code, filename: wppl.filename };
     });
   }).flatten().value();
-}
-
-function addHeaderMacrosToEachBundle(bundles) {
-  // This assumes that pair[0] is the content of the header.
-  assert.ok(bundles.length >= 1 && bundles[0].macros.length === 1);
-  var headerMacros = bundles[0].macros;
-  return bundles.map(function(bundle, i) {
-    return {
-      code: bundle.code,
-      filename: bundle.filename,
-      macros: bundle.macros.concat(i > 0 ? headerMacros : [])
-    };
-  });
 }
 
 function parsePackageCode(packages, verbose) {
@@ -117,11 +95,10 @@ function parsePackageCode(packages, verbose) {
   // The contents of the header are included at this stage.
 
   function _parsePackageCode() {
-    var allPackages = [headerPackage()].concat(packages).map(loadMacros);
+    var allPackages = [headerPackage()].concat(packages);
 
     return util.pipeline([
       unpack,
-      addHeaderMacrosToEachBundle,
       parseAll
     ])(allPackages);
   }
@@ -186,8 +163,7 @@ function compile(code, options) {
   ];
 
   function _compile() {
-    var macros = _.chain(bundles).pluck('macros').flatten().uniq().value();
-    var programAst = parse(code, macros, options.filename);
+    var programAst = parse(code, options.filename);
     var asts = _.pluck(bundles, 'ast').map(copyAst).concat(programAst);
     assert.strictEqual(bundles[0].filename, 'dists.wppl');
     assert.strictEqual(bundles[1].filename, 'header.wppl');
