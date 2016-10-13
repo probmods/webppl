@@ -1400,10 +1400,18 @@ var Delta = makeDistributionType({
   }
 });
 
-module.exports = {
-  // distributions
-  ImproperUniform: ImproperUniform,
+function metadata() {
+  return _.chain(distributions)
+    .pairs() // pair[0] = key, pair[1] = value
+    .sortBy(function(pair) { return pair[0]; })
+    .map(function(pair) { return pair[1]; })
+    .map(function(dist) { return dist.prototype.meta; })
+    .value();
+}
+
+var distributions = {
   Uniform: Uniform,
+  ImproperUniform: ImproperUniform,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,
   RandomInteger: RandomInteger,
@@ -1425,7 +1433,10 @@ module.exports = {
   Dirichlet: Dirichlet,
   Marginal: Marginal,
   Categorical: Categorical,
-  Delta: Delta,
+  Delta: Delta
+};
+
+module.exports = _.assign({
   // rng
   betaSample: betaSample,
   binomialSample: binomialSample,
@@ -1438,5 +1449,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   squishToProbSimplex: squishToProbSimplex,
-  isDist: isDist
-};
+  isDist: isDist,
+  metadata: metadata
+}, distributions);

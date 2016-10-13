@@ -7,22 +7,6 @@
 var dists = require('../src/dists.ad.js');
 var _ = require('underscore');
 
-function getMetaData() {
-  return _.chain(dists)
-    .pairs() // pair[0] = key, pair[1] = value
-    .filter(function(pair) {
-      var dist = pair[1];
-      return dists.isDist(dist.prototype);
-    })
-    .sortBy(function(pair) { return pair[0]; })
-    .map(function(pair) { return pair[1]; })
-    .map(function(dist) {
-      return dist.prototype.meta;
-    })
-    .filter(function(meta) { return !meta.internal; })
-    .value();
-}
-
 function makeTemplates(obj) {
   return _.mapObject(obj, _.template);
 }
@@ -46,7 +30,9 @@ function formatDomain(interval) {
   }
 }
 
-var body = getMetaData().map(function(meta) {
+var metadata = dists.metadata().filter(function(meta) { return !meta.internal; });
+
+var body = metadata.map(function(meta) {
 
   var out = [];
 
