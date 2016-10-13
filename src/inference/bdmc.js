@@ -178,22 +178,41 @@ module.exports = function(env){
       saveExactSamplePath: undefined,
     });
 
-    var cacheTable, gaps = [];
+    var priorCacheTable, posteriorCacheTable;
+    var gaps = [];
+
+    var posteriorInitialize = function(k) {
+      return Initialize(s, function(s, trace, table) {
+        posteriorCacheTable = table;
+        return k();
+      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'build'})
+    }
+
+    var priorInitialize = function(k) {
+      return Initialize(s, function(s, trace, table) {
+        priorCacheTable = table;
+        return k();
+      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'use',
+                     cacheTable: _.clone(posteriorCacheTable)})
+    }
 
     var initialize = function(k) {
       if (options.loadExactSamplePath !== undefined) {
         var objString = String(fs.readFileSync(options.loadExactSamplePath));
-        cacheTable = JSON.parse(objString);
+        var tables = JSON.parse(objString);
+        priorCacheTable = tables[0];
+        posteriorCacheTable = tables[1];
         return k();
       }
-      return Initialize(s, function(s, trace, table) {
-        cacheTable = table;
-        if (options.saveExactSamplePath !== undefined) {
-          var objString = JSON.stringify(cacheTable);
-          fs.writeFile(options.saveExactSamplePath, objString);
-        }
-        return k();
-      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'build'})
+      return posteriorInitialize(function(){
+        return priorInitialize(function(){
+          if (options.saveExactSamplePath !== undefined) {
+            var objString = JSON.stringify([priorCacheTable, posteriorCacheTable]);
+            fs.writeFile(options.saveExactSamplePath, objString);
+          }
+          return k();
+        })
+      })
     }
 
     var singleBDMC = function(k, steps, samples) {
@@ -208,7 +227,7 @@ module.exports = function(env){
           returnMean: false,
           initSampleMode: 'use',
           initObserveMode: 'use',
-          cacheTable: cacheTable
+          cacheTable: priorCacheTable
         }
         
         return AIS(s, function(s, weight) {
@@ -225,7 +244,7 @@ module.exports = function(env){
           returnMean: false,
           initSampleMode: 'use',
           initObserveMode: 'use',
-          cacheTable: cacheTable,
+          cacheTable: posteriorCacheTable,
           mcmcSteps: -1
         }
 
