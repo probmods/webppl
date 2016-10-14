@@ -166,7 +166,6 @@ These packages are no longer maintained, but may be worth a look:
 - `caches`_: cache inference results to disk
 - `formal`_: static analysis in Racket for WebPPL
 - `isosmc`_: utils for defining sequences of distributions for smc
-- `linked-list`_: linked lists
 
 .. _sweet.js: http://sweetjs.org
 .. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules
@@ -185,4 +184,3 @@ These packages are no longer maintained, but may be worth a look:
 .. _caches: https://github.com/iffsid/webppl-caches
 .. _formal: https://github.com/kimmyg/webppl-formal
 .. _isosmc: https://github.com/stuhlmueller/isosmc
-.. _linked-list: https://github.com/null-a/webppl-linked-list
