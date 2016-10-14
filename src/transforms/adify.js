@@ -6,26 +6,9 @@ var parse = require('esprima').parse;
 var replace = require('estraverse').replace;
 var generate = require('escodegen').generate;
 var build = require('ast-types').builders;
-var sweet = require('sweet.js');
 var _ = require('underscore');
+var ad = require('./ad').ad;
 var util = require('../util');
-
-var adMacros = sweet.loadNodeModule(null, 'adnn/ad/macros.sjs');
-var sweetOptions = { modules: adMacros, readableNames: true, ast: true };
-
-function expandMacros(code) {
-  return sweet.compile(code, sweetOptions);
-}
-
-function expandMacrosInFunction(node) {
-  if (node.type === 'FunctionExpression') {
-    return expandMacros('(' + generate(node) + ')').body[0].expression;
-  } else if (node.type === 'FunctionDeclaration') {
-    return expandMacros(generate(node)).body[0];
-  } else {
-    throw new Error('Unknown type.');
-  }
-}
 
 function isMarkedForGlobalTransform(ast) {
   assert.ok(ast.type === 'Program');
@@ -59,7 +42,7 @@ function transform(ast) {
           node.type === 'FunctionDeclaration') {
         if (isMarkedForTransform(node)) {
           this.skip(); // Don't traverse child nodes.
-          return expandMacrosInFunction(node);
+          return ad(node);
         }
       }
     }
@@ -92,7 +75,7 @@ function adifyMain(code, adRequirePath) {
     parse,
     function(node) {
       return isMarkedForGlobalTransform(node) ?
-          expandMacros(code) :
+          ad(node) :
           transform(node);
     },
     _.partial(addAdRequire, _, adRequirePath),

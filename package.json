@@ -30,12 +30,11 @@
     "seedrandom": "^2.4.2",
     "source-map": "^0.5.3",
     "stack-trace": "0.0.9",
-    "sweet.js": "probmods/sweet.js#browserify",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
     "aws-sdk": "^2.4.1",
-    "brfs": "0.0.8",
+    "brfs": "^1.4.3",
     "closure-linter-wrapper": "^1.0.1",
     "grunt": "^0.4.5",
     "grunt-contrib-clean": "^0.7.0",
@@ -50,7 +49,7 @@
   },
   "scripts": {
     "test": "nodeunit tests",
-    "postinstall": "node scripts/adify"
+    "postinstall": "node scripts/adify && node scripts/distHeader"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"

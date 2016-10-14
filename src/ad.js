@@ -52,6 +52,10 @@ ad.scalar.logGamma = ad.newUnaryFunction({
   }
 });
 
+ad.scalar.plus = function(x) {
+  return ad.scalar.add(0, x);
+};
+
 // HACK: Used to access Tensor in daipp.
 ad.tensor['__Tensor'] = Tensor;
 

@@ -186,7 +186,7 @@ function makeDistributionType(options) {
   dist.prototype = Object.create(Distribution.prototype);
   dist.prototype.constructor = dist;
 
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal', 'wikipedia');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'nohelper', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -206,7 +206,8 @@ var ImproperUniform = makeDistributionType({
   name: 'ImproperUniform',
   desc: 'Improper continuous uniform distribution which has probability one everywhere.',
   params: [],
-  internal: true,
+  nodoc: true,
+  nohelper: true,
   mixins: [continuousSupport],
   sample: function() {
     throw new Error('cannot sample from this improper distribution.')
@@ -631,7 +632,7 @@ var LogitNormal = makeDistributionType({
 
 var IspNormal = makeDistributionType({
   name: 'IspNormal', // For 'Inverse softplus normal'.
-  internal: true,
+  nodoc: true,
   desc: 'A distribution over positive reals obtained by mapping a Gaussian ' +
       'distributed variable through the softplus function.',
   params: [
@@ -1300,7 +1301,8 @@ function discreteSample(theta) {
 
 var Marginal = makeDistributionType({
   name: 'Marginal',
-  internal: true,
+  nodoc: true,
+  nohelper: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
@@ -1352,6 +1354,7 @@ var Categorical = makeDistributionType({
   params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
+  nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
@@ -1400,10 +1403,18 @@ var Delta = makeDistributionType({
   }
 });
 
-module.exports = {
-  // distributions
-  ImproperUniform: ImproperUniform,
+function metadata() {
+  return _.chain(distributions)
+    .pairs() // pair[0] = key, pair[1] = value
+    .sortBy(function(pair) { return pair[0]; })
+    .map(function(pair) { return pair[1]; })
+    .map(function(dist) { return dist.prototype.meta; })
+    .value();
+}
+
+var distributions = {
   Uniform: Uniform,
+  ImproperUniform: ImproperUniform,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,
   RandomInteger: RandomInteger,
@@ -1425,7 +1436,10 @@ module.exports = {
   Dirichlet: Dirichlet,
   Marginal: Marginal,
   Categorical: Categorical,
-  Delta: Delta,
+  Delta: Delta
+};
+
+module.exports = _.assign({
   // rng
   betaSample: betaSample,
   binomialSample: binomialSample,
@@ -1438,5 +1452,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   squishToProbSimplex: squishToProbSimplex,
-  isDist: isDist
-};
+  isDist: isDist,
+  metadata: metadata
+}, distributions);

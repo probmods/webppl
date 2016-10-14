@@ -67,7 +67,11 @@ module.exports = function(grunt) {
     watch: {
       ad: {
         files: ['**/*.ad.js'],
-        tasks: ['build']
+        tasks: ['build-ad']
+      },
+      dist: {
+        files: ['src/dists.ad.js'],
+        tasks: ['build-dist-header']
       }
     }
   });
@@ -78,7 +82,7 @@ module.exports = function(grunt) {
         .map(function(name) { return ['--require', name]; })
         .flatten().value();
     pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
-    return pkgArg + ' -g brfs src/browser.js -o bundle/webppl.js';
+    return pkgArg + ' -t brfs src/browser.js -o bundle/webppl.js';
   }
 
   grunt.loadNpmTasks('grunt-gjslint');
@@ -94,11 +98,17 @@ module.exports = function(grunt) {
   grunt.registerTask('fixstyle', ['fixjsstyle']);
   grunt.registerTask('travis-phantomjs', ['bundle', 'test-phantomjs']);
 
-  grunt.registerTask('build', 'Build WebPPL.', function() {
+  grunt.registerTask('build-ad', function() {
     var output = child_process.execSync('scripts/adify');
     grunt.log.writeln(output);
   });
 
+  grunt.registerTask('build-dist-header', function() {
+    var output = child_process.execSync('scripts/distHeader');
+    grunt.log.writeln(output);
+  });
+
+  grunt.registerTask('build', 'Build WebPPL', ['build-ad', 'build-dist-header']);
   grunt.registerTask('build-watch', 'Run the build task on fs changes.', ['watch']);
 
   grunt.registerTask('bundle', 'Create browser bundle.', function() {
