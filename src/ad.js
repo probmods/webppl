@@ -27,9 +27,6 @@ var valueRec = function(x) {
 
 ad.valueRec = valueRec;
 
-// Make `tensorEntry` available in webppl as `T.get`.
-ad.tensor.get = ad.tensorEntry;
-
 ad.tensor.logGamma = ad.newUnaryFunction({
   OutputType: Tensor,
   name: 'logGamma',
@@ -54,6 +51,10 @@ ad.scalar.logGamma = ad.newUnaryFunction({
     return a.dx += special.digamma(a.x) * this.dx;
   }
 });
+
+ad.scalar.plus = function(x) {
+  return ad.scalar.add(0, x);
+};
 
 // HACK: Used to access Tensor in daipp.
 ad.tensor['__Tensor'] = Tensor;

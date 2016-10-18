@@ -2,7 +2,7 @@ Packages
 ========
 
 WebPPL packages are regular Node.js packages optionally extended to
-include WebPPL code, macros and headers.
+include WebPPL code and headers.
 
 To make a package available in your program use the ``--require``
 argument:
@@ -53,37 +53,6 @@ directive at the beginning of the file. For example::
 
 This is expected to be useful in only a limited number of cases and
 shouldn't be applied routinely.
-
-Macros
-------
-
-`sweet.js`_ modules can be included in a package as follows:
-
-1. Add a file containing the macros to the package:
-
-.. code-block:: none
-
-    // macros.sjs
-    macro m { /* ... */ }
-    export m;
-
-Note that macros must be exported explicitly using the ``export``
-keyword. See the `sweet.js module documentation`_ for further details.
-
-2. Add a ``macros`` entry to ``package.json``:
-
-.. code-block:: json
-
-    {
-      "name": "my-package",
-      "webppl": {
-        "macros": ["macros.sjs"]
-      }
-    }
-
-These macros will be visible to the WebPPL program which is been run
-or compiled, and to any WebPPL code within the same package. They will
-not be visible to WebPPL code in other packages.
 
 JavaScript functions and libraries
 ----------------------------------
@@ -197,7 +166,6 @@ These packages are no longer maintained, but may be worth a look:
 - `caches`_: cache inference results to disk
 - `formal`_: static analysis in Racket for WebPPL
 - `isosmc`_: utils for defining sequences of distributions for smc
-- `linked-list`_: linked lists
 
 .. _sweet.js: http://sweetjs.org
 .. _sweet.js module documentation: http://sweetjs.org/doc/main/sweet.html#using-modules
@@ -216,4 +184,3 @@ These packages are no longer maintained, but may be worth a look:
 .. _caches: https://github.com/iffsid/webppl-caches
 .. _formal: https://github.com/kimmyg/webppl-formal
 .. _isosmc: https://github.com/stuhlmueller/isosmc
-.. _linked-list: https://github.com/null-a/webppl-linked-list

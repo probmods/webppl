@@ -21,13 +21,20 @@ function normalize(hist) {
   var totalCount = _.reduce(hist, function(acc, obj) {
     return acc + obj.count;
   }, 0);
-  return _.mapObject(hist, function(obj) {
-    return { val: obj.val, prob: obj.count / totalCount };
-  });
+  return {
+    totalCount: totalCount,
+    dist: _.mapObject(hist, function(obj) {
+      return { val: obj.val, prob: obj.count / totalCount };
+    })
+  };
 }
 
 CountAggregator.prototype.toDist = function() {
-  return new dists.Marginal({dist: normalize(this.hist)});
+  var normalized = normalize(this.hist);
+  return new dists.Marginal({
+    dist: normalized.dist,
+    numSamples: normalized.totalCount
+  });
 };
 
 module.exports = CountAggregator;

@@ -34,22 +34,30 @@ module.exports = function(env) {
     run: function() {
 
       var hist = new CountAggregator();
+      var logWeights = [];   // Save total factor weights
 
       return util.cpsLoop(
           this.opts.samples,
 
           // Loop body.
           function(i, next) {
+            this.logWeight = 0;
             return this.wpplFn(_.clone(this.s), function(s, val) {
+              logWeights.push(this.logWeight);
               hist.add(val);
               return next();
-            }, this.a);
+            }.bind(this), this.a);
           }.bind(this),
 
           // Continuation.
           function() {
             env.coroutine = this.coroutine;
-            return this.k(this.s, hist.toDist());
+            var dist = hist.toDist();
+            if (!this.opts.guide) {
+              var numSamples = this.opts.samples;
+              dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(numSamples);
+            }
+            return this.k(this.s, dist);
           }.bind(this));
 
     },
@@ -62,6 +70,7 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a, score) {
+      this.logWeight += ad.value(score);
       return k(s);
     },
 

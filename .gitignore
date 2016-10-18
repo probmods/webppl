@@ -7,6 +7,7 @@ bundle/
 docs/_build
 docs/_templates
 src/dists.js
+src/dists.wppl
 src/inference/enumerate.js
 src/inference/elbo.js
 src/inference/eubo.js

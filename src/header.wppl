@@ -1,123 +1,5 @@
 'no caching';
 
-resetEnv();
-
-// Distributions (note: this gets macro transformed)
-
-defineDistConstructors(
-    Bernoulli
-    MultivariateBernoulli
-    Uniform
-    RandomInteger
-    Gaussian
-    MultivariateGaussian
-    DiagCovGaussian
-    TensorGaussian
-    Cauchy
-    Discrete
-    Gamma
-    Exponential
-    Beta
-    Binomial
-    Multinomial
-    Poisson
-    Dirichlet
-    LogisticNormal
-    Categorical
-    Delta);
-
-// Helpers to sample from distributions.
-
-var bernoulli = function(arg) {
-  var params = util.isObject(arg) ? arg : {p: arg};
-  return sample(Bernoulli(params));
-};
-
-var randomInteger = function(arg) {
-  var params = util.isObject(arg) ? arg : {n: arg};
-  return sample(RandomInteger(params));
-};
-
-var discrete = function(arg) {
-  var params = util.isObject(arg) ? arg : {ps: arg};
-  return sample(Discrete(params));
-};
-
-var multinomial = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {ps: arg1, n: arg2};
-  return sample(Multinomial(params));
-};
-
-var gaussian = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
-  return sample(Gaussian(params));
-};
-
-var multivariateGaussian = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {mu: arg1, cov: arg2};
-  return sample(MultivariateGaussian(params));
-};
-
-var cauchy = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {location: arg1, scale: arg2};
-  return sample(Cauchy(params));
-};
-
-var uniform = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
-  return sample(Uniform(params));
-};
-
-var dirichlet = function(arg) {
-  var params = util.isObject(arg) ? arg : {alpha: arg};
-  return sample(Dirichlet(params));
-};
-
-var poisson = function(arg) {
-  var params = util.isObject(arg) ? arg : {mu: arg};
-  return sample(Poisson(params));
-};
-
-var binomial = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {p: arg1, n: arg2};
-  return sample(Binomial(params));
-};
-
-var beta = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {a: arg1, b: arg2};
-  return sample(Beta(params));
-};
-
-var exponential = function(arg) {
-  var params = util.isObject(arg) ? arg : {a: arg};
-  return sample(Exponential(params));
-};
-
-var gamma = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {shape: arg1, scale: arg2};
-  return sample(Gamma(params));
-};
-
-var diagCovGaussian = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
-  return sample(DiagCovGaussian(params));
-};
-
-var multivariateBernoulli = function(arg) {
-  var params = util.isObject(arg) ? arg : {ps: arg};
-  return sample(MultivariateBernoulli(params));
-};
-
-var tensorGaussian = function(arg1, arg2, arg3) {
-  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2, dims: arg3};
-  return sample(TensorGaussian(params));
-};
-
-var logisticNormal = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {mu: arg1, sigma: arg2};
-  return sample(LogisticNormal(params));
-};
-
 // Other distribution helpers
 
 var flip = function(p) {
@@ -130,14 +12,13 @@ var categorical = function(arg1, arg2) {
   return params.vs[discrete(params.ps)];
 };
 
-var delta = function(arg) {
-  var params = util.isObject(arg) ? arg : {v: arg};
-  return sample(Delta(params));
-};
-
 var uniformDraw = function(arg) {
   var vs = util.isObject(arg) ? arg.vs : arg;
-  return vs[sample(RandomInteger({n: vs.length}))];
+  if (vs.length == 0) {
+    return undefined;
+  } else {
+    return vs[sample(RandomInteger({n: vs.length}))];
+  }
 };
 
 var serializeDist = function(d) {
@@ -631,26 +512,27 @@ var Infer = function(options, wpplFn) {
   return method(wpplFn, _.omit(options, 'method'));
 };
 
-// Convenience function to create scalar valued parameters.
-var scalarParam = function(mean, sd) {
-  return ad.tensorEntry(tensorParam([1], mean, sd), 0);
+// Convenience function for creating maximum likelihood model
+// parameters.
+var modelParam = function(options) {
+  return sample(ImproperUniform(), {
+    guide: Delta({v: param(options)})
+  });
 };
-
-var param = function(a1, a2, a3) {
-  return _.isArray(a1) ? tensorParam(a1, a2, a3) : scalarParam(a1, a2);
-};
-
 
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
   var n = arr.length;
-  var t = ad.scalarsToTensor(arr);
+  var t = ad.tensor.fromScalars(arr);
   return ad.tensor.reshape(t, [n, 1]);
 };
 var Matrix = function(arr) {
   var n = arr.length;
   var m = arr[0].length;
-  var t = ad.scalarsToTensor(_.flatten(arr));
+  var t = ad.tensor.fromScalars(_.flatten(arr));
   return ad.tensor.reshape(t, [n, m]);
 };
-
+var Tensor = function(dims, arr) {
+  var t = ad.tensor.fromScalars(arr);
+  return ad.tensor.reshape(t, dims);
+};

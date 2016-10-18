@@ -1,0 +1,9 @@
+var data = [true, true, false, true, true, true];
+var model = function() {
+  var p = sample(Uniform({a: 0, b: 1}));
+  var coin = Bernoulli({p: p});
+  factor(sum(map(function(x) {
+    coin.score(x);
+  }, data)));
+  return p;
+};

@@ -18,6 +18,20 @@ QUnit.test('run twice', function(test) {
   });
 });
 
+QUnit.test('run resets env', function(test) {
+  var done = test.async();
+  try {
+    webppl.run('Infer({method: "enumerate"}, function() { assert.ok(false); })');
+  } catch (e) {
+  }
+  // Attempting to sample from a continuous distribution will raise an
+  // error if Enumerate is still installed as the current coroutine.
+  webppl.run('gaussian(0, 1)', function(s, val) {
+    test.ok(_.isNumber(val));
+    done();
+  });
+});
+
 function errorTest(code, debug, performChecks) {
   return function(test) {
     var done = test.async();

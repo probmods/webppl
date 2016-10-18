@@ -97,11 +97,20 @@ Estimators
 
 The following estimators are available:
 
+.. _elbo:
+
 .. describe:: ELBO
 
-   This is the KL divergence between the guide and the target, also
-   know as the evidence lower-bound. Optimizing this objective yields
-   variational inference.
+   This is the evidence lower bound (ELBO). Optimizing this objective
+   yields variational inference.
+
+   For best performance use :js:func:`mapData` in place of
+   :js:func:`map` where possible when optimizing this objective. The
+   conditional independence information this provides is used to
+   reduce the variance of gradient estimates which can significantly
+   improve performance, particularly in the presence of discrete
+   random choices. Data sub-sampling is also supported through the use
+   of :js:func:`mapData`.
 
    The following options are supported:
 
@@ -110,6 +119,20 @@ The following estimators are available:
       The number of samples to take for each gradient estimate.
 
       Default: ``1``
+
+   .. describe:: avgBaselines
+
+      Enable the "average baseline removal" variance reduction
+      strategy.
+
+      Default: ``true``
+
+   .. describe:: avgBaselineDecay
+
+      The decay rate used in the exponential moving average used to
+      estimate baselines.
+
+      Default: ``0.9``
 
 Example usage::
 
@@ -121,37 +144,64 @@ Example usage::
 Parameters
 ~~~~~~~~~~
 
-.. js:function:: scalarParam(mean, sd)
+.. _param:
 
-   :param real mean: mean (optional)
-   :param number sd: standard deviation (optional)
-   :returns: the current value of the parameter
+.. js:function:: param([options])
 
-   Creates a new scalar valued parameter initialized with a draw from
-   a Gaussian distribution.
+   Retrieves the value of a parameter by name. If the parameter does
+   not exist, it is created and initialized with a draw from a
+   Gaussian distribution.
 
-   If ``sd`` is omitted the initial value is ``mean``. If ``mean`` is
-   omitted it defaults to zero.
+   The following options are supported:
 
-   Example::
+   .. describe:: dims
 
-     scalarParam(0, 1)
+      When ``dims`` is given, ``param`` returns a tensor of dimension
+      ``dims``. In this case ``dims`` should be an array.
 
-.. js:function:: tensorParam(dims, mean, sd)
+      When ``dims`` is omitted, ``param`` returns a scalar.
 
-   :param array dims: dimension of tensor
-   :param number mu: mean (optional)
-   :param number sd: standard deviation (optional)
-   :returns: the current value of the parameter
+   .. describe:: mu
 
-   Creates a new tensor valued parameter. Each element is initialized
-   with an independent draw from a Gaussian distribution.
+      The mean of the Gaussian distribution from which the initial
+      parameter value is drawn.
 
-   If ``sd`` is omitted the initial value of each element is ``mean``.
-   If ``mean`` is omitted it defaults to zero.
+      Default: ``0``
 
-   Example::
+   .. describe:: sigma
 
-     tensorParam([10, 10], 0, 0.01)
+      The standard deviation of the Gaussian distribution from which
+      the initial parameter value is drawn. Specify a standard
+      deviation of ``0`` to deterministically initialize the parameter
+      to ``mu``.
+
+      Default: ``0.1``
+
+   .. describe:: name
+
+      The name of the parameter to retrieve. If ``name`` is omitted a
+      default name is automatically generated based on the current
+      stack address, relative to the current coroutine.
+
+   Examples::
+
+     param()
+     param({name: 'myparam'})
+     param({mu: 0, sigma: 0.01, name: 'myparam'})
+     param({dims: [10, 10]})
+
+.. js:function:: modelParam([options])
+
+   An analog of ``param`` used to create or retrieve a parameter that
+   can be used directly in the model.
+
+   Optimizing the :ref:`ELBO <elbo>` yields maximum likelihood
+   estimation for model parameters. ``modelParam`` cannot used with
+   other inference strategies as it does not have an interpretation in
+   the fully Bayesian setting. Attempting to do so will raise an
+   exception.
+
+   ``modelParam`` supports the same options as ``param``. See the
+   :ref:`documentation for param <param>` for details.
 
 .. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt

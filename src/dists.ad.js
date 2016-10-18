@@ -169,7 +169,7 @@ function makeDistributionType(options) {
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
   var dist = function(params) {
-    if (params === undefined) {
+    if (params === undefined && parameterNames.length > 0) {
       throw new Error('Parameters not supplied to ' + this.meta.name + ' distribution.');
     }
     parameterNames.forEach(function(p) {
@@ -186,7 +186,7 @@ function makeDistributionType(options) {
   dist.prototype = Object.create(Distribution.prototype);
   dist.prototype.constructor = dist;
 
-  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'internal', 'wikipedia');
+  dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'nohelper', 'wikipedia');
 
   _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
   _.extendOwn(dist.prototype, _.pick(options, methodNames));
@@ -201,6 +201,21 @@ function makeDistributionType(options) {
 }
 
 // Distributions
+
+var ImproperUniform = makeDistributionType({
+  name: 'ImproperUniform',
+  desc: 'Improper continuous uniform distribution which has probability one everywhere.',
+  params: [],
+  nodoc: true,
+  nohelper: true,
+  mixins: [continuousSupport],
+  sample: function() {
+    throw new Error('cannot sample from this improper distribution.')
+  },
+  score: function(val) {
+    return 0;
+  }
+});
 
 var Uniform = makeDistributionType({
   name: 'Uniform',
@@ -397,7 +412,7 @@ function mvGaussianScore(mu, cov, x) {
   return ad.scalar.mul(-0.5, ad.scalar.add(
     dLog2Pi, ad.scalar.add(
       logDetCov,
-      ad.tensorEntry(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
+      ad.tensor.get(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
 }
 
 
@@ -434,8 +449,8 @@ var MultivariateGaussian = makeDistributionType({
 
 
 function diagCovGaussianSample(mu, sigma) {
-  var d = mu.dims[0];
-  var x = new Tensor([d, 1]);
+  var dims = mu.dims;
+  var x = new Tensor(dims);
   var n = x.length;
   while (n--) {
     x.data[n] = gaussianSample(mu.data[n], sigma.data[n]);
@@ -446,11 +461,11 @@ function diagCovGaussianSample(mu, sigma) {
 function diagCovGaussianScore(mu, sigma, x) {
   var _x = ad.value(x);
   var _mu = ad.value(mu);
-  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
+  if (!util.isTensor(_x) || !util.tensorEqDims(_x, _mu)) {
     return -Infinity;
   }
 
-  var d = _mu.dims[0];
+  var d = _mu.length;
   var dLog2Pi = d * LOG_2PI;
   var logDetCov = ad.scalar.mul(2, ad.tensor.sumreduce(ad.tensor.log(sigma)));
   var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
@@ -461,27 +476,29 @@ function diagCovGaussianScore(mu, sigma, x) {
       ad.tensor.sumreduce(ad.tensor.mul(z, z)))));
 }
 
+
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
-  desc: 'Multivariate Gaussian distribution with diagonal covariance matrix. ' +
-    'If ``mu`` and ``sigma`` are vectors of length ``d`` then ' +
-    'the distribution is over vectors of length ``d``.',
+  desc: 'A distribution over tensors in which each element is independent and Gaussian distributed, ' +
+    'with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with ' +
+    'diagonal covariance matrix. The distribution is over tensors that have the same shape as the ' +
+    'parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.',
   params: [
-    {name: 'mu', desc: 'mean vector'},
-    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
+    {name: 'mu', desc: 'mean tensor'},
+    {name: 'sigma', desc: 'tensor of standard deviations', domain: gt(0)}
   ],
   mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!util.isVector(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a vector.');
+    if (!util.isTensor(_mu)) {
+      throw new Error(this.meta.name + ': mu should be a tensor.');
     }
-    if (!util.isVector(_sigma)) {
-      throw new Error(this.meta.name + ': sigma should be a vector.');
+    if (!util.isTensor(_sigma)) {
+      throw new Error(this.meta.name + ': sigma should be a tensor.');
     }
-    if (!util.tensorEqDim0(_mu, _sigma)) {
-      throw new Error(this.meta.name + ': mu and sigma should have the same length.');
+    if (!util.tensorEqDims(_mu, _sigma)) {
+      throw new Error(this.meta.name + ': mu and sigma should be the same shape.');
     }
   },
   sample: function() {
@@ -504,7 +521,7 @@ var DiagCovGaussian = makeDistributionType({
 var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
-  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.scalarsToTensor(0)), [d + 1, 1]);
+  var u = ad.tensor.reshape(ad.tensor.concat(x, ad.tensor.fromScalars(0)), [d + 1, 1]);
   return ad.tensor.softmax(u);
 };
 
@@ -550,7 +567,7 @@ var LogisticNormal = makeDistributionType({
 
     var d = _mu.dims[0];
     var u = ad.tensor.reshape(ad.tensor.range(val, 0, d), [d, 1]);
-    var u_last = ad.tensorEntry(val, d);
+    var u_last = ad.tensor.get(val, d);
     var inv = ad.tensor.log(ad.tensor.div(u, u_last));
     var normScore = diagCovGaussianScore(mu, sigma, inv);
     return ad.scalar.sub(normScore, ad.tensor.sumreduce(ad.tensor.log(val)));
@@ -565,6 +582,90 @@ var LogisticNormal = makeDistributionType({
     return squishToProbSimplex(ad.tensor.add(ad.tensor.mul(sigma, x), mu));
   }
 });
+
+
+var LogitNormal = makeDistributionType({
+  name: 'LogitNormal',
+  desc: 'A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.',
+  params: [
+    {name: 'mu', desc: 'location (real)'},
+    {name: 'sigma', desc: 'scale (real)', domain: gt(0)},
+    {name: 'a', desc: 'lower bound (real)'},
+    {name: 'b', desc: 'upper bound (real) *(>a)*'}
+  ],
+  wikipedia: 'Logit-normal_distribution',
+  mixins: [continuousSupport],
+  sample: function() {
+    var a = ad.value(this.params.a);
+    var b = ad.value(this.params.b);
+    var mu = ad.value(this.params.mu);
+    var sigma = ad.value(this.params.sigma);
+    var x = gaussianSample(mu, sigma);
+    return (ad.scalar.sigmoid(x) * (b - a)) + a;
+  },
+  score: function(val) {
+    'use ad';
+    var a = this.params.a;
+    var b = this.params.b;
+    var y = (val - a) / (b - a);
+    var x = Math.log(y / (1 - y));
+    var gaussScore = gaussianScore(this.params.mu, this.params.sigma, x);
+    return gaussScore - Math.log(y * (1 - y) * (b - a));
+  },
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    var a = this.params.a;
+    var b = this.params.b;
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return (ad.scalar.sigmoid((x * sigma) + mu) * (b - a)) + a;
+  },
+  support: function() {
+    return {lower: this.params.a, upper: this.params.b};
+  }
+});
+
+
+
+var IspNormal = makeDistributionType({
+  name: 'IspNormal', // For 'Inverse softplus normal'.
+  nodoc: true,
+  desc: 'A distribution over positive reals obtained by mapping a Gaussian ' +
+      'distributed variable through the softplus function.',
+  params: [
+    {name: 'mu', desc: 'location (real)'},
+    {name: 'sigma', desc: 'scale (real)', domain: gt(0)}
+  ],
+  mixins: [continuousSupport],
+  sample: function() {
+    var mu = ad.value(this.params.mu);
+    var sigma = ad.value(this.params.sigma);
+    return Math.log(Math.exp(gaussianSample(mu, sigma)) + 1);
+  },
+  score: function(val) {
+    'use ad';
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    var x = Math.log(Math.exp(val) - 1);
+    return gaussianScore(mu, sigma, x) + val - x;
+  },
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    var mu = this.params.mu;
+    var sigma = this.params.sigma;
+    return Math.log(Math.exp((x * sigma) + mu) + 1);
+  },
+  support: function() {
+    return { lower: 0, upper: Infinity };
+  }
+});
+
 
 
 function tensorGaussianSample(mu, sigma, dims) {
@@ -645,13 +746,22 @@ var Cauchy = makeDistributionType({
   mixins: [continuousSupport],
   sample: function() {
     var u = util.random();
-    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(180 * (u - 0.5));
+    return ad.value(this.params.location) + ad.value(this.params.scale) * Math.tan(Math.PI * (u - 0.5));
   },
   score: function(x) {
     'use ad';
     var scale = this.params.scale;
     var location = this.params.location;
     return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return location + scale * Math.tan(Math.PI * (x - 0.5));
   }
 });
 
@@ -673,7 +783,7 @@ function discreteScoreVector(probs, val) {
   assert.ok(_probs.dims[1] === 1); // i.e. vector
   var d = _probs.dims[0];
   return inDiscreteSupport(val, d) ?
-      ad.scalar.log(ad.scalar.div(ad.tensorEntry(probs, val), ad.tensor.sumreduce(probs))) :
+      ad.scalar.log(ad.scalar.div(ad.tensor.get(probs, val), ad.tensor.sumreduce(probs))) :
       -Infinity;
 }
 
@@ -686,7 +796,7 @@ function discreteScoreArray(probs, val) {
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array or vector of probabilities', domain: interval(0, 1)}],
+  params: [{name: 'ps', desc: 'array or vector of probabilities', domain: gt(0)}],
   wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
   sample: function() {
@@ -805,6 +915,13 @@ var Exponential = makeDistributionType({
   score: function(val) {
     'use ad';
     return Math.log(this.params.a) - this.params.a * val;
+  },
+  base: function () {
+    return new Uniform({a: 0, b: 1});
+  },
+  transform: function (x) {
+    'use ad';
+    return Math.log(x) / -this.params.a;
   },
   support: function() {
     return { lower: 0, upper: Infinity };
@@ -1184,7 +1301,8 @@ function discreteSample(theta) {
 
 var Marginal = makeDistributionType({
   name: 'Marginal',
-  internal: true,
+  nodoc: true,
+  nohelper: true,
   params: [{name: 'dist'}],
   mixins: [finiteSupport],
   constructor: function() {
@@ -1236,6 +1354,7 @@ var Categorical = makeDistributionType({
   params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
+  nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
     // ps is expected to be normalized.
@@ -1271,7 +1390,7 @@ var Delta = makeDistributionType({
     return ad.value(this.params.v);
   },
   score: function(val) {
-    return val === this.params.v ? 0 : -Infinity;
+    return ad.value(val) === ad.value(this.params.v) ? 0 : -Infinity;
   },
   support: function() {
     return [this.params.v];
@@ -1284,9 +1403,18 @@ var Delta = makeDistributionType({
   }
 });
 
-module.exports = {
-  // distributions
+function metadata() {
+  return _.chain(distributions)
+    .pairs() // pair[0] = key, pair[1] = value
+    .sortBy(function(pair) { return pair[0]; })
+    .map(function(pair) { return pair[1]; })
+    .map(function(dist) { return dist.prototype.meta; })
+    .value();
+}
+
+var distributions = {
   Uniform: Uniform,
+  ImproperUniform: ImproperUniform,
   Bernoulli: Bernoulli,
   MultivariateBernoulli: MultivariateBernoulli,
   RandomInteger: RandomInteger,
@@ -1295,6 +1423,8 @@ module.exports = {
   DiagCovGaussian: DiagCovGaussian,
   TensorGaussian: TensorGaussian,
   LogisticNormal: LogisticNormal,
+  LogitNormal: LogitNormal,
+  IspNormal: IspNormal,
   Cauchy: Cauchy,
   Discrete: Discrete,
   Gamma: Gamma,
@@ -1306,7 +1436,10 @@ module.exports = {
   Dirichlet: Dirichlet,
   Marginal: Marginal,
   Categorical: Categorical,
-  Delta: Delta,
+  Delta: Delta
+};
+
+module.exports = _.assign({
   // rng
   betaSample: betaSample,
   binomialSample: binomialSample,
@@ -1319,5 +1452,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   squishToProbSimplex: squishToProbSimplex,
-  isDist: isDist
-};
+  isDist: isDist,
+  metadata: metadata
+}, distributions);

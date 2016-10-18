@@ -11,10 +11,13 @@
 
 var assert = require('assert');
 var _ = require('underscore');
+var nodeutil = require('util');
+var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../paramStruct');
-
+var fs = require('fs');
+var nodeUtil = require('util');
 
 module.exports = function(env) {
 
@@ -33,14 +36,28 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      onFinish: function(s, k, a) { return k(s); }
+      onFinish: function(s, k, a) { return k(s); },
+
+      logProgress: false,
+      logProgressFilename: 'optimizeProgress.csv',
+      logProgressThrottle: 200,
+
+      checkpointParams: false,
+      checkpointParamsFilename: 'optimizeParams.json',
+      checkpointParamsThrottle: 10000
     });
 
     // Create a (cps) function which takes parameters to gradient
     // estimates.
+    var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
+      if (!_.has(estimators, name)) {
+        throw new Error('Optimize: ' + name + ' is not a valid estimator. ' +
+                        'The following estimators are available: ' +
+                        _.keys(estimators).join(', ') + '.');
+      }
       opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
-      return _.partial(estimators[name], wpplFn, s, a, opts);
+      return _.partial(estimators[name], wpplFn, s, a, opts, state);
     });
 
     var optimizer = util.getValAndOpts(options.optMethod, function(name, opts) {
@@ -55,6 +72,38 @@ module.exports = function(env) {
     }, 200, { trailing: false });
 
     var history = [];
+
+    // For writing progress to disk
+    var logFile, logProgress;
+    if (options.logProgress) {
+      logFile = fs.openSync(options.logProgressFilename, 'w');
+      fs.writeSync(logFile, 'index,iter,time,objective\n');
+      var ncalls = 0;
+      var starttime = present();
+      logProgress = _.throttle(function(i, objective) {
+        var t = (present() - starttime) / 1000;
+        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d\n', ncalls, i, t, objective));
+        ncalls++;
+      }, options.logProgressThrottle, { trailing: false });
+    }
+
+    // For checkpointing params to disk
+    var saveParams, checkpointParams;
+    if (options.checkpointParams) {
+      saveParams = function() {
+        // Turn tensor data into regular Array before serialization
+        // I think this is faster than using a custom 'replacer' with JSON.stringify?
+        var prms = _.mapObject(paramObj, function(lst) {
+          return lst.map(function(tensor) {
+            var tcopy = _.clone(tensor);
+            tcopy.data = tensor.toFlatArray();
+            return tcopy;
+          });
+        });
+        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
+      };
+      checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
+    }
 
     // Main loop.
     return util.cpsLoop(
@@ -81,6 +130,12 @@ module.exports = function(env) {
             if (options.verbose) {
               showProgress(i, objective);
             }
+            if (options.logProgress) {
+              logProgress(i, objective);
+            }
+            if (options.checkpointParams) {
+              checkpointParams();
+            }
 
             history.push(objective);
 
@@ -94,6 +149,13 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           return options.onFinish(s, function(s) {
+            if (options.logProgress) {
+              fs.closeSync(logFile);
+            }
+            if (options.checkpointParams) {
+              // Save final params
+              saveParams();
+            }
             return k(s, paramObj);
           }, a, {history: history});
         });
