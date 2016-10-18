@@ -25,7 +25,7 @@
     "showdown": "^1.4.1",
     "underscore": "^1.8.3",
     "watchify": "^3.7.0",
-    "webppl-editor": "probmods/webppl-editor#1.0.6",
+    "webppl-editor": "probmods/webppl-editor#1.0.7",
     "webppl-viz": "github:probmods/webppl-viz#41e5d24"
   },
   "scripts": {
