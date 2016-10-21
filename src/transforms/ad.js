@@ -74,7 +74,7 @@ function ad(ast) {
       if (node.type === 'MemberExpression' &&
           node.object.type === 'Identifier' &&
           node.object.name === 'Math') {
-        return build.memberExpression(parse('ad.scalar'), node.property);
+        return build.memberExpression(parse('ad.scalar'), node.property, node.computed);
       }
     }
   });
