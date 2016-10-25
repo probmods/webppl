@@ -41,6 +41,8 @@ module.exports = function(env) {
     this.mapDataStack = [{multiplier: 1}];
     this.mapDataIx = {};
 
+    // 'state' is a plain JS object provided by Optimize as a means of
+    // persisting arbitrary state between calls.
     if (!_.has(this.state, 'baselines')) {
       this.state.baselines = {};
     }
