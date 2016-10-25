@@ -47,8 +47,11 @@ module.exports = function(env) {
       checkpointParamsThrottle: 10000
     });
 
-    // Create a (cps) function which takes parameters to gradient
-    // estimates.
+    // Create a (cps) function 'estimator' which takes parameters to
+    // gradient estimates. Every application of the estimator function
+    // is passed the 'state' variable. This allows an estimator to
+    // maintain state between calls by modifying the contents of this
+    // object.
     var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
       if (!_.has(estimators, name)) {
