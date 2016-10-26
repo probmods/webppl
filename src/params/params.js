@@ -13,10 +13,10 @@ var registerParams = function(env, name, getParams, setParams) {
   // returns params already lifted. Hence, `getParams()` is replaced
   // with `getParams().map(ad.value)` throughout this function.
 
-  var paramStore = env.coroutine.params;
+  var paramTable = env.coroutine.params;
   var paramsSeen = env.coroutine.paramsSeen;
 
-  if (paramStore === undefined) {
+  if (paramTable === undefined) {
 
     // Some coroutines ignore the guide when sampling (e.g. MH as
     // rejuv kernel) but still have to execute it while executing
@@ -39,13 +39,13 @@ var registerParams = function(env, name, getParams, setParams) {
 
     var params;
 
-    if (_.has(paramStore, name)) {
+    if (_.has(paramTable, name)) {
       // Seen on previous execution. Fetch from store and lift.
-      params = paramStore[name].map(ad.lift);
+      params = paramTable[name].map(ad.lift);
     } else {
       // Never seen. Fetch initial values, add to store and lift.
       var _params = getParams().map(ad.value);
-      paramStore[name] = _params;
+      paramTable[name] = _params;
       params = _params.map(ad.lift);
     }
 
