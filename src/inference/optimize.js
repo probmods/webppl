@@ -15,7 +15,7 @@ var nodeutil = require('util');
 var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 var fs = require('fs');
 var nodeUtil = require('util');
 

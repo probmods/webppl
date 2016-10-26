@@ -8,7 +8,7 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 
 module.exports = function(env) {
 

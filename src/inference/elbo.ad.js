@@ -5,7 +5,7 @@ var assert = require('assert');
 var fs = require('fs');
 var util = require('../util');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 var guide = require('../guide');
 var graph = require('./elbograph');
 

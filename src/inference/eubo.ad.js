@@ -18,7 +18,7 @@ var _ = require('underscore');
 var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 
 module.exports = function(env) {
 
