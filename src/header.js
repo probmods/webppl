@@ -75,6 +75,7 @@ module.exports = function(env) {
   // multiple programs in a single process.
   env.reset = function() {
     env.coroutine = env.defaultCoroutine;
+    env.executionName = 'run-' + Math.random().toString(36).substring(2, 10);
   };
   env.reset();
 
