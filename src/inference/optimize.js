@@ -16,6 +16,7 @@ var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../params/struct');
+var paramStore = require('../params/store');
 var fs = require('fs');
 var nodeUtil = require('util');
 
@@ -28,7 +29,6 @@ module.exports = function(env) {
 
   function Optimize(s, k, a, wpplFn, options) {
     options = util.mergeDefaults(options, {
-      params: {},
       optMethod: 'adam',
       estimator: 'ELBO',
       steps: 1,
@@ -68,7 +68,8 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
-    var paramObj = paramStruct.deepCopy(options.params);
+    var paramSetId = env.executionName;
+    var paramObj = paramStore.getParams(paramSetId);
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);
@@ -142,7 +143,19 @@ module.exports = function(env) {
 
             history.push(objective);
 
-            optimizer(gradObj, paramObj, i);
+            // FIXME: Make this more efficient by changing adnn optimizers
+            //        so that they can return deltas. Currently, we compute
+            //        deltas by comparing new and old params, which requires
+            //        a deepCopy.
+            //
+            //        deltas = newParams - oldParams = -(oldParams - newParams)
+            var deltaObj = paramStruct.deepCopy(paramObj);
+            optimizer(gradObj, deltaObj, i);            
+            paramStruct.mulEq(deltaObj, -1);
+            paramStruct.addEq(deltaObj, paramObj)
+            paramStruct.mulEq(deltaObj, -1);
+
+            paramObj = paramStore.incParams(paramSetId, paramObj, deltaObj);
 
             return next();
           });
@@ -159,7 +172,7 @@ module.exports = function(env) {
               // Save final params
               saveParams();
             }
-            return k(s, paramObj);
+            return k(s);
           }, a, {history: history});
         });
 
