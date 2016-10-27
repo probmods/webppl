@@ -8,7 +8,7 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
-var paramStruct = require('../params/struct');
+var paramStore = require('../params/store');
 
 module.exports = function(env) {
 
@@ -39,7 +39,7 @@ module.exports = function(env) {
 
     // Perform a copy to avoid modifying the input when SMC causes
     // previously unseen params to be initialized.
-    this.params = paramStruct.copy(options.params);
+    this.params = paramStore.getParams(env.executionName);
 
     this.particles = [];
     this.completeParticles = [];
