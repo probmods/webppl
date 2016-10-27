@@ -6,6 +6,7 @@ var Tensor = require('../tensor');
 var util = require('../util');
 var dists = require('../dists');
 var registerParams = require('./params').registerParams;
+var paramStore = require('./store');
 
 module.exports = function(env) {
 
@@ -45,7 +46,13 @@ module.exports = function(env) {
     return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
   };
 
+  var getParams = function(s, k, a) {
+    var paramSetId = env.executionName;
+    return k(s, paramStore.getParams(paramSetId));
+  };
+
   return {
-    param: param
+    param: param,
+    getParams: getParams
   };
 };
