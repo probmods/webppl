@@ -150,7 +150,7 @@ module.exports = function(env) {
             //
             //        deltas = newParams - oldParams = -(oldParams - newParams)
             var deltaObj = paramStruct.deepCopy(paramObj);
-            optimizer(gradObj, deltaObj, i);            
+            optimizer(gradObj, deltaObj, i);
             paramStruct.mulEq(deltaObj, -1);
             paramStruct.addEq(deltaObj, paramObj)
             paramStruct.mulEq(deltaObj, -1);
