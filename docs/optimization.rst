@@ -39,7 +39,7 @@ Optimize
 
    :param function model: Specifies the guide program.
    :param object options: Optimization options.
-   :returns: Optimized parameters.
+   :returns: Nothing.
 
    Optimizes the parameters of the guide program.
 
@@ -87,10 +87,10 @@ Optimize
 
 Example usage::
 
-  var newParams = Optimize(model, {steps: 100});
-  var newParams = Optimize(model, {steps: 100, params: oldParams});
-  var newParams = Optimize(model, {optMethod: 'adagrad'});
-  var newParams = Optimize(model, {optMethod: {sgd: {stepSize: 0.5}}});
+  Optimize(model, {steps: 100});
+  Optimize(model, {steps: 100, params: oldParams});
+  Optimize(model, {optMethod: 'adagrad'});
+  Optimize(model, {optMethod: {sgd: {stepSize: 0.5}}});
 
 Estimators
 ++++++++++
