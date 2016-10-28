@@ -6,7 +6,7 @@ Methods
 Enumeration
 -----------
 
-.. js:function:: Infer({method: 'enumerate'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'enumerate'[, ...]})
 
    This method performs inference by enumeration.
 
@@ -28,13 +28,13 @@ Enumeration
 
    Example usage::
 
-     Infer({method: 'enumerate', maxExecutions: 10}, model);
-     Infer({method: 'enumerate', strategy: 'breadthFirst'}, model);
+     Infer({method: 'enumerate', maxExecutions: 10, model: model});
+     Infer({method: 'enumerate', strategy: 'breadthFirst', model: model});
 
 Rejection sampling
 ------------------
 
-.. js:function:: Infer({method: 'rejection'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'rejection'[, ...]})
 
    This method performs inference using rejection sampling.
 
@@ -65,12 +65,12 @@ Rejection sampling
 
    Example usage::
 
-     Infer({method: 'rejection', samples: 100}, model);
+     Infer({method: 'rejection', samples: 100, model: model});
 
 MCMC
 ----
 
-.. js:function:: Infer({method: 'MCMC'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'MCMC'[, ...]})
 
    This method performs inference using Markov chain Monte Carlo.
 
@@ -127,7 +127,7 @@ MCMC
 
    Example usage::
 
-     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5}, model);
+     Infer({method: 'MCMC', samples: 1000, lag: 100, burn: 5, model: model});
 
 Kernels
 ^^^^^^^
@@ -143,7 +143,7 @@ The following kernels are available:
 
 Example usage::
 
-    Infer({method: 'MCMC', kernel: 'MH'}, model);
+    Infer({method: 'MCMC', kernel: 'MH', model: model});
 
 .. describe:: HMC
 
@@ -169,13 +169,13 @@ Example usage::
 
 Example usage::
 
-    Infer({method: 'MCMC', kernel: 'HMC'}, model);
-    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}}, model);
+    Infer({method: 'MCMC', kernel: 'HMC', model: model});
+    Infer({method: 'MCMC', kernel: {HMC: {steps: 10, stepSize: 1}}, model: model});
 
 Incremental MH
 --------------
 
-.. js:function:: Infer({method: 'incrementalMH'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'incrementalMH'[, ...]})
 
    This method performs inference using C3. [ritchie15]_
 
@@ -229,7 +229,7 @@ Incremental MH
 
    Example usage::
 
-     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, model);
+     Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10, model: model});
 
    To maximize efficiency when inferring marginals over multiple variables, use the ``query`` table, rather than building up a list of variable values::
 
@@ -247,7 +247,7 @@ Incremental MH
         hmm(100, observed_data);
         return query;
       }
-      Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10}, model);
+      Infer({method: 'incrementalMH', samples: 100, lag: 5, burn: 10, model: model});
 
    ``query`` is a write-only table which can be returned from a program (and thus marginalized). The only operation it supports is adding named values:
 
@@ -261,7 +261,7 @@ Incremental MH
 SMC
 ---
 
-.. js:function:: Infer({method: 'SMC'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'SMC'[, ...]})
 
    This method performs inference using sequential Monte Carlo. When
    ``rejuvSteps`` is 0, this method is also known as a particle
@@ -291,7 +291,7 @@ SMC
 
    Example usage::
 
-     Infer({method: 'SMC', particles: 100, rejuvSteps: 5}, model);
+     Infer({method: 'SMC', particles: 100, rejuvSteps: 5, model: model});
 
    By default SMC uses the prior as the importance distribution. Other
    distributions can be used by specifying :ref:`guide distributions
@@ -303,7 +303,7 @@ SMC
 Optimization
 ------------
 
-.. js:function:: Infer({method: 'optimize'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'optimize'[, ...]})
 
    This method performs inference by :ref:`optimizing <optimization>`
    the parameters of the guide program. The marginal distribution is a
@@ -324,12 +324,12 @@ Optimization
 
    Example usage::
 
-     Infer({method: 'optimize', samples: 100, steps: 100}, model);
+     Infer({method: 'optimize', samples: 100, steps: 100, model: model});
 
 Forward Sampling
 ----------------
 
-.. js:function:: Infer({method: 'forward'[, ...]}, model)
+.. js:function:: Infer({model: ..., method: 'forward'[, ...]})
 
    This method builds a histogram of return values obtained by
    repeatedly executing either the target or :ref:`guide <guides>`
@@ -363,8 +363,8 @@ Forward Sampling
 
    Example usage::
 
-     Infer({method: 'forward'}, model);
-     Infer({method: 'forward', guide: true, params: optimizedParams}, model);
+     Infer({method: 'forward', model: model});
+     Infer({method: 'forward', guide: true, params: optimizedParams, model: model});
 
 .. rubric:: Bibliography
 
