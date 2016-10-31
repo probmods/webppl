@@ -22,7 +22,7 @@ var paramStruct = require('../params/struct');
 
 module.exports = function(env) {
 
-  function EUBO(wpplFn, s, a, options, state, params, step, cont) {
+  function EUBO(wpplFn, s, a, options, state, step, cont) {
     this.opts = util.mergeDefaults(options, {
       miniBatchSize: 1
     });
@@ -38,7 +38,6 @@ module.exports = function(env) {
       throw 'Invalid miniBatchSize.';
     }
 
-    this.params = params;
     this.cont = cont;
 
     this.wpplFn = wpplFn;

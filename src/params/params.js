@@ -2,6 +2,39 @@
 
 var _ = require('underscore');
 var ad = require('../ad');
+var store = require('./store');
+
+// These hold the id of the current parameter set, the local copy of
+// that parameter set.
+
+var _id, _params;
+
+// Called before evaluating a webppl program.
+function init() {
+  setFreshId();
+  sync();
+}
+
+// We imagine that in the future we'll also be able to set _id from
+// the command-line.
+function setFreshId() {
+  _id = 'run-' + Math.random().toString(36).substring(2, 10);
+}
+
+function sync() {
+  _params = store.getParams(_id);
+}
+
+function get() {
+  return _params;
+}
+
+// When a coroutine wishes to update parameters it does so by calling
+// this method. This updates both the local parameters and those in
+// the store.
+function inc(delta) {
+  _params = store.incParams(_id, _params, delta);
+}
 
 var registerParams = function(env, name, getParams, setParams) {
 
@@ -13,19 +46,10 @@ var registerParams = function(env, name, getParams, setParams) {
   // returns params already lifted. Hence, `getParams()` is replaced
   // with `getParams().map(ad.value)` throughout this function.
 
-  var paramTable = env.coroutine.params;
+  var paramTable = get();
   var paramsSeen = env.coroutine.paramsSeen;
 
-  if (paramTable === undefined) {
-
-    // Some coroutines ignore the guide when sampling (e.g. MH as
-    // rejuv kernel) but still have to execute it while executing
-    // the target. To ensure the guide doesn't error out, we return
-    // something sensible from registerParams in such cases.
-
-    return getParams().map(ad.value);
-
-  } else if (paramsSeen && _.has(paramsSeen, name)) {
+  if (paramsSeen && _.has(paramsSeen, name)) {
 
     // We've already lifted these params during this execution.
     // Re-use ad graph nodes.
@@ -64,5 +88,9 @@ var registerParams = function(env, name, getParams, setParams) {
 };
 
 module.exports = {
-  registerParams: registerParams
+  registerParams: registerParams,
+  init: init,
+  sync: sync,
+  get: get,
+  inc: inc
 };

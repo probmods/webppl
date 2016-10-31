@@ -22,6 +22,7 @@ var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var util = require('./util');
 var errors = require('./errors/errors');
+var params = require('./params/params');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -229,6 +230,7 @@ function prepare(codeAndAssets, k, options) {
     // We reset env since a previous call to run may have raised an
     // exception and left an inference coroutine installed.
     env.reset();
+    params.init();
     eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
   };
 

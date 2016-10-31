@@ -6,7 +6,7 @@ var Tensor = require('../tensor');
 var util = require('../util');
 var dists = require('../dists');
 var registerParams = require('./params').registerParams;
-var paramStore = require('./store');
+var params = require('./params');
 
 module.exports = function(env) {
 
@@ -47,12 +47,16 @@ module.exports = function(env) {
   };
 
   var getParams = function(s, k, a) {
-    var paramSetId = env.executionName;
-    return k(s, paramStore.getParams(paramSetId));
+    return k(s, params.get());
+  };
+
+  var initParams = function(s, k, a) {
+    return k(s, params.init());
   };
 
   return {
     param: param,
-    getParams: getParams
+    getParams: getParams,
+    initParams: initParams
   };
 };

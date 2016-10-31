@@ -16,7 +16,7 @@ var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../params/struct');
-var paramStore = require('../params/store');
+var params = require('../params/params');
 var fs = require('fs');
 var nodeUtil = require('util');
 
@@ -47,11 +47,11 @@ module.exports = function(env) {
       checkpointParamsThrottle: 10000
     });
 
-    // Create a (cps) function 'estimator' which takes parameters to
-    // gradient estimates. Every application of the estimator function
-    // is passed the 'state' variable. This allows an estimator to
-    // maintain state between calls by modifying the contents of this
-    // object.
+    // Create a (cps) function 'estimator' which computes gradient
+    // estimates based on the (local copy) of the current parameter
+    // set. Every application of the estimator function is passed the
+    // 'state' variable. This allows an estimator to maintain state
+    // between calls by modifying the contents of this object.
     var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
       if (!_.has(estimators, name)) {
@@ -67,9 +67,6 @@ module.exports = function(env) {
       name = (name === 'gd') ? 'sgd' : name;
       return optMethods[name](opts);
     });
-
-    var paramSetId = env.executionName;
-    var paramObj = paramStore.getParams(paramSetId);
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);
@@ -91,13 +88,14 @@ module.exports = function(env) {
       }, options.logProgressThrottle, { trailing: false });
     }
 
+    // TODO: Move into src/params/checkpoint or similar?
     // For checkpointing params to disk
     var saveParams, checkpointParams;
     if (options.checkpointParams) {
       saveParams = function() {
         // Turn tensor data into regular Array before serialization
         // I think this is faster than using a custom 'replacer' with JSON.stringify?
-        var prms = _.mapObject(paramObj, function(lst) {
+        var prms = _.mapObject(params.get(), function(lst) {
           return lst.map(function(tensor) {
             var tcopy = _.clone(tensor);
             tcopy.data = tensor.toFlatArray();
@@ -116,7 +114,7 @@ module.exports = function(env) {
         // Loop body.
         function(i, next) {
 
-          return estimator(paramObj, i, function(gradObj, objective) {
+          return estimator(i, function(gradObj, objective) {
             if (options.checkGradients) {
               checkGradients(gradObj);
             }
@@ -149,13 +147,13 @@ module.exports = function(env) {
             //        a deepCopy.
             //
             //        deltas = newParams - oldParams = -(oldParams - newParams)
-            var deltaObj = paramStruct.deepCopy(paramObj);
+            var deltaObj = paramStruct.deepCopy(params.get());
             optimizer(gradObj, deltaObj, i);
             paramStruct.mulEq(deltaObj, -1);
-            paramStruct.addEq(deltaObj, paramObj)
+            paramStruct.addEq(deltaObj, params.get());
             paramStruct.mulEq(deltaObj, -1);
 
-            paramObj = paramStore.incParams(paramSetId, paramObj, deltaObj);
+            params.inc(deltaObj);
 
             return next();
           });

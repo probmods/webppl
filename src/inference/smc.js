@@ -37,10 +37,6 @@ module.exports = function(env) {
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
 
-    // Perform a copy to avoid modifying the input when SMC causes
-    // previously unseen params to be initialized.
-    this.params = paramStore.getParams(env.executionName);
-
     this.particles = [];
     this.completeParticles = [];
     this.particleIndex = 0;
