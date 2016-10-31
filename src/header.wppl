@@ -478,8 +478,8 @@ var Infer = function(options, maybeFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
   }
-  var model = maybeFn || options.model;
-  if (!_.isFunction(model)) {
+  var wpplFn = maybeFn || options.model;
+  if (!_.isFunction(wpplFn)) {
     util.fatal('Infer: a model was not specified.');
   }
 
@@ -507,7 +507,7 @@ var Infer = function(options, maybeFn) {
     util.fatal(msg);
   }
   var method = methodMap[methodName];
-  return method(model, _.omit(options, 'method', 'model'));
+  return method(wpplFn, _.omit(options, 'method', 'model'));
 };
 
 // Convenience function for creating maximum likelihood model
