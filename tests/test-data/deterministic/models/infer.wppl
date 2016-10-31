@@ -1,0 +1,9 @@
+var model = function() {
+  return flip(1);
+};
+[
+  // Test the use of ES6 object literal shorthand.
+  sample(Infer({model})),
+  sample(Infer({model: model})),
+  sample(Infer({model() { return model(); }}))
+];

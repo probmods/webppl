@@ -35,15 +35,22 @@ optimization <optimize>`, primitives for specifying :ref:`parameters
 Optimize
 ~~~~~~~~
 
-.. js:function:: Optimize(model, options)
+.. js:function:: Optimize(options)
 
-   :param function model: Specifies the guide program.
    :param object options: Optimization options.
    :returns: Optimized parameters.
 
-   Optimizes the parameters of the guide program.
+   Optimizes the parameters of the guide program specified by the
+   ``model`` option.
 
    The following options are supported:
+
+   .. describe:: model
+
+      A function of zero arguments that specifies the target and guide
+      programs.
+
+      This option must be present.
 
    .. describe:: steps
 
@@ -87,10 +94,10 @@ Optimize
 
 Example usage::
 
-  var newParams = Optimize(model, {steps: 100});
-  var newParams = Optimize(model, {steps: 100, params: oldParams});
-  var newParams = Optimize(model, {optMethod: 'adagrad'});
-  var newParams = Optimize(model, {optMethod: {sgd: {stepSize: 0.5}}});
+  var newParams = Optimize({model: model, steps: 100});
+  var newParams = Optimize({model: model, steps: 100, params: oldParams});
+  var newParams = Optimize({model: model, optMethod: 'adagrad'});
+  var newParams = Optimize({model: model, optMethod: {sgd: {stepSize: 0.5}}});
 
 Estimators
 ++++++++++
@@ -136,8 +143,8 @@ The following estimators are available:
 
 Example usage::
 
-  Optimize(model, {estimator: 'ELBO'});
-  Optimize(model, {estimator: {ELBO: {samples: 10}}});
+  Optimize({model: model, estimator: 'ELBO'});
+  Optimize({model: model, estimator: {ELBO: {samples: 10}}});
 
 .. _parameters:
 
