@@ -8,7 +8,7 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
-var paramStore = require('../params/store');
+var params = require('../params/params');
 
 module.exports = function(env) {
 
@@ -22,8 +22,7 @@ module.exports = function(env) {
       rejuvKernel: 'MH',
       finalRejuv: true,
       saveTraces: false,
-      ignoreGuide: false,
-      params: {}
+      ignoreGuide: false
     });
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -314,7 +313,7 @@ module.exports = function(env) {
             // Subsequent optimization should happen on the parameters
             // that generated the example traces, so we return them
             // here.
-            dist.guideParams = this.params;
+            dist.guideParams = params.get(); // FIXME: is this right?
           }
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
