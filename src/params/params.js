@@ -21,11 +21,22 @@ function setFreshId() {
   _id = 'run-' + Math.random().toString(36).substring(2, 10);
 }
 
+function sanityCheck() {
+  // If errors are throw from here, it may be that two or more calls
+  // to require are returning distinct instances of this module,
+  // preventing the correct sharing of _id and _params.
+  if (_id === undefined) {
+    throw new Error('Expected the parameter set id to be defined.');
+  }
+}
+
 function sync() {
+  sanityCheck();
   _params = store.getParams(_id);
 }
 
 function get() {
+  sanityCheck();
   return _params;
 }
 
@@ -33,6 +44,7 @@ function get() {
 // this method. This updates both the local parameters and those in
 // the store.
 function inc(delta) {
+  sanityCheck();
   _params = store.incParams(_id, _params, delta);
 }
 
