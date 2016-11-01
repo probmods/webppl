@@ -17,6 +17,10 @@ function selectStore(name) {
   }
 }
 
+function init() {
+  return _store.init();
+}
+
 function getParams(id) {
   return _store.getParams(id);
 }
@@ -26,6 +30,7 @@ function incParams(id, params, deltas) {
 }
 
 module.exports = {
+  init: init,
   selectStore: selectStore,
   getParams: getParams,
   incParams: incParams

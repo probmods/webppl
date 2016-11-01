@@ -5,6 +5,9 @@ var paramStruct = require('../struct');
 
 var store = {};
 
+function init() {
+}
+
 function getParams(id) {
   if (_.has(store, id)) {
     return paramStruct.deepCopy(store[id]);
@@ -24,6 +27,7 @@ function incParams(id, params, deltas) {
 }
 
 module.exports = {
+  init: init,
   getParams: getParams,
   incParams: incParams
 };

@@ -13,6 +13,7 @@ var _autoId = true;
 // Called before evaluating a webppl program. We only reset the
 // parameter set ID if no manual ID has been provided.
 function init() {
+  store.init();
   if (_autoId) {
     setFreshId();
   }
