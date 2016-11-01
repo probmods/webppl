@@ -8,7 +8,6 @@ var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 var guide = require('../guide');
-var paramStore = require('../params/store');
 
 module.exports = function(env) {
 
@@ -19,7 +18,6 @@ module.exports = function(env) {
       verbose: false
     });
 
-    this.params = paramStore.getParams(env.executionName);
     this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
