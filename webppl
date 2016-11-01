@@ -12,6 +12,7 @@ var dists = require('./src/dists');
 var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
+var params = require('./src/params/params');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
@@ -136,10 +137,19 @@ function main() {
     return pkg.load(pkg.read(name_or_path, packagePaths, argv.verbose));
   });
 
+  // Random seed
   var seed = argv['random-seed'];
   if (seed !== undefined) {
     util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
+  }
+
+  // Parameter set id
+  var paramId = argv['param-id'];
+  if (paramId !== undefined) {
+    params.setId(paramId);
+  } else {
+    params.setFreshId();
   }
 
   processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);

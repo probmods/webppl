@@ -8,17 +8,24 @@ var store = require('./store');
 // that parameter set.
 
 var _id, _params;
+var _autoId = true;
 
-// Called before evaluating a webppl program.
+// Called before evaluating a webppl program. We only reset the
+// parameter set ID if no manual ID has been provided.
 function init() {
-  setFreshId();
+  if (_autoId) {
+    setFreshId();
+  }
   sync();
 }
 
-// We imagine that in the future we'll also be able to set _id from
-// the command-line.
 function setFreshId() {
-  _id = 'run-' + Math.random().toString(36).substring(2, 10);
+  _id = 'params-' + Math.random().toString(36).substring(2, 10);
+}
+
+function setId(id) {
+  _id = id;
+  _autoId = false;
 }
 
 function sanityCheck() {
@@ -100,9 +107,11 @@ var registerParams = function(env, name, getParams, setParams) {
 };
 
 module.exports = {
-  registerParams: registerParams,
-  init: init,
-  sync: sync,
   get: get,
-  inc: inc
+  inc: inc,
+  init: init,
+  registerParams: registerParams,
+  setId: setId,
+  setFreshId: setFreshId,
+  sync: sync
 };
