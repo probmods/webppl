@@ -1,31 +1,32 @@
 'use strict';
 
-// This is a simple in-memory implementation of a parameter store.
-
 var _ = require('underscore');
-var paramStruct = require('./struct');
+var memoryStore = require('./store/memory');
 
-var store = {};
+var stores = {
+  memory: memoryStore
+};
+
+var _store = memoryStore;
+
+function selectStore(name) {
+  if (_.has(stores, name)) {
+    _store = stores[name];
+  } else {
+    throw new Error('Parameter store "' + name + '" not found. Valid options: ' + _.keys(stores));
+  }
+}
 
 function getParams(id) {
-  if (_.has(store, id)) {
-    return paramStruct.deepCopy(store[id]);
-  } else {
-    return {};
-  }
+  return _store.getParams(id);
 }
 
 function incParams(id, params, deltas) {
-  if (!_.has(store, id)) {
-    store[id] = {};
-  }
-  var table = store[id];
-  _.defaults(table, params);
-  paramStruct.addEq(table, deltas);
-  return paramStruct.deepCopy(table);
+  return _store.incParams(id, params, deltas);
 }
 
 module.exports = {
+  selectStore: selectStore,
   getParams: getParams,
   incParams: incParams
 };

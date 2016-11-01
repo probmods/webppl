@@ -12,6 +12,7 @@ var dists = require('./src/dists');
 var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
+var selectStore = require('./src/params/store').selectStore;
 var params = require('./src/params/params');
 var parseArgs = require('minimist');
 var _ = require('underscore');
@@ -117,7 +118,8 @@ function main() {
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
     console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
-                '[--require path] [--random-seed int]');
+                '[--require path] [--random-seed int] [--param-store name] ' +
+                '[--params-id id]');
     return;
   }
 
@@ -142,6 +144,12 @@ function main() {
   if (seed !== undefined) {
     util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
+  }
+
+  // Parameter store type
+  var paramStoreName = argv['param-store'];
+  if (paramStoreName !== undefined) {
+    selectStore(paramStoreName);
   }
 
   // Parameter set id
