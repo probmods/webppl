@@ -226,6 +226,10 @@ function prepare(codeAndAssets, k, options) {
   var baseRunner = options.baseRunner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
+  // We store the trampoline runner so that header functions that call
+  // external asynchronous functions can resume execution in callbacks
+  env.runner = runner;  
+
   var run = function() {
     // We reset env since a previous call to run may have raised an
     // exception and left an inference coroutine installed.
