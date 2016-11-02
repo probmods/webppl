@@ -8,6 +8,10 @@ var store = {};
 function init() {
 }
 
+// TODO: Figure out whether these deep copies are necessary. Having
+// them in is useful for simulating non-local stores, but in the final
+// thing we might be able to drop them for improved efficiency?
+
 function getParams(id) {
   if (_.has(store, id)) {
     return paramStruct.deepCopy(store[id]);
