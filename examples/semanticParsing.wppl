@@ -1,10 +1,10 @@
 var literalListener = function(utterance, qud) {
-  Infer({method: 'enumerate'}, function() {
+  Infer({model() {
     var m = meaning(utterance)
     var world = worldPrior(3, m)
     factor(m(world) ? 0 : -Infinity)
     return qud(world)
-  })
+  }})
 }
 
 

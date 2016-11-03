@@ -16,8 +16,8 @@ var hasCachingDirectiveTests = {
 var transformRequiredTests = {
   test1: { code: 'IncrementalMH(model, 0);', expected: true },
   test2: { code: 'Enumerate(model);', expected: false },
-  test3: { code: 'Infer(model, {method: "incrementalMH"});', expected: true },
-  test4: { code: 'Infer(model, {method: "enumerate"});', expected: false },
+  test3: { code: 'Infer({model, method: "incrementalMH"});', expected: true },
+  test4: { code: 'Infer({model, method: "enumerate"});', expected: false },
   test5: { code: '({method: "incrementalMH"})', expected: true },
   test6: { code: '({method: "enumerate"})', expected: false },
   test7: { code: '({"method": "incrementalMH"})', expected: true },

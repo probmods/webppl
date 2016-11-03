@@ -1,10 +1,10 @@
 var model = function() {
   var x = uniform(0, 1);
-  var marginal = Infer({method: 'enumerate'}, function() {
+  var marginal = Infer({model() {
     return sampleWithFactor(Bernoulli({p: x}), function(value) {
       return !value ? 0 : -2;
     });
-  });
+  }});
   var y = sample(marginal);
   return x * y;
 };

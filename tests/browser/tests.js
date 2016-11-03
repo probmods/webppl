@@ -2,7 +2,7 @@
 
 QUnit.test('run', function(test) {
   var done = test.async();
-  webppl.run('Infer({method: "enumerate"}, flip)', function(s, dist) {
+  webppl.run('Infer({model: flip})', function(s, dist) {
     test.ok(_.isEqual([false, true], dist.support().sort()));
     done();
   });
@@ -11,7 +11,7 @@ QUnit.test('run', function(test) {
 QUnit.test('run twice', function(test) {
   var done = test.async(2);
   _.times(2, function() {
-    webppl.run('Infer({method: "enumerate"}, flip)', function(s, dist) {
+    webppl.run('Infer({model: flip})', function(s, dist) {
       test.ok(_.isEqual([false, true], dist.support().sort()));
       done();
     });
@@ -21,7 +21,7 @@ QUnit.test('run twice', function(test) {
 QUnit.test('run resets env', function(test) {
   var done = test.async();
   try {
-    webppl.run('Infer({method: "enumerate"}, function() { assert.ok(false); })');
+    webppl.run('Infer({model() { assert.ok(false); }})');
   } catch (e) {
   }
   // Attempting to sample from a continuous distribution will raise an
@@ -41,7 +41,7 @@ function errorTest(code, debug, performChecks) {
     // Have the runner yield frequently to be sure the error occurs from
     // a setTimeout.
     var runner = util.trampolineRunners.web(1);
-    var allCode = 'Infer({method: "MCMC", samples: 1000}, flip);\n' + code;
+    var allCode = 'Infer({model: flip, method: "MCMC", samples: 1000});\n' + code;
     webppl.run(allCode, null, {runner: runner, debug: debug, errorHandlers: [handler]});
   };
 }

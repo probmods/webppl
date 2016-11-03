@@ -3,9 +3,9 @@ var transition = function(s) {
 }
 
 var observe = cache(function(s) {
-  Infer({method: 'enumerate'}, function() {
+  Infer({model() {
     return s ? flip(0.9) : flip(0.1)
-  })
+  }})
 })
 
 var trueObs = [false, false, false]
@@ -25,7 +25,7 @@ var hmm = function(n) {
   return hmmRecur(n, [true], [])
 }
 
-Infer({method: 'enumerate', maxExecutions: 500}, function() {
+Infer({maxExecutions: 500, model() {
   var r = hmm(3)
   return r.states
-})
+}})
