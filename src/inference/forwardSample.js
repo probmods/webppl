@@ -7,9 +7,10 @@ var _ = require('underscore');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
-var guide = require('../guide');
 
 module.exports = function(env) {
+
+  var guide = require('../guide')(env);
 
   function ForwardSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
@@ -62,7 +63,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       var distribution = this.opts.guide ?
-          (options && options.guide) || guide.independent(dist, a, env) :
+          (options && options.guide) || guide.independent(dist, a) :
           dist;
       return k(s, distribution.sample());
     },

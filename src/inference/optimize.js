@@ -16,11 +16,12 @@ var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../params/struct');
-var params = require('../params/params');
 var fs = require('fs');
 var nodeUtil = require('util');
 
 module.exports = function(env) {
+
+  var params = require('../params/params')(env);
 
   var estimators = {
     ELBO: require('./elbo')(env),
@@ -171,9 +172,7 @@ module.exports = function(env) {
             paramStruct.addEq(deltaObj, params.get());
             paramStruct.mulEq(deltaObj, -1);
 
-            params.inc(deltaObj);
-
-            return next();
+            return params.inc(s, next, deltaObj);
           });
 
         },
