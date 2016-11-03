@@ -474,12 +474,13 @@ var OptimizeThenSample = function(wpplFn, options) {
   return SampleGuide(wpplFn, opts);
 };
 
-var Infer = function(options, wpplFn) {
+var Infer = function(options, maybeFn) {
   if (!util.isObject(options)) {
     util.fatal('Infer: expected first argument to be an options object.');
   }
+  var wpplFn = maybeFn || options.model;
   if (!_.isFunction(wpplFn)) {
-    util.fatal('Infer: expected second argument to be a function.');
+    util.fatal('Infer: a model was not specified.');
   }
 
   // Map from camelCase options to PascalCase coroutine names. Also
@@ -497,10 +498,7 @@ var Infer = function(options, wpplFn) {
     optimize: OptimizeThenSample
   };
 
-  var methodName = options.method;
-  if (methodName === undefined) {
-    util.fatal('Infer: the \'method\' option must be specified.');
-  }
+  var methodName = options.method || 'enumerate';
   if (!_.has(methodMap, methodName)) {
     var methodNames = _.keys(methodMap);
     var msg = 'Infer: \'' + methodName +
@@ -509,7 +507,7 @@ var Infer = function(options, wpplFn) {
     util.fatal(msg);
   }
   var method = methodMap[methodName];
-  return method(wpplFn, _.omit(options, 'method'));
+  return method(wpplFn, _.omit(options, 'method', 'model'));
 };
 
 // Convenience function for creating maximum likelihood model

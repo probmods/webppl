@@ -112,9 +112,19 @@ function spec(targetDist) {
     return betaSpec(targetDist);
   } else if (targetDist instanceof dists.Discrete) {
     return discreteSpec(targetDist);
+  } else if (targetDist instanceof dists.RandomInteger ||
+             targetDist instanceof dists.Binomial ||
+             targetDist instanceof dists.MultivariateGaussian) {
+    throwAutoGuideError(targetDist);
   } else {
     return defaultSpec(targetDist);
   }
+}
+
+function throwAutoGuideError(targetDist) {
+  var msg = 'Cannot automatically generate a guide for a ' +
+      targetDist.meta.name + ' distribution.';
+  throw new Error(msg);
 }
 
 // The default is a guide of the same type as the target. We determine
@@ -133,9 +143,7 @@ function defaultSpec(targetDist) {
     } else if (_.isNumber(targetParam)) {
       dims = [1];
     } else {
-      var msg = 'Cannot automatically generate a guide for a ' +
-          targetDist.meta.name + ' distribution.';
-      throw new Error(msg);
+      throwAutoGuideError(targetDist);
     }
 
     return [name, {param: {dims: dims, domain: paramMeta.domain}}];

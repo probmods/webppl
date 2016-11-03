@@ -27,7 +27,25 @@ module.exports = function(env) {
     EUBO: require('./eubo')(env)
   };
 
-  function Optimize(s, k, a, wpplFn, options) {
+  function Optimize(s, k, a, fnOrOptions, maybeOptions) {
+    var wpplFn, options;
+    if (_.isFunction(fnOrOptions)) {
+      wpplFn = fnOrOptions;
+      options = maybeOptions;
+    } else if (util.isObject(fnOrOptions)) {
+      wpplFn = fnOrOptions.model;
+      options = _.omit(fnOrOptions, 'model');
+      if (!_.isFunction(wpplFn) && _.isFunction(maybeOptions)) {
+        throw new Error('Optimize: expected model to be included in options.');
+      }
+    } else {
+      throw new Error('Optimize: expected first argument to be an options object or a function.');
+    }
+
+    if (!_.isFunction(wpplFn)) {
+      throw new Error('Optimize: a model was not specified.');
+    }
+
     options = util.mergeDefaults(options, {
       optMethod: 'adam',
       estimator: 'ELBO',

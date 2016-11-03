@@ -10,20 +10,19 @@ the distribution on return values implicitly represented by a
 (In general, computing this distribution is intractable, so often the
 goal is to compute an approximation to it.)
 
-This is achieved WebPPL using the ``Infer(options, model)`` function
-which takes a function of zero arguments representing a stochastic
-computation, ``model``, and returns the distribution on return values
-represented as a :ref:`distribution object<distributions>`.
+This is achieved in WebPPL using the ``Infer`` function, which takes a
+function of zero arguments representing a stochastic computation and
+returns the distribution on return values represented as a
+:ref:`distribution object<distributions>`. For example::
 
-Several implementations of marginal inference are built into WebPPL.
-The ``method`` option is used to specify which implementation should
-be used. For example::
+   Infer({model: function() {
+       return flip() + flip();
+   });
 
-  Infer({method: 'enumerate'}, function() {
-    return flip() + flip();
-  });
-
-Information about the individual methods is available here:
+``Infer`` will perform inference using :ref:`enumeration<enumerate>`
+by default, but several other implementations of marginal inference
+are also built into WebPPL. Information about the individual methods
+is available here:
 
 .. toctree::
    :maxdepth: 2

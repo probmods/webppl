@@ -117,6 +117,13 @@ var testDefs = [
     debug: true
   },
 
+  { name: 'no webppl entry in stack trace',
+    code: 'util.fatal(util.jsnew(Error))',
+    stack: [{file: RegExp(path.join('src', 'util.js') + '$'), webppl: false, name: null}],
+    debug: true,
+    limit: 1
+  },
+
   // The idea here is to test that the stack is as expected at the
   // error which occurs after we continue from the sample statement
   // for the second time.
@@ -166,18 +173,22 @@ function testEntry(entry, props, test) {
   }
 }
 
-function getStack(code, debug) {
-  var stack;
+function getStack(code, debug, limit) {
+  var stack, oldLimit;
   try {
+    oldLimit = Error.stackTraceLimit;
+    Error.stackTraceLimit = (limit !== undefined) ? limit : oldLimit;
     webppl.run(code, null, {debug: debug});
   } catch (e) {
     stack = errors.recoverStack(e, parseV8);
+  } finally {
+    Error.stackTraceLimit = oldLimit;
   }
   return stack;
 }
 
 function runTest(def, test) {
-  var stack = getStack(def.code, def.debug);
+  var stack = getStack(def.code, def.debug, def.limit);
   var expectedStack = def.stack;
   //console.log(JSON.stringify(stack));
   //console.log(JSON.stringify(expectedStack));
