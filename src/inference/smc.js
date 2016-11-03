@@ -308,12 +308,6 @@ module.exports = function(env) {
           dist.normalizationConstant = logAvgW;
           if (this.saveTraces) {
             dist.traces = traces;
-            // Even though SMC doesn't modify guide parameters, it may
-            // cause parameters not previously seen to be initialized.
-            // Subsequent optimization should happen on the parameters
-            // that generated the example traces, so we return them
-            // here.
-            dist.guideParams = params.get(); // FIXME: is this right?
           }
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
