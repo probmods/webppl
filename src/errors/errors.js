@@ -54,14 +54,18 @@ function filterJsStackTrace(stackTrace) {
   // taking the top-most entry corresponding to a function application
   // in webppl code, and any frames above it.
 
+  // When no entry corresponding to application of a webppl function
+  // is present, we return the entire stack. The reason this is
+  // possible is that (by default in V8) only the top 10 stack frames
+  // are captured on error.
+
   // We can only ever take the top-most webppl frame as any earlier
   // frames may have been generated on a different execution path.
   // (And besides, there should only be one entry as the JS stack is
   // cleared between each webppl function application.)
 
   var ix = _.findIndex(stackTrace, _.matcher({webppl: true}));
-  assert.ok(ix !== undefined, 'Expected to find wppl entry in JS stack trace.');
-  return stackTrace.slice(0, ix).concat(stackTrace[ix]);
+  return (ix >= 0) ? stackTrace.slice(0, ix + 1) : stackTrace;
 }
 
 function filterGensym(name) {
