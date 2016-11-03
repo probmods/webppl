@@ -65,7 +65,7 @@ function filterJsStackTrace(stackTrace) {
   // cleared between each webppl function application.)
 
   var ix = _.findIndex(stackTrace, _.matcher({webppl: true}));
-  return (ix >= 0) ? stackTrace.slice(0, ix).concat(stackTrace[ix]) : stackTrace;
+  return (ix >= 0) ? stackTrace.slice(0, ix + 1) : stackTrace;
 }
 
 function filterGensym(name) {
