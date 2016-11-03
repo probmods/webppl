@@ -148,31 +148,31 @@ var isall = function(world) {
 }
 
 var literalListener = cache(function(utterance) {
-  Infer({method: 'enumerate', maxExecutions: 100}, function() {
+  Infer({maxExecutions: 100, model() {
     var m = meaning(utterance)
     var world = worldPrior(2, m)
     factor(m(world) ? 0 : -Infinity)
     return world
-  })
+  }})
 })
 
 var speaker = cache(function(world) {
-  Infer({method: 'enumerate', maxExecutions: 100}, function() {
+  Infer({maxExecutions: 100, model() {
     var utterance = utterancePrior()
     var L = literalListener(utterance)
     factor(L.score(world))
     return utterance
-  })
+  }})
 })
 
 var listener = function(utterance) {
-  Infer({method: 'enumerate', maxExecutions: 100}, function() {
+  Infer({maxExecutions: 100, model() {
     var world = worldPrior(2, function(w) {return 1}) //use vacuous meaning to avoid any guide...
     //    var world = worldPrior(2, meaning(utterance)) //guide by literal meaning
     var S = speaker(world)
     factor(S.score(utterance))
     return isall(world)
-  })
+  }})
 }
 
 listener('some of the blond people are nice')
