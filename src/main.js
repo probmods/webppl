@@ -238,7 +238,7 @@ function prepare(codeAndAssets, k, options) {
     eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
   };
 
-  return {run: run, runner: runner};
+  return {run: run, env: env};
 }
 
 function run(code, k, options) {
