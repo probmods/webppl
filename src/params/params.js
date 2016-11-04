@@ -11,13 +11,12 @@ var _params;
 
 // Called before evaluating a webppl program. We only reset the
 // parameter set ID if no manual ID has been provided.
-function init() {
+function init(k) {
   var store = config.getStore();
-  store.init();
   if (!config.isManualId()) {
     config.setFreshId();
-  }
-  sync();
+  }  
+  return store.init(function() { return sync(k); });
 }
 
 function sanityCheck() {
@@ -30,12 +29,22 @@ function sanityCheck() {
   }
 }
 
-function sync() {
+function sync(k) {
   sanityCheck();
   var store = config.getStore();
-  _params = store.getParams(config.getId());
+  var next = function(params) {
+    if (!params) {
+      throw new Error('Expected store to return params, got', params);
+    }
+    _params = params;
+    return k(params);
+  };
+  return store.getParams(next, config.getId());
 }
 
+// This is not a continuation-passing style function, since it doesn't
+// make use of any store functions (that could be asynchronous) but
+// rather returns the current local parameter copy directly.
 function get() {
   sanityCheck();
   return _params;
@@ -44,10 +53,17 @@ function get() {
 // When a coroutine wishes to update parameters it does so by calling
 // this method. This updates both the local parameters and those in
 // the store.
-function inc(delta) {
+function inc(k, deltas) {
   sanityCheck();
   var store = config.getStore();
-  _params = store.incParams(config.getId(), _params, delta);
+  var next = function(params) {
+    if (!params) {
+      throw new Error('Expected store to return params, got', params);
+    }
+    _params = params;
+    return k(params);
+  };
+  return store.incParams(next, config.getId(), _params, deltas);
 }
 
 var registerParams = function(env, name, getParams, setParams) {

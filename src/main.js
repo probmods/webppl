@@ -234,8 +234,9 @@ function prepare(codeAndAssets, k, options) {
     // We reset env since a previous call to run may have raised an
     // exception and left an inference coroutine installed.
     env.reset();
-    params.init();
-    eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
+    params.init(function() {
+      eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
+    });
   };
 
   return {run: run, runner: runner};

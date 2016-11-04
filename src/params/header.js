@@ -47,11 +47,13 @@ module.exports = function(env) {
   };
 
   var getParams = function(s, k, a) {
-    return k(s, params.get());
+    return k(s, params.get());  // params.get is not a cps function
   };
 
   var initParams = function(s, k, a) {
-    return k(s, params.init());
+    return params.init(function() {
+      return k(s);
+    });
   };
 
   return {

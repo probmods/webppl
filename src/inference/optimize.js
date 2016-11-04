@@ -171,9 +171,7 @@ module.exports = function(env) {
             paramStruct.addEq(deltaObj, params.get());
             paramStruct.mulEq(deltaObj, -1);
 
-            params.inc(deltaObj);
-
-            return next();
+            return params.inc(next, deltaObj);
           });
 
         },
