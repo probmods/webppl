@@ -1,39 +1,33 @@
 'use strict';
 
-// The store will call the continuation, but won't return the call,
-// or call the trampoline, or pass the global store to it, or anything
-// like that. The caller has to make sure that this happens as part
-// of the continuation.
-
 var _ = require('underscore');
 var paramStruct = require('../struct');
 
 var store = {};
 
-function init(k) {
-  k();
+function init() {
 }
 
 // TODO: Figure out whether these deep copies are necessary. Having
 // them in is useful for simulating non-local stores, but in the final
 // thing we might be able to drop them for improved efficiency?
 
-function getParams(k, id) {
+function getParams(id) {
   if (_.has(store, id)) {
-    k(paramStruct.deepCopy(store[id]));
+    return paramStruct.deepCopy(store[id]);
   } else {
-    k({});
+    return {};
   }
 }
 
-function incParams(k, id, params, deltas) {
+function incParams(id, params, deltas) {
   if (!_.has(store, id)) {
     store[id] = {};
   }
   var table = store[id];
   _.defaults(table, params);
   paramStruct.addEq(table, deltas);
-  k(paramStruct.deepCopy(table));
+  return paramStruct.deepCopy(table);
 }
 
 module.exports = {
@@ -41,5 +35,3 @@ module.exports = {
   getParams: getParams,
   incParams: incParams
 };
-
-

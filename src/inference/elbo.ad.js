@@ -6,6 +6,7 @@ var fs = require('fs');
 var util = require('../util');
 var ad = require('../ad');
 var paramStruct = require('../params/struct');
+var guide = require('../guide');
 var graph = require('./elbograph');
 
 var RootNode = graph.RootNode;
@@ -15,8 +16,6 @@ var SplitNode = graph.SplitNode;
 var JoinNode = graph.JoinNode;
 
 module.exports = function(env) {
-
-  var guide = require('../guide')(env);
 
   function ELBO(wpplFn, s, a, options, state, step, cont) {
     this.opts = util.mergeDefaults(options, {
@@ -248,7 +247,7 @@ module.exports = function(env) {
       if (options.guide) {
         guideDist = options.guide;
       } else {
-        guideDist = guide.independent(dist, a);
+        guideDist = guide.independent(dist, a, env);
         if (this.step === 0 &&
             this.opts.verbose &&
             !this.mfWarningIssued) {

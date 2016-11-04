@@ -22,12 +22,11 @@ var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var util = require('./util');
 var errors = require('./errors/errors');
+var params = require('./params/params');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
 var env = {};
-
-var params = require('./params/params')(env);
 
 // Make header functions globally available:
 function requireHeader(path) { requireHeaderWrapper(require(path)); }
@@ -235,10 +234,8 @@ function prepare(codeAndAssets, k, options) {
     // We reset env since a previous call to run may have raised an
     // exception and left an inference coroutine installed.
     env.reset();
-    var next = function(s, v) {
-      eval.call(global, codeAndAssets.code)(currentAddress)(runner)(s, k, '');
-    };
-    params.init(options.initialStore, next);
+    params.init();
+    eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
   };
 
   return {run: run, env: env};

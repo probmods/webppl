@@ -5,15 +5,15 @@ var ad = require('../ad');
 var Tensor = require('../tensor');
 var util = require('../util');
 var dists = require('../dists');
+var registerParams = require('./params').registerParams;
+var params = require('./params');
 
 module.exports = function(env) {
-
-  var params = require('./params')(env);
 
   var dimsForScalarParam = [1];
 
   // param provides a convenient wrapper around the primitive
-  // params.register.
+  // registerParams.
   var param = function(s, k, a, options) {
     options = util.mergeDefaults(options, {
       mu: 0,
@@ -25,7 +25,7 @@ module.exports = function(env) {
     var dims = options.dims;
     var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
 
-    var val = params.register(name, function() {
+    var val = registerParams(env, name, function() {
 
       // Initialization.
 
@@ -38,7 +38,7 @@ module.exports = function(env) {
         }
       }
 
-      // params.register tracks an array of parameters for each
+      // registerParams tracks an array of parameters for each
       // name/address.
       return [val];
 
@@ -51,7 +51,7 @@ module.exports = function(env) {
   };
 
   var initParams = function(s, k, a) {
-    return params.init(s, k);
+    return k(s, params.init());
   };
 
   return {

@@ -12,7 +12,8 @@ var dists = require('./src/dists');
 var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
-var paramsConfig = require('./src/params/config');
+var selectStore = require('./src/params/store').selectStore;
+var params = require('./src/params/params');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
@@ -148,15 +149,15 @@ function main() {
   // Parameter store type
   var paramStoreName = argv['param-store'];
   if (paramStoreName !== undefined) {
-    paramsConfig.setStore(paramStoreName);
+    selectStore(paramStoreName);
   }
 
   // Parameter set id
   var paramId = argv['param-id'];
   if (paramId !== undefined) {
-    paramsConfig.setId(paramId);
+    params.setId(paramId);
   } else {
-    paramsConfig.setFreshId();
+    params.setFreshId();
   }
 
   processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);
