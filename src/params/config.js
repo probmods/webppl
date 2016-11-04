@@ -2,6 +2,7 @@
 
 var _ = require('underscore');
 var memoryStore = require('./store/memory');
+var mongoStore = require('./store/mongo');
 
 
 // Parameter set id
@@ -31,7 +32,8 @@ function isManualId() {
 // Store
 
 var stores = {
-  memory: memoryStore
+  memory: memoryStore,
+  mongo: mongoStore
 };
 
 var _store = memoryStore;

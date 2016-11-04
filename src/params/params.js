@@ -15,7 +15,7 @@ function init(k) {
   var store = config.getStore();
   if (!config.isManualId()) {
     config.setFreshId();
-  }  
+  }
   return store.init(function() { return sync(k); });
 }
 
