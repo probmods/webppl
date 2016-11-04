@@ -228,7 +228,7 @@ function prepare(codeAndAssets, k, options) {
 
   // We store the trampoline runner so that header functions that call
   // external asynchronous functions can resume execution in callbacks
-  env.runner = runner;
+  global.trampolineRunner = runner;
 
   var run = function() {
     // We reset env since a previous call to run may have raised an
