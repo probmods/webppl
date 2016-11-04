@@ -1,10 +1,5 @@
 'use strict';
 
-// The store will call the continuation, but won't return the call,
-// or call the trampoline, or pass the global store to it, or anything
-// like that. The caller has to make sure that this happens as part
-// of the continuation.
-
 var _ = require('underscore');
 var paramStruct = require('../struct');
 
