@@ -119,7 +119,7 @@ function main() {
     console.log('No program argument given! Run webppl as follows:');
     console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
                 '[--require path] [--random-seed int] [--param-store name] ' +
-                '[--params-id id]');
+                '[--param-id id]');
     return;
   }
 
