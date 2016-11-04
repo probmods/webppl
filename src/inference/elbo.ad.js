@@ -83,7 +83,7 @@ module.exports = function(env) {
 
   function checkScoreIsFinite(score, source) {
     var _score = ad.value(score);
-    if (!isFinite(_score)) { // Also catches NaN.
+    if (!Number.isFinite(_score)) { // Also catches NaN.
       var msg = 'ELBO: The score of the previous sample under the ' +
             source + ' program was ' + _score + '.';
       if (_.isNaN(_score)) {
@@ -116,7 +116,7 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           paramStruct.divEq(grad, this.opts.samples);
-          elbo /= this.opts.samples;
+          elbo /= this.opts.samples; // Average estimations.
           this.updateBaselines();
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
@@ -302,7 +302,7 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a, score, name) {
-      if (!isFinite(ad.value(score))) {
+      if (!Number.isFinite(ad.value(score))) {
         throw new Error('ELBO: factor score is not finite.');
       }
       var m = top(this.mapDataStack).multiplier;
@@ -354,8 +354,11 @@ module.exports = function(env) {
         // Signal to mapDataFinal that the batch was empty.
         this.mapDataStack.push(null);
       }
-
-      return ix;
+      if (ix === null) {
+          return data;
+      }
+      // TODO - change to a more efficient solution?
+      return data.filter(function(val, index){ return ix.includes[index] });
     },
 
     mapDataEnter: function() {
