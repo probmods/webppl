@@ -1,10 +1,16 @@
 'use strict';
 
 var _ = require('underscore');
-var mongodb = require('mongodb');  // we assume that this is installed globally; it's not in webppl's package.json
 var paramStruct = require('../struct');
 var serializeParams = require('../serialize').serializeParams;
 var deserializeParams = require('../serialize').deserializeParams;
+
+try {
+  // we assume that this is installed globally; it's not in webppl's package.json
+  var mongodb = require('mongodb');
+} catch (e) {
+  var mongodb = null;
+}
 
 var mongoURL = 'mongodb://localhost:27017/webppl';
 var collectionName = 'parameters';
@@ -51,6 +57,9 @@ function _storeParams(k, id, params) {
 }
 
 function init(k) {
+  if (!mongodb) {
+    throw new Error('MongoDB module not found.');
+  }
   console.log('Connecting to MongoDB...');
   var client = mongodb.MongoClient;
   client.connect(mongoURL, function(err, db) {
