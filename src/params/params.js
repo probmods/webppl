@@ -2,45 +2,38 @@
 
 var _ = require('underscore');
 var ad = require('../ad');
-var store = require('./store');
+var config = require('./config');
 
-// These hold the id of the current parameter set, the local copy of
-// that parameter set.
+// The local copy of the parameter set
 
-var _id, _params;
-var _autoId = true;
+var _params;
+
 
 // Called before evaluating a webppl program. We only reset the
 // parameter set ID if no manual ID has been provided.
 function init() {
+  var store = config.getStore();
   store.init();
-  if (_autoId) {
-    setFreshId();
+  if (!config.isManualId()) {
+    config.setFreshId();
   }
   sync();
-}
-
-function setFreshId() {
-  _id = 'params-' + Math.random().toString(36).substring(2, 10);
-}
-
-function setId(id) {
-  _id = id;
-  _autoId = false;
 }
 
 function sanityCheck() {
   // If errors are throw from here, it may be that two or more calls
   // to require are returning distinct instances of this module,
   // preventing the correct sharing of _id and _params.
-  if (_id === undefined) {
+  const id = config.getId();
+  if (id === undefined) {
     throw new Error('Expected the parameter set id to be defined.');
   }
 }
 
 function sync() {
   sanityCheck();
-  _params = store.getParams(_id);
+  var store = config.getStore();
+  _params = store.getParams(config.getId());
 }
 
 function get() {
@@ -53,7 +46,8 @@ function get() {
 // the store.
 function inc(delta) {
   sanityCheck();
-  _params = store.incParams(_id, _params, delta);
+  var store = config.getStore();
+  _params = store.incParams(config.getId(), _params, delta);
 }
 
 var registerParams = function(env, name, getParams, setParams) {
@@ -112,7 +106,5 @@ module.exports = {
   inc: inc,
   init: init,
   registerParams: registerParams,
-  setId: setId,
-  setFreshId: setFreshId,
   sync: sync
 };
