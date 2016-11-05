@@ -11,4 +11,6 @@ src/dists.wppl
 src/inference/enumerate.js
 src/inference/elbo.js
 src/inference/eubo.js
+src/inference/dreamSample.js
+src/inference/dreamEubo.js
 src/aggregation/ScoreAggregator.js
