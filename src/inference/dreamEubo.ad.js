@@ -44,7 +44,7 @@ module.exports = function(env) {
 
   function checkScoreIsFinite(score, source) {
     var _score = ad.value(score);
-    if (!Number.isFinite(_score)) { // Also catches NaN.
+    if (!isFinite(_score)) { // Also catches NaN.
       var msg = 'DREAM: The score of the previous sample under the ' +
           source + ' program was ' + _score + '.';
       if (_.isNaN(_score)) {

@@ -57,7 +57,7 @@ function resetRNG() {
 
 function assertValidRandomSeed(seed) {
   var msg = 'Random seed should be a positive integer.';
-  assert(Number.isFinite(seed) && seed >= 0, msg);
+  assert(isFinite(seed) && seed >= 0, msg);
 }
 
 function runningInBrowser() {

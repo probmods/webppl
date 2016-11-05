@@ -83,7 +83,7 @@ module.exports = function(env) {
 
   function checkScoreIsFinite(score, source) {
     var _score = ad.value(score);
-    if (!Number.isFinite(_score)) { // Also catches NaN.
+    if (!isFinite(_score)) { // Also catches NaN.
       var msg = 'ELBO: The score of the previous sample under the ' +
             source + ' program was ' + _score + '.';
       if (_.isNaN(_score)) {
@@ -302,7 +302,7 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a, score, name) {
-      if (!Number.isFinite(ad.value(score))) {
+      if (!isFinite(ad.value(score))) {
         throw new Error('ELBO: factor score is not finite.');
       }
       var m = top(this.mapDataStack).multiplier;
