@@ -103,7 +103,9 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads, -ad.value(objective));
+        var logp = ad.value(trace.score);
+        var logq = ad.value(this.logq);
+        return cont(grads, logp - logq);
 
       }.bind(this), this.a);
 
