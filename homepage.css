@@ -72,6 +72,16 @@
     max-height: none;
 }
 
+#demolink {
+  color: white;
+  font-weight: bold;
+}
+
+#demolink a:hover {
+  text-decoration: underline;
+}
+
+
 /* Literate editor */
 
 .panel {

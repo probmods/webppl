@@ -39,7 +39,10 @@
 
       <div class="jumbotron main-lead">
         <p class="lead">
-          webppl is a small but feature-rich probabilistic programming language embedded in Javascript.
+          webppl is a feature-rich probabilistic programming language embedded in Javascript.
+        </p>
+        <p class="lead">
+          Check out some <a id="demolink" href="demos.html">demos</a> or try it yourself in the editor below.
         </p>
       </div>
 
@@ -51,11 +54,23 @@
       </div>
 
       <div class="row marketing">
+        <div class="col-lg-12">
+          <h4>Features</h4>
+          <ul class="list-group">
+              <li class="list-group-item">Runs on the command line with <a href="http://nodejs.org/">node.js</a> or <a href="http://docs.webppl.org/en/master/development/workflow.html#browser-version">in the browser</a>.</li>
+              <li class="list-group-item">Supports modular and re-usable code using <a href="http://docs.webppl.org/en/master/packages.html">packages</a> built on top of the npm package system, and interoperates with existing Javascript packages in the npm ecosystem.</li>
+              <li class="list-group-item">Includes a large and expanding library of primitive <a href="http://docs.webppl.org/en/master/distributions.html">distributions.</a></li>
+              <li class="list-group-item">Implements a variety of <a href="http://docs.webppl.org/en/master/inference/index.html">inference algorithms</a>, including exact inference via enumeration, rejection sampling, Sequential Monte Carlo, Markov Chain Monte Carlo, Hamiltonian Monte Carlo, and inference-as-optimization (e.g. variational inference).</li>
+              <li class="list-group-item">Provides inference as a first-class operator in the language, allowing for nested inference (‘inference about inference’).</li>
+              <li class="list-group-item">Supports optimizable models with neural network components using <a href="https://www.npmjs.com/package/adnn">adnn</a>.</li>
+          </ul>
+        </div>
+
         <div class="col-lg-6">
           <h4>Local install</h4>
           <p>Install webppl in two easy steps:</p>
           <ol>
-            <li>Install <a href="http://nodejs.org">nodejs</a></li>
+            <li>Install <a href="http://nodejs.org">node.js</a></li>
             <li>Run <code>npm install -g webppl</code></li>
           </ol>
           <p>Now, the <code>webppl</code> command is globally available.</p>
