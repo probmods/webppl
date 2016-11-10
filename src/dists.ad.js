@@ -772,6 +772,10 @@ function sum(xs) {
 }
 
 
+function discreteScore(ps, i) {
+  var scoreFn = _.isArray(ps) ? discreteScoreArray : discreteScoreVector;
+  return scoreFn(ps, i);
+}
 
 function inDiscreteSupport(val, dim) {
   return (val === Math.floor(val)) && (0 <= val) && (val < dim);
@@ -793,6 +797,12 @@ function discreteScoreArray(probs, val) {
   return inDiscreteSupport(val, d) ? Math.log(probs[val] / sum(probs)) : -Infinity;
 }
 
+// Extracts an array of values from a (possibly lifted) tensor or an
+// array (whose contents maybe lifted).
+function toUnliftedArray(x) {
+  return _.isArray(x) ? x.map(ad.value) : ad.value(x).data;
+}
+
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
@@ -800,14 +810,10 @@ var Discrete = makeDistributionType({
   wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
   sample: function() {
-    var ps = _.isArray(this.params.ps) ?
-          this.params.ps.map(ad.value) :
-          ad.value(this.params.ps).data;
-    return discreteSample(ps);
+    return discreteSample(toUnliftedArray(this.params.ps));
   },
   score: function(val) {
-    var scoreFn = _.isArray(this.params.ps) ? discreteScoreArray : discreteScoreVector;
-    return scoreFn(this.params.ps, val);
+    return discreteScore(this.params.ps, val);
   },
   support: function() {
     // This does the right thing for arrays and vectors.
