@@ -24,14 +24,14 @@ function resume(thunk) {
 
 function assertInit() {
   if (!_collection) {
-    throw new Error('No db collection found - make sure to call init first!');
+    throw new Error('No db collection found - make sure to call start first!');
   }
 }
 function _loadParams(k, id) {
   assertInit();
   _collection.findOne({ _id: id }, {}, function(err, data) {
     if (err) {
-      throw new Error('Error getting params from MongoDB: ' + JSON.stringify(err));
+      throw new Error('Failed to load params from MongoDB: ' + JSON.stringify(err));
     } else {
       if (!data) {
         resume(function() { return k({}); });
@@ -49,7 +49,7 @@ function _storeParams(k, id, params) {
   assertInit();
   _collection.update({ _id: id }, { params: serializeParams(params) }, { upsert: true }, function(err, result) {
     if (err) {
-      throw new Error('Error storing params in MongoDB: ' + JSON.stringify(err));
+      throw new Error('Failed to store params in MongoDB: ' + JSON.stringify(err));
     } else {
       return k();
     }
@@ -64,7 +64,7 @@ function init(k) {
   var client = mongodb.MongoClient;
   client.connect(mongoURL, function(err, db) {
     if (err) {
-      throw new Error('Error connecting to MongoDB: ' + JSON.stringify(err));
+      throw new Error('Failed to connect to MongoDB: ' + JSON.stringify(err));
     } else {
       console.log('Successfully connected to MongoDB.');
       _collection = db.collection(collectionName);
