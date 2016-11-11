@@ -23,7 +23,7 @@ function sanityCheck() {
   // If errors are throw from here, it may be that two or more calls
   // to require are returning distinct instances of this module,
   // preventing the correct sharing of _id and _params.
-  const id = config.getId();
+  var id = config.getId();
   if (id === undefined) {
     throw new Error('Expected the parameter set id to be defined.');
   }
