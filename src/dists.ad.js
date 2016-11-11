@@ -807,7 +807,7 @@ function toUnliftedArray(x) {
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array or vector of probabilities', domain: gt(0)}],
+  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0)}],
   wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
   sample: function() {
