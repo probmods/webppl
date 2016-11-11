@@ -229,13 +229,13 @@ function prepare(codeAndAssets, k, options) {
   // We store the trampoline runner so that header functions that call
   // external asynchronous functions can resume execution in callbacks
   global.trampolineRunner = runner;
-  
+
   var finish = function(s, x) {
     return params.stop(function() {
       return k(s, x);
     });
   };
-  
+
   var start = function() {
     eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, finish, '');
   };

@@ -45,7 +45,7 @@ function sync(k) {
     _params = params;
     return k(params);
   };
-  return store.getParams(next, config.getId());
+  return store.getParams(config.getId(), next);
 }
 
 // This is not a continuation-passing style function, since it doesn't
@@ -59,7 +59,7 @@ function get() {
 // When a coroutine wishes to update parameters it does so by calling
 // this method. This updates both the local parameters and those in
 // the store.
-function inc(k, deltas) {
+function inc(deltas, k) {
   sanityCheck();
   var store = config.getStore();
   var next = function(params) {
@@ -69,7 +69,7 @@ function inc(k, deltas) {
     _params = params;
     return k(params);
   };
-  return store.incParams(next, config.getId(), _params, deltas);
+  return store.incParams(config.getId(), _params, deltas, next);
 }
 
 var registerParams = function(env, name, getParams, setParams) {

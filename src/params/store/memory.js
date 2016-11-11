@@ -17,7 +17,7 @@ function stop(k) {
 // them in is useful for simulating non-local stores, but in the final
 // thing we might be able to drop them for improved efficiency?
 
-function getParams(k, id) {
+function getParams(id, k) {
   if (_.has(store, id)) {
     return k(paramStruct.deepCopy(store[id]));
   } else {
@@ -25,7 +25,7 @@ function getParams(k, id) {
   }
 }
 
-function incParams(k, id, params, deltas) {
+function incParams(id, params, deltas, k) {
   if (!_.has(store, id)) {
     store[id] = {};
   }

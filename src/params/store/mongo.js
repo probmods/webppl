@@ -27,7 +27,7 @@ function assertInit() {
     throw new Error('No db collection found - make sure to call start first!');
   }
 }
-function _loadParams(k, id) {
+function _loadParams(id, k) {
   assertInit();
   _collection.findOne({ _id: id }, {}, function(err, data) {
     if (err) {
@@ -45,7 +45,7 @@ function _loadParams(k, id) {
   });
 }
 
-function _storeParams(k, id, params) {
+function _storeParams(id, params, k) {
   assertInit();
   _collection.update({ _id: id }, { params: serializeParams(params) }, { upsert: true }, function(err, result) {
     if (err) {
@@ -86,15 +86,15 @@ function stop(k) {
   });
 }
 
-function getParams(k, id) {
+function getParams(id, k) {
   console.log('Loading params for id', id);
-  _loadParams(function(params) {
+  _loadParams(id, function(params) {
     resume(function() { return k(params); });
-  }, id);
+  });
 }
 
-function incParams(k, id, params, deltas) {
-  _loadParams(function(mongoParams) {
+function incParams(id, params, deltas, k) {
+  _loadParams(id, function(mongoParams) {
     var newParams;
     if (mongoParams) {
       newParams = mongoParams;
@@ -102,10 +102,10 @@ function incParams(k, id, params, deltas) {
     } else {
       newParams = params;
     }
-    _storeParams(function() {
+    _storeParams(id, newParams, function() {
       resume(function() { return k(newParams); });
-    }, id, newParams);
-  }, id);
+    });
+  });
 }
 
 module.exports = {
