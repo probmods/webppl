@@ -782,12 +782,13 @@ function inDiscreteSupport(val, dim) {
 };
 
 function discreteScoreVector(probs, val) {
+  'use ad';
   var _probs = ad.value(probs);
   assert.ok(_probs.rank === 2);
   assert.ok(_probs.dims[1] === 1); // i.e. vector
   var d = _probs.dims[0];
   return inDiscreteSupport(val, d) ?
-      ad.scalar.log(ad.scalar.div(ad.tensor.get(probs, val), ad.tensor.sumreduce(probs))) :
+      Math.log(T.get(probs, val) / T.sumreduce(probs)) :
       -Infinity;
 }
 
