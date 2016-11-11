@@ -34,7 +34,7 @@ function _loadParams(k, id) {
       throw new Error('Failed to load params from MongoDB: ' + JSON.stringify(err));
     } else {
       if (!data) {
-        resume(function() { return k({}); });
+        return k({});
       } else {
         if (!data.params) {
           throw new Error('Expected to find `params` property, got ' + JSON.stringify(data));
