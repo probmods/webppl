@@ -6,7 +6,7 @@ var serializeParams = require('../serialize').serializeParams;
 var deserializeParams = require('../serialize').deserializeParams;
 
 try {
-  // we assume that this is installed globally; it's not in webppl's package.json
+  // This is an optional dependence. We don't install it automatically with webppl.
   var mongodb = require('mongodb');
 } catch (e) {
   var mongodb = null;
@@ -58,7 +58,8 @@ function _storeParams(k, id, params) {
 
 function start(k) {
   if (!mongodb) {
-    throw new Error('MongoDB module not found.');
+    throw new Error('MongoDB module not found. ' +
+                    'Install using `npm install -g mongodb` to use the MongoDB store.');
   }
   console.log('Connecting to MongoDB...');
   var client = mongodb.MongoClient;
