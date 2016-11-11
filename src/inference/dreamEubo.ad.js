@@ -38,12 +38,12 @@ module.exports = function(env) {
     // The local model includes anything inside of some mapData (level 1+)
     this.mapDataNestingLevel = 0;
 
+    this.isInsideMapData = function () {
+      return this.mapDataNestingLevel > 0;
+    }
+
     this.coroutine = env.coroutine;
     env.coroutine = this;
-  }
-
-  function isInsideMapData() {
-    return this.mapDataNestingLevel > 0;
   }
 
   function checkScoreIsFinite(score, source) {
@@ -118,10 +118,9 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        var logp = ad.value(this.currRecord.trace.score);
+        var logp = ad.value(this.currRecord.samplesScore);
         var logq = ad.value(this.logq);
         return cont(grads, logp - logq);
-        
       }.bind(this), this.a);
 
     },
@@ -134,23 +133,24 @@ module.exports = function(env) {
       // If guide distribution is not provided then we use mean field
       var guideDist = (options && options.guide) || guide.independent(dist, a, env);
       var rel = util.relativizeAddress(env, a);
-      var guideVal = this.currRecord.trace.findChoice(
-          this.currRecord.trace.baseAddress + rel).val;
-      assert.notStrictEqual(guideVal, undefined);
 
-      if (isInsideMapData()) {
+      var val = this.currRecord.trace.findChoice(
+          this.currRecord.trace.baseAddress + rel).val;
+      assert.notStrictEqual(val, undefined);
+
+      if (this.isInsideMapData()) {
 
         // We unlift guideVal to maintain the separation between the ad
         // graph we're building in order to optimize the parameters and
         // any ad graphs associated with the example traces. (The
         // choices in an example trace can be ad nodes when they are
         // generated with SMC + HMC rejuv.)
-        var _guideVal = ad.value(guideVal);
+        var guideVal = ad.value(val);
         
-        var _guideScore = guideDist.score(_guideVal);
-        checkScoreIsFinite(_guideScore, 'guide');
+        var guideScore = guideDist.score(guideVal);
+        checkScoreIsFinite(guideScore, 'guide');
 
-        this.logq += _guideScore;
+        this.logq += guideScore;
       }
 
       return k(s, val);

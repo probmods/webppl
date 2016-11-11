@@ -34,15 +34,15 @@ module.exports = function(env) {
     // The local model includes anything inside of some mapData (level 1+)
     this.mapDataNestingLevel = 0;
 
+    this.isInsideMapData = function () {
+      return this.mapDataNestingLevel > 0;
+    }
+
     this.records = [];
     this.currRecord;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
-  }
-
-  function isInsideMapData() {
-    return this.mapDataNestingLevel > 0;
   }
 
   DreamSample.prototype = {
@@ -60,7 +60,7 @@ module.exports = function(env) {
 
             // Records initialization.
             var trace = new Trace(this.wpplFn, this.s, this.k, this.a);
-            this.currRecord = {trace: trace, observations: []};
+            this.currRecord = {trace: trace, samplesScore: 0, observations: []};
 
             return this.wpplFn(_.clone(this.s), function(s, val) {
 
@@ -82,15 +82,17 @@ module.exports = function(env) {
     // Samples from the guide outside mapData and from the target inside mapData.
     // Add this choice to the recorded trace.
     sample: function(s, k, a, dist, options) {
-      var distribution = isInsideMapData() ?
+      var distribution = this.isInsideMapData() ?
           dist : (options && options.guide) || guide.independent(dist, a, env);
-      var _val = distribution.sample();
+      var val = distribution.sample();
       // var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
       
+      this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
+
       // Accumulates score of samples inside mapData only, which can be 
       // used in the objective computation in dreamEUBO
-      if (isInsideMapData()) {
-        this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
+      if (this.isInsideMapData()) {
+        this.currRecord.samplesScore = ad.scalar.add(this.currRecord.samplesScore, distribution.score(val));
       }
       return k(s, val);
     },
