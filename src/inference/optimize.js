@@ -189,7 +189,7 @@ module.exports = function(env) {
   }
 
   function allFinite(tensor) {
-    return _.all(tensor.data, Number.isFinite);
+    return _.all(tensor.data, isFinite);
   }
 
   function checkGradients(gradObj) {

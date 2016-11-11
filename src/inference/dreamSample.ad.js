@@ -11,10 +11,6 @@ var ad = require('../ad');
 var Trace = require('../trace');
 var guide = require('../guide');
 
-// TODO - should merge it back with forwardSample.js or keep it seperated?
-// There are similarities in the general structure but ultimately also
-// signficant differences and so maybe it would be better to keep these
-// as two simlpe seperated modules rather than one merged..
 module.exports = function(env) {
 
   function DreamSample(s, k, a, wpplFn, options) {
@@ -34,15 +30,19 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
 
-    // true when inside mapData (i.e. local model)
-    // false otherwise (i.e. global model)
-    this.insideMapData = true;
+    // The global model includes anything outside of any mapData (level 0) 
+    // The local model includes anything inside of some mapData (level 1+)
+    this.mapDataNestingLevel = 0;
 
     this.records = [];
     this.currRecord;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
+  }
+
+  function isInsideMapData() {
+    return this.mapDataNestingLevel > 0;
   }
 
   DreamSample.prototype = {
@@ -82,32 +82,37 @@ module.exports = function(env) {
     // Samples from the guide outside mapData and from the target inside mapData.
     // Add this choice to the recorded trace.
     sample: function(s, k, a, dist, options) {
-      var distribution = this.insideMapData ?
+      var distribution = isInsideMapData() ?
           dist : (options && options.guide) || guide.independent(dist, a, env);
       var _val = distribution.sample();
-      var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
-      this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
+      // var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
+      
+      // Accumulates score of samples inside mapData only, which can be 
+      // used in the objective computation in dreamEUBO
+      if (isInsideMapData()) {
+        this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
+      }
       return k(s, val);
     },
 
     // Updates the trace data structure according to the provided score
     factor: function(s, k, a, score) {
-      //if (!Number.isFinite(ad.value(score))) {
+      //if (!isFinite(ad.value(score))) {
       //   throw new Error('DREAM: factor score is not finite.');
       //}
       assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
-      this.currRecord.trace.numFactors += 1;
-      this.currRecord.trace.score = ad.scalar.add(this.currRecord.trace.score, score);
+      // this.currRecord.trace.numFactors += 1;
+      // this.currRecord.trace.score = ad.scalar.add(this.currRecord.trace.score, score);
       return k(s);
     },
 
     mapDataFetch: function(data, batchSize, address) {
-      this.insideMapData = true;
+      this.mapDataNestingLevel += 1;
       return data;
     },
 
     mapDataFinal: function(address) {
-      this.insideMapData = false;
+      this.mapDataNestingLevel -= 1;
     },
 
     // Instead of factoring the score of the observed given value,
@@ -115,9 +120,9 @@ module.exports = function(env) {
     // push that to the corresponding record.
     observe: function(s, k, a, dist, val) {
       var _hallucinatedVal = dist.sample();
-      var val = this.ad && dist.isContinuous ?
-          ad.lift(_hallucinatedVal) : _hallucinatedVal;
-      this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
+      // var val = this.ad && dist.isContinuous ?
+      //     ad.lift(_hallucinatedVal) : _hallucinatedVal;
+      // this.currRecord.trace.addChoice(dist, val, a, s, k);
       this.currRecord.observations.push(val);
       return k(s, val);
     },

@@ -357,8 +357,14 @@ module.exports = function(env) {
       if (ix === null) {
           return data;
       }
-      // TODO - change to a more efficient solution?
-      return data.filter(function(val, index){ return ix.includes[index] });
+
+      var batch = new Array(ix.length);
+      for (var i = 0; i < ix.length; i++) {
+        batch[i] = data[ix[i]];
+      }
+      
+      return batch;
+
     },
 
     mapDataEnter: function() {

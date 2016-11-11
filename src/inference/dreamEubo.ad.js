@@ -1,5 +1,5 @@
 // Estimates the gradient of EUBO objective based on a list of records generated
-// from dreamSample, each of them inclues the trace and the observation values.
+// from dreamSample, each of them includes the trace and the observation values.
 
 'use strict';
 'use ad';
@@ -18,10 +18,10 @@ module.exports = function(env) {
     this.opts = options;
 
     if (!_.has(this.opts, 'records')) {
-      throw 'Records of traces and obsevations are required.';
+      throw 'Records of traces and observations are required.';
     }
 
-    // A list of records, reach contains a completed trace
+    // A list of records, each contains a completed trace
     // and a list of observed values from a previous execution wpplFn.
     // Records can be created by using dreamSample.
     this.records = this.opts.records;
@@ -34,25 +34,30 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    // true when inside mapData (i.e. local model)
-    // false otherwise (i.e. global model)
-    this.insideMapData = false;
+    // The global model includes anything outside of any mapData (level 0) 
+    // The local model includes anything inside of some mapData (level 1+)
+    this.mapDataNestingLevel = 0;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
+  function isInsideMapData() {
+    return this.mapDataNestingLevel > 0;
+  }
+
   function checkScoreIsFinite(score, source) {
     var _score = ad.value(score);
     if (!isFinite(_score)) { // Also catches NaN.
-      var msg = 'DREAM: The score of the previous sample under the ' +
-          source + ' program was ' + _score + '.';
+
+      var msg = 'DREAM: The score of the previous sample under the ' + source;
+      msg += ' program was ' + _score + '.';
       if (_.isNaN(_score)) {
         msg += ' Reducing the step size may help.';
       }
       throw new Error(msg);
     }
-  };
+  }
 
   DREAM.prototype = {
 
@@ -105,7 +110,6 @@ module.exports = function(env) {
 
         var objective = -this.logq;
 
-        // TODO: not sure whether it's needed or not in our case
         if (ad.isLifted(objective)) { // Handles programs with zero random choices.
           objective.backprop();
         }
@@ -114,13 +118,15 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads, -ad.value(objective));
-
+        var logp = ad.value(this.currRecord.trace.score);
+        var logq = ad.value(this.logq);
+        return cont(grads, logp - logq);
+        
       }.bind(this), this.a);
 
     },
 
-    // Since we allready have all the records from a previous pass,
+    // Since we already have all the records from a previous pass,
     // sample retrieves a previous sampled value from records for the
     // corresponding variable in the program that is asked to be sampled.
     // Inside mapData, it also accumulates the guide score into the objective.
@@ -128,21 +134,23 @@ module.exports = function(env) {
       // If guide distribution is not provided then we use mean field
       var guideDist = (options && options.guide) || guide.independent(dist, a, env);
       var rel = util.relativizeAddress(env, a);
-      var val = this.currRecord.trace.findChoice(
+      var guideVal = this.currRecord.trace.findChoice(
           this.currRecord.trace.baseAddress + rel).val;
-      assert.notStrictEqual(val, undefined);
+      assert.notStrictEqual(guideVal, undefined);
 
-      if (this.insideMapData) {
+      if (isInsideMapData()) {
 
         // We unlift guideVal to maintain the separation between the ad
         // graph we're building in order to optimize the parameters and
         // any ad graphs associated with the example traces. (The
         // choices in an example trace can be ad nodes when they are
         // generated with SMC + HMC rejuv.)
-        var _guideVal = guideDist.score(val);
-        checkScoreIsFinite(_guideVal, 'guide');
+        var _guideVal = ad.value(guideVal);
+        
+        var _guideScore = guideDist.score(_guideVal);
+        checkScoreIsFinite(_guideScore, 'guide');
 
-        this.logq += _guideVal;
+        this.logq += _guideScore;
       }
 
       return k(s, val);
@@ -155,16 +163,16 @@ module.exports = function(env) {
       return k(s);
     },
 
-    // Instead of returning the origina data of observations, we inject
+    // Instead of returning the original data of observations, we inject
     // our hallucinated observations from the corresponding record.
     mapDataFetch: function(data, batchSize, address) {
-      this.insideMapData = true;
+      this.mapDataNestingLevel += 1;
       assert(this.currRecord);
-      return currRecord.observations;
+      return this.currRecord.observations;
     },
 
     mapDataFinal: function(address) {
-      this.insideMapData = false;
+      this.mapDataNestingLevel -= 1;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
