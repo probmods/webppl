@@ -1,1 +1,5 @@
-expectation(Categorical({ps: [.3, .5, .2], vs: [0, 1, 2]}), idF);
+[
+  // Also serves to test Categorical accepts unnormalized probabilities.
+  expectation(Categorical({ps: [3, 5, 2], vs: [0, 1, 2]}), idF),
+  expectation(Categorical({ps: Vector([3, 5, 2]), vs: [0, 1, 2]}), idF)
+];

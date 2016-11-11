@@ -1356,27 +1356,25 @@ var Marginal = makeDistributionType({
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  desc: 'Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``',
-  params: [{name: 'ps', desc: 'array of probabilities', domain: interval(0, 1)},
+  desc: 'Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``',
+  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0, 1)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
   nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
-    // ps is expected to be normalized.
-    this.dist = _.object(this.params.vs.map(function(v, i) {
-      return [util.serialize(v), { val: v, prob: this.params.ps[i] }];
-    }, this));
+    this.ixmap = _.object(this.params.vs.map(function(v, ix) {
+      return [util.serialize(v), ix];
+    }));
   },
   sample: function() {
+    var ix = discreteSample(toUnliftedArray(this.params.ps));
     var vs = this.params.vs.map(ad.value);
-    var ps = this.params.ps.map(ad.value);
-    return vs[discreteSample(ps)];
+    return vs[ix];
   },
   score: function(val) {
-    'use ad';
-    var obj = this.dist[util.serialize(val)];
-    return obj ? Math.log(obj.prob) : -Infinity;
+    var ix = this.ixmap[util.serialize(val)];
+    return discreteScore(this.params.ps, ix);
   },
   support: function() {
     return this.params.vs;
