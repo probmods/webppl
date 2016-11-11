@@ -56,7 +56,7 @@ function _storeParams(k, id, params) {
   });
 }
 
-function init(k) {
+function start(k) {
   if (!mongodb) {
     throw new Error('MongoDB module not found.');
   }
@@ -68,13 +68,25 @@ function init(k) {
     } else {
       console.log('Successfully connected to MongoDB.');
       _collection = db.collection(collectionName);
-      resume(function() { return k(); });
+      resume(k);
+    }
+  });
+}
+
+function stop(k) {
+  console.log('Disconnecting from MongoDB...');
+  _collection.s.db.close(true, function(err, result) {
+    if (err) {
+      throw new Error('Failed to cleanly close MongoDB connection: ' + JSON.stringify(err));
+    } else {
+      console.log('Successfully disconnected from MongoDB.');
+      resume(k);
     }
   });
 }
 
 function getParams(k, id) {
-  console.log('Using id', id);
+  console.log('Loading params for id', id);
   _loadParams(function(params) {
     resume(function() { return k(params); });
   }, id);
@@ -96,7 +108,8 @@ function incParams(k, id, params, deltas) {
 }
 
 module.exports = {
-  init: init,
+  start: start,
+  stop: stop,
   getParams: getParams,
   incParams: incParams
 };

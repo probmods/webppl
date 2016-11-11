@@ -50,15 +50,8 @@ module.exports = function(env) {
     return k(s, params.get());  // params.get is not a cps function
   };
 
-  var initParams = function(s, k, a) {
-    return params.init(function() {
-      return k(s);
-    });
-  };
-
   return {
     param: param,
-    getParams: getParams,
-    initParams: initParams
+    getParams: getParams
   };
 };

@@ -16,7 +16,7 @@ function init(k) {
   if (!config.isManualId()) {
     config.setFreshId();
   }
-  return store.init(function() { return sync(k); });
+  return store.start(function() { return sync(k); });
 }
 
 function sanityCheck() {
@@ -27,6 +27,12 @@ function sanityCheck() {
   if (id === undefined) {
     throw new Error('Expected the parameter set id to be defined.');
   }
+}
+
+function stop(k) {
+  sanityCheck();
+  var store = config.getStore();
+  return store.stop(k);
 }
 
 function sync(k) {
@@ -121,6 +127,7 @@ module.exports = {
   get: get,
   inc: inc,
   init: init,
+  stop: stop,
   registerParams: registerParams,
   sync: sync
 };

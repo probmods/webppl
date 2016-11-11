@@ -5,7 +5,11 @@ var paramStruct = require('../struct');
 
 var store = {};
 
-function init(k) {
+function start(k) {
+  return k();
+}
+
+function stop(k) {
   return k();
 }
 
@@ -32,7 +36,8 @@ function incParams(k, id, params, deltas) {
 }
 
 module.exports = {
-  init: init,
+  start: start,
+  stop: stop,
   getParams: getParams,
   incParams: incParams
 };
