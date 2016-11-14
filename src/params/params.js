@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var ad = require('../ad');
 var config = require('./config');
+var serializeParams = require('./serialize').serializeParams;
 
 
 // The local copy of the parameter table
@@ -44,6 +45,13 @@ function sync(k) {
 // rather returns the current local parameter copy directly.
 function get() {
   return _params;
+}
+
+
+// Save the local parameter table to a file
+function save(filename) {
+  var s = JSON.stringify(serializeParams(_params));
+  fs.writeFileSync(options.checkpointParamsFilename, s);
 }
 
 
@@ -121,5 +129,6 @@ module.exports = {
   init: init,
   stop: stop,
   register: register,
+  save: save,
   sync: sync
 };
