@@ -247,7 +247,7 @@ function prepare(codeAndAssets, k, options) {
     params.init(start);
   };
 
-  return {run: run, runner: runner};
+  return { run: run };
 }
 
 function run(code, k, options) {
