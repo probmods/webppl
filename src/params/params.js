@@ -10,8 +10,7 @@ var serializeParams = require('./serialize').serializeParams;
 var _params;
 
 
-// Called before evaluating a webppl program. We only reset the
-// parameter set ID if no manual ID has been provided.
+// Called before we start evaluating a webppl program.
 function init(k) {
   var store = config.getStore();
   if (!config.isManualId()) {
@@ -41,8 +40,8 @@ function sync(k) {
 
 
 // This is not a continuation-passing style function, since it doesn't
-// make use of any store functions (that could be asynchronous) but
-// rather returns the current local parameter copy directly.
+// make use of any store functions that could be asynchronous. Instead,
+// it directly returns the current local parameter copy.
 function get() {
   return _params;
 }
@@ -55,10 +54,11 @@ function save(filename) {
 }
 
 
-// When a coroutine wishes to update parameters it does so by calling
+// When a coroutine wishes to update parameters, it does so by calling
 // this method. This updates both the local parameters and those in
 // the store.
 function inc(deltas, k) {
+  var id = config.getId();
   var store = config.getStore();
   var next = function(params) {
     if (!params) {
@@ -67,7 +67,7 @@ function inc(deltas, k) {
     _params = params;
     return k(params);
   };
-  return store.incParams(config.getId(), _params, deltas, next);
+  return store.incParams(id, _params, deltas, next);
 }
 
 
