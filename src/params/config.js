@@ -13,11 +13,13 @@ var _isManualId = false;
 function setFreshId() {
   _id = 'params-' + Math.random().toString(36).substring(2, 10);
   _isManualId = false;
+  return _id;
 }
 
 function setId(id) {
   _id = id;
   _isManualId = true;
+  return _id;
 }
 
 function getId() {

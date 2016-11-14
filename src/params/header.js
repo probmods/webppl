@@ -6,6 +6,7 @@ var Tensor = require('../tensor');
 var util = require('../util');
 var dists = require('../dists');
 var registerParams = require('./params').registerParams;
+var config = require('./config');
 var params = require('./params');
 
 module.exports = function(env) {
@@ -50,8 +51,23 @@ module.exports = function(env) {
     return k(s, params.get());  // params.get is not a cps function
   };
 
+  var setParamsId = function(s, k, a, id) {
+    return k(s, config.setId(id));
+  };
+
+  var setFreshParamsId = function(s, k, a) {
+    return k(s, config.setFreshId());
+  };
+
+  var getParamsId = function(s, k, a, id) {
+    return k(s, config.getId());
+  };
+
   return {
+    getParams: getParams,
+    getParamsId: getParamsId,
     param: param,
-    getParams: getParams
+    setFreshParamsId: setFreshParamsId,
+    setParamsId: setParamsId
   };
 };
