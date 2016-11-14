@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# Example: To run two processes that both execute /path/to/model.wppl
+# with parameter id my-params run:
+# ./parallelRun /path/to/model.wppl 2 my-params
+
+set -e
+
+realpath() {
+  echo $(cd $(dirname $1); pwd)/$(basename $1);
+}
+
+wpplScript="$( dirname "${BASH_SOURCE[0]}" )/../webppl"
+wpplFile=$(realpath $1)
+numProcesses=$2
+paramId=$3
+
+for ((n=0;n<numProcesses;n++)); do
+
+    $wpplScript $wpplFile --param-store mongo --param-id $paramId &
+    
+    # We sleep a bit so that, when we run many processes in parallel,
+    # they don't all try to connect to MongoDB at the same time.
+    sleep 0.5s
+    
+done
+
+wait
