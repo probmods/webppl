@@ -4,6 +4,9 @@
 # with parameter id my-params run:
 # ./parallelRun /path/to/model.wppl 2 my-params
 
+# You can pass additional options to the webppl script, for example:
+# ./parallelRun /path/to/model.wppl 2 my-params --require webppl-json
+
 set -e
 
 realpath() {
@@ -15,9 +18,13 @@ wpplFile=$(realpath $1)
 numProcesses=$2
 paramId=$3
 
+# Now shift the command-line params so that we can pass on the
+# unused # params to webppl
+shift 3
+
 for ((n=0;n<numProcesses;n++)); do
 
-    $wpplScript $wpplFile --param-store mongo --param-id $paramId &
+    $wpplScript $wpplFile --param-store mongo --param-id $paramId "$@" &
     
     # We sleep a bit so that, when we run many processes in parallel,
     # they don't all try to connect to MongoDB at the same time.
