@@ -23,6 +23,9 @@ function setId(id) {
 }
 
 function getId() {
+  if (!_id) {
+    throw new Error('Expectd _id to be defined!');
+  }
   return _id;
 }
 
@@ -50,15 +53,18 @@ function setStore(name) {
 }
 
 function getStore() {
+  if (!_store) {
+    throw new Error('Expectd _store to be defined!');
+  }
   return _store;
 }
 
 
 module.exports = {
+  getId: getId,
+  getStore: getStore,
+  isManualId: isManualId,
   setFreshId: setFreshId,
   setId: setId,
-  getId: getId,
-  isManualId: isManualId,
-  getStore: getStore,
   setStore: setStore
 };

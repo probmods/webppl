@@ -4,8 +4,8 @@ var _ = require('underscore');
 var ad = require('../ad');
 var config = require('./config');
 
-// The local copy of the parameter set
 
+// The local copy of the parameter table
 var _params;
 
 
@@ -19,24 +19,14 @@ function init(k) {
   return store.start(function() { return sync(k); });
 }
 
-function sanityCheck() {
-  // If errors are throw from here, it may be that two or more calls
-  // to require are returning distinct instances of this module,
-  // preventing the correct sharing of _id and _params.
-  var id = config.getId();
-  if (id === undefined) {
-    throw new Error('Expected the parameter set id to be defined.');
-  }
-}
 
 function stop(k) {
-  sanityCheck();
   var store = config.getStore();
   return store.stop(k);
 }
 
+
 function sync(k) {
-  sanityCheck();
   var store = config.getStore();
   var next = function(params) {
     if (!params) {
@@ -48,19 +38,19 @@ function sync(k) {
   return store.getParams(config.getId(), next);
 }
 
+
 // This is not a continuation-passing style function, since it doesn't
 // make use of any store functions (that could be asynchronous) but
 // rather returns the current local parameter copy directly.
 function get() {
-  sanityCheck();
   return _params;
 }
+
 
 // When a coroutine wishes to update parameters it does so by calling
 // this method. This updates both the local parameters and those in
 // the store.
 function inc(deltas, k) {
-  sanityCheck();
   var store = config.getStore();
   var next = function(params) {
     if (!params) {
@@ -72,7 +62,8 @@ function inc(deltas, k) {
   return store.incParams(config.getId(), _params, deltas, next);
 }
 
-var register = function(env, name, getParams, setParams) {
+
+function register(env, name, getParams, setParams) {
 
   // getParams is expected to be a function which is used to
   // initialize parameters the first time they are encoutered. At
@@ -121,7 +112,8 @@ var register = function(env, name, getParams, setParams) {
     return params;
   }
 
-};
+}
+
 
 module.exports = {
   get: get,
