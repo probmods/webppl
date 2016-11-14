@@ -25,9 +25,12 @@ function resume(thunk) {
 
 function assertInit() {
   if (!_collection) {
-    throw new Error('No db collection found - make sure to call start first!');
+    throw new Error('No db collection found - make sure to call "start" first!');
   }
 }
+
+
+// Internal helper functions:
 
 function _loadParams(id, k) {
   assertInit();
@@ -37,26 +40,32 @@ function _loadParams(id, k) {
     } else {
       if (!data) {
         return k({});
-      } else {
-        if (!data.params) {
-          throw new Error('Expected to find `params` property, got ' + JSON.stringify(data));
-        }
-        return k(deserializeParams(data.params));
       }
+      if (!data.params) {
+        throw new Error('Expected to find `params` property, got ' +
+                        JSON.stringify(data));
+      }
+      return k(deserializeParams(data.params));
     }
   });
 }
 
 function _storeParams(id, params, k) {
   assertInit();
-  _collection.update({ _id: id }, { params: serializeParams(params) }, { upsert: true }, function(err, result) {
-    if (err) {
-      throw new Error('Failed to store params in MongoDB: ' + JSON.stringify(err));
-    } else {
-      return k();
-    }
-  });
+  _collection.update(
+      { _id: id },
+      { params: serializeParams(params) },
+      { upsert: true },
+      function(err, result) {
+        if (err) {
+          throw new Error('Failed to store params in MongoDB: ' + JSON.stringify(err));
+        }
+        return k();
+      });
 }
+
+
+// External interface:
 
 function start(k) {
   if (!mongodb) {
@@ -68,11 +77,10 @@ function start(k) {
   client.connect(mongoURL, function(err, db) {
     if (err) {
       throw new Error('Failed to connect to MongoDB: ' + JSON.stringify(err));
-    } else {
-      console.log('Successfully connected to MongoDB.');
-      _collection = db.collection(collectionName);
-      resume(k);
     }
+    console.log('Successfully connected to MongoDB.');
+    _collection = db.collection(collectionName);
+    resume(k);
   });
 }
 
@@ -81,10 +89,9 @@ function stop(k) {
   _collection.s.db.close(true, function(err, result) {
     if (err) {
       throw new Error('Failed to cleanly close MongoDB connection: ' + JSON.stringify(err));
-    } else {
-      console.log('Successfully disconnected from MongoDB.');
-      resume(k);
     }
+    console.log('Successfully disconnected from MongoDB.');
+    resume(k);
   });
 }
 

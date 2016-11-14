@@ -14,9 +14,11 @@ function stop(k) {
   return k();
 }
 
-// TODO: Figure out whether these deep copies are necessary. Having
-// them in is useful for simulating non-local stores, but in the final
-// thing we might be able to drop them for improved efficiency?
+// The deep copies below are useful for simulating non-local stores,
+// (as a way of checking that we aren't reaching into the store from the
+// outside and making modifications), but probably not strictly necessary.
+// They don't seem to significantly affect efficiency so far, but if they
+// do in the future, we could add a flag that turns them off.
 
 function getParams(id, k) {
   if (_.has(store, id)) {

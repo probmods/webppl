@@ -148,13 +148,13 @@ function main() {
 
   // Parameter store type
   var paramStoreName = argv['param-store'];
-  if (paramStoreName !== undefined) {
+  if (paramStoreName) {
     paramsConfig.setStore(paramStoreName);
   }
 
   // Parameter set id
   var paramId = argv['param-id'];
-  if (paramId !== undefined) {
+  if (paramId) {
     paramsConfig.setId(paramId);
   } else {
     paramsConfig.setFreshId();
