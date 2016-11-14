@@ -5,7 +5,7 @@ var memoryStore = require('./store/memory');
 var mongoStore = require('./store/mongo');
 
 
-// Parameter set id
+// Parameter table id
 
 var _id;
 var _isManualId = false;

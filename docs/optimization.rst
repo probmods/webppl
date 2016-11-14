@@ -94,10 +94,10 @@ Optimize
 
 Example usage::
 
-  Optimize({model, steps: 100});
-  Optimize({model, steps: 100, params: oldParams});
-  Optimize({model, optMethod: 'adagrad'});
-  Optimize({model, optMethod: {sgd: {stepSize: 0.5}}});
+  Optimize({model: model, steps: 100});
+  Optimize({model: model, steps: 100, params: oldParams});
+  Optimize({model: model, optMethod: 'adagrad'});
+  Optimize({model: model, optMethod: {sgd: {stepSize: 0.5}}});
 
 Estimators
 ++++++++++
