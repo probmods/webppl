@@ -72,11 +72,11 @@ function inc(deltas, k) {
   return store.incParams(config.getId(), _params, deltas, next);
 }
 
-var registerParams = function(env, name, getParams, setParams) {
+var register = function(env, name, getParams, setParams) {
 
   // getParams is expected to be a function which is used to
   // initialize parameters the first time they are encoutered. At
-  // present I consider it to be `registerParams` responsibility to
+  // present I consider it to be `register` responsibility to
   // perform lifting of params, so ideally `getParams` would not
   // return lifted params. However, in the case of NN, `getParams`
   // returns params already lifted. Hence, `getParams()` is replaced
@@ -128,6 +128,6 @@ module.exports = {
   inc: inc,
   init: init,
   stop: stop,
-  registerParams: registerParams,
+  register: register,
   sync: sync
 };
