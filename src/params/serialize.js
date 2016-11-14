@@ -3,6 +3,7 @@
 var _ = require('underscore')
 var Tensor = require('../tensor');
 
+
 function serializeTensor(tensor) {
   return {
     dims: tensor.dims,
@@ -26,6 +27,7 @@ function deserializeParams(paramObj) {
   }
   return prms;
 }
+
 
 module.exports = {
   serializeParams: serializeParams,

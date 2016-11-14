@@ -3,6 +3,7 @@
 var _ = require('underscore');
 var paramStruct = require('../struct');
 
+
 var store = {};
 
 function start(k) {
@@ -34,6 +35,7 @@ function incParams(id, params, deltas, k) {
   paramStruct.addEq(table, deltas);
   return k(paramStruct.deepCopy(table));
 }
+
 
 module.exports = {
   start: start,

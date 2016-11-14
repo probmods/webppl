@@ -12,6 +12,7 @@ try {
   var mongodb = null;
 }
 
+
 var mongoURL = 'mongodb://localhost:27017/webppl';
 var collectionName = 'parameters';
 
@@ -27,6 +28,7 @@ function assertInit() {
     throw new Error('No db collection found - make sure to call start first!');
   }
 }
+
 function _loadParams(id, k) {
   assertInit();
   _collection.findOne({ _id: id }, {}, function(err, data) {
@@ -107,6 +109,7 @@ function incParams(id, params, deltas, k) {
     });
   });
 }
+
 
 module.exports = {
   start: start,
