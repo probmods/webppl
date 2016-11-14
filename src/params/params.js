@@ -103,9 +103,9 @@ function register(env, name, getParams, setParams) {
       params = paramTable[name].map(ad.lift);
     } else {
       // Never seen. Fetch initial values, add to store and lift.
-      var _params = getParams().map(ad.value);
-      paramTable[name] = _params;
-      params = _params.map(ad.lift);
+      var prms = getParams().map(ad.value);
+      paramTable[name] = prms;
+      params = prms.map(ad.lift);
     }
 
     if (paramsSeen) {
