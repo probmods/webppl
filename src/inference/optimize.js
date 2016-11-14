@@ -149,14 +149,13 @@ module.exports = function(env) {
 
             history.push(objective);
 
-            // FIXME: Make this more efficient by changing adnn optimizers
-            //        so that they can return deltas. Currently, we compute
-            //        deltas by comparing new and old params, which requires
-            //        a deepCopy.
-            //
-            //        deltas = newParams - oldParams = -(oldParams - newParams)
+            // TODO: Can we avoid the deepcopy here somehow?
             var deltaObj = paramStruct.deepCopy(params.get());
+
             optimizer(gradObj, deltaObj, i);
+
+            // We compute deltas by comparing new and old params:
+            // deltas = newParams - oldParams = -(oldParams - newParams)
             paramStruct.mulEq(deltaObj, -1);
             paramStruct.addEq(deltaObj, params.get());
             paramStruct.mulEq(deltaObj, -1);
