@@ -24,7 +24,7 @@ module.exports = function(env) {
 
   function EUBO(wpplFn, s, a, options, state, step, cont) {
     this.opts = util.mergeDefaults(options, {
-      miniBatchSize: 1
+      batchSize: 1
     });
 
     if (!_.has(this.opts, 'traces')) {
@@ -33,9 +33,9 @@ module.exports = function(env) {
 
     this.traces = this.opts.traces;
 
-    if (this.opts.miniBatchSize <= 0 ||
-        this.opts.miniBatchSize > this.traces.length) {
-      throw 'Invalid miniBatchSize.';
+    if (this.opts.batchSize <= 0 ||
+        this.opts.batchSize > this.traces.length) {
+      throw 'Invalid batchSize.';
     }
 
     this.cont = cont;
@@ -54,7 +54,7 @@ module.exports = function(env) {
 
       var eubo = 0;
       var grad = {};
-      var traces = sampleMiniBatch(this.traces, this.opts.miniBatchSize);
+      var traces = sampleMiniBatch(this.traces, this.opts.batchSize);
 
       return util.cpsForEach(
 
@@ -102,7 +102,9 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads, -ad.value(objective));
+        var logp = ad.value(trace.score);
+        var logq = ad.value(this.logq);
+        return cont(grads, logp - logq);
 
       }.bind(this), this.a);
 
@@ -140,12 +142,12 @@ module.exports = function(env) {
 
   };
 
-  function sampleMiniBatch(data, miniBatchSize) {
-    if (data.length === miniBatchSize) {
+  function sampleMiniBatch(data, batchSize) {
+    if (data.length === batchSize) {
       return data;
     } else {
       var miniBatch = [];
-      _.times(miniBatchSize, function() {
+      _.times(batchSize, function() {
         var ix = Math.floor(util.random() * data.length);
         miniBatch.push(data[ix]);
       });
