@@ -13,8 +13,8 @@ try {
 }
 
 
-var mongoURL = 'mongodb://localhost:27017/webppl';
-var collectionName = 'parameters';
+var mongoURL = process.env.WEBPPL_MONGO_URL || 'mongodb://localhost:27017/webppl';
+var collectionName = process.env.WEBPPL_MONGO_COLLECTION || 'parameters';
 
 var _collection = null;
 
