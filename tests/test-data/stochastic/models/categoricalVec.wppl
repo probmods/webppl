@@ -1,0 +1,3 @@
+var model = function() {
+  return sample(Categorical({vs: ['x', 'y'], ps: Vector([1, 3])}));
+};

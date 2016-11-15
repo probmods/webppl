@@ -26,10 +26,10 @@
 
 .. js:function:: Categorical({ps: ..., vs: ...})
 
-  * ps: array of probabilities *(in [0,1])*
+  * ps: array or vector of probabilities (can be unnormalized) *(>0)*
   * vs: support (array of values)
 
-  Distribution over elements of ``vs`` with ``P(vs[i]) = ps[i]``
+  Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 
@@ -65,7 +65,7 @@
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: array or vector of probabilities *(>0)*
+  * ps: array or vector of probabilities (can be unnormalized) *(>0)*
 
   Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
