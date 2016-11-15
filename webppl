@@ -13,7 +13,6 @@ var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
 var paramsConfig = require('./src/params/config');
-var params = require('./src/params/params');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
