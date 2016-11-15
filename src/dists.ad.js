@@ -1358,7 +1358,7 @@ var Marginal = makeDistributionType({
 var Categorical = makeDistributionType({
   name: 'Categorical',
   desc: 'Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0, 1)},
+  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0)},
            {name: 'vs', desc: 'support (array of values)'}],
   wikipedia: true,
   nohelper: true,
