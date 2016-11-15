@@ -8,6 +8,28 @@ var dists = require('../dists');
 var config = require('./config');
 var params = require('./params');
 
+
+function getParams(s, k, a) {
+  return k(s, params.get());  // params.get is not a cps function
+}
+
+function setParams(s, k, a, prms) {
+  return params.set(prms, function() { return k(s); });
+}
+
+function setParamsId(s, k, a, id) {
+  return k(s, config.setId(id));
+}
+
+function setFreshParamsId(s, k, a) {
+  return k(s, config.setFreshId());
+}
+
+function getParamsId(s, k, a, id) {
+  return k(s, config.getId());
+}
+
+
 module.exports = function(env) {
 
   var dimsForScalarParam = [1];
@@ -46,27 +68,12 @@ module.exports = function(env) {
     return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
   };
 
-  var getParams = function(s, k, a) {
-    return k(s, params.get());  // params.get is not a cps function
-  };
-
-  var setParamsId = function(s, k, a, id) {
-    return k(s, config.setId(id));
-  };
-
-  var setFreshParamsId = function(s, k, a) {
-    return k(s, config.setFreshId());
-  };
-
-  var getParamsId = function(s, k, a, id) {
-    return k(s, config.getId());
-  };
-
   return {
     getParams: getParams,
     getParamsId: getParamsId,
     param: param,
     setFreshParamsId: setFreshParamsId,
+    setParams: setParams,
     setParamsId: setParamsId
   };
 };

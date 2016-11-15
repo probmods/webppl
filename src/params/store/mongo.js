@@ -102,6 +102,12 @@ function getParams(id, k) {
   });
 }
 
+function setParams(id, params, k) {
+  _storeParams(id, params, function() {
+    resume(function() { return k(); });
+  });
+}
+
 function incParams(id, params, deltas, k) {
   _loadParams(id, function(mongoParams) {
     var newParams;
@@ -122,5 +128,6 @@ module.exports = {
   start: start,
   stop: stop,
   getParams: getParams,
+  setParams: setParams,
   incParams: incParams
 };

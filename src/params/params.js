@@ -71,6 +71,17 @@ function inc(deltas, k) {
 }
 
 
+function set(params, k) {
+  var id = config.getId();
+  var store = config.getStore();
+  var next = function() {
+    _params = params;
+    return k();
+  };
+  return store.setParams(id, params, next);
+}
+
+
 function register(env, name, getParams, setParams) {
 
   // getParams is expected to be a function which is used to
@@ -125,6 +136,7 @@ function register(env, name, getParams, setParams) {
 
 module.exports = {
   get: get,
+  set: set,
   inc: inc,
   init: init,
   stop: stop,

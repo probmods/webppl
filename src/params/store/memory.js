@@ -28,6 +28,11 @@ function getParams(id, k) {
   }
 }
 
+function setParams(id, params, k) {
+  store[id] = paramStruct.deepCopy(params);
+  return k();
+}
+
 function incParams(id, params, deltas, k) {
   if (!_.has(store, id)) {
     store[id] = {};
@@ -43,5 +48,6 @@ module.exports = {
   start: start,
   stop: stop,
   getParams: getParams,
+  setParams: setParams,
   incParams: incParams
 };
