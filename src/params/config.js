@@ -24,7 +24,7 @@ function setId(id) {
 
 function getId() {
   if (!_id) {
-    throw new Error('Expectd _id to be defined!');
+    throw new Error('Expected _id to be defined!');
   }
   return _id;
 }
@@ -54,7 +54,7 @@ function setStore(name) {
 
 function getStore() {
   if (!_store) {
-    throw new Error('Expectd _store to be defined!');
+    throw new Error('Expected _store to be defined!');
   }
   return _store;
 }
