@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('underscore');
+var fs = require('fs');
 var ad = require('../ad');
 var config = require('./config');
 var serializeParams = require('./serialize').serializeParams;
@@ -50,7 +51,7 @@ function get() {
 // Save the local parameter table to a file
 function save(filename) {
   var s = JSON.stringify(serializeParams(_params));
-  fs.writeFileSync(options.checkpointParamsFilename, s);
+  fs.writeFileSync(filename, s);
 }
 
 
