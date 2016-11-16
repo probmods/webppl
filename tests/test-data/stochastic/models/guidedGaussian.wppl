@@ -1,9 +1,9 @@
 var model = function() {
-  var a = sample(Gaussian({mu: -4, sigma: 2}), {
-    guide: Gaussian({
+  var a = sample(Gaussian({mu: -4, sigma: 2}), {guide() {
+    Gaussian({
       mu: param(),
       sigma: Math.exp(param())
-    })
-  });
+    });
+  }});
   return a;
 };

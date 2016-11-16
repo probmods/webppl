@@ -2,9 +2,9 @@ var FairCoin = Bernoulli({p: 0.5});
 var BentCoin = Bernoulli({p: 0.2});
 
 var model = function() {
-  var x = sample(FairCoin, {
-    guide: BentCoin
-  });
+  var x = sample(FairCoin, {guide() {
+    BentCoin
+  }});
 
   return x;
 };

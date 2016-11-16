@@ -1,6 +1,6 @@
 var model = function() {
-  var a = sample(Bernoulli({p: 0.9}), {
-    guide: Bernoulli({p: Math.sigmoid(param())})
-  });
+  var a = sample(Bernoulli({p: 0.9}), {guide() {
+    Bernoulli({p: Math.sigmoid(param())});
+  }});
   return a;
 };

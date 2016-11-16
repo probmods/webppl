@@ -63,10 +63,14 @@ module.exports = function(env) {
     },
 
     sample: function(s, k, a, dist, options) {
-      var distribution = this.opts.guide ?
-          (options && options.guide) || guide.independent(dist, a, env) :
-          dist;
-      return k(s, distribution.sample());
+      if (this.opts.guide) {
+        options = options || {};
+        return guide.runThunkOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+          return k(s, guideDist.sample());
+        });
+      } else {
+        return k(s, dist.sample());
+      }
     },
 
     factor: function(s, k, a, score) {

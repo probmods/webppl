@@ -9,22 +9,54 @@ var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 var paramStruct = require('../paramStruct');
+var guide = require('../guide');
 
 module.exports = function(env) {
 
   var kernels = require('./kernels')(env);
 
+  // Thinking about how to handle auto guide as importance
+  // distributions.
+
+  // In general some choices may be guided, others not. Each of the
+  // following behaviors seem likely to be useful:
+
+  // 1. use guide where given, use prior elsewhere    ='default'
+  // 2. ignore all guides                             ='ignore'
+  // 3. use guides, auto guide where missing          ='auto'
+
+  // How do we best parameterize this:
+
+  // a. {guide: true} for 'auto', {guide: false} for 'ignore',
+  // 'default' otherwise. (One snag, this might be confused with the
+  // parameter of the same name take by Infer's forward method.)
+
+  // b. {importance: 'autoGuide'} for 'auto', {importance:
+  // 'ignoreGuide'} for 'ignore', 'default' otherwise. This is what is
+  // currently implemented here.
+
+  var validImportanceOptVals = ['default', 'ignoreGuide', 'autoGuide'];
+
   function SMC(s, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'SMC');
+    // TODO: Assign to this.opts, use this throughout coroutine rather
+    // than assigning individucal properties of options in ctor.
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
       rejuvKernel: 'MH',
       finalRejuv: true,
       saveTraces: false,
-      ignoreGuide: false,
+      importance: 'default',
       params: {}
     });
+    this.opts = options;
+
+    if (!_.includes(validImportanceOptVals, options.importance)) {
+      var msg = options.importance + ' is not a valid importance option. ' +
+          'Valid options are: ' + validImportanceOptVals;
+      throw new Error(msg);
+    }
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
@@ -66,29 +98,45 @@ module.exports = function(env) {
   };
 
   SMC.prototype.sample = function(s, k, a, dist, options) {
-    var _val, choiceScore, importanceScore;
+    options = options || {};
 
-    if (options && _.has(options, 'guide') && !this.ignoreGuide) {
-      // Guide available.
-      var importanceDist = options.guide;
-      _val = importanceDist.sample();
-      choiceScore = dist.score(_val);
-      importanceScore = importanceDist.score(_val);
-    } else {
-      // No guide, sample from prior.
-      _val = dist.sample();
-      choiceScore = importanceScore = dist.score(_val);
-    }
+    var getGuide =
+        this.opts.importance === 'ignoreGuide' ?
+        function(guide, s, a, k) { return k(s, null); } :
+        guide.runThunkOrNull;
 
-    var particle = this.currentParticle();
-    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
+    return getGuide(options.guide, s, a, function(s, maybeDist) {
 
-    var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
-    // Optimization: Choices are not required for PF without rejuvenation.
-    if (this.performRejuv || this.saveTraces) {
-      particle.trace.addChoice(dist, val, a, s, k, options);
-    }
-    return k(s, val);
+      // maybeDist will be null if either the 'ignore' option is set,
+      // or no guide is specified in the program.
+
+      // Auto guide if requested.
+      var importanceDist =
+          !maybeDist && (this.opts.importance === 'autoGuide') ?
+          guide.independent(dist, a, env) :
+          maybeDist;
+
+      var _val, choiceScore, importanceScore;
+      if (importanceDist) {
+        _val = importanceDist.sample();
+        choiceScore = dist.score(_val);
+        importanceScore = importanceDist.score(_val);
+      } else {
+        // No importance distribution, sample from prior.
+        _val = dist.sample();
+        choiceScore = importanceScore = dist.score(_val);
+      }
+
+      var particle = this.currentParticle();
+      particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
+
+      var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
+      // Optimization: Choices are not required for PF without rejuvenation.
+      if (this.performRejuv || this.saveTraces) {
+        particle.trace.addChoice(dist, val, a, s, k, options);
+      }
+      return k(s, val);
+    }.bind(this));
   };
 
   SMC.prototype.factor = function(s, k, a, score) {

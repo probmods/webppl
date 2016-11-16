@@ -6,9 +6,9 @@ var FairCoin = makeCoin(.5);
 
 var model = function() {
   var x = sample(FairCoin);
-  var y = sample(FairCoin, {
-    guide: makeCoin(x ? .5 : 1)
-  });
+  var y = sample(FairCoin, {guide() {
+    makeCoin(x ? .5 : 1)
+  }});
   factor((x || y) ? 0 : -Infinity);
   return [x, y];
 };

@@ -246,38 +246,28 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
+      return guide.runThunkOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
 
-      var guideDist;
-      if (options.guide) {
-        guideDist = options.guide;
-      } else {
-        guideDist = guide.independent(dist, a, env);
-        if (this.step === 0 &&
-            this.opts.verbose &&
-            !this.mfWarningIssued) {
-          this.mfWarningIssued = true;
-          console.log('ELBO: Defaulting to mean-field for one or more choices.');
-        }
-      }
+        var ret = this.sampleGuide(guideDist, options);
+        var val = ret.val;
 
-      var ret = this.sampleGuide(guideDist, options);
-      var val = ret.val;
+        var logp = dist.score(val);
+        var logq = guideDist.score(val);
+        checkScoreIsFinite(logp, 'target');
+        checkScoreIsFinite(logq, 'guide');
 
-      var logp = dist.score(val);
-      var logq = guideDist.score(val);
-      checkScoreIsFinite(logp, 'target');
-      checkScoreIsFinite(logq, 'guide');
+        var m = top(this.mapDataStack).multiplier;
 
-      var m = top(this.mapDataStack).multiplier;
+        var node = new SampleNode(
+          this.prevNode, logp, logq,
+          ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
 
-      var node = new SampleNode(
-        this.prevNode, logp, logq,
-        ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
+        this.prevNode = node;
+        this.nodes.push(node);
 
-      this.prevNode = node;
-      this.nodes.push(node);
+        return k(s, val);
 
-      return k(s, val);
+      }.bind(this));
     },
 
     sampleGuide: function(dist, options) {

@@ -10,11 +10,62 @@ var domains = require('./domain');
 
 var T = ad.tensor;
 
+// I'm interested in exploring having guides always given as thunks.
+// One situation where it might still be acceptable to pass a
+// distribution directly is when the distribution has no (optimizable)
+// parameters?
+
+function runThunk(thunk, s, a, k) {
+  if (!_.isFunction(thunk)) {
+    throw new Error('The guide is not a function.');
+  }
+  // TODO: Does extending the address here work with error handling?
+  // (This call site will not be in the address map used to
+  // reconstruct the stack.)
+  return thunk(s, function(s, guideDist) {
+    if (!dists.isDist(guideDist)) {
+      throw new Error('The guide did not return a distribution.');
+    }
+    return k(s, guideDist);
+  }, a + '_guide');
+}
+
+function runIfThunk(s, k, a, maybeThunk, alternate) {
+  return maybeThunk ?
+      runThunk(maybeThunk, s, a, k) :
+      alternate(s, k, a);
+}
+
+// Convenient variations on runGuideThunk.
+
+function runThunkOrNull(maybeThunk, s, a, k) {
+  return runIfThunk(s, k, a, maybeThunk, function(s, k, a) {
+    return k(s, null);
+  });
+}
+
+// TODO: Be consistent in use of auto vs. independent when naming
+// things?
+function runThunkOrAuto(maybeThunk, targetDist, env, s, a, k) {
+  return runIfThunk(s, k, a, maybeThunk, function(s, k, a) {
+    return k(s, independent(targetDist, a, env));
+  });
+}
+
 // Returns an independent guide distribution for the given target
 // distribution, sample address pair. Guiding all choices with
 // independent guide distributions and optimizing the elbo yields
 // mean-field variational inference.
+
+// var mfWarningIssued = false;
+
 function independent(targetDist, sampleAddress, env) {
+
+  // TODO: Reinstate. Won't be per-model, but does that matter?
+  // if (!mfWarningIssued) {
+  //   mfWarningIssued = true;
+  //   console.log('Defaulting to mean-field for one or more choices.');
+  // }
 
   // Include the distribution name in the guide parameter name to
   // avoid collisions when the distribution type changes between
@@ -272,5 +323,7 @@ function squishToInterval(domain) {
 }
 
 module.exports = {
-  independent: independent
+  independent: independent,
+  runThunkOrAuto: runThunkOrAuto,
+  runThunkOrNull: runThunkOrNull
 };
