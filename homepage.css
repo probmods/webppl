@@ -373,6 +373,7 @@ h3.logo a:hover, h3.logo a:active, h3.logo a:focus, h3.logo a:visited {
 div.citation {
   padding-left: 20px;
   font-style: italic;
+  margin-bottom: 8px;
 }
 
 code.nobreak {
