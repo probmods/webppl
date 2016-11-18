@@ -65,15 +65,14 @@ function runThunkOrAuto(maybeThunk, targetDist, env, s, a, k) {
 // independent guide distributions and optimizing the elbo yields
 // mean-field variational inference.
 
-// var mfWarningIssued = false;
+var mfWarningIssued = false;
 
 function independent(targetDist, sampleAddress, env) {
 
-  // TODO: Reinstate. Won't be per-model, but does that matter?
-  // if (!mfWarningIssued) {
-  //   mfWarningIssued = true;
-  //   console.log('Defaulting to mean-field for one or more choices.');
-  // }
+  if (!mfWarningIssued) {
+    mfWarningIssued = true;
+    util.warn('Defaulting to mean-field for one or more choices.');
+  }
 
   // Include the distribution name in the guide parameter name to
   // avoid collisions when the distribution type changes between
