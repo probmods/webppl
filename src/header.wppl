@@ -513,9 +513,9 @@ var Infer = function(options, maybeFn) {
 // Convenience function for creating maximum likelihood model
 // parameters.
 var modelParam = function(options) {
-  return sample(ImproperUniform(), {
-    guide: Delta({v: param(options)})
-  });
+  return sample(ImproperUniform(), {guide() {
+    return Delta({v: param(options)});
+  }});
 };
 
 // Convenience functions for building tensors out of scalars
