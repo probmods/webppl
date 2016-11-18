@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>webppl - Procedural Vines Demo</title>
+
+    <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="../../homepage.css">
+    <link rel="stylesheet" href="index.css">
+
+    <script src="http://cdn.webppl.org/webppl-v0.9.5.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="index.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+
+   <div class="container">
+      <div class="header clearfix">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation"><a href="http://github.com/probmods/webppl">On Github</a></li>
+          </ul>
+        </nav>
+        <h3 class="logo"><a href="/"><span class="logo-main">web</span><span class="logo-bold">ppl</span></a> <span class="logo-tagline hidden-xs">probabilistic programming for the web</span></h3>
+      </div>
+
+      <div class="row marketing">
+
+        <div class="col-lg-12">
+          <h4>Procedural Vines Demo</h4>
+
+          <p>Give instructions. Link to NGPM paper. Output canvas, input sketch canvas (initialize to something reasonable). Option to toggle vines vs. lightning rendering? Option to display code (in webppl-editor)?</p>
+        </div>
+
+
+        <div class="col-lg-6">
+          <h5>Sketch shape here</h5>
+          <div class="outlined">
+            <canvas id="sketchInput" width="300" height="300"></canvas>
+          </div>
+        </div>  
+
+        <div class="col-lg-6">
+          <h5>Result</h5>
+          <div class="outlined">
+            <canvas id="resultsDisplay" width="300" height="300"></canvas>
+          </div>
+          <button id="generate">Generate</button>
+        </div> 
+
+        <!-- Hidden canvases for storing the low-res target image and for the WIP image during inference -->
+        <canvas id="loResTarget" class="hidden" width="50" height="50"></canvas>
+        <canvas id="loResResult" class="hidden" width="50" height="50"></canvas>
+
+        <!-- Hidden image from which we load the initial target shape -->
+        <img id="initialTarget" class="hidden" src="assets/initialTarget.png" width="300" height="300">
+
+      </div>
+
+      <footer class="footer">
+        <div class="container text-center">
+          <p>webppl is a <a href="http://cocolab.stanford.edu/">Stanford CoCoLab</a> project</p>
+        </div>
+      </footer>
+
+    </div> <!-- /container -->
+
+  </body>
+</html>

@@ -1,0 +1,1 @@
+Each demo should have a Makefile along the same lines as the root Makefile. The outputs of `make` should also be included in the repo, so that (like `homepage.js` in the root) fresh check-outs don't have to build the demo from scratch. Only someone editing a demo needs to rebuild it.
