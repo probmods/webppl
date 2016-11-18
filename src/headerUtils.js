@@ -86,12 +86,20 @@ module.exports = function(env) {
   // param provides a convenient wrapper around the primitive
   // registerParams.
   var dimsForScalarParam = [1];
+  var paramWarningIssued = false;
+
   var param = function(s, k, a, options) {
     options = util.mergeDefaults(options, {
       mu: 0,
       sigma: .1,
       dims: dimsForScalarParam
     });
+
+    if (!s._guide && !paramWarningIssued) {
+      paramWarningIssued = true;
+      util.warn('Warning: Parameter created outside of the guide.');
+    }
+
     var mu = options.mu;
     var sigma = options.sigma;
     var dims = options.dims;
