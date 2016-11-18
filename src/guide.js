@@ -15,14 +15,16 @@ var T = ad.tensor;
 // distribution directly is when the distribution has no (optimizable)
 // parameters?
 
+// FIXME: Doing 'return false' (or using just explicit return to
+// achieve the same) from the guide breaks readable error messages. It
+// appears that the top webppl entry on the stack is the call to the
+// continuation corresponding to the return, and that the location of
+// that is not in the source map.
+
 function runThunk(thunk, s, a, k) {
   if (!_.isFunction(thunk)) {
     throw new Error('The guide is not a function.');
   }
-  // TODO: Does extending the address here work with error handling?
-  // (This call site will not be in the address map used to
-  // reconstruct the stack.)
-
   // Set a flag on the global store to indicate that we're currently
   // evaluating the guide.
 
