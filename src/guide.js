@@ -22,10 +22,18 @@ function runThunk(thunk, s, a, k) {
   // TODO: Does extending the address here work with error handling?
   // (This call site will not be in the address map used to
   // reconstruct the stack.)
+
+  // Set a flag on the global store to indicate that we're currently
+  // evaluating the guide.
+
+  // TODO: Is it worth setting this to false before execution begins
+  // so this is always a bool, or is this good enough?
+  s._guide = true;
   return thunk(s, function(s, guideDist) {
     if (!dists.isDist(guideDist)) {
       throw new Error('The guide did not return a distribution.');
     }
+    s._guide = false;
     return k(s, guideDist);
   }, a + '_guide');
 }
