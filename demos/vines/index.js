@@ -1,38 +1,5206 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict';
+
+var nop = function() {};
+
+// Make backwards pass derivative functions for both scalar and tensor
+//    operations using the same source code.
+
+function makeUnaryDerivatives(code) {
+	if (code === undefined) {
+		return { scalar: nop, tensor: nop };
+	} else {
+		return {
+			scalar: new Function('_x', [
+				'var x = _x.x;',
+				'var out = this.x;',
+				'_x.dx += (' + code + ') * this.dx;'
+			].join('\n')),
+			tensor: new Function('_x', [
+				'var n = _x.x.length;',
+				'while (n--) {',
+				'	var x = _x.x.data[n];',
+				'	var out = this.x.data[n];',
+				'   _x.dx.data[n] += (' + code + ') * this.dx.data[n];',
+				'}'
+			].join('\n'))
+		};
+	}
+}
+
+function makeBinaryDerivatives(code1, code2) {
+	if (code1 === undefined && code2 === undefined) {
+		return { scalar: [nop, nop], tensor: [nop, nop] };
+	} else  {
+		return {
+			scalar: [
+				// First arg is definitely a Node, second may or may not be
+				new Function('_x', '_y', [
+					'var x = _x.x;',
+					'var y = (typeof _y === "number") ? _y : _y.x;',
+					'var out = this.x;',
+					'_x.dx += (' + code1 + ') * this.dx;'
+				].join('\n')),
+				// Second arg is definitely a Node, first may or may not be
+				new Function('_x', '_y', [
+					'var x = (typeof _x === "number") ? _x : _x.x;',
+					'var y = _y.x;',
+					'var out = this.x;',
+					'_y.dx += (' + code2 + ') * this.dx;'
+				].join('\n'))
+			],
+			// To match the implementations of the methods on Tensor objects,
+			//    the second argument might be a scalar or a Tensor.
+			tensor: [
+				// First arg is definitely a Node, second may or may not be
+				new Function('_x', '_y', [
+					'var _xx = _x.x;',
+					'var _yx = _y.x || _y;',
+					'var n = _xx.length;',
+					// y is a scalar
+					'if (typeof _yx === "number") {',
+					'	while (n--) {',
+					'		var x = _xx.data[n];',
+					'		var y = _yx;',
+					'		var out = this.x.data[n];',
+					'	   _x.dx.data[n] += (' + code1 + ') * this.dx.data[n];',
+					'	}',
+					// y is a tensor 
+					'} else {',
+					'	while (n--) {',
+					'		var x = _xx.data[n];',
+					'		var y = _yx.data[n];',
+					'		var out = this.x.data[n];',
+					'	   _x.dx.data[n] += (' + code1 + ') * this.dx.data[n];',
+					'	}',
+					'}',
+				].join('\n')),
+				// Second arg is definitely a Node, first may or may not be
+				new Function('_x', '_y', [
+					'var _xx = _x.x || _x;',
+					'var _yx = _y.x;',
+					'var n = _xx.length;',
+					// y is a scalar
+					'if (typeof _yx === "number") {',
+					'	while (n--) {',
+					'		var x = _xx.data[n];',
+					'		var y = _yx;',
+					'		var out = this.x.data[n];',
+					'	   _y.dx += (' + code2 + ') * this.dx.data[n];',
+					'	}',
+					// y is a tensor
+					'} else {',
+					'	while (n--) {',
+					'		var x = _xx.data[n];',
+					'		var y = _yx.data[n];',
+					'		var out = this.x.data[n];',
+					'	   _y.dx.data[n] += (' + code2 + ') * this.dx.data[n];',
+					'	}',
+					'}'
+				].join('\n'))
+			]
+		};
+	}
+}
+
+
+var d = {};
+
+d.neg = makeUnaryDerivatives('-1');
+d.add = makeBinaryDerivatives('1', '1');
+d.sub = makeBinaryDerivatives('1', '-1');
+d.mul = makeBinaryDerivatives('y', 'x');
+d.div = makeBinaryDerivatives('1/y', '-x/(y*y)');
+d.sqrt = makeUnaryDerivatives('1/(2*out)');
+d.exp = makeUnaryDerivatives('out');
+d.log = makeUnaryDerivatives('1/x');
+d.pow = makeBinaryDerivatives('y*Math.pow(x,y-1)', 'Math.log(x)*out');
+d.sin = makeUnaryDerivatives('Math.cos(x)');
+d.cos = makeUnaryDerivatives('-Math.sin(x)');
+d.tan = makeUnaryDerivatives('1 + out*out');
+d.asin = makeUnaryDerivatives('1 / Math.sqrt(1 - x*x)');
+d.acos = makeUnaryDerivatives('-1 / Math.sqrt(1 - x*x)');
+d.atan = makeUnaryDerivatives('1 / (1 + x*x)');
+d.atan2 = makeBinaryDerivatives('y/(x*x + y*y)', '-x/(x*x + y*y)');
+d.sinh = makeUnaryDerivatives('Math.cosh(x)');
+d.cosh = makeUnaryDerivatives('Math.sinh(x)');
+d.tanh = makeUnaryDerivatives('1 - out*out');
+d.asinh = makeUnaryDerivatives('1 / Math.sqrt(x*x + 1)');
+d.acosh = makeUnaryDerivatives('1 / Math.sqrt(x*x - 1)');
+d.atanh = makeUnaryDerivatives('1 / (1 - x*x)');
+d.sigmoid = makeUnaryDerivatives('out * (1 - out)');
+
+// Functions with no derivative
+d.floor = makeUnaryDerivatives();
+d.ceil = makeUnaryDerivatives();
+d.round = makeUnaryDerivatives();
+d.abs = makeUnaryDerivatives();
+d.min = makeBinaryDerivatives();
+d.max = makeBinaryDerivatives();
+
+
+module.exports = d;
+
+
+
+
+
+
+},{}],2:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+var graph = require('./graph.js');
+var Node = graph.Node;
+var Tensor = require('../tensor.js');
+
+
+function checkOutputType(OutputType) {
+	assert(OutputType === Tensor || OutputType === Number,
+		"Attempting to create AD function with invalid output type '"
+		+ OutputType + "'; valid options are 'Number' and 'Tensor'");
+}
+
+// Create a new unary AD primitive function
+// opts must contain:
+//    - OutputType: Number or Tensor
+//    - name: name of the operator
+//    - forward: Function taking number input, computes number output.
+//    - backward: Function taking Node input, computes derivative.
+//      Output node available as 'this'.
+function newUnaryFunction(opts) {
+	var OutputType = opts.OutputType;
+	var name = opts.name;
+	var forward = opts.forward;
+	var backward = opts.backward;
+	checkOutputType(OutputType);
+
+	var NodeType = OutputType === Tensor ? graph.TensorNode : graph.ScalarNode;
+
+	function bw() {
+		backward.call(this, this.inputs[0]);
+	}
+
+	return function(x) {
+		if (x instanceof Node) {
+			var inputs = [x];
+			return new NodeType(forward(x.x), inputs, inputs, bw, name);
+		} else {
+			return forward(x);
+		}
+	};
+}
+
+
+// Create a new binary AD primitive function
+// opts must contain:
+//    - OutputType: Number or Tensor
+//    - name: name of the operator
+//    - forward: Function taking number inputs, computes number output.
+//    - backward1: Function taking (Node, number) inputs, computes derivative
+//      of first input. Output node available as 'this'.
+//    - backward2: Function taking (number, Node) inputs, computes derivative
+//      of second input. Output node available as 'this'.
+function newBinaryFunction(opts) {
+	var OutputType = opts.OutputType;
+	var name = opts.name;
+	var forward = opts.forward;
+	var backward1 = opts.backward1;
+	var backward2 = opts.backward2;
+	checkOutputType(OutputType);
+
+
+	var NodeType = OutputType === Tensor ? graph.TensorNode : graph.ScalarNode;
+
+	function backward11() {
+		backward1.call(this, this.inputs[0], this.inputs[1].x);
+		backward2.call(this, this.inputs[0].x, this.inputs[1]);
+	}
+	function backward10() {
+		backward1.call(this, this.inputs[0], this.inputs[1]);
+	}
+	function backward01() {
+		backward2.call(this, this.inputs[0], this.inputs[1]);
+	}
+
+	return function(x, y) {
+		var xIsNode = x instanceof Node;
+		var yIsNode = y instanceof Node;
+		if (xIsNode && yIsNode) {
+			var inputs = [x, y];
+			return new NodeType(forward(x.x, y.x), inputs, inputs, backward11, name);
+		} else if (xIsNode) {
+			return new NodeType(forward(x.x, y), [x], [x, y], backward10, name);
+		} else if (yIsNode) {
+			return new NodeType(forward(x, y.x), [y], [x, y], backward01, name);
+		} else {
+			return forward(x, y);
+		}
+	};
+}
+
+
+// Create a new arbitrary AD primitive function
+// opts must contain:
+//    - OutputType: Number or Tensor
+//    - name: name of the operator
+//    - forward: Function taking Node and number inputs, computes number
+//      output.
+//    - backward: Function taking Node and number inputs, computes
+//      derivatives for all Node inputs. Output Node is available as 'this'.
+//    - getParents: Function taking Node and number inputs, returns a list
+//      of all Node inputs.
+function newFunction(opts) {
+	var OutputType = opts.OutputType;
+	var name = opts.name;
+	var forward = opts.forward;
+	var backward = opts.backward;
+	var getParents = opts.getParents;
+	checkOutputType(OutputType);
+
+
+	var NodeType = OutputType === Tensor ? graph.TensorNode : graph.ScalarNode;
+
+	function bw() {
+		backward.apply(this, this.inputs);
+	}
+
+	return function() {
+		var output = forward.apply(null, arguments);
+		var parents = getParents.apply(null, arguments);
+		// https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-arguments
+		var inputs = new Array(arguments.length);
+		for (var i = 0; i < inputs.length; ++i) {
+			inputs[i] = arguments[i];
+		}
+		var n = parents.length;
+		if (n === 0) {
+			return output;
+		} else {
+			return new NodeType(output, parents, inputs, bw, name);
+		}
+	};
+}
+
+
+// 'getParents' implementation suitable for functions which take an array or
+//    a variable number of args, all of which might be Nodes.
+function naryGetParents() {
+	var args = arguments.length === 1 && arguments[0] instanceof Array ?
+		arguments[0] : arguments;
+	var p = [];
+	var n = args.length;
+	while (n--) {
+		var arg = args[n];
+		if (arg instanceof Node) {
+			p.push(arg);
+		}
+	}
+	return p;
+}
+
+
+// Lifting functions which take numbers but don't return numbers to also work
+//    on Nodes.
+function liftUnaryFunction(f) {
+	return function(x) { return f(x instanceof Node ? x.x : x); };
+}
+function liftBinaryFunction(f) {
+	return function(x, y) {
+		var xprim = x instanceof Node ? x.x : x;
+		var yprim = y instanceof Node ? y.x : y;
+		return f(xprim, yprim);
+	};
+}
+
+
+
+module.exports = {
+	newUnaryFunction: newUnaryFunction,
+	newBinaryFunction: newBinaryFunction,
+	newFunction: newFunction,
+	naryGetParents: naryGetParents,
+	liftUnaryFunction: liftUnaryFunction,
+	liftBinaryFunction: liftBinaryFunction
+};
+
+
+
+
+},{"../tensor.js":17,"./graph.js":4,"assert":24}],3:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../tensor.js');
+var graph = require('./graph.js');
+var Node = graph.Node;
+var func = require('./func.js');
+var derivs = require('./derivatives.js');
+
+
+var Scalar = Number;
+
+// Additional scalar functions 'missing' from Math
+Math.sigmoid = function(x) { return 1 / (1 + Math.exp(-x)); };
+
+
+// Scalar & tensor operators and math functions -------------------------------
+
+function makeFunctions(OutputType) {
+
+	var fns = {};
+
+	// Define which backwards derivatives we'll use for the given OutputType
+	function backward(derivFns) {
+		return OutputType === Tensor ? derivFns.tensor : derivFns.scalar;
+	}
+
+	var namePrefix = OutputType === Scalar ? 'scalar.' : 'tensor.';
+
+	// Lifted unary operators
+	var unops = {
+		neg: OutputType === Tensor ?
+			function(x) { return x.neg(); } :
+			function(x) { return -x; }
+	};
+	for (var op in unops) {
+		fns[op] = func.newUnaryFunction({
+			OutputType: OutputType,
+			name: namePrefix+op,
+			forward: unops[op],
+			backward: backward(derivs[op])
+		});
+	}
+
+	// Lifted binary operators
+	var binops = {
+		add: OutputType === Tensor ?
+			function(x, y) { return x.add(y); } :
+			function(x, y) { return x + y; },
+		sub: OutputType === Tensor ?
+			function(x, y) { return x.sub(y); } :
+			function(x, y) { return x - y; },
+		mul: OutputType === Tensor ?
+			function(x, y) { return x.mul(y); } :
+			function(x, y) { return x * y; },
+		div: OutputType === Tensor ?
+			function(x, y) { return x.div(y); } :
+			function(x, y) { return x / y; }
+	};
+	for (var op in binops) {
+		fns[op] = func.newBinaryFunction({
+			OutputType: OutputType,
+			name: namePrefix+op,
+			forward: binops[op],
+			backward1: backward(derivs[op])[0],
+			backward2: backward(derivs[op])[1]
+		});
+	}
+
+	// Lifted Math functions
+	var unaryFns = [
+		'floor', 'ceil', 'round', 'sqrt', 'exp', 'log', 'abs', 'sin', 'cos',
+		'tan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh',
+		'acosh', 'atanh', 'sigmoid'
+	];
+	var binaryFns = [
+		'pow', 'min', 'max', 'atan2'
+	];
+	for (var i = 0; i < unaryFns.length; i++) {
+		var fnname = unaryFns[i];
+		var forward = OutputType === Tensor ?
+			new Function('x', 'return x.' + fnname + '();') :
+			new Function('x', 'return Math.' + fnname + '(x);');
+		fns[fnname] = func.newUnaryFunction({
+			OutputType: OutputType,
+			name: namePrefix+fnname,
+			forward: forward,
+			backward: backward(derivs[fnname]),
+		});
+	}
+	for (var i = 0; i < binaryFns.length; i++) {
+		var fnname = binaryFns[i];
+		var forward = OutputType === Tensor ?
+			new Function('x', 'y', 'return x.' + fnname + '(y);') :
+			new Function('x', 'y', 'return Math.' + fnname + '(x, y);');
+		fns[fnname] = func.newBinaryFunction({
+			OutputType: OutputType,
+			name: namePrefix+fnname,
+			forward: forward,
+			backward1: backward(derivs[fnname])[0],
+			backward2: backward(derivs[fnname])[1]
+		});
+	}
+
+	// NaN and infinity checks
+	fns.isNaN = OutputType === Scalar ?
+		func.liftUnaryFunction(isNaN) :
+		func.liftUnaryFunction(function(t) { return t.isNaN(); });
+	fns.isFinite = OutputType === Scalar ?
+		func.liftUnaryFunction(isFinite) :
+		func.liftUnaryFunction(function(t) { return t.isFinite(); });
+
+	return fns;
+}
+
+
+var fns = {
+	scalar: makeFunctions(Scalar),
+	tensor: makeFunctions(Tensor)
+};
+
+// Re-export Math constants etc.
+Object.getOwnPropertyNames(Math).forEach(function(p) {
+  if (!fns.scalar.hasOwnProperty(p)) {
+    fns.scalar[p] = Math[p];
+  }
+});
+
+
+// Also lift scalar comparators -----------------------------------------------
+
+fns.scalar.eq = func.liftBinaryFunction(
+	function(x, y) { return x == y; }
+);
+
+fns.scalar.neq = func.liftBinaryFunction(
+	function(x, y) { return x != y; }
+);
+
+fns.scalar.peq = func.liftBinaryFunction(
+	function(x, y) { return x === y; }
+);
+
+fns.scalar.pneq = func.liftBinaryFunction(
+	function(x, y) { return x !== y; }
+);
+
+fns.scalar.gt = func.liftBinaryFunction(
+	function(x, y) { return x > y; }
+);
+
+fns.scalar.lt = func.liftBinaryFunction(
+	function(x, y) { return x < y; }
+);
+
+fns.scalar.geq = func.liftBinaryFunction(
+	function(x, y) { return x >= y; }
+);
+
+fns.scalar.leq = func.liftBinaryFunction(
+	function(x, y) { return x <= y; }
+);
+
+
+// Linear Algebra  -----------------------------------------------------
+
+
+fns.tensor.transpose = func.newUnaryFunction({
+  OutputType: Tensor,
+  name: 'transpose',
+  forward: function(a) {
+    return a.transpose();
+  },
+  backward: function(a) {
+    var h = this.x.dims[0];
+    var w = this.x.dims[1];
+    for (var i = 0; i < h; i++) {
+      for (var j = 0; j < w; j++) {
+        a.dx.data[j * h + i] += this.dx.data[i * w + j];
+      }
+    }
+  }
+});
+
+fns.tensor.diagonal = func.newUnaryFunction({
+  OutputType: Tensor,
+  name: 'diagonal',
+  forward: function(a) {
+    return a.diagonal();
+  },
+  backward: function(a) {
+    var n = a.dx.dims[0];
+    for (var i = 0; i < n; i++) {
+      a.dx.data[i] += this.dx.data[i * (n + 1)];
+    }
+  }
+});
+
+fns.tensor.inverse = func.newUnaryFunction({
+  OutputType: Tensor,
+  name: 'inverse',
+  forward: function(A) {
+    return A.inverse();
+  },
+  backward: function(A) {
+    var xT = this.x.T();
+    A.dx = A.dx.add(xT.dot(this.dx).dot(xT).neg());
+  }
+});
+
+fns.tensor.determinant = func.newUnaryFunction({
+  OutputType: Number,
+  name: 'determinant',
+  forward: function(A) {
+    return A.determinant();
+  },
+  backward: function(A) {
+    // A is square matrix.
+    // Assume A is invertable.
+    var n = A.x.dims[0];
+    var invA = A.x.inv();
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        A.dx.data[i * n + j] += this.x * this.dx * invA.data[j * n + i];
+      }
+    }
+  }
+});
+
+fns.tensor.dot = func.newBinaryFunction({
+  OutputType: Tensor,
+  name: 'dot',
+  forward: function(a, b) {
+    return a.dot(b);
+  },
+  backward1: function(A, B) {
+    var Ap = ad.value(A);
+    var Bp = ad.value(B);
+
+    var Ah = Ap.dims[0];
+    var Aw = Ap.dims[1];
+    var Bw = Bp.dims[1];
+    var wout = Bw;
+
+    for (var l = 0; l < Ah; l++) {
+      for (var m = 0; m < Aw; m++) {
+        var z = 0;
+        for (var j = 0; j < wout; j++) {
+          z += this.dx.data[l * wout + j] * Bp.data[m * Bw + j];
+        }
+        A.dx.data[l * Aw + m] += z;
+      }
+    }
+  },
+  backward2: function(A, B) {
+    var Ap = ad.value(A);
+    var Bp = ad.value(B);
+
+    var Ah = Ap.dims[0];
+    var Aw = Ap.dims[1];
+    var Bh = Bp.dims[0];
+    var Bw = Bp.dims[1];
+    var wout = Bw;
+
+    for (var l = 0; l < Bh; l++) {
+      for (var m = 0; m < Bw; m++) {
+        var z = 0;
+        for (var i = 0; i < Ah; i++) {
+          z += this.dx.data[i * wout + m] * Ap.data[i * Aw + l];
+        }
+        B.dx.data[l * Bw + m] += z;
+      }
+    }
+
+  }
+});
+
+
+// Tensor reductions  -----------------------------------------------------
+
+
+fns.tensor.sumreduce = func.newUnaryFunction({
+	OutputType: Scalar,
+	name: 'sumreduce',
+	forward: function(t) {
+		return t.sumreduce();
+	},
+	backward: function(t) {
+		var n = t.dx.data.length;
+		while (n--) {
+			t.dx.data[n] += this.dx;
+		}
+	}
+});
+
+fns.tensor.allreduce = func.liftUnaryFunction(function(t) {
+	return t.allreduce();
+});
+
+fns.tensor.anyreduce = func.liftUnaryFunction(function(t) {
+	return t.anyreduce();
+});
+
+// TODO: min/max?
+
+
+// Scalar/tensor shaping operations ---------------------------------------
+
+
+// Select one entry out of a tensor (by linear indexing)
+fns.tensor.get = func.newFunction({
+	OutputType: Scalar,
+	name: 'tensor.get',
+	forward: function(t, i) {
+		return t instanceof Node ? t.x.data[i] : t.data[i];
+	},
+	backward: function(t, i) {
+		if (t instanceof Node) {
+			t.dx.data[i] += this.dx;
+		}
+	},
+	getParents: function(t, i) {
+		return t instanceof Node ? [t] : [];
+	}
+});
+
+// Split a tensor into an array of its scalar entries
+fns.tensor.toScalars = function(t) {
+	var n = t instanceof Node ? t.x.length : t.length;
+	var s = new Array(n);
+	while (n--) {
+		s[n] = fns.tensor.get(t, n);
+	}
+	return s;
+};
+
+// Select a subtensor from a larger tensor
+// TODO: Eventually implement this as a view into existing storage,
+//    probably using refClone (+ other new stuff)
+fns.tensor.range = func.newFunction({
+	OutputType: Tensor,
+	name: 'tensor.range',
+	forward: function(t, start, end) {
+		t = t instanceof Node ? t.x : t;
+		var n = end - start;
+		var tn = new Tensor([n]);
+		while (n--) {
+			var i = start + n;
+			tn.data[n] = t.data[i];
+		}
+		return tn;
+	},
+	backward: function(t, start, end) {
+		if (t instanceof Node) {
+			var n = end - start;
+			while (n--) {
+				var i = start + n;
+				t.dx.data[i] += this.dx.data[n];
+			}
+		}
+	},
+	getParents: function(t, start, end) {
+		return t instanceof Node ? [t] : [];
+	}
+});
+
+
+// Split a tensor into multiple smaller tensors
+fns.tensor.split = function(t, lengths) {
+	var ts = new Array(lengths.length);
+	var start = 0;
+	for (var i = 0; i < lengths.length; i++) {
+		var l = lengths[i];
+		ts[i] = fns.tensor.range(t, start, start + l);
+		start += l;
+	}
+	return ts;
+};
+
+// Concatentate multiple scalars into a tensor
+// Can either take an array of scalars or a variable number of arguments
+fns.tensor.fromScalars = func.newFunction({
+	OutputType: Tensor,
+	name: 'tensor.fromScalars',
+	forward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var n = args.length;
+		var t = new Tensor([n]);
+		while (n--) {
+			var arg = args[n];
+			t.data[n] = arg instanceof Node ? arg.x : arg;
+		}
+		return t;
+	},
+	backward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var n = args.length;
+		while (n--) {
+			var arg = args[n];
+			if (arg instanceof Node) {
+				arg.dx += this.dx.data[n];
+			}
+		}
+	},
+	getParents: func.naryGetParents
+});
+
+// Concatentate multiple tensors into one big tensor
+// Can either take an array of tensors or a variable number of arguments
+// TODO: Eventually implement this as views into multiple storages?
+fns.tensor.concat = func.newFunction({
+	OutputType: Tensor,
+	name: 'tensor.concat',
+	forward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var n = args.length;
+		var size = 0;
+		while (n--) {
+			var arg = args[n];
+			var tn = arg instanceof Node ? arg.x : arg;
+			size += tn.length;
+		}
+		var t = new Tensor([size]);
+		n = args.length;
+		var i = 0;
+		for (var j = 0; j < n; j++) {
+			var arg = args[j];
+			var tn = arg instanceof Node ? arg.x : arg;
+			t.copy(tn, i);
+			i += tn.length;
+		}
+		return t;
+	},
+	backward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var n = args.length;
+		var i = 0;
+		for (var j = 0; j < n; j++) {
+			var arg = args[j];
+			if (arg instanceof Node) {
+				var tn = arg;
+				var len = tn.dx.length;
+				while (len--) {
+					tn.dx.data[len] += this.dx.data[i + len];
+				}
+				i += tn.dx.length;
+			} else i += arg.length;
+		}
+	},
+	getParents: func.naryGetParents
+});
+
+// Reshape a tensor
+// Creates a new TensorNode whose x and dx fields are refClones
+//    of the corresponding fields on the input node.
+fns.tensor.reshape = function(t, dims) {
+	if (t instanceof Node) {
+		var node = t.refClone();
+		node.x.reshape(dims);
+		node.dx.reshape(dims);
+		return node;
+	} else {
+		var ref = t.refClone();
+		ref.reshape(dims);
+		return ref;
+	}
+};
+
+
+// Misc. ----------------------------------------------------------------------
+
+
+// Sum an arbitrary number of scalars
+// Can either take an array of scalars or a variable number of arguments
+fns.scalar.sum = func.newFunction({
+	OutputType: Scalar,
+	name: 'scalar.sum',
+	forward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var thesum = 0;
+		var n = args.length;
+		while (n--) {
+			var arg = args[n];
+			var x = arg instanceof Node ? arg.x : arg;
+			thesum += x;
+		}
+		return thesum;
+	},
+	backward: function() {
+		var args = arguments.length === 1 && arguments[0] instanceof Array ?
+			arguments[0] : arguments;
+		var n = args.length;
+		while (n--) {
+			var arg = args[n];
+			if (arg instanceof Node) {
+				arg.dx += this.dx;
+			}
+		}
+	},
+	getParents: func.naryGetParents
+});
+
+// http://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network
+fns.tensor.softmax = func.newUnaryFunction({
+	OutputType: Tensor,
+	name: 'tensor.softmax',
+	forward: function(t) {
+		return t.softmax();
+	},
+	backward: function(t) {
+		// For each input entry, accumulate partial derivatives
+		//    for each output entry
+		var n = t.dx.data.length;
+		var s = 0;
+		for (var i = 0; i < n; i++) {
+			s += this.x.data[i] * this.dx.data[i];
+		}
+		for (var j = 0; j < n; j++) {
+			t.dx.data[j] += this.x.data[j] * (this.dx.data[j] - s);
+		}
+	}
+});
+
+
+module.exports = fns;
+
+
+
+
+},{"../tensor.js":17,"./derivatives.js":1,"./func.js":2,"./graph.js":4}],4:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../tensor.js');
+
+// Base class for all compute graph nodes
+function Node(x, parents, inputs, backward, name) {
+	this.x = x;
+	this.parents = parents;
+	this.inputs = inputs;
+	if (backward !== undefined) this.backward = backward;
+	this.outDegree = 0;
+	this.name = name || 'node';
+}
+Node.prototype.copy = function(other) {
+	this.x = other.x;
+	this.parents = other.parents;
+	this.inputs = other.inputs;
+	if (other.backward !== undefined) this.backward = other.backward;
+	this.outDegree = other.outDegree;
+	this.name = other.name;
+};
+Node.prototype.clone = function() {
+	var node = Object.create(Node.prototype);
+	node.copy(this);
+	return node;
+};
+Node.prototype.computeOutDegree = function() {
+	this.outDegree++;
+	if (this.outDegree === 1) {
+		var n = this.parents.length;
+		while (n--) this.parents[n].computeOutDegree();
+	}
+};
+Node.prototype.backpropRec = function() {
+	this.outDegree--;
+	if (this.outDegree === 0) {
+		this.backward();
+		var n = this.parents.length;
+		while (n--) this.parents[n].backpropRec();
+	}
+};
+Node.prototype.zeroDerivativesRec = function() {
+	this.outDegree--;
+	if (this.outDegree === 0) {
+		this.zeroDerivativesImpl();
+		var n = this.parents.length;
+		while (n--) this.parents[n].zeroDerivativesRec();
+	}
+};
+Node.prototype.zeroDerivatives = function() {
+	this.computeOutDegree();
+	this.zeroDerivativesRec();
+};
+// By default, backward does nothing
+Node.prototype.backward = function() {};
+
+
+// Base class for all nodes with scalar output
+function ScalarNode(x, parents, inputs, backward, name) {
+	Node.call(this, x, parents, inputs, backward, name || 'scalarNode');
+	this.dx = 0;
+}
+ScalarNode.prototype = Object.create(Node.prototype);
+ScalarNode.prototype.copy = function(other) {
+	Node.prototype.copy.call(this, other);
+	this.dx = other.dx;
+};
+ScalarNode.prototype.clone = function() {
+	var node = Object.create(ScalarNode.prototype);
+	node.copy(this);
+	return node;
+};
+ScalarNode.prototype.backprop = function() {
+	this.dx = 1;
+	this.computeOutDegree();
+	this.backpropRec();
+};
+ScalarNode.prototype.zeroDerivativesImpl = function() {
+	this.dx = 0;
+};
+
+
+// Base class for all nodes with tensor output
+function TensorNode(x, parents, inputs, backward, name) {
+	Node.call(this, x, parents, inputs, backward, name || 'tensorNode');
+	this.dx = new Tensor(x.dims);
+}
+TensorNode.prototype = Object.create(Node.prototype);
+TensorNode.prototype.copy = function(other) {
+	Node.prototype.copy.call(this, other);
+	this.x = other.x.clone();
+	this.dx = other.dx.clone();
+};
+TensorNode.prototype.clone = function() {
+	var node = Object.create(Tensor.prototype);
+	node.copy(this);
+	return node;
+};
+TensorNode.prototype.refCopy = function(other) {
+	Node.prototype.copy.call(this, other);
+	this.x = other.x.refClone();
+	this.dx = other.dx.refClone();
+};
+TensorNode.prototype.refClone = function() {
+	var node = Object.create(TensorNode.prototype);
+	node.refCopy(this);
+	return node;
+};
+TensorNode.prototype.backprop = function() {
+	this.dx.fill(1);
+	this.computeOutDegree();
+	this.backpropRec();
+};
+TensorNode.prototype.zeroDerivativesImpl = function() {
+	this.dx.zero();
+};
+
+
+
+module.exports = {
+	Node: Node,
+	ScalarNode: ScalarNode,
+	TensorNode: TensorNode
+};
+
+
+
+},{"../tensor.js":17}],5:[function(require,module,exports){
+'use strict';
+
+var utils = require('../utils.js');
+var graph = require('./graph.js');
+var Tensor = require('../tensor.js');
+
+var Node = graph.Node;
+var ScalarNode = graph.ScalarNode;
+var TensorNode = graph.TensorNode;
+
+var emptylist = [];
+
+function liftScalar(x, name) { return new ScalarNode(x, emptylist, emptylist, undefined, name); };
+function liftTensor(x, name) { return new TensorNode(x, emptylist, emptylist, undefined, name); };
+function doLift(x, name) {
+	return x instanceof Tensor ? liftTensor(x, name) : liftScalar(x, name);
+}
+
+var ad = {
+	lift: function(x, name) { return x instanceof Node ? x : doLift(x, name); },
+	isLifted: function(x) { return x instanceof Node; },
+	value: function(x) { return x instanceof Node ? x.x : x; },
+	derivative: function(x) { return x.dx; },
+};
+
+// Create randomly-initialized params
+// TODO: Use orthogonal initialization?
+ad.params = function(dims, name) {
+	return ad.lift(new Tensor(dims).fillRandom(), name); 
+};
+
+var func = require('./func.js');
+var functions = require('./functions.js');
+ad = utils.mergeObjects(ad, func, functions);
+
+
+module.exports = ad;
+},{"../tensor.js":17,"../utils.js":18,"./func.js":2,"./functions.js":3,"./graph.js":4}],6:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+var utils = require('../utils.js');
+var Network = require('./network.js');
+
+
+// A computation involving neural nets can be encapsulated inside a larger
+//    neural net. This is essentially function abstraction.
+// NOTE: Neural nets created this way can only be serialized if 'optname'
+//    is provided. Any code attempting to deserialize such a network must
+//    first create an instance of one in order to register the deserializer. 
+function compound(fn, subnets, optname) {
+	function CompoundNetwork(subnets) {
+		Network.call(this);
+		this.name = optname || 'compoundNetwork';
+		this.networks = subnets.slice();
+		for (var i = 0; i < subnets.length; i++) {
+			this.paramGetters = this.paramGetters.concat(subnets[i].paramGetters);
+			this.paramSetters = this.paramSetters.concat(subnets[i].paramSetters);
+		}
+		// In case this network uses any subnetworks more than once
+		this.paramGetters = utils.deduplicate(this.paramGetters);
+		this.paramSetters = utils.deduplicate(this.paramSetters);
+	}
+	CompoundNetwork.prototype = Object.create(Network.prototype);
+	CompoundNetwork.prototype.eval = fn;
+	CompoundNetwork.prototype.setTraining = function(flag) {
+		Network.prototype.setTraining.call(this, flag);
+		for (var i = 0; i < this.networks.length; i++) {
+			this.networks[i].setTraining(flag);
+		}
+	};
+	if (optname) {
+		CompoundNetwork.prototype.serializeJSON = function() {
+			return {
+				type: optname,
+				networks: this.networks.map(function(n) {
+					return n.serializeJSON();
+				})
+			};
+		};
+		Network.deserializers[optname] = function(json) {
+			return new CompoundNetwork(json.networks.map(function(jn) {
+				return Network.deserializeJSON(jn);
+			}));
+		}
+	} else {
+		CompoundNetwork.prototype.serializeJSON = function() {
+			assert(false, 'Cannot serialize unnamed compound network.');
+		};
+	}
+	return new CompoundNetwork(subnets);
+}
+
+
+// ----------------------------------------------------------------------------
+
+
+// What follows in this module is basically a little DSL for defining
+//    compound functions involving neural nets, by manually constructing the
+//    AST for the function. Since our neural nets are (for the time being, at
+//    least) just dataflow graphs, the only operator in this language is
+//    function composition.
+// nn.ast.input() creates an function input AST node.
+// Network.compose() creates a function composition AST node.
+// nn.ast.compile(inputs, outputs) compiles the AST into a neural network that
+//    executes the computation in static single assignment (SSA) form.
+
+
+function ASTNode(type, parents) {
+	this.type = type;
+	this.parents = parents || [];
+}
+
+
+
+// When we have a multi-output network (i.e. Array-of-tensors of output)
+//    and we want a separate AST node for each outputs
+function SelectNetwork(i) {
+	Network.call(this);
+	this.name = 'select';
+	this.i = i;
+}
+SelectNetwork.prototype = Object.create(Network.prototype);
+SelectNetwork.prototype.eval = function(tensors) { return tensors[this.i]; };
+SelectNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'select',
+		i: this.i
+	};
+};
+Network.deserializers.select = function(json) {
+	return new SelectNetwork(json.i);
+};
+ASTNode.prototype.split = function(n) {
+	var nodes = new Array(n);
+	for (var i = 0; i < n; i++) {
+		var net = new SelectNetwork(i);
+		nodes[i] = net.compose(this);
+	}
+	return nodes;
+}
+
+
+function input() {
+	return new ASTNode('input');
+}
+
+
+Network.prototype.compose = function() {
+	var node = new ASTNode('compose', Array.prototype.slice.call(arguments));
+	node.network = this;
+	return node;
+};
+
+
+// Actually compiling the AST
+function compile(inputs, outputs, optname, optDebug) {
+	for (var i = 0; i < inputs.length; i++) {
+		assert(inputs[i].type === 'input',
+			'Inputs to composite neural network must be nn.ast.input()');
+	}
+
+	// Topological sort
+	var visited = [];
+	for (var i = 0; i < outputs.length; i++) {
+		var fringe = [outputs[i]];
+		while (fringe.length > 0) {
+			var node = fringe.pop();
+			if (!(node.type === 'input') && visited.indexOf(node) === -1) {
+				visited.push(node);
+				for (var i = 0; i < node.parents.length; i++) {
+					fringe.push(node.parents[i]);
+				}
+			}
+		}
+	}
+	visited.reverse();
+
+	// Generate SSA code
+	var body = 'var args = arguments;\n';
+	var outs = [];
+	for (var i = 0; i < visited.length; i++) {
+		var node = visited[i];
+		var ins = node.parents.map(function(p) {
+			var i = inputs.indexOf(p);
+			if (i !== -1)
+				return 'args['+i+']';
+			i = visited.indexOf(p);
+			if (i !== -1)
+				return 'r'+i;
+			assert(false, 'impossible');
+		});
+		body += 'var r'+i+' = this.networks['+i+'].eval('+ins+');\n';
+		// Optionally, catch NaNs and Infinities at each intermediate network
+		if (optDebug) {
+			var ri = 'r'+i;
+			var ri_val = ri +'_val';
+			var neti = 'this.networks['+i+']';
+			body += [
+				'var '+ri_val+' = '+ri+'.x || '+ri+';',
+				'if (!'+ri_val+'.isFinite().allreduce()) {',
+				'	var err = "Non-finite value in output of network '+i+' ("+'+neti+'.name+")\\n";',
+				'   err += "Output:\\n";',
+				'	err += "["+'+ri_val+'.toString()+"]\\n";',
+				'   err += "Inputs:\\n";',
+				ins.map(function(input) {
+					var inval = '('+input+'.x || ' + input+')';
+					return '	err += "["+'+inval+'.toString()+"]\\n";';
+				}).join('\n'),
+				'   throw new Error(err);',
+				'}'
+			].join('\n');
+		}
+		if (outputs.indexOf(node) !== -1) {
+			outs.push('r'+i);
+		}
+	}
+	body += 'return ' + (outs.length > 1 ? '['+outs+']' : outs[0]) + ';';
+
+	// Create compound network from compiled function
+	var fn = new Function(body);
+	var networks = visited.map(function(n) { return n.network; });
+	var net = compound(fn, networks);
+	net.name = optname || 'compiledNetwork';
+	net.nodes = inputs.concat(visited);
+	net.inputs = inputs.map(function(n) { return net.nodes.indexOf(n); });
+	net.outputs = outputs.map(function(n) { return net.nodes.indexOf(n); });
+
+	net.serializeJSON = function() {
+		var jnodes = this.nodes.map(function(n) {
+			var jn = {
+				type: n.type,
+				parents: n.parents.map(function(p) {
+					return this.nodes.indexOf(p);
+				}.bind(this))
+			};
+			if (jn.type === 'compose') {
+				jn.network = n.network.serializeJSON();
+			}
+			return jn;
+		}.bind(this));
+		return {
+			type: 'compiled',
+			name: this.name,
+			nodes: jnodes,
+			inputs: this.inputs,
+			outputs: this.outputs
+		};
+	};
+
+	return net;
+}
+Network.deserializers.compiled = function(json) {
+	var nodes = [];
+	for (var i = 0; i < json.nodes.length; i++) {
+		var jn = json.nodes[i];
+		var n = new ASTNode(jn.type, jn.parents.map(function(pi) {
+			return nodes[pi];
+		}));
+		if (jn.type === 'compose') {
+			n.network = Network.deserializeJSON(jn.network);
+		}
+		nodes.push(n);
+	}
+	var inputs = json.inputs.map(function(i) { return nodes[i]; });
+	var outputs = json.outputs.map(function(i) { return nodes[i]; });
+	return compile(inputs, outputs, json.name);
+};
+
+
+// ----------------------------------------------------------------------------
+
+
+// A common composition pattern is a sequence of 1-to-1 networks
+function sequence(networks, optname, optDebug) {
+	var inputNode = input();
+	var currNode = inputNode;
+	for (var i = 0; i < networks.length; i++) {
+		currNode = networks[i].compose(currNode);
+	}
+	var net = compile([inputNode], [currNode], undefined, optDebug);
+	net.name = optname || 'sequenceNetwork';
+	// Could use compile's serialization, but there's a more concise option
+	net.serializeJSON = function() {
+		return {
+			type: 'sequence',
+			name: this.name,
+			networks: this.networks.map(function(n) {
+				return n.serializeJSON();
+			})
+		};
+	}
+	return net;
+}
+Network.deserializers.sequence = function(json) {
+	var networks = json.networks.map(function(jn) {
+		return Network.deserializeJSON(jn);
+	});
+	return sequence(networks, json.name);
+};
+
+
+// ----------------------------------------------------------------------------
+
+
+module.exports = {
+	compound: compound,
+	ast: {
+		input: input,
+		compile: compile
+	},
+	sequence: sequence
+};
+
+
+
+},{"../utils.js":18,"./network.js":9,"assert":24}],7:[function(require,module,exports){
+'use strict';
+
+var utils = require('../utils.js');
+var Network = require('./network.js');
+
+module.exports = {
+	Network: Network,
+	deserializeJSON: Network.deserializeJSON
+};
+
+// Utilities
+var lifting = require('./lifting.js');
+var composition = require('./composition.js');
+
+// Networks
+var lifted = require('./networks/lifted.js');
+var linear = require('./networks/linear.js');
+var convolution = require('./networks/convolution.js');
+var pooling = require('./networks/pooling.js');
+var activation = require('./networks/activation.js');
+var perceptron = require('./networks/perceptron.js');
+var misc = require('./networks/misc.js');
+
+module.exports = utils.mergeObjects(module.exports,
+	lifting, composition, lifted, linear, convolution, pooling, activation, perceptron, misc
+);
+},{"../utils.js":18,"./composition.js":6,"./lifting.js":8,"./network.js":9,"./networks/activation.js":10,"./networks/convolution.js":11,"./networks/lifted.js":12,"./networks/linear.js":13,"./networks/misc.js":14,"./networks/perceptron.js":15,"./networks/pooling.js":16}],8:[function(require,module,exports){
+'use strict';
+
+var Network = require('./network.js');
+
+// Any Tensor-valued AD function can be turned into a neural network with no
+//    parameters
+function lift(adfn, optname) {
+	var net = new Network();
+	net.eval = adfn;
+	net.name = optname || 'liftedNetwork';
+	if (optname) {
+		net.serializeJSON = function() {
+			return { type: optname };
+		};
+		Network.deserializers[optname] = function(json) {
+			return net;
+		};
+	} else {
+		net.serializeJSON = function() {
+			assert(false, 'Cannot serialize unnamed lifted network.');
+		}
+	}
+	return net;
+}
+
+// If 'adfn' takes some number of tensor arguments followed by some number of
+//    other (parameter-like) arguments, then 'partialeval' returns a Network
+//    which is partially-evaluated on those parameter arguments: its 'eval'
+//    function takes in just the tensor arguments.
+// This is especially useful for turning multi-arg AD functions into
+//    parameterized, single-arg networks that can be stacked in sequence.
+function partialeval(adfn, name) {
+	// Make a partially-evaluated AD function, then lift that
+	// Have to provide a custom serializer which records the partially-
+	//    evaluated arguments.
+	var netCreateFn = function() {
+		var partialargs = Array.prototype.slice.call(arguments);
+		var fnToLift = function(t) {
+			var tensorargs = Array.prototype.slice.call(arguments);
+			return adfn.apply(null, tensorargs.concat(partialargs));
+		};
+		var net = lift(fnToLift);
+		net.name = name;
+		if (name) {
+			net.serializeJSON = function() {
+				var json = {
+					type: name
+				};
+				for (var i = 0; i < partialargs.length; i++) {
+					json['arg'+i] = partialargs[i];
+				}
+				return json;
+			};
+		}
+		return net;
+	};
+
+	if (name) {
+		Network.deserializers[name] = function(json) {
+			var args = [];
+			for (var prop in json) {
+				if (prop.startsWith('arg')) {
+					var idx = parseInt(prop.slice(3));
+					args[idx] = json[prop];
+				}
+			}
+			return netCreateFn.apply(null, args);
+		};
+	}
+
+	return netCreateFn;
+}
+
+module.exports = {
+	lift: lift,
+	partialeval: partialeval
+};
+
+
+},{"./network.js":9}],9:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+
+// Base class for all neural networks
+function Network() {
+	this.name = '';
+	this.isTraining = false;
+	// These arrays store functions which get/set the parameters of the
+	//    network (as AD nodes)
+	this.paramGetters = [];
+	this.paramSetters = [];
+}
+
+// Evaluate the function represented by this neural network
+Network.prototype.eval = function() {
+	assert(false, "Neural networks must implement the 'eval' method.");
+};
+
+// Get the parameters of this network
+Network.prototype.getParameters = function() {
+	// Cache the results
+	if (this.__parameters === undefined) {
+		this.__parameters = this.paramGetters.map(function(f) {
+			return f();
+		});
+	}
+	return this.__parameters;
+};
+
+// Set the parameters of this network
+Network.prototype.setParameters = function(params) {
+	if (params.length !== this.paramSetters.length) {
+		assert(false, 'Network.setParameters: size mismatch (network has '
+			+ this.paramSetters.length + ' parameters, not ' + params.length);
+	}
+	for (var i = 0; i < params.length; i++) {
+		this.paramSetters[i](params[i]);
+	}
+	// Replace the cached parameters with the new ones
+	this.__parameters = params.slice();
+};
+
+// Set whether the network is training or not (this controls whether
+//    derivatives will backpropagate through the parameters).
+Network.prototype.setTraining = function(boolflag) {
+	this.isTraining = boolflag;
+};
+
+
+// Networks can be serialized and deserialized via JSON
+Network.prototype.serializeJSON = function() {
+	assert(false, "Neural networks must implement the 'serializeJSON' method.");
+}
+Network.deserializers = {};
+Network.deserializeJSON = function(json) {
+	assert(json.type !== undefined, "Network JSON blob has no 'type' field.");
+	assert(Network.deserializers.hasOwnProperty(json.type),
+		"Network JSON blob has unrecognized type '" + json.type + "'");
+	return Network.deserializers[json.type](json);
+}
+
+module.exports = Network;
+
+},{"assert":24}],10:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../../tensor.js');
+var ad = require('../../ad');
+var lift = require('../lifting.js').lift;
+
+
+// The 'lifted' module already defines sigmoid and tanh.
+
+
+var relu = lift(ad.newUnaryFunction({
+	OutputType: Tensor,
+	name: 'relu',
+	forward: function(x) {
+		x = ad.value(x);
+		var y = x.clone();
+		var n = x.length;
+		while (n--) {
+			y.data[n] = y.data[n] < 0 ? 0 : y.data[n];
+		}
+		return y;
+	},
+	backward: function(x) {
+		var n = x.x.length;
+		while (n--) {
+			x.dx.data[n] += x.x.data[n] <= 0 ? 0 : this.dx.data[n];
+		}
+	}
+}), 'relu');
+
+
+// Sigmoid, shifted and scaled to the range (-1, 1)
+// Same output range as tanh, but numerically stable (i.e. doesn't give NaNs
+//    for large inputs).
+var sigmoidCentered = lift(function(x) {
+	return ad.tensor.sub(ad.tensor.mul(ad.tensor.sigmoid(x), 2), 1);
+});
+
+
+module.exports = {
+	relu: relu,
+	sigmoidCentered: sigmoidCentered
+};
+},{"../../ad":5,"../../tensor.js":17,"../lifting.js":8}],11:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../../tensor.js');
+var ad = require('../../ad');
+var Network = require('../network.js');
+var assert = require('assert');
+
+
+// Adapted from:
+// https://github.com/karpathy/convnetjs/blob/master/src/
+//    convnet_layers_dotproducts.js
+
+
+// Convolutions operate on rank-3 tensors.
+// The dimensions of the tensor correspond to image dimensions as:
+//    - dims[0]: depth/channel
+//    - dims[1]: height
+//    - dims[2]: width
+// So essentially, images are stored as separate spatial slices for each
+//    channel. This is not how convnetjs does it, but it appears to be
+//    consistent with torch.
+
+function ConvolutionNetwork(nIn, nOut, fW, fH, sX, sY, pX, pY, optname) {
+	Network.call(this);
+	this.name = optname || 'convolution';
+	this.inDepth = nIn;
+	this.outDepth = nOut;
+	this.filterWidth = fW;
+	this.filterHeight = fH;
+	this.strideX = sX;
+	this.strideY = sY;
+	this.padX = pX;
+	this.padY = pY;
+
+	this.filters = ad.params([nOut, nIn, fH, fW], this.name+'_filters');
+	this.biases = ad.params([nOut], this.name+'_biases');
+	this.paramGetters = [
+		function() { return this.filters; }.bind(this),
+		function() { return this.biases; }.bind(this)
+	];
+	this.paramSetters = [
+		function(filters) { this.filters = filters; }.bind(this),
+		function(biases) { this.biases = biases; }.bind(this)
+	];
+}
+ConvolutionNetwork.prototype = Object.create(Network.prototype);
+
+ConvolutionNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'convolution',
+		name: this.name,
+		inDepth: this.inDepth,
+		outDepth: this.outDepth,
+		filterWidth: this.filterWidth,
+		filterHeight: this.filterHeight,
+		strideX: this.strideX,
+		strideY: this.strideY,
+		padX: this.padX,
+		padY: this.padY,
+		filters: ad.value(this.filters).toFlatArray(),
+		biases: ad.value(this.biases).toFlatArray()
+	};
+}
+Network.deserializers.convolution = function(json) {
+	var net = new ConvolutionNetwork(json.inDepth, json.outDepth,
+		json.filterWidth, json.filterHeight, json.strideX, json.strideY,
+		json.padX, json.padY, json.name);
+	ad.value(net.filters).fromFlatArray(json.filters);
+	ad.value(net.biases).fromFlatArray(json.biases);
+	return net;
+};
+
+
+var convolve = ad.newFunction({
+	OutputType: Tensor,
+	name: 'convolution',
+	forward: function(inImg, filters, biases, strideX, strideY, padX, padY) {
+
+		inImg = ad.value(inImg);
+		filters = ad.value(filters);
+		biases = ad.value(biases);
+
+
+		var fH = filters.dims[2];
+		var fW = filters.dims[3];
+		var iD = inImg.dims[0];
+		var iH = inImg.dims[1];
+		var iW = inImg.dims[2];
+		var oD = filters.dims[0];
+
+
+		var oH = Math.floor((iH + 2*padY - fH) / strideY + 1);
+		var oW = Math.floor((iW + 2*padX - fW) / strideX + 1);
+
+		//console.log(oD, " ", oH, " ", oW);
+
+
+		if (iD !== filters.dims[1]) {
+			assert(false, 'Convolutional network: input depth is ' + iD +
+				' but should be ' + filters.dims[1]); 
+		}
+
+		var outImg = new Tensor([oD, oH, oW]);
+
+		for (var d = 0; d < oD; d++) {
+			var x = -padX;
+			var y = -padY;
+			for (var ay = 0; ay < oH; y += strideY, ay++) {
+				x = -padX;
+				for (var ax = 0; ax < oW; x += strideX, ax++) {
+					// Convolution
+					var a = biases.data[d];
+					for (var fd = 0; fd < iD; fd++) {
+						for (var fy = 0; fy < fH; fy++) {
+							var iy = y + fy;
+							for (var fx = 0; fx < fW; fx++) {
+								var ix = x + fx;
+								if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+									var iIdx = ix+iW*(iy+iH*fd);
+									var fIdx = fx+fW*(fy+fH*(fd+iD*d));
+									a += filters.data[fIdx] * inImg.data[iIdx];
+								}
+							}
+						}
+					}
+					// Set ouput pixel
+					outImg.data[ax+oW*(ay+oH*d)] = a;
+				}
+			}
+		}
+
+		return outImg;
+	},
+	backward: function(inImg, filters, biases, strideX, strideY, padX, padY) {
+		var inImgP = ad.value(inImg);
+		var filtersP = ad.value(filters);
+		var biasesP = ad.value(biases);
+		var iIs = inImg !== inImgP;
+		var fIs = filters !== filtersP;
+		var bIs = biases !== biasesP;
+
+		var fH = filtersP.dims[2];
+		var fW = filtersP.dims[3];
+		var iD = inImgP.dims[0];
+		var iH = inImgP.dims[1];
+		var iW = inImgP.dims[2];
+		var oD = filtersP.dims[0];
+		var oH = this.x.dims[1];
+		var oW = this.x.dims[2];
+
+		for (var d = 0; d < oD; d++) {
+			var x = -padX;
+			var y = -padY;
+			for (var ay = 0; ay < oH; y += strideY, ay++) {
+				x = -padX;
+				for (var ax = 0; ax < oW; x += strideX, ax++) {
+					var thisGrad = this.dx.data[ax+oW*(ay+oH*d)];
+					// Convolution
+					if (bIs) biases.dx.data[d] += thisGrad;
+					for (var fd = 0; fd < iD; fd++) {
+						for (var fy = 0; fy < fH; fy++) {
+							var iy = y + fy;
+							for (var fx = 0; fx < fW; fx++) {
+								var ix = x + fx;
+								if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+									var iIdx = ix+iW*(iy+iH*fd);
+									var fIdx = fx+fW*(fy+fH*(fd+iD*d));
+									if (iIs) {
+										inImg.dx.data[iIdx] +=
+											filtersP.data[fIdx]*thisGrad;
+									}
+									if (fIs) {
+										filters.dx.data[fIdx] +=
+											inImgP.data[iIdx]*thisGrad;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	getParents: function(inImg, filters, biases, strideX, strideY, padX, padY) {
+		var p = [];
+		if (ad.isLifted(inImg)) p.push(inImg);
+		if (ad.isLifted(filters)) p.push(filters);
+		if (ad.isLifted(biases)) p.push(biases);
+		return p;
+	},
+});
+
+
+ConvolutionNetwork.prototype.eval = function(img) {
+	var filters = this.isTraining ? this.filters : ad.value(this.filters);
+	var biases = this.isTraining ? this.biases : ad.value(this.biases);
+	return convolve(img, filters, biases,
+		this.strideX, this.strideY, this.padX, this.padY);
+};
+
+
+function convolution(opts, optname) {
+	var nIn = opts.inDepth || 1;
+	var nOut = opts.outDepth || 1;
+	var fW = opts.filterWidth || opts.filterSize;
+	var fH = opts.filterHeight || opts.filterSize;
+	var sX = opts.strideX || opts.stride || 1;
+	var sY = opts.strideY || opts.stride || 1;
+	var pX = opts.padX || opts.pad || 'same';
+	var pY = opts.padY || opts.pad || 'same';
+	// Can specify that output should be padded to be the same size as the input
+	//    (assuming a stride of 1)
+	if (pX === 'same') {
+		pX = Math.floor((fW - 1)/2);
+	}
+	if (pY === 'same') {
+		pY = Math.floor((fH - 1)/2);
+	}
+	return new ConvolutionNetwork(nIn, nOut, fW, fH, sX, sY, pX, pY, optname);
+};
+
+
+module.exports = {
+	convolution: convolution, 
+	convolve: convolve
+};
+
+
+
+
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":24}],12:[function(require,module,exports){
+'use strict';
+
+var adfunctions = require('../../ad/functions.js');
+var lifting = require('../lifting.js');
+
+
+// We go ahead and lift all of the Tensor-valued AD functions in
+//    ad/functions.js
+module.exports = {};
+for (var fnname in adfunctions.tensor) {
+	module.exports[fnname] = lifting.lift(adfunctions.tensor[fnname], fnname);
+}
+
+
+// A few of these functions make more sense when partially-evaluated
+module.exports.range = lifting.partialeval(adfunctions.tensor.range, 'range');
+module.exports.split = lifting.partialeval(adfunctions.tensor.split, 'split');
+module.exports.reshape = lifting.partialeval(adfunctions.tensor.reshape, 'reshape');
+
+},{"../../ad/functions.js":3,"../lifting.js":8}],13:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../../tensor.js');
+var ad = require('../../ad');
+var Network = require('../network.js');
+var assert = require('assert');
+
+
+// Fully connected network
+function LinearNetwork(nIn, nOut, optname) {
+	Network.call(this);
+	this.name = optname || 'linear';
+	this.inSize = nIn;
+	this.outSize = nOut;
+
+	this.weights = ad.params([nOut, nIn], this.name+'_weights');
+	this.biases = ad.params([nOut], this.name+'_biases');
+	this.paramGetters = [
+		function() { return this.weights; }.bind(this),
+		function() { return this.biases; }.bind(this)
+	];
+	this.paramSetters = [
+		function(weights) { this.weights = weights; }.bind(this),
+		function(biases) { this.biases = biases; }.bind(this)
+	];
+}
+LinearNetwork.prototype = Object.create(Network.prototype);
+
+LinearNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'linear',
+		name: this.name,
+		inSize: this.inSize,
+		outSize: this.outSize,
+		weights: ad.value(this.weights).toFlatArray(),
+		biases: ad.value(this.biases).toFlatArray()
+	};
+}
+Network.deserializers.linear = function(json) {
+	var net = new LinearNetwork(json.inSize, json.outSize, json.name);
+	ad.value(net.weights).fromFlatArray(json.weights);
+	ad.value(net.biases).fromFlatArray(json.biases);
+	return net;
+};
+
+
+var mvmuladd = ad.newFunction({
+	OutputType: Tensor,
+	name: 'mvmuladd',
+	forward: function(A, x, b) {
+		A = ad.value(A);
+		x = ad.value(x);
+		b = ad.value(b);
+		var w = x.length;
+		var h = b.length;
+		if (w !== A.dims[1]) {
+			assert(false, 'Linear network: input size is ' + w +
+				' but should be ' + A.dims[1]);
+		}
+		var y = b.clone();
+		for (var r = 0; r < h; r++) {
+			var off = r*w;
+			for (var c = 0; c < w; c++) {
+				y.data[r] += A.data[off + c] * x.data[c];
+			}
+		}
+		return y;
+	},
+	backward: function(A, x, b) {
+		var Ap = ad.value(A);
+		var xp = ad.value(x);
+		var bp = ad.value(b);
+		var aIs = A !== Ap;
+		var xIs = x !== xp;
+		var bIs = b !== bp;
+		var w = xp.length;
+		var h = bp.length;
+		for (var r = 0; r < h; r++) {
+			var off = r*w;
+			var thisdx = this.dx.data[r];
+			if (bIs) {
+				b.dx.data[r] += thisdx;
+			}
+			for (var c = 0; c < w; c++) {
+				if (xIs) {
+					x.dx.data[c] += Ap.data[off + c] * thisdx;
+				}
+				if (aIs) {
+					A.dx.data[off + c] += xp.data[c] * thisdx;
+				}
+			}
+		}
+	},
+	getParents: ad.naryGetParents
+});
+
+
+LinearNetwork.prototype.eval = function(x) {
+	var A = this.isTraining ? this.weights : ad.value(this.weights);
+	var b = this.isTraining ? this.biases : ad.value(this.biases);
+	return mvmuladd(A, x, b);
+};
+
+
+function linear(nIn, nOut, optname) {
+	return new LinearNetwork(nIn, nOut, optname);
+}
+
+
+// ----------------------------------------------------------------------------
+
+
+// Fully connected network between the layers (i.e. channels) of an image at 
+//    each pixel
+function LayerwiseLinearNetwork(nIn, nOut, optname) {
+	Network.call(this);
+	this.name = optname || 'layerwiseLinear';
+	this.inSize = nIn;
+	this.outSize = nOut;
+
+	this.weights = ad.params([nOut, nIn], this.name+'_weights');
+	this.biases = ad.params([nOut], this.name+'_biases');
+	this.paramGetters = [
+		function() { return this.weights; }.bind(this),
+		function() { return this.biases; }.bind(this)
+	];
+	this.paramSetters = [
+		function(weights) { this.weights = weights; }.bind(this),
+		function(biases) { this.biases = biases; }.bind(this)
+	];
+}
+LayerwiseLinearNetwork.prototype = Object.create(Network.prototype);
+
+LayerwiseLinearNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'layerwiseLinear',
+		name: this.name,
+		inSize: this.inSize,
+		outSize: this.outSize,
+		weights: ad.value(this.weights).toFlatArray(),
+		biases: ad.value(this.biases).toFlatArray()
+	};
+}
+Network.deserializers.layerwiseLinear = function(json) {
+	var net = new LayerwiseLinearNetwork(json.inSize, json.outSize, json.name);
+	ad.value(net.weights).fromFlatArray(json.weights);
+	ad.value(net.biases).fromFlatArray(json.biases);
+	return net;
+};
+
+
+var layerwiseMVMulAdd = ad.newFunction({
+	OutputType: Tensor,
+	name: 'layerwiseMVMulAdd',
+	forward: function(img, weights, biases) {
+		img = ad.value(img);
+		weights = ad.value(weights);
+		biases = ad.value(biases);
+		var inD = img.dims[0];
+		if (inD !== weights.dims[1]) {
+			assert(false, 'LayerwiseLinear Network: input depth is ' +
+				inD + ' but should be ' + weights.dims[1]);
+		}
+		var h = img.dims[1];
+		var w = img.dims[2];
+		var outD = weights.dims[0];
+
+		var outImg = new Tensor([outD, h, w]);
+
+		for (var y = 0; y < h; y++) {
+			for (var x = 0; x < w; x++) {
+				for (var od = 0; od < outD; od++) {
+					var outIdx = x+w*(y+h*od);
+					outImg.data[outIdx] = biases.data[od];
+					for (var id = 0; id < inD; id++) {
+						var wIdx = id + od*inD;
+						var wt = weights.data[wIdx];
+						var inIdx = x+w*(y+h*id);
+						var imval = img.data[inIdx];
+						outImg.data[outIdx] += wt * imval;
+					}
+				}
+			}
+		}
+
+		return outImg;
+	},
+	backward: function(img, weights, biases) {
+		var imgp = ad.value(img);
+		var weightsp = ad.value(weights);
+		var biasesp = ad.value(biases);
+		var imgIs = img !== imgp;
+		var weightsIs = weights !== weightsp;
+		var biasesIs = biases !== biasesp;
+		var h = imgp.dims[1];
+		var w = imgp.dims[2];
+		var outD = weightsp.dims[0];
+		var inD = weightsp.dims[1];
+
+		for (var y = 0; y < h; y++) {
+			for (var x = 0; x < w; x++) {
+				for (var od = 0; od < outD; od++) {
+					var outIdx = x+w*(y+h*od);
+					var thisdx = this.dx.data[outIdx];
+					if (biasesIs) {
+						biases.dx.data[od] += thisdx;
+					}
+					for (var id = 0; id < inD; id++) {
+						var wIdx = id + od*inD;
+						var inIdx = x+w*(y+h*id);
+						if (weightsIs) {
+							var imval = imgp.data[inIdx];
+							weights.dx.data[wIdx] += imval * thisdx;
+						}
+						if (imgIs) {
+							var wt = weightsp.data[wIdx];
+							img.dx.data[inIdx] += wt * thisdx;
+						}
+					}
+				}
+			}
+		}
+	},
+	getParents: ad.naryGetParents
+});
+
+
+LayerwiseLinearNetwork.prototype.eval = function(img) {
+	var weights = this.isTraining ? this.weights : ad.value(this.weights);
+	var biases = this.isTraining ? this.biases : ad.value(this.biases);
+	return layerwiseMVMulAdd(img, weights, biases);
+};
+
+
+function layerwiseLinear(nIn, nOut, optname) {
+	return new LayerwiseLinearNetwork(nIn, nOut, optname);
+}
+
+
+// ----------------------------------------------------------------------------
+
+
+module.exports = {
+	linear: linear,
+	layerwiseLinear: layerwiseLinear
+};
+
+
+
+
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":24}],14:[function(require,module,exports){
+'use strict';
+
+var ad = require('../../ad');
+var Network = require('../network.js');
+
+
+// Network that takes no inputs and returns a constant set of parameters
+function ConstantParamNetwork(dims, optname) {
+	Network.call(this);
+	this.name = optname || 'constantparams';
+	this.dims = dims;
+
+	this.params = ad.params(dims, this.name);
+	this.paramGetters = [
+		function() { return this.params; }.bind(this)
+	];
+	this.paramSetters = [
+		function(params) { this.params = params; }.bind(this)
+	];
+};
+ConstantParamNetwork.prototype = Object.create(Network.prototype);
+ConstantParamNetwork.prototype.eval = function() {
+	return this.isTraining ? this.params : ad.value(this.params);
+};
+ConstantParamNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'constantparams',
+		name: this.name,
+		dims: this.dims,
+		params: ad.value(this.params).toFlatArray()
+	};
+};
+Network.deserializers.constantparams = function(json) {
+	var net = new ConstantParamNetwork(json.dims, json.name);
+	ad.value(net.params).fromFlatArray(json.params);
+	return net;
+};
+function constantparams(dims, optname) {
+	return new ConstantParamNetwork(dims, optname);
+}
+
+
+module.exports = {
+	constantparams: constantparams
+};
+
+},{"../../ad":5,"../network.js":9}],15:[function(require,module,exports){
+'use strict';
+
+var sequence = require('../composition.js').sequence;
+var linear = require('./linear.js').linear;
+
+
+// Convenience function for defining multilayer perceptrons
+function mlp(nIn, layerdefs, optname, optDebug) {
+	optname = optname || 'mlp';
+	var nets = [];
+	for (var i = 0; i < layerdefs.length; i++) {
+		var ldef = layerdefs[i];
+		nets.push(linear(nIn, ldef.nOut, optname+'_layer'+i));
+		if (ldef.activation) {
+			nets.push(ldef.activation);
+		}
+		nIn = ldef.nOut;
+	}
+	return sequence(nets, optname || 'multiLayerPerceptron', optDebug);
+}
+
+
+module.exports = {
+	mlp: mlp
+};
+},{"../composition.js":6,"./linear.js":13}],16:[function(require,module,exports){
+'use strict';
+
+var Tensor = require('../../tensor.js');
+var ad = require('../../ad');
+var Network = require('../network.js');
+
+
+// Images are represented as in convolution.js
+
+
+// Max pooling ----------------------------------------------------------------
+
+function MaxPoolNetwork(fW, fH, sX, sY, pX, pY) {
+	Network.call(this);
+	this.filterWidth = fW;
+	this.filterHeight = fH;
+	this.strideX = sX;
+	this.strideY = sY;
+	this.padX = pX;
+	this.padY = pY;
+	this.name = 'maxpool';
+}
+MaxPoolNetwork.prototype = Object.create(Network.prototype);
+
+MaxPoolNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'maxpool',
+		filterWidth: this.filterWidth,
+		filterHeight: this.filterHeight,
+		strideX: this.strideX,
+		strideY: this.strideY,
+		padX: this.padX,
+		padY: this.padY
+	};
+}
+Network.deserializers.maxpool = function(json) {
+	return new MaxPoolNetwork(json.filterWidth, json.filterHeight,
+		json.strideX, json.strideY, json.padX, json.padY);
+};
+
+
+// Adapted from:
+// https://github.com/karpathy/convnetjs/blob/master/src/convnet_layers_pool.js
+// Store the indices of where the maxes came from, for more efficient backprop
+var maxIndices;
+var maxpoolingImpl = ad.newFunction({
+	OutputType: Tensor,
+	name: 'maxpooling',
+	forward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		inImg = ad.value(inImg);
+
+		var D = inImg.dims[0];
+		var iH = inImg.dims[1];
+		var iW = inImg.dims[2];
+		var oH = Math.floor((iH + 2*pY - fH) / sY + 1);
+		var oW = Math.floor((iW + 2*pX - fW) / sX + 1);
+
+		var outImg = new Tensor([D, oH, oW]);
+		maxIndices = new Int32Array(D*oH*oW);
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					// Find max within filter window
+					var maxval = -Infinity;
+					var maxidx = -1;
+					for (var fy = 0; fy < fH; fy++) {
+						var iy = y + fy;
+						for (var fx = 0; fx < fW; fx++) {
+							var ix = x + fx;
+							if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+								var idx = ix+iW*(iy+iH*d);
+								var v = inImg.data[idx];
+								if (v > maxval) {
+									maxval = v;
+									maxidx = idx;
+								}
+							}
+						}
+					}
+					// Set ouput pixel
+					var outidx = ax+oW*(ay+oH*d);
+					outImg.data[outidx] = maxval;
+					maxIndices[outidx] = maxidx;
+				}
+			}
+		}
+
+		return outImg;
+	},
+	backward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		// No need for an 'isLifted' check: there's only one possible lifted
+		//    argument (inImg), so if we are backprop'ing, it must be lifted.
+		var D = inImg.x.dims[0];
+		var iH = inImg.x.dims[1];
+		var iW = inImg.x.dims[2];
+		var oH = this.x.dims[1];
+		var oW = this.x.dims[2];
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					// Accumulate into correct derivative using maxIndices
+					var outidx = ax+oW*(ay+oH*d);
+					var inidx = this.maxIndices[outidx];
+					inImg.dx.data[inidx] += this.dx.data[outidx];
+				}
+			}
+		}
+	},
+	getParents: function(inImg, fW, fH, sX, sY, pX, pY) {
+		return ad.isLifted(inImg) ? [inImg] : [];
+	}
+});
+function maxpooling(inImg, fW, fH, sX, sY, pX, pY) {
+	var outImg = maxpoolingImpl(inImg, fW, fH, sX, sY, pX, pY);
+	if (ad.isLifted(outImg)) {
+		outImg.maxIndices = maxIndices;
+	}
+	return outImg;
+}
+
+
+MaxPoolNetwork.prototype.eval = function(img) {
+	return maxpooling(img, this.filterWidth, this.filterHeight, this.strideX,
+		this.strideY, this.padX, this.padY);
+};
+
+
+function maxpool(opts) {
+	var fW = opts.filterWidth || opts.filterSize;
+	var fH = opts.filterHeight || opts.filterSize;
+	var sX = opts.strideX || opts.stride || fW;
+	var sY = opts.strideY || opts.stride || fH;
+	var pX = opts.padX || opts.pad || 0;
+	var pY = opts.padY || opts.pad || 0;
+	return new MaxPoolNetwork(fW, fH, sX, sY, pX, pY);
+}
+
+
+// Min pooling ----------------------------------------------------------------
+
+function MinPoolNetwork(fW, fH, sX, sY, pX, pY) {
+	Network.call(this);
+	this.filterWidth = fW;
+	this.filterHeight = fH;
+	this.strideX = sX;
+	this.strideY = sY;
+	this.padX = pX;
+	this.padY = pY;
+	this.name = 'minpool';
+}
+MinPoolNetwork.prototype = Object.create(Network.prototype);
+
+MinPoolNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'minpool',
+		filterWidth: this.filterWidth,
+		filterHeight: this.filterHeight,
+		strideX: this.strideX,
+		strideY: this.strideY,
+		padX: this.padX,
+		padY: this.padY
+	};
+}
+Network.deserializers.minpool = function(json) {
+	return new MinPoolNetwork(json.filterWidth, json.filterHeight,
+		json.strideX, json.strideY, json.padX, json.padY);
+};
+
+
+var minIndices;
+var minpoolingImpl = ad.newFunction({
+	OutputType: Tensor,
+	name: 'maxpooling',
+	forward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		inImg = ad.value(inImg);
+
+		var D = inImg.dims[0];
+		var iH = inImg.dims[1];
+		var iW = inImg.dims[2];
+		var oH = Math.floor((iH + 2*pY - fH) / sY + 1);
+		var oW = Math.floor((iW + 2*pX - fW) / sX + 1);
+
+		var outImg = new Tensor([D, oH, oW]);
+		minIndices = new Int32Array(D*oH*oW);
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					// Find min within filter window
+					var minval = Infinity;
+					var minidx = -1;
+					for (var fy = 0; fy < fH; fy++) {
+						var iy = y + fy;
+						for (var fx = 0; fx < fW; fx++) {
+							var ix = x + fx;
+							if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+								var idx = ix+iW*(iy+iH*d);
+								var v = inImg.data[idx];
+								if (v < minval) {
+									minval = v;
+									minidx = idx;
+								}
+							}
+						}
+					}
+					// Set ouput pixel
+					var outidx = ax+oW*(ay+oH*d);
+					outImg.data[outidx] = minval;
+					minIndices[outidx] = minidx;
+				}
+			}
+		}
+
+		return outImg;
+	},
+	backward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		// No need for an 'isLifted' check: there's only one possible lifted
+		//    argument (inImg), so if we are backprop'ing, it must be lifted.
+		var D = inImg.x.dims[0];
+		var iH = inImg.x.dims[1];
+		var iW = inImg.x.dims[2];
+		var oH = this.x.dims[1];
+		var oW = this.x.dims[2];
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					// Accumulate into correct derivative using minIndices
+					var outidx = ax+oW*(ay+oH*d);
+					var inidx = this.minIndices[outidx];
+					inImg.dx.data[inidx] += this.dx.data[outidx];
+				}
+			}
+		}
+	},
+	getParents: function(inImg, fW, fH, sX, sY, pX, pY) {
+		return ad.isLifted(inImg) ? [inImg] : [];
+	}
+});
+function minpooling(inImg, fW, fH, sX, sY, pX, pY) {
+	var outImg = minpoolingImpl(inImg, fW, fH, sX, sY, pX, pY);
+	if (ad.isLifted(outImg)) {
+		outImg.minIndices = minIndices;
+	}
+	return outImg;
+}
+
+
+MinPoolNetwork.prototype.eval = function(img) {
+	return minpooling(img, this.filterWidth, this.filterHeight, this.strideX,
+		this.strideY, this.padX, this.padY);
+};
+
+
+function minpool(opts) {
+	var fW = opts.filterWidth || opts.filterSize;
+	var fH = opts.filterHeight || opts.filterSize;
+	var sX = opts.strideX || opts.stride || fW;
+	var sY = opts.strideY || opts.stride || fH;
+	var pX = opts.padX || opts.pad || 0;
+	var pY = opts.padY || opts.pad || 0;
+	return new MinPoolNetwork(fW, fH, sX, sY, pX, pY);
+}
+
+
+// Mean (i.e. average) pooling ------------------------------------------------
+
+
+function MeanPoolNetwork(fW, fH, sX, sY, pX, pY) {
+	Network.call(this);
+	this.filterWidth = fW;
+	this.filterHeight = fH;
+	this.strideX = sX;
+	this.strideY = sY;
+	this.padX = pX;
+	this.padY = pY;
+	this.name = 'meanpool';
+}
+MeanPoolNetwork.prototype = Object.create(Network.prototype);
+
+MeanPoolNetwork.prototype.serializeJSON = function() {
+	return {
+		type: 'meanpool',
+		filterWidth: this.filterWidth,
+		filterHeight: this.filterHeight,
+		strideX: this.strideX,
+		strideY: this.strideY,
+		padX: this.padX,
+		padY: this.padY
+	};
+}
+Network.deserializers.meanpool = function(json) {
+	return new MeanPoolNetwork(json.filterWidth, json.filterHeight,
+		json.strideX, json.strideY, json.padX, json.padY);
+};
+
+var meanpooling = ad.newFunction({
+	OutputType: Tensor,
+	name: 'meanpooling',
+	forward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		inImg = ad.value(inImg);
+
+		var D = inImg.dims[0];
+		var iH = inImg.dims[1];
+		var iW = inImg.dims[2];
+		var oH = Math.floor((iH + 2*pY - fH) / sY + 1);
+		var oW = Math.floor((iW + 2*pX - fW) / sX + 1);
+		var fN = fW*fH;
+
+		var outImg = new Tensor([D, oH, oW]);
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					// Compute average within filter window
+					var avgval = 0;
+					for (var fy = 0; fy < fH; fy++) {
+						var iy = y + fy;
+						for (var fx = 0; fx < fW; fx++) {
+							var ix = x + fx;
+							if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+								var idx = ix+iW*(iy+iH*d);
+								var v = inImg.data[idx];
+								avgval += v;
+							}
+						}
+					}
+					// Set ouput pixel
+					var outidx = ax+oW*(ay+oH*d);
+					outImg.data[outidx] = avgval / fN;
+				}
+			}
+		}
+
+		return outImg;
+	},
+	backward: function(inImg, fW, fH, sX, sY, pX, pY) {
+		// No need for an 'isLifted' check: there's only one possible lifted
+		//    argument (inImg), so if we are backprop'ing, it must be lifted.
+		var D = inImg.x.dims[0];
+		var iH = inImg.x.dims[1];
+		var iW = inImg.x.dims[2];
+		var oH = this.x.dims[1];
+		var oW = this.x.dims[2];
+		var fN = fW*fH;
+
+		for (var d = 0; d < D; d++) {
+			var x = -pX;
+			var y = -pY;
+			for (var ay = 0; ay < oH; y += sY, ay++) {
+				x = -pX;
+				for (var ax = 0; ax < oW; x += sX, ax++) {
+					var outidx = ax+oW*(ay+oH*d);
+					var outDx = this.dx.data[outidx] / fN;
+					for (var fy = 0; fy < fH; fy++) {
+						var iy = y + fy;
+						for (var fx = 0; fx < fW; fx++) {
+							var ix = x + fx;
+							if (iy>=0 && iy<iH && ix>=0 && ix<iW) {
+								var inidx = ix+iW*(iy+iH*d);
+								inImg.dx.data[inidx] += outDx;
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	getParents: function(inImg, fW, fH, sX, sY, pX, pY) {
+		return ad.isLifted(inImg) ? [inImg] : [];
+	}
+});
+
+
+MeanPoolNetwork.prototype.eval = function(img) {
+	return meanpooling(img, this.filterWidth, this.filterHeight, this.strideX,
+		this.strideY, this.padX, this.padY);
+};
+
+
+function meanpool(opts) {
+	var fW = opts.filterWidth || opts.filterSize;
+	var fH = opts.filterHeight || opts.filterSize;
+	var sX = opts.strideX || opts.stride || fW;
+	var sY = opts.strideY || opts.stride || fH;
+	var pX = opts.padX || opts.pad || 0;
+	var pY = opts.padY || opts.pad || 0;
+	return new MeanPoolNetwork(fW, fH, sX, sY, pX, pY);
+}
+
+
+// Module exports -------------------------------------------------------------
+
+
+module.exports = {
+	maxpool: maxpool,
+	minpool: minpool,
+	meanpool: meanpool
+};
+
+
+
+
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9}],17:[function(require,module,exports){
+'use strict';
+
+var assert = require('assert');
+var utils = require('./utils.js');
+
+
+// Can swap out different backing stores
+function TypedArrayBackingStore(ArrayType) {
+	return {
+		new: function(n) { return new ArrayType(n); },
+		set: function(tgt, src, offset) {
+			tgt.set(src, offset);
+		}
+	}
+}
+var ArrayBackingStore = {
+	ArrayType: Array,
+	new: function(n) {
+		var a = new Array(n);
+		while (n--) { a[n] = 0; }
+		return a;
+	},
+	set: function(tgt, src, offset) {;
+		for (var i = 0; i < src.length; i++) {
+			tgt[i+offset] = src[i];
+		}
+	}
+};
+
+
+// The actual backing store we're using
+var BackingStore = TypedArrayBackingStore(Float64Array);
+
+
+function Tensor(dims) {
+	this.dims = dims;
+	var size = 1;
+	var n = dims.length;
+	while (n--) size *= dims[n];
+	this.length = size;
+	this.data = BackingStore.new(size);
+}
+
+Object.defineProperties(Tensor.prototype, {
+	rank: { get: function() { return this.dims.length; } },
+});
+
+Tensor.prototype.reshape = function(dims) {
+	var size = 1;
+	var n = dims.length;
+	while (n--) size *= dims[n];
+	assert(size === this.length, 'Tensor reshape invalid size');
+	this.dims = dims;
+  return this;
+}
+
+Tensor.prototype.fill = function(val) {
+	// TODO: Use TypedArray.fill, when it is more broadly supported
+	var n = this.length;
+	while (n--) this.data[n] = val;
+	return this;
+};
+
+Tensor.prototype.zero = function() {
+	return this.fill(0);
+};
+
+// Adapted from:
+//    https://github.com/karpathy/convnetjs/blob/master/src/convnet_vol.js
+Tensor.prototype.fillRandom = function() {
+	var scale = 1/this.length;
+	var n = this.length;
+	while (n--) this.data[n] = utils.gaussianSample(0, scale);
+	return this;
+}
+
+Tensor.prototype.copy = function(other, offset) {
+	offset = offset || 0;
+	BackingStore.set(this.data, other.data, offset);
+	return this;
+};
+
+Tensor.prototype.clone = function() {
+	var copy = new Tensor(this.dims);
+	return copy.copy(this);
+};
+
+// Make this Tensor refer to the same backing store as other
+Tensor.prototype.refCopy = function(other) {
+	this.dims = other.dims;
+	this.length = other.length;
+	this.data = other.data;
+	return this;
+}
+
+// Create a new Tensor object that refers to the same backing store
+//    as this Tensor object
+Tensor.prototype.refClone = function() {
+	var t = Object.create(Tensor.prototype);
+	return t.refCopy(this);
+};
+
+
+// These are slow; don't use them inside any hot loops (i.e. they're good for
+//    debgugging/translating data to/from other formats, and not much else)
+Tensor.prototype.get = function(coords) {
+	var idx = 0;
+	var n = this.dims.length;
+	for (var i = 0; i < n; i++) {
+		idx = idx * this.dims[i] + coords[i];
+	}
+	return this.data[idx];
+};
+Tensor.prototype.set = function(coords, val) {
+	var idx = 0;
+	var n = this.dims.length;
+	for (var i = 0; i < n; i++) {
+		idx = idx * this.dims[i] + coords[i];
+	}
+	this.data[idx] = val;
+};
+function toArrayRec(tensor, coords) {
+	if (coords.length === tensor.rank) {
+		return tensor.get(coords);
+	} else {
+		var dim = coords.length;
+		var arr = [];
+		for (var i = 0; i < tensor.dims[dim]; i++) {
+			arr.push(toArrayRec(tensor, coords.concat([i])));
+		}
+		return arr;
+	}
+}
+Tensor.prototype.toArray = function() {
+	return toArrayRec(this, []);
+};
+function fromArrayRec(tensor, coords, x) {
+	if (!(x instanceof Array)) {
+		tensor.set(coords, x);
+	} else {
+		var dim = coords.length;
+		for (var i = 0; i < tensor.dims[dim]; i++) {
+			fromArrayRec(tensor, coords.concat([i]), x[i]);
+		}
+	}
+}
+Tensor.prototype.fromArray = function(arr) {
+	fromArrayRec(this, [], arr);
+	return this;
+};
+
+Tensor.prototype.toString = function() {
+	return this.toArray().toString();
+};
+
+
+Tensor.prototype.toFlatArray = function() {
+	return Array.prototype.slice.call(this.data);
+}
+Tensor.prototype.fromFlatArray = function(arr) {
+	BackingStore.set(this.data, arr, 0);
+	return this;
+}
+
+
+
+function addUnaryMethod(name, fncode) {
+	var fneq = new Function([
+		'var n = this.data.length;',
+		'while (n--) {',
+		'	var x = this.data[n];',
+		'	this.data[n] = ' + fncode + ';',
+		'}',
+		'return this;'
+	].join('\n'));
+	Tensor.prototype[name + 'eq'] = fneq;
+	Tensor.prototype[name] = function() {
+		var nt = this.clone();
+		return fneq.call(nt);
+	};
+}
+
+function addBinaryMethod(name, fncode) {
+	var fneqS = new Function('s', [
+		'var n = this.data.length;',
+		'var b = s;',
+		'while (n--) {',
+		'	var a = this.data[n];',
+		'	this.data[n] = ' + fncode + ';',
+		'}',
+		'return this;'
+	].join('\n'));
+	var fneqT = new Function('t', [
+		'var n = this.data.length;',
+		'while (n--) {',
+		'	var a = this.data[n];',
+		'	var b = t.data[n];',
+		'	this.data[n] = ' + fncode + ';',
+		'}',
+		'return this;'
+	].join('\n'));
+
+	var fneq = function(x) {
+		if (x.constructor === Tensor)
+			return fneqT.call(this, x);
+		else
+			return fneqS.call(this, x);
+	}
+	Tensor.prototype[name + 'eq'] = fneq;
+	Tensor.prototype[name] = function(x) {
+		var nt = this.clone();
+		return fneq.call(nt, x);
+	};
+}
+
+function addReduction(name, initcode, fncode) {
+	Tensor.prototype[name+'reduce'] = new Function([
+		'var accum = ' + initcode + ';',
+		'var n = this.data.length;',
+		'while (n--) {',
+		'	var x = this.data[n];',
+		'	accum = ' + fncode + ';',
+		'}',
+		'return accum;'
+	].join('\n'));
+}
+
+
+addUnaryMethod('neg', '-x');
+addUnaryMethod('round', 'Math.round(x)');
+addUnaryMethod('log', 'Math.log(x)');
+addUnaryMethod('exp', 'Math.exp(x)');
+addUnaryMethod('sqrt', 'Math.sqrt(x)');
+addUnaryMethod('abs', 'Math.abs(x)');
+addUnaryMethod('ceil', 'Math.ceil(x)');
+addUnaryMethod('floor', 'Math.floor(x)');
+addUnaryMethod('cos', 'Math.cos(x)');
+addUnaryMethod('sin', 'Math.sin(x)');
+addUnaryMethod('tan', 'Math.tan(x)');
+addUnaryMethod('acos', 'Math.acos(x)');
+addUnaryMethod('asin', 'Math.asin(x)');
+addUnaryMethod('atan', 'Math.atan(x)');
+addUnaryMethod('cosh', 'Math.cosh(x)');
+addUnaryMethod('sinh', 'Math.sinh(x)');
+addUnaryMethod('tanh', 'Math.tanh(x)');
+addUnaryMethod('acosh', 'Math.acosh(x)');
+addUnaryMethod('asinh', 'Math.asinh(x)');
+addUnaryMethod('atanh', 'Math.atanh(x)');
+addUnaryMethod('sigmoid', '1 / (1 + Math.exp(-x))');
+addUnaryMethod('isFinite', 'isFinite(x)');
+addUnaryMethod('isNaN', 'isNaN(x)');
+addUnaryMethod('invert', '1/x');
+addUnaryMethod('pseudoinvert', 'x === 0 ? 0 : 1/x');
+
+addBinaryMethod('add', 'a + b');
+addBinaryMethod('sub', 'a - b');
+addBinaryMethod('mul', 'a * b');
+addBinaryMethod('div', 'a / b');
+addBinaryMethod('mod', 'a % b');
+addBinaryMethod('min', 'Math.min(a, b)');
+addBinaryMethod('max', 'Math.max(a, b)');
+addBinaryMethod('pow', 'Math.pow(a, b)');
+addBinaryMethod('atan2', 'Math.atan2(a, b)');
+addBinaryMethod('eq', 'a === b');
+addBinaryMethod('neq', 'a !== b');
+addBinaryMethod('gt', 'a > b');
+addBinaryMethod('ge', 'a >= b');
+addBinaryMethod('lt', 'a < b');
+addBinaryMethod('le', 'a <= b');
+
+addReduction('sum', '0', 'accum + x');
+addReduction('min', 'Infinity', 'Math.min(accum, x)');
+addReduction('max', '-Infinity', 'Math.max(accum, x)');
+addReduction('all', 'true', 'accum && (x !== 0)');
+addReduction('any', 'false', 'accum || (x !== 0)');
+
+
+
+Tensor.prototype.softmax = function() {
+	// Find max elem
+	var max = -Infinity;
+	var n = this.data.length;
+	while (n--) {
+		max = Math.max(max, this.data[n]);
+	}
+	var t = new Tensor(this.dims);
+	// Exponentiate, guard against overflow
+	n = this.data.length;
+	var sum = 0;
+	while (n--) {
+		t.data[n] = Math.exp(this.data[n] - max);
+		sum += t.data[n];
+	}
+	// Normalize
+	n = this.data.length;
+	while (n--) {
+		t.data[n] /= sum;
+	}
+	return t;
+};
+
+
+// Do the conservative thing, and return a copy for now.
+Tensor.prototype.transpose = function() {
+  assert.ok(this.rank === 2);
+  var h = this.dims[0];
+  var w = this.dims[1];
+  var y = new Tensor([w, h]);
+  for (var i = 0; i < h; i++) {
+    for (var j = 0; j < w; j++) {
+      y.data[j * h + i] = this.data[i * w + j];
+    }
+  }
+  return y;
+};
+
+Tensor.prototype.diagonal = function() {
+  assert.ok(this.rank === 2);
+  assert.ok(this.dims[1] === 1);
+  var n = this.dims[0];
+  var y = new Tensor([n, n]);
+  for (var i = 0; i < n; i++) {
+    y.data[i * (n + 1)] = this.data[i];
+  }
+  return y;
+};
+
+// Matrix inverse.
+// Ported from numeric.js.
+Tensor.prototype.inverse = function() {
+
+  assert.ok(this.rank === 2);
+  assert.ok(this.dims[0] === this.dims[1]);
+  var n = this.dims[0];
+
+  var Ai, Aj;
+  var Ii, Ij;
+  var i, j, k, x;
+
+  var A = [];
+  for (i = 0; i < n; i++) {
+    Ai = new Float64Array(n);
+    A.push(Ai);
+    for (j = 0; j < n; j++) {
+      Ai[j] = this.data[i * n + j];
+    }
+  }
+
+  // Not using Float64 here as I want the convinience of passing I to
+  // fromArray() which doesn't currently work with Float64Array.
+  var I = [];
+  for (i = 0; i < n; i++) {
+    Ii = new Array(n);
+    I.push(Ii);
+    for (j = 0; j < n; j++) {
+      Ii[j] = i === j ? 1 : 0;
+    }
+  }
+
+  for (j = 0; j < n; ++j) {
+    var i0 = -1;
+    var v0 = -1;
+    for (i = j; i !== n; ++i) {
+      k = Math.abs(A[i][j]);
+      if (k > v0) {
+        i0 = i; v0 = k;
+      }
+    }
+    Aj = A[i0];
+    A[i0] = A[j];
+    A[j] = Aj;
+    Ij = I[i0];
+    I[i0] = I[j];
+    I[j] = Ij;
+    x = Aj[j];
+    for (k = j; k !== n; ++k) {
+      Aj[k] /= x;
+    }
+    for (k = n - 1; k !== -1; --k) {
+      Ij[k] /= x;
+    }
+    for (i = n - 1; i !== -1; --i) {
+      if (i !== j) {
+        Ai = A[i];
+        Ii = I[i];
+        x = Ai[j];
+        for (k = j + 1; k !== n; ++k) {
+          Ai[k] -= Aj[k] * x;
+        }
+        for (k = n - 1; k > 0; --k) {
+          Ii[k] -= Ij[k] * x;
+          --k;
+          Ii[k] -= Ij[k] * x;
+        }
+        if (k === 0) {
+          Ii[0] -= Ij[0] * x;
+        }
+      }
+    }
+  }
+  return new Tensor([n, n]).fromArray(I);
+};
+
+// Determinant.
+// Ported from numeric.js.
+Tensor.prototype.determinant = function() {
+  assert.ok(this.rank === 2);
+  assert.ok(this.dims[0] === this.dims[1]);
+  var n = this.dims[0];
+  var ret = 1;
+
+  var i, j, k;
+  var Aj, Ai, alpha, temp, k1, k2, k3;
+
+  var A = [];
+  for (i = 0; i < n; i++) {
+    Ai = new Float64Array(n);
+    A.push(Ai);
+    for (j = 0; j < n; j++) {
+      Ai[j] = this.data[i * n + j];
+    }
+  }
+
+  for (j = 0; j < n - 1; j++) {
+    k = j;
+    for (i = j + 1; i < n; i++) {
+      if (Math.abs(A[i][j]) > Math.abs(A[k][j])) {
+        k = i;
+      }
+    }
+    if (k !== j) {
+      temp = A[k];
+      A[k] = A[j];
+      A[j] = temp;
+      ret *= -1;
+    }
+    Aj = A[j];
+    for (i = j + 1; i < n; i++) {
+      Ai = A[i];
+      alpha = Ai[j] / Aj[j];
+      for (k = j + 1; k < n - 1; k += 2) {
+        k1 = k + 1;
+        Ai[k] -= Aj[k] * alpha;
+        Ai[k1] -= Aj[k1] * alpha;
+      }
+      if (k !== n) {
+        Ai[k] -= Aj[k] * alpha;
+      }
+    }
+    if (Aj[j] === 0) {
+      return 0;
+    }
+    ret *= Aj[j];
+  }
+  return ret * A[j][j];
+};
+
+Tensor.prototype.dot = function(t) {
+  var a = this, b = t;
+
+  if (a.rank !== 2 || b.rank !== 2) {
+    throw new Error('Inputs to dot should have rank = 2.');
+  }
+  if (a.dims[1] !== b.dims[0]) {
+    throw new Error('Dimension mismatch in dot. Inputs have dimension ' + a.dims + ' and ' + b.dims + '.');
+  }
+
+  var l = a.dims[1];
+  var h = a.dims[0], w = b.dims[1];
+  var y = new Tensor([h, w]);
+
+  for (var r = 0; r < h; r++) {
+    for (var c = 0; c < w; c++) {
+      var z = 0;
+      for (var i = 0; i < l; i++) {
+        z += a.data[r * l + i] * b.data[w * i + c];
+      }
+      y.data[r * w + c] = z;
+    }
+  }
+  return y;
+};
+
+Tensor.prototype.cholesky = function() {
+  var a = this;
+  assert.ok((a.rank === 2) && (a.dims[0] === a.dims[1]),
+            'cholesky is only defined for square matrices.');
+
+  // If a isn't positive-definite then the result will silently
+  // include NaNs, no warning is given.
+
+  var s;
+  var n = a.dims[0];
+  var L = new Tensor([n, n]);
+
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j <= i; j++) {
+      s = 0;
+      for (var k = 0; k < j; k++) {
+        s += L.data[i * n + k] * L.data[j * n + k];
+      }
+      L.data[i * n + j] = (i === j) ?
+          Math.sqrt(a.data[i * n + i] - s) :
+          1 / L.data[j * n + j] * (a.data[i * n + j] - s);
+    }
+  }
+
+  return L;
+};
+
+
+module.exports = Tensor;
+
+
+
+
+},{"./utils.js":18,"assert":24}],18:[function(require,module,exports){
+'use strict';
+
+function gaussianSample(mu, sigma) {
+	var u, v, x, y, q;
+	do {
+		u = 1 - Math.random();
+		v = 1.7156 * (Math.random() - 0.5);
+		x = u - 0.449871;
+		y = Math.abs(v) + 0.386595;
+		q = x * x + y * (0.196 * y - 0.25472 * x);
+	} while (q >= 0.27597 && (q > 0.27846 || v * v > -4 * u * u * Math.log(u)));
+	return mu + sigma * v / u;
+}
+
+function deduplicate(list) {
+	var retlist = [];
+	for (var i = 0; i < list.length; i++) {
+		var item = list[i];
+		if (retlist.indexOf(item) === -1) {
+			retlist.push(item);
+		}
+	}
+	return retlist;
+}
+
+// source objects from which to copy are in arguments[1] - arguments[arguments.length-1]
+function mergeObjects(tgt) {
+	tgt = tgt || {};
+	for (var i = 1; i < arguments.length; i++) {
+		var src = arguments[i];
+		for (var prop in src) {
+			tgt[prop] = src[prop];
+		}
+	}
+	return tgt;
+}
+
+function cloneObject(obj) {
+	return mergeObjects({}, obj);
+}
+
+function mergeDefaults(obj, defaults) {
+	return mergeObjects({}, defaults, obj);
+}
+
+
+module.exports = {
+	gaussianSample: gaussianSample,
+	deduplicate: deduplicate,
+	mergeObjects: mergeObjects,
+	cloneObject: cloneObject,
+	mergeDefaults: mergeDefaults
+};
+
+
+
+},{}],19:[function(require,module,exports){
+// This really should be post-CPS header code in a webppl package (or part of webppl core?)
+// As a quick-n-dirty workaround, I'm just having this in its own module, and then I globally
+//    install the exported functions later.
+
+function makeFuture(s, k, a, fn) {
+	// Create the global futures list, if it does not exist
+	if (s.__futures === undefined)
+		s.__futures = [];
+	// The future just calls the original function with the address
+	//    from its creation point.
+	var future = function(s, k) {
+		return fn(s, k, a);
+	}
+	future.depth = a.split('_').length;
+	// Append this future to the global list
+	s.__futures = s.__futures.concat([future]);
+	return k(s);
+}
+
+function makeFinishAllFutures(selectionFn) {
+	function finishAllFutures(s, k, a) {
+		if (s.__futures !== undefined && s.__futures.length > 0) {
+			return selectionFn(s, function(s, fut) {
+				var i = s.__futures.indexOf(fut);
+				s.__futures = s.__futures.slice();
+				s.__futures.splice(i, 1);
+				return fut(s, function(s) {
+					return finishAllFutures(s, k, a.concat('_f0'));
+				});
+			}, a.concat('_f1'));
+		} else return k(s);
+	}
+	return finishAllFutures;
+}
+
+var policies = {
+	// Immediate policy: Just run the future immediately.
+	immediate: {
+		future: function(s, k, a, fn) {
+			return fn(s, k, a);
+		},
+		finishAllFutures: function(s, k) {
+			return k(s);
+		}
+	},
+	// LIFO policy: Store futures in a list, and pull
+	//    futures off of that list in LIFO order.
+	// (This is similar to the immediate policy, except that it
+	//    traverses children last-to-first instead of first-to-last)
+	lifo: {
+		future: makeFuture,
+		finishAllFutures: makeFinishAllFutures(function(s, k, a) {
+			return k(s, s.__futures[s.__futures.length - 1]);
+		})
+	},
+	// FIFO policy: Store futures in a list, and pull
+	//    futures off of that list in FIFO order.
+	fifo: {
+		future: makeFuture,
+		finishAllFutures: makeFinishAllFutures(function(s, k, a) {
+			return k(s, s.__futures[0]);
+		})
+	},
+	// Uniform-from-all policy: Store futures in a list, and pull
+	//    futures out of that list in random order.
+	uniformFromAll: {
+		future: makeFuture,
+		finishAllFutures: makeFinishAllFutures(function(s, k, a) {
+			return sample(s, function(s, i) {
+				return k(s, s.__futures[i]);
+			}, a.concat('_f2'), randomIntegerERP, [s.__futures.length]);
+		})
+	},
+	// Uniform-from-deepest policy: Select futures in random order, but only
+	//    choose from those futures with the longest address.
+	// (This is somewhat sensitive to how the program is written, i.e. `superfluous'
+	//    mutual recursion might make something look longer than it really should be)
+	uniformFromDeepest: {
+		future: makeFuture,
+		finishAllFutures: makeFinishAllFutures(function(s, k, a) {
+			var maxDepth = 0;
+			for (var i = 0; i < s.__futures.length; i++) {
+				maxDepth = Math.max(s.__futures[i].depth, maxDepth);
+			}
+			var deepest = s.__futures.filter(function(f) { return f.depth === maxDepth; });
+			return sample(s, function(s, i) {
+				return k(s, deepest[i]);
+			}, a.concat('_f3'), randomIntegerERP, [deepest.length]);
+		})
+	},
+	// Depth-weighted policy: select randomly from all futures with probability
+	//    proportional to address length
+	depthWeighted: {
+		future: makeFuture,
+		finishAllFutures: makeFinishAllFutures(function(s, k, a) {
+			var minDepth = Infinity;
+			for (var i = 0; i < s.__futures.length; i++) {
+				minDepth = Math.min(minDepth, s.__futures[i].depth);
+			}
+			var unnormProbs = s.__futures.map(function(f) {
+				var normDepth = f.depth - minDepth + 1;
+				// return normDepth;
+				// return normDepth*normDepth;
+				// return Math.pow(2, normDepth);
+				return Math.exp(normDepth);
+			});
+			// console.log(unnormProbs);
+			return sample(s, function(s, i) {
+				return k(s, s.__futures[i]);
+			}, a.concat('_f4'), discreteERP, unnormProbs);
+		})
+	}
+}
+
+// Switch what type of future is being used
+function setFuturePolicy(s, k, a, policyname) {
+	if (!policies.hasOwnProperty(policyname)) {
+		throw new Error('no future policy named ' + policyname)
+	}
+	s.__futurePolicy = policies[policyname];
+	return k(s);
+}
+
+// We default to the immediate policy
+function ensurePolicy(s) {
+	if (s.__futurePolicy === undefined) {
+		s.__futurePolicy = policies.immediate;
+	}
+}
+
+function future(s, k, a, fn) {
+	ensurePolicy(s);
+	return s.__futurePolicy.future(s, k, a, fn);
+}
+
+function finishAllFutures(s, k, a) {
+	ensurePolicy(s);
+	return s.__futurePolicy.finishAllFutures(s, k, a);
+}
+
+
+module.exports = {
+	setFuturePolicy: setFuturePolicy,
+	future: future,
+	finishAllFutures: finishAllFutures
+};
+
+
+},{}],20:[function(require,module,exports){
 // Require some stuff here
-var fs = require('fs');
-var THREE = require('three');
+var fs = require('fs')
+var THREE = require('three')
+var utils = require('./utils')
+var futures = require('./futures')
+
+// Globally install the futures functions (hack to make them work like WebPPL header code)
+for (var prop in futures) {
+	window[prop] = futures[prop];
+}
+
+// App state
+var target = {
+	image: undefined,
+	baseline: undefined,
+	tensor: undefined,
+	startPos: undefined,
+	startDir: undefined,
+};
+var targetNeedsRefresh = true;
+
 
 // Initialize the start pos, start dir for the initial target image
 var coordfile = "0.5 0.9166\n0 -1";
 var coordlines = coordfile.split('\n');
 var coords = coordlines[0].split(' ');
 var dir = coordlines[1].split(' ');
-var startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-var startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+
 
 // Load the wppl source code
-var wpplCode = "var utils = require.call(null, __ROOT + '/../utils.js');\nvar lsysUtils = require.call(null, __ROOT + '/utils.js');\nvar nnarch = require.call(null, __ROOT + '/nnarch');\nvar _ = require.call(null, 'underscore');\nvar THREE = require.call(null, 'three');\nvar ad = require.call(null, 'adnn/ad');\n\n\n// ----------------------------------------------------------------------------\n// Globals / constants\n\n// var targetDB = utils.new(lsysUtils.TargetImageDatabase, __ROOT + '/targets/datasets/orig');\nvar targetDB = utils.new(lsysUtils.TargetImageDatabase, __ROOT + '/targets/datasets/electric_letters');\nvar targetSize = targetDB.targetSize();\nlsysUtils.rendering.init(__ROOT, targetSize.width, targetSize.height);\n\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Save rendered image so far to imagesSoFar directory\nvar saveImageSoFar = false;\n\n// Render update\nvar renderUpdate = function(geo) {\n\tlsysUtils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tlsysUtils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = lsysUtils.rendering.copyImgFromRenderContext();\n\t// Save?\n\tif (saveImageSoFar) {\n\t\tglobalStore.genImg.saveToFile(__ROOT + '/imagesSoFar/img_' + (globalStore.geo.n).toString() + '.png');\n\t}\n};\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\n// var availableFuturesWeight = 25;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = lsysUtils.normalizedSimilarity(globalStore.genImg, globalStore.target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\t// ////\n\t// // More available futures factor\n\t// var fprime = simf + boundsfx + boundsfy;\n\t// var f = fprime + availableFuturesWeight*availableFuturesScore();\n\t// ////\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// Set up ERPs (either normal or neurally-guided)\n\tvar makeSampler = function(erpName, bounds) {\n\t\tvar erp = global[erpName + 'ERP'];\n\t\tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t\tvar n = bounds.length;\n\t\treturn !neurallyGuided ? \n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\treturn sample(erp, params);\n\t\t}\n\t\t:\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\tvar localState = arguments[n];\n\t\t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t\t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t\t\tverp.importanceERP.setParams(vparams);\n\t\t\treturn sample(verp, params);\n\t\t};\n\t};\n\tvar makeMixtureSampler = function(erpName, nComps, bounds) {\n\t\tvar erp = global[erpName + 'ERP'];\n\t\tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t\tvar n = bounds.length;\n\t\t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t\t//    this will help keep things regularized...)\n\t\tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t\tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t\tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t\treturn !neurallyGuided ?\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\treturn sample(erp, params);\n\t\t}\n\t\t:\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\tvar localState = arguments[n];\n\t\t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t\t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t\t\tvar ws = vparams.slice(0, nComps);\n\t\t\tvar ps = group(vparams.slice(nComps), n);\n\t\t\tverp.importanceERP.setParams([ws, ps]);\n\t\t\treturn sample(verp, params);\n\t\t}\n\t};\n\t// var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\tvar _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\tvar _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(lsysUtils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('targetDB', targetDB);\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\t// If target is not fixed, then marginalize over targets\n\t\tif (globalStore.target === undefined) {\n\t\t\tglobalStore.target = targetDB.getTargetByIndex(randomInteger(targetDB.numTargets()));\n\t\t}\n\t\tvar w = globalStore.target.image.width;\n\t\tvar h = globalStore.target.image.height;\n\t\tglobalStore.genImg = utils.new(lsysUtils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(globalStore.target.startPos);\n\t\tvar starting_dir = globalStore.target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n// Return stuff that external tasks will need\n\n\nvar rets = {\n\tgenerate: makeProgram(false),\n\tgenerateGuided: makeProgram(true),\n\ttargetDB: targetDB,\n\tviewport: viewport,\n\tglobalStore: globalStore,\n\tenvironment: env\n};\nrets;\n\n\n\n\n\n";
+// TODO: also load vinesLeafFlower version.
+var wpplCode = "// ----------------------------------------------------------------------------\n// Globals / constants\n\n// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Render update\nvar renderUpdate = function(geo) {\n\tutils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tutils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = utils.rendering.copyImgFromRenderContext();\n};\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = utils.normalizedSimilarity(globalStore.genImg, target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// Set up ERPs (either normal or neurally-guided)\n\tvar makeSampler = function(erpName, bounds) {\n\t\tvar erp = global[erpName + 'ERP'];\n\t\tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t\tvar n = bounds.length;\n\t\treturn !neurallyGuided ? \n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\treturn sample(erp, params);\n\t\t}\n\t\t:\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\tvar localState = arguments[n];\n\t\t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t\t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t\t\tverp.importanceERP.setParams(vparams);\n\t\t\treturn sample(verp, params);\n\t\t};\n\t};\n\tvar makeMixtureSampler = function(erpName, nComps, bounds) {\n\t\tvar erp = global[erpName + 'ERP'];\n\t\tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t\tvar n = bounds.length;\n\t\t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t\t//    this will help keep things regularized...)\n\t\tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t\tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t\tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t\treturn !neurallyGuided ?\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\treturn sample(erp, params);\n\t\t}\n\t\t:\n\t\tfunction() {\n\t\t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t\t\tvar localState = arguments[n];\n\t\t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t\t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t\t\tvar ws = vparams.slice(0, nComps);\n\t\t\tvar ps = group(vparams.slice(nComps), n);\n\t\t\tverp.importanceERP.setParams([ws, ps]);\n\t\t\treturn sample(verp, params);\n\t\t}\n\t};\n\t// var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\tvar _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\tvar _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\tvar w = target.image.width;\n\t\tvar h = target.image.height;\n\t\tglobalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(target.startPos);\n\t\tvar starting_dir = target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n// Return stuff that external tasks will need\n\n\nvar rets = {\n\tgenerate: makeProgram(false),\n\tgenerateGuided: makeProgram(true),\n\tviewport: viewport,\n\tglobalStore: globalStore,\n\tenvironment: env\n};\nrets;\n\n\n\n\n\n";
+
+
+// Prepare target for inference (downsample image, compute baseline, etc.)
+function prepareTarget() {
+	if (targetNeedsRefresh) {
+		// Downsample sketch image
+		var sketchCanvas = $('#sketchInput')[0];
+		var targetImage = $('#loResTarget')[0];
+		var ctx = targetImage.getContext('2d');
+		ctx.drawImage(sketchCanvas,
+			0, 0, sketchCanvas.width, sketchCanvas.height,
+			0, 0, targetImage.width, targetImage.height);
+		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
+
+		// Compute new baseline
+		target.baseline = utils.baselineSimilarity(target.image);
+
+		// Compute tensor version of image
+		target.tensor = target.image.toTensor();
+
+		targetNeedsRefresh = false;
+	}
+}
+
 
 // This will hold the compiled webppl function that is ready to go
 var prepared = undefined;
 
-$(window).load(function () {
+function compile() {
+
+}
+
+function generate() {
+	// Compile code, if that hasn't been done yet
+	if (prepared === undefined) {
+		compile();
+	}
+
+	// Downsample the target image from the sketch canvas, etc.
+	prepareTarget();
+
+	// Run program!
+}
+
+$(window).load(function(){
 	// Put the initial target image into the sketch canvas
 	var sketchCanvas = $('#sketchInput')[0];
 	var ctx = sketchCanvas.getContext("2d");
 	var image = $('#initialTarget')[0];
 	ctx.drawImage(image, 0, 0);
 
+	// Register which canvas the rendering system should use during inference
+	utils.rendering.init($('#loResResult')[0]);
+
 	// Set up event listener for generation
-	$('#generate').click(function () {
-		console.log('yo!');
-	});
+	$('#generate').click(generate);
+
+	// Test
+	prepareTarget();
 });
 
-},{"fs":2,"three":3}],2:[function(require,module,exports){
 
-},{}],3:[function(require,module,exports){
+},{"./futures":19,"./utils":23,"fs":25,"three":27}],21:[function(require,module,exports){
+// NOTE: throughout this file, the context 'gl' is passed to functions.
+//    However, we assume that these functions only ever see one such
+//    context during the lifetime of the program.
+
+var THREE = require('three');
+var fs = require('fs');
+
+var render = {};
+
+var client = (typeof(window) === 'undefined') ? 'node' : 'browser';
+
+var ROOT = '';
+render.setRootDir = function(dir) { ROOT = dir; }
+
+
+// ----------------------------------------------------------------------------
+// Loading / compiling shaders
+
+
+function compileShader ( gl, type, src ){
+   var shader;
+   if (type == "fragment")
+           shader = gl.createShader ( gl.FRAGMENT_SHADER );
+   else if (type == "vertex")
+           shader = gl.createShader(gl.VERTEX_SHADER);
+   else return null;
+   gl.shaderSource(shader, src);
+   gl.compileShader(shader);
+   if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) == 0) {
+      console.log(type + "\n" + gl.getShaderInfoLog(shader));
+      throw 'shader compile error';
+  }
+   return shader;
+}
+
+function compileProgram(gl, vertSrc, fragSrc) {
+	var prog  = gl.createProgram();
+	var vertShader = compileShader(gl, 'vertex', vertSrc);
+	var fragShader = compileShader(gl, 'fragment', fragSrc);
+	gl.attachShader(prog, vertShader);
+	gl.attachShader(prog, fragShader);
+	gl.linkProgram(prog);
+	return prog;
+}
+
+// TODO: Make this work with browserify...
+function loadTextFile(filename, callback) {
+	var text = fs.readFileSync(filename).toString();
+	callback(text); 
+}
+
+function loadShaderProgram(gl, vertFilename, fragFilename, callback) {
+	loadTextFile(vertFilename, function(vertSrc) {
+		loadTextFile(fragFilename, function(fragSrc) {
+			var prog = compileProgram(gl, vertSrc, fragSrc);
+			callback(prog);
+		});
+	})
+}
+
+function loadImage(filename, callback) {
+	var img = new Image;
+	img.addEventListener('load', function() {
+		callback(img);
+	});
+	img.src = filename;
+}
+
+function loadTexture(gl, filename, callback) {
+	loadImage(filename, function(img) {
+		var texture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		callback(texture);
+	});
+}
+
+var ASSETS = {};
+
+function registerAssets(obj) {
+	for (var prop in obj) {
+		ASSETS[prop] = obj[prop];
+	}
+}
+
+render.loadAssets = function(gl, callback) {
+
+	function FULLPATH(path) {
+		return ROOT + '/assets/' + path;
+	}
+
+	function loadAssets(asslist, cb) {
+		var asset = asslist[0];
+		var remainingAssets = asslist.slice(1);
+		var k;	// continuation
+		if (remainingAssets.length === 0) {
+			k = callback;
+		} else {
+			k = function() {
+				loadAssets(remainingAssets, callback);
+			};
+		}
+		if (asset.type === 'shaderProgram') {
+			loadShaderProgram(gl, FULLPATH(asset.vertShader), FULLPATH(asset.fragShader), function(prog) {
+				asset.prog = prog;
+				k();
+			});
+		} else if (asset.type === 'texture') {
+			loadTexture(gl, FULLPATH(asset.image), function(texture) {
+				asset.tex = texture;
+				k();
+			});
+		} else {
+			throw 'Unrecognized asset type ' + asset.type;
+		}
+	}
+
+	var asslist = [];
+	for (var prop in ASSETS) asslist.push(ASSETS[prop]);
+	loadAssets(asslist, callback);
+}
+
+
+// ----------------------------------------------------------------------------
+// Mesh class
+
+
+function Mesh() {
+	this.vertices = [];
+	this.uvs = [];
+	this.normals = [];
+	this.indices = [];
+
+	this.buffers = undefined;
+};
+
+Mesh.prototype.copy = (function() {
+	function copyvecs(dst, src) {
+		var n = src.length;
+		for (var i = 0; i < n; i++) {
+			dst.push(src[i].clone());
+		}
+	};
+	return function(other) {
+		this.indices = other.indices.slice();
+		copyvecs(this.vertices, other.vertices);
+		copyvecs(this.uvs, other.uvs);
+		copyvecs(this.normals, other.normals);
+		return this;
+	};
+})();
+
+Mesh.prototype.clone = function() {
+	return new Mesh().copy(this);
+};
+
+Mesh.prototype.transform = function(mat) {
+	var n = this.vertices.length;
+	for (var i = 0; i < n; i++) {
+		this.vertices[i].applyMatrix4(mat);
+	}
+	if (this.normals.length > 0) {
+		var nmat = new THREE.Matrix4().getInverse(mat).transpose();
+		for (var i = 0; i < n; i++) {
+			this.normals[i].applyMatrix4(nmat);
+		}
+	}
+	return this;
+};
+
+Mesh.prototype.append = function(other) {
+	var n = this.vertices.length;
+	this.vertices = this.vertices.concat(other.vertices);
+	this.uvs = this.uvs.concat(other.uvs);
+	this.normals = this.normals.concat(other.normals);
+	var m = other.indices.length;
+	for (var i = 0; i < m; i++) {
+		this.indices.push(other.indices[i] + n);
+	}
+	return this;
+};
+
+Mesh.prototype.recomputeBuffers = function(gl) {
+
+	this.destroyBuffers(gl);	// get rid of existing buffers (if any)
+	this.buffers = {};
+
+	var n = this.vertices.length;
+
+	var vertices = new Float32Array(n*3);
+	for (var i = 0; i < n; i++) {
+		var v = this.vertices[i];
+		vertices[3*i] = v.x;
+		vertices[3*i+1] = v.y;
+		vertices[3*i+2] = v.z;
+	}
+	this.buffers.vertices = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.vertices);
+	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+	if (this.uvs.length > 0) {
+		var uvs = new Float32Array(n*2);
+		for (var i = 0; i < n; i++) {
+			var uv = this.uvs[i];
+			uvs[2*i] = uv.x;
+			uvs[2*i+1] = uv.y;
+		}
+		this.buffers.uvs = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.uvs);
+		gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.STATIC_DRAW);
+	}
+
+	if (this.normals.length > 0) {
+		var normals = new Float32Array(n*3);
+		for (var i = 0; i < n; i++) {
+			var nrm = this.normals[i];
+			normals[3*i] = nrm.x;
+			normals[3*i+1] = nrm.y;
+			normals[3*i+2] = nrm.z;
+		}
+		this.buffers.normals = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.normals);
+		gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+	}
+
+	indices = new Uint16Array(this.indices);
+	this.buffers.indices = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+	this.buffers.numIndices = indices.length;
+};
+
+Mesh.prototype.destroyBuffers = function(gl) {
+	if (this.buffers !== undefined) {
+		gl.deleteBuffer(this.buffers.vertices);
+		if (this.buffers.uvs)
+			gl.deleteBuffer(this.buffers.uvs);
+		if (this.buffers.normals)
+			gl.deleteBuffer(this.buffers.normals);
+		gl.deleteBuffer(this.buffers.indices);
+		this.buffers = undefined;
+	}
+};
+
+Mesh.prototype.draw = function(gl, prog) {
+	if (this.buffers === undefined) {
+		this.recomputeBuffers(gl);
+	}
+
+	var vertLoc = gl.getAttribLocation(prog, "inPos");
+	var uvLoc = gl.getAttribLocation(prog, "inUV");
+	var normLoc = gl.getAttribLocation(prog, "inNorm");
+
+	gl.enableVertexAttribArray(vertLoc);
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.vertices);
+	gl.vertexAttribPointer(vertLoc, 3, gl.FLOAT, false, 0, 0);
+
+	if (uvLoc !== -1) {
+		gl.enableVertexAttribArray(uvLoc);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.uvs);
+		gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
+	}
+
+	if (normLoc !== -1) {
+		gl.enableVertexAttribArray(normLoc);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.normals);
+		gl.vertexAttribPointer(normLoc, 3, gl.FLOAT, false, 0, 0);
+	}
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.indices);
+	gl.drawElements(gl.TRIANGLES, this.buffers.numIndices, gl.UNSIGNED_SHORT, 0);
+
+	gl.disableVertexAttribArray(vertLoc);
+	if (uvLoc !== -1) {
+		gl.disableVertexAttribArray(uvLoc);
+	}
+	if (normLoc !== -1) {
+		gl.disableVertexAttribArray(normLoc);
+	}
+};
+
+
+// ----------------------------------------------------------------------------
+// Rendering lo-res proxy geometry via canvas
+
+
+function renderBranch(context, branch) {
+	context.beginPath();
+	context.lineWidth = branch.width;
+	context.moveTo(branch.start.x, branch.start.y);
+	context.lineTo(branch.end.x, branch.end.y);
+	context.stroke();
+}
+
+function renderLeaf(context, leaf) {
+	context.save();
+	context.translate(leaf.center.x, leaf.center.y);
+	context.rotate(leaf.angle);
+	context.scale(leaf.length, leaf.width);
+	context.beginPath();
+	context.arc(0, 0, 0.5, 0, Math.PI*2);
+	context.fill();
+	context.restore();
+}
+
+function renderFlower(context, flower) {
+	context.beginPath();
+	context.arc(flower.center.x, flower.center.y, flower.radius, 0, Math.PI*2);
+	context.fill();
+}
+
+function renderGeo(context, geo) {
+	switch (geo.type) {
+		case 'branch':
+			renderBranch(context, geo.branch); break;
+		case 'leaf':
+			renderLeaf(context, geo.leaf); break;
+		case 'flower':
+			renderFlower(context, geo.flower); break;
+		default:
+			throw 'Unrecognized geo type';
+	}
+}
+
+render.renderCanvasProxy = function(canvas, viewport, geo, isIncremental, fillBackground) {
+	fillBackground = fillBackground === undefined ? true : fillBackground;
+
+	var context = canvas.getContext('2d');
+	context.save();
+
+	if (fillBackground) {
+		context.rect(0, 0, canvas.width, canvas.height);
+		context.fillStyle = 'white';
+		context.fill();
+	}
+
+	// Draw
+	context.strokeStyle = 'black';
+	context.fillStyle = 'black';
+	context.lineCap = 'round';
+	var vwidth = viewport.xmax - viewport.xmin;
+	var vheight = viewport.ymax - viewport.ymin;
+	context.scale(canvas.width/vwidth, canvas.height/vheight);
+	context.translate(-viewport.xmin, -viewport.ymin);
+	if (isIncremental) {
+		renderGeo(context, geo);
+	} else {
+		for (var g = geo; g; g = g.next) {
+			renderGeo(context, g);
+		}
+	}
+
+	context.restore();
+}
+
+
+// ----------------------------------------------------------------------------
+// Nice-looking, hi-res OpenGL rendering
+
+
+function makeBezierUniform(n) {
+	function bezierEval(p0, p1, p2, p3, t) {
+		var p01 = p0.clone().lerp(p1, t);
+		var p12 = p1.clone().lerp(p2, t);
+		var p23 = p2.clone().lerp(p3, t);
+		var p012 = p01.lerp(p12, t);
+		var p123 = p12.lerp(p23, t);
+		var p = p012.clone().lerp(p123, t);
+		var tan = p123.sub(p012).normalize();
+		return {
+			point: p,
+			tangent: tan
+		}
+	}
+	return function bezierUniform(cps) {
+		var p0 = cps[0];
+		var p1 = cps[1];
+		var p2 = cps[2];
+		var p3 = cps[3];
+		var points = [];
+		for (var i = 0; i < n; i++) {
+			var t = i / (n-1);
+			points.push(bezierEval(p0, p1, p2, p3, t));
+		}
+		return points;
+	}
+}
+
+// Return smooth control points for a given set of interpolation
+//    points. 
+// Assumes that points are all equally spaced 1 unit apart in knot space
+function controlPoints(p0, p1, prev, next, tangentScale) {
+	var m0, m1;
+	if (prev === undefined) {
+		m0 = p1.clone().sub(p0);
+	} else {
+		m0 = p1.clone().sub(p0).divideScalar(2).add(
+			p0.clone().sub(prev).divideScalar(2)
+		);
+	}
+	if (next === undefined) {
+		m1 = p1.clone().sub(p0);
+	} else {
+		m1 = p1.clone().sub(p0).divideScalar(2).add(
+			next.clone().sub(p1).divideScalar(2)
+		);
+	}
+	// Scale tangents(?)
+	if (tangentScale !== undefined) {
+		m0.multiplyScalar(tangentScale);
+		m1.multiplyScalar(tangentScale);
+	}
+	// Turn tangents into middle two bezier control points
+	var p01 = p0.clone().add(m0.divideScalar(3));
+	var p11 = p1.clone().sub(m1.divideScalar(3));
+	return [p0, p01, p11, p1];
+}
+
+function vine(cps, curveFn, width0, width1, v0, v1, depth) {
+
+	var mesh = new Mesh();
+
+	var points = curveFn(cps);
+	var n = points.length;
+
+	var accumlengths = [0];
+	for (var i = 1; i < n; i++) {
+		var p = points[i].point;
+		var p0 = points[i-1].point;
+		var l = p.clone().sub(p0).length();
+		var l0 = accumlengths[i-1];
+		accumlengths.push(l+l0);
+	}
+	var totallength = accumlengths[n-1];
+	var ts = [];
+	for (var i = 0; i < n; i++) {
+		var t = accumlengths[i] / totallength;
+		ts.push(t);
+		var v = (1-t)*v0 + t*v1;
+		mesh.uvs.push(new THREE.Vector2(0, v));
+		mesh.uvs.push(new THREE.Vector2(1, v));
+	}
+
+	for (var i = 0; i < n; i++) {
+		var b = points[i];
+		var center = b.point;
+		var tangent = b.tangent;
+		var normal = new THREE.Vector2(-tangent.y, tangent.x);
+		var t = ts[i];
+		var width = (1-t)*width0 + t*width1;
+		var w2 = 0.5*width;
+		normal.multiplyScalar(w2);
+		var p0 = center.clone().sub(normal);
+		var p1 = center.clone().add(normal);
+		mesh.vertices.push(new THREE.Vector3(p0.x, p0.y, depth));
+		mesh.vertices.push(new THREE.Vector3(p1.x, p1.y, depth));
+		mesh.normals.push(new THREE.Vector3(-normal.x, -normal.y, 0));
+		mesh.normals.push(new THREE.Vector3(normal.x, normal.y, 0));
+	}
+
+	var idx = 0;
+	for (var i = 0; i < n-1; i++) {
+		mesh.indices.push(idx); mesh.indices.push(idx+1); mesh.indices.push(idx+2);
+		mesh.indices.push(idx+1); mesh.indices.push(idx+3); mesh.indices.push(idx+2);
+		idx += 2;
+	}
+
+	return mesh;
+}
+
+// Just a unit quad, centered at the origin, with UVs from [-1, 1];
+function billboard() {
+	var mesh = new Mesh();
+	mesh.vertices.push(new THREE.Vector3(-.5, -.5, 0));
+	mesh.vertices.push(new THREE.Vector3(.5, -.5, 0));
+	mesh.vertices.push(new THREE.Vector3(.5, .5, 0));
+	mesh.vertices.push(new THREE.Vector3(-.5, .5, 0));
+	mesh.uvs.push(new THREE.Vector2(0, 0));
+	mesh.uvs.push(new THREE.Vector2(1, 0));
+	mesh.uvs.push(new THREE.Vector2(1, 1));
+	mesh.uvs.push(new THREE.Vector2(0, 1));
+	mesh.indices.push(0); mesh.indices.push(1); mesh.indices.push(2);
+	mesh.indices.push(2); mesh.indices.push(3); mesh.indices.push(0);
+	return mesh;
+}
+
+// Convert geo linked list to a top-down point tree for branches, plus
+//    arrays for billboard geo
+function geo2objdata(geo) {
+	// Kept in correspondence to map one to the other
+	var branchListNodes = [];
+	var branchTreeNodes = [];
+
+	var billboards = [];
+
+	// Preliminary sweep to compute range of depths
+	var nbranches = 0;
+	for (var g = geo; g; g = g.next) {
+		if (g.type === 'branch') {
+			g.depthLayer = nbranches;
+			nbranches++;
+		}
+	}
+	// Padded
+	minDepth = -2;
+	maxDepth = nbranches+ 2;
+
+	// Map depth values to -1 (far), 1 (near)
+	function mapdepth(d) {
+		var t = (d - minDepth) / (maxDepth - minDepth);
+		// t += 1e-5*Math.random();
+		return 2*t - 1;
+	}
+
+	// Sweep through geo once to create tree nodes, leaves, etc.
+	for (var g = geo; g; g = g.next) {
+		if (g.type === 'branch') {
+			// Store the tree root specially (since it doesn't map to anything
+			//    in the linked list)
+			if (g.parent === undefined) {
+				branchTreeNodes.root = {
+					// Needed b/c JSON loses prototype information
+					point: new THREE.Vector2().copy(g.branch.start),
+					width: g.branch.width,
+					children: [],
+					depth: undefined
+				};
+			}
+			branchTreeNodes.push({
+				point: new THREE.Vector2().copy(g.branch.end),
+				width: g.branch.width,
+				children: [],
+				depth: mapdepth(g.depthLayer)
+			});
+			branchListNodes.push(g);
+		} else if (g.type === 'leaf') {
+			billboards.push({
+				type: 'leaf',
+				center: g.leaf.center,
+				scale: g.leaf.length,
+				angle: g.leaf.angle,
+				depth: mapdepth(g.parent.depthLayer - 1.5)
+			});
+		} else if (g.type === 'flower') {
+			billboards.push({
+				type: 'flower',
+				center: g.flower.center,
+				scale: g.flower.radius*2,
+				angle: g.flower.angle,
+				depth: mapdepth(g.parent.depthLayer + 2)
+			});
+		} else {
+			throw 'Unrecognized geo type ' + g.type;
+		}
+	}
+
+	// Sweep through tree nodes a second time to create child pointers
+	for (var i = 0; i < branchListNodes.length; i++) {
+		var branch = branchListNodes[i];
+		var treeNode = branchTreeNodes[i];
+		var parentBranch = branch.parent;
+		var parentIdx = parentBranch === undefined ? 'root' : branchListNodes.indexOf(parentBranch);
+		var parentNode = branchTreeNodes[parentIdx];
+		parentNode.children.push(treeNode);
+	}
+
+	return {
+		vineTree: branchTreeNodes.root,
+		billboards: billboards.length > 0 ? billboards: undefined
+	};
+}
+
+// Given a point tree, build a vine mesh for that tree
+var bezFn = makeBezierUniform(20);
+function vineTreeMesh(tree, tangentScale) {
+	function buildVineTreeMesh(meshes, tree, v, prevs) {
+		// Handle this point
+		if (prevs.length > 0) {
+			var p0 = prevs[prevs.length - 1].point;
+			var p1 = tree.point;
+			var prev = prevs.length === 2 ? prevs[0].point : undefined;
+			var next = undefined;
+			if (tree.children.length === 1) {
+				next = tree.children[0].point;
+			} else if (tree.children.length === 2) {
+				// next = tree.children[0].point.clone().add(
+				// 	tree.children[1].point
+				// ).multiplyScalar(0.5);
+				// next = tree.children[0].point;
+				next = tree.children[1].point;
+			}
+			var cps = controlPoints(p0, p1, prev, next, tangentScale);
+			var w0 = prevs[prevs.length - 1].width;
+			var w1 = tree.width;
+			var vineMesh = vine(cps, bezFn, w0, w1, v, v+1, tree.depth);
+			meshes.push({mesh: vineMesh, depth: tree.depth});
+		}
+
+		// Recurse
+		prevs.push(tree);
+		if (prevs.length > 2) {
+			prevs.shift();
+		}
+		for (var i = 0; i < tree.children.length; i++) {
+			buildVineTreeMesh(meshes, tree.children[i], v + 1, prevs.slice());
+		}
+	}
+
+	var meshes = [];
+	buildVineTreeMesh(meshes, tree, 0, []);
+	// Sort by depth, then append into one mesh.
+	// This way, the mesh will render in back-to-front order
+	meshes.sort(function(a, b) {
+		if (a.depth < b.depth)
+			return -1;
+		else if (a.depth > b.depth)
+			return 1;
+		else
+			return 0;
+	});
+	var mesh = new Mesh();
+	for (var i = 0; i < meshes.length; i++) {
+		mesh.append(meshes[i].mesh);
+	}
+	return mesh;
+}
+
+function viewportMatrix(v) {
+	return new THREE.Matrix4().makeOrthographic(v.xmin, v.xmax, v.ymax, v.ymin, v.zmin, v.zmax);
+}
+
+var vineAssets = {
+	vineProgram: {
+		type: 'shaderProgram',
+		vertShader: 'shaders/vine_bumpy.vert',
+		fragShader: 'shaders/vine_textured.frag',
+		prog: undefined
+	},
+	billboardProgram: {
+		type: 'shaderProgram',
+		vertShader: 'shaders/billboard.vert',
+		fragShader: 'shaders/billboard.frag',
+		prog: undefined
+	},
+	leaf: {
+		type: 'texture',
+		image: 'textures/leaf.png',
+		tex: undefined
+	},
+	flower: {
+		type: 'texture',
+		image: 'textures/flower.png',
+		tex: undefined
+	}
+};
+registerAssets(vineAssets);
+var bboard = billboard();
+render.renderGLDetailed = function(gl, viewport, geo) {
+
+	if (!geo) return;
+
+	gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+	var viewport3d = {
+		xmin: viewport.xmin,
+		xmax: viewport.xmax,
+		ymin: viewport.ymin,
+		ymax: viewport.ymax,
+		zmin: -1,
+		zmax: 1
+	}
+	var viewportMat = viewportMatrix(viewport3d);
+
+	var objdata = geo2objdata(geo);
+
+	var vmesh = vineTreeMesh(objdata.vineTree);
+	var vineProg = vineAssets.vineProgram.prog;
+	gl.useProgram(vineProg);
+	gl.uniformMatrix4fv(gl.getUniformLocation(vineProg, 'viewMat'), false, viewportMat.elements);
+	vmesh.draw(gl, vineProg);
+	vmesh.destroyBuffers(gl);
+
+	if (objdata.billboards) {
+		// Sort all billboard objects (leaves and flowers) by depth,
+		//    storing which texture to use for each
+		objdata.billboards.sort(function(a, b) {
+			if (a.depth > b.depth) return 1;
+			if (a.depth < b.depth) return -1;
+			return 0;
+		});
+		// Then render them back-to-front
+		var bbProg = vineAssets.billboardProgram.prog;
+		gl.useProgram(bbProg);
+		var matLoc = gl.getUniformLocation(bbProg, 'viewMat');
+		gl.activeTexture(gl.TEXTURE0);
+		gl.uniform1i(gl.getUniformLocation(bbProg, "tex"), 0);
+		var scalemat = new THREE.Matrix4();
+		var rotmat = new THREE.Matrix4();
+		var transmat = new THREE.Matrix4();
+		var fullmat = new THREE.Matrix4();
+		for (var i = 0; i < objdata.billboards.length; i++) {
+			var obj = objdata.billboards[i];
+			gl.bindTexture(gl.TEXTURE_2D, vineAssets[obj.type].tex);
+			scalemat.makeScale(obj.scale, obj.scale, 1);
+			rotmat.makeRotationZ(obj.angle);
+			var c = obj.center;
+			transmat.makeTranslation(c.x, c.y, obj.depth);
+			fullmat.copy(viewportMat).multiply(transmat).multiply(rotmat).multiply(scalemat);
+			gl.uniformMatrix4fv(matLoc, false, fullmat.elements);
+			bboard.draw(gl, bbProg);
+		}
+	}
+
+	gl.flush();
+}
+
+
+
+var lightningAssets = {
+	lightningProgram: {
+		type: 'shaderProgram',
+		vertShader: 'shaders/lightning.vert',
+		fragShader: 'shaders/lightning.frag',
+		prog: undefined
+	},
+	lightning: {
+		type: 'texture',
+		image: 'textures/lightning.png',
+		tex: undefined
+	}
+};
+registerAssets(lightningAssets);
+render.renderGLLightning = function(gl, viewport, geo) {
+
+	if (!geo) return;
+
+	gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+	var viewport3d = {
+		xmin: viewport.xmin,
+		xmax: viewport.xmax,
+		ymin: viewport.ymin,
+		ymax: viewport.ymax,
+		zmin: -1,
+		zmax: 1
+	}
+	var viewportMat = viewportMatrix(viewport3d);
+
+	var objdata = geo2objdata(geo);
+	var vmesh = vineTreeMesh(objdata.vineTree, 0.1);
+
+	var lProg = lightningAssets.lightningProgram.prog;
+	gl.useProgram(lProg);
+	gl.uniformMatrix4fv(gl.getUniformLocation(lProg, 'viewMat'), false, viewportMat.elements);
+	gl.activeTexture(gl.TEXTURE0);
+	gl.uniform1i(gl.getUniformLocation(lProg, "tex"), 0);
+	gl.bindTexture(gl.TEXTURE_2D, lightningAssets.lightning.tex);
+
+	vmesh.draw(gl, lProg);
+	vmesh.destroyBuffers(gl);
+
+	gl.flush();
+}
+
+
+// ----------------------------------------------------------------------------
+// Pixel drawing
+
+var drawPixelsAssets = {
+	shaderProgram: {
+		type: 'shaderProgram',
+		vertShader: 'shaders/drawPixels.vert',
+		fragShader: 'shaders/drawPixels.frag',
+		prog: undefined
+	}
+};
+registerAssets(drawPixelsAssets);
+var vertBufferCache = {};
+var colorBufferCache = {};
+// Pixels come in as bytes
+render.drawPixels = function(gl, pixelData) {
+	var drawPixelsProg = drawPixelsAssets.shaderProgram.prog;
+	gl.useProgram(drawPixelsProg);
+
+	var h = gl.drawingBufferHeight;
+	var w = gl.drawingBufferWidth;
+	var size = w + 'x' + h;
+	gl.viewport(0, 0, w, h);
+
+	// Build vertex buffer
+	var vertBuf = vertBufferCache[size];
+	if (vertBuf === undefined) {
+		vertBuf = gl.createBuffer();
+		vertBufferCache[size] = vertBuf;
+
+		var verts = [];
+		for (var y = 0; y < h; y++) {
+			var ty = (y + 0.5) / h;
+			var ny = (1-ty)*-1 + ty*1;
+			for (var x = 0; x < w; x++) {
+				var tx = (x + 0.5) / w;
+				var nx = (1-tx)*-1 + tx*1;
+				verts.push(nx); verts.push(ny);
+			}
+		}
+		verts = new Float32Array(verts);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
+		gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+	}
+
+	// Build color buffer
+	pixelData = new Float32Array(pixelData);	// Shader will do 1/255 division
+	var colorBuf = colorBufferCache[size];
+	if (colorBuf === undefined) {
+		colorBuf = gl.createBuffer();
+		colorBufferCache[size] = colorBuf;
+	}
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
+	gl.bufferData(gl.ARRAY_BUFFER, pixelData, gl.STATIC_DRAW);
+
+	// Bind
+	var vertLoc = gl.getAttribLocation(drawPixelsProg, "inPos");
+	gl.enableVertexAttribArray(vertLoc);
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
+	gl.vertexAttribPointer(vertLoc, 2, gl.FLOAT, false, 0, 0);
+	var colorLoc = gl.getAttribLocation(drawPixelsProg, "inColor");
+	gl.enableVertexAttribArray(colorLoc);
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
+	gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
+
+	// Render
+	gl.drawArrays(gl.POINTS, 0, pixelData.length/4);
+	gl.flush();
+	gl.disableVertexAttribArray(vertLoc);
+	gl.disableVertexAttribArray(colorLoc);
+}
+
+
+// ----------------------------------------------------------------------------
+
+module.exports = render
+
+
+
+
+},{"fs":25,"three":27}],22:[function(require,module,exports){
+var nn = require('adnn/nn');
+var Tensor = require('adnn/tensor');
+
+// Horizontal and vertical filters
+var SOBEL_X_FILTER = [[[[-1, 0, 1],
+                      [-2, 0, 2],
+                      [-1, 0, 1]]]]; 
+
+var SOBEL_Y_FILTER = [[[[1, 2, 1],
+                      [0, 0, 0],
+                      [-1, -2, -1]]]];  
+
+var x_filter = new Tensor([1, 1, 3, 3]);
+var y_filter = new Tensor([1, 1, 3, 3]);
+var biases = new Tensor([1]);
+x_filter.fromArray(SOBEL_X_FILTER);
+y_filter.fromArray(SOBEL_Y_FILTER);
+biases.fromArray([0]);
+
+// Stride: 1
+// Biases: none
+// Pad: 1
+function sobel(img) {
+	var grad_x = nn.convolve(img, x_filter, biases, 1, 1, 1, 1);
+	var grad_y = nn.convolve(img, y_filter, biases, 1, 1, 1, 1);
+
+	// Compute magnitude
+	var grad = new Tensor([grad_x.dims[0], grad_x.dims[1], grad_x.dims[2]]);
+
+	var numEntries = grad_x.dims[1]*grad_x.dims[2];
+
+	for (var i = 0; i < numEntries; i++) {
+		grad.data[i] = Math.sqrt(grad_x.data[i]*grad_x.data[i] + grad_y.data[i]*grad_y.data[i]);
+	}
+
+	return grad;
+}
+
+module.exports = {
+	sobel: sobel, 
+};
+},{"adnn/nn":7,"adnn/tensor":17}],23:[function(require,module,exports){
+var fs = require('fs');
+var assert = require('assert');
+var Tensor = require('adnn/tensor');
+var THREE = require('three');
+var Sobel = require('./sobel.js');
+
+
+// Wrapper for the 'new' operator that can be called in webppl code
+function _new(ctor) {
+	var args = Array.prototype.slice.call(arguments, 1);
+	var obj = Object.create(ctor.prototype);
+	ctor.apply(obj, args);
+	return obj;
+}
+
+function getSobel(img) {
+	var sobelImg = img.__sobel;
+	if (img.__sobel === undefined) {
+		img.__sobel = Sobel.sobel(img.toTensor(0, 1));
+		sobelImg = img.__sobel;
+	}
+	return sobelImg;
+}
+
+// ----------------------------------------------------------------------------
+// 2D image class
+
+
+function ImageData2D() {}
+ImageData2D.prototype = {
+	constructor: ImageData2D,
+	loadFromCanvas: function(canvas) {
+		this.imgDataObj = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+		this.data = this.imgDataObj.data;
+		this.width = canvas.width;
+		this.height = canvas.height;
+		return this;
+	},
+	copyToCanvas: function(canvas) {
+		var ctx = canvas.getContext('2d');
+		var imgDataObj = this.imgDataObj;
+		if (imgDataObj === undefined) {
+			imgDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			var n = this.data.length;
+			for (var i = 0; i < n; i++) {
+				imgDataObj.data[i] = this.data[i];
+			}
+		}
+		ctx.putImageData(imgDataObj, 0, 0);
+	},
+	loadFromFramebuffer: function(gl) {
+		var w = gl.drawingBufferWidth;
+		var h = gl.drawingBufferHeight;
+		if (this.width != w || this.height != h) {
+			this.width = w;
+			this.height = h;
+			this.data = new Uint8ClampedArray(w*h*4);
+		}
+		gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
+		return this;
+	},
+	copyToFramebuffer: function(gl) {
+		var render = require('./render.js');
+		render.drawPixels(gl, this.data);
+	},
+	fillWhite: function(w, h) {
+		if (this.width != w || this.height != h) {
+			this.width = w;
+			this.height = h;
+			this.data = new Uint8ClampedArray(w*h*4);
+		}
+		this.data.fill(255)
+		return this;
+	},
+	numSameBinary: function(other) {
+		// assert(this.width === other.width && this.height === other.height,
+		// 	'numSameBinary: image dimensions do not match!');
+ 		if (this.width !== other.width || this.height !== other.height) {
+ 			assert(false, 'numSameBinary: image dimensions do not match (' +
+ 				this.width + 'x' + this.height + ' vs. ' + other.width + 'x' + other.height + ')');
+ 		}
+		var sim = 0;
+		var n = this.data.length | 0;
+		for (var i = 0; i < n; i += 4) {  // stride of 4 for RGBA pixels
+			var eq = (this.data[i] === 255) === (other.data[i] === 255);
+			sim += eq;
+		}
+		return sim;
+	},
+	weightedPercentSameBinary: function (other, sobelImg, flatWeight) {
+		assert(this.width === other.width && this.height === other.height
+			&& this.width === sobelImg.dims[1] && this.height === sobelImg.dims[2],
+			'weightedPercentSameBinary: image dimensions do not match!');
+		var sim = 0;
+		var n = this.data.length | 0;
+		var sumWeights = 0;
+		for (var i = 0; i < n; i += 4) {  // stride of 4 for RGBA pixels
+			var thisEmpty = this.data[i] === 255;
+			var otherEmpty = other.data[i] === 255;
+			var eq = thisEmpty === otherEmpty;
+			var w = otherEmpty ? 1 : flatWeight + (1-flatWeight)*sobelImg.data[i/4];
+			sim += w*eq;
+			sumWeights += w;
+		}
+
+		sim = sim/sumWeights;
+		return sim;
+	},
+	percentSameBinary: function(other) {
+		var sim = this.numSameBinary(other);
+		return sim / (this.height*this.width);
+	},
+	numFilled: function() {
+		var count = 0;
+		var n = this.data.length | 0;
+		for (var i = 0; i < n; i += 4) {
+			count += (this.data[i] !== 255);
+		}
+		return count;
+	},
+	percentFilled: function() {
+		var n = this.numFilled();
+		return n / (this.height*this.width);
+	},
+	binaryBilateralSymmetryScore: function() {
+		var dist = 0;
+		var w = this.width | 0;
+		var h = this.height | 0;
+		var whalf = Math.floor(w / 2) | 0;
+		for (var y = 0; y < h; y++) {
+			for (var x = 0; x < whalf; x++) {
+				var xmirr = w - 1 - x;
+				var i = y*w + x;
+				var imirr = y*w + xmirr;
+				// Stride of 4 for RGBA
+				// var d = Math.abs(this.data[4*i] - this.data[4*imirr]) / 255;
+				var d = (this.data[4*i] === 255) !== (this.data[4*imirr] === 255);
+				dist += d;
+			}
+		}
+		return 1 - dist/(whalf*h);
+	},
+	binaryFilledBilateralSymmetryScore: function() {
+		var dist = 0;
+		var n = 0;
+		var w = this.width;
+		var h = this.height;
+		var whalf = Math.floor(w / 2);
+		for (var y = 0; y < h; y++) {
+			for (var x = 0; x < whalf; x++) {
+				var xmirr = w - 1 - x;
+				var i = y*w + x;
+				var imirr = y*w + xmirr;
+				// Stride of 4 for RGBA
+				var v = this.data[4*i];
+				var vmirr = this.data[4*imirr];
+				if (v !== 255) {
+					n++;
+					dist += vmirr === 255;
+				}
+				if (vmirr !== 255) {
+					n++;
+					dist += v === 255;
+				}
+			}
+		}
+		return 1 - dist/n;
+	},
+	toBinaryByteArray: function() {
+		var numPixels = this.width*this.height;
+		var numBytes = Math.ceil(numPixels/8);
+		var arr = [];
+		for (var i = 0; i < numBytes; i++) {
+			arr.push(0);
+		}
+		for (var i = 0; i < numPixels; i++) {
+			var r = this.data[4*i];
+			var g = this.data[4*i+1];
+			var b = this.data[4*i+2];
+			var bit = (r < 128 && g < 128 && b < 128);
+			var byteIndex = Math.floor(i / 8);
+			var byteRem = i % 8;
+			arr[byteIndex] |= (bit << byteRem);
+		}
+		return new Uint8Array(arr);
+	},
+	fromBinaryByteArray: function(arr, w, h) {
+		this.fillWhite(w, h);
+		var numPixels = w*h;
+		for (var i = 0; i < numPixels; i++) {
+			var byteIndex = Math.floor(i / 8);
+			var byteRem = i % 8;
+			var bit = (arr[byteIndex] >> byteRem) & 1;
+			var pixel = bit === 1 ? 0 : 255;
+			this.data[4*i] = pixel;
+			this.data[4*i+1] = pixel;
+			this.data[4*i+2] = pixel;
+			this.data[4*i+3] = 255;	// full alpha
+		}
+		return this;
+	},
+	// Converts [0, 255] to [lo, hi]
+	toTensor: function(lo, hi) {
+		if (lo === undefined) lo = -1;
+		if (hi === undefined) hi = 1;
+		var x = new Tensor([1, this.height, this.width]);
+		var numPixels = this.width*this.height;
+		for (var i = 0; i < numPixels; i++) {
+			var r = this.data[4*i];
+			var t = r / 255;
+			x.data[i] = (1-t)*lo + t*hi;
+		}
+		return x;
+	},
+	// Converts [lo, hi] to [0, 255]
+	fromTensor: function(x, lo, hi) {
+		if (lo === undefined) lo = -1;
+		if (hi === undefined) hi = 1;
+		var range = hi - lo;
+		var h = x.dims[1];
+		var w = x.dims[2];
+		this.fillWhite(w, h);
+		var numPixels = this.width*this.height;
+		for (var i = 0; i < numPixels; i++) {
+			var t = (x.data[i] - lo) / range;
+			var p = 255 * t;
+			this.data[4*i] = p;
+			this.data[4*i+1] = p;
+			this.data[4*i+2] = p;
+			this.data[4*i+3] = 255;	// full alpha
+		}
+		return this;
+	},
+	//// TEST /////
+	gradNorm: function() {
+		var gradImg = Sobel.sobel(this.toTensor(0, 1));
+		var s = 0;
+		var n = this.width*this.height;
+		for (var i = 0; i < n; i++) {
+			s += gradImg.data[i];
+		}
+		return s / n;
+	}
+};
+
+
+// ----------------------------------------------------------------------------
+// Similarity functions
+
+
+// Similarity function between target image and another image
+function binarySimilarity(img, targetImg) {
+	return img.percentSameBinary(targetImg);
+}
+
+// Gradient (of target) weighted binary similarity
+function makeGradientWeightedSimilarity(edgeMul) {
+	var flatWeight = 1 / edgeMul;
+	return function(img, targetImg) {
+		var sobelTarget = getSobel(targetImg);
+		return img.weightedPercentSameBinary(targetImg, sobelTarget, flatWeight);
+	};
+}
+
+// Sobel similarity
+function sobelSimilarity(img, targetImg) {
+	var sobelTarget = getSobel(targetImg);
+	var sobelImg = Sobel.sobel(img.toTensor());
+	var numEntries = sobelImg.dims[1]*sobelImg.dims[2];
+
+	var d = 0;
+	for (var i = 0; i < numEntries; i++) {
+		d += Math.abs(sobelImg.data[i] - sobelTarget.data[i]);
+	}
+	d /= numEntries;
+
+	// Convert distance to similarity
+	var sim = 1 - d;
+	return sim;
+}
+
+// Linear combination of two similarity measures
+function makeCombinedSimilarity(weight, sim1, sim2) {
+	if (weight == 0) {
+		return sim1;
+	} else if (weight === 1) {
+		return sim2;
+	} else {
+		return function(img, targetImg) {
+			var s1 = sim1(img, targetImg);
+			var s2 = sim2(img, targetImg);
+			return (1 - weight)*s1 + weight*s2;
+		};
+	}
+}
+
+///////////////////////////
+// Which similarity measure should we use?
+// var similarity = binarySimilarity;
+var similarity = makeGradientWeightedSimilarity(1.5);
+// var similarity = sobelSimilarity;
+// var similarity = binarizedSobelSimilarity;
+// var similarity = makeCombinedSimilarity(0.5, binarySimilarity, sobelSimilarity);
+///////////////////////////
+
+
+// Baseline similarity of a blank image to a target image
+function baselineSimilarity(targetImg) {
+	var w = targetImg.width;
+	var h = targetImg.height;
+	var img = new ImageData2D().fillWhite(w, h);
+	return similarity(img, targetImg);
+}
+
+// Similarity normalized against the baseline
+// 'target' is a target object from the TargetImageDatabase
+function normalizedSimilarity(img, target) {
+	var sim = similarity(img, target.image);
+	return (sim - target.baseline) / (1 - target.baseline);
+}
+
+
+// ----------------------------------------------------------------------------
+// Render utilities actually exposed to the program during inference
+
+var render = require('./render.js');
+
+var rendering = {
+	canvas: undefined,
+	init: function(canvas) {
+		this.canvas = canvas;
+	},
+	renderStart: function(geo, viewport) {
+		render.renderCanvasProxy(this.canvas, viewport, geo);
+	},
+	renderIncr: function(geo, viewport) {
+		render.renderCanvasProxy(this.canvas, viewport, geo, true, false);
+	},
+	drawImgToRenderContext: function(img) {
+		img.copyToCanvas(this.canvas);
+	},
+	copyImgFromRenderContext: function() {
+		return new ImageData2D().loadFromCanvas(this.canvas);
+	}
+};
+
+
+// ----------------------------------------------------------------------------
+// Bounds for various geometries
+
+var bboxes = {
+	branch: function(branch) {
+		var bbox = new THREE.Box2();
+		bbox.expandByPoint(branch.start);
+		bbox.expandByPoint(branch.end);
+		return bbox;
+	},
+	leaf: (function() {
+		function pivot(p, sin, cos, c) {
+			return new THREE.Vector2(
+				cos*p.x + sin*p.y + c.x,
+				sin*p.x - cos*p.y + c.y
+			);
+		}
+		// Conservative:
+		// Compute corners of object-space ellipse,
+		//    transform them into world-space, then
+		//    compute the BBox of those points.
+		return function(leaf) {
+			var w2 = leaf.width/2;
+			var l2 = leaf.length/2;
+			var p0 = new THREE.Vector2(-w2, -l2);
+			var p1 = new THREE.Vector2(w2, -l2);
+			var p2 = new THREE.Vector2(-w2, l2);
+			var p3 = new THREE.Vector2(w2, l2);
+			var sin = Math.sin(leaf.angle);
+			var cos = Math.cos(leaf.angle);
+			var center = leaf.center;
+			p0 = pivot(p0, sin, cos, center);
+			p1 = pivot(p0, sin, cos, center);
+			p2 = pivot(p0, sin, cos, center);
+			p3 = pivot(p0, sin, cos, center);
+			var box = new THREE.Box2();
+			box.expandByPoint(p0);
+			box.expandByPoint(p1);
+			box.expandByPoint(p2);
+			box.expandByPoint(p3);
+			return box;
+		}
+	})(),
+	flower: function(flower) {
+		var min = new THREE.Vector2(
+			flower.center.x - flower.radius,
+			flower.center.y - flower.radius
+		);
+		var max = new THREE.Vector2(
+			flower.center.x + flower.radius,
+			flower.center.y + flower.radius
+		);
+		return new THREE.Box2(min, max);
+	}
+};
+
+
+
+// ----------------------------------------------------------------------------
+
+
+module.exports = {
+	new: _new,
+	ImageData2D: ImageData2D,
+	baselineSimilarity: baselineSimilarity,
+	normalizedSimilarity: normalizedSimilarity,
+	rendering: rendering,
+	bboxes: bboxes
+};
+
+
+
+
+
+
+
+},{"./render.js":21,"./sobel.js":22,"adnn/tensor":17,"assert":24,"fs":25,"three":27}],24:[function(require,module,exports){
+// http://wiki.commonjs.org/wiki/Unit_Testing/1.0
+//
+// THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
+//
+// Originally from narwhal.js (http://narwhaljs.org)
+// Copyright (c) 2009 Thomas Robinson <280north.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the 'Software'), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+// ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// when used in node, this will actually load the util module we depend on
+// versus loading the builtin util module as happens otherwise
+// this is a bug in node module loading as far as I am concerned
+var util = require('util/');
+
+var pSlice = Array.prototype.slice;
+var hasOwn = Object.prototype.hasOwnProperty;
+
+// 1. The assert module provides functions that throw
+// AssertionError's when particular conditions are not met. The
+// assert module must conform to the following interface.
+
+var assert = module.exports = ok;
+
+// 2. The AssertionError is defined in assert.
+// new assert.AssertionError({ message: message,
+//                             actual: actual,
+//                             expected: expected })
+
+assert.AssertionError = function AssertionError(options) {
+  this.name = 'AssertionError';
+  this.actual = options.actual;
+  this.expected = options.expected;
+  this.operator = options.operator;
+  if (options.message) {
+    this.message = options.message;
+    this.generatedMessage = false;
+  } else {
+    this.message = getMessage(this);
+    this.generatedMessage = true;
+  }
+  var stackStartFunction = options.stackStartFunction || fail;
+
+  if (Error.captureStackTrace) {
+    Error.captureStackTrace(this, stackStartFunction);
+  }
+  else {
+    // non v8 browsers so we can have a stacktrace
+    var err = new Error();
+    if (err.stack) {
+      var out = err.stack;
+
+      // try to strip useless frames
+      var fn_name = stackStartFunction.name;
+      var idx = out.indexOf('\n' + fn_name);
+      if (idx >= 0) {
+        // once we have located the function frame
+        // we need to strip out everything before it (and its line)
+        var next_line = out.indexOf('\n', idx + 1);
+        out = out.substring(next_line + 1);
+      }
+
+      this.stack = out;
+    }
+  }
+};
+
+// assert.AssertionError instanceof Error
+util.inherits(assert.AssertionError, Error);
+
+function replacer(key, value) {
+  if (util.isUndefined(value)) {
+    return '' + value;
+  }
+  if (util.isNumber(value) && !isFinite(value)) {
+    return value.toString();
+  }
+  if (util.isFunction(value) || util.isRegExp(value)) {
+    return value.toString();
+  }
+  return value;
+}
+
+function truncate(s, n) {
+  if (util.isString(s)) {
+    return s.length < n ? s : s.slice(0, n);
+  } else {
+    return s;
+  }
+}
+
+function getMessage(self) {
+  return truncate(JSON.stringify(self.actual, replacer), 128) + ' ' +
+         self.operator + ' ' +
+         truncate(JSON.stringify(self.expected, replacer), 128);
+}
+
+// At present only the three keys mentioned above are used and
+// understood by the spec. Implementations or sub modules can pass
+// other keys to the AssertionError's constructor - they will be
+// ignored.
+
+// 3. All of the following functions must throw an AssertionError
+// when a corresponding condition is not met, with a message that
+// may be undefined if not provided.  All assertion methods provide
+// both the actual and expected values to the assertion error for
+// display purposes.
+
+function fail(actual, expected, message, operator, stackStartFunction) {
+  throw new assert.AssertionError({
+    message: message,
+    actual: actual,
+    expected: expected,
+    operator: operator,
+    stackStartFunction: stackStartFunction
+  });
+}
+
+// EXTENSION! allows for well behaved errors defined elsewhere.
+assert.fail = fail;
+
+// 4. Pure assertion tests whether a value is truthy, as determined
+// by !!guard.
+// assert.ok(guard, message_opt);
+// This statement is equivalent to assert.equal(true, !!guard,
+// message_opt);. To test strictly for the value true, use
+// assert.strictEqual(true, guard, message_opt);.
+
+function ok(value, message) {
+  if (!value) fail(value, true, message, '==', assert.ok);
+}
+assert.ok = ok;
+
+// 5. The equality assertion tests shallow, coercive equality with
+// ==.
+// assert.equal(actual, expected, message_opt);
+
+assert.equal = function equal(actual, expected, message) {
+  if (actual != expected) fail(actual, expected, message, '==', assert.equal);
+};
+
+// 6. The non-equality assertion tests for whether two objects are not equal
+// with != assert.notEqual(actual, expected, message_opt);
+
+assert.notEqual = function notEqual(actual, expected, message) {
+  if (actual == expected) {
+    fail(actual, expected, message, '!=', assert.notEqual);
+  }
+};
+
+// 7. The equivalence assertion tests a deep equality relation.
+// assert.deepEqual(actual, expected, message_opt);
+
+assert.deepEqual = function deepEqual(actual, expected, message) {
+  if (!_deepEqual(actual, expected)) {
+    fail(actual, expected, message, 'deepEqual', assert.deepEqual);
+  }
+};
+
+function _deepEqual(actual, expected) {
+  // 7.1. All identical values are equivalent, as determined by ===.
+  if (actual === expected) {
+    return true;
+
+  } else if (util.isBuffer(actual) && util.isBuffer(expected)) {
+    if (actual.length != expected.length) return false;
+
+    for (var i = 0; i < actual.length; i++) {
+      if (actual[i] !== expected[i]) return false;
+    }
+
+    return true;
+
+  // 7.2. If the expected value is a Date object, the actual value is
+  // equivalent if it is also a Date object that refers to the same time.
+  } else if (util.isDate(actual) && util.isDate(expected)) {
+    return actual.getTime() === expected.getTime();
+
+  // 7.3 If the expected value is a RegExp object, the actual value is
+  // equivalent if it is also a RegExp object with the same source and
+  // properties (`global`, `multiline`, `lastIndex`, `ignoreCase`).
+  } else if (util.isRegExp(actual) && util.isRegExp(expected)) {
+    return actual.source === expected.source &&
+           actual.global === expected.global &&
+           actual.multiline === expected.multiline &&
+           actual.lastIndex === expected.lastIndex &&
+           actual.ignoreCase === expected.ignoreCase;
+
+  // 7.4. Other pairs that do not both pass typeof value == 'object',
+  // equivalence is determined by ==.
+  } else if (!util.isObject(actual) && !util.isObject(expected)) {
+    return actual == expected;
+
+  // 7.5 For all other Object pairs, including Array objects, equivalence is
+  // determined by having the same number of owned properties (as verified
+  // with Object.prototype.hasOwnProperty.call), the same set of keys
+  // (although not necessarily the same order), equivalent values for every
+  // corresponding key, and an identical 'prototype' property. Note: this
+  // accounts for both named and indexed properties on Arrays.
+  } else {
+    return objEquiv(actual, expected);
+  }
+}
+
+function isArguments(object) {
+  return Object.prototype.toString.call(object) == '[object Arguments]';
+}
+
+function objEquiv(a, b) {
+  if (util.isNullOrUndefined(a) || util.isNullOrUndefined(b))
+    return false;
+  // an identical 'prototype' property.
+  if (a.prototype !== b.prototype) return false;
+  // if one is a primitive, the other must be same
+  if (util.isPrimitive(a) || util.isPrimitive(b)) {
+    return a === b;
+  }
+  var aIsArgs = isArguments(a),
+      bIsArgs = isArguments(b);
+  if ((aIsArgs && !bIsArgs) || (!aIsArgs && bIsArgs))
+    return false;
+  if (aIsArgs) {
+    a = pSlice.call(a);
+    b = pSlice.call(b);
+    return _deepEqual(a, b);
+  }
+  var ka = objectKeys(a),
+      kb = objectKeys(b),
+      key, i;
+  // having the same number of owned properties (keys incorporates
+  // hasOwnProperty)
+  if (ka.length != kb.length)
+    return false;
+  //the same set of keys (although not necessarily the same order),
+  ka.sort();
+  kb.sort();
+  //~~~cheap key test
+  for (i = ka.length - 1; i >= 0; i--) {
+    if (ka[i] != kb[i])
+      return false;
+  }
+  //equivalent values for every corresponding key, and
+  //~~~possibly expensive deep test
+  for (i = ka.length - 1; i >= 0; i--) {
+    key = ka[i];
+    if (!_deepEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+// 8. The non-equivalence assertion tests for any deep inequality.
+// assert.notDeepEqual(actual, expected, message_opt);
+
+assert.notDeepEqual = function notDeepEqual(actual, expected, message) {
+  if (_deepEqual(actual, expected)) {
+    fail(actual, expected, message, 'notDeepEqual', assert.notDeepEqual);
+  }
+};
+
+// 9. The strict equality assertion tests strict equality, as determined by ===.
+// assert.strictEqual(actual, expected, message_opt);
+
+assert.strictEqual = function strictEqual(actual, expected, message) {
+  if (actual !== expected) {
+    fail(actual, expected, message, '===', assert.strictEqual);
+  }
+};
+
+// 10. The strict non-equality assertion tests for strict inequality, as
+// determined by !==.  assert.notStrictEqual(actual, expected, message_opt);
+
+assert.notStrictEqual = function notStrictEqual(actual, expected, message) {
+  if (actual === expected) {
+    fail(actual, expected, message, '!==', assert.notStrictEqual);
+  }
+};
+
+function expectedException(actual, expected) {
+  if (!actual || !expected) {
+    return false;
+  }
+
+  if (Object.prototype.toString.call(expected) == '[object RegExp]') {
+    return expected.test(actual);
+  } else if (actual instanceof expected) {
+    return true;
+  } else if (expected.call({}, actual) === true) {
+    return true;
+  }
+
+  return false;
+}
+
+function _throws(shouldThrow, block, expected, message) {
+  var actual;
+
+  if (util.isString(expected)) {
+    message = expected;
+    expected = null;
+  }
+
+  try {
+    block();
+  } catch (e) {
+    actual = e;
+  }
+
+  message = (expected && expected.name ? ' (' + expected.name + ').' : '.') +
+            (message ? ' ' + message : '.');
+
+  if (shouldThrow && !actual) {
+    fail(actual, expected, 'Missing expected exception' + message);
+  }
+
+  if (!shouldThrow && expectedException(actual, expected)) {
+    fail(actual, expected, 'Got unwanted exception' + message);
+  }
+
+  if ((shouldThrow && actual && expected &&
+      !expectedException(actual, expected)) || (!shouldThrow && actual)) {
+    throw actual;
+  }
+}
+
+// 11. Expected to throw an error:
+// assert.throws(block, Error_opt, message_opt);
+
+assert.throws = function(block, /*optional*/error, /*optional*/message) {
+  _throws.apply(this, [true].concat(pSlice.call(arguments)));
+};
+
+// EXTENSION! This is annoying to write outside this module.
+assert.doesNotThrow = function(block, /*optional*/message) {
+  _throws.apply(this, [false].concat(pSlice.call(arguments)));
+};
+
+assert.ifError = function(err) { if (err) {throw err;}};
+
+var objectKeys = Object.keys || function (obj) {
+  var keys = [];
+  for (var key in obj) {
+    if (hasOwn.call(obj, key)) keys.push(key);
+  }
+  return keys;
+};
+
+},{"util/":30}],25:[function(require,module,exports){
+
+},{}],26:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],27:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -42331,4 +47499,626 @@ $(window).load(function () {
 
 })));
 
-},{}]},{},[1]);
+},{}],28:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],29:[function(require,module,exports){
+module.exports = function isBuffer(arg) {
+  return arg && typeof arg === 'object'
+    && typeof arg.copy === 'function'
+    && typeof arg.fill === 'function'
+    && typeof arg.readUInt8 === 'function';
+}
+},{}],30:[function(require,module,exports){
+(function (process,global){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+var formatRegExp = /%[sdj%]/g;
+exports.format = function(f) {
+  if (!isString(f)) {
+    var objects = [];
+    for (var i = 0; i < arguments.length; i++) {
+      objects.push(inspect(arguments[i]));
+    }
+    return objects.join(' ');
+  }
+
+  var i = 1;
+  var args = arguments;
+  var len = args.length;
+  var str = String(f).replace(formatRegExp, function(x) {
+    if (x === '%%') return '%';
+    if (i >= len) return x;
+    switch (x) {
+      case '%s': return String(args[i++]);
+      case '%d': return Number(args[i++]);
+      case '%j':
+        try {
+          return JSON.stringify(args[i++]);
+        } catch (_) {
+          return '[Circular]';
+        }
+      default:
+        return x;
+    }
+  });
+  for (var x = args[i]; i < len; x = args[++i]) {
+    if (isNull(x) || !isObject(x)) {
+      str += ' ' + x;
+    } else {
+      str += ' ' + inspect(x);
+    }
+  }
+  return str;
+};
+
+
+// Mark that a method should not be used.
+// Returns a modified function which warns once by default.
+// If --no-deprecation is set, then it is a no-op.
+exports.deprecate = function(fn, msg) {
+  // Allow for deprecating things in the process of starting up.
+  if (isUndefined(global.process)) {
+    return function() {
+      return exports.deprecate(fn, msg).apply(this, arguments);
+    };
+  }
+
+  if (process.noDeprecation === true) {
+    return fn;
+  }
+
+  var warned = false;
+  function deprecated() {
+    if (!warned) {
+      if (process.throwDeprecation) {
+        throw new Error(msg);
+      } else if (process.traceDeprecation) {
+        console.trace(msg);
+      } else {
+        console.error(msg);
+      }
+      warned = true;
+    }
+    return fn.apply(this, arguments);
+  }
+
+  return deprecated;
+};
+
+
+var debugs = {};
+var debugEnviron;
+exports.debuglog = function(set) {
+  if (isUndefined(debugEnviron))
+    debugEnviron = process.env.NODE_DEBUG || '';
+  set = set.toUpperCase();
+  if (!debugs[set]) {
+    if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
+      var pid = process.pid;
+      debugs[set] = function() {
+        var msg = exports.format.apply(exports, arguments);
+        console.error('%s %d: %s', set, pid, msg);
+      };
+    } else {
+      debugs[set] = function() {};
+    }
+  }
+  return debugs[set];
+};
+
+
+/**
+ * Echos the value of a value. Trys to print the value out
+ * in the best way possible given the different types.
+ *
+ * @param {Object} obj The object to print out.
+ * @param {Object} opts Optional options object that alters the output.
+ */
+/* legacy: obj, showHidden, depth, colors*/
+function inspect(obj, opts) {
+  // default options
+  var ctx = {
+    seen: [],
+    stylize: stylizeNoColor
+  };
+  // legacy...
+  if (arguments.length >= 3) ctx.depth = arguments[2];
+  if (arguments.length >= 4) ctx.colors = arguments[3];
+  if (isBoolean(opts)) {
+    // legacy...
+    ctx.showHidden = opts;
+  } else if (opts) {
+    // got an "options" object
+    exports._extend(ctx, opts);
+  }
+  // set default options
+  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
+  if (isUndefined(ctx.depth)) ctx.depth = 2;
+  if (isUndefined(ctx.colors)) ctx.colors = false;
+  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
+  if (ctx.colors) ctx.stylize = stylizeWithColor;
+  return formatValue(ctx, obj, ctx.depth);
+}
+exports.inspect = inspect;
+
+
+// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
+inspect.colors = {
+  'bold' : [1, 22],
+  'italic' : [3, 23],
+  'underline' : [4, 24],
+  'inverse' : [7, 27],
+  'white' : [37, 39],
+  'grey' : [90, 39],
+  'black' : [30, 39],
+  'blue' : [34, 39],
+  'cyan' : [36, 39],
+  'green' : [32, 39],
+  'magenta' : [35, 39],
+  'red' : [31, 39],
+  'yellow' : [33, 39]
+};
+
+// Don't use 'blue' not visible on cmd.exe
+inspect.styles = {
+  'special': 'cyan',
+  'number': 'yellow',
+  'boolean': 'yellow',
+  'undefined': 'grey',
+  'null': 'bold',
+  'string': 'green',
+  'date': 'magenta',
+  // "name": intentionally not styling
+  'regexp': 'red'
+};
+
+
+function stylizeWithColor(str, styleType) {
+  var style = inspect.styles[styleType];
+
+  if (style) {
+    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
+           '\u001b[' + inspect.colors[style][1] + 'm';
+  } else {
+    return str;
+  }
+}
+
+
+function stylizeNoColor(str, styleType) {
+  return str;
+}
+
+
+function arrayToHash(array) {
+  var hash = {};
+
+  array.forEach(function(val, idx) {
+    hash[val] = true;
+  });
+
+  return hash;
+}
+
+
+function formatValue(ctx, value, recurseTimes) {
+  // Provide a hook for user-specified inspect functions.
+  // Check that value is an object with an inspect function on it
+  if (ctx.customInspect &&
+      value &&
+      isFunction(value.inspect) &&
+      // Filter out the util module, it's inspect function is special
+      value.inspect !== exports.inspect &&
+      // Also filter out any prototype objects using the circular check.
+      !(value.constructor && value.constructor.prototype === value)) {
+    var ret = value.inspect(recurseTimes, ctx);
+    if (!isString(ret)) {
+      ret = formatValue(ctx, ret, recurseTimes);
+    }
+    return ret;
+  }
+
+  // Primitive types cannot have properties
+  var primitive = formatPrimitive(ctx, value);
+  if (primitive) {
+    return primitive;
+  }
+
+  // Look up the keys of the object.
+  var keys = Object.keys(value);
+  var visibleKeys = arrayToHash(keys);
+
+  if (ctx.showHidden) {
+    keys = Object.getOwnPropertyNames(value);
+  }
+
+  // IE doesn't make error fields non-enumerable
+  // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
+  if (isError(value)
+      && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
+    return formatError(value);
+  }
+
+  // Some type of object without properties can be shortcutted.
+  if (keys.length === 0) {
+    if (isFunction(value)) {
+      var name = value.name ? ': ' + value.name : '';
+      return ctx.stylize('[Function' + name + ']', 'special');
+    }
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    }
+    if (isDate(value)) {
+      return ctx.stylize(Date.prototype.toString.call(value), 'date');
+    }
+    if (isError(value)) {
+      return formatError(value);
+    }
+  }
+
+  var base = '', array = false, braces = ['{', '}'];
+
+  // Make Array say that they are Array
+  if (isArray(value)) {
+    array = true;
+    braces = ['[', ']'];
+  }
+
+  // Make functions say that they are functions
+  if (isFunction(value)) {
+    var n = value.name ? ': ' + value.name : '';
+    base = ' [Function' + n + ']';
+  }
+
+  // Make RegExps say that they are RegExps
+  if (isRegExp(value)) {
+    base = ' ' + RegExp.prototype.toString.call(value);
+  }
+
+  // Make dates with properties first say the date
+  if (isDate(value)) {
+    base = ' ' + Date.prototype.toUTCString.call(value);
+  }
+
+  // Make error with message first say the error
+  if (isError(value)) {
+    base = ' ' + formatError(value);
+  }
+
+  if (keys.length === 0 && (!array || value.length == 0)) {
+    return braces[0] + base + braces[1];
+  }
+
+  if (recurseTimes < 0) {
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    } else {
+      return ctx.stylize('[Object]', 'special');
+    }
+  }
+
+  ctx.seen.push(value);
+
+  var output;
+  if (array) {
+    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+  } else {
+    output = keys.map(function(key) {
+      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+    });
+  }
+
+  ctx.seen.pop();
+
+  return reduceToSingleString(output, base, braces);
+}
+
+
+function formatPrimitive(ctx, value) {
+  if (isUndefined(value))
+    return ctx.stylize('undefined', 'undefined');
+  if (isString(value)) {
+    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
+                                             .replace(/'/g, "\\'")
+                                             .replace(/\\"/g, '"') + '\'';
+    return ctx.stylize(simple, 'string');
+  }
+  if (isNumber(value))
+    return ctx.stylize('' + value, 'number');
+  if (isBoolean(value))
+    return ctx.stylize('' + value, 'boolean');
+  // For some reason typeof null is "object", so special case here.
+  if (isNull(value))
+    return ctx.stylize('null', 'null');
+}
+
+
+function formatError(value) {
+  return '[' + Error.prototype.toString.call(value) + ']';
+}
+
+
+function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+  var output = [];
+  for (var i = 0, l = value.length; i < l; ++i) {
+    if (hasOwnProperty(value, String(i))) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          String(i), true));
+    } else {
+      output.push('');
+    }
+  }
+  keys.forEach(function(key) {
+    if (!key.match(/^\d+$/)) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          key, true));
+    }
+  });
+  return output;
+}
+
+
+function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+  var name, str, desc;
+  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  if (desc.get) {
+    if (desc.set) {
+      str = ctx.stylize('[Getter/Setter]', 'special');
+    } else {
+      str = ctx.stylize('[Getter]', 'special');
+    }
+  } else {
+    if (desc.set) {
+      str = ctx.stylize('[Setter]', 'special');
+    }
+  }
+  if (!hasOwnProperty(visibleKeys, key)) {
+    name = '[' + key + ']';
+  }
+  if (!str) {
+    if (ctx.seen.indexOf(desc.value) < 0) {
+      if (isNull(recurseTimes)) {
+        str = formatValue(ctx, desc.value, null);
+      } else {
+        str = formatValue(ctx, desc.value, recurseTimes - 1);
+      }
+      if (str.indexOf('\n') > -1) {
+        if (array) {
+          str = str.split('\n').map(function(line) {
+            return '  ' + line;
+          }).join('\n').substr(2);
+        } else {
+          str = '\n' + str.split('\n').map(function(line) {
+            return '   ' + line;
+          }).join('\n');
+        }
+      }
+    } else {
+      str = ctx.stylize('[Circular]', 'special');
+    }
+  }
+  if (isUndefined(name)) {
+    if (array && key.match(/^\d+$/)) {
+      return str;
+    }
+    name = JSON.stringify('' + key);
+    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
+      name = name.substr(1, name.length - 2);
+      name = ctx.stylize(name, 'name');
+    } else {
+      name = name.replace(/'/g, "\\'")
+                 .replace(/\\"/g, '"')
+                 .replace(/(^"|"$)/g, "'");
+      name = ctx.stylize(name, 'string');
+    }
+  }
+
+  return name + ': ' + str;
+}
+
+
+function reduceToSingleString(output, base, braces) {
+  var numLinesEst = 0;
+  var length = output.reduce(function(prev, cur) {
+    numLinesEst++;
+    if (cur.indexOf('\n') >= 0) numLinesEst++;
+    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
+  }, 0);
+
+  if (length > 60) {
+    return braces[0] +
+           (base === '' ? '' : base + '\n ') +
+           ' ' +
+           output.join(',\n  ') +
+           ' ' +
+           braces[1];
+  }
+
+  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+}
+
+
+// NOTE: These type checking functions intentionally don't use `instanceof`
+// because it is fragile and can be easily faked with `Object.create()`.
+function isArray(ar) {
+  return Array.isArray(ar);
+}
+exports.isArray = isArray;
+
+function isBoolean(arg) {
+  return typeof arg === 'boolean';
+}
+exports.isBoolean = isBoolean;
+
+function isNull(arg) {
+  return arg === null;
+}
+exports.isNull = isNull;
+
+function isNullOrUndefined(arg) {
+  return arg == null;
+}
+exports.isNullOrUndefined = isNullOrUndefined;
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+exports.isNumber = isNumber;
+
+function isString(arg) {
+  return typeof arg === 'string';
+}
+exports.isString = isString;
+
+function isSymbol(arg) {
+  return typeof arg === 'symbol';
+}
+exports.isSymbol = isSymbol;
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+exports.isUndefined = isUndefined;
+
+function isRegExp(re) {
+  return isObject(re) && objectToString(re) === '[object RegExp]';
+}
+exports.isRegExp = isRegExp;
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+exports.isObject = isObject;
+
+function isDate(d) {
+  return isObject(d) && objectToString(d) === '[object Date]';
+}
+exports.isDate = isDate;
+
+function isError(e) {
+  return isObject(e) &&
+      (objectToString(e) === '[object Error]' || e instanceof Error);
+}
+exports.isError = isError;
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+exports.isFunction = isFunction;
+
+function isPrimitive(arg) {
+  return arg === null ||
+         typeof arg === 'boolean' ||
+         typeof arg === 'number' ||
+         typeof arg === 'string' ||
+         typeof arg === 'symbol' ||  // ES6 symbol
+         typeof arg === 'undefined';
+}
+exports.isPrimitive = isPrimitive;
+
+exports.isBuffer = require('./support/isBuffer');
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+              'Oct', 'Nov', 'Dec'];
+
+// 26 Feb 16:19:34
+function timestamp() {
+  var d = new Date();
+  var time = [pad(d.getHours()),
+              pad(d.getMinutes()),
+              pad(d.getSeconds())].join(':');
+  return [d.getDate(), months[d.getMonth()], time].join(' ');
+}
+
+
+// log is just a thin wrapper to console.log that prepends a timestamp
+exports.log = function() {
+  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
+};
+
+
+/**
+ * Inherit the prototype methods from one constructor into another.
+ *
+ * The Function.prototype.inherits from lang.js rewritten as a standalone
+ * function (not on Function.prototype). NOTE: If this file is to be loaded
+ * during bootstrapping this function needs to be rewritten using some native
+ * functions as prototype setup using normal JavaScript does not work as
+ * expected during bootstrapping (see mirror.js in r114903).
+ *
+ * @param {function} ctor Constructor function which needs to inherit the
+ *     prototype.
+ * @param {function} superCtor Constructor function to inherit prototype from.
+ */
+exports.inherits = require('inherits');
+
+exports._extend = function(origin, add) {
+  // Don't do anything if add isn't an object
+  if (!add || !isObject(add)) return origin;
+
+  var keys = Object.keys(add);
+  var i = keys.length;
+  while (i--) {
+    origin[keys[i]] = add[keys[i]];
+  }
+  return origin;
+};
+
+function hasOwnProperty(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./support/isBuffer":29,"_process":26,"inherits":28}]},{},[20]);

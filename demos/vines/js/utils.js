@@ -2,7 +2,16 @@ var fs = require('fs');
 var assert = require('assert');
 var Tensor = require('adnn/tensor');
 var THREE = require('three');
-var Sobel = require('sobel.js');
+var Sobel = require('./sobel.js');
+
+
+// Wrapper for the 'new' operator that can be called in webppl code
+function _new(ctor) {
+	var args = Array.prototype.slice.call(arguments, 1);
+	var obj = Object.create(ctor.prototype);
+	ctor.apply(obj, args);
+	return obj;
+}
 
 function getSobel(img) {
 	var sobelImg = img.__sobel;
@@ -40,9 +49,13 @@ ImageData2D.prototype = {
 		ctx.putImageData(imgDataObj, 0, 0);
 	},
 	loadFromFramebuffer: function(gl) {
-		this.width = gl.drawingBufferWidth;
-		this.height = gl.drawingBufferHeight;
-		this.data = new Uint8Array(this.width*this.height*4);
+		var w = gl.drawingBufferWidth;
+		var h = gl.drawingBufferHeight;
+		if (this.width != w || this.height != h) {
+			this.width = w;
+			this.height = h;
+			this.data = new Uint8ClampedArray(w*h*4);
+		}
 		gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
 		return this;
 	},
@@ -50,33 +63,14 @@ ImageData2D.prototype = {
 		var render = require('./render.js');
 		render.drawPixels(gl, this.data);
 	},
-	loadFromImage: function(img) {
-		// Sort of a hack: draw to canvas, then do loadFromCanvas
-		var canvas = new Canvas(img.width, img.height);
-		var ctx = canvas.getContext('2d');
-		ctx.drawImage(img, 0, 0, img.width, img.height);
-		this.loadFromCanvas(canvas);
-		return this;
-	},
-	loadFromFile: function(filename) {
-		// Again, hack: load it to an Image, then do loadFromImage
-		var filedata = fs.readFileSync(filename);
-		var img = new Canvas.Image;
-		img.src = filedata;
-		return this.loadFromImage(img);
-	},
-	saveToFile: function(filename) {
-		// Again, hack: copy to canvas, then save that to a file.
-		var canv = new Canvas(this.width, this.height);
-		this.copyToCanvas(canv);
-		fs.writeFileSync(filename, canv.toBuffer());
-	},
 	fillWhite: function(w, h) {
-		var canv = new Canvas(w, h);
-		var ctx = canv.getContext('2d');
-		ctx.fillStyle = 'white';
-		ctx.fillRect(0, 0, w, h);
-		return this.loadFromCanvas(canv);
+		if (this.width != w || this.height != h) {
+			this.width = w;
+			this.height = h;
+			this.data = new Uint8ClampedArray(w*h*4);
+		}
+		this.data.fill(255)
+		return this;
 	},
 	numSameBinary: function(other) {
 		// assert(this.width === other.width && this.height === other.height,
@@ -333,9 +327,8 @@ var render = require('./render.js');
 
 var rendering = {
 	canvas: undefined,
-	init: function(rootdir, w, h) {
-		render.setRootDir(rootdir);
-		this.canvas = new Canvas(w, h);
+	init: function(canvas) {
+		this.canvas = canvas;
 	},
 	renderStart: function(geo, viewport) {
 		render.renderCanvasProxy(this.canvas, viewport, geo);
@@ -414,7 +407,9 @@ var bboxes = {
 
 
 module.exports = {
+	new: _new,
 	ImageData2D: ImageData2D,
+	baselineSimilarity: baselineSimilarity,
 	normalizedSimilarity: normalizedSimilarity,
 	rendering: rendering,
 	bboxes: bboxes

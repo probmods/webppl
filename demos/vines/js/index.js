@@ -1,24 +1,61 @@
 // Require some stuff here
 var fs = require('fs')
 var THREE = require('three')
+var utils = require('./utils')
+var futures = require('./futures')
 
-// This is the 'app state' that the webppl program is aware of
-// (The undefined fields get filled in later)
-var appState = {
-	startPos = undefined,
-	startDir = undefined
+// Globally install the futures functions (hack to make them work like WebPPL header code)
+for (var prop in futures) {
+	window[prop] = futures[prop];
+}
+
+// App state
+var target = {
+	image: undefined,
+	baseline: undefined,
+	tensor: undefined,
+	startPos: undefined,
+	startDir: undefined,
 };
+var targetNeedsRefresh = true;
+
 
 // Initialize the start pos, start dir for the initial target image
 var coordfile = fs.readFileSync(__dirname + '/../assets/initialTarget.txt', 'utf8');
 var coordlines = coordfile.split('\n');
 var coords = coordlines[0].split(' ');
 var dir = coordlines[1].split(' ');
-appState.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-appState.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+
 
 // Load the wppl source code
+// TODO: also load vinesLeafFlower version.
 var wpplCode = fs.readFileSync(__dirname + '/../wppl/vines_targetImage.wppl');
+
+
+// Prepare target for inference (downsample image, compute baseline, etc.)
+function prepareTarget() {
+	if (targetNeedsRefresh) {
+		// Downsample sketch image
+		var sketchCanvas = $('#sketchInput')[0];
+		var targetImage = $('#loResTarget')[0];
+		var ctx = targetImage.getContext('2d');
+		ctx.drawImage(sketchCanvas,
+			0, 0, sketchCanvas.width, sketchCanvas.height,
+			0, 0, targetImage.width, targetImage.height);
+		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
+
+		// Compute new baseline
+		target.baseline = utils.baselineSimilarity(target.image);
+
+		// Compute tensor version of image
+		target.tensor = target.image.toTensor();
+
+		targetNeedsRefresh = false;
+	}
+}
+
 
 // This will hold the compiled webppl function that is ready to go
 var prepared = undefined;
@@ -32,7 +69,10 @@ function generate() {
 	if (prepared === undefined) {
 		compile();
 	}
-	// Downsample the target image from the sketch canvas, store it in the smaller canvas
+
+	// Downsample the target image from the sketch canvas, etc.
+	prepareTarget();
+
 	// Run program!
 }
 
@@ -43,6 +83,13 @@ $(window).load(function(){
 	var image = $('#initialTarget')[0];
 	ctx.drawImage(image, 0, 0);
 
+	// Register which canvas the rendering system should use during inference
+	utils.rendering.init($('#loResResult')[0]);
+
 	// Set up event listener for generation
 	$('#generate').click(generate);
+
+	// Test
+	prepareTarget();
 });
+
