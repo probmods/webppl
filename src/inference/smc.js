@@ -99,10 +99,10 @@ module.exports = function(env) {
 
     var getGuide =
         this.importanceOpt === 'ignoreGuide' ?
-        function(guide, s, a, k) { return k(s, null); } :
+        function(guide, env, s, a, k) { return k(s, null); } :
         guide.runThunkOrNull;
 
-    return getGuide(options.guide, s, a, function(s, maybeDist) {
+    return getGuide(options.guide, env, s, a, function(s, maybeDist) {
 
       // maybeDist will be null if either the 'ignore' option is set,
       // or no guide is specified in the program.

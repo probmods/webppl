@@ -10,10 +10,10 @@ var domains = require('./domain');
 
 var T = ad.tensor;
 
-// I'm interested in exploring having guides always given as thunks.
-// One situation where it might still be acceptable to pass a
-// distribution directly is when the distribution has no (optimizable)
-// parameters?
+// We could consider allowing distributions to be passed directly as
+// guides in the special case where there are no parameters involved.
+// e.g. Simple importance sampling examples. Are these important
+// enough to make this worthwhile.
 
 // FIXME: Doing 'return false' (or using just explicit return to
 // achieve the same) from the guide breaks readable error messages. It
@@ -21,43 +21,82 @@ var T = ad.tensor;
 // continuation corresponding to the return, and that the location of
 // that is not in the source map.
 
-function runThunk(thunk, s, a, k) {
-  if (!_.isFunction(thunk)) {
-    throw new Error('The guide is not a function.');
-  }
-  // Set a flag on the global store to indicate that we're currently
-  // evaluating the guide.
+// TODO: This is do the same thing we have to do when running drift
+// kernels, so combine. (Only difference is names used in error
+// messages.)
 
-  // TODO: Is it worth setting this to false before execution begins
-  // so this is always a bool, or is this good enough?
-  s._guide = true;
-  return thunk(s, function(s, guideDist) {
-    if (!dists.isDist(guideDist)) {
-      throw new Error('The guide did not return a distribution.');
-    }
-    s._guide = false;
-    return k(s, guideDist);
-  }, a + '_guide');
+function notAllowed(fn) {
+  return function() {
+    throw new Error(fn + ' is not allowed here.');
+  };
 }
 
-function runIfThunk(s, k, a, maybeThunk, alternate) {
+var sampleNotAllowed = notAllowed('sample');
+var factorNotAllowed = notAllowed('factor');
+
+function guideCoroutine(env) {
+  return {
+    sample: sampleNotAllowed,
+    factor: factorNotAllowed,
+    incrementalize: env.defaultCoroutine.incrementalize,
+    // Copy the entry address from the current coroutine so that
+    // parameter names continue to be relative to it.
+    a: env.coroutine.a,
+    // Use params/paramsSeen of the current coroutine so that params
+    // are fetch/tracked correctly.
+    params: env.coroutine.params,
+    paramsSeen: env.coroutine.paramsSeen,
+    // A flag used when creating parameters to check whether we're in
+    // a guide thunk. Note that this does the right thing if Infer is
+    // used within a guide.
+    _guide: true
+  };
+}
+
+function inCoroutine(coroutine, env, k, f) {
+  var prevCoroutine = env.coroutine;
+  env.coroutine = coroutine;
+  return f(function(s, val) {
+    env.coroutine = prevCoroutine;
+    return k(s, val);
+  });
+}
+
+function runThunk(thunk, env, s, a, k) {
+  if (!_.isFunction(thunk)) {
+    throw new Error('The guide is expected to be a function.');
+  }
+  // Run the thunk with the guide coroutine installed. Check the
+  // return value is a distribution before continuing.
+  return inCoroutine(
+      guideCoroutine(env),
+      env, k,
+      function(k) {
+        return thunk(s, function(s2, dist) {
+          if (!dists.isDist(dist)) {
+            throw new Error('The guide did not return a distribution.');
+          }
+          return k(s2, dist);
+        }, a + '_guide');
+      });
+}
+
+function runIfThunk(s, k, a, env, maybeThunk, alternate) {
   return maybeThunk ?
-      runThunk(maybeThunk, s, a, k) :
+      runThunk(maybeThunk, env, s, a, k) :
       alternate(s, k, a);
 }
 
 // Convenient variations on runGuideThunk.
 
-function runThunkOrNull(maybeThunk, s, a, k) {
-  return runIfThunk(s, k, a, maybeThunk, function(s, k, a) {
+function runThunkOrNull(maybeThunk, env, s, a, k) {
+  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, null);
   });
 }
 
-// TODO: Be consistent in use of auto vs. independent when naming
-// things?
 function runThunkOrAuto(maybeThunk, targetDist, env, s, a, k) {
-  return runIfThunk(s, k, a, maybeThunk, function(s, k, a) {
+  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, independent(targetDist, a, env));
   });
 }

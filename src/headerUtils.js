@@ -95,7 +95,7 @@ module.exports = function(env) {
       dims: dimsForScalarParam
     });
 
-    if (!s._guide && !paramWarningIssued) {
+    if (!env.coroutine._guide && !paramWarningIssued) {
       paramWarningIssued = true;
       util.warn('Warning: Parameter created outside of the guide.');
     }
