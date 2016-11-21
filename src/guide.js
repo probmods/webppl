@@ -48,7 +48,8 @@ function guideCoroutine(env) {
     paramsSeen: env.coroutine.paramsSeen,
     // A flag used when creating parameters to check whether we're in
     // a guide thunk. Note that this does the right thing if Infer is
-    // used within a guide.
+    // used within a guide. This can be checked from a webppl program
+    // using the `inGuide()` helper.
     _guide: true
   };
 }
