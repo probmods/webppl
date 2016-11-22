@@ -19,7 +19,10 @@ var T = ad.tensor;
 // achieve the same) from the guide breaks readable error messages. It
 // appears that the top webppl entry on the stack is the call to the
 // continuation corresponding to the return, and that the location of
-// that is not in the source map.
+// that is not in the source map. I think I need to clear the stack
+// (which I now do) and then modify the error handling to work when
+// the top most webppl frame on the JS stack is `runTrampoline`.
+
 
 // TODO: This is do the same thing we have to do when running drift
 // kernels, so combine. (Only difference is names used in error
@@ -74,10 +77,12 @@ function runThunk(thunk, env, s, a, k) {
       env, k,
       function(k) {
         return thunk(s, function(s2, dist) {
-          if (!dists.isDist(dist)) {
-            throw new Error('The guide did not return a distribution.');
-          }
-          return k(s2, dist);
+          return function() {
+            if (!dists.isDist(dist)) {
+              throw new Error('The guide did not return a distribution.');
+            }
+            return k(s2, dist);
+          };
         }, a + '_guide');
       });
 }
