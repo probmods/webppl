@@ -1425,37 +1425,9 @@ var SampleBasedMarginal = makeDistributionType({
     return this.getSupport();
   },
   print: function() {
-    if (_.all(this.params.samples, function(obj) { return isSimpleRec(obj.value); })) {
-      return printDist(this.getDist());
-    } else {
-      return '  [ ' + this.params.samples.length + ' samples ]';
-    }
+    return printDist(this.getDist());
   }
 });
-
-// This is a heuristic to decide whether to print a sample based
-// marginal in full. The main goal is to avoid serializing large
-// compound objects which at best is slow, or at worst can crash the
-// process.
-function isSimpleRec(obj, depth) {
-  depth = depth || 0;
-  if (isSimple(obj)) {
-    return true;
-  } else if (depth >= 2) {
-    return false;
-  } else {
-    var recur = function(x) { return isSimpleRec(x, depth + 1); };
-    return isArrayOrObject(obj) && _.all(obj, recur);
-  }
-}
-
-function isSimple(obj) {
-  return _.isNumber(obj) || _.isString(obj) || _.isBoolean(obj);
-}
-
-function isArrayOrObject(obj) {
-  return _.isArray(obj) || util.isObject(obj);
-}
 
 function printDist(dist) {
   return _.map(dist, function(obj, val) { return [val, obj.prob]; })
