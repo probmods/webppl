@@ -12,9 +12,6 @@ var CountAggregator = function(onlyMAP) {
 };
 
 CountAggregator.prototype.add = function(value, score) {
-  // FIXME: Is this good enough, or do we either need to have all
-  // sampling coroutines compute scores, or do something different for
-  // those that don't? See forward, rejection, pmcmc, asyncpf.
   score = (score === undefined) ? 0 : score;
   if (!this.onlyMAP) {
     this.samples.push({value: value, score: score});

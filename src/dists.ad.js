@@ -1379,7 +1379,6 @@ var SampleBasedMarginal = makeDistributionType({
       if (this._cacheddist) {
         return this._cacheddist;
       } else {
-        //console.log('Building distribution.');
         var dist = {};
         this.params.samples.forEach(function(obj) {
           var val = obj.value;
@@ -1405,7 +1404,6 @@ var SampleBasedMarginal = makeDistributionType({
       } else if (this._cachedsupport) {
         return this._cachedsupport;
       } else {
-        //console.log('Building support');
         var support = _.map(this.getDist(), _.property('val'));
         this._cachedsupport = support;
         return support;
