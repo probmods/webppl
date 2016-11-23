@@ -1,9 +1,14 @@
 // Require some stuff here
-var fs = require('fs')
-var THREE = require('three')
-var utils = require('./utils')
-var futures = require('./futures')
+var assert = require('assert');
+var fs = require('fs');
+var THREE = require('three');
+var utils = require('./utils');
+var render = require('./render');
+var futures = require('./futures');
 
+// Globally install modules that webppl code needs
+window.THREE = THREE;
+window.utils = utils;
 // Globally install the futures functions (hack to make them work like WebPPL header code)
 for (var prop in futures) {
 	window[prop] = futures[prop];
@@ -17,6 +22,7 @@ var target = {
 	startPos: undefined,
 	startDir: undefined,
 };
+window.target = target;
 var targetNeedsRefresh = true;
 
 
@@ -61,7 +67,16 @@ function prepareTarget() {
 var prepared = undefined;
 
 function compile() {
-
+	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
+	var compiled = webppl.compile(wpplCode);
+	prepared = webppl.prepare(compiled, function(s, retval) {
+		console.log('done');
+		// Draw to result canvas
+		var canvas = $('#resultsDisplay')[0];
+		var viewport = retval.viewport;
+		var geo = retval.samp;
+		render.renderCanvasProxy(canvas, viewport, geo, false, true);
+	});
 }
 
 function generate() {
@@ -74,6 +89,7 @@ function generate() {
 	prepareTarget();
 
 	// Run program!
+	prepared.run();
 }
 
 $(window).load(function(){

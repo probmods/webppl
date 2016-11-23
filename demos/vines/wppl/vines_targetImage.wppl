@@ -66,55 +66,63 @@ var targetFactor = function() {
 
 var makeProgram = function(neurallyGuided) {
 
-	// Set up ERPs (either normal or neurally-guided)
-	var makeSampler = function(erpName, bounds) {
-		var erp = global[erpName + 'ERP'];
-		var verp = withImportanceDist(erp, Variational[erpName + 'ERP']);
-		var n = bounds.length;
-		return !neurallyGuided ? 
-		function() {
-			var params = Array.prototype.slice.call(arguments, 0, n);
-			return sample(erp, params);
-		}
-		:
-		function() {
-			var params = Array.prototype.slice.call(arguments, 0, n);
-			var localState = arguments[n];
-			var name = arguments[n+1];	// TODO: replace with callsite id?
-			var vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);
-			verp.importanceERP.setParams(vparams);
-			return sample(verp, params);
-		};
+	// // Set up ERPs (either normal or neurally-guided)
+	// var makeSampler = function(erpName, bounds) {
+	// 	var erp = global[erpName + 'ERP'];
+	// 	var verp = withImportanceDist(erp, Variational[erpName + 'ERP']);
+	// 	var n = bounds.length;
+	// 	return !neurallyGuided ? 
+	// 	function() {
+	// 		var params = Array.prototype.slice.call(arguments, 0, n);
+	// 		return sample(erp, params);
+	// 	}
+	// 	:
+	// 	function() {
+	// 		var params = Array.prototype.slice.call(arguments, 0, n);
+	// 		var localState = arguments[n];
+	// 		var name = arguments[n+1];	// TODO: replace with callsite id?
+	// 		var vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);
+	// 		verp.importanceERP.setParams(vparams);
+	// 		return sample(verp, params);
+	// 	};
+	// };
+	// var makeMixtureSampler = function(erpName, nComps, bounds) {
+	// 	var erp = global[erpName + 'ERP'];
+	// 	var verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);
+	// 	var n = bounds.length;
+	// 	// Keep weights between [0,1] (only need to keep them nonnegative, but I think
+	// 	//    this will help keep things regularized...)
+	// 	var weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });
+	// 	var paramBounds = repeat(nComps, function() { return bounds; });
+	// 	var allBounds = weightBounds.concat(flatten(paramBounds));
+	// 	return !neurallyGuided ?
+	// 	function() {
+	// 		var params = Array.prototype.slice.call(arguments, 0, n);
+	// 		return sample(erp, params);
+	// 	}
+	// 	:
+	// 	function() {
+	// 		var params = Array.prototype.slice.call(arguments, 0, n);
+	// 		var localState = arguments[n];
+	// 		var name = arguments[n+1];	// TODO: replace with callsite id?
+	// 		var vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);
+	// 		var ws = vparams.slice(0, nComps);
+	// 		var ps = group(vparams.slice(nComps), n);
+	// 		verp.importanceERP.setParams([ws, ps]);
+	// 		return sample(verp, params);
+	// 	}
+	// };
+	// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);
+	// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);
+	// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);
+
+	var _gaussian = function(mu, sigma, state, name) {
+		return sample(Gaussian({mu: mu, sigma: sigma}));
 	};
-	var makeMixtureSampler = function(erpName, nComps, bounds) {
-		var erp = global[erpName + 'ERP'];
-		var verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);
-		var n = bounds.length;
-		// Keep weights between [0,1] (only need to keep them nonnegative, but I think
-		//    this will help keep things regularized...)
-		var weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });
-		var paramBounds = repeat(nComps, function() { return bounds; });
-		var allBounds = weightBounds.concat(flatten(paramBounds));
-		return !neurallyGuided ?
-		function() {
-			var params = Array.prototype.slice.call(arguments, 0, n);
-			return sample(erp, params);
-		}
-		:
-		function() {
-			var params = Array.prototype.slice.call(arguments, 0, n);
-			var localState = arguments[n];
-			var name = arguments[n+1];	// TODO: replace with callsite id?
-			var vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);
-			var ws = vparams.slice(0, nComps);
-			var ps = group(vparams.slice(nComps), n);
-			verp.importanceERP.setParams([ws, ps]);
-			return sample(verp, params);
-		}
+
+	var _flip = function(p, state, name) {
+		return sample(Bernoulli({p: p}));
 	};
-	// var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);
-	var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);
-	var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);
 
 
 	var initialWidth = 0.75;
@@ -252,17 +260,25 @@ var makeProgram = function(neurallyGuided) {
 
 
 // ----------------------------------------------------------------------------
-// Return stuff that external tasks will need
 
+// var rets = {
+// 	generate: makeProgram(false),
+// 	generateGuided: makeProgram(true),
+// 	viewport: viewport,
+// 	globalStore: globalStore,
+// 	environment: env
+// };
+// rets;
 
-var rets = {
-	generate: makeProgram(false),
-	generateGuided: makeProgram(true),
+var generate = makeProgram(false);
+// var dist = Infer({method: 'forward'}, generate);
+var dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);
+var samp = sample(dist);
+var ret = {
 	viewport: viewport,
-	globalStore: globalStore,
-	environment: env
+	samp: samp
 };
-rets;
+ret;
 
 
 
