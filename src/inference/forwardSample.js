@@ -12,7 +12,7 @@ module.exports = function(env) {
 
   function ForwardSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1,
+      samples: 100,
       guide: false, // true = sample guide, false = sample target
       verbose: false,
       params: {}
