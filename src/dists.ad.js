@@ -1354,6 +1354,28 @@ var Marginal = makeDistributionType({
   }
 });
 
+// Distribution type used by MaxAggregator
+var MAP = makeDistributionType({
+  name: 'MAP',
+  nodoc: true,
+  nohelper: true,
+  params: [{name: 'val'}],
+  mixins: [finiteSupport],
+  constructor: function() {},
+  sample: function() {
+    return this.params.val;
+  },
+  score: function(val) {
+    throw new Error('MAP distribution objects cannot compute scores');
+  },
+  support: function() {
+    return [this.params.val];
+  },
+  print: function() {
+    return 'MAP value: ' + this.params.val;
+  }
+});
+
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
@@ -1440,6 +1462,7 @@ var distributions = {
   Poisson: Poisson,
   Dirichlet: Dirichlet,
   Marginal: Marginal,
+  MAP: MAP,
   Categorical: Categorical,
   Delta: Delta
 };
