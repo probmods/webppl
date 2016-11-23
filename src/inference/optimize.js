@@ -63,7 +63,8 @@ module.exports = function(env) {
 
       checkpointParams: false,
       checkpointParamsFilename: 'optimizeParams.json',
-      checkpointParamsThrottle: 1000
+      checkpointParamsThrottle: 200,
+      keepParamsHistory: false
     });
 
     // Create a (cps) function 'estimator' which takes parameters to
@@ -100,19 +101,27 @@ module.exports = function(env) {
     if (options.logProgress) {
       logFile = fs.openSync(options.logProgressFilename, 'w');
       fs.writeSync(logFile, 'index,iter,time,objective\n');
-      var ncalls = 0;
+      var progressNcalls = 0;
       var starttime = present();
       logProgress = _.throttle(function(i, objective) {
         var t = (present() - starttime) / 1000;
-        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d\n', ncalls, i, t, objective));
-        ncalls++;
+        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d\n', progressNcalls, i, t, objective));
+        progressNcalls++;
       }, options.logProgressThrottle, { trailing: false });
     }
 
     // For checkpointing params to disk
     var paramsFile, saveParams, checkpointParams;
     if (options.checkpointParams) {
-      paramsFile = fs.openSync(options.checkpointParamsFilename, 'w');
+      var paramsFileLength = 0;
+      var paramsNcalls = 0;
+
+      if (options.keepParamsHistory) {
+        // Open file and write JSON array
+        paramsFile = fs.openSync(options.checkpointParamsFilename, 'w');
+        paramsFileLength += fs.writeSync(paramsFile, "[]");
+      }
+
       saveParams = function() {
         // Turn tensor data into regular Array before serialization
         // I think this is faster than using a custom 'replacer' with JSON.stringify?
@@ -123,8 +132,16 @@ module.exports = function(env) {
             return tcopy;
           });
         });
-        fs.writeSync(paramsFile, JSON.stringify(prms));
-        fs.writeSync(paramsFile, nodeUtil.format('\n'));
+
+        if (options.keepParamsHistory) {
+          var sep = paramsNcalls? ",\n": ""; // All param objects except the first need ',' prefix to be concatenated correctly to the JSON array
+          paramsFileLength--; // Ignore last character ']' so that we overwrite it to append the new param object
+          paramsFileLength += fs.writeSync(paramsFile, sep + JSON.stringify(prms) + "]", paramsFileLength);
+        }
+        else {
+          paramsFileLength = fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms)); // Overwrite previous params with new ones
+        }
+        paramsNcalls++;
       };
       checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
@@ -179,7 +196,9 @@ module.exports = function(env) {
             if (options.checkpointParams) {
               // Save final params
               saveParams();
-              fs.closeSync(paramsFile);
+              if (options.keepParamsHistory) {
+                fs.closeSync(paramsFile);
+              }
             }
             return k(s, paramObj);
           }, a, {history: history});
