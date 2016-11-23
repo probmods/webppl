@@ -7,6 +7,7 @@ var Trace = require('../trace');
 
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
+var MaxAggregator = require('../aggregation/MaxAggregator');
 var ad = require('../ad');
 var paramStruct = require('../paramStruct');
 
@@ -23,6 +24,8 @@ module.exports = function(env) {
       finalRejuv: true,
       saveTraces: false,
       ignoreGuide: false,
+      justSample: false,
+      onlyMAP: false,
       params: {}
     });
 
@@ -36,6 +39,9 @@ module.exports = function(env) {
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
+
+    this.justSample = options.justSample;
+    this.onlyMAP = options.onlyMAP;
 
     // Perform a copy to avoid modifying the input when SMC causes
     // previously unseen params to be initialized.
@@ -280,12 +286,15 @@ module.exports = function(env) {
   SMC.prototype.finish = function(s, val) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
-    var hist = new CountAggregator();
+    var aggregator = (this.justSample || this.onlyMAP) ?
+        new MaxAggregator(this.justSample) :
+        new CountAggregator();
     var traces = [];
 
     var aggregate = function(trace) {
       var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
-      hist.add(value);
+      var score = this.adRequired ? ad.valueRec(trace.score) : trace.score;
+      aggregator.add(value, score);
       if (this.saveTraces) {
         traces.push(trace);
       }
@@ -309,7 +318,7 @@ module.exports = function(env) {
           }
         }.bind(this),
         function() {
-          var dist = hist.toDist();
+          var dist = aggregator.toDist();
           dist.normalizationConstant = logAvgW;
           if (this.saveTraces) {
             dist.traces = traces;
