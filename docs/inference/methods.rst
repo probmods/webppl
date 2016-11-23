@@ -271,6 +271,13 @@ SMC
 
          Default: ``'MH'``
 
+      .. describe:: onlyMAP
+
+         When ``true``, only the sample with the highest score is
+         retained. The marginal is a delta distribution on this value.
+
+         Default: ``false``
+
    Example usage::
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5, model: model});

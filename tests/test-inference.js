@@ -222,6 +222,7 @@ var tests = [
       store: { hist: { tol: 0 }, args: { particles: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 100 } },
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
+      onlyMAP: { mean: { tol: 0.1 }, args: { particles: 150, onlyMAP: true } },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
       varFactors1: { args: { particles: 5000 } },
       varFactors2: true,
