@@ -127,16 +127,6 @@ var tests = [
     }
   },
   {
-    name: 'IMHjustSample',
-    method: 'incrementalMH',
-    settings: {
-      args: { samples: 100, justSample: true }
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
-    }
-  },
-  {
     name: 'PMCMC',
     settings: {
       args: { particles: 1000, sweeps: 5 },
@@ -545,16 +535,6 @@ var tests = [
     }
   },
   {
-    name: 'MHjustSample',
-    method: 'MCMC',
-    settings: {
-      args: { samples: 100, justSample: true }
-    },
-    models: {
-      deterministic: { hist: { tol: 0 } }
-    }
-  },
-  {
     name: 'OptimizeELBO',
     method: 'optimize',
     settings: {
@@ -687,16 +667,16 @@ var getInferenceArgs = function(testDef, model) {
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.dist.params.dist, function(obj) { return obj.prob; });
+    var actual = _.mapObject(result.dist.getDist(), function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol, args.exactSupport), msg);
   },
   mean: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histExpectation(result.dist.params.dist), expected, args.tol, 'mean');
+    helpers.testWithinTolerance(test, util.histExpectation(result.dist.getDist()), expected, args.tol, 'mean');
   },
   std: function(test, result, expected, args) {
-    helpers.testWithinTolerance(test, util.histStd(result.dist.params.dist), expected, args.tol, 'std');
+    helpers.testWithinTolerance(test, util.histStd(result.dist.getDist()), expected, args.tol, 'std');
   },
   logZ: function(test, result, expected, args) {
     if (args.check) {

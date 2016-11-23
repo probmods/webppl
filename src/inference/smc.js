@@ -285,7 +285,8 @@ module.exports = function(env) {
 
     var aggregate = function(trace) {
       var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
-      hist.add(value);
+      var score = this.adRequired ? ad.valueRec(trace.score) : trace.score;
+      hist.add(value, score);
       if (this.saveTraces) {
         traces.push(trace);
       }

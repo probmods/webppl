@@ -5,35 +5,33 @@ var util = require('../util');
 var ad = require('../ad');
 var dists = require('../dists');
 
-var CountAggregator = function() {
-  this.hist = {};
+var CountAggregator = function(onlyMAP) {
+  this.onlyMAP = onlyMAP;
+  this.max = {value: undefined, score: -Infinity};
+  this.samples = [];
 };
 
-CountAggregator.prototype.add = function(value) {
-  var k = util.serialize(value);
-  if (this.hist[k] === undefined) {
-    this.hist[k] = { count: 0, val: value };
+CountAggregator.prototype.add = function(value, score) {
+  // FIXME: Is this good enough, or do we either need to have all
+  // sampling coroutines compute scores, or do something different for
+  // those that don't? See forward, rejection, pmcmc, asyncpf.
+  score = (score === undefined) ? 0 : score;
+  if (!this.onlyMAP) {
+    this.samples.push({value: value, score: score});
   }
-  this.hist[k].count += 1;
+  if (score > this.max.score) {
+    this.max.value = value;
+    this.max.score = score;
+  }
 };
-
-function normalize(hist) {
-  var totalCount = _.reduce(hist, function(acc, obj) {
-    return acc + obj.count;
-  }, 0);
-  return {
-    totalCount: totalCount,
-    dist: _.mapObject(hist, function(obj) {
-      return { val: obj.val, prob: obj.count / totalCount };
-    })
-  };
-}
 
 CountAggregator.prototype.toDist = function() {
-  var normalized = normalize(this.hist);
-  return new dists.Marginal({
-    dist: normalized.dist,
-    numSamples: normalized.totalCount
+  if (this.onlyMAP) {
+    this.samples = [this.max];
+  }
+  return new dists.SampleBasedMarginal({
+    samples: this.samples,
+    numSamples: this.samples.length
   });
 };
 
