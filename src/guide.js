@@ -10,23 +10,8 @@ var domains = require('./domain');
 
 var T = ad.tensor;
 
-// We could consider allowing distributions to be passed directly as
-// guides in the special case where there are no parameters involved.
-// e.g. Simple importance sampling examples. Are these important
-// enough to make this worthwhile.
-
-// FIXME: Doing 'return false' (or using just explicit return to
-// achieve the same) from the guide breaks readable error messages. It
-// appears that the top webppl entry on the stack is the call to the
-// continuation corresponding to the return, and that the location of
-// that is not in the source map. I think I need to clear the stack
-// (which I now do) and then modify the error handling to work when
-// the top most webppl frame on the JS stack is `runTrampoline`.
-
-
-// TODO: This is do the same thing we have to do when running drift
-// kernels, so combine. (Only difference is names used in error
-// messages.)
+// TODO: This is very similar to the work we do to run drift kernels.
+// Combine?
 
 function notAllowed(fn) {
   return function() {
@@ -77,6 +62,7 @@ function runThunk(thunk, env, s, a, k) {
       env, k,
       function(k) {
         return thunk(s, function(s2, dist) {
+          // Clear the stack now the thunk has returned.
           return function() {
             if (!dists.isDist(dist)) {
               throw new Error('The guide did not return a distribution.');

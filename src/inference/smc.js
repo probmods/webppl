@@ -15,26 +15,6 @@ module.exports = function(env) {
 
   var kernels = require('./kernels')(env);
 
-  // Thinking about how to handle auto guide as importance
-  // distributions.
-
-  // In general some choices may be guided, others not. Each of the
-  // following behaviors seem likely to be useful:
-
-  // 1. use guide where given, use prior elsewhere    ='default'
-  // 2. ignore all guides                             ='ignore'
-  // 3. use guides, auto guide where missing          ='auto'
-
-  // How do we best parameterize this:
-
-  // a. {guide: true} for 'auto', {guide: false} for 'ignore',
-  // 'default' otherwise. (One snag, this might be confused with the
-  // parameter of the same name take by Infer's forward method.)
-
-  // b. {importance: 'autoGuide'} for 'auto', {importance:
-  // 'ignoreGuide'} for 'ignore', 'default' otherwise. This is what is
-  // currently implemented here.
-
   var validImportanceOptVals = ['default', 'ignoreGuide', 'autoGuide'];
 
   function SMC(s, k, a, wpplFn, options) {
