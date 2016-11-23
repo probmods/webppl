@@ -98,13 +98,13 @@ function runThunkOrAuto(maybeThunk, targetDist, env, s, a, k) {
 // independent guide distributions and optimizing the elbo yields
 // mean-field variational inference.
 
-var mfWarningIssued = false;
+var autoGuideWarningIssued = false;
 
 function independent(targetDist, sampleAddress, env) {
 
-  if (!mfWarningIssued) {
-    mfWarningIssued = true;
-    util.warn('Defaulting to mean-field for one or more choices.');
+  if (!autoGuideWarningIssued) {
+    autoGuideWarningIssued = true;
+    util.warn('Automatically generating guide for one or more choices.');
   }
 
   // Include the distribution name in the guide parameter name to
