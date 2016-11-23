@@ -63,7 +63,7 @@ module.exports = function(env) {
 
       checkpointParams: false,
       checkpointParamsFilename: 'optimizeParams.json',
-      checkpointParamsThrottle: 10000
+      checkpointParamsThrottle: 1000
     });
 
     // Create a (cps) function 'estimator' which takes parameters to
@@ -110,8 +110,9 @@ module.exports = function(env) {
     }
 
     // For checkpointing params to disk
-    var saveParams, checkpointParams;
+    var paramsFile, saveParams, checkpointParams;
     if (options.checkpointParams) {
+      paramsFile = fs.openSync(options.checkpointParamsFilename, 'w');
       saveParams = function() {
         // Turn tensor data into regular Array before serialization
         // I think this is faster than using a custom 'replacer' with JSON.stringify?
@@ -122,7 +123,8 @@ module.exports = function(env) {
             return tcopy;
           });
         });
-        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
+        fs.writeSync(paramsFile, JSON.stringify(prms));
+        fs.writeSync(paramsFile, nodeUtil.format('\n'));
       };
       checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
@@ -177,6 +179,7 @@ module.exports = function(env) {
             if (options.checkpointParams) {
               // Save final params
               saveParams();
+              fs.closeSync(paramsFile);
             }
             return k(s, paramObj);
           }, a, {history: history});
