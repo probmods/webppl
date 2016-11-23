@@ -35,7 +35,7 @@ target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1])
 target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
 
-// Load the wppl source code
+// Statically load the webppl source code
 // TODO: also load vinesLeafFlower version.
 var wpplCode = fs.readFileSync(__dirname + '/../wppl/vines_targetImage.wppl');
 
@@ -63,6 +63,74 @@ function prepareTarget() {
 }
 
 
+function renderCanvasProxy(geo, viewport) {
+	var canvas = $('#resultsDisplay')[0];
+	render.renderCanvasProxy(canvas, viewport, geo, false, true);
+}
+
+function compositeGLPixelsToCanvas(canvas, gl) {
+	// Read back pixels
+	var pixelData = new Uint8Array(canvas.width*canvas.height*4);
+	gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+	// (Doing this pixel-by-pixel on CPU, b/c there doesn't appear to be 
+	//    a generally-supported better alternative as of yet)
+	var ctx = canvas.getContext('2d');
+	var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	var data = imgData.data;
+	var n = data.length / 4;
+	for (var i = 0; i < n; i++) {
+		var ri = 4*i;
+		var gi = 4*i+1;
+		var bi = 4*i+2;
+
+		var alpha = pixelData[4*i+3]/255;
+		data[ri] = Math.floor((1-alpha)*data[ri] + alpha*pixelData[ri]);
+		data[gi] = Math.floor((1-alpha)*data[gi] + alpha*pixelData[gi]);
+		data[bi] = Math.floor((1-alpha)*data[bi] + alpha*pixelData[bi]);
+	}
+	ctx.putImageData(imgData, 0, 0);
+}
+
+function renderSetup(gl) {
+	gl.clearColor(0, 0, 0, 0);
+	gl.depthFunc(gl.LEQUAL); 
+    gl.enable(gl.DEPTH_TEST);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable (gl.BLEND);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+};
+
+function renderVines(geo, viewport) {
+	// Fill background
+	var canvas = $('#resultsDisplay')[0];
+	var ctx = canvas.getContext('2d');
+	ctx.rect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = 'white';
+	ctx.fill();
+	// Do GL rendering
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	renderSetup(gl);
+	render.renderGLDetailed(gl, viewport, geo);
+	// Composite pixels back to display canvas
+	compositeGLPixelsToCanvas(canvas, gl);
+}
+
+function renderLightning(geo, viewport) {
+	// Fill background
+	var canvas = $('#resultsDisplay')[0];
+	var ctx = canvas.getContext('2d');
+	ctx.rect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = 'black';
+	// Do GL rendering
+	ctx.fill();
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	renderSetup(gl);
+	render.renderGLLightning(gl, viewport, geo);
+	// Composite pixels back to display canvas
+	compositeGLPixelsToCanvas(canvas, gl);
+}
+
+
 // This will hold the compiled webppl function that is ready to go
 var prepared = undefined;
 
@@ -72,10 +140,9 @@ function compile() {
 	prepared = webppl.prepare(compiled, function(s, retval) {
 		console.log('done');
 		// Draw to result canvas
-		var canvas = $('#resultsDisplay')[0];
-		var viewport = retval.viewport;
-		var geo = retval.samp;
-		render.renderCanvasProxy(canvas, viewport, geo, false, true);
+		// renderCanvasProxy(retval.samp, retval.viewport);
+		// renderVines(retval.samp, retval.viewport);
+		renderLightning(retval.samp, retval.viewport);
 	});
 }
 
@@ -105,7 +172,10 @@ $(window).load(function(){
 	// Set up event listener for generation
 	$('#generate').click(generate);
 
-	// Test
-	prepareTarget();
+	// Load all the rendering assets
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	render.loadAssets(gl, function() {
+		//
+	});
 });
 

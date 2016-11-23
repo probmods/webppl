@@ -43,10 +43,15 @@ function compileProgram(gl, vertSrc, fragSrc) {
 	return prog;
 }
 
-// TODO: Make this work with browserify...
 function loadTextFile(filename, callback) {
-	var text = fs.readFileSync(filename).toString();
-	callback(text); 
+	$.ajax({
+		async: true,
+		dataType: 'text',
+	    url: filename,
+	    success: function (data) {
+	        callback(data);
+	    }
+	});
 }
 
 function loadShaderProgram(gl, vertFilename, fragFilename, callback) {
@@ -90,7 +95,7 @@ function registerAssets(obj) {
 render.loadAssets = function(gl, callback) {
 
 	function FULLPATH(path) {
-		return ROOT + '/assets/' + path;
+		return 'assets/' + path;
 	}
 
 	function loadAssets(asslist, cb) {
@@ -765,81 +770,6 @@ render.renderGLLightning = function(gl, viewport, geo) {
 
 	gl.flush();
 }
-
-
-// ----------------------------------------------------------------------------
-// Pixel drawing
-
-var drawPixelsAssets = {
-	shaderProgram: {
-		type: 'shaderProgram',
-		vertShader: 'shaders/drawPixels.vert',
-		fragShader: 'shaders/drawPixels.frag',
-		prog: undefined
-	}
-};
-registerAssets(drawPixelsAssets);
-var vertBufferCache = {};
-var colorBufferCache = {};
-// Pixels come in as bytes
-render.drawPixels = function(gl, pixelData) {
-	var drawPixelsProg = drawPixelsAssets.shaderProgram.prog;
-	gl.useProgram(drawPixelsProg);
-
-	var h = gl.drawingBufferHeight;
-	var w = gl.drawingBufferWidth;
-	var size = w + 'x' + h;
-	gl.viewport(0, 0, w, h);
-
-	// Build vertex buffer
-	var vertBuf = vertBufferCache[size];
-	if (vertBuf === undefined) {
-		vertBuf = gl.createBuffer();
-		vertBufferCache[size] = vertBuf;
-
-		var verts = [];
-		for (var y = 0; y < h; y++) {
-			var ty = (y + 0.5) / h;
-			var ny = (1-ty)*-1 + ty*1;
-			for (var x = 0; x < w; x++) {
-				var tx = (x + 0.5) / w;
-				var nx = (1-tx)*-1 + tx*1;
-				verts.push(nx); verts.push(ny);
-			}
-		}
-		verts = new Float32Array(verts);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
-		gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
-	}
-
-	// Build color buffer
-	pixelData = new Float32Array(pixelData);	// Shader will do 1/255 division
-	var colorBuf = colorBufferCache[size];
-	if (colorBuf === undefined) {
-		colorBuf = gl.createBuffer();
-		colorBufferCache[size] = colorBuf;
-	}
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-	gl.bufferData(gl.ARRAY_BUFFER, pixelData, gl.STATIC_DRAW);
-
-	// Bind
-	var vertLoc = gl.getAttribLocation(drawPixelsProg, "inPos");
-	gl.enableVertexAttribArray(vertLoc);
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
-	gl.vertexAttribPointer(vertLoc, 2, gl.FLOAT, false, 0, 0);
-	var colorLoc = gl.getAttribLocation(drawPixelsProg, "inColor");
-	gl.enableVertexAttribArray(colorLoc);
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-	gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
-
-	// Render
-	gl.drawArrays(gl.POINTS, 0, pixelData.length/4);
-	gl.flush();
-	gl.disableVertexAttribArray(vertLoc);
-	gl.disableVertexAttribArray(colorLoc);
-}
-
 
 // ----------------------------------------------------------------------------
 

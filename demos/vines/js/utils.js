@@ -48,21 +48,6 @@ ImageData2D.prototype = {
 		}
 		ctx.putImageData(imgDataObj, 0, 0);
 	},
-	loadFromFramebuffer: function(gl) {
-		var w = gl.drawingBufferWidth;
-		var h = gl.drawingBufferHeight;
-		if (this.width != w || this.height != h) {
-			this.width = w;
-			this.height = h;
-			this.data = new Uint8ClampedArray(w*h*4);
-		}
-		gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
-		return this;
-	},
-	copyToFramebuffer: function(gl) {
-		var render = require('./render.js');
-		render.drawPixels(gl, this.data);
-	},
 	fillWhite: function(w, h) {
 		if (this.width != w || this.height != h) {
 			this.width = w;

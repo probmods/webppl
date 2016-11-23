@@ -3279,10 +3279,9 @@ target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1])
 target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
 
-// Load the wppl source code
+// Statically load the webppl source code
 // TODO: also load vinesLeafFlower version.
 var wpplCode = "// ----------------------------------------------------------------------------\n// Globals / constants\n\n// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Render update\nvar renderUpdate = function(geo) {\n\tutils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tutils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = utils.rendering.copyImgFromRenderContext();\n};\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = utils.normalizedSimilarity(globalStore.genImg, target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// // Set up ERPs (either normal or neurally-guided)\n\t// var makeSampler = function(erpName, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t// \tvar n = bounds.length;\n\t// \treturn !neurallyGuided ? \n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t// \t\tverp.importanceERP.setParams(vparams);\n\t// \t\treturn sample(verp, params);\n\t// \t};\n\t// };\n\t// var makeMixtureSampler = function(erpName, nComps, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t// \tvar n = bounds.length;\n\t// \t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t// \t//    this will help keep things regularized...)\n\t// \tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t// \tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t// \tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t// \treturn !neurallyGuided ?\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t// \t\tvar ws = vparams.slice(0, nComps);\n\t// \t\tvar ps = group(vparams.slice(nComps), n);\n\t// \t\tverp.importanceERP.setParams([ws, ps]);\n\t// \t\treturn sample(verp, params);\n\t// \t}\n\t// };\n\t// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\t// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\t// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\n\tvar _gaussian = function(mu, sigma, state, name) {\n\t\treturn sample(Gaussian({mu: mu, sigma: sigma}));\n\t};\n\n\tvar _flip = function(p, state, name) {\n\t\treturn sample(Bernoulli({p: p}));\n\t};\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\tvar w = target.image.width;\n\t\tvar h = target.image.height;\n\t\tglobalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(target.startPos);\n\t\tvar starting_dir = target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n\n// var rets = {\n// \tgenerate: makeProgram(false),\n// \tgenerateGuided: makeProgram(true),\n// \tviewport: viewport,\n// \tglobalStore: globalStore,\n// \tenvironment: env\n// };\n// rets;\n\nvar generate = makeProgram(false);\n// var dist = Infer({method: 'forward'}, generate);\nvar dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);\nvar samp = sample(dist);\nvar ret = {\n\tviewport: viewport,\n\tsamp: samp\n};\nret;\n\n\n\n\n\n";
-// var wpplCode = fs.readFileSync(__dirname + '/../wppl/test.wppl');
 
 
 // Prepare target for inference (downsample image, compute baseline, etc.)
@@ -3308,6 +3307,74 @@ function prepareTarget() {
 }
 
 
+function renderCanvasProxy(geo, viewport) {
+	var canvas = $('#resultsDisplay')[0];
+	render.renderCanvasProxy(canvas, viewport, geo, false, true);
+}
+
+function compositeGLPixelsToCanvas(canvas, gl) {
+	// Read back pixels
+	var pixelData = new Uint8Array(canvas.width*canvas.height*4);
+	gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+	// (Doing this pixel-by-pixel on CPU, b/c there doesn't appear to be 
+	//    a generally-supported better alternative as of yet)
+	var ctx = canvas.getContext('2d');
+	var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	var data = imgData.data;
+	var n = data.length / 4;
+	for (var i = 0; i < n; i++) {
+		var ri = 4*i;
+		var gi = 4*i+1;
+		var bi = 4*i+2;
+
+		var alpha = pixelData[4*i+3]/255;
+		data[ri] = Math.floor((1-alpha)*data[ri] + alpha*pixelData[ri]);
+		data[gi] = Math.floor((1-alpha)*data[gi] + alpha*pixelData[gi]);
+		data[bi] = Math.floor((1-alpha)*data[bi] + alpha*pixelData[bi]);
+	}
+	ctx.putImageData(imgData, 0, 0);
+}
+
+function renderSetup(gl) {
+	gl.clearColor(0, 0, 0, 0);
+	gl.depthFunc(gl.LEQUAL); 
+    gl.enable(gl.DEPTH_TEST);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable (gl.BLEND);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+};
+
+function renderVines(geo, viewport) {
+	// Fill background
+	var canvas = $('#resultsDisplay')[0];
+	var ctx = canvas.getContext('2d');
+	ctx.rect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = 'white';
+	ctx.fill();
+	// Do GL rendering
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	renderSetup(gl);
+	render.renderGLDetailed(gl, viewport, geo);
+	// Composite pixels back to display canvas
+	compositeGLPixelsToCanvas(canvas, gl);
+}
+
+function renderLightning(geo, viewport) {
+	// Fill background
+	var canvas = $('#resultsDisplay')[0];
+	var ctx = canvas.getContext('2d');
+	ctx.rect(0, 0, canvas.width, canvas.height);
+	ctx.fillStyle = 'black';
+	// Do GL rendering
+	ctx.fill();
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	renderSetup(gl);
+	render.renderGLLightning(gl, viewport, geo);
+	// Composite pixels back to display canvas
+	compositeGLPixelsToCanvas(canvas, gl);
+}
+
+
 // This will hold the compiled webppl function that is ready to go
 var prepared = undefined;
 
@@ -3317,10 +3384,9 @@ function compile() {
 	prepared = webppl.prepare(compiled, function(s, retval) {
 		console.log('done');
 		// Draw to result canvas
-		var canvas = $('#resultsDisplay')[0];
-		var viewport = retval.viewport;
-		var geo = retval.samp;
-		render.renderCanvasProxy(canvas, viewport, geo, false, true);
+		// renderCanvasProxy(retval.samp, retval.viewport);
+		// renderVines(retval.samp, retval.viewport);
+		renderLightning(retval.samp, retval.viewport);
 	});
 }
 
@@ -3350,8 +3416,11 @@ $(window).load(function(){
 	// Set up event listener for generation
 	$('#generate').click(generate);
 
-	// Test
-	prepareTarget();
+	// Load all the rendering assets
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	render.loadAssets(gl, function() {
+		//
+	});
 });
 
 
@@ -3401,10 +3470,15 @@ function compileProgram(gl, vertSrc, fragSrc) {
 	return prog;
 }
 
-// TODO: Make this work with browserify...
 function loadTextFile(filename, callback) {
-	var text = fs.readFileSync(filename).toString();
-	callback(text); 
+	$.ajax({
+		async: true,
+		dataType: 'text',
+	    url: filename,
+	    success: function (data) {
+	        callback(data);
+	    }
+	});
 }
 
 function loadShaderProgram(gl, vertFilename, fragFilename, callback) {
@@ -3448,7 +3522,7 @@ function registerAssets(obj) {
 render.loadAssets = function(gl, callback) {
 
 	function FULLPATH(path) {
-		return ROOT + '/assets/' + path;
+		return 'assets/' + path;
 	}
 
 	function loadAssets(asslist, cb) {
@@ -4124,81 +4198,6 @@ render.renderGLLightning = function(gl, viewport, geo) {
 	gl.flush();
 }
 
-
-// ----------------------------------------------------------------------------
-// Pixel drawing
-
-var drawPixelsAssets = {
-	shaderProgram: {
-		type: 'shaderProgram',
-		vertShader: 'shaders/drawPixels.vert',
-		fragShader: 'shaders/drawPixels.frag',
-		prog: undefined
-	}
-};
-registerAssets(drawPixelsAssets);
-var vertBufferCache = {};
-var colorBufferCache = {};
-// Pixels come in as bytes
-render.drawPixels = function(gl, pixelData) {
-	var drawPixelsProg = drawPixelsAssets.shaderProgram.prog;
-	gl.useProgram(drawPixelsProg);
-
-	var h = gl.drawingBufferHeight;
-	var w = gl.drawingBufferWidth;
-	var size = w + 'x' + h;
-	gl.viewport(0, 0, w, h);
-
-	// Build vertex buffer
-	var vertBuf = vertBufferCache[size];
-	if (vertBuf === undefined) {
-		vertBuf = gl.createBuffer();
-		vertBufferCache[size] = vertBuf;
-
-		var verts = [];
-		for (var y = 0; y < h; y++) {
-			var ty = (y + 0.5) / h;
-			var ny = (1-ty)*-1 + ty*1;
-			for (var x = 0; x < w; x++) {
-				var tx = (x + 0.5) / w;
-				var nx = (1-tx)*-1 + tx*1;
-				verts.push(nx); verts.push(ny);
-			}
-		}
-		verts = new Float32Array(verts);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
-		gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
-	}
-
-	// Build color buffer
-	pixelData = new Float32Array(pixelData);	// Shader will do 1/255 division
-	var colorBuf = colorBufferCache[size];
-	if (colorBuf === undefined) {
-		colorBuf = gl.createBuffer();
-		colorBufferCache[size] = colorBuf;
-	}
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-	gl.bufferData(gl.ARRAY_BUFFER, pixelData, gl.STATIC_DRAW);
-
-	// Bind
-	var vertLoc = gl.getAttribLocation(drawPixelsProg, "inPos");
-	gl.enableVertexAttribArray(vertLoc);
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertBuf);
-	gl.vertexAttribPointer(vertLoc, 2, gl.FLOAT, false, 0, 0);
-	var colorLoc = gl.getAttribLocation(drawPixelsProg, "inColor");
-	gl.enableVertexAttribArray(colorLoc);
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-	gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 0, 0);
-
-	// Render
-	gl.drawArrays(gl.POINTS, 0, pixelData.length/4);
-	gl.flush();
-	gl.disableVertexAttribArray(vertLoc);
-	gl.disableVertexAttribArray(colorLoc);
-}
-
-
 // ----------------------------------------------------------------------------
 
 module.exports = render
@@ -4298,21 +4297,6 @@ ImageData2D.prototype = {
 			}
 		}
 		ctx.putImageData(imgDataObj, 0, 0);
-	},
-	loadFromFramebuffer: function(gl) {
-		var w = gl.drawingBufferWidth;
-		var h = gl.drawingBufferHeight;
-		if (this.width != w || this.height != h) {
-			this.width = w;
-			this.height = h;
-			this.data = new Uint8ClampedArray(w*h*4);
-		}
-		gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, this.data);
-		return this;
-	},
-	copyToFramebuffer: function(gl) {
-		var render = require('./render.js');
-		render.drawPixels(gl, this.data);
 	},
 	fillWhite: function(w, h) {
 		if (this.width != w || this.height != h) {
