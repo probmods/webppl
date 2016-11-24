@@ -1400,7 +1400,7 @@ var SampleBasedMarginal = makeDistributionType({
       if (this.params.samples.length === 1) {
         // Optimization: Avoid unnecessary serialization in the
         // onlyMAP case
-        return this.params.samples;
+        return [this.params.samples[0].value];
       } else if (this._cachedsupport) {
         return this._cachedsupport;
       } else {
