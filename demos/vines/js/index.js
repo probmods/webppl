@@ -115,23 +115,53 @@ function renderLightning(geo, viewport) {
 // Statically load the webppl source code
 var programs = {
 	lightning: {
-		code: fs.readFileSync(__dirname + '/../wppl/lightning.wppl'),
+		file: 'wppl/lightning.wppl',
 		render: renderLightning
 	},
 	vines: {
-		code: fs.readFileSync(__dirname + '/../wppl/vines.wppl'),
+		file: 'wppl/vines.wppl',
 		render: renderVines
 	}
 };
 
-
-function compile(program) {
-	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
-	var compiled = webppl.compile(program.code);
-	program.prepared = webppl.prepare(compiled, function(s, retval) {
-		// Draw to result canvas
-		program.render(retval.samp, retval.viewport);
+function loadCodeFile(filename, callback) {
+	$.ajax({
+		async: true,
+		dataType: 'text',
+	    url: filename,
+	    success: function (data) {
+	        callback(data);
+	    }
 	});
+}
+
+function compile(program, callback) {
+	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
+	loadCodeFile(program.file, function(code) {
+		var compiled = webppl.compile(code);
+		program.prepared = webppl.prepare(compiled, function(s, retval) {
+			// Draw to result canvas
+			program.render(retval.samp, retval.viewport);
+		});
+		callback();
+	});
+}
+
+function run() {
+	programs[whichProgram].prepared.run();
+}
+
+function generate() {
+	// Downsample the target image from the sketch canvas, etc.
+	prepareTarget();
+
+	// Compile code, if that hasn't been done yet
+	var program = programs[whichProgram];
+	if (program.prepared === undefined) {
+		compile(program, run);
+	} else {
+		run();
+	}
 }
 
 // Prepare target for inference (downsample image, compute baseline, etc.)
@@ -154,21 +184,6 @@ function prepareTarget() {
 
 		targetNeedsRefresh = false;
 	}
-}
-
-
-function generate() {
-	var program = programs[whichProgram];
-	// Compile code, if that hasn't been done yet
-	if (program.prepared === undefined) {
-		compile(program);
-	}
-
-	// Downsample the target image from the sketch canvas, etc.
-	prepareTarget();
-
-	// Run program!
-	program.prepared.run();
 }
 
 // --------------------------------------------------------------------------------------
