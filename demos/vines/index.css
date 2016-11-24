@@ -7,6 +7,6 @@
 	margin-bottom: 8px;
 }
 
-#sketchInput:hover {
+#drawingCanvases:hover {
 	cursor: crosshair;
 }

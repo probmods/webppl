@@ -4,9 +4,11 @@ function Sketch(canvas, options) {
 	this.canvasjq = $(canvas);
 	this.context = canvas.getContext('2d');
 	this.size = options.size;
-	this.drawCallback = options.drawCallback;
+	this.callback = options.callback;
 	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
 };
+
+var LEFT_BUTTON = 1;
 
 Sketch.prototype.onEvent = function(e) {
 	if (e.originalEvent && e.originalEvent.targetTouches) {
@@ -19,7 +21,7 @@ Sketch.prototype.onEvent = function(e) {
 	var y = e.pageY - this.canvasjq.offset().top;
 
 	// Start drawing
-	if (e.type === 'mousedown' || e.type === 'touchstart') {
+	if ((e.type === 'mousedown' || e.type === 'touchstart') && e.which === LEFT_BUTTON) {
 		this.drawing = true;
 		this.x = x;
 		this.y = y;
@@ -42,12 +44,12 @@ Sketch.prototype.onEvent = function(e) {
 		this.context.lineWidth = this.size;
 		this.context.stroke();
 
-		this.drawCallback();
+		this.callback();
 	}
 
 	// Stop drawing
-	if (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
-		e.type === 'touchend' || e.type === 'touchcancel') {
+	if (this.drawing && (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
+		e.type === 'touchend' || e.type === 'touchcancel')) {
 		this.drawing = false;
 	}
 

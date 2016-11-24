@@ -5,6 +5,7 @@ var THREE = require('three');
 var utils = require('./utils');
 var render = require('./render');
 var Sketch = require('./sketch');
+var VecDraw = require('./vecdraw');
 var futures = require('./futures');
 
 // Globally install modules that webppl code needs
@@ -35,8 +36,10 @@ var coordfile = fs.readFileSync(__dirname + '/../assets/initialTarget.txt', 'utf
 var coordlines = coordfile.split('\n');
 var coords = coordlines[0].split(' ');
 var dir = coordlines[1].split(' ');
-target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+var origStartPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+var origStartDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+target.startPos = origStartPos;
+target.startDir = origStartDir;
 
 // --------------------------------------------------------------------------------------
 
@@ -126,7 +129,6 @@ function compile(program) {
 	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
 	var compiled = webppl.compile(program.code);
 	program.prepared = webppl.prepare(compiled, function(s, retval) {
-		console.log('done');
 		// Draw to result canvas
 		program.render(retval.samp, retval.viewport);
 	});
@@ -191,19 +193,36 @@ $(window).load(function(){
 
     // Put the initial target image into the sketch canvas
 	var sketchCanvas = $('#sketchInput')[0];
+	var vecdraw;
 	function resetTarget() {
 		var ctx = sketchCanvas.getContext("2d");
 		var image = $('#initialTarget')[0];
 		ctx.drawImage(image, 0, 0);
+		target.startPos = origStartPos;
+		target.startDir = origStartDir;
+		vecdraw.draw(origStartPos, origStartDir);
 		targetNeedsRefresh = true;
 	}
-	resetTarget();
 
 	// Wire up the sketch canvas
 	var sketch = new Sketch(sketchCanvas, {
 		size: 20,
-		drawCallback: function() { targetNeedsRefresh = true; }
+		callback: function() { targetNeedsRefresh = true; }
 	});
+
+	// Wire up the vector drawing canvas
+	var vecCanvas = $('#vectorInput')[0];
+	vecdraw = new VecDraw(vecCanvas, sketchCanvas, {
+		length: 30,
+		width: 5,
+		callback: function(startPos, startDir) {
+			// console.log(startPos, startDir);
+			target.startPos = startPos;
+			target.startDir = startDir;
+		}
+	});
+
+	// Clearing / restoring defaults
 	$('#clearTargetShape').click(function() {
 		sketch.clear();
 		targetNeedsRefresh = true;
@@ -212,6 +231,8 @@ $(window).load(function(){
 		sketch.clear();
 		resetTarget();
 	});
+
+	resetTarget();
 
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');

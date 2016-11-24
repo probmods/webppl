@@ -327,7 +327,7 @@ module.exports = {
 
 
 
-},{"../tensor.js":17,"./graph.js":4,"assert":25}],3:[function(require,module,exports){
+},{"../tensor.js":17,"./graph.js":4,"assert":26}],3:[function(require,module,exports){
 'use strict';
 
 var Tensor = require('../tensor.js');
@@ -1306,7 +1306,7 @@ module.exports = {
 
 
 
-},{"../utils.js":18,"./network.js":9,"assert":25}],7:[function(require,module,exports){
+},{"../utils.js":18,"./network.js":9,"assert":26}],7:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils.js');
@@ -1478,7 +1478,7 @@ Network.deserializeJSON = function(json) {
 
 module.exports = Network;
 
-},{"assert":25}],10:[function(require,module,exports){
+},{"assert":26}],10:[function(require,module,exports){
 'use strict';
 
 var Tensor = require('../../tensor.js');
@@ -1753,7 +1753,7 @@ module.exports = {
 
 
 
-},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":25}],12:[function(require,module,exports){
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":26}],12:[function(require,module,exports){
 'use strict';
 
 var adfunctions = require('../../ad/functions.js');
@@ -2024,7 +2024,7 @@ module.exports = {
 
 
 
-},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":25}],14:[function(require,module,exports){
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":26}],14:[function(require,module,exports){
 'use strict';
 
 var ad = require('../../ad');
@@ -3035,7 +3035,7 @@ module.exports = Tensor;
 
 
 
-},{"./utils.js":18,"assert":25}],18:[function(require,module,exports){
+},{"./utils.js":18,"assert":26}],18:[function(require,module,exports){
 'use strict';
 
 function gaussianSample(mu, sigma) {
@@ -3249,6 +3249,7 @@ var THREE = require('three');
 var utils = require('./utils');
 var render = require('./render');
 var Sketch = require('./sketch');
+var VecDraw = require('./vecdraw');
 var futures = require('./futures');
 
 // Globally install modules that webppl code needs
@@ -3279,8 +3280,10 @@ var coordfile = "0.5 0.9166\n0 -1";
 var coordlines = coordfile.split('\n');
 var coords = coordlines[0].split(' ');
 var dir = coordlines[1].split(' ');
-target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+var origStartPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+var origStartDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
+target.startPos = origStartPos;
+target.startDir = origStartDir;
 
 // --------------------------------------------------------------------------------------
 
@@ -3370,7 +3373,6 @@ function compile(program) {
 	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
 	var compiled = webppl.compile(program.code);
 	program.prepared = webppl.prepare(compiled, function(s, retval) {
-		console.log('done');
 		// Draw to result canvas
 		program.render(retval.samp, retval.viewport);
 	});
@@ -3435,19 +3437,36 @@ $(window).load(function(){
 
     // Put the initial target image into the sketch canvas
 	var sketchCanvas = $('#sketchInput')[0];
+	var vecdraw;
 	function resetTarget() {
 		var ctx = sketchCanvas.getContext("2d");
 		var image = $('#initialTarget')[0];
 		ctx.drawImage(image, 0, 0);
+		target.startPos = origStartPos;
+		target.startDir = origStartDir;
+		vecdraw.draw(origStartPos, origStartDir);
 		targetNeedsRefresh = true;
 	}
-	resetTarget();
 
 	// Wire up the sketch canvas
 	var sketch = new Sketch(sketchCanvas, {
 		size: 20,
-		drawCallback: function() { targetNeedsRefresh = true; }
+		callback: function() { targetNeedsRefresh = true; }
 	});
+
+	// Wire up the vector drawing canvas
+	var vecCanvas = $('#vectorInput')[0];
+	vecdraw = new VecDraw(vecCanvas, sketchCanvas, {
+		length: 30,
+		width: 5,
+		callback: function(startPos, startDir) {
+			// console.log(startPos, startDir);
+			target.startPos = startPos;
+			target.startDir = startDir;
+		}
+	});
+
+	// Clearing / restoring defaults
 	$('#clearTargetShape').click(function() {
 		sketch.clear();
 		targetNeedsRefresh = true;
@@ -3457,13 +3476,15 @@ $(window).load(function(){
 		resetTarget();
 	});
 
+	resetTarget();
+
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');
 	render.loadAssets(gl, function() {});
 });
 
 
-},{"./futures":19,"./render":21,"./sketch":22,"./utils":24,"assert":25,"fs":26,"three":28}],21:[function(require,module,exports){
+},{"./futures":19,"./render":21,"./sketch":22,"./utils":24,"./vecdraw":25,"assert":26,"fs":27,"three":29}],21:[function(require,module,exports){
 // NOTE: throughout this file, the context 'gl' is passed to functions.
 //    However, we assume that these functions only ever see one such
 //    context during the lifetime of the program.
@@ -4244,16 +4265,18 @@ module.exports = render
 
 
 
-},{"fs":26,"three":28}],22:[function(require,module,exports){
+},{"fs":27,"three":29}],22:[function(require,module,exports){
 
 function Sketch(canvas, options) {
 	this.canvas = canvas;
 	this.canvasjq = $(canvas);
 	this.context = canvas.getContext('2d');
 	this.size = options.size;
-	this.drawCallback = options.drawCallback;
+	this.callback = options.callback;
 	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
 };
+
+var LEFT_BUTTON = 1;
 
 Sketch.prototype.onEvent = function(e) {
 	if (e.originalEvent && e.originalEvent.targetTouches) {
@@ -4266,7 +4289,7 @@ Sketch.prototype.onEvent = function(e) {
 	var y = e.pageY - this.canvasjq.offset().top;
 
 	// Start drawing
-	if (e.type === 'mousedown' || e.type === 'touchstart') {
+	if ((e.type === 'mousedown' || e.type === 'touchstart') && e.which === LEFT_BUTTON) {
 		this.drawing = true;
 		this.x = x;
 		this.y = y;
@@ -4289,12 +4312,12 @@ Sketch.prototype.onEvent = function(e) {
 		this.context.lineWidth = this.size;
 		this.context.stroke();
 
-		this.drawCallback();
+		this.callback();
 	}
 
 	// Stop drawing
-	if (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
-		e.type === 'touchend' || e.type === 'touchcancel') {
+	if (this.drawing && (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
+		e.type === 'touchend' || e.type === 'touchcancel')) {
 		this.drawing = false;
 	}
 
@@ -4761,7 +4784,100 @@ module.exports = {
 
 
 
-},{"./render.js":21,"./sobel.js":23,"adnn/tensor":17,"assert":25,"fs":26,"three":28}],25:[function(require,module,exports){
+},{"./render.js":21,"./sobel.js":23,"adnn/tensor":17,"assert":26,"fs":27,"three":29}],25:[function(require,module,exports){
+var THREE = require('three');
+
+function VecDraw(canvas, sketchCanvas, options) {
+	this.canvas = canvas;
+	this.canvasjq = $(canvas);
+	this.context = canvas.getContext('2d');
+	this.sketchCanvasjq = $(sketchCanvas);
+	this.length = options.length;
+	this.width = options.width;
+	this.callback = options.callback;
+	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
+	this.canvasjq.bind('contextmenu', this.onContextMenu.bind(this));
+};
+
+var RIGHT_BUTTON = 3;
+
+// Suppress right-click context menu
+VecDraw.prototype.onContextMenu = function(e) {
+	return false;
+};
+
+VecDraw.prototype.computeStartPosAndDir = function(sx, sy, ex, ey) {
+	var relStartX = sx / this.canvas.width;
+	var relStartY = sy / this.canvas.height;
+	var relEndX = ex / this.canvas.width;
+	var relEndY = ey / this.canvas.height;
+	var startPos = new THREE.Vector2(relStartX, relStartY);
+	var endPos = new THREE.Vector2(relEndX, relEndY);
+	var startDir = endPos.clone().sub(startPos).normalize();
+	return [startPos, startDir];
+};
+
+VecDraw.prototype.onEvent = function(e) {
+	if (e.originalEvent && e.originalEvent.targetTouches) {
+		e.pageX = e.originalEvent.targetTouches[0].pageX;
+		e.pageY = e.originalEvent.targetTouches[0].pageY;
+	}
+	e.preventDefault();
+
+	var x = e.pageX - this.canvasjq.offset().left;
+	var y = e.pageY - this.canvasjq.offset().top;
+
+	// Start drawing
+	if ((e.type === 'mousedown' || e.type === 'touchstart') && e.which === RIGHT_BUTTON) {
+		this.drawing = true;
+		this.x = x;
+		this.y = y;
+	}
+
+ 	// Draw: compute normalized start / end pos, visualize it
+	if (this.drawing) {
+		var spd = this.computeStartPosAndDir(this.x, this.y, x, y);
+		var startPos = spd[0];
+		var startDir = spd[1];
+		this.draw(startPos, startDir);
+	}
+
+	// Stop drawing: compute normalized start / end pos, invoke callback
+	if (this.drawing && (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
+		e.type === 'touchend' || e.type === 'touchcancel')) {
+		this.drawing = false;
+		var spd = this.computeStartPosAndDir(this.x, this.y, x, y);
+		var startPos = spd[0];
+		var startDir = spd[1];
+		this.callback(startPos, startDir);
+	}
+
+	// Forward events on to the underlying sketch canvas
+	this.sketchCanvasjq.trigger(e);
+
+	return false;
+};
+
+// pos, dir are normalized to canvas size
+VecDraw.prototype.draw = function(pos, dir) {
+	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	var startPos = new THREE.Vector2(pos.x * this.canvas.width, pos.y * this.canvas.height);
+	var endPos = startPos.clone().add(dir.clone().multiplyScalar(this.length));
+	this.context.lineJoin = "round";
+	this.context.lineCap = "round";
+	this.context.beginPath();
+	this.context.moveTo(startPos.x, startPos.y);
+	this.context.lineTo(endPos.x, endPos.y);
+	this.context.strokeStyle = 'red';
+	this.context.lineWidth = this.width;
+	this.context.stroke();
+};
+
+module.exports = VecDraw;
+
+
+
+},{"three":29}],26:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -5122,9 +5238,9 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":31}],26:[function(require,module,exports){
+},{"util/":32}],27:[function(require,module,exports){
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5306,7 +5422,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -47605,7 +47721,7 @@ process.umask = function() { return 0; };
 
 })));
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -47630,14 +47746,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -48227,4 +48343,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":30,"_process":27,"inherits":29}]},{},[20]);
+},{"./support/isBuffer":31,"_process":28,"inherits":30}]},{},[20]);
