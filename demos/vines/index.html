@@ -44,12 +44,18 @@
         <div class="col-lg-6">
           <h5>Sketch shape here</h5>
           <canvas id="sketchInput" class="outlined" width="300" height="300"></canvas>
+          <button id="clearTargetShape">Clear</button>
+          <button id="resetTarget">Reset</button>
         </div>  
 
         <div class="col-lg-6">
           <h5>Result</h5>
           <canvas id="resultsDisplay" class="outlined" width="300" height="300"></canvas>
+
           <button id="generate">Generate</button>
+
+          <input type="radio" name="whichProgram" value="vines" checked> Vines</input>
+          <input type="radio" name="whichProgram" value="lightning"> Lightning</input>
         </div> 
 
         <!-- Hidden canvases for storing the low-res target image and for the WIP image during inference -->

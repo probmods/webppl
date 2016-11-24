@@ -327,7 +327,7 @@ module.exports = {
 
 
 
-},{"../tensor.js":17,"./graph.js":4,"assert":24}],3:[function(require,module,exports){
+},{"../tensor.js":17,"./graph.js":4,"assert":25}],3:[function(require,module,exports){
 'use strict';
 
 var Tensor = require('../tensor.js');
@@ -1306,7 +1306,7 @@ module.exports = {
 
 
 
-},{"../utils.js":18,"./network.js":9,"assert":24}],7:[function(require,module,exports){
+},{"../utils.js":18,"./network.js":9,"assert":25}],7:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils.js');
@@ -1478,7 +1478,7 @@ Network.deserializeJSON = function(json) {
 
 module.exports = Network;
 
-},{"assert":24}],10:[function(require,module,exports){
+},{"assert":25}],10:[function(require,module,exports){
 'use strict';
 
 var Tensor = require('../../tensor.js');
@@ -1753,7 +1753,7 @@ module.exports = {
 
 
 
-},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":24}],12:[function(require,module,exports){
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":25}],12:[function(require,module,exports){
 'use strict';
 
 var adfunctions = require('../../ad/functions.js');
@@ -2024,7 +2024,7 @@ module.exports = {
 
 
 
-},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":24}],14:[function(require,module,exports){
+},{"../../ad":5,"../../tensor.js":17,"../network.js":9,"assert":25}],14:[function(require,module,exports){
 'use strict';
 
 var ad = require('../../ad');
@@ -3035,7 +3035,7 @@ module.exports = Tensor;
 
 
 
-},{"./utils.js":18,"assert":24}],18:[function(require,module,exports){
+},{"./utils.js":18,"assert":25}],18:[function(require,module,exports){
 'use strict';
 
 function gaussianSample(mu, sigma) {
@@ -3248,6 +3248,7 @@ var fs = require('fs');
 var THREE = require('three');
 var utils = require('./utils');
 var render = require('./render');
+var Sketch = require('./sketch');
 var futures = require('./futures');
 
 // Globally install modules that webppl code needs
@@ -3257,6 +3258,8 @@ window.utils = utils;
 for (var prop in futures) {
 	window[prop] = futures[prop];
 }
+
+// --------------------------------------------------------------------------------------
 
 // App state
 var target = {
@@ -3268,6 +3271,7 @@ var target = {
 };
 window.target = target;
 var targetNeedsRefresh = true;
+var whichProgram = 'vines';
 
 
 // Initialize the start pos, start dir for the initial target image
@@ -3278,34 +3282,7 @@ var dir = coordlines[1].split(' ');
 target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
 target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
-
-// Statically load the webppl source code
-// TODO: also load vinesLeafFlower version.
-var wpplCode = "// ----------------------------------------------------------------------------\n// Globals / constants\n\n// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Render update\nvar renderUpdate = function(geo) {\n\tutils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tutils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = utils.rendering.copyImgFromRenderContext();\n};\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = utils.normalizedSimilarity(globalStore.genImg, target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// // Set up ERPs (either normal or neurally-guided)\n\t// var makeSampler = function(erpName, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t// \tvar n = bounds.length;\n\t// \treturn !neurallyGuided ? \n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t// \t\tverp.importanceERP.setParams(vparams);\n\t// \t\treturn sample(verp, params);\n\t// \t};\n\t// };\n\t// var makeMixtureSampler = function(erpName, nComps, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t// \tvar n = bounds.length;\n\t// \t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t// \t//    this will help keep things regularized...)\n\t// \tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t// \tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t// \tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t// \treturn !neurallyGuided ?\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t// \t\tvar ws = vparams.slice(0, nComps);\n\t// \t\tvar ps = group(vparams.slice(nComps), n);\n\t// \t\tverp.importanceERP.setParams([ws, ps]);\n\t// \t\treturn sample(verp, params);\n\t// \t}\n\t// };\n\t// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\t// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\t// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\n\tvar _gaussian = function(mu, sigma, state, name) {\n\t\treturn sample(Gaussian({mu: mu, sigma: sigma}));\n\t};\n\n\tvar _flip = function(p, state, name) {\n\t\treturn sample(Bernoulli({p: p}));\n\t};\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\tvar w = target.image.width;\n\t\tvar h = target.image.height;\n\t\tglobalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(target.startPos);\n\t\tvar starting_dir = target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n\n// var rets = {\n// \tgenerate: makeProgram(false),\n// \tgenerateGuided: makeProgram(true),\n// \tviewport: viewport,\n// \tglobalStore: globalStore,\n// \tenvironment: env\n// };\n// rets;\n\nvar generate = makeProgram(false);\n// var dist = Infer({method: 'forward'}, generate);\nvar dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);\nvar samp = sample(dist);\nvar ret = {\n\tviewport: viewport,\n\tsamp: samp\n};\nret;\n\n\n\n\n\n";
-
-
-// Prepare target for inference (downsample image, compute baseline, etc.)
-function prepareTarget() {
-	if (targetNeedsRefresh) {
-		// Downsample sketch image
-		var sketchCanvas = $('#sketchInput')[0];
-		var targetImage = $('#loResTarget')[0];
-		var ctx = targetImage.getContext('2d');
-		ctx.drawImage(sketchCanvas,
-			0, 0, sketchCanvas.width, sketchCanvas.height,
-			0, 0, targetImage.width, targetImage.height);
-		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
-
-		// Compute new baseline
-		target.baseline = utils.baselineSimilarity(target.image);
-
-		// Compute tensor version of image
-		target.tensor = target.image.toTensor();
-
-		targetNeedsRefresh = false;
-	}
-}
-
+// --------------------------------------------------------------------------------------
 
 function renderCanvasProxy(geo, viewport) {
 	var canvas = $('#resultsDisplay')[0];
@@ -3374,41 +3351,72 @@ function renderLightning(geo, viewport) {
 	compositeGLPixelsToCanvas(canvas, gl);
 }
 
+// --------------------------------------------------------------------------------------
 
-// This will hold the compiled webppl function that is ready to go
-var prepared = undefined;
+// Statically load the webppl source code
+var programs = {
+	lightning: {
+		code: "// ----------------------------------------------------------------------------\n// Globals / constants\n\n// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Render update\nvar renderUpdate = function(geo) {\n\tutils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tutils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = utils.rendering.copyImgFromRenderContext();\n};\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = utils.normalizedSimilarity(globalStore.genImg, target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// // Set up ERPs (either normal or neurally-guided)\n\t// var makeSampler = function(erpName, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t// \tvar n = bounds.length;\n\t// \treturn !neurallyGuided ? \n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t// \t\tverp.importanceERP.setParams(vparams);\n\t// \t\treturn sample(verp, params);\n\t// \t};\n\t// };\n\t// var makeMixtureSampler = function(erpName, nComps, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t// \tvar n = bounds.length;\n\t// \t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t// \t//    this will help keep things regularized...)\n\t// \tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t// \tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t// \tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t// \treturn !neurallyGuided ?\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t// \t\tvar ws = vparams.slice(0, nComps);\n\t// \t\tvar ps = group(vparams.slice(nComps), n);\n\t// \t\tverp.importanceERP.setParams([ws, ps]);\n\t// \t\treturn sample(verp, params);\n\t// \t}\n\t// };\n\t// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\t// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\t// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\n\tvar _gaussian = function(mu, sigma, state, name) {\n\t\treturn sample(Gaussian({mu: mu, sigma: sigma}));\n\t};\n\n\tvar _flip = function(p, state, name) {\n\t\treturn sample(Bernoulli({p: p}));\n\t};\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\tvar w = target.image.width;\n\t\tvar h = target.image.height;\n\t\tglobalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(target.startPos);\n\t\tvar starting_dir = target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n\n// var rets = {\n// \tgenerate: makeProgram(false),\n// \tgenerateGuided: makeProgram(true),\n// \tviewport: viewport,\n// \tglobalStore: globalStore,\n// \tenvironment: env\n// };\n// rets;\n\nvar generate = makeProgram(false);\n// var dist = Infer({method: 'forward'}, generate);\nvar dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);\nvar samp = sample(dist);\nvar ret = {\n\tviewport: viewport,\n\tsamp: samp\n};\nret;\n\n\n\n\n\n",
+		render: renderLightning
+	},
+	vines: {
+		code: "// ----------------------------------------------------------------------------\n// Globals / constants\n\n// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?\nvar futurePolicy = 'immediate';\n// var futurePolicy = 'lifo';\n// var futurePolicy = 'fifo';\n// var futurePolicy = 'uniformFromAll';\n// var futurePolicy = 'uniformFromDeepest';\n// var futurePolicy = 'depthWeighted';\nsetFuturePolicy(futurePolicy);\n\n\nvar viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};\nvar norm2world = function(p) {\n\treturn utils.new(THREE.Vector2,\n\t\tviewport.xmin + p.x*(viewport.xmax - viewport.xmin), \n\t\tviewport.ymin + p.y*(viewport.ymax - viewport.ymin)\n\t);\t\n}\n\n// ----------------------------------------------------------------------------\n// Factor encouraging similarity to target image\n\n\n// Render update\nvar renderUpdate = function(geo) {\n\tutils.rendering.drawImgToRenderContext(globalStore.genImg);\n\tutils.rendering.renderIncr(geo, viewport);\n\tglobalStore.genImg = utils.rendering.copyImgFromRenderContext();\n};\n\n\n// Basically Gaussian log-likelihood, without the constant factor\nvar makescore = function(val, target, tightness) {\n\tvar diff = val - target;\n\treturn - (diff * diff) / (tightness * tightness);\n}\n\nvar simTightness = 0.02;\nvar boundsTightness = 0.001;\nvar targetFactor = function() {\n\trenderUpdate(globalStore.geo);\n\t// Similarity factor\n\tvar sim = utils.normalizedSimilarity(globalStore.genImg, target);\n\tglobalStore.sim = sim;\n\tvar simf = makescore(sim, 1, simTightness);\n\t// Bounds factors\n\tvar bbox = globalStore.bbox;\n\tvar extraX = (Math.max(viewport.xmin - bbox.min.x, 0) + Math.max(bbox.max.x - viewport.xmax, 0)) / (viewport.xmax - viewport.xmin);\n\tvar extraY = (Math.max(viewport.ymin - bbox.min.y, 0) + Math.max(bbox.max.y - viewport.ymax, 0)) / (viewport.ymax - viewport.ymin);\n\tvar boundsfx = makescore(extraX, 0, boundsTightness);\n\tvar boundsfy = makescore(extraY, 0, boundsTightness);\n\tvar f = simf + boundsfx + boundsfy;\n\tif (globalStore.prevFactor) {\n\t\tfactor(f - globalStore.prevFactor);\n\t} else {\n\t\tfactor(f);\n\t}\n\tglobalStore.prevFactor = f;\n};\n\n\n// ----------------------------------------------------------------------------\n// The program itself\n\n\nvar makeProgram = function(neurallyGuided) {\n\n\t// // Set up ERPs (either normal or neurally-guided)\n\t// var makeSampler = function(erpName, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'ERP']);\n\t// \tvar n = bounds.length;\n\t// \treturn !neurallyGuided ? \n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);\n\t// \t\tverp.importanceERP.setParams(vparams);\n\t// \t\treturn sample(verp, params);\n\t// \t};\n\t// };\n\t// var makeMixtureSampler = function(erpName, nComps, bounds) {\n\t// \tvar erp = global[erpName + 'ERP'];\n\t// \tvar verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);\n\t// \tvar n = bounds.length;\n\t// \t// Keep weights between [0,1] (only need to keep them nonnegative, but I think\n\t// \t//    this will help keep things regularized...)\n\t// \tvar weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });\n\t// \tvar paramBounds = repeat(nComps, function() { return bounds; });\n\t// \tvar allBounds = weightBounds.concat(flatten(paramBounds));\n\t// \treturn !neurallyGuided ?\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\treturn sample(erp, params);\n\t// \t}\n\t// \t:\n\t// \tfunction() {\n\t// \t\tvar params = Array.prototype.slice.call(arguments, 0, n);\n\t// \t\tvar localState = arguments[n];\n\t// \t\tvar name = arguments[n+1];\t// TODO: replace with callsite id?\n\t// \t\tvar vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);\n\t// \t\tvar ws = vparams.slice(0, nComps);\n\t// \t\tvar ps = group(vparams.slice(nComps), n);\n\t// \t\tverp.importanceERP.setParams([ws, ps]);\n\t// \t\treturn sample(verp, params);\n\t// \t}\n\t// };\n\t// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);\n\t// // var _gaussian = makeMixtureSampler('gaussian', 1, [undefined, ad.scalar.exp]);\n\t// // var _gaussian = makeMixtureSampler('gaussian', 2, [undefined, ad.scalar.exp]);\n\t// // var _gaussian = makeMixtureSampler('gaussian', 3, [undefined, ad.scalar.exp]);\n\t// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);\n\t// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);\n\t// var _discrete3 = makeSampler('discrete', [ad.scalar.sigmoid, ad.scalar.sigmoid, ad.scalar.sigmoid]);\n\n\tvar _gaussian = function(mu, sigma, state, name) {\n\t\treturn sample(Gaussian({mu: mu, sigma: sigma}));\n\t};\n\n\tvar _flip = function(p, state, name) {\n\t\treturn sample(Bernoulli({p: p}));\n\t};\n\n\tvar _discrete3 = function(p0, p1, p2, state, name) {\n\t\treturn sample(Discrete({ps: [p0, p1, p2]}));\n\t};\n\n\tvar addBranch = function(newbranch, currState) {\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'branch',\n\t\t\tbranch: newbranch,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.branch(newbranch));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\t};\n\n\tvar addLeaf = function(newleaf, currState) {\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'leaf',\n\t\t\tleaf: newleaf,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.leaf(newleaf));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\t};\n\n\tvar addFlower = function(newflower, currState) {\n\t\t// Update model state\n\t\tglobalStore.geo = {\n\t\t\ttype: 'flower',\n\t\t\tflower: newflower,\n\t\t\tnext: globalStore.geo,\n\t\t\tparent: currState.prevBranch,\n\t\t\tn: globalStore.geo ? globalStore.geo.n + 1 : 1\n\t\t};\n\t\tglobalStore.bbox = globalStore.bbox.clone().union(utils.bboxes.flower(newflower));\n\n\t\t// Add new heuristic factor\n\t\ttargetFactor();\n\t}\n\n\n\tvar initialWidth = 0.75;\n\tvar widthDecay = 0.975;\n\tvar minWidthPercent = 0.15;\n\tvar minWidth = minWidthPercent*initialWidth;\n\tvar leafAspect = 2.09859154929577;\n\tvar leafWidthMul = 1.3;\n\tvar flowerRadMul = 1;\n\n\tvar state = function(obj) {\n\t\treturn {\n\t\t\tdepth: obj.depth,\n\t\t\tpos: obj.pos,\n\t\t\tangle: obj.angle,\n\t\t\twidth: obj.width,\n\t\t\tprevBranch: obj.prevBranch,\n\t\t\tfeatures: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined\n\t\t};\n\t};\n\n\tvar polar2rect = function(r, theta) {\n\t\treturn utils.new(THREE.Vector2, r*Math.cos(theta), r*Math.sin(theta));\n\t};\n\n\tvar lOpts = ['none', 'left', 'right'];\n\tvar lProbs = [1, 1, 1];\n\tvar branch = function(currState) {\n\n\t\t// Generate new branch\n\t\tvar width = widthDecay * currState.width;\n\t\tvar length = 2;\n\t\tvar newang = currState.angle + _gaussian(0, Math.PI/8, currState, 'angle');\n\t\tvar newbranch = {\n\t\t\tstart: currState.pos,\n\t\t\tangle: newang,\n\t\t\twidth: width,\n\t\t\tend: polar2rect(length, newang).add(currState.pos)\n\t\t};\n\t\taddBranch(newbranch, currState);\n\n\t\tvar newState = state({\n\t\t\tdepth: currState.depth + 1,\n\t\t\tpos: newbranch.end,\n\t\t\tangle: newbranch.angle,\n\t\t\twidth: newbranch.width,\n\t\t\tprevBranch: globalStore.geo\n\t\t});\n\n\t\t// Generate leaf?\n\t\tfuture(function() {\n\t\t\tvar leafOpt = lOpts[_discrete3(lProbs[0], lProbs[1], lProbs[2], newState, 'leaf')];\n\t\t\tif (leafOpt !== 'none') {\n\t\t\t\tvar lwidth = leafWidthMul * initialWidth;\n\t\t\t\tvar llength = lwidth * leafAspect;\n\t\t\t\tvar angmean = (leafOpt === 'left') ? Math.PI/4 : -Math.PI/4;\n\t\t\t\tvar langle = newbranch.angle + _gaussian(angmean, Math.PI/12, newState, 'leafAngle');\n\t\t\t\tvar lstart = newbranch.start.clone().lerp(newbranch.end, 0.5);\n\t\t\t\tvar lend = polar2rect(llength, langle).add(lstart);\n\t\t\t\tvar lcenter = lstart.clone().add(lend).multiplyScalar(0.5);\n\t\t\t\taddLeaf({\n\t\t\t\t\tlength: llength,\n\t\t\t\t\twidth: lwidth,\n\t\t\t\t\tangle: langle,\n\t\t\t\t\tcenter: lcenter\n\t\t\t\t}, newState);\n\t\t\t}\n\t\t});\n\n\t\t// Generate flower?\n\t\tfuture(function() {\n\t\t\tif (_flip(0.5, newState, 'flower')) {\n\t\t\t\taddFlower({\n\t\t\t\t\tcenter: newbranch.end,\n\t\t\t\t\tradius: flowerRadMul * initialWidth,\n\t\t\t\t\tangle: newbranch.angle\n\t\t\t\t}, newState);\n\t\t\t}\n\t\t});\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.step(globalStore, newState);\n\t\t}\n\n\t\t// Terminate?\n\t\tfuture(function() {\n\t\t\tvar terminateProb = 0.5;\n\t\t\tif (_flip(terminateProb, newState, 'terminate')) {\n\t\t\t\tglobalStore.terminated = true;\n\t\t\t} else {\n\t\t\t\t// Generate no further branches w/ prob 1/3\n\t\t\t\t// Generate one further branch w/ prob 1/3\n\t\t\t\t// Generate two further branches w/ prob 1/3\n\t\t\t\tfuture(function() {\n\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {\n\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\tfuture(function() {\n\t\t\t\t\t\t\tif (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {\n\t\t\t\t\t\t\t\tbranch(newState);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t// else factor(0);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\t// else factor(0);\n\t\t\t\t});\n\t\t\t}\n\t\t});\n\t};\n\n\tvar generate = function() {\n\t\t// Constants needed by the guide architecture\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.constant('viewport', viewport);\n\t\t\tglobalStore.nnGuide.constant('initialWidth', initialWidth);\n\t\t\tglobalStore.nnGuide.constant('minWidth', minWidth);\n\t\t}\n\t\n\t\tvar w = target.image.width;\n\t\tvar h = target.image.height;\n\t\tglobalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);\n\n\t\tif (neurallyGuided) {\n\t\t\tglobalStore.nnGuide.init(globalStore);\n\t\t}\n\t\t\n\t\tglobalStore.geo = undefined;\n\t\tglobalStore.bbox = utils.new(THREE.Box2);\n\n\t\t// Determine starting state by inverting viewport transform\n\t\tvar starting_world_pos = norm2world(target.startPos);\n\t\tvar starting_dir = target.startDir;\n\t\tvar starting_ang = Math.atan2(starting_dir.y, starting_dir.x);\n\n\t\t// These are separated like this so that we can have an initial local\n\t\t//    state to feed to the _gaussian for the initial angle.\n\t\tvar initState = state({\n\t\t\tdepth: 0,\n\t\t\tpos: starting_world_pos,\n\t\t\tangle: 0,\n\t\t\twidth: initialWidth,\n\t\t\tprevBranch: undefined\n\t\t});\n\t\tvar startState = state({\n\t\t\tdepth: initState.depth,\n\t\t\tpos: initState.pos,\n\t\t\tangle: _gaussian(starting_ang, Math.PI/6, initState, 'startAngle'),\n\t\t\twidth: initState.width,\n\t\t\tprevBranch: initState.prevBranch\n\t\t});\n\n\t\tfuture(function() { branch(startState); });\n\t\tfinishAllFutures();\n\n\t\treturn globalStore.geo;\n\t};\n\n\treturn generate;\n}\n\n\n// ----------------------------------------------------------------------------\n\n// var rets = {\n// \tgenerate: makeProgram(false),\n// \tgenerateGuided: makeProgram(true),\n// \tviewport: viewport,\n// \tglobalStore: globalStore,\n// \tenvironment: env\n// };\n// rets;\n\nvar generate = makeProgram(false);\n// var dist = Infer({method: 'forward'}, generate);\nvar dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);\nvar samp = sample(dist);\nvar ret = {\n\tviewport: viewport,\n\tsamp: samp\n};\nret;\n\n\n\n\n",
+		render: renderVines
+	}
+};
 
-function compile() {
+
+function compile(program) {
 	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
-	var compiled = webppl.compile(wpplCode);
-	prepared = webppl.prepare(compiled, function(s, retval) {
+	var compiled = webppl.compile(program.code);
+	program.prepared = webppl.prepare(compiled, function(s, retval) {
 		console.log('done');
 		// Draw to result canvas
-		// renderCanvasProxy(retval.samp, retval.viewport);
-		// renderVines(retval.samp, retval.viewport);
-		renderLightning(retval.samp, retval.viewport);
+		program.render(retval.samp, retval.viewport);
 	});
 }
 
+// Prepare target for inference (downsample image, compute baseline, etc.)
+function prepareTarget() {
+	if (targetNeedsRefresh) {
+		// Downsample sketch image
+		var sketchCanvas = $('#sketchInput')[0];
+		var targetImage = $('#loResTarget')[0];
+		var ctx = targetImage.getContext('2d');
+		ctx.drawImage(sketchCanvas,
+			0, 0, sketchCanvas.width, sketchCanvas.height,
+			0, 0, targetImage.width, targetImage.height);
+		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
+
+		// Compute new baseline
+		target.baseline = utils.baselineSimilarity(target.image);
+
+		// Compute tensor version of image
+		target.tensor = target.image.toTensor();
+
+		targetNeedsRefresh = false;
+	}
+}
+
+
 function generate() {
+	var program = programs[whichProgram];
 	// Compile code, if that hasn't been done yet
-	if (prepared === undefined) {
-		compile();
+	if (program.prepared === undefined) {
+		compile(program);
 	}
 
 	// Downsample the target image from the sketch canvas, etc.
 	prepareTarget();
 
 	// Run program!
-	prepared.run();
+	program.prepared.run();
 }
 
+// --------------------------------------------------------------------------------------
+
+// Initialization logic
 $(window).load(function(){
-	// Put the initial target image into the sketch canvas
-	var sketchCanvas = $('#sketchInput')[0];
-	var ctx = sketchCanvas.getContext("2d");
-	var image = $('#initialTarget')[0];
-	ctx.drawImage(image, 0, 0);
 
 	// Register which canvas the rendering system should use during inference
 	utils.rendering.init($('#loResResult')[0]);
@@ -3416,15 +3424,42 @@ $(window).load(function(){
 	// Set up event listener for generation
 	$('#generate').click(generate);
 
+	// Set up event listener for changing which program to run
+	$('input:radio[name="whichProgram"]').change(
+	    function(){
+	        if (this.checked) {
+	        	whichProgram = this.value;
+	    	}
+    	}
+    );
+
+    // Put the initial target image into the sketch canvas
+	var sketchCanvas = $('#sketchInput')[0];
+	function resetTarget() {
+		var ctx = sketchCanvas.getContext("2d");
+		var image = $('#initialTarget')[0];
+		ctx.drawImage(image, 0, 0);
+		targetNeedsRefresh = true;
+	}
+	resetTarget();
+
+	// Wire up the sketch canvas
+	var sketch = new Sketch(sketchCanvas, 20, function() {
+		targetNeedsRefresh = true;
+	});
+	$('#clearTargetShape').click(function() {
+		sketch.clear();
+		targetNeedsRefresh = true;
+	});
+	$('#resetTarget').click(resetTarget);
+
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');
-	render.loadAssets(gl, function() {
-		//
-	});
+	render.loadAssets(gl, function() {});
 });
 
 
-},{"./futures":19,"./render":21,"./utils":23,"assert":24,"fs":25,"three":27}],21:[function(require,module,exports){
+},{"./futures":19,"./render":21,"./sketch":22,"./utils":24,"assert":25,"fs":26,"three":28}],21:[function(require,module,exports){
 // NOTE: throughout this file, the context 'gl' is passed to functions.
 //    However, we assume that these functions only ever see one such
 //    context during the lifetime of the program.
@@ -4205,7 +4240,73 @@ module.exports = render
 
 
 
-},{"fs":25,"three":27}],22:[function(require,module,exports){
+},{"fs":26,"three":28}],22:[function(require,module,exports){
+
+function Sketch(canvas, size, drawCallback) {
+	this.canvas = canvas;
+	this.canvasjq = $(canvas);
+	this.context = canvas.getContext('2d');
+	this.size = size;
+	this.drawCallback = drawCallback;
+	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
+};
+
+Sketch.prototype.onEvent = function(e) {
+	if (e.originalEvent && e.originalEvent.targetTouches) {
+		e.pageX = e.originalEvent.targetTouches[0].pageX;
+		e.pageY = e.originalEvent.targetTouches[0].pageY;
+	}
+	e.preventDefault();
+
+	var x = e.pageX - this.canvasjq.offset().left;
+	var y = e.pageY - this.canvasjq.offset().top;
+
+	// Start drawing
+	if (e.type === 'mousedown' || e.type === 'touchstart') {
+		this.drawing = true;
+		this.x = x;
+		this.y = y;
+	}
+
+	// Drawing
+	if (this.drawing) {
+		// Begin path
+		this.context.lineJoin = "round";
+		this.context.lineCap = "round";
+		this.context.beginPath();
+
+		// Draw
+		this.context.moveTo(this.x, this.y);
+		this.context.lineTo(x, y);
+		this.x = x; this.y = y;
+
+		// End path
+		this.context.strokeStyle = 'black';
+		this.context.lineWidth = this.size;
+		this.context.stroke();
+
+		this.drawCallback();
+	}
+
+	// Stop drawing
+	if (e.type === 'mouseup' || e.type === 'mouseleave' || e.type === 'mouseout' ||
+		e.type === 'touchend' || e.type === 'touchcancel') {
+		this.drawing = false;
+	}
+
+	return false;
+};
+
+Sketch.prototype.clear = function() {
+	this.context.fillStyle = 'white';
+	this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+};
+
+module.exports = Sketch;
+
+
+
+},{}],23:[function(require,module,exports){
 var nn = require('adnn/nn');
 var Tensor = require('adnn/tensor');
 
@@ -4247,7 +4348,7 @@ function sobel(img) {
 module.exports = {
 	sobel: sobel, 
 };
-},{"adnn/nn":7,"adnn/tensor":17}],23:[function(require,module,exports){
+},{"adnn/nn":7,"adnn/tensor":17}],24:[function(require,module,exports){
 var fs = require('fs');
 var assert = require('assert');
 var Tensor = require('adnn/tensor');
@@ -4656,7 +4757,7 @@ module.exports = {
 
 
 
-},{"./render.js":21,"./sobel.js":22,"adnn/tensor":17,"assert":24,"fs":25,"three":27}],24:[function(require,module,exports){
+},{"./render.js":21,"./sobel.js":23,"adnn/tensor":17,"assert":25,"fs":26,"three":28}],25:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -5017,9 +5118,9 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":30}],25:[function(require,module,exports){
+},{"util/":31}],26:[function(require,module,exports){
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5201,7 +5302,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -47500,7 +47601,7 @@ process.umask = function() { return 0; };
 
 })));
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -47525,14 +47626,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -48122,4 +48223,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":29,"_process":26,"inherits":28}]},{},[20]);
+},{"./support/isBuffer":30,"_process":27,"inherits":29}]},{},[20]);

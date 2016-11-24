@@ -4,6 +4,7 @@ var fs = require('fs');
 var THREE = require('three');
 var utils = require('./utils');
 var render = require('./render');
+var Sketch = require('./sketch');
 var futures = require('./futures');
 
 // Globally install modules that webppl code needs
@@ -13,6 +14,8 @@ window.utils = utils;
 for (var prop in futures) {
 	window[prop] = futures[prop];
 }
+
+// --------------------------------------------------------------------------------------
 
 // App state
 var target = {
@@ -24,6 +27,7 @@ var target = {
 };
 window.target = target;
 var targetNeedsRefresh = true;
+var whichProgram = 'vines';
 
 
 // Initialize the start pos, start dir for the initial target image
@@ -34,34 +38,7 @@ var dir = coordlines[1].split(' ');
 target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
 target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
-
-// Statically load the webppl source code
-// TODO: also load vinesLeafFlower version.
-var wpplCode = fs.readFileSync(__dirname + '/../wppl/vines_targetImage.wppl');
-
-
-// Prepare target for inference (downsample image, compute baseline, etc.)
-function prepareTarget() {
-	if (targetNeedsRefresh) {
-		// Downsample sketch image
-		var sketchCanvas = $('#sketchInput')[0];
-		var targetImage = $('#loResTarget')[0];
-		var ctx = targetImage.getContext('2d');
-		ctx.drawImage(sketchCanvas,
-			0, 0, sketchCanvas.width, sketchCanvas.height,
-			0, 0, targetImage.width, targetImage.height);
-		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
-
-		// Compute new baseline
-		target.baseline = utils.baselineSimilarity(target.image);
-
-		// Compute tensor version of image
-		target.tensor = target.image.toTensor();
-
-		targetNeedsRefresh = false;
-	}
-}
-
+// --------------------------------------------------------------------------------------
 
 function renderCanvasProxy(geo, viewport) {
 	var canvas = $('#resultsDisplay')[0];
@@ -130,41 +107,72 @@ function renderLightning(geo, viewport) {
 	compositeGLPixelsToCanvas(canvas, gl);
 }
 
+// --------------------------------------------------------------------------------------
 
-// This will hold the compiled webppl function that is ready to go
-var prepared = undefined;
+// Statically load the webppl source code
+var programs = {
+	lightning: {
+		code: fs.readFileSync(__dirname + '/../wppl/lightning.wppl'),
+		render: renderLightning
+	},
+	vines: {
+		code: fs.readFileSync(__dirname + '/../wppl/vines.wppl'),
+		render: renderVines
+	}
+};
 
-function compile() {
+
+function compile(program) {
 	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
-	var compiled = webppl.compile(wpplCode);
-	prepared = webppl.prepare(compiled, function(s, retval) {
+	var compiled = webppl.compile(program.code);
+	program.prepared = webppl.prepare(compiled, function(s, retval) {
 		console.log('done');
 		// Draw to result canvas
-		// renderCanvasProxy(retval.samp, retval.viewport);
-		// renderVines(retval.samp, retval.viewport);
-		renderLightning(retval.samp, retval.viewport);
+		program.render(retval.samp, retval.viewport);
 	});
 }
 
+// Prepare target for inference (downsample image, compute baseline, etc.)
+function prepareTarget() {
+	if (targetNeedsRefresh) {
+		// Downsample sketch image
+		var sketchCanvas = $('#sketchInput')[0];
+		var targetImage = $('#loResTarget')[0];
+		var ctx = targetImage.getContext('2d');
+		ctx.drawImage(sketchCanvas,
+			0, 0, sketchCanvas.width, sketchCanvas.height,
+			0, 0, targetImage.width, targetImage.height);
+		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
+
+		// Compute new baseline
+		target.baseline = utils.baselineSimilarity(target.image);
+
+		// Compute tensor version of image
+		target.tensor = target.image.toTensor();
+
+		targetNeedsRefresh = false;
+	}
+}
+
+
 function generate() {
+	var program = programs[whichProgram];
 	// Compile code, if that hasn't been done yet
-	if (prepared === undefined) {
-		compile();
+	if (program.prepared === undefined) {
+		compile(program);
 	}
 
 	// Downsample the target image from the sketch canvas, etc.
 	prepareTarget();
 
 	// Run program!
-	prepared.run();
+	program.prepared.run();
 }
 
+// --------------------------------------------------------------------------------------
+
+// Initialization logic
 $(window).load(function(){
-	// Put the initial target image into the sketch canvas
-	var sketchCanvas = $('#sketchInput')[0];
-	var ctx = sketchCanvas.getContext("2d");
-	var image = $('#initialTarget')[0];
-	ctx.drawImage(image, 0, 0);
 
 	// Register which canvas the rendering system should use during inference
 	utils.rendering.init($('#loResResult')[0]);
@@ -172,10 +180,37 @@ $(window).load(function(){
 	// Set up event listener for generation
 	$('#generate').click(generate);
 
+	// Set up event listener for changing which program to run
+	$('input:radio[name="whichProgram"]').change(
+	    function(){
+	        if (this.checked) {
+	        	whichProgram = this.value;
+	    	}
+    	}
+    );
+
+    // Put the initial target image into the sketch canvas
+	var sketchCanvas = $('#sketchInput')[0];
+	function resetTarget() {
+		var ctx = sketchCanvas.getContext("2d");
+		var image = $('#initialTarget')[0];
+		ctx.drawImage(image, 0, 0);
+		targetNeedsRefresh = true;
+	}
+	resetTarget();
+
+	// Wire up the sketch canvas
+	var sketch = new Sketch(sketchCanvas, 20, function() {
+		targetNeedsRefresh = true;
+	});
+	$('#clearTargetShape').click(function() {
+		sketch.clear();
+		targetNeedsRefresh = true;
+	});
+	$('#resetTarget').click(resetTarget);
+
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');
-	render.loadAssets(gl, function() {
-		//
-	});
+	render.loadAssets(gl, function() {});
 });
 
