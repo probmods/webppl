@@ -119,7 +119,7 @@ module.exports = function(env) {
       if (options.keepParamsHistory) {
         // Open file and write JSON array
         paramsFile = fs.openSync(options.checkpointParamsFilename, 'w');
-        paramsFileLength += fs.writeSync(paramsFile, "[]");
+        paramsFileLength += fs.writeSync(paramsFile, '[]');
       }
 
       saveParams = function() {
@@ -134,12 +134,15 @@ module.exports = function(env) {
         });
 
         if (options.keepParamsHistory) {
-          var sep = paramsNcalls? ",\n": ""; // All param objects except the first need ',' prefix to be concatenated correctly to the JSON array
-          paramsFileLength--; // Ignore last character ']' so that we overwrite it to append the new param object
-          paramsFileLength += fs.writeSync(paramsFile, sep + JSON.stringify(prms) + "]", paramsFileLength);
+          // All param objects except the first need ',' prefix to be concatenated correctly to the JSON array
+          var sep = paramsNcalls ? ',\n' : '';
+          // Ignore last character ']' so that we overwrite it to append the new param object
+          paramsFileLength--;
+          paramsFileLength += fs.writeSync(paramsFile, sep + JSON.stringify(prms) + ']', paramsFileLength);
         }
         else {
-          paramsFileLength = fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms)); // Overwrite previous params with new ones
+          // Overwrite previous params with new ones
+          paramsFileLength = fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
         }
         paramsNcalls++;
       };
