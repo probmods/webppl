@@ -200,14 +200,18 @@ $(window).load(function(){
 	resetTarget();
 
 	// Wire up the sketch canvas
-	var sketch = new Sketch(sketchCanvas, 20, function() {
-		targetNeedsRefresh = true;
+	var sketch = new Sketch(sketchCanvas, {
+		size: 20,
+		drawCallback: function() { targetNeedsRefresh = true; }
 	});
 	$('#clearTargetShape').click(function() {
 		sketch.clear();
 		targetNeedsRefresh = true;
 	});
-	$('#resetTarget').click(resetTarget);
+	$('#resetTarget').click(function() {
+		sketch.clear();
+		resetTarget();
+	});
 
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');

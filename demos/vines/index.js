@@ -3444,14 +3444,18 @@ $(window).load(function(){
 	resetTarget();
 
 	// Wire up the sketch canvas
-	var sketch = new Sketch(sketchCanvas, 20, function() {
-		targetNeedsRefresh = true;
+	var sketch = new Sketch(sketchCanvas, {
+		size: 20,
+		drawCallback: function() { targetNeedsRefresh = true; }
 	});
 	$('#clearTargetShape').click(function() {
 		sketch.clear();
 		targetNeedsRefresh = true;
 	});
-	$('#resetTarget').click(resetTarget);
+	$('#resetTarget').click(function() {
+		sketch.clear();
+		resetTarget();
+	});
 
 	// Load all the rendering assets
 	var gl = $('#glCanvas')[0].getContext('webgl');
@@ -4242,12 +4246,12 @@ module.exports = render
 
 },{"fs":26,"three":28}],22:[function(require,module,exports){
 
-function Sketch(canvas, size, drawCallback) {
+function Sketch(canvas, options) {
 	this.canvas = canvas;
 	this.canvasjq = $(canvas);
 	this.context = canvas.getContext('2d');
-	this.size = size;
-	this.drawCallback = drawCallback;
+	this.size = options.size;
+	this.drawCallback = options.drawCallback;
 	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
 };
 

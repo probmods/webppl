@@ -1,10 +1,10 @@
 
-function Sketch(canvas, size, drawCallback) {
+function Sketch(canvas, options) {
 	this.canvas = canvas;
 	this.canvasjq = $(canvas);
 	this.context = canvas.getContext('2d');
-	this.size = size;
-	this.drawCallback = drawCallback;
+	this.size = options.size;
+	this.drawCallback = options.drawCallback;
 	this.canvasjq.bind('click mousedown mouseup mousemove mouseleave mouseout touchstart touchmove touchend touchcancel', this.onEvent.bind(this));
 };
 
