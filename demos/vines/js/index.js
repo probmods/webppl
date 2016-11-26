@@ -6,6 +6,7 @@ var utils = require('./utils');
 var render = require('./render');
 var Sketch = require('./sketch');
 var VecDraw = require('./vecdraw');
+var nnarch = require('./nnarch');
 var futures = require('./futures');
 
 // Globally install modules that webppl code needs
@@ -15,6 +16,9 @@ window.utils = utils;
 for (var prop in futures) {
 	window[prop] = futures[prop];
 }
+
+// Load the guide neural net architecture
+nnarch.addArch('pyramid_linearfilters_targetAndGen', require('./nnarch/architectures/pyramid_linearfilters_targetAndGen'));
 
 // --------------------------------------------------------------------------------------
 
@@ -27,6 +31,7 @@ var target = {
 	startDir: undefined,
 };
 window.target = target;
+window.nnGuide = undefined;
 var targetNeedsRefresh = true;
 var whichProgram = 'vines';
 
@@ -114,17 +119,19 @@ function renderLightning(geo, viewport) {
 
 // Statically load the webppl source code
 var programs = {
-	lightning: {
-		file: 'wppl/lightning.wppl',
-		render: renderLightning
-	},
 	vines: {
-		file: 'wppl/vines.wppl',
+		codeFile: 'wppl/vines.wppl',
+		paramsFile: 'params/vines.json',
 		render: renderVines
+	},
+	lightning: {
+		codeFile: 'wppl/lightning.wppl',
+		paramsFile: 'params/lightning.json',
+		render: renderLightning
 	}
 };
 
-function loadCodeFile(filename, callback) {
+function loadTextFile(filename, callback) {
 	$.ajax({
 		async: true,
 		dataType: 'text',
@@ -136,32 +143,39 @@ function loadCodeFile(filename, callback) {
 }
 
 function compile(program, callback) {
-	assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
-	loadCodeFile(program.file, function(code) {
-		var compiled = webppl.compile(code);
-		program.prepared = webppl.prepare(compiled, function(s, retval) {
-			// Draw to result canvas
-			program.render(retval.samp, retval.viewport);
-		});
+	// Return right away if program is already compiled
+	if (program.prepared) {
 		callback();
-	});
-}
-
-function run() {
-	programs[whichProgram].prepared.run();
+	} else {
+		// Load code file, compile it
+		loadTextFile(program.codeFile, function(code) {
+			assert(typeof(webppl) !== 'undefined', 'webppl is not loaded!')
+			var compiled = webppl.compile(code);
+			program.prepared = webppl.prepare(compiled, function(s, retval) {
+				// Draw to result canvas
+				program.render(retval.samp, retval.viewport);
+			});
+			// Load params file
+			loadTextFile(program.paramsFile, function(paramsJSON) {
+				program.nnarch = nnarch.loadFromJSON(paramsJSON);
+				// Return
+				callback();
+			});
+		});
+	}
 }
 
 function generate() {
 	// Downsample the target image from the sketch canvas, etc.
 	prepareTarget();
 
-	// Compile code, if that hasn't been done yet
+	// Check if program needs compiling, then run it
 	var program = programs[whichProgram];
-	if (program.prepared === undefined) {
-		compile(program, run);
-	} else {
-		run();
-	}
+	compile(program, function() {
+		// Make the program's guide networks globally available
+		window.nnGuide = program.nnarch;
+		program.prepared.run();
+	});
 }
 
 // Prepare target for inference (downsample image, compute baseline, etc.)
@@ -221,7 +235,7 @@ $(window).load(function(){
 
 	// Wire up the sketch canvas
 	var sketch = new Sketch(sketchCanvas, {
-		size: 20,
+		size: 60,
 		callback: function() { targetNeedsRefresh = true; }
 	});
 

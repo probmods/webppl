@@ -57,12 +57,12 @@ module.exports = NNArch.subclass(require('./localFeatures'), archname, {
 	init: function(globalStore) {
 		// Construct target pyramid
 		if (this.training) {
-			globalStore.pyramid = this.constructTargetPyramid(globalStore.target.tensor);
+			globalStore.pyramid = this.constructTargetPyramid(this.constants.target.tensor);
 		} else {
-			if (globalStore.target.pyramid === undefined) {
-				globalStore.target.pyramid = this.constructTargetPyramid(globalStore.target.tensor);
+			if (this.constants.target.pyramid === undefined) {
+				this.constants.target.pyramid = this.constructTargetPyramid(this.constants.target.tensor);
 			}
-			globalStore.pyramid = globalStore.target.pyramid;
+			globalStore.pyramid = this.constants.target.pyramid;
 		}
 		// Construct image so far pyramid 
 		this.constructImageSoFarPyramid(globalStore);
@@ -88,8 +88,8 @@ module.exports = NNArch.subclass(require('./localFeatures'), archname, {
 	predict: function(globalStore, localState, name, paramBounds) {
 		// Extract pixel neighborhood at each pyramid level, concat into
 		//    one vector (along with local features)
-		var outOfBoundsValsTarget = ad.tensorToScalars(this.outOfBounds('target_outOfBounds').eval());
-		var outOfBoundsValsSoFar = ad.tensorToScalars(this.outOfBounds('gen_outOfBounds').eval());
+		var outOfBoundsValsTarget = ad.tensor.toScalars(this.outOfBounds('target_outOfBounds').eval());
+		var outOfBoundsValsSoFar = ad.tensor.toScalars(this.outOfBounds('gen_outOfBounds').eval());
 		var features = new Array(this.nTotalFeatures);
 		var v = this.constants.viewport;
 		var x = normalize(localState.pos.x, v.xmin, v.xmax);
@@ -108,11 +108,11 @@ module.exports = NNArch.subclass(require('./localFeatures'), archname, {
 					for (var wx = cx - 1; wx <= cx + 1; wx++) {
 						var imgidx = wx + imgsize*(wy + imgsize*j);
 						var inbounds = wx >= 0 && wx < imgsize && wy >= 0 && wy < imgsize;
-						features[fidx] = inbounds ? ad.tensorEntry(img, imgidx) : outOfBoundsTarget;
+						features[fidx] = inbounds ? ad.tensor.get(img, imgidx) : outOfBoundsTarget;
 						fidx++;
 						
 						//Adding image so far to features
-						features[fidx] = inbounds ? ad.tensorEntry(imgSoFar, imgidx) : outOfBoundsSoFar;
+						features[fidx] = inbounds ? ad.tensor.get(imgSoFar, imgidx) : outOfBoundsSoFar;
 						fidx++;
 					}
 				}
@@ -121,7 +121,7 @@ module.exports = NNArch.subclass(require('./localFeatures'), archname, {
 		for (var i = 0; i < this.nLocalFeatures; i++, fidx++) {
 			features[fidx] = localState.features.data[i];
 		}
-		features = ad.scalarsToTensor(features);
+		features = ad.tensor.fromScalars(features);
 
 		// Feed features into MLP
 		var nOut = paramBounds.length;

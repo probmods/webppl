@@ -66,62 +66,41 @@ var targetFactor = function() {
 
 var makeProgram = function(neurallyGuided) {
 
-	// // Set up ERPs (either normal or neurally-guided)
-	// var makeSampler = function(erpName, bounds) {
-	// 	var erp = global[erpName + 'ERP'];
-	// 	var verp = withImportanceDist(erp, Variational[erpName + 'ERP']);
-	// 	var n = bounds.length;
-	// 	return !neurallyGuided ? 
-	// 	function() {
-	// 		var params = Array.prototype.slice.call(arguments, 0, n);
-	// 		return sample(erp, params);
-	// 	}
-	// 	:
-	// 	function() {
-	// 		var params = Array.prototype.slice.call(arguments, 0, n);
-	// 		var localState = arguments[n];
-	// 		var name = arguments[n+1];	// TODO: replace with callsite id?
-	// 		var vparams = globalStore.nnGuide.predict(globalStore, localState, name, bounds);
-	// 		verp.importanceERP.setParams(vparams);
-	// 		return sample(verp, params);
-	// 	};
-	// };
-	// var makeMixtureSampler = function(erpName, nComps, bounds) {
-	// 	var erp = global[erpName + 'ERP'];
-	// 	var verp = withImportanceDist(erp, Variational[erpName + 'MixtureERP']);
-	// 	var n = bounds.length;
-	// 	// Keep weights between [0,1] (only need to keep them nonnegative, but I think
-	// 	//    this will help keep things regularized...)
-	// 	var weightBounds = repeat(nComps, function() { return ad.scalar.sigmoid; });
-	// 	var paramBounds = repeat(nComps, function() { return bounds; });
-	// 	var allBounds = weightBounds.concat(flatten(paramBounds));
-	// 	return !neurallyGuided ?
-	// 	function() {
-	// 		var params = Array.prototype.slice.call(arguments, 0, n);
-	// 		return sample(erp, params);
-	// 	}
-	// 	:
-	// 	function() {
-	// 		var params = Array.prototype.slice.call(arguments, 0, n);
-	// 		var localState = arguments[n];
-	// 		var name = arguments[n+1];	// TODO: replace with callsite id?
-	// 		var vparams = globalStore.nnGuide.predict(globalStore, localState, name, allBounds);
-	// 		var ws = vparams.slice(0, nComps);
-	// 		var ps = group(vparams.slice(nComps), n);
-	// 		verp.importanceERP.setParams([ws, ps]);
-	// 		return sample(verp, params);
-	// 	}
-	// };
-	// // var _gaussian = makeSampler('gaussian', [undefined, ad.scalar.exp]);
-	// var _gaussian = makeMixtureSampler('gaussian', 4, [undefined, ad.scalar.exp]);
-	// var _flip = makeSampler('bernoulli', [ad.scalar.sigmoid]);
-
-	var _gaussian = function(mu, sigma, state, name) {
-		return sample(Gaussian({mu: mu, sigma: sigma}));
-	};
-
-	var _flip = function(p, state, name) {
+	var flipBounds = [ad.scalar.sigmoid];
+	var _flip = !neurallyGuided ?
+	function(p, localState, name) {
 		return sample(Bernoulli({p: p}));
+	}
+	:
+	function(p, localState, name) {
+		var guideParams = nnGuide.predict(globalStore, localState, name, flipBounds);
+		return sample(Bernoulli({p: p}), {
+			guide: Bernoulli({p: guideParams[0]})
+		});
+	}
+
+	var gmmN = 4;
+	var gmmWeightBounds = repeat(gmmN, function() { return ad.scalar.sigmoid; });
+	var gmmParamBounds = _.flatten(repeat(gmmN, function() { return [undefined, ad.scalar.exp]; }));
+	var gmmBounds = gmmWeightBounds.concat(gmmParamBounds);
+	var group = function(lst, n) {
+		return (lst.length === 0) ? [] : cons(lst.slice(0, n), group(lst.slice(n), n));
+	};
+	var unflattenGmmGuideParams = function(guideParams) {
+		var weights = guideParams.slice(0, gmmN);
+		var params = map(function(musig) { return {mu: musig[0], sigma: musig[1]}; }, group(guideParams.slice(gmmN), 2));
+		return {weights: weights, params: params};
+	};
+	var _gaussian = !neurallyGuided ?
+	function(mu, sigma, localState, name) {
+		return sample(Gaussian({mu: mu, sigma: sigma}));
+	}
+	:
+	function(mu, sigma, localState, name) {
+		var guideParams = nnGuide.predict(globalStore, localState, name, gmmBounds);
+		return sample(Gaussian({mu: mu, sigma: sigma}), {
+			guide: GaussianMixture(unflattenGmmGuideParams(guideParams))
+		});
 	};
 
 
@@ -137,7 +116,7 @@ var makeProgram = function(neurallyGuided) {
 			angle: obj.angle,
 			width: obj.width,
 			prevBranch: obj.prevBranch,
-			features: neurallyGuided ? globalStore.nnGuide.localFeatures(obj) : undefined
+			features: neurallyGuided ? nnGuide.localFeatures(obj) : undefined
 		};
 	};
 
@@ -180,7 +159,7 @@ var makeProgram = function(neurallyGuided) {
 		});
 
 		if (neurallyGuided) {
-			globalStore.nnGuide.step(globalStore, newState);
+			nnGuide.step(globalStore, newState);
 		}
 
 		// Terminate?
@@ -199,10 +178,8 @@ var makeProgram = function(neurallyGuided) {
 							if (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {
 								branch(newState);
 							}
-							// else factor(0);
 						});
 					}
-					// else factor(0);
 				});
 			}
 		});
@@ -211,9 +188,10 @@ var makeProgram = function(neurallyGuided) {
 	var generate = function() {
 		// Constants needed by the guide architecture
 		if (neurallyGuided) {
-			globalStore.nnGuide.constant('viewport', viewport);
-			globalStore.nnGuide.constant('initialWidth', initialWidth);
-			globalStore.nnGuide.constant('minWidth', minWidth);
+			nnGuide.constant('target', target);
+			nnGuide.constant('viewport', viewport);
+			nnGuide.constant('initialWidth', initialWidth);
+			nnGuide.constant('minWidth', minWidth);
 		}
 	
 		var w = target.image.width;
@@ -221,7 +199,7 @@ var makeProgram = function(neurallyGuided) {
 		globalStore.genImg = utils.new(utils.ImageData2D).fillWhite(w, h);
 
 		if (neurallyGuided) {
-			globalStore.nnGuide.init(globalStore);
+			nnGuide.init(globalStore);
 		}
 		
 		globalStore.geo = undefined;
@@ -261,18 +239,13 @@ var makeProgram = function(neurallyGuided) {
 
 // ----------------------------------------------------------------------------
 
-// var rets = {
-// 	generate: makeProgram(false),
-// 	generateGuided: makeProgram(true),
-// 	viewport: viewport,
-// 	globalStore: globalStore,
-// 	environment: env
-// };
-// rets;
+// var generate = makeProgram(false);
+var generate = makeProgram(true);
 
-var generate = makeProgram(false);
-// var dist = Infer({method: 'forward'}, generate);
-var dist = Infer({method: 'SMC', particles: 100, justSample: true, onlyMAP: true}, generate);
+// var nParticles = 100;
+var nParticles = 20;
+// var nParticles = 600;
+var dist = Infer({method: 'SMC', particles: nParticles, justSample: true, onlyMAP: true}, generate);
 var samp = sample(dist);
 var ret = {
 	viewport: viewport,

@@ -57,8 +57,13 @@ NNArch.prototype.setTraining = function(flag) {
 
 // Save/load/retrieve interface -----------------------------------------------
 
+var archCache = {};
+NNArch.addArch = function(name, arch) {
+	archCache[name] = arch;
+}
+
 NNArch.getArchByName = function(name) {
-	return require('./architectures/' + name + '.js');
+	return archCache[name];
 }
 
 // Serialization / deserialization
@@ -79,12 +84,8 @@ NNArch.deserializeJSON = function(json) {
 	return archObj;
 };
 
-// File loading / saving
-NNArch.prototype.saveToFile = function(filename) {
-	fs.writeFileSync(filename, JSON.stringify(this.serializeJSON()));
-};
-NNArch.loadFromFile = function(filename) {
-	return NNArch.deserializeJSON(JSON.parse(fs.readFileSync(filename).toString()));
+NNArch.loadFromJSON = function(json) {
+	return NNArch.deserializeJSON(JSON.parse(json));
 };
 
 
@@ -108,7 +109,7 @@ NNArch.subclass = function(parent, name, properties) {
 // Split a parameter tensor into scalars, then apply bounding transforms
 // Helper function for all concrete implementations of 'predict'
 NNArch.prototype.splitAndBoundParams = function(params, bounds) {
-	var sparams = ad.tensorToScalars(params);
+	var sparams = ad.tensor.toScalars(params);
 	for (var i = 0; i < sparams.length; i++) {
 		var sp = sparams[i];
 		sparams[i] = (bounds[i] ? bounds[i](sp) : sp);

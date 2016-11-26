@@ -4,11 +4,11 @@ var Tensor = require('adnn/tensor');
 var archname = __filename.split('/').pop().slice(0, -3);
 
 
-var fuzz = [0, 1e-8];
+var fuzz = 1e-8;
 function normalize(x, lo, hi) {
 	// Fuzz prevents values from normalizing to exactly zero (causing zero
 	//    derivatives)
-	return (2 * (x - lo) / (hi - lo)) - 1 + gaussianERP.sample(fuzz);
+	return (2 * (x - lo) / (hi - lo)) - 1 + dists.gaussianSample(0, fuzz);
 };
 
 var TWOPI = 2*Math.PI;
