@@ -1,5 +1,5 @@
-var ad = require('adnn/ad');
-var nn = require('adnn/nn');
+// var ad = require('adnn/ad');
+// var nn = require('adnn/nn');
 var NNArch = require('../nnarch.js');
 
 var archname = __filename.split('/').pop().slice(0, -3);

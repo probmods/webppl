@@ -31,20 +31,11 @@ var target = {
 	startDir: undefined,
 };
 window.target = target;
+var origStartPos = undefined;
+var origStartDir = undefined;
 window.nnGuide = undefined;
 var targetNeedsRefresh = true;
 var whichProgram = 'vines';
-
-
-// Initialize the start pos, start dir for the initial target image
-var coordfile = fs.readFileSync(__dirname + '/../assets/initialTarget.txt', 'utf8');
-var coordlines = coordfile.split('\n');
-var coords = coordlines[0].split(' ');
-var dir = coordlines[1].split(' ');
-var origStartPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-var origStartDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
-target.startPos = origStartPos;
-target.startDir = origStartDir;
 
 // --------------------------------------------------------------------------------------
 
@@ -205,66 +196,78 @@ function prepareTarget() {
 // Initialization logic
 $(window).load(function(){
 
-	// Register which canvas the rendering system should use during inference
-	utils.rendering.init($('#loResResult')[0]);
+	// Load the initial start pos / dir
+	loadTextFile('assets/initialTarget.txt', function(coordfile) {
+		var coordlines = coordfile.split('\n');
+		var coords = coordlines[0].split(' ');
+		var dir = coordlines[1].split(' ');
+		origStartPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+		origStartDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
-	// Set up event listener for generation
-	$('#generate').click(generate);
+		// Register which canvas the rendering system should use during inference
+		utils.rendering.init($('#loResResult')[0]);
 
-	// Set up event listener for changing which program to run
-	$('input:radio[name="whichProgram"]').change(
-	    function(){
-	        if (this.checked) {
-	        	whichProgram = this.value;
+		// Set up event listener for generation
+		$('#generate').click(generate);
+
+		// Set up event listener for changing which program to run
+		$('input:radio[name="whichProgram"]').change(
+		    function(){
+		        if (this.checked) {
+		        	whichProgram = this.value;
+		    	}
 	    	}
-    	}
-    );
+	    );
 
-    // Put the initial target image into the sketch canvas
-	var sketchCanvas = $('#sketchInput')[0];
-	var vecdraw;
-	function resetTarget() {
-		var ctx = sketchCanvas.getContext("2d");
-		var image = $('#initialTarget')[0];
-		ctx.drawImage(image, 0, 0);
-		target.startPos = origStartPos;
-		target.startDir = origStartDir;
-		vecdraw.draw(origStartPos, origStartDir);
-		targetNeedsRefresh = true;
-	}
-
-	// Wire up the sketch canvas
-	var sketch = new Sketch(sketchCanvas, {
-		size: 60,
-		callback: function() { targetNeedsRefresh = true; }
-	});
-
-	// Wire up the vector drawing canvas
-	var vecCanvas = $('#vectorInput')[0];
-	vecdraw = new VecDraw(vecCanvas, sketchCanvas, {
-		length: 30,
-		width: 5,
-		callback: function(startPos, startDir) {
-			// console.log(startPos, startDir);
-			target.startPos = startPos;
-			target.startDir = startDir;
+		var sketchCanvas = $('#sketchInput')[0];
+		var vecdraw;
+		function resetTarget() {
+			var ctx = sketchCanvas.getContext("2d");
+			var image = $('#initialTarget')[0];
+			ctx.drawImage(image,
+				0, 0, image.width, image.height,
+				0, 0, sketchCanvas.width, sketchCanvas.height);
+			target.startPos = origStartPos;
+			target.startDir = origStartDir;
+			vecdraw.draw(origStartPos, origStartDir);
+			targetNeedsRefresh = true;
 		}
-	});
 
-	// Clearing / restoring defaults
-	$('#clearTargetShape').click(function() {
-		sketch.clear();
-		targetNeedsRefresh = true;
-	});
-	$('#resetTarget').click(function() {
-		sketch.clear();
+		// Wire up the sketch canvas
+		var sketch = new Sketch(sketchCanvas, {
+			size: 60,
+			// size: 20,
+			callback: function() { targetNeedsRefresh = true; }
+		});
+
+		// Wire up the vector drawing canvas
+		var vecCanvas = $('#vectorInput')[0];
+		vecdraw = new VecDraw(vecCanvas, sketchCanvas, {
+			length: 30,
+			width: 5,
+			callback: function(startPos, startDir) {
+				// console.log(startPos, startDir);
+				target.startPos = startPos;
+				target.startDir = startDir;
+			}
+		});
+
+		// Clearing / restoring defaults
+		$('#clearTargetShape').click(function() {
+			sketch.clear();
+			targetNeedsRefresh = true;
+		});
+		$('#resetTarget').click(function() {
+			sketch.clear();
+			resetTarget();
+		});
+
+		// Put the initial target image into the sketch canvas
 		resetTarget();
+
+		// Load all the rendering assets
+		var gl = $('#glCanvas')[0].getContext('webgl');
+		render.loadAssets(gl, function() {});
 	});
-
-	resetTarget();
-
-	// Load all the rendering assets
-	var gl = $('#glCanvas')[0].getContext('webgl');
-	render.loadAssets(gl, function() {});
 });
 

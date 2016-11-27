@@ -243,7 +243,7 @@ var makeProgram = function(neurallyGuided) {
 var generate = makeProgram(true);
 
 // var nParticles = 100;
-var nParticles = 20;
+var nParticles = 30;
 // var nParticles = 600;
 var dist = Infer({method: 'SMC', particles: nParticles, justSample: true, onlyMAP: true}, generate);
 var samp = sample(dist);

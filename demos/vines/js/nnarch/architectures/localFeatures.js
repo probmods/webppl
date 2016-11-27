@@ -1,5 +1,6 @@
 var NNArch = require('../nnarch.js');
-var Tensor = require('adnn/tensor');
+// var Tensor = require('adnn/tensor');
+var Tensor = ad.tensor.__Tensor;
 
 var archname = __filename.split('/').pop().slice(0, -3);
 

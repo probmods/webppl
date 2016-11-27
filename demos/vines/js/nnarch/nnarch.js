@@ -1,8 +1,8 @@
 var assert = require('assert');
 var fs = require('fs');
 var _ = require('underscore');
-var ad = require('adnn/ad');
-var nn = require('adnn/nn');
+// var ad = require('adnn/ad');
+// var nn = require('adnn/nn');
 
 
 
