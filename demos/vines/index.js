@@ -3114,7 +3114,6 @@ nnarch.addArch('pyramid_linearfilters_targetAndGen', require('./nnarch/architect
 window.target = undefined;
 window.nnGuide = undefined;
 var whichProgram = 'vines';
-var possibleTargets = ['A', 'D', 'G', 'H', 'I', 'P', 'R', 'S'];
 
 // --------------------------------------------------------------------------------------
 
@@ -3297,7 +3296,7 @@ function setTarget(name, callback) {
 			0, 0, hiResTarget.width, hiResTarget.height);
 		// Make the target oject globally available (for webppl programs)
 		window.target = target;
-		callback();
+		if (callback) callback();
 	});
 }
 
@@ -3321,9 +3320,16 @@ $(window).load(function(){
 	    	}
 	    );
 
+	    // Set up the event listener for changing which target to use
+	    $('#whichTarget').change(
+	    	function() {
+	    		var selected = $("#whichTarget option:selected").val();
+	    		setTarget(selected);
+	    	}
+	    );
+
 	    // Register which canvas the rendering system should use during inference
 		utils.rendering.init($('#loResResult')[0]);
-
 
 		// Load up some target to start with
 		setTarget('G', function() {});

@@ -51,12 +51,28 @@
         <div class="col-lg-6">
           <h5>Target Shape</h5>
           <canvas id="hiResTarget" class="outlined" width="300" height="300"></canvas>
+          <p>
+            Use Target: &nbsp
+            <select name="whichTarget" id="whichTarget">
+              <option value="A">A</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="G" selected="selected">G</option>
+              <option value="H">H</option>
+              <option value="I">I</option>
+              <option value="L">L</option>
+              <option value="P">P</option>
+              <option value="R">R</option>
+              <option value="S">S</option>
+              <option value="T">T</option>
+            </select>
+          </p>
         </div>  
 
         <div class="col-lg-6">
           <h5>Result</h5>
           <canvas id="resultsDisplay" class="outlined" width="300" height="300"></canvas>
-
           <p>
             <button id="generate">Generate</button>
             &nbsp &nbsp
