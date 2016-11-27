@@ -1,15 +1,6 @@
 // ----------------------------------------------------------------------------
 // Globals / constants
 
-// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?
-var futurePolicy = 'immediate';
-// var futurePolicy = 'lifo';
-// var futurePolicy = 'fifo';
-// var futurePolicy = 'uniformFromAll';
-// var futurePolicy = 'uniformFromDeepest';
-// var futurePolicy = 'depthWeighted';
-setFuturePolicy(futurePolicy);
-
 
 var viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};
 var norm2world = function(p) {
@@ -213,61 +204,51 @@ var makeProgram = function(neurallyGuided) {
 		});
 
 		// Generate leaf?
-		future(function() {
-			var leafOpt = lOpts[_discrete3(lProbs[0], lProbs[1], lProbs[2], newState, 'leaf')];
-			if (leafOpt !== 'none') {
-				var lwidth = leafWidthMul * initialWidth;
-				var llength = lwidth * leafAspect;
-				var angmean = (leafOpt === 'left') ? Math.PI/4 : -Math.PI/4;
-				var langle = newbranch.angle + _gaussian(angmean, Math.PI/12, newState, 'leafAngle');
-				var lstart = newbranch.start.clone().lerp(newbranch.end, 0.5);
-				var lend = polar2rect(llength, langle).add(lstart);
-				var lcenter = lstart.clone().add(lend).multiplyScalar(0.5);
-				addLeaf({
-					length: llength,
-					width: lwidth,
-					angle: langle,
-					center: lcenter
-				}, newState);
-			}
-		});
+		var leafOpt = lOpts[_discrete3(lProbs[0], lProbs[1], lProbs[2], newState, 'leaf')];
+		if (leafOpt !== 'none') {
+			var lwidth = leafWidthMul * initialWidth;
+			var llength = lwidth * leafAspect;
+			var angmean = (leafOpt === 'left') ? Math.PI/4 : -Math.PI/4;
+			var langle = newbranch.angle + _gaussian(angmean, Math.PI/12, newState, 'leafAngle');
+			var lstart = newbranch.start.clone().lerp(newbranch.end, 0.5);
+			var lend = polar2rect(llength, langle).add(lstart);
+			var lcenter = lstart.clone().add(lend).multiplyScalar(0.5);
+			addLeaf({
+				length: llength,
+				width: lwidth,
+				angle: langle,
+				center: lcenter
+			}, newState);
+		}
 
 		// Generate flower?
-		future(function() {
-			if (_flip(0.5, newState, 'flower')) {
-				addFlower({
-					center: newbranch.end,
-					radius: flowerRadMul * initialWidth,
-					angle: newbranch.angle
-				}, newState);
-			}
-		});
+		if (_flip(0.5, newState, 'flower')) {
+			addFlower({
+				center: newbranch.end,
+				radius: flowerRadMul * initialWidth,
+				angle: newbranch.angle
+			}, newState);
+		}
 
 		if (neurallyGuided) {
 			nnGuide.step(globalStore, newState);
 		}
 
 		// Terminate?
-		future(function() {
-			var terminateProb = 0.5;
-			if (_flip(terminateProb, newState, 'terminate')) {
-				globalStore.terminated = true;
-			} else {
-				// Generate no further branches w/ prob 1/3
-				// Generate one further branch w/ prob 1/3
-				// Generate two further branches w/ prob 1/3
-				future(function() {
-					if (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {
-						branch(newState);
-						future(function() {
-							if (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {
-								branch(newState);
-							}
-						});
-					}
-				});
+		var terminateProb = 0.5;
+		if (_flip(terminateProb, newState, 'terminate')) {
+			globalStore.terminated = true;
+		} else {
+			// Generate no further branches w/ prob 1/3
+			// Generate one further branch w/ prob 1/3
+			// Generate two further branches w/ prob 1/3
+			if (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {
+				branch(newState);
+				if (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {
+					branch(newState);
+				}
 			}
-		});
+		}
 	};
 
 	var generate = function() {
@@ -312,8 +293,7 @@ var makeProgram = function(neurallyGuided) {
 			prevBranch: initState.prevBranch
 		});
 
-		future(function() { branch(startState); });
-		finishAllFutures();
+		branch(startState);
 
 		return globalStore.geo;
 	};

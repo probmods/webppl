@@ -1,15 +1,6 @@
 // ----------------------------------------------------------------------------
 // Globals / constants
 
-// TODO: once things are working, strip out the use of 'future,' since we're using immediate mode?
-var futurePolicy = 'immediate';
-// var futurePolicy = 'lifo';
-// var futurePolicy = 'fifo';
-// var futurePolicy = 'uniformFromAll';
-// var futurePolicy = 'uniformFromDeepest';
-// var futurePolicy = 'depthWeighted';
-setFuturePolicy(futurePolicy);
-
 
 var viewport = {xmin: -12, xmax: 12, ymin: -22, ymax: 2};
 var norm2world = function(p) {
@@ -163,26 +154,20 @@ var makeProgram = function(neurallyGuided) {
 		}
 
 		// Terminate?
-		future(function() {
-			var terminateProb = 0.5;
-			if (_flip(terminateProb, newState, 'terminate')) {
-				globalStore.terminated = true;
-			} else {
-				// Generate no further branches w/ prob 1/3
-				// Generate one further branch w/ prob 1/3
-				// Generate two further branches w/ prob 1/3
-				future(function() {
-					if (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {
-						branch(newState);
-						future(function() {
-							if (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {
-								branch(newState);
-							}
-						});
-					}
-				});
+		var terminateProb = 0.5;
+		if (_flip(terminateProb, newState, 'terminate')) {
+			globalStore.terminated = true;
+		} else {
+			// Generate no further branches w/ prob 1/3
+			// Generate one further branch w/ prob 1/3
+			// Generate two further branches w/ prob 1/3
+			if (!globalStore.terminated && newState.width > minWidth && _flip(0.66, newState, 'branch1')) {
+				branch(newState);
+				if (!globalStore.terminated && newState.width > minWidth && _flip(0.5, newState, 'branch2')) {
+					branch(newState);
+				}
 			}
-		});
+		}
 	};
 
 	var generate = function() {
@@ -227,8 +212,7 @@ var makeProgram = function(neurallyGuided) {
 			prevBranch: initState.prevBranch
 		});
 
-		future(function() { branch(startState); });
-		finishAllFutures();
+		branch(startState);
 
 		return globalStore.geo;
 	};

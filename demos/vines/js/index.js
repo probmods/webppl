@@ -4,18 +4,11 @@ var fs = require('fs');
 var THREE = require('three');
 var utils = require('./utils');
 var render = require('./render');
-var Sketch = require('./sketch');
-var VecDraw = require('./vecdraw');
 var nnarch = require('./nnarch');
-var futures = require('./futures');
 
 // Globally install modules that webppl code needs
 window.THREE = THREE;
 window.utils = utils;
-// Globally install the futures functions (hack to make them work like WebPPL header code)
-for (var prop in futures) {
-	window[prop] = futures[prop];
-}
 
 // Load the guide neural net architecture
 nnarch.addArch('pyramid_linearfilters_targetAndGen', require('./nnarch/architectures/pyramid_linearfilters_targetAndGen'));
@@ -23,19 +16,10 @@ nnarch.addArch('pyramid_linearfilters_targetAndGen', require('./nnarch/architect
 // --------------------------------------------------------------------------------------
 
 // App state
-var target = {
-	image: undefined,
-	baseline: undefined,
-	tensor: undefined,
-	startPos: undefined,
-	startDir: undefined,
-};
-window.target = target;
-var origStartPos = undefined;
-var origStartDir = undefined;
+window.target = undefined;
 window.nnGuide = undefined;
-var targetNeedsRefresh = true;
 var whichProgram = 'vines';
+var possibleTargets = ['A', 'D', 'G', 'H', 'I', 'P', 'R', 'S'];
 
 // --------------------------------------------------------------------------------------
 
@@ -133,6 +117,14 @@ function loadTextFile(filename, callback) {
 	});
 }
 
+function loadImage(filename, callback) {
+	var img = new Image;
+	img.addEventListener('load', function() {
+		callback(img);
+	});
+	img.src = filename;
+}
+
 function compile(program, callback) {
 	// Return right away if program is already compiled
 	if (program.prepared) {
@@ -157,9 +149,6 @@ function compile(program, callback) {
 }
 
 function generate() {
-	// Downsample the target image from the sketch canvas, etc.
-	prepareTarget();
-
 	// Check if program needs compiling, then run it
 	var program = programs[whichProgram];
 	compile(program, function() {
@@ -169,26 +158,52 @@ function generate() {
 	});
 }
 
-// Prepare target for inference (downsample image, compute baseline, etc.)
-function prepareTarget() {
-	if (targetNeedsRefresh) {
-		// Downsample sketch image
-		var sketchCanvas = $('#sketchInput')[0];
-		var targetImage = $('#loResTarget')[0];
-		var ctx = targetImage.getContext('2d');
-		ctx.drawImage(sketchCanvas,
-			0, 0, sketchCanvas.width, sketchCanvas.height,
-			0, 0, targetImage.width, targetImage.height);
-		target.image = new utils.ImageData2D().loadFromCanvas(targetImage);
+var targetCache = {};
+function getTarget(name, callback) {
+	var target = targetCache[name];
+	if (target == undefined) {
+		// Load target image and starting pos/dir
+		loadImage('assets/targets/' + name + '.png', function(img) {
+			loadTextFile('assets/targets/' + name + '.txt', function(coordfile) {
+				var target = { img: img };
+				// Compute lo-res image data
+				var loResTarget = $('#loResTarget')[0];
+				var ctx = loResTarget.getContext('2d');
+				ctx.drawImage(img,
+					0, 0, img.width, img.height,
+					0, 0, loResTarget.width, loResTarget.height);
+				target.image = new utils.ImageData2D().loadFromCanvas(loResTarget);
+				// Compute baseline
+				target.baseline = utils.baselineSimilarity(target.image);
+				// Compute tensor version of image
+				target.tensor = target.image.toTensor();
+				// Compute starging position/direction
+				var coordlines = coordfile.split('\n');
+				var coords = coordlines[0].split(' ');
+				var dir = coordlines[1].split(' ');
+				target.startPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
+				target.startDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
 
-		// Compute new baseline
-		target.baseline = utils.baselineSimilarity(target.image);
-
-		// Compute tensor version of image
-		target.tensor = target.image.toTensor();
-
-		targetNeedsRefresh = false;
+				targetCache[name] = target;
+				callback(target);
+			});
+		});
+	} else  {
+		callback(target);
 	}
+}
+function setTarget(name, callback) {
+	getTarget(name, function(target) {
+		// Render the target image to the preview canvas
+		var hiResTarget = $('#hiResTarget')[0];
+		var ctx = hiResTarget.getContext('2d');
+		ctx.drawImage(target.img,
+			0, 0, target.img.width, target.img.height,
+			0, 0, hiResTarget.width, hiResTarget.height);
+		// Make the target oject globally available (for webppl programs)
+		window.target = target;
+		callback();
+	});
 }
 
 // --------------------------------------------------------------------------------------
@@ -196,17 +211,9 @@ function prepareTarget() {
 // Initialization logic
 $(window).load(function(){
 
-	// Load the initial start pos / dir
-	loadTextFile('assets/initialTarget.txt', function(coordfile) {
-		var coordlines = coordfile.split('\n');
-		var coords = coordlines[0].split(' ');
-		var dir = coordlines[1].split(' ');
-		origStartPos = new THREE.Vector2(parseFloat(coords[0]), parseFloat(coords[1]));
-		origStartDir = new THREE.Vector2(parseFloat(dir[0]), parseFloat(dir[1]));
-
-		// Register which canvas the rendering system should use during inference
-		utils.rendering.init($('#loResResult')[0]);
-
+	// Load up all the rendering assets
+	var gl = $('#glCanvas')[0].getContext('webgl');
+	render.loadAssets(gl, function() {
 		// Set up event listener for generation
 		$('#generate').click(generate);
 
@@ -219,55 +226,12 @@ $(window).load(function(){
 	    	}
 	    );
 
-		var sketchCanvas = $('#sketchInput')[0];
-		var vecdraw;
-		function resetTarget() {
-			var ctx = sketchCanvas.getContext("2d");
-			var image = $('#initialTarget')[0];
-			ctx.drawImage(image,
-				0, 0, image.width, image.height,
-				0, 0, sketchCanvas.width, sketchCanvas.height);
-			target.startPos = origStartPos;
-			target.startDir = origStartDir;
-			vecdraw.draw(origStartPos, origStartDir);
-			targetNeedsRefresh = true;
-		}
+	    // Register which canvas the rendering system should use during inference
+		utils.rendering.init($('#loResResult')[0]);
 
-		// Wire up the sketch canvas
-		var sketch = new Sketch(sketchCanvas, {
-			size: 60,
-			// size: 20,
-			callback: function() { targetNeedsRefresh = true; }
-		});
 
-		// Wire up the vector drawing canvas
-		var vecCanvas = $('#vectorInput')[0];
-		vecdraw = new VecDraw(vecCanvas, sketchCanvas, {
-			length: 30,
-			width: 5,
-			callback: function(startPos, startDir) {
-				// console.log(startPos, startDir);
-				target.startPos = startPos;
-				target.startDir = startDir;
-			}
-		});
-
-		// Clearing / restoring defaults
-		$('#clearTargetShape').click(function() {
-			sketch.clear();
-			targetNeedsRefresh = true;
-		});
-		$('#resetTarget').click(function() {
-			sketch.clear();
-			resetTarget();
-		});
-
-		// Put the initial target image into the sketch canvas
-		resetTarget();
-
-		// Load all the rendering assets
-		var gl = $('#glCanvas')[0].getContext('webgl');
-		render.loadAssets(gl, function() {});
+		// Load up some target to start with
+		setTarget('G', function() {});
 	});
 });
 

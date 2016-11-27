@@ -43,31 +43,14 @@
           </p>
 
           <p>
-            Click "Generate" to run the program. Use the radio buttons to toggle rendering styles. Sketch a new target shape by drawing on the "Target Shape" canvas with the left mouse button. The red line shows from where and in what direction the vines will start growing; draw with the right mouse button to change it.
+            Click "Generate" to run the program. Use the radio buttons to toggle rendering styles. Use the dropdown menu below the "Target Shape" image to change which target shape is used.
           </p>
         </div>
 
 
         <div class="col-lg-6">
           <h5>Target Shape</h5>
-          <!-- Two layered canvases. Top one handles right click drawing of start pos/dir. It forwards other events
-                  to the bottom canvas, which handles drawing of target shape.
-               The absolute positioning requires that we manually set a height on the containing relative div. 
-          -->
-          <div id="drawingCanvases" style="position: relative; height: 314px;">
-            <canvas id="sketchInput" class="outlined" width="300" height="300" style="position: absolute; z-index: 0;"></canvas>
-            <canvas id="vectorInput" width="300" height="300" style="position: absolute; z-index: 1;"></canvas>
-          </div>
-          <p>
-            <button id="clearTargetShape">Clear</button>
-            <button id="resetTarget">Reset</button>
-          </p>
-          <p>
-            Left click + drag: draw target shape
-          </p>
-          <p>
-            Right click + drag: set start position/direction
-          </p>
+          <canvas id="hiResTarget" class="outlined" width="300" height="300"></canvas>
         </div>  
 
         <div class="col-lg-6">
@@ -89,9 +72,6 @@
 
         <!-- Hidden canvas for WebGL rendering -->
         <canvas id="glCanvas" class="hidden" width="300" height="300"></canvas>
-
-        <!-- Hidden image from which we load the initial target shape -->
-        <img id="initialTarget" class="hidden" src="assets/initialTarget.png" width="300" height="300">
 
       </div>
 
