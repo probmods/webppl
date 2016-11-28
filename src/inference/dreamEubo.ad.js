@@ -38,10 +38,6 @@ module.exports = function(env) {
     // The local model includes anything inside of some mapData (level 1+)
     this.mapDataNestingLevel = 0;
 
-    this.isInsideMapData = function () {
-      return this.mapDataNestingLevel > 0;
-    }
-
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
@@ -60,6 +56,10 @@ module.exports = function(env) {
   }
 
   DREAM.prototype = {
+
+    isInsideMapData: function () {
+      return this.mapDataNestingLevel > 0;
+    },
 
     // Computes the estimation of the objective EUBO by averaging the
     // gradients for all the records provided to the module through params,

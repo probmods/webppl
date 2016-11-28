@@ -34,10 +34,6 @@ module.exports = function(env) {
     // The local model includes anything inside of some mapData (level 1+)
     this.mapDataNestingLevel = 0;
 
-    this.isInsideMapData = function () {
-      return this.mapDataNestingLevel > 0;
-    }
-
     this.records = [];
     
     // TODO: Eliminate?
@@ -49,6 +45,10 @@ module.exports = function(env) {
   }
 
   DreamSample.prototype = {
+
+    isInsideMapData: function () {
+      return this.mapDataNestingLevel > 0;
+    },
 
     // Run the program as per the number of samples we are required to collect.
     // As part of each such an execution sample, we create a record that contains
