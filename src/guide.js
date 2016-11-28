@@ -12,7 +12,7 @@ var T = ad.tensor;
 
 function notAllowed(fn) {
   return function() {
-    throw new Error(fn + ' is not allowed here.');
+    throw new Error(fn + ' cannot be used within the guide.');
   };
 }
 
