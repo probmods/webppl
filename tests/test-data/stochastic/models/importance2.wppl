@@ -1,9 +1,9 @@
 var model = function() {
   var x = sample(Bernoulli({p: .5}), {guide() {
-    Bernoulli({p: .2})
+    return Bernoulli({p: .2})
   }});
   var y = sample(Bernoulli({p: .5}), {guide() {
-    Bernoulli({p: .7})
+    return Bernoulli({p: .7})
   }});
   factor((x || y) ? 0 : -Infinity);
   return [x, y];
