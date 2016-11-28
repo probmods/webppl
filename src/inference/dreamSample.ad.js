@@ -15,7 +15,7 @@ module.exports = function(env) {
 
   function DreamSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1,
+      samples: 100,
       verbose: true,
       params: {}
     });
@@ -39,7 +39,10 @@ module.exports = function(env) {
     }
 
     this.records = [];
-    this.currRecord;
+    
+    // TODO: Eliminate?
+    this.currRecord = null;
+    this.currObservation = null;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -60,6 +63,7 @@ module.exports = function(env) {
 
             // Records initialization.
             var trace = new Trace(this.wpplFn, this.s, this.k, this.a);
+            // TODO: Remove array flag once we generalize for MapData params
             this.currRecord = {trace: trace, samplesScore: 0, observations: []};
 
             return this.wpplFn(_.clone(this.s), function(s, val) {
@@ -91,6 +95,7 @@ module.exports = function(env) {
 
       // Accumulates score of samples inside mapData only, which can be 
       // used in the objective computation in dreamEUBO
+      // TODO: check what should be the case for random global model
       if (this.isInsideMapData()) {
         this.currRecord.samplesScore = ad.scalar.add(this.currRecord.samplesScore, distribution.score(val));
       }
@@ -103,8 +108,8 @@ module.exports = function(env) {
       //   throw new Error('DREAM: factor score is not finite.');
       //}
       assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
-      // this.currRecord.trace.numFactors += 1;
-      // this.currRecord.trace.score = ad.scalar.add(this.currRecord.trace.score, score);
+      this.currRecord.trace.numFactors += 1;
+      this.currRecord.trace.score = ad.scalar.add(this.currRecord.trace.score, score);
       return k(s);
     },
 
@@ -117,16 +122,43 @@ module.exports = function(env) {
       this.mapDataNestingLevel -= 1;
     },
 
+    // TODO: Generalize for MapData objects
+    mapDataEnter: function (val) {
+      // Currently supports edge cases of no observations. Ultimately, we will keep this line 
+      // which assign the original observations object and then modify it in each 
+      // observe call to inject hallucinations.
+      this.currObservationsObj = val;
+      
+      // Support for array type. 
+      // Currently assumes that in that case we have matching order of observe calls in obsFn.
+      if(_.isArray(val)) {
+        this.currObservationsObj = [];
+      }
+    },
+
+    mapDataLeave: function (val) {
+      this.currRecord.observations.push(this.currObservationsObj);
+    },
+
     // Instead of factoring the score of the observed given value,
     // in dream training we sample a hallucinated value instead and
     // push that to the corresponding record.
     observe: function(s, k, a, dist, val) {
-      var _hallucinatedVal = dist.sample();
-      // var val = this.ad && dist.isContinuous ?
+      var hallucinatedVal = dist.sample();
+      //var val = this.ad && dist.isContinuous ?
       //     ad.lift(_hallucinatedVal) : _hallucinatedVal;
-      // this.currRecord.trace.addChoice(dist, val, a, s, k);
-      this.currRecord.observations.push(val);
-      return k(s, val);
+      this.currRecord.trace.addChoice(dist, hallucinatedVal, a, s, k);
+      
+      // TODO: construct new observations by injecting the hallucinated data rather than 
+      // reconstruction of the mapData param since it doesn't generalize well.
+      if (_.isArray(this.currObservationsObj)) {
+        this.currObservationsObj.push(hallucinatedVal);
+      }
+      else {
+        this.currObservationsObj = hallucinatedVal;
+      }
+      
+      return k(s, hallucinatedVal);
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,

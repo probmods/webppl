@@ -118,7 +118,7 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        var logp = ad.value(this.currRecord.samplesScore);
+        var logp = ad.value(this.currRecord.trace.score);
         var logq = ad.value(this.logq);
         return cont(grads, logp - logq);
       }.bind(this), this.a);
