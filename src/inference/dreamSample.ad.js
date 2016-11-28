@@ -96,8 +96,9 @@ module.exports = function(env) {
       // Accumulates score of samples inside mapData only, which can be 
       // used in the objective computation in dreamEUBO
       // TODO: check what should be the case for random global model
+      // update trace score to take into account only local or use the sampleScore
       if (this.isInsideMapData()) {
-        this.currRecord.samplesScore = ad.scalar.add(this.currRecord.samplesScore, distribution.score(val));
+        this.currRecord.samplesScore += distribution.score(val);
       }
       return k(s, val);
     },
@@ -109,7 +110,7 @@ module.exports = function(env) {
       //}
       assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
       this.currRecord.trace.numFactors += 1;
-      this.currRecord.trace.score = ad.scalar.add(this.currRecord.trace.score, score);
+      this.currRecord.trace.score += score;
       return k(s);
     },
 
