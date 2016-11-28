@@ -246,7 +246,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      return guide.runThunkOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+      return guide.runIfThunkElseAuto(options.guide, dist, env, s, a, function(s, guideDist) {
 
         var ret = this.sampleGuide(guideDist, options);
         var val = ret.val;

@@ -76,13 +76,8 @@ module.exports = function(env) {
 
   SMC.prototype.sample = function(s, k, a, dist, options) {
     options = options || {};
-
-    var getGuide =
-        this.importanceOpt === 'ignoreGuide' ?
-        function(guide, env, s, a, k) { return k(s, null); } :
-        guide.runThunkOrNull;
-
-    return getGuide(options.guide, env, s, a, function(s, maybeDist) {
+    var thunk = (this.importanceOpt === 'ignoreGuide') ? undefined : options.guide;
+    return guide.runIfThunkElseNull(thunk, env, s, a, function(s, maybeDist) {
 
       // maybeDist will be null if either the 'ignoreGuide' option is
       // set, or no guide is specified in the program.

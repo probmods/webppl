@@ -42,7 +42,7 @@ function guideCoroutine(env) {
   };
 }
 
-function inCoroutine(coroutine, env, k, f) {
+function runInCoroutine(coroutine, env, k, f) {
   var prevCoroutine = env.coroutine;
   env.coroutine = coroutine;
   return f(function(s, val) {
@@ -57,7 +57,7 @@ function runThunk(thunk, env, s, a, k) {
   }
   // Run the thunk with the guide coroutine installed. Check the
   // return value is a distribution before continuing.
-  return inCoroutine(
+  return runInCoroutine(
       guideCoroutine(env),
       env, k,
       function(k) {
@@ -81,13 +81,13 @@ function runIfThunk(s, k, a, env, maybeThunk, alternate) {
 
 // Convenient variations on runGuideThunk.
 
-function runThunkOrNull(maybeThunk, env, s, a, k) {
+function runIfThunkElseNull(maybeThunk, env, s, a, k) {
   return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, null);
   });
 }
 
-function runThunkOrAuto(maybeThunk, targetDist, env, s, a, k) {
+function runIfThunkElseAuto(maybeThunk, targetDist, env, s, a, k) {
   return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, independent(targetDist, a, env));
   });
@@ -364,6 +364,6 @@ function squishToInterval(domain) {
 
 module.exports = {
   independent: independent,
-  runThunkOrAuto: runThunkOrAuto,
-  runThunkOrNull: runThunkOrNull
+  runIfThunkElseAuto: runIfThunkElseAuto,
+  runIfThunkElseNull: runIfThunkElseNull
 };
