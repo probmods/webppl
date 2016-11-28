@@ -84,8 +84,8 @@ module.exports = function(env) {
 
     return getGuide(options.guide, env, s, a, function(s, maybeDist) {
 
-      // maybeDist will be null if either the 'ignore' option is set,
-      // or no guide is specified in the program.
+      // maybeDist will be null if either the 'ignoreGuide' option is
+      // set, or no guide is specified in the program.
 
       // Auto guide if requested.
       var importanceDist =
