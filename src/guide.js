@@ -10,9 +10,6 @@ var domains = require('./domain');
 
 var T = ad.tensor;
 
-// TODO: This is very similar to the work we do to run drift kernels.
-// Combine?
-
 function notAllowed(fn) {
   return function() {
     throw new Error(fn + ' is not allowed here.');
