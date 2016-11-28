@@ -199,10 +199,6 @@ module.exports = function(env) {
     }
   }
 
-  var inGuide = function(s, k, a) {
-    return k(s, env.coroutine._guide);
-  };
-
   return {
     display: display,
     cache: cache,
@@ -212,8 +208,7 @@ module.exports = function(env) {
     zeros: zeros,
     ones: ones,
     param: param,
-    mapData: mapData,
-    inGuide: inGuide
+    mapData: mapData
   };
 
 };
