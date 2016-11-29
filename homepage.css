@@ -409,3 +409,11 @@ div.main-lead {
    padding-left: 20px;
    font-size: 10px;
 }
+
+li.feature {
+  margin-bottom: 8px;
+}
+
+li.demo {
+  margin-bottom: 8px;
+}
