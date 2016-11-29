@@ -417,3 +417,7 @@ li.feature {
 li.demo {
   margin-bottom: 8px;
 }
+
+.citations + h4 {
+    margin-top: 28px;
+}
