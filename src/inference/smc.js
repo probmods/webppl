@@ -89,8 +89,8 @@ module.exports = function(env) {
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv || this.saveTraces) {
       particle.trace.addChoice(dist, val, a, s, k, options);
-    } else if (this.onlyMAP) {
-      particle.trace.score = ad.scalar.add(particle.trace.score, dist.score(val));
+    } else {
+      particle.trace.score = ad.scalar.add(particle.trace.score, choiceScore);
     }
     return k(s, val);
   };
