@@ -39,7 +39,10 @@
 
       <div class="jumbotron main-lead">
         <p class="lead">
-          webppl is a small but feature-rich probabilistic programming language embedded in Javascript.
+          webppl is a feature-rich probabilistic programming language embedded in Javascript.
+        </p>
+        <p class="lead">
+          Check out some <a id="demolink" href="#demos">demos</a> or try it yourself in the editor below.
         </p>
       </div>
 
@@ -51,35 +54,65 @@
       </div>
 
       <div class="row marketing">
-        <div class="col-lg-6">
+        <div class="col-lg-12">
+          <h4>Features</h4>
+          <p>
+          <ul>
+              <li class="feature">Runs on the command line with <a href="http://nodejs.org/">node.js</a> or <a href="http://docs.webppl.org/en/master/development/workflow.html#browser-version">in the browser</a>.</li>
+              <li class="feature">Supports modular and re-usable code using <a href="http://docs.webppl.org/en/master/packages.html">packages</a> built on top of the npm package system, and interoperates with existing Javascript packages in the npm ecosystem.</li>
+              <li class="feature">Includes a large and expanding library of primitive <a href="http://docs.webppl.org/en/master/distributions.html">distributions.</a></li>
+              <li class="feature">Implements a variety of <a href="http://docs.webppl.org/en/master/inference/index.html">inference algorithms</a>, including exact inference via enumeration, rejection sampling, Sequential Monte Carlo, Markov Chain Monte Carlo, Hamiltonian Monte Carlo, and inference-as-optimization (e.g. variational inference).</li>
+              <li class="feature">Provides inference as a first-class operator in the language, allowing for nested inference (‘inference about inference’).</li>
+              <li class="feature">Supports optimizable models with neural network components using <a href="https://www.npmjs.com/package/adnn">adnn</a>.</li>
+          </ul>
+          </p>
+        <!-- </div> -->
+
+        <!-- <div class="col-lg-12"> -->
+          <h4 id="demos">Demos</h4>
+          <p>
+            Browser-based applications powered by webppl.
+          </p>
+          <p>
+          <ul>
+              <li class="demo"><a href="demos/vines/index.html">Procedural vines with shape constraints</a></li>
+              <li class="demo"><a href="http://dritchie.github.io/web-procmod/">3D procedural spaceships with shape constraints</a><br/>(Note: the code in this demo is written in an older version of webppl)</li>
+          </ul>
+          </p>
+        <!-- </div> -->
+
+        <!-- <div class="col-lg-12"> -->
           <h4>Local install</h4>
           <p>Install webppl in two easy steps:</p>
           <ol>
-            <li>Install <a href="http://nodejs.org">nodejs</a></li>
+            <li>Install <a href="http://nodejs.org">node.js</a></li>
             <li>Run <code>npm install -g webppl</code></li>
           </ol>
           <p>Now, the <code>webppl</code> command is globally available.</p>
           <p>To upgrade to the latest version, run <code class="nobreak">npm update -g webppl</code>.</p>
 
           <h4>Documentation</h4>
-          <p>The primary reference for webppl is our web book, <a href="http://dippl.org/">The Design and Implementation of Probabilistic Programming Languages</a>.</p>
-
           <p>To learn more about how to set up and use webppl, take a look at <a href="http://docs.webppl.org">our documentation</a> and <a href="https://github.com/probmods/webppl/tree/master/examples">the examples</a>.</p>
 
-          <p>For probabilistic modeling in general, our other web book, <a href="https://probmods.org/">Probabilistic Models of Cognition</a>, might be of interest.</p>
+          <p>To learn more about how webppl works under the hood, check out our web book, <a href="http://dippl.org/">The Design and Implementation of Probabilistic Programming Languages</a>.</p>
+
+          <p>For probabilistic modeling in general, our other web book, <a href="https://probmods.org/v2">Probabilistic Models of Cognition</a>, might be of interest.</p>
+
+          <h4>License</h4>
+          <p>The webppl code base is open source and freely available for commerical and non-commercial use under the <a href="https://github.com/probmods/webppl/blob/master/LICENSE.md">MIT license</a>.</p>
 
           <h4>Contributions</h4>
           <p>We encourage you to contribute to webppl! Check out our <a href="https://github.com/probmods/webppl/blob/master/CONTRIBUTING.md">guidelines for contributors</a> and join the <a href="https://groups.google.com/forum/#!forum/webppl-dev">webppl-dev</a> mailing list.</p>
 
-        </div>
-
-        <div class="col-lg-6">
-
           <h4>Pronunciation</h4>
           <p>Say &ldquo;web people&rdquo;.</p>
 
-          <h4>License</h4>
-          <p>The webppl code base is open source and freely available for commerical and non-commercial use under the <a href="https://github.com/probmods/webppl/blob/master/LICENSE.md">MIT license</a>.</p>
+          <h4>Acknowledgments</h4>
+          <p>The webppl project is supported by grants from DARPA, under agreement number FA8750-14-2-0009, and the Office of Naval Research, grant number N00014-13-1-0788.</p>
+
+        <!-- </div> -->
+
+        <!-- <div class="col-lg-12"> -->
 
           <h4>Citing</h4>
           <p>If you use webppl in academic projects and papers, please cite as: <div class="citation">N. D. Goodman and A. Stuhlmüller (electronic). The Design and Implementation of Probabilistic Programming Languages. Retrieved <span id="date"></span> from <code>http://dippl.org</code>. <a id="toggle-bibtex" href="#">[bibtex]</a></div></p>
@@ -96,10 +129,69 @@
 </pre>
           </p>
 
-          <h4>Acknowledgments</h4>
-          <p>The webppl project is supported by grants from DARPA, under agreement number FA8750-14-2-0009, and the Office of Naval Research, grant number N00014-13-1-0788.</p>
+          <h4>Publications</h4>
+          <p>
+            If you publish a paper using/extending webppl, <a href="https://groups.google.com/forum/#!forum/webppl-dev">let us know</a> and we'll add it to this list:
+          </p>
+
+          <div class="citation">
+            D. Ritchie, P. Horsfall, and N. D. Goodman. Deep Amortized Inference for Probabilistic Programs. arXiv:1610.05735.  
+          </div>
+
+          <div class="citation">
+            L. Ouyang, M. H. Tessler, D. Ly, and N. D. Goodman. Practical optimal experiment design with probabilistic programs. arXiv:1608.05046.  
+          </div>
+
+          <div class="citation">
+            M. H. Tessler and N. D. Goodman. A Pragmatic Theory of Generic Language. arXiv:1608.02926.  
+          </div>
+
+          <div class="citation">
+            D. Ritchie, A. Thomas, P. Hanrahan, and N. D. Goodman. Neurally-Guided Procedural Models: Amortized Inference for Procedural Graphics Programs using Neural Networks. NIPS 2016. 
+          </div>
+
+          <div class="citation">
+            D. Ritchie, A. Stuhlmüller, and N. D. Goodman. C3: Lightweight Incrementalized MCMC for Probabilistic Programs using Continuations and Callsite Caching. AISTATS 2016. 
+          </div>
+
+          <div class="citation">
+            M. H. Tessler and N. D. Goodman. Communicating generalizations about events. Proceedings of the Thirty-Eighth Annual Conference of the Cognitive Science Society, 2016.
+          </div>
+
+          <div class="citation">
+            E. J. Yoon, M. H. Tessler, N. D. Goodman, and M. C. Frank. Talking with tact: Polite language as a balance between kindness and informativity. Proceedings of the Thirty-Eighth Annual Conference of the Cognitive Science Society, 2016.
+          </div>
+
+          <div class="citation">
+            C. Graf, J. Degen, R. X. D. Hawkins, and N. D. Goodman. Animal, dog, or dalmatian? Level of abstraction in nominal referring expressions. Proceedings of the Thirty-Eighth Annual Conference of the Cognitive Science Society, 2016.
+          </div>
+
+          <div class="citation">
+            O. Evans, A. Stuhlmüller, and N. D. Goodman. Learning the Preferences of Ignorant, Inconsistent Agents. AAAI 2016.
+          </div>
+
+          <div class="citation">
+            A. Stuhlmüller, R. X. D. Hawkins, N. Siddharth, and N. D. Goodman. Coarse-to-Fine Sequential Monte Carlo for Probabilistic Programs. arXiv:1509.02962.
+          </div>
+
+          <div class="citation">
+            G. Scontras and M. H. Tessler (electronic). Composition in Probabilistic Language Understanding. Retrieved <span id="date"></span> from <code>http://gscontras.github.io/ESSLLI-2016</code>.
+          </div>
+
+          <div class="citation">
+            O. Evans, A. Stuhlmüller, and N. D. Goodman (electronic). Modeling Agents with Probabilistic Programs. Retrieved <span id="date"></span> from <code>http://agentmodels.org</code>.
+          </div>
+
+          <div class="citation">
+            N. D. Goodman and J. B. Tenenbaum (electronic). Probabilistic Models of Cognition. Retrieved <span id="date"></span> from <code>http://probmods.org/v2</code>.
+          </div>
+
+          <div class="citation">
+            N. D. Goodman and A. Stuhlmüller (electronic). The Design and Implementation of Probabilistic Programming Languages. Retrieved <span id="date"></span> from <code>http://dippl.org</code>.
+          </div>
 
         </div>
+
       </div>
 
       <footer class="footer">

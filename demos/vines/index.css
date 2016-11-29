@@ -1,0 +1,12 @@
+.hidden {
+	display: none;
+}
+
+.outlined {
+	border: 1px solid black;
+	margin-bottom: 8px;
+}
+
+#drawingCanvases:hover {
+	cursor: crosshair;
+}

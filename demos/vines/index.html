@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>webppl - Procedural Vines Demo</title>
+
+    <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="../../homepage.css">
+    <link rel="stylesheet" href="index.css">
+
+    <!-- Can't use CDN webppl b/c we need some new additions to SMC (how it handles onlyMAP) -->
+    <!-- <script src="http://cdn.webppl.org/webppl-v0.9.5.js"></script> -->
+    <script src="webppl.js"></script>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script src="index.js"></script>
+
+  </head>
+  <body>
+
+   <div class="container">
+      <div class="header clearfix">
+        <nav>
+          <ul class="nav nav-pills pull-right">
+            <li role="presentation"><a href="http://github.com/probmods/webppl">On Github</a></li>
+          </ul>
+        </nav>
+        <h3 class="logo"><a href="/"><span class="logo-main">web</span><span class="logo-bold">ppl</span></a> <span class="logo-tagline hidden-xs">probabilistic programming for the web</span></h3>
+      </div>
+
+      <div class="row marketing">
+
+        <div class="col-lg-12">
+          <h4>Procedural Vines Demo</h4>
+
+          <p>
+            This application features a webppl program which generates random 2D vine-like structures. It uses webppl's inference capabilities to constrain the program's output to match a target shape. Check out <a target="_blank" href="https://dritchie.github.io/pdf/ngpm.pdf">this research paper</a> and <a target="_blank" href=
+            "https://www.youtube.com/watch?v=ZeZcsbNXMDM">this video</a> to learn more about how it works.
+          </p>
+
+          <p>
+            Click "Generate" to run the program. Use the radio buttons to toggle rendering styles. Use the dropdown menu below the "Target Shape" image to change which target shape is used.
+          </p>
+        </div>
+
+
+        <div class="col-lg-6">
+          <h5>Target Shape</h5>
+          <canvas id="hiResTarget" class="outlined" width="300" height="300"></canvas>
+          <p>
+            Use Target: &nbsp
+            <select name="whichTarget" id="whichTarget">
+              <option value="A">A</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="G" selected="selected">G</option>
+              <option value="H">H</option>
+              <option value="I">I</option>
+              <option value="L">L</option>
+              <option value="P">P</option>
+              <option value="R">R</option>
+              <option value="S">S</option>
+              <option value="T">T</option>
+            </select>
+          </p>
+        </div>  
+
+        <div class="col-lg-6">
+          <h5>Result</h5>
+          <canvas id="resultsDisplay" class="outlined" width="300" height="300"></canvas>
+          <p>
+            <button id="generate">Generate</button>
+            &nbsp &nbsp
+            <input type="radio" name="whichProgram" value="vines" checked> Vines</input>
+            &nbsp
+            <input type="radio" name="whichProgram" value="lightning"> Lightning</input>
+          </p>
+        </div> 
+
+        <!-- Hidden canvases for storing the low-res target image and for the WIP image during inference -->
+        <canvas id="loResTarget" class="hidden" width="50" height="50"></canvas>
+        <canvas id="loResResult" class="hidden" width="50" height="50"></canvas>
+
+        <!-- Hidden canvas for WebGL rendering -->
+        <canvas id="glCanvas" class="hidden" width="300" height="300"></canvas>
+
+      </div>
+
+      <footer class="footer">
+        <div class="container text-center">
+          <p>webppl is a <a href="http://cocolab.stanford.edu/">Stanford CoCoLab</a> project</p>
+        </div>
+      </footer>
+
+    </div> <!-- /container -->
+
+  </body>
+</html>
