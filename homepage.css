@@ -72,15 +72,6 @@
     max-height: none;
 }
 
-#demolink {
-  color: white;
-  font-weight: bold;
-}
-
-#demolink a:hover {
-  text-decoration: underline;
-}
-
 
 /* Literate editor */
 
@@ -401,6 +392,22 @@ div.main-lead {
    color: white;
 }
 
+div.main-lead.primary {
+    margin-bottom: 0;
+    border-radius: 6px 6px 0px 0px;
+}
+
+div.main-lead.secondary {
+   background-color: white;
+   color: brown;
+   border: 1px solid brown;
+}
+
+div.main-lead.secondary {
+    margin-top: 0;
+    border-radius: 0px 0px 6px 6px;
+}
+
 #bibtex {
    display: none;
    overflow: auto;
@@ -416,4 +423,17 @@ li.feature {
 
 li.demo {
   margin-bottom: 8px;
+}
+
+.citations + h4 {
+    margin-top: 28px;
+}
+
+#demolink {
+  color: brown;
+  font-weight: bold;
+}
+
+#demolink a:hover {
+  text-decoration: underline;
 }
