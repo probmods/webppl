@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
 var ad = require('../ad');
@@ -12,13 +13,17 @@ var CountAggregator = function(onlyMAP) {
 };
 
 CountAggregator.prototype.add = function(value, score) {
-  score = (score === undefined) ? 0 : score;
-  if (!this.onlyMAP) {
-    this.samples.push({value: value, score: score});
-  }
-  if (score > this.max.score) {
-    this.max.value = value;
-    this.max.score = score;
+  if (this.onlyMAP) {
+    assert.ok(score !== undefined, 'A score is required to compute the MAP.');
+    if (score > this.max.score) {
+      this.max.value = value;
+      this.max.score = score;
+    }
+  } else {
+    var obj = (score === undefined) ?
+        {value: value} :
+        {value: value, score: score};
+    this.samples.push(obj);
   }
 };
 
