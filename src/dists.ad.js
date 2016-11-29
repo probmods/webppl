@@ -1395,20 +1395,6 @@ var SampleBasedMarginal = makeDistributionType({
         return dist;
       }
     };
-
-    this.getSupport = function() {
-      if (this.params.samples.length === 1) {
-        // Optimization: Avoid unnecessary serialization in the
-        // onlyMAP case
-        return [this.params.samples[0].value];
-      } else if (this._cachedsupport) {
-        return this._cachedsupport;
-      } else {
-        var support = _.map(this.getDist(), _.property('val'));
-        this._cachedsupport = support;
-        return support;
-      }
-    };
   },
   sample: function() {
     var n = this.params.samples.length;
@@ -1420,7 +1406,17 @@ var SampleBasedMarginal = makeDistributionType({
     return (obj === undefined) ? -Infinity : Math.log(obj.prob);
   },
   support: function() {
-    return this.getSupport();
+    if (this.params.samples.length === 1) {
+      // Optimization: Avoid unnecessary serialization in the
+      // onlyMAP case
+      return [this.params.samples[0].value];
+    } else if (this._cachedsupport) {
+      return this._cachedsupport;
+    } else {
+      var support = _.map(this.getDist(), _.property('val'));
+      this._cachedsupport = support;
+      return support;
+    }
   },
   print: function() {
     return printDist(this.getDist());
