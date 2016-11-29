@@ -137,10 +137,14 @@ var testDefs = [
   },
 
   { name: 'top most webppl entry is not a user function',
-    code: ['var f = function() { stackTraceTestFns.test() };',
+    code: ['var testFn = stackTraceTestFns.test;',
+           'var f = function() { return testFn(); };',
            'f();'
     ].join('\n'),
-    stack: [{webppl: true, line: 2, col: 0, name: 'f'}],
+    stack: [
+      {file: RegExp('test-stack-trace.js$'), webppl: false, line: 16, col: 12},
+      {webppl: false}, {webppl: false}, {webppl: false}, // Uninteresting entries from runner.
+      {webppl: true, line: 3, col: 0, name: 'f'}],
     debug: true
   },
 
