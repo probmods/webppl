@@ -24,11 +24,11 @@ ScoreAggregator.prototype.add = function(value, score) {
   if (score === -Infinity) {
     return;
   }
-  var k = util.serialize(value);
-  if (this.dist[k] === undefined) {
-    this.dist[k] = { score: -Infinity, val: value };
+  var key = util.serialize(value);
+  if (this.dist[key] === undefined) {
+    this.dist[key] = { score: -Infinity, val: value };
   }
-  this.dist[k].score = logsumexp(this.dist[k].score, score);
+  this.dist[key].score = logsumexp(this.dist[key].score, score);
 };
 
 function normalize(dist) {

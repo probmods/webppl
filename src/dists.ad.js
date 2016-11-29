@@ -1382,11 +1382,11 @@ var SampleBasedMarginal = makeDistributionType({
         var dist = {};
         this.params.samples.forEach(function(obj) {
           var val = obj.value;
-          var k = util.serialize(val);
-          if (dist[k] === undefined) {
-            dist[k] = {val: val, prob: 0};
+          var key = util.serialize(val);
+          if (dist[key] === undefined) {
+            dist[key] = {val: val, prob: 0};
           }
-          dist[k].prob += 1;
+          dist[key].prob += 1;
         });
         // Normalize.
         var n = this.params.samples.length;
@@ -1415,8 +1415,8 @@ var SampleBasedMarginal = makeDistributionType({
     return this.params.samples[Math.floor(util.random() * n)].value;
   },
   score: function(val) {
-    var k = util.serialize(val);
-    var obj = this.getDist()[k];
+    var key = util.serialize(val);
+    var obj = this.getDist()[key];
     return (obj === undefined) ? -Infinity : Math.log(obj.prob);
   },
   support: function() {
