@@ -13,7 +13,7 @@ var guide = require('../guide');
 module.exports = function(env) {
 
   function SDREAM(wpplFn, s, a, options, state, params, step, cont) {
-    this.opts =  util.mergeDefaults(options, {
+    this.opts = util.mergeDefaults(options, {
       samples: 100,
       verbose: true,
     });
@@ -36,7 +36,7 @@ module.exports = function(env) {
 
     this.isSamplingPass = true;
 
-    // The global model includes anything outside of any mapData (level 0) 
+    // The global model includes anything outside of any mapData (level 0)
     // The local model includes anything inside of some mapData (level 1+)
     this.mapDataNestingLevel = 0;
 
@@ -59,7 +59,7 @@ module.exports = function(env) {
 
   SDREAM.prototype = {
 
-    isInsideMapData: function () {
+    isInsideMapData: function() {
       return this.mapDataNestingLevel > 0;
     },
 
@@ -108,7 +108,7 @@ module.exports = function(env) {
             paramStruct.divEq(grad, this.opts.samples);
             dream /= this.opts.samples; // Averages estimations.
             env.coroutine = this.coroutine; // TODO needed?
-            return this.cont(grad, dream);          
+            return this.cont(grad, dream);
           }.bind(this));
     },
 
@@ -139,7 +139,7 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
         debugger;
-        
+
         var logp = ad.value(this.currRecord.trace.score);
         var logq = ad.value(this.logq);
         return cont(grads, logp - logq);
@@ -160,10 +160,10 @@ module.exports = function(env) {
       if (this.isSamplingPass) {
         var val = distribution.sample();
         // var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
-        
+
         this.currRecord.trace.addChoice(distribution, val, a, s, k, options);
 
-        // Accumulates score of samples inside mapData only, which can be 
+        // Accumulates score of samples inside mapData only, which can be
         // used in the objective computation in dreamEUBO
         // TODO: check what should be the case for random global model
         // update trace score to take into account only local or use the sampleScore
@@ -184,7 +184,7 @@ module.exports = function(env) {
           // choices in an example trace can be ad nodes when they are
           // generated with SMC + HMC rejuv.)
           var guideVal = ad.value(val);
-          
+
           var guideScore = guideDist.score(guideVal);
           checkScoreIsFinite(guideScore, 'guide');
 
@@ -217,8 +217,8 @@ module.exports = function(env) {
         //var val = this.ad && dist.isContinuous ?
         //     ad.lift(_hallucinatedVal) : _hallucinatedVal;
         this.currRecord.trace.addChoice(dist, hallucinatedVal, a, s, k);
-        
-        // TODO: construct new observations by injecting the hallucinated data rather than 
+
+        // TODO: construct new observations by injecting the hallucinated data rather than
         // reconstruction of the mapData param since it doesn't generalize well.
         if (_.isArray(this.currObservationsObj)) {
           this.currObservationsObj.push(hallucinatedVal);
@@ -226,7 +226,7 @@ module.exports = function(env) {
         else {
           this.currObservationsObj = hallucinatedVal;
         }
-        
+
         return k(s, hallucinatedVal);
       }
       else {
@@ -243,22 +243,22 @@ module.exports = function(env) {
     },
 
     // TODO: Generalize for MapData objects
-    mapDataEnter: function (val) {
+    mapDataEnter: function(val) {
       if (this.isSamplingPass) { // TODO: flag needed? not necessary...
-        // Currently supports edge cases of no observations. Ultimately, we will keep this line 
-        // which assign the original observations object and then modify it in each 
+        // Currently supports edge cases of no observations. Ultimately, we will keep this line
+        // which assign the original observations object and then modify it in each
         // observe call to inject hallucinations.
         this.currObservationsObj = val;
-        
-        // Support for array type. 
+
+        // Support for array type.
         // Currently assumes that in that case we have matching order of observe calls in obsFn.
-        if(_.isArray(val)) {
+        if (_.isArray(val)) {
           this.currObservationsObj = [];
         }
       }
     },
 
-    mapDataLeave: function (val) {
+    mapDataLeave: function(val) {
       if (this.isSamplingPass) {
         // TODO: can push last obs obj in the Enter so that Leave won't be needed
         this.currRecord.observations.push(this.currObservationsObj);
