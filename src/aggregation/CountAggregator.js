@@ -1,39 +1,39 @@
 'use strict';
 
-var assert = require('assert');
 var _ = require('underscore');
 var util = require('../util');
 var ad = require('../ad');
 var dists = require('../dists');
 
-var CountAggregator = function(onlyMAP) {
-  this.onlyMAP = onlyMAP;
-  this.max = {value: undefined, score: -Infinity};
-  this.samples = [];
+var CountAggregator = function() {
+  this.hist = {};
 };
 
-CountAggregator.prototype.add = function(value, score) {
-  if (this.onlyMAP) {
-    assert.ok(score !== undefined, 'A score is required to compute the MAP.');
-    if (score > this.max.score) {
-      this.max.value = value;
-      this.max.score = score;
-    }
-  } else {
-    var obj = (score === undefined) ?
-        {value: value} :
-        {value: value, score: score};
-    this.samples.push(obj);
+CountAggregator.prototype.add = function(value) {
+  var k = util.serialize(value);
+  if (this.hist[k] === undefined) {
+    this.hist[k] = { count: 0, val: value };
   }
+  this.hist[k].count += 1;
 };
+
+function normalize(hist) {
+  var totalCount = _.reduce(hist, function(acc, obj) {
+    return acc + obj.count;
+  }, 0);
+  return {
+    totalCount: totalCount,
+    dist: _.mapObject(hist, function(obj) {
+      return { val: obj.val, prob: obj.count / totalCount };
+    })
+  };
+}
 
 CountAggregator.prototype.toDist = function() {
-  if (this.onlyMAP) {
-    this.samples = [this.max];
-  }
-  return new dists.SampleBasedMarginal({
-    samples: this.samples,
-    numSamples: this.samples.length
+  var normalized = normalize(this.hist);
+  return new dists.Marginal({
+    dist: normalized.dist,
+    numSamples: normalized.totalCount
   });
 };
 

@@ -109,10 +109,19 @@ MCMC
 
          Default: ``false``
 
+      .. describe:: justSample
+
+         When ``true``, maintain an array of all samples taken. This
+         is available via the ``samples`` property of the returned
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
+
+         Default: ``false``
+
       .. describe:: onlyMAP
 
-         When ``true``, only the sample with the highest score is
-         retained. The marginal is a delta distribution on this value.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
@@ -202,10 +211,19 @@ Incremental MH
 
          Default: ``false``
 
+      .. describe:: justSample
+
+         When ``true``, maintain an array of all samples taken. This
+         is available via the ``samples`` property of the returned
+         marginal distribution. ``justSample`` implies ``onlyMAP``.
+
+         Default: ``false``
+
       .. describe:: onlyMAP
 
-         When ``true``, only the sample with the highest score is
-         retained. The marginal is a delta distribution on this value.
+         When ``true``, return a delta distribution on the sampled
+         value with the highest score instead of a marginal
+         distribution built from all samples.
 
          Default: ``false``
 
@@ -270,13 +288,6 @@ SMC
          The MCMC kernel to use for rejuvenation. See `Kernels`_.
 
          Default: ``'MH'``
-
-      .. describe:: onlyMAP
-
-         When ``true``, only the sample with the highest score is
-         retained. The marginal is a delta distribution on this value.
-
-         Default: ``false``
 
    Example usage::
 

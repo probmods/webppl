@@ -9,6 +9,7 @@ var util = require('../util');
 var Hashtable = require('../hashtable').Hashtable
 var Query = require('../query').Query;
 var CountAggregator = require('../aggregation/CountAggregator');
+var MaxAggregator = require('../aggregation/MaxAggregator');
 
 module.exports = function(env) {
 
@@ -780,6 +781,7 @@ module.exports = function(env) {
     var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
     var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
     var verbose = opts.verbose === undefined ? false : opts.verbose;
+    var justSample = opts.justSample === undefined ? false : opts.justSample;
     var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
     var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
     var minHitRate = opts.cacheMinHitRate === undefined ? 0.00000001 : opts.cacheMinHitRate;
@@ -804,7 +806,9 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.aggregator = new CountAggregator(onlyMAP);
+    this.aggregator = (justSample || onlyMAP) ?
+        new MaxAggregator(justSample) :
+        new CountAggregator();
 
     this.totalIterations = this.iterations;
     this.acceptedProps = 0;

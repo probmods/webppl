@@ -23,7 +23,6 @@ module.exports = function(env) {
       finalRejuv: true,
       saveTraces: false,
       ignoreGuide: false,
-      onlyMAP: false,
       params: {}
     });
 
@@ -37,7 +36,6 @@ module.exports = function(env) {
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
     this.ignoreGuide = options.ignoreGuide;
-    this.onlyMAP = options.onlyMAP;
 
     // Perform a copy to avoid modifying the input when SMC causes
     // previously unseen params to be initialized.
@@ -89,8 +87,6 @@ module.exports = function(env) {
     // Optimization: Choices are not required for PF without rejuvenation.
     if (this.performRejuv || this.saveTraces) {
       particle.trace.addChoice(dist, val, a, s, k, options);
-    } else {
-      particle.trace.score = ad.scalar.add(particle.trace.score, choiceScore);
     }
     return k(s, val);
   };
@@ -284,13 +280,12 @@ module.exports = function(env) {
   SMC.prototype.finish = function(s, val) {
     assert.strictEqual(this.completeParticles.length, this.numParticles);
 
-    var hist = new CountAggregator(this.onlyMAP);
+    var hist = new CountAggregator();
     var traces = [];
 
     var aggregate = function(trace) {
       var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
-      var score = this.adRequired ? ad.valueRec(trace.score) : trace.score;
-      hist.add(value, score);
+      hist.add(value);
       if (this.saveTraces) {
         traces.push(trace);
       }

@@ -78,31 +78,29 @@ function sourceMapJsStackTrace(stackTrace, sourceMap) {
 
   var map = new SourceMap.SourceMapConsumer(sourceMap);
 
-  return _.chain(stackTrace).map(function(entry) {
+  return stackTrace.map(function(entry) {
     if (entry.webppl) {
       var pos = map.originalPositionFor({
         line: entry.lineNumber,
         column: entry.columnNumber
       });
 
-      return positionPopulated(pos) ?
-          {
-            fileName: pos.source,
-            lineNumber: pos.line,
-            columnNumber: pos.column,
-            native: entry.native,
-            webppl: true,
-            name: filterGensym(pos.name)
-          } :
-          null;
+      assert.ok(pos.line !== null);
+      assert.ok(pos.column !== null);
+      assert.ok(pos.source !== null);
+
+      return {
+        fileName: pos.source,
+        lineNumber: pos.line,
+        columnNumber: pos.column,
+        native: entry.native,
+        webppl: true,
+        name: filterGensym(pos.name)
+      };
     } else {
       return entry;
     }
-  }).filter().value();
-}
-
-function positionPopulated(pos) {
-  return pos.source !== null && pos.line !== null && pos.column !== null;
+  });
 }
 
 module.exports = {
