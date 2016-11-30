@@ -34,7 +34,7 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
 
-    this.isSamplingPass = true;
+    this.isSamplingPass = true; // TODO: initially should be not true nor false...
 
     // The global model includes anything outside of any mapData (level 0)
     // The local model includes anything inside of some mapData (level 1+)
@@ -86,16 +86,18 @@ module.exports = function(env) {
 
               return this.wpplFn(_.clone(this.s), function(s, val) {
                 // Record completion.
-                this.currRecord.trace.complete(val);
+                this.currRecord.trace.complete(val); 
+                // TODO: needed? is val what we want to save in the trace?
                 this.isSamplingPass = false;
                 return cont();
               }.bind(this), this.a);
             }.bind(this); // TODO needed?
 
             var scoringPass = function() {
-              return this.estimateGradient(this.currRecord, function(g, dream_i) {
+              return this.estimateGradient(function(g, dream_i) {
                 paramStruct.addEq(grad, g); // Accumulates gradient estimates.
                 dream += dream_i;
+                delete this.paramsSeen; // TODO: not necessary but fine
                 return next();
               }.bind(this));
             }.bind(this); // TODO needed?
@@ -115,11 +117,7 @@ module.exports = function(env) {
     // Computes a single sample estimate of the gradient,
     // which in case of EUBO is the minus guide scoring on
     // the target recorded samples.
-    estimateGradient: function(record, cont) {
-
-      // Makes record available throughout the module.
-      this.currRecord = record;
-
+    estimateGradient: function(cont) {
       // paramsSeen tracks the AD nodes of all parameters seen during
       // a single execution. These are the parameters for which
       // gradients will be computed.
@@ -221,7 +219,8 @@ module.exports = function(env) {
         // TODO: construct new observations by injecting the hallucinated data rather than
         // reconstruction of the mapData param since it doesn't generalize well.
         if (_.isArray(this.currObservationsObj)) {
-          this.currObservationsObj.push(hallucinatedVal);
+          this.currObservationsObj.push(hallucinatedVal); 
+          // TODO: eliminate this variable. update currRecord directly.
         }
         else {
           this.currObservationsObj = hallucinatedVal;
