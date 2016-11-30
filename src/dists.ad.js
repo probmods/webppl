@@ -52,7 +52,11 @@ Distribution.prototype = {
 
   inspect: function(depth, options) {
     if (_.has(this, 'params')) {
-      return [this.meta.name, '(', inspect(this.params), ')'].join('');
+      if (this.print) {
+        return this.print();
+      } else {
+        return [this.meta.name, '(', inspect(this.params), ')'].join('');
+      }
     } else {
       // This isn't an instance of a distribution type.
       // e.g. Uniform.prototype.inspect()
@@ -1351,7 +1355,7 @@ var Marginal = makeDistributionType({
     return this.supp;
   },
   print: function() {
-    return printDist(this.params.dist);
+    return printMarginal(this.params.dist);
   }
 });
 
@@ -1419,12 +1423,12 @@ var SampleBasedMarginal = makeDistributionType({
     }
   },
   print: function() {
-    return printDist(this.getDist());
+    return printMarginal(this.getDist());
   }
 });
 
-function printDist(dist) {
-  return _.map(dist, function(obj, val) { return [val, obj.prob]; })
+function printMarginal(dist) {
+  return 'Marginal:\n' + _.map(dist, function(obj, val) { return [val, obj.prob]; })
     .sort(function(a, b) { return b[1] - a[1]; })
     .map(function(pair) { return '    ' + pair[0] + ' : ' + pair[1]; })
     .join('\n');
