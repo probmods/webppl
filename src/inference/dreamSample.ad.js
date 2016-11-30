@@ -38,7 +38,7 @@ module.exports = function(env) {
     
     // TODO: Eliminate?
     this.currRecord = null;
-    this.currObservation = null;
+    this.currObservationsObj = null;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
