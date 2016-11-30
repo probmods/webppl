@@ -180,7 +180,7 @@ module.exports = function(env) {
       return k(s, acc);
     } else {
       if (env.coroutine.mapDataEnter) {
-        env.coroutine.mapDataEnter();
+        env.coroutine.mapDataEnter(data[i]);
       }
       return f(s, function(s, v) {
         if (env.coroutine.mapDataLeave) {

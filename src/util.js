@@ -374,13 +374,13 @@ var registerParams = function(env, name, getParams, setParams) {
 
     if (_.has(paramStore, name)) {
       // Seen on previous execution. Fetch from store and lift.
-      params = paramStore[name].map(ad.lift);
+      _params = paramStore[name];
     } else {
       // Never seen. Fetch initial values, add to store and lift.
       var _params = getParams().map(ad.value);
       paramStore[name] = _params;
-      params = _params.map(ad.lift);
     }
+    params = _params.map(ad.lift);
 
     if (paramsSeen) {
       paramsSeen[name] = params;

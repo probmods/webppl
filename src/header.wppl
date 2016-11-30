@@ -464,8 +464,8 @@ var SampleGuide = function(wpplFn, options) {
 // Optimize which does a EUBO-scoring pass based on records from the forward pass
 // Ultimately it samples from the optimized guide distribution
 var DreamTrainThenSample = function(wpplFn, options) {
-  var records = DreamSample(wpplFn, options);
-  var opts = _.extendOwn({}, options, {estimator: {DREAM: {records: records }}});
+  var ret = DreamSample(wpplFn, options);
+  var opts = _.extendOwn({}, options, {params: ret.params, estimator: {DREAM: {records: ret.records }}});
   return OptimizeThenSample(wpplFn, opts);
 };
 

@@ -78,7 +78,7 @@ module.exports = function(env) {
           // Continuation.
           function() {
             env.coroutine = this.coroutine;
-            return this.k(this.s, this.records);
+            return this.k(this.s, {records: this.records, params: this.params});
           }.bind(this));
 
     },
