@@ -6,6 +6,18 @@ var webppl = require('../src/main');
 var errors = require('../src/errors/errors');
 var parseV8 = require('../src/errors/parsers').parseV8;
 
+var stackTraceTestFns = {
+  test: function(s, k, a) {
+    // This simulates an exception in back-end code been throw after
+    // the stack has been cleared. In this setting there is no entry
+    // on the JS stack corresponding to a webppl call made from user
+    // code.
+    return function() {
+      throw new Error();
+    };
+  }
+};
+
 var testDefs = [
   { name: 'top-level',
     code: 'null[0]',
@@ -124,6 +136,18 @@ var testDefs = [
     limit: 1
   },
 
+  { name: 'top most webppl entry is not a user function',
+    code: ['var testFn = stackTraceTestFns.test;',
+           'var f = function() { return testFn(); };',
+           'f();'
+    ].join('\n'),
+    stack: [
+      {file: RegExp('test-stack-trace.js$'), webppl: false, line: 16, col: 12},
+      {webppl: false}, {webppl: false}, {webppl: false}, // Uninteresting entries from runner.
+      {webppl: true, line: 3, col: 0, name: 'f'}],
+    debug: true
+  },
+
   // The idea here is to test that the stack is as expected at the
   // error which occurs after we continue from the sample statement
   // for the second time.
@@ -178,10 +202,12 @@ function getStack(code, debug, limit) {
   try {
     oldLimit = Error.stackTraceLimit;
     Error.stackTraceLimit = (limit !== undefined) ? limit : oldLimit;
+    global.stackTraceTestFns = stackTraceTestFns;
     webppl.run(code, null, {debug: debug});
   } catch (e) {
     stack = errors.recoverStack(e, parseV8);
   } finally {
+    delete global.stackTraceTestFns;
     Error.stackTraceLimit = oldLimit;
   }
   return stack;

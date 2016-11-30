@@ -3,7 +3,6 @@
 var _ = require('underscore');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
-var MaxAggregator = require('../aggregation/MaxAggregator');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -28,9 +27,7 @@ module.exports = function(env) {
         options.callbacks;
     _.invoke(callbacks, 'setup', numIters(options));
 
-    var aggregator = (options.justSample || options.onlyMAP) ?
-        new MaxAggregator(options.justSample) :
-        new CountAggregator();
+    var aggregator = new CountAggregator(options.onlyMAP);
 
     var addToAggregator = options.kernel.adRequired ?
         function(value, score) { aggregator.add(ad.valueRec(value), ad.value(score)); } :
