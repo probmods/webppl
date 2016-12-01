@@ -1359,7 +1359,7 @@ var Marginal = makeDistributionType({
 // A "list of samples" backed marginal distribution that only
 // aggregates the samples into a distribution when necessary.
 var SampleBasedMarginal = makeDistributionType({
-  name: 'Marginal',
+  name: 'SampleBasedMarginal',
   nodoc: true,
   nohelper: true,
   params: [{name: 'samples'}],
