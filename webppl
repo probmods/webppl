@@ -14,12 +14,8 @@ var showError = require('./src/errors/node').showError;
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
-function printWebPPLValue(x) {
-  console.log(x);
-};
-
 function topK(s, x) {
-  printWebPPLValue(x);
+  console.log(x);
 };
 
 function run(code, packages, verbose, debug, programFile) {
@@ -76,7 +72,6 @@ function compile(code, packages, verbose, debug, programFile, outputFile) {
 
   compiledCode += lines([
     'var __runner__ = util.trampolineRunners.cli();',
-    printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
     "main({})(__runner__)({}, topK, '');"
