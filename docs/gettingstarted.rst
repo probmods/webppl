@@ -13,11 +13,8 @@ Learning
 --------
 
 If you're new to probabilistic programming, `Probabilistic Models of
-Cognition <https://probmods.org/>`_ is a great place to start learning
-the paradigm. It uses `Church
-<http://projects.csail.mit.edu/church/wiki/Church>`_ for
-demonstrations, but the principles will apply when you are using
-WebPPL.
+Cognition <https://probmods.org/v2/>`_ is a great place to start
+learning the paradigm.
 
 The best guide to using WebPPL is `The Design and Implementation of
 Probabilistic Programming Languages
