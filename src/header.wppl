@@ -394,6 +394,14 @@ var repeat = function(n, fn) {
   return helper(n);
 }
 
+var range = function(n) {
+  if (n === 0) {
+    return [];
+  } else {
+    return range(n - 1).concat([n - 1]);
+  }
+};
+
 var compose = function(f, g) {
   return function(x) {
     return f(g(x));
