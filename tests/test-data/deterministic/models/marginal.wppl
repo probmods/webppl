@@ -1,0 +1,6 @@
+var m1 = Infer({method: 'forward', samples: 1, model: constF(0)});
+var m2 = Infer({method: 'forward', samples: 2, model: constF(0)});
+[
+  m1.support(),
+  m2.support()
+];
