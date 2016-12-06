@@ -2,6 +2,7 @@
 
 var types = require('../src/types');
 var Tensor = require('../src/tensor');
+var parseInterval = require('../src/math/interval').parse;
 
 function testMembership(type, obj) {
   return function(test) {
@@ -82,12 +83,12 @@ module.exports = {
     outside: [[.1], ['a'], [true], 0, 'a', true]
   }),
 
-  vector: testMembership(types.unboundedVector, {
+  vector: testMembership(types.vector(parseInterval('(-Infinity, Infinity)'), true), {
     inside: [vec([]), vec([-1e6]), vec([0]), vec([1e6])],
     outside: [0, 'a', true, vec([NaN]), vec([-Infinity]), vec([Infinity])]
   }),
 
-  positiveVector: testMembership(types.positiveVector, {
+  positiveVector: testMembership(types.vector(parseInterval('(0, Infinity)'), true), {
     inside: [vec([]), vec([1e6])],
     outside: [0, 'a', true, vec([-1e6]), vec([0]), vec([NaN]), vec([-Infinity]), vec([Infinity])]
   }),
@@ -110,12 +111,12 @@ module.exports = {
     outside: [zeros([1, 1, 1]), zeros([2, 1]), [], 0, 'a', true]
   }),
 
-  unboundedTensor: testMembership(types.unboundedTensor, {
+  unboundedTensor: testMembership(types.tensor(parseInterval('(-Infinity, Infinity)'), true), {
     inside: [vec([]), mat([[]]), vec([0]), vec([1]), mat([[0]]), mat([[1]]), zeros([1, 1, 1])],
     outside: [[], 0, 'a', true]
   }),
 
-  positiveTensor: testMembership(types.positiveTensor, {
+  positiveTensor: testMembership(types.tensor(parseInterval('(0, Infinity)'), true), {
     inside: [vec([]), mat([[]]), vec([1]), mat([[1]])],
     outside: [vec([0]), mat([[0]]), zeros([1, 1, 1]), [], 0, 'a', true]
   }),

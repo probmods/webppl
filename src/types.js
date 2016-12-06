@@ -68,20 +68,22 @@ var array = function(elementType) {
   };
 };
 
-// Note that we currently performs element wise checks on Tensors.
-// This is useful, even for unbounded tensors, because typed arrays
-// can still hold invalid values such as NaN and ±Infinity.
+// The element wise checks are potentially useful, even for unbounded
+// tensors, because typed arrays can still hold invalid values such as
+// NaN and ±Infinity. In simple benchmarks this appears expensive, but
+// when doing optimization based inference the cost might only be a
+// small constant factor.
 
-var vector = function(interval) {
+var vector = function(interval, performBoundsCheck) {
   errorIfNotInterval(interval);
   var checkBounds = checkInterval(interval);
   return {
     name: 'vector',
     desc: appendInterval('vector', interval),
     bounds: interval,
-    check: function(val) {
-      return util.isVector(val) && val.data.every(checkBounds);
-    }
+    check: performBoundsCheck ?
+        function(val) { return util.isVector(val) && val.data.every(checkBounds); } :
+        function(val) { return util.isVector(val); }
   };
 };
 
@@ -93,7 +95,7 @@ var vector = function(interval) {
 // be more complicated.
 var vectorOrRealArray = function(interval) {
   errorIfNotInterval(interval);
-  var vectorType = vector(interval);
+  var vectorType = vector(interval, true);
   var realArrayType = array(real(interval));
   return {
     name: 'vectorOrRealArray',
@@ -112,16 +114,16 @@ var posDefMatrix = {
   }
 };
 
-var tensor = function(interval) {
+var tensor = function(interval, performBoundsCheck) {
   errorIfNotInterval(interval);
   var checkBounds = checkInterval(interval);
   return {
     name: 'tensor',
     desc: appendInterval('tensor', interval),
     bounds: interval,
-    check: function(val) {
-      return util.isTensor(val) && val.data.every(checkBounds);
-    }
+    check: performBoundsCheck ?
+        function(val) { return util.isTensor(val) && val.data.every(checkBounds); } :
+        function(val) { return util.isTensor(val); }
   };
 };
 
