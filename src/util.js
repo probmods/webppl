@@ -140,7 +140,7 @@ function cpsLoop(n, func, cont) {
         return function() { // insert trampoline step
           return loop(i + 1);
         };
-      });
+      }, cont);
     }
   }
   assert(_.isNumber(n), 'Number expected.');
@@ -154,7 +154,7 @@ function cpsIterate(n, initial, func, cont) {
         return func(function(nextVal) {
           val = nextVal;
           return next();
-        }, val);
+        }, val, cont);
       },
       function() { return cont(val); });
 }

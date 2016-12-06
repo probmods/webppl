@@ -24,7 +24,17 @@ module.exports = function(env) {
   var estimators = {
     ELBO: require('./elbo')(env),
     EUBO: require('./eubo')(env),
-    DREAM: require('./dreamEubo')(env)
+    DREAM: require('./dreamEubo')(env),
+    SDREAM: require('./dream')(env)
+  };
+
+  var stopCriterionType = {
+    MAX_ITERATIONS: 0,
+    ABSOLUTE_OBJECTIVE_TOLERANCE: 1, // so-so
+    RELATIVE_OBJECTIVE_TOLERANCE: 2, // so-so
+    ABOSULTE_GRADNORM_TOLERANCE: 3, // useful
+    RELATIVE_GRADNORM_TOLERANCE: 4 // useful
+    // TODO: add early stopping criterion - should be the the most reliable for SGD
   };
 
   function Optimize(s, k, a, fnOrOptions, maybeOptions) {
@@ -50,21 +60,26 @@ module.exports = function(env) {
       params: {},
       optMethod: 'adam',
       estimator: 'ELBO',
-      steps: 1,
+      steps: 100, // TODO: change to maxSteps?
+      minSteps: 100,
       clip: false,              // false = no clipping, otherwise specifies threshold.
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
+      stopCriterion: stopCriterionType.MAX_ITERATIONS,
+      toleranceThreshold: [-1, 0.000001, 0.000001, 0.001, 0.001], // TODO: change interface to be cleaner
       onFinish: function(s, k, a) { return k(s); },
 
       logProgress: false,
       logProgressFilename: 'optimizeProgress.csv',
-      logProgressThrottle: 200,
+      logProgressThin: 1, // TODO change name to iterationThinning
+      logProgressThrottle: 0, // TODO change name to TimeThinning
 
       checkpointParams: false,
       checkpointParamsFilename: 'optimizeParams.json',
-      checkpointParamsThrottle: 200,
-      keepParamsHistory: false
+      //checkpointParamsThin: 1, // TODO: support that?
+      checkpointParamsThrottle: 0,
+      keepParamsHistory: true
     });
 
     // Create a (cps) function 'estimator' which takes parameters to
@@ -88,6 +103,31 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
+    // TODO; average over number of iterations and stop only if average is low enough
+    // TODO: move to a different module
+    var objPrev = NaN, objDiff = NaN, objPrevDiff = NaN, objRelDiff = NaN;
+    var normRel = NaN; //normDiff = NaN, normPrevDiff = NaN, normPrev = NaN,
+    var stop = function(obj, gradNorm, paramNorm, i) {
+      if (!options.stopCriterion || i < options.minSteps) {
+        return false;
+      }
+
+      objDiff = i ? obj - objPrev : NaN;
+      //normDiff = progressNcalls ? gradNorm - normPrev : NaN;
+      objRelDiff = (!isNaN(objPrev)) ? objDiff / objPrev : NaN;
+      normRel = gradNorm / paramNorm; //normPrevDiff ? gradNorm / paramNorm : NaN;
+      var diffs = [i, objDiff, objRelDiff, gradNorm, normRel];
+
+      var ret = Math.abs(diffs[options.stopCriterion]) < options.toleranceThreshold[options.stopCriterion];
+
+      objPrev = obj;
+      objPrevDiff = objDiff;
+      //normPrev = gradNorm;
+      //normPrevDiff = normDiffLog;
+
+      return ret;
+    }
+
     var paramObj = paramStruct.deepCopy(options.params);
 
     var showProgress = _.throttle(function(i, objective) {
@@ -97,17 +137,39 @@ module.exports = function(env) {
     var history = [];
 
     // For writing progress to disk
+    // TODO: eliminate duplication of logging code
+    // TODO: move logging information as an object rather than list of params
+    // TODO: create a small module to compute and track statistics for either objective or norm
     var logFile, logProgress;
     if (options.logProgress) {
       logFile = fs.openSync(options.logProgressFilename, 'w');
-      fs.writeSync(logFile, 'index,iter,time,objective\n');
+      fs.writeSync(logFile, 'index,iter,time,objective,absoulteDiff,relativeDiff,gradientNorm,normRellDiff\n');
+
       var progressNcalls = 0;
       var starttime = present();
-      logProgress = _.throttle(function(i, objective) {
+      var objPrevLog = NaN, objDiffLog = NaN, objPrevDiffLog = NaN, objRelDiffLog = NaN;
+      var normRelLog = NaN; //normDiffLog = NaN, normPrevDiffLog = NaN, normPrevLog = NaN,
+
+      var logProgressFunc = function(i, obj, gradNorm, paramNorm) {
+        if (i % options.logProgressThin) return;
         var t = (present() - starttime) / 1000;
-        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d\n', progressNcalls, i, t, objective));
+
+        objDiffLog = progressNcalls ? obj - objPrevLog : NaN;
+        //normDiffLog = progressNcalls ? gradNorm - normPrevLog : NaN;
+        objRelDiffLog = (!isNaN(objPrevLog)) ? objDiffLog / objPrevLog : NaN; //objPrevDiffLog
+        normRelLog = gradNorm / paramNorm; //normPrevLog?
+
+        fs.writeSync(logFile, nodeUtil.format('%d,%d,%d,%d,%d,%d,%d,%d\n',
+            progressNcalls, i, t, obj, objDiffLog, objRelDiffLog, gradNorm, normRelLog));
         progressNcalls++;
-      }, options.logProgressThrottle, { trailing: false });
+
+        objPrevLog = obj;
+        objPrevDiffLog = objDiffLog;
+        //normPrevLog = gradNorm;
+        //normPrevDiffLog = normDiffLog;
+      }
+      logProgress = options.logProgressThrottle ?
+          _.throttle(logProgressFunc, options.logProgressThrottle, { trailing: false }) : logProgressFunc;
     }
 
     // For checkpointing params to disk
@@ -146,7 +208,8 @@ module.exports = function(env) {
         }
         paramsNcalls++;
       };
-      checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
+      checkpointParams = options.logProgressThrottle ?
+          _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false }) : saveParams;
     }
 
     // Main loop.
@@ -154,20 +217,21 @@ module.exports = function(env) {
         options.steps,
 
         // Loop body.
-        function(i, next) {
-
+        function(i, next, cont) {
           return estimator(paramObj, i, function(gradObj, objective) {
             if (options.checkGradients) {
               checkGradients(gradObj);
             }
 
-            if (options.clip || options.showGradNorm) {
-              var norm = paramStruct.norm(gradObj);
+            var gradNorm, paramNorm;
+            if (options.clip || options.showGradNorm || options.logProgress || options.stopCriterion) {
+              gradNorm = paramStruct.norm(gradObj);
+              paramNorm = paramStruct.norm(paramObj);
               if (options.showGradNorm) {
-                console.log('L2 norm of gradient: ' + norm);
+                console.log('L2 norm of gradient: ' + gradNorm);
               }
               if (options.clip) {
-                paramStruct.clip(gradObj, options.clip, norm);
+                paramStruct.clip(gradObj, options.clip, gradNorm);
               }
             }
 
@@ -175,16 +239,17 @@ module.exports = function(env) {
               showProgress(i, objective);
             }
             if (options.logProgress) {
-              logProgress(i, objective);
+              logProgress(i, objective, gradNorm, paramNorm);
             }
             if (options.checkpointParams) {
               checkpointParams();
             }
 
             history.push(objective);
-
             optimizer(gradObj, paramObj, i);
-
+            if (stop(objective, gradNorm, paramNorm, i)) {
+              return cont();
+            }
             return next();
           });
 

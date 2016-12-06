@@ -22,10 +22,10 @@ module.exports = function(env) {
     }
 
     // A list of records, each contains a completed trace
-    // and a list of observed values from a previous execution wpplFn.
+    // and a list of observed values from a previous execution of wpplFn.
     // Records can be created by using dreamSample.
     this.records = this.opts.records;
-    this.currRecord;
+    this.currRecord = null;
 
     this.params = params;
     this.cont = cont;
