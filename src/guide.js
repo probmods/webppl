@@ -132,6 +132,8 @@ function paramSpec(type, targetParam) {
     case 'vectorOrRealArray':
       // Both vectors and arrays have a length property.
       return {param: {dims: [targetParam.length, 1], squish: squishToInterval(type.bounds)}};
+    case 'tensor':
+      return {param: {dims: targetParam.dims, squish: squishToInterval(type.bounds)}};
     case 'int':
       return {const: targetParam};
     default:
