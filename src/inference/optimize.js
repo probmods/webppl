@@ -35,6 +35,16 @@ module.exports = function(env) {
     ABOSULTE_GRADNORM_TOLERANCE: 3, // useful
     RELATIVE_GRADNORM_TOLERANCE: 4 // useful
     // TODO: add early stopping criterion - should be the the most reliable for SGD
+    // TODO: add an option for a user-defined function for an arbitrary stopping criterion
+  };
+
+  // TODO: add max/min only among last iterations or among all?
+  var returnedParamsType = {
+    LAST: 0,
+    MAX: 1, // good for ELBO (Lower bound)
+    MIN: 2 // good for EUBO (Upper bound)
+    // TODO: add average  - there's a theoretical basis that averaging params during sgd can be a good idea.
+    // TODO: add an option for a user-defined function that chooses the returned param based on any other criterion
   };
 
   function Optimize(s, k, a, fnOrOptions, maybeOptions) {
@@ -66,8 +76,9 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      stopCriterion: stopCriterionType.MAX_ITERATIONS,
-      toleranceThreshold: [-1, 0.000001, 0.000001, 0.001, 0.001], // TODO: change interface to be cleaner
+      stopCriterion: stopCriterionType.ABOSULTE_GRADNORM_TOLERANCE,
+      toleranceThreshold: [-1, 0.000001, 0.000001, 0.001, 0.001], // TODO: refactor?
+      returedParamConfig: returnedParamsType.MAX,
       onFinish: function(s, k, a) { return k(s); },
 
       logProgress: false,
@@ -81,6 +92,8 @@ module.exports = function(env) {
       checkpointParamsThrottle: 0,
       keepParamsHistory: true
     });
+
+    options.toleranceThreshold = options.toleranceThreshold[options.stopCriterion]; //TODO: refactor
 
     // Create a (cps) function 'estimator' which takes parameters to
     // gradient estimates. Every application of the estimator function
@@ -103,12 +116,12 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
-    // TODO; average over number of iterations and stop only if average is low enough
+    // TODO: average over number of iterations and stop only if average is low enough
     // TODO: move to a different module
     var objPrev = NaN, objDiff = NaN, objPrevDiff = NaN, objRelDiff = NaN;
     var normRel = NaN; //normDiff = NaN, normPrevDiff = NaN, normPrev = NaN,
     var stop = function(obj, gradNorm, paramNorm, i) {
-      if (!options.stopCriterion || i < options.minSteps) {
+      if (!options.stopCriterion) {
         return false;
       }
 
@@ -118,7 +131,7 @@ module.exports = function(env) {
       normRel = gradNorm / paramNorm; //normPrevDiff ? gradNorm / paramNorm : NaN;
       var diffs = [i, objDiff, objRelDiff, gradNorm, normRel];
 
-      var ret = Math.abs(diffs[options.stopCriterion]) < options.toleranceThreshold[options.stopCriterion];
+      var ret = Math.abs(diffs[options.stopCriterion]) < options.toleranceThreshold;
 
       objPrev = obj;
       objPrevDiff = objDiff;
@@ -129,6 +142,42 @@ module.exports = function(env) {
     }
 
     var paramObj = paramStruct.deepCopy(options.params);
+
+    var returnedConfig = {
+      objective: [null, -Infinity, Infinity][options.returedParamConfig],
+      paramObj: null,
+      paramNorm: NaN,
+      i: NaN
+    };
+
+    var copyCnfig = function(i, objective, paramObj, paramNorm) {
+      returnedConfig.objective = objective;
+      returnedConfig.paramObj = paramObj;
+      returnedConfig.paramNorm = paramNorm;
+      returnedConfig.i = i;
+    }
+
+    // TODO: refactor - it depends on the index, a dictionary that has each method full config
+    // TODO: move params as a struct instead of argument list
+    // TODO: add a function of predicate for each config
+    var recordBest = function(i, objective, paramObj, paramNorm) {
+      switch (options.returedParamConfig) { // TODO: this will work only if there are no additional options
+        case returnedParamsType.LAST:
+          copyCnfig(i, objective, paramObj, paramNorm);
+          break;
+        case returnedParamsType.MAX:
+          if (objective > returnedConfig.objective) {
+            copyCnfig(i, objective, paramObj, paramNorm);
+          }
+          break;
+        case returnedParamsType.MIN:
+          if (objective < returnedConfig.objective) {
+            copyCnfig(i, objective, paramObj, paramNorm);
+          }
+          break;
+      }
+    }
+
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);
@@ -244,6 +293,9 @@ module.exports = function(env) {
             if (options.checkpointParams) {
               checkpointParams();
             }
+            //if (options.returedParamConfig) {
+            recordBest(i, objective, paramObj, paramNorm);
+            //}
 
             history.push(objective);
             optimizer(gradObj, paramObj, i);
@@ -268,7 +320,7 @@ module.exports = function(env) {
                 fs.closeSync(paramsFile);
               }
             }
-            return k(s, paramObj);
+            return k(s, returnedConfig.paramObj);
           }, a, {history: history});
         });
 
