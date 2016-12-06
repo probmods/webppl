@@ -187,11 +187,6 @@ function makeDistributionType(options) {
         throw new Error('Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.');
       }
 
-      // TODO: Dealing with ad nodes is kinda tiresome. Maybe we have
-      // a way of caching the unlifting to save redo-ing work. e.g.
-      // when sampling, inspecting parameters to generate guides, etc.
-      // We could use the type information to know how to unlift
-      // without having to resort to the generic `valueRec`?
       var type = parameterTypes[i];
       if (type && !type.check(ad.valueRec(params[p]))) {
         throw new Error('Parameter \"' + p + '\" should be of type "' + type.desc + '".');
