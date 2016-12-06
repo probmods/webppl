@@ -118,6 +118,11 @@ module.exports = {
   positiveTensor: testMembership(types.positiveTensor, {
     inside: [vec([]), mat([[]]), vec([1]), mat([[1]])],
     outside: [vec([0]), mat([[0]]), zeros([1, 1, 1]), [], 0, 'a', true]
+  }),
+
+  probabilityArray: testMembership(types.probabilityArray, {
+    inside: [[1], [.4, .6], [1 - 9e-9]],
+    outside: [[], [.999], [.5, .499]].concat(nonNumVals).concat(infVals)
   })
 
 };

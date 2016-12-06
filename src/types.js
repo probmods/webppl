@@ -125,8 +125,17 @@ var tensor = function(interval) {
   };
 };
 
-// TODO: Implement. (Used by Multinomial.)
-var probabilityArray = function() { return any; };
+var probabilityArray = function() {
+  var tol = 1e-8;
+  var baseType = array(real(parseInterval('[0, Infinity)')));
+  return {
+    name: 'probabilityArray',
+    desc: 'real array with elements that sum to one',
+    check: function(val) {
+      return baseType.check(val) && Math.abs(1 - util.sum(val)) < tol;
+    }
+  };
+};
 
 module.exports = {
   // Basic types.
@@ -138,7 +147,7 @@ module.exports = {
   vectorOrRealArray: vectorOrRealArray,
   posDefMatrix: posDefMatrix,
   tensor: tensor,
-  probabilityArray: probabilityArray,
+  probabilityArray: probabilityArray(),
   // Named instances for convenience.
   unboundedInt: int(-Infinity),
   nonNegativeInt: int(0),

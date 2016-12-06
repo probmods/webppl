@@ -119,7 +119,7 @@
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
-  * ps: probabilities *(any)*
+  * ps: probabilities *(real array with elements that sum to one)*
   * n: number of trials *(int (>=1))*
 
   Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.

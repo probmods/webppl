@@ -1074,7 +1074,7 @@ function multinomialSample(theta, n) {
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
   desc: 'Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.',
-  params: [{name: 'ps', desc: 'probabilities', type: types.probabilityArray()},
+  params: [{name: 'ps', desc: 'probabilities', type: types.probabilityArray},
            {name: 'n', desc: 'number of trials', type: types.positiveInt}],
   wikipedia: true,
   mixins: [finiteSupport],
