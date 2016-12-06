@@ -104,12 +104,11 @@ var vectorOrRealArray = function(interval) {
   };
 };
 
-var symmetricPsdMatrix = {
-  name: 'symmetricPsdMatrix',
-  desc: 'symmetric positive semidefinite matrix',
-  // TODO: Check symmetric, or at least square?
+var posDefMatrix = {
+  name: 'posDefMatrix',
+  desc: 'positive definite matrix',
   check: function(val) {
-    return util.isMatrix(val);
+    return util.isMatrix(val) && val.dims[0] === val.dims[1];
   }
 };
 
@@ -137,7 +136,7 @@ module.exports = {
   array: array,
   vector: vector,
   vectorOrRealArray: vectorOrRealArray,
-  symmetricPsdMatrix: symmetricPsdMatrix,
+  posDefMatrix: posDefMatrix,
   tensor: tensor,
   probabilityArray: probabilityArray,
   // Named instances for convenience.

@@ -439,7 +439,7 @@ var MultivariateGaussian = makeDistributionType({
     'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
     'then the distribution is over vectors of length ``d``.',
   params: [{name: 'mu', desc: 'mean', type: types.unboundedVector},
-           {name: 'cov', desc: 'covariance', type: types.symmetricPsdMatrix}],
+           {name: 'cov', desc: 'covariance', type: types.posDefMatrix}],
   wikipedia: 'Multivariate_normal_distribution',
   mixins: [continuousSupport],
   constructor: function() {

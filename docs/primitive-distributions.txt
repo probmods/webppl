@@ -135,7 +135,7 @@
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
   * mu: mean *(vector)*
-  * cov: covariance *(symmetric positive semidefinite matrix)*
+  * cov: covariance *(positive definite matrix)*
 
   Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
 

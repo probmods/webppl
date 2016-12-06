@@ -105,9 +105,9 @@ module.exports = {
     ]
   }),
 
-  symmetricPsdMatrix: testMembership(types.symmetricPsdMatrix, {
-    inside: [mat([[]]), mat([[1, 0], [0, 1]])],
-    outside: [zeros([1, 1, 1]), [], 0, 'a', true]
+  posDefMatrix: testMembership(types.posDefMatrix, {
+    inside: [zeros([1, 1]), zeros([2, 2])],
+    outside: [zeros([1, 1, 1]), zeros([2, 1]), [], 0, 'a', true]
   }),
 
   unboundedTensor: testMembership(types.unboundedTensor, {
