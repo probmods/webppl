@@ -83,7 +83,7 @@ var vector = function(interval, performBoundsCheck) {
     bounds: interval,
     check: performBoundsCheck ?
         function(val) { return util.isVector(val) && val.data.every(checkBounds); } :
-        function(val) { return util.isVector(val); }
+        util.isVector
   };
 };
 
@@ -123,7 +123,7 @@ var tensor = function(interval, performBoundsCheck) {
     bounds: interval,
     check: performBoundsCheck ?
         function(val) { return util.isTensor(val) && val.data.every(checkBounds); } :
-        function(val) { return util.isTensor(val); }
+        util.isTensor
   };
 };
 
