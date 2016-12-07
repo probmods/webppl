@@ -231,9 +231,9 @@ var mapObject = function(fn, obj) {
   );
 };
 
-var extend = function(base, ext) {
-  return _.extend({}, base, ext);
-};
+var extend = function() {
+  return _.extend.apply(_, [{}].concat(arguments));
+}
 
 var reduce = function(fn, init, ar) {
   var n = ar.length;
