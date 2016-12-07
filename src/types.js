@@ -100,6 +100,7 @@ var vectorOrRealArray = function(interval) {
   return {
     name: 'vectorOrRealArray',
     desc: appendInterval('vector or real array', interval),
+    bounds: interval,
     check: function(val) {
       return vectorType.check(val) || realArrayType.check(val);
     }

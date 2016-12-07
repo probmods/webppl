@@ -136,6 +136,10 @@ function paramSpec(type, targetParam) {
       return {param: {dims: targetParam.dims, squish: squishToInterval(type.bounds)}};
     case 'int':
       return {const: targetParam};
+    case 'array':
+      if (type.elementType.name === 'any') {
+        return {const: targetParam};
+      }
     default:
       var msg = 'Can\'t generate specification for parameter of type "' + type.name + '".';
       throw new Error(msg);
@@ -235,7 +239,7 @@ function squishTo(a, b) {
 }
 
 function squishToInterval(interval) {
-  return interval.isBounded ?
+  return interval && interval.isBounded ?
       squishTo(interval.low, interval.high) :
       null;
 }
