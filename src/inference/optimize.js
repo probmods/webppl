@@ -76,9 +76,9 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      stopCriterion: stopCriterionType.ABOSULTE_GRADNORM_TOLERANCE,
+      stopCriterion: stopCriterionType.MAX_ITERATIONS,
       toleranceThreshold: [-1, 0.000001, 0.000001, 0.001, 0.001], // TODO: refactor?
-      returedParamConfig: returnedParamsType.MAX,
+      returedParamConfig: returnedParamsType.LAST,
       onFinish: function(s, k, a) { return k(s); },
 
       logProgress: false,
