@@ -41,8 +41,10 @@ module.exports = function(env) {
   // TODO: add max/min only among last iterations or among all?
   var returnedParamsType = {
     LAST: 0,
-    MAX: 1, // good for ELBO (Lower bound)
-    MIN: 2 // good for EUBO (Upper bound)
+    MAX: 1, // ELBO (Lower bound)
+    MIN: 2 // EUBO (Upper bound)
+    // TODO: will be good only after we are around the convergence point.
+    // Should take max/min among last iterations + should compare diff to average diff rather than previous
     // TODO: add average  - there's a theoretical basis that averaging params during sgd can be a good idea.
     // TODO: add an option for a user-defined function that chooses the returned param based on any other criterion
   };
@@ -77,7 +79,7 @@ module.exports = function(env) {
       checkGradients: true,
       verbose: true,
       stopCriterion: stopCriterionType.MAX_ITERATIONS,
-      toleranceThreshold: [-1, 0.000001, 0.000001, 0.001, 0.001], // TODO: refactor?
+      toleranceThreshold: [-1, 0.000001, 0.000001, 0.0001, 0.0001], // TODO: refactor?
       returedParamConfig: returnedParamsType.LAST,
       onFinish: function(s, k, a) { return k(s); },
 
@@ -117,6 +119,7 @@ module.exports = function(env) {
     });
 
     // TODO: average over number of iterations and stop only if average is low enough
+    // or compare current iteration to average of last iterations
     // TODO: move to a different module
     var objPrev = NaN, objDiff = NaN, objPrevDiff = NaN, objRelDiff = NaN;
     var normRel = NaN; //normDiff = NaN, normPrevDiff = NaN, normPrev = NaN,
@@ -152,12 +155,14 @@ module.exports = function(env) {
 
     var copyCnfig = function(i, objective, paramObj, paramNorm) {
       returnedConfig.objective = objective;
-      returnedConfig.paramObj = paramObj;
+      //returnedConfig.paramObj = paramObj; TODO: understand why deep copy is needed
+      returnedConfig.paramObj = paramStruct.deepCopy(paramObj);
       returnedConfig.paramNorm = paramNorm;
       returnedConfig.i = i;
     }
 
-    // TODO: refactor - it depends on the index, a dictionary that has each method full config
+    // TODO: refactor - it currently depends on the index -
+    // a dictionary that has each method full config would be better
     // TODO: move params as a struct instead of argument list
     // TODO: add a function of predicate for each config
     var recordBest = function(i, objective, paramObj, paramNorm) {
@@ -313,6 +318,7 @@ module.exports = function(env) {
             if (options.logProgress) {
               fs.closeSync(logFile);
             }
+            paramObj = paramStruct.deepCopy(returnedConfig.paramObj);
             if (options.checkpointParams) {
               // Save final params
               saveParams();
@@ -320,7 +326,10 @@ module.exports = function(env) {
                 fs.closeSync(paramsFile);
               }
             }
-            return k(s, returnedConfig.paramObj);
+            if (options.verbose) {
+              console.log(returnedConfig);
+            }
+            return k(s, paramObj);
           }, a, {history: history});
         });
 
