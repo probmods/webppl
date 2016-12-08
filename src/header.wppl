@@ -231,6 +231,10 @@ var mapObject = function(fn, obj) {
   );
 };
 
+var extend = function() {
+  return _.extendOwn.apply(_, [{}].concat(arguments));
+}
+
 var reduce = function(fn, init, ar) {
   var n = ar.length;
   var helper = function(i) {
