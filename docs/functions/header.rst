@@ -29,6 +29,19 @@ Header
       var pair = function(x, y) { return [x, y]; };
       mapObject(pair, {a: 1, b: 2}); // => {a: ['a', 1], b: ['b', 2]}
 
+.. js:function:: extend(obj1, obj2, ...)
+
+   Creates a new object and assigns own enumerable string-keyed properties
+   of source objects 1, 2, ... to it. Source objects are applied from left
+   to right. Subsequent sources overwrite property assignments of previous
+   sources.
+
+   ::
+
+      var x = { a: 1, b: 2 };
+      var y = { b: 3, c: 4 };
+      extend(x, y);  // => { a: 1, b: 3, c: 4 }
+
 .. js:function:: mem(fn)
 
    Returns a memoized version of ``fn``. The memoized function is
