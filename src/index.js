@@ -304,12 +304,16 @@ var LiterateEditor = React.createClass({
     if (this.state.selectedFile == 0){
       alert('Cannot delete default file!');
     } else {
-      var newFiles = _.clone(this.state.files);
-      delete newFiles[this.state.selectedFile];
-      this.setState({
-        files: newFiles,
-        selectedFile: 0
-      });
+      var confirmedDelete = confirm('Are you sure you want to delete ' + this.state.files[this.state.selectedFile].name + '?');
+
+      if (confirmedDelete) {
+        var newFiles = _.clone(this.state.files);
+        delete newFiles[this.state.selectedFile];
+        this.setState({
+          files: newFiles,
+          selectedFile: 0
+        });
+      }
     }
   },
 
