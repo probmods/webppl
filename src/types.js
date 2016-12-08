@@ -33,14 +33,14 @@ var any = {
 };
 
 var int = function(low) {
-  if (!Number.isInteger(low) && low !== -Infinity) {
+  if (!util.isInteger(low) && low !== -Infinity) {
     throw new Error('Lower bound expected.');
   }
   return {
     name: 'int',
     desc: 'int (>=' + low + ')',
     check: function(val) {
-      return Number.isInteger(val) && val >= low;
+      return util.isInteger(val) && val >= low;
     }
   };
 };
