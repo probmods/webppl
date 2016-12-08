@@ -6,6 +6,7 @@
 // Some additional information is added to the types to help generate
 // documentation and guide distributions.
 
+var _ = require('underscore');
 var util = require('./util');
 var interval = require('./math/interval');
 
@@ -82,7 +83,7 @@ var vector = function(interval, performBoundsCheck) {
     desc: appendInterval('vector', interval),
     bounds: interval,
     check: performBoundsCheck ?
-        function(val) { return util.isVector(val) && val.data.every(checkBounds); } :
+        function(val) { return util.isVector(val) && _.every(val.data, checkBounds); } :
         util.isVector
   };
 };
@@ -123,7 +124,7 @@ var tensor = function(interval, performBoundsCheck) {
     desc: appendInterval('tensor', interval),
     bounds: interval,
     check: performBoundsCheck ?
-        function(val) { return util.isTensor(val) && val.data.every(checkBounds); } :
+        function(val) { return util.isTensor(val) && _.every(val.data, checkBounds); } :
         util.isTensor
   };
 };
