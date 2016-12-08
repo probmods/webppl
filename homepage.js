@@ -96470,13 +96470,18 @@ var FileSelector = React.createClass({
         )
       ),
       this.props.selectedFile != 0 ? [React.createElement(
-        'button',
-        { key: 'file-rename', onClick: this.props.renameFile },
-        'rename'
-      ), React.createElement(
-        'button',
-        { key: 'file-delete', onClick: this.props.deleteFile },
-        'delete'
+        'div',
+        { id: 'file-buttons', key: 'file-buttons' },
+        React.createElement(
+          'button',
+          { className: 'btn btn-default', key: 'file-rename', onClick: this.props.renameFile },
+          'rename'
+        ),
+        React.createElement(
+          'button',
+          { className: 'btn btn-default', key: 'file-delete', onClick: this.props.deleteFile },
+          'delete'
+        )
       )] : []
     );
   }
@@ -96565,12 +96570,16 @@ var LiterateEditor = React.createClass({
     if (this.state.selectedFile == 0) {
       alert('Cannot delete default file!');
     } else {
-      var newFiles = _.clone(this.state.files);
-      delete newFiles[this.state.selectedFile];
-      this.setState({
-        files: newFiles,
-        selectedFile: 0
-      });
+      var confirmedDelete = confirm('Are you sure you want to delete ' + this.state.files[this.state.selectedFile].name + '?');
+
+      if (confirmedDelete) {
+        var newFiles = _.clone(this.state.files);
+        delete newFiles[this.state.selectedFile];
+        this.setState({
+          files: newFiles,
+          selectedFile: 0
+        });
+      }
     }
   },
 
@@ -96762,24 +96771,28 @@ var LiterateEditor = React.createClass({
           deleteFile: this.deleteFile,
           renameFile: this.renameFile }),
         React.createElement(
-          'button',
-          { className: 'btn btn-default', onClick: this.addCodeBlock },
-          'add code'
-        ),
-        React.createElement(
-          'button',
-          { className: 'btn btn-default hidden-xs', onClick: this.addTextBlock },
-          'add text'
-        ),
-        React.createElement(
-          'button',
-          { className: 'btn btn-default hidden-xs', onClick: this.toggleMarkdownOutput },
-          '.md'
-        ),
-        React.createElement(
-          'button',
-          { className: 'btn btn-default hidden-xs maximize', onClick: this.toggleSize },
-          sizeButtonText
+          'div',
+          { id: 'editorButtons' },
+          React.createElement(
+            'button',
+            { className: 'btn btn-default', onClick: this.addCodeBlock },
+            'add code'
+          ),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default hidden-xs', onClick: this.addTextBlock },
+            'add text'
+          ),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default hidden-xs', onClick: this.toggleMarkdownOutput },
+            '.md'
+          ),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default hidden-xs maximize', onClick: this.toggleSize },
+            sizeButtonText
+          )
         )
       ),
       React.createElement(

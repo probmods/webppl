@@ -104,7 +104,7 @@ div#editorBlocks {
     width: 600px;
     top: 0.3em;
     left: 50%;
-    margin-left: -250px;
+    margin-left: -230px;
     padding: 0;
     z-index: 50;
     background-color: white;
@@ -120,14 +120,28 @@ div#editorControls {
    text-align: right;
 }
 
+div#file-buttons {
+    text-align: left;
+    font-size: 11px;
+    margin-top: 2px;
+    padding-left: 30px;
+}
+
+div#file-buttons button.btn {
+    font-size: 11px;
+    margin-left: 0;
+    margin-right: 2px;
+    padding: 1px 3px;
+}
+
 div#editorButtons {
-   margin-top: 1em;
+   margin-top: 0.5em;
    display: block;
    text-align: right;
 }
 
 div#editorControls div#fileSelector {
-   float: left;
+    float: left;
 }
 
 div#editorControls button {
@@ -283,9 +297,9 @@ body {
     width: 700px;
     background-color: white;
     margin: 0 auto;
-    padding-bottom: 0.2em;
-    border-bottom: 1px dashed #C81039;
+    padding-bottom: 0.8em;
     z-index: 600;
+    border-bottom: 1px dashed #C81039;
 }
 
 .maximized.header .logo-tagline {

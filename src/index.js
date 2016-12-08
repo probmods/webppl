@@ -214,8 +214,9 @@ var FileSelector = React.createClass({
               <option key="__new__" value="new">New file</option>
               </select>
               {this.props.selectedFile != 0 ?
-               [<button key='file-rename' onClick={this.props.renameFile}>rename</button>,
-                <button key='file-delete' onClick={this.props.deleteFile}>delete</button>] :
+               [<div id='file-buttons' key='file-buttons'>
+                <button className='btn btn-default' key='file-rename' onClick={this.props.renameFile}>rename</button>
+                <button className='btn btn-default' key='file-delete' onClick={this.props.deleteFile}>delete</button></div>]:
                []}
            </div>);
   }
@@ -496,10 +497,12 @@ var LiterateEditor = React.createClass({
             createFile={this.createFile}
             deleteFile={this.deleteFile}
             renameFile={this.renameFile} />
+            <div id='editorButtons'>
             <button className="btn btn-default" onClick={this.addCodeBlock}>add code</button>
             <button className="btn btn-default hidden-xs" onClick={this.addTextBlock}>add text</button>
             <button className="btn btn-default hidden-xs" onClick={this.toggleMarkdownOutput}>.md</button>
             <button className="btn btn-default hidden-xs maximize" onClick={this.toggleSize}>{sizeButtonText}</button>
+            </div>
             </div>
         <div id="editorBlocks">
           {renderedBlocks}
