@@ -9,7 +9,7 @@ var conditionedGeometric = function() {
 }
 
 var dist = Infer(
-  {method: 'enumerate', maxExecutions: 10}, 
+  {method: 'enumerate', maxExecutions: 10},
   conditionedGeometric);
 
 viz.auto(dist);
