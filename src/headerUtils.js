@@ -18,7 +18,7 @@ module.exports = function(env) {
   // Caching for a wppl function f.
   //
   // Caution: if f isn't deterministic weird stuff can happen, since
-  // caching is across all uses of f, even in different execuation
+  // caching is across all uses of f, even in different execution
   // paths.
   function cache(s, k, a, f, maxSize) {
     var c = LRU(maxSize);
@@ -92,15 +92,21 @@ module.exports = function(env) {
       sigma: .1,
       dims: dimsForScalarParam
     });
+    
     var mu = options.mu;
     var sigma = options.sigma;
     var dims = options.dims;
     var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
 
+    // TODO: should throw an error if both init and mu?
+    if (_.has(options, 'init')) {
+      mu = options.init;
+      sigma = 0;
+    }
+
     var val = util.registerParams(env, name, function() {
 
       // Initialization.
-
       var val = new Tensor(dims);
       if (sigma === 0) {
         val.fill(mu);
