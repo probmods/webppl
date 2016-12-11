@@ -92,7 +92,7 @@ module.exports = function(env) {
       sigma: .1,
       dims: dimsForScalarParam
     });
-    
+
     var mu = options.mu;
     var sigma = options.sigma;
     var dims = options.dims;
