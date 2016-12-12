@@ -34,8 +34,7 @@ var _ = require('underscore');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
-var gt = require('./domain').gt;
-var interval = require('./domain').interval;
+var types = require('./types');
 
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
@@ -167,19 +166,32 @@ function makeDistributionType(options) {
   }
 
   var parameterNames = _.pluck(options.params, 'name');
+  var parameterTypes = _.map(options.params, function(param) {
+    if (_.has(param, 'type') && !(param.type && param.type.check)) {
+      throw new Error('Invalid type given for parameter ' + param.name + ' of ' + options.name + '.');
+    }
+    return param.type;
+  });
   var extraConstructorFn = options.constructor;
 
   // Note that Chrome uses the name of this local variable in the
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
   var dist = function(params) {
+
     if (params === undefined && parameterNames.length > 0) {
       throw new Error('Parameters not supplied to ' + this.meta.name + ' distribution.');
     }
-    parameterNames.forEach(function(p) {
+    parameterNames.forEach(function(p, i) {
       if (!params.hasOwnProperty(p)) {
         throw new Error('Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.');
       }
+
+      var type = parameterTypes[i];
+      if (type && !type.check(ad.valueRec(params[p]))) {
+        throw new Error('Parameter \"' + p + '\" should be of type "' + type.desc + '".');
+      }
+
     }, this);
     this.params = params;
     if (extraConstructorFn !== undefined) {
@@ -224,8 +236,8 @@ var ImproperUniform = makeDistributionType({
 var Uniform = makeDistributionType({
   name: 'Uniform',
   desc: 'Continuous uniform distribution over ``[a, b]``',
-  params: [{name: 'a', desc: 'lower bound (real)'},
-           {name: 'b', desc: 'upper bound (real > a)'}],
+  params: [{name: 'a', desc: 'lower bound', type: types.unboundedReal},
+           {name: 'b', desc: 'upper bound (>a)', type: types.unboundedReal}],
   wikipedia: 'Uniform_distribution_(continuous)',
   mixins: [continuousSupport],
   sample: function() {
@@ -247,7 +259,7 @@ var Uniform = makeDistributionType({
 var Bernoulli = makeDistributionType({
   name: 'Bernoulli',
   desc: 'Distribution over ``{true, false}``',
-  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)}],
+  params: [{name: 'p', desc: 'success probability', type: types.unitInterval}],
   wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
@@ -266,8 +278,6 @@ var Bernoulli = makeDistributionType({
 });
 
 function mvBernoulliScore(ps, x) {
-  assert.ok(ad.value(ps).rank === 2);
-  assert.ok(ad.value(ps).dims[1] === 1);
   assert.ok(ad.value(x).rank === 2);
   assert.ok(ad.value(x).dims[1] === 1);
   assert.ok(ad.value(x).dims[0] === ad.value(ps).dims[0]);
@@ -288,12 +298,10 @@ var MultivariateBernoulli = makeDistributionType({
   desc: 'Distribution over a vector of independent Bernoulli variables. Each element ' +
     'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
     'has support ``{true, false}``.',
-  params: [{name: 'ps', desc: 'probabilities', domain: interval(0, 1)}],
+  params: [{name: 'ps', desc: 'probabilities', type: types.unitIntervalVector}],
   mixins: [finiteSupport],
   sample: function() {
     var ps = ad.value(this.params.ps);
-    assert.ok(ps.rank === 2);
-    assert.ok(ps.dims[1] === 1);
     var d = ps.dims[0];
     var x = new Tensor([d, 1]);
     var n = x.length;
@@ -328,7 +336,7 @@ function toBinaryArray(x, length) {
 var RandomInteger = makeDistributionType({
   name: 'RandomInteger',
   desc: 'Uniform distribution over ``{0,1,...,n-1}``',
-  params: [{name: 'n', desc: 'number of possible values (integer >= 1)'}],
+  params: [{name: 'n', desc: 'number of possible values', type: types.positiveInt}],
   wikipedia: 'Uniform_distribution_(discrete)',
   mixins: [finiteSupport],
   sample: function() {
@@ -367,8 +375,8 @@ function gaussianScore(mu, sigma, x) {
 var Gaussian = makeDistributionType({
   name: 'Gaussian',
   desc: 'Distribution over reals.',
-  params: [{name: 'mu', desc: 'mean (real)'},
-           {name: 'sigma', desc: 'standard deviation (real)', domain: gt(0)}],
+  params: [{name: 'mu', desc: 'mean', type: types.unboundedReal},
+           {name: 'sigma', desc: 'standard deviation', type: types.positiveReal}],
   wikipedia: 'Normal_distribution',
   mixins: [continuousSupport],
   sample: function() {
@@ -425,20 +433,13 @@ var MultivariateGaussian = makeDistributionType({
   desc: 'Multivariate Gaussian distribution with full covariance matrix. ' +
     'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
     'then the distribution is over vectors of length ``d``.',
-  params: [{name: 'mu', desc: 'mean vector'},
-           {name: 'cov', desc: 'covariance matrix ' +
-            '(must be symmetric positive semidefinite)'}],
+  params: [{name: 'mu', desc: 'mean', type: types.unboundedVector},
+           {name: 'cov', desc: 'covariance', type: types.posDefMatrix}],
   wikipedia: 'Multivariate_normal_distribution',
   mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _cov = ad.value(this.params.cov);
-    if (!util.isVector(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a vector.');
-    }
-    if (!util.isMatrix(_cov)) {
-      throw new Error(this.meta.name + ': cov should be a matrix.');
-    }
     if (!util.tensorEqDim0(_mu, _cov)) {
       throw new Error(this.meta.name + ': dimension mismatch between mu and cov.');
     }
@@ -488,19 +489,13 @@ var DiagCovGaussian = makeDistributionType({
     'diagonal covariance matrix. The distribution is over tensors that have the same shape as the ' +
     'parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.',
   params: [
-    {name: 'mu', desc: 'mean tensor'},
-    {name: 'sigma', desc: 'tensor of standard deviations', domain: gt(0)}
+    {name: 'mu', desc: 'mean', type: types.unboundedTensor},
+    {name: 'sigma', desc: 'standard deviations', type: types.positiveTensor}
   ],
   mixins: [continuousSupport],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!util.isTensor(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a tensor.');
-    }
-    if (!util.isTensor(_sigma)) {
-      throw new Error(this.meta.name + ': sigma should be a tensor.');
-    }
     if (!util.tensorEqDims(_mu, _sigma)) {
       throw new Error(this.meta.name + ': mu and sigma should be the same shape.');
     }
@@ -538,20 +533,14 @@ var LogisticNormal = makeDistributionType({
     'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` ' +
     'then the distribution is over probability vectors of length ``d+1``.',
   params: [
-    {name: 'mu', desc: 'mean vector'},
-    {name: 'sigma', desc: 'vector of standard deviations', domain: gt(0)}
+    {name: 'mu', desc: 'mean', type: types.unboundedVector},
+    {name: 'sigma', desc: 'standard deviations', type: types.positiveVector}
   ],
   wikipedia: 'Logit-normal_distribution#Multivariate_generalization',
   mixins: [continuousSupport, noHMC],
   constructor: function() {
     var _mu = ad.value(this.params.mu);
     var _sigma = ad.value(this.params.sigma);
-    if (!util.isVector(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a vector.');
-    }
-    if (!util.isVector(_sigma)) {
-      throw new Error(this.meta.name + ': sigma should be a vector.');
-    }
     if (!util.tensorEqDim0(_mu, _sigma)) {
       throw new Error(this.meta.name + ': mu and sigma should have the same length.');
     }
@@ -564,6 +553,8 @@ var LogisticNormal = makeDistributionType({
     var sigma = this.params.sigma;
     var _mu = ad.value(mu);
     var _val = ad.value(val);
+
+
 
     if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
       return -Infinity;
@@ -592,10 +583,10 @@ var LogitNormal = makeDistributionType({
   name: 'LogitNormal',
   desc: 'A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.',
   params: [
-    {name: 'mu', desc: 'location (real)'},
-    {name: 'sigma', desc: 'scale (real)', domain: gt(0)},
-    {name: 'a', desc: 'lower bound (real)'},
-    {name: 'b', desc: 'upper bound (real) *(>a)*'}
+    {name: 'mu', desc: 'location', type: types.unboundedReal},
+    {name: 'sigma', desc: 'scale', type: types.positiveReal},
+    {name: 'a', desc: 'lower bound', type: types.unboundedReal},
+    {name: 'b', desc: 'upper bound (>a)', type: types.unboundedReal}
   ],
   wikipedia: 'Logit-normal_distribution',
   mixins: [continuousSupport],
@@ -640,8 +631,8 @@ var IspNormal = makeDistributionType({
   desc: 'A distribution over positive reals obtained by mapping a Gaussian ' +
       'distributed variable through the softplus function.',
   params: [
-    {name: 'mu', desc: 'location (real)'},
-    {name: 'sigma', desc: 'scale (real)', domain: gt(0)}
+    {name: 'mu', desc: 'location', type: types.unboundedReal},
+    {name: 'sigma', desc: 'scale', type: types.positiveReal}
   ],
   mixins: [continuousSupport],
   sample: function() {
@@ -701,24 +692,11 @@ var TensorGaussian = makeDistributionType({
   name: 'TensorGaussian',
   desc: 'Distribution over a tensor of independent Gaussian variables.',
   params: [
-    {name: 'mu', desc: 'mean'},
-    {name: 'sigma', desc: 'standard deviation', domain: gt(0)},
-    {name: 'dims', desc: 'dimension of tensor'}
+    {name: 'mu', desc: 'mean', type: types.unboundedReal},
+    {name: 'sigma', desc: 'standard deviation', type: types.positiveReal},
+    {name: 'dims', desc: 'dimension of tensor', type: types.array(types.positiveInt)}
   ],
   mixins: [continuousSupport],
-  constructor: function() {
-    var _mu = ad.value(this.params.mu);
-    var _sigma = ad.value(this.params.sigma);
-    if (!_.isNumber(_mu)) {
-      throw new Error(this.meta.name + ': mu should be a number.');
-    }
-    if (!_.isNumber(_sigma)) {
-      throw new Error(this.meta.name + ': sigma should be a number.');
-    }
-    if (!Array.isArray(this.params.dims)) {
-      throw new Error(this.meta.name + ': dims should be an array.');
-    }
-  },
   sample: function() {
     var mu = ad.value(this.params.mu);
     var sigma = ad.value(this.params.sigma);
@@ -744,8 +722,8 @@ var TensorGaussian = makeDistributionType({
 var Cauchy = makeDistributionType({
   name: 'Cauchy',
   desc: 'Distribution over ``[-Infinity, Infinity]``',
-  params: [{name: 'location', desc: '(real in [-Infinity, Infinity])'},
-           {name: 'scale', desc: '(real)', domain: gt(0)}],
+  params: [{name: 'location', desc: '', type: types.unboundedReal},
+           {name: 'scale', desc: '', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
@@ -788,8 +766,6 @@ function inDiscreteSupport(val, dim) {
 function discreteScoreVector(probs, val) {
   'use ad';
   var _probs = ad.value(probs);
-  assert.ok(_probs.rank === 2);
-  assert.ok(_probs.dims[1] === 1); // i.e. vector
   var d = _probs.dims[0];
   return inDiscreteSupport(val, d) ?
       Math.log(T.get(probs, val) / T.sumreduce(probs)) :
@@ -811,7 +787,9 @@ function toUnliftedArray(x) {
 var Discrete = makeDistributionType({
   name: 'Discrete',
   desc: 'Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0)}],
+  params: [
+    {name: 'ps', desc: 'probabilities (can be unnormalized)', type: types.nonNegativeVectorOrRealArray}
+  ],
   wikipedia: 'Categorical_distribution',
   mixins: [finiteSupport],
   sample: function() {
@@ -894,8 +872,8 @@ function expGammaScore(shape, scale, val) {
 var Gamma = makeDistributionType({
   name: 'Gamma',
   desc: 'Distribution over positive reals.',
-  params: [{name: 'shape', desc: 'shape parameter (real)', domain: gt(0)},
-           {name: 'scale', desc: 'scale parameter (real)', domain: gt(0)}],
+  params: [{name: 'shape', desc: '', type: types.positiveReal},
+           {name: 'scale', desc: '', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
@@ -916,7 +894,7 @@ var Gamma = makeDistributionType({
 var Exponential = makeDistributionType({
   name: 'Exponential',
   desc: 'Distribution over ``[0, Infinity]``',
-  params: [{name: 'a', desc: 'rate (real)', domain: gt(0)}],
+  params: [{name: 'a', desc: 'rate', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
@@ -951,8 +929,8 @@ function logBeta(a, b) {
 var Beta = makeDistributionType({
   name: 'Beta',
   desc: 'Distribution over ``[0, 1]``',
-  params: [{name: 'a', desc: 'shape (real)', domain: gt(0)},
-           {name: 'b', desc: 'shape (real)', domain: gt(0)}],
+  params: [{name: 'a', desc: 'shape', type: types.positiveReal},
+           {name: 'b', desc: 'shape', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
@@ -1020,8 +998,8 @@ function binomialSample(p, n) {
 var Binomial = makeDistributionType({
   name: 'Binomial',
   desc: 'Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.',
-  params: [{name: 'p', desc: 'success probability', domain: interval(0, 1)},
-           {name: 'n', desc: 'number of trials (integer > 0)'}],
+  params: [{name: 'p', desc: 'success probability', type: types.unitInterval},
+           {name: 'n', desc: 'number of trials', type: types.positiveInt}],
   wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
@@ -1091,8 +1069,8 @@ function multinomialSample(theta, n) {
 var Multinomial = makeDistributionType({
   name: 'Multinomial',
   desc: 'Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.',
-  params: [{name: 'ps', desc: 'probabilities (array of reals that sum to 1)', domain: interval(0, 1)},
-           {name: 'n', desc: 'number of trials (integer > 0)'}],
+  params: [{name: 'ps', desc: 'probabilities', type: types.probabilityArray},
+           {name: 'n', desc: 'number of trials', type: types.positiveInt}],
   wikipedia: true,
   mixins: [finiteSupport],
   sample: function() {
@@ -1197,7 +1175,7 @@ function lnfactExact(x) {
 var Poisson = makeDistributionType({
   name: 'Poisson',
   desc: 'Distribution over integers.',
-  params: [{name: 'mu', desc: 'mean (real)', domain: gt(0)}],
+  params: [{name: 'mu', desc: 'mean', type: types.positiveReal}],
   wikipedia: true,
   sample: function() {
     var k = 0;
@@ -1227,8 +1205,6 @@ var Poisson = makeDistributionType({
 });
 
 function dirichletSample(alpha) {
-  assert.ok(alpha.rank === 2);
-  assert.ok(alpha.dims[1] === 1); // i.e. vector
   var n = alpha.dims[0];
   var ssum = 0;
   var theta = new Tensor([n, 1]);
@@ -1276,15 +1252,9 @@ var Dirichlet = makeDistributionType({
   desc: 'Distribution over probability vectors. ' +
     'If ``alpha`` has length ``d`` then the distribution ' +
     'is over probability vectors of length ``d``.',
-  params: [{name: 'alpha', desc: 'vector of concentration parameters', domain: gt(0)}],
+  params: [{name: 'alpha', desc: 'concentration', type: types.positiveVector}],
   wikipedia: true,
   mixins: [continuousSupport, noHMC],
-  constructor: function() {
-    var _alpha = ad.value(this.params.alpha);
-    if (!util.isVector(_alpha)) {
-      throw new Error(this.meta.name + ': alpha should be a vector.');
-    }
-  },
   sample: function() {
     return dirichletSample(ad.value(this.params.alpha));
   },
@@ -1438,8 +1408,9 @@ function printMarginal(dist) {
 var Categorical = makeDistributionType({
   name: 'Categorical',
   desc: 'Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``',
-  params: [{name: 'ps', desc: 'array or vector of probabilities (can be unnormalized)', domain: gt(0)},
-           {name: 'vs', desc: 'support (array of values)'}],
+  params: [
+    {name: 'ps', desc: 'probabilities (can be unnormalized)', type: types.nonNegativeVectorOrRealArray},
+    {name: 'vs', desc: 'support', type: types.array(types.any)}],
   wikipedia: true,
   nohelper: true,
   mixins: [finiteSupport],
