@@ -1,5 +1,4 @@
-// Coroutine to sample from the target (ignoring factor statements) or
-// guide program.
+// Coroutine to sample from the target or guide program.
 
 'use strict';
 
