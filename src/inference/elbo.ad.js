@@ -116,7 +116,7 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           paramStruct.divEq(grad, this.opts.samples);
-          elbo /= this.opts.samples;
+          elbo /= this.opts.samples; // Average estimations.
           this.updateBaselines();
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
@@ -354,8 +354,11 @@ module.exports = function(env) {
         // Signal to mapDataFinal that the batch was empty.
         this.mapDataStack.push(null);
       }
-
-      return ix;
+      if (ix === null) {
+          return data;
+      }
+      // TODO - change to a more efficient solution?
+      return data.filter(function(val, index){ return ix.includes[index] });
     },
 
     mapDataEnter: function() {

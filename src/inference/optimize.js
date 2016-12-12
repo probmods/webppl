@@ -23,7 +23,8 @@ module.exports = function(env) {
 
   var estimators = {
     ELBO: require('./elbo')(env),
-    EUBO: require('./eubo')(env)
+    EUBO: require('./eubo')(env),
+    DREAM: require('./dreamEubo')(env)
   };
 
   function Optimize(s, k, a, fnOrOptions, maybeOptions) {
@@ -188,7 +189,7 @@ module.exports = function(env) {
   }
 
   function allFinite(tensor) {
-    return _.all(tensor.data, isFinite);
+    return _.all(tensor.data, Number.isFinite);
   }
 
   function checkGradients(gradObj) {

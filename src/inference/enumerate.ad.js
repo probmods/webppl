@@ -180,7 +180,7 @@ module.exports = function(env) {
   };
 
   function defaultStrategy(maxExecutions) {
-    return strategies[_.isFinite(maxExecutions) ? 'likelyFirst' : 'depthFirst'];
+    return strategies[isFinite(maxExecutions) ? 'likelyFirst' : 'depthFirst'];
   }
 
   return {
