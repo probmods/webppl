@@ -1085,7 +1085,7 @@ var Multinomial = makeDistributionType({
     var y = [];
     for (var i = 0; i < this.params.ps.length; i++) {
       x[i] = lnfact(val[i]);
-      y[i] = val[i] * Math.log(this.params.ps[i]);
+      y[i] = val[i] === 0 ? 0 : val[i] * Math.log(this.params.ps[i]);
     }
     return lnfact(this.params.n) - sum(x) + sum(y);
   },
