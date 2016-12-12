@@ -315,10 +315,10 @@ function tensorEqDim0(v, w) {
 }
 
 function tensorEqDims(t1, t2) {
-  if (t1.dims.length !== t2.dims.length) {
+  if (t1.rank !== t2.rank) {
     return false;
   }
-  for (var i = 0; i < t1.dims.length; i++) {
+  for (var i = 0; i < t1.rank; i++) {
     if (t1.dims[i] !== t2.dims[i]) {
       return false;
     }
