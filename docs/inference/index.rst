@@ -17,7 +17,7 @@ returns the distribution on return values represented as a
 
    Infer({model: function() {
        return flip() + flip();
-   });
+   }});
 
 ``Infer`` will perform inference using :ref:`enumeration<enumerate>`
 by default, but several other implementations of marginal inference

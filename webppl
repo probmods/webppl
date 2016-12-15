@@ -8,7 +8,6 @@ var pkg = require('./src/pkg');
 var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
-var dists = require('./src/dists');
 var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
@@ -16,17 +15,8 @@ var paramsConfig = require('./src/params/config');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
-function printWebPPLValue(x) {
-  if (dists.isDist(x) && x.print) {
-    console.log(x.meta.name + ':');
-    console.log(x.print());
-  } else {
-    console.log(x);
-  }
-};
-
 function topK(s, x) {
-  printWebPPLValue(x);
+  console.log(x);
 };
 
 function run(code, packages, verbose, debug, programFile) {
@@ -83,7 +73,6 @@ function compile(code, packages, verbose, debug, programFile, outputFile) {
 
   compiledCode += lines([
     'var __runner__ = util.trampolineRunners.cli();',
-    printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
     "main({})(__runner__)({}, topK, '');"

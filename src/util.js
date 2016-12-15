@@ -288,6 +288,14 @@ function jsnew(ctor, arg) {
   return new ctor(arg);
 }
 
+// Equivalent to Number.isInteger(), which isn't available in the
+// version of phantom.js used on Travis at the time of writing.
+function isInteger(x) {
+  return typeof x === 'number' &&
+      isFinite(x) &&
+      Math.floor(x) === x;
+}
+
 // Unlike _.isObject this returns false for arrays and functions.
 function isObject(x) {
   return x !== undefined &&
@@ -367,6 +375,7 @@ module.exports = {
   warn: warn,
   fatal: fatal,
   jsnew: jsnew,
+  isInteger: isInteger,
   isObject: isObject,
   isTensor: isTensor,
   isVector: isVector,
