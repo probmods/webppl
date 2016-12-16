@@ -4,7 +4,7 @@
 
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var util = require('../util');
 var dists = require('../dists');
@@ -253,7 +253,7 @@ module.exports = function(env) {
 
   HMCKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return _.extendOwn(function(cont, oldTrace, options) {
+  return _.assign(function(cont, oldTrace, options) {
     return new HMCKernel(cont, oldTrace, options).run();
   }, { adRequired: true });
 

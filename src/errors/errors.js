@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var SourceMap = require('source-map');
 var util = require('../util');
 
@@ -64,7 +64,7 @@ function filterJsStackTrace(stackTrace) {
   // (And besides, there should only be one entry as the JS stack is
   // cleared between each webppl function application.)
 
-  var ix = _.findIndex(stackTrace, _.matcher({webppl: true}));
+  var ix = _.findIndex(stackTrace, _.matches({webppl: true}));
   return (ix >= 0) ? stackTrace.slice(0, ix + 1) : stackTrace;
 }
 

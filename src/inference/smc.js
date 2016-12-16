@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('../util');
 var dists = require('../dists');
 var Trace = require('../trace');
@@ -135,7 +135,7 @@ module.exports = function(env) {
 
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = particles.length;
-    var logW = util.logsumexp(_.pluck(particles, 'logWeight'));
+    var logW = util.logsumexp(_.map(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
 
     assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
@@ -205,14 +205,14 @@ module.exports = function(env) {
   };
 
   SMC.prototype.particlesAreWeighted = function(particles) {
-    var lw = _.first(particles).logWeight;
-    return _.any(particles, function(p) { return p.logWeight !== lw; });
+    var lw = _.take(particles).logWeight;
+    return _.some(particles, function(p) { return p.logWeight !== lw; });
   };
 
   SMC.prototype.particlesAreInSync = function(particles) {
     // All particles are either at the step^{th} factor statement, or
     // at the exit having encountered < than step factor statements.
-    return _.all(particles, function(p) {
+    return _.every(particles, function(p) {
       var trace = p.trace;
       return ((trace.isComplete() && trace.numFactors < this.step) ||
               (!trace.isComplete() && trace.numFactors === this.step));
@@ -296,7 +296,7 @@ module.exports = function(env) {
       }
     }.bind(this);
 
-    var logAvgW = _.first(this.completeParticles).logWeight;
+    var logAvgW = _.take(this.completeParticles).logWeight;
 
     return util.cpsForEach(
         function(particle, i, ps, k) {

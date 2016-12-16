@@ -5,7 +5,7 @@
 
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var seedrandom = require('seedrandom');
 var assert = require('assert');
 var util = require('../src/util');
@@ -60,7 +60,7 @@ var generateSettingTest = function(seed, distMetadata, settings) {
   // only test the stats that aren't blacklisted
   var populationStatisticFunctions = _.pick(distMetadata.populationStatisticFunctions,
                                             function(v, k) {
-                                              return !_.contains(settings.skip, k)
+                                              return !_.includes(settings.skip, k)
                                             });
   var group = {};
 

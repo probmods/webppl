@@ -6,7 +6,7 @@ var parse = require('esprima').parse;
 var replace = require('estraverse').replace;
 var generate = require('escodegen').generate;
 var build = require('ast-types').builders;
-var _ = require('underscore');
+var _ = require('lodash');
 var ad = require('./ad').ad;
 var util = require('../util');
 

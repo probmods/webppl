@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var seedrandom = require('seedrandom');
 var fs = require('fs');
 var assert = require('assert');
@@ -649,7 +649,7 @@ var performTest = function(modelName, testDef, test) {
     // The tests to run for a particular model are determined by the contents
     // of the expected results JSON file.
     assert(testFunctions[testName], 'Unexpected key "' + testName + '"');
-    var testArgs = _.extendOwn.apply(null, _.filter([
+    var testArgs = _.assign.apply(null, _.filter([
       { tol: 0.0001 }, // Defaults.
       testDef.settings[testName],
       testDef.models[modelName] && testDef.models[modelName][testName] // Most specific.
@@ -662,13 +662,13 @@ var performTest = function(modelName, testDef, test) {
 
 var getInferenceArgs = function(testDef, model) {
   var args = (testDef.models[model] && testDef.models[model].args) || testDef.settings.args;
-  return util.serialize(_.extendOwn({}, args, {method: testDef.method || testDef.name}));
+  return util.serialize(_.assign({}, args, {method: testDef.method || testDef.name}));
 };
 
 var testFunctions = {
   hist: function(test, result, expected, args) {
     var eq = args.exact ? _.isEqual : util.histsApproximatelyEqual;
-    var actual = _.mapObject(result.dist.getDist(), function(obj) { return obj.prob; });
+    var actual = _.mapValues(result.dist.getDist(), function(obj) { return obj.prob; });
     var msg = ['Expected hist: ', util.serialize(expected),
                ', actual: ', util.serialize(actual)].join('');
     test.ok(eq(actual, expected, args.tol, args.exactSupport), msg);

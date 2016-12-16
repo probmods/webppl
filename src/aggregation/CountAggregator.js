@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('../util');
 var ad = require('../ad');
 var dists = require('../dists');

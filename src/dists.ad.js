@@ -30,7 +30,7 @@
 'use strict';
 
 var Tensor = require('./tensor');
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
@@ -166,7 +166,7 @@ function makeDistributionType(options) {
     };
   }
 
-  var parameterNames = _.pluck(options.params, 'name');
+  var parameterNames = _.map(options.params, 'name');
   var extraConstructorFn = options.constructor;
 
   // Note that Chrome uses the name of this local variable in the
@@ -192,8 +192,8 @@ function makeDistributionType(options) {
 
   dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'nohelper', 'wikipedia');
 
-  _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
-  _.extendOwn(dist.prototype, _.pick(options, methodNames));
+  _.assign.apply(_, [dist.prototype].concat(options.mixins));
+  _.assign(dist.prototype, _.pick(options, methodNames));
 
   ['sample', 'score'].forEach(function(method) {
     if (!dist.prototype[method]) {
@@ -1444,7 +1444,7 @@ var Categorical = makeDistributionType({
   nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
-    this.ixmap = _.object(this.params.vs.map(function(v, ix) {
+    this.ixmap = _.zipObject(this.params.vs.map(function(v, ix) {
       return [util.serialize(v), ix];
     }));
   },

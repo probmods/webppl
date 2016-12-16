@@ -1,7 +1,7 @@
 'use strict';
 
 var path = require('path');
-var _ = require('underscore');
+var _ = require('lodash');
 var git = require('./git');
 
 var webpplRootDir = path.join(__filename, '..', '..');

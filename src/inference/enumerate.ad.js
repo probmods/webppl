@@ -7,7 +7,7 @@
 'use strict';
 'use ad';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
 var ScoreAggregator = require('../aggregation/ScoreAggregator');

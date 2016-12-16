@@ -3,7 +3,7 @@
 
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var dists = require('../dists');
 var util = require('../util')
 var CountAggregator = require('../aggregation/CountAggregator');

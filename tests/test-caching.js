@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var parse = require('esprima').parse;
 var caching = require('../src/transforms/caching');
 
@@ -25,7 +25,7 @@ var transformRequiredTests = {
 };
 
 function generateTests(cases, testFn) {
-  return _.mapObject(cases, function(caseDef) {
+  return _.mapValues(cases, function(caseDef) {
     return function(test) {
       test.strictEqual(testFn(parse(caseDef.code)), caseDef.expected);
       test.done();

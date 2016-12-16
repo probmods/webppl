@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var webppl = require('../src/main');
 
 function getError(code, test) {
@@ -37,4 +37,4 @@ var tests = [
 ];
 
 var names = _.range(tests.length).map(function(i) { return 'test' + (i + 1); });
-module.exports = _.object(names, tests);
+module.exports = _.zipObject(names, tests);

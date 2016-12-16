@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 
 var estraverse = require('estraverse');
 var build = require('ast-types').builders;

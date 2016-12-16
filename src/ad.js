@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var ad = require('adnn/ad');
 var Tensor = require('./tensor');
 var special = require('./math/special');
@@ -17,8 +17,8 @@ var valueRec = function(x) {
   } else if (_.isObject(x) && !_.isFunction(x)) {
     // Ensure prototype chain is preserved
     var proto = Object.getPrototypeOf(x);
-    var y = _.mapObject(x, valueRec);
-    return _.extendOwn(Object.create(proto), y);
+    var y = _.mapValues(x, valueRec);
+    return _.assign(Object.create(proto), y);
     return y;
   } else {
     return x;

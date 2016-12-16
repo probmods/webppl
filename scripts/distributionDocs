@@ -5,10 +5,10 @@
 // Require this version so that we don't need to run the build in
 // order to build the docs.
 var dists = require('../src/dists.ad.js');
-var _ = require('underscore');
+var _ = require('lodash');
 
 function makeTemplates(obj) {
-  return _.mapObject(obj, _.template);
+  return _.mapValues(obj, _.template);
 }
 
 var t = makeTemplates({
@@ -42,7 +42,7 @@ var body = metadata.map(function(meta) {
   }));
 
   meta.params.forEach(function(param) {
-    var p = _.extendOwn({desc: ''}, param);
+    var p = _.extend({desc: ''}, param);
     if (p.domain) {
       p.domain = formatDomain(p.domain);
     }

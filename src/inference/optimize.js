@@ -10,7 +10,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var nodeutil = require('util');
 var present = require('present');
 var util = require('../util');
@@ -114,7 +114,7 @@ module.exports = function(env) {
       saveParams = function() {
         // Turn tensor data into regular Array before serialization
         // I think this is faster than using a custom 'replacer' with JSON.stringify?
-        var prms = _.mapObject(paramObj, function(lst) {
+        var prms = _.mapValues(paramObj, function(lst) {
           return lst.map(function(tensor) {
             var tcopy = _.clone(tensor);
             tcopy.data = tensor.toFlatArray();
@@ -188,7 +188,7 @@ module.exports = function(env) {
   }
 
   function allFinite(tensor) {
-    return _.all(tensor.data, isFinite);
+    return _.every(tensor.data, isFinite);
   }
 
   function checkGradients(gradObj) {

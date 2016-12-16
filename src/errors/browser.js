@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var errors = require('./errors');
 var parseV8 = require('./parsers').parseV8;
 
@@ -10,7 +10,7 @@ function isChrome() {
 
 function extendErrorChrome(error, fileName) {
   var stack = errors.recoverStack(error, parseV8);
-  var entry = _.findWhere(stack, {fileName: fileName});
+  var entry = _.find(stack, {fileName: fileName});
   error.wpplError = entry;
 }
 

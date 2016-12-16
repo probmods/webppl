@@ -2,7 +2,7 @@
 
 var webppl = require('../src/main');
 
-var _ = require('underscore');
+var _ = require('lodash');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
 var thunkify = require('../src/syntax').thunkify;
@@ -239,7 +239,7 @@ function generateTestFunctions(allTests, testRunner) {
       tests.forEach(
           function(obj) {
             exports[testClassName][obj.name] = function(test) {
-              if (!obj.runners || _.contains(obj.runners, testRunner)) {
+              if (!obj.runners || _.includes(obj.runners, testRunner)) {
                 return testRunner(test, obj.code, obj.expected);
               } else {
                 test.done();
