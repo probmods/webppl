@@ -69,8 +69,8 @@ function _storeParams(id, params, k) {
 
 function start(k) {
   if (!mongodb) {
-    throw new Error('MongoDB module not found. ' +
-                    'Install using `npm install -g mongodb` to use the MongoDB store.');
+    throw new Error('MongoDB module not found. Run `npm install mongodb` ' +
+                    'in the webppl directory to use the MongoDB store.');
   }
   console.log('Connecting to MongoDB...');
   var client = mongodb.MongoClient;
