@@ -149,18 +149,17 @@ module.exports = function(env) {
 
             history.push(objective);
 
-            // TODO: Can we avoid the deepcopy here somehow?
-            var deltaObj = paramStruct.deepCopy(params.get());
+            // Retrieve latest params from store
+            return params.sync(function(paramsObj) {
 
-            optimizer(gradObj, deltaObj, i);
+              // Update local copy of params
+              optimizer(gradObj, paramsObj, i);
 
-            // We compute deltas by comparing new and old params:
-            // deltas = newParams - oldParams = -(oldParams - newParams)
-            paramStruct.mulEq(deltaObj, -1);
-            paramStruct.addEq(deltaObj, params.get());
-            paramStruct.mulEq(deltaObj, -1);
+              // Send updated params to store
+              return params.set(paramsObj, next);
 
-            return params.inc(deltaObj, next);
+            }, { incremental: true });
+
           });
 
         },
