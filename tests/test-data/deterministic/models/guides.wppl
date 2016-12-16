@@ -1,5 +1,4 @@
 [
-  // TODO: We don't want to have to unlift here. Related to issue 634.
   ad.value(param({mu: 1, sigma: 0})),
   ad.value(T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})))
 ];
