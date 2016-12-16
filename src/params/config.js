@@ -5,7 +5,7 @@ var memoryStore = require('./store/memory');
 var mongoStore = require('./store/mongo');
 
 
-// Parameter table id
+// Id of active parameter table
 
 var _id;
 var _isManualId = false;
@@ -34,7 +34,7 @@ function isManualId() {
 }
 
 
-// Store
+// Active store
 
 var stores = {
   memory: memoryStore,
