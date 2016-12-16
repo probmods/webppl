@@ -96,7 +96,6 @@ function stop(k) {
 }
 
 function getParams(id, k) {
-  console.log('Loading params for id', id);
   _loadParams(id, function(params) {
     resume(function() { return k(params); });
   });
