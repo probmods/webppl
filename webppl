@@ -140,7 +140,7 @@ function main() {
     paramsConfig.setStore(paramStoreName);
   }
 
-  // Parameter set id
+  // Parameter table id
   var paramId = argv['param-id'];
   if (paramId) {
     paramsConfig.setId(paramId);
