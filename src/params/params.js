@@ -17,7 +17,9 @@ function init(k) {
   if (!config.isManualId()) {
     config.setFreshId();
   }
-  return store.start(function() { return sync(k); });
+  return store.start(function() {
+    return sync(k, { incremental: false });
+  });
 }
 
 
@@ -27,14 +29,18 @@ function stop(k) {
 }
 
 
-function sync(k) {
+function sync(k, options) {
   var store = config.getStore();
   var next = function(params) {
     if (!params) {
       throw new Error('Expected store to return params, got', params);
     }
-    _params = params;
-    return k(params);
+    if (options && options.incremental) {
+      _.extendOwn(_params, params);
+    } else {
+      _params = params;
+    }
+    return k(_params);
   };
   return store.getParams(config.getId(), next);
 }
