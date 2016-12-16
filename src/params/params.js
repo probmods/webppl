@@ -61,23 +61,6 @@ function save(filename) {
 }
 
 
-// When a coroutine wishes to update parameters, it does so by calling
-// this method. This updates both the local parameters and those in
-// the store.
-function inc(deltas, k) {
-  var id = config.getId();
-  var store = config.getStore();
-  var next = function(params) {
-    if (!params) {
-      throw new Error('Expected store to return params, got', params);
-    }
-    _params = params;
-    return k(params);
-  };
-  return store.incParams(id, _params, deltas, next);
-}
-
-
 function set(params, k) {
   var id = config.getId();
   var store = config.getStore();
@@ -144,7 +127,6 @@ function register(env, name, getParams, setParams) {
 module.exports = {
   get: get,
   set: set,
-  inc: inc,
   init: init,
   stop: stop,
   register: register,

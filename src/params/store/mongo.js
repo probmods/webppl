@@ -107,26 +107,10 @@ function setParams(id, params, k) {
   });
 }
 
-function incParams(id, params, deltas, k) {
-  _loadParams(id, function(mongoParams) {
-    var newParams;
-    if (mongoParams) {
-      newParams = mongoParams;
-      paramStruct.addEq(newParams, deltas);
-    } else {
-      newParams = params;
-    }
-    _storeParams(id, newParams, function() {
-      resume(function() { return k(newParams); });
-    });
-  });
-}
-
 
 module.exports = {
   start: start,
   stop: stop,
   getParams: getParams,
-  setParams: setParams,
-  incParams: incParams
+  setParams: setParams
 };

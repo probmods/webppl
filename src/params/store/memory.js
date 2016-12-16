@@ -39,21 +39,10 @@ function setParams(id, params, k) {
   return k();
 }
 
-function incParams(id, params, deltas, k) {
-  if (!_.has(store, id)) {
-    store[id] = {};
-  }
-  var table = store[id];
-  _.defaults(table, params);
-  paramStruct.addEq(table, deltas);
-  return k(copyIfSafeMode(table));
-}
-
 
 module.exports = {
   start: start,
   stop: stop,
   getParams: getParams,
-  setParams: setParams,
-  incParams: incParams
+  setParams: setParams
 };
