@@ -24,6 +24,7 @@ var cacheExempt = [
   'gamma',
   'factor',
   'sample',
+  'observe',
   'sampleWithFactor'
 ];
 var cacheExemptTable = {};

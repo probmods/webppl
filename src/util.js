@@ -57,7 +57,7 @@ function resetRNG() {
 
 function assertValidRandomSeed(seed) {
   var msg = 'Random seed should be a positive integer.';
-  assert(_.isFinite(seed) && seed >= 0, msg);
+  assert(isFinite(seed) && seed >= 0, msg);
 }
 
 function runningInBrowser() {
@@ -140,7 +140,7 @@ function cpsLoop(n, func, cont) {
         return function() { // insert trampoline step
           return loop(i + 1);
         };
-      });
+      }, cont);
     }
   }
   assert(_.isNumber(n), 'Number expected.');
@@ -154,7 +154,7 @@ function cpsIterate(n, initial, func, cont) {
         return func(function(nextVal) {
           val = nextVal;
           return next();
-        }, val);
+        }, val, cont);
       },
       function() { return cont(val); });
 }
@@ -323,10 +323,10 @@ function tensorEqDim0(v, w) {
 }
 
 function tensorEqDims(t1, t2) {
-  if (t1.dims.length !== t2.dims.length) {
+  if (t1.rank !== t2.rank) {
     return false;
   }
-  for (var i = 0; i < t1.dims.length; i++) {
+  for (var i = 0; i < t1.rank; i++) {
     if (t1.dims[i] !== t2.dims[i]) {
       return false;
     }
@@ -382,13 +382,13 @@ var registerParams = function(env, name, getParams, setParams) {
 
     if (_.has(paramStore, name)) {
       // Seen on previous execution. Fetch from store and lift.
-      params = paramStore[name].map(ad.lift);
+      _params = paramStore[name];
     } else {
       // Never seen. Fetch initial values, add to store and lift.
       var _params = getParams().map(ad.value);
       paramStore[name] = _params;
-      params = _params.map(ad.lift);
     }
+    params = _params.map(ad.lift);
 
     if (paramsSeen) {
       paramsSeen[name] = params;

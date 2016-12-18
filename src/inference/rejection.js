@@ -18,7 +18,7 @@ module.exports = function(env) {
   function Rejection(s, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'Rejection');
     options = util.mergeDefaults(options, {
-      samples: 1,
+      samples: 100,
       maxScore: 0,
       incremental: false
     });

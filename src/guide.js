@@ -40,6 +40,7 @@ function makeParam(paramSpec, paramName, baseName, env) {
   var dims = paramSpec.dims; // e.g. [2, 1]
   var squish = paramSpec.squish;
   var name = baseName + paramName;
+  var rank = dims.length;
 
   var param = registerParam(env, name, dims);
 
@@ -49,7 +50,7 @@ function makeParam(paramSpec, paramName, baseName, env) {
   }
 
   // Collapse tensor with dims=[1] to scalar.
-  if (dims.length === 1 && dims[0] === 1) {
+  if (rank === 1 && dims[0] === 1) {
     param = ad.tensor.get(param, 0);
   }
 
