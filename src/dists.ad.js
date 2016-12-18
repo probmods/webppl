@@ -119,7 +119,7 @@ var finiteSupport = {
     return _.reduce(this.support(), function(memo, x) {
       var score = this.score(x);
       return memo - (score === -Infinity ? 0 : Math.exp(score) * score);
-    }, 0, this);
+    }.bind(this), 0);
   },
 
   toJSON: function() {
@@ -1444,7 +1444,7 @@ var Categorical = makeDistributionType({
   nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
-    this.ixmap = _.zipObject(this.params.vs.map(function(v, ix) {
+    this.ixmap = _.fromPairs(this.params.vs.map(function(v, ix) {
       return [util.serialize(v), ix];
     }));
   },
@@ -1490,7 +1490,7 @@ var Delta = makeDistributionType({
 
 function metadata() {
   return _.chain(distributions)
-    .pairs() // pair[0] = key, pair[1] = value
+    .toPairs() // pair[0] = key, pair[1] = value
     .sortBy(function(pair) { return pair[0]; })
     .map(function(pair) { return pair[1]; })
     .map(function(dist) { return dist.prototype.meta; })

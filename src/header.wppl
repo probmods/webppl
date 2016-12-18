@@ -222,17 +222,17 @@ var mapIndexed = function(fn, l) {
 }
 
 var mapObject = function(fn, obj) {
-  return _.object(
+  return _.fromPairs(
       map(
       function(kv) {
         return [kv[0], fn(kv[0], kv[1])]
       },
-      _.pairs(obj))
+      _.toPairs(obj))
   );
 };
 
 var extend = function() {
-  return _.extendOwn.apply(_, [{}].concat(arguments));
+  return _.assign.apply(_, [{}].concat(arguments));
 }
 
 var reduce = function(fn, init, ar) {
@@ -469,12 +469,12 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
 };
 
 var SampleGuide = function(wpplFn, options) {
-  return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
+  return ForwardSample(wpplFn, _.assign({guide: true}, _.omit(options, 'guide')));
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
   var params = Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose'));
+  var opts = _.assign({params: params}, _.pick(options, 'samples', 'verbose'));
   return SampleGuide(wpplFn, opts);
 };
 
@@ -531,7 +531,7 @@ var Vector = function(arr) {
 var Matrix = function(arr) {
   var n = arr.length;
   var m = arr[0].length;
-  var t = ad.tensor.fromScalars(_.flatten(arr));
+  var t = ad.tensor.fromScalars(_.flattenDeep(arr));
   return ad.tensor.reshape(t, [n, m]);
 };
 var Tensor = function(dims, arr) {

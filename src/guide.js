@@ -151,7 +151,7 @@ function defaultSpec(targetDist) {
 
   return {
     type: targetDist.constructor,
-    params: _.zipObject(paramSpec)
+    params: _.fromPairs(paramSpec)
   };
 }
 

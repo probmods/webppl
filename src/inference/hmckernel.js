@@ -218,7 +218,7 @@ module.exports = function(env) {
               this.momentum[choice.address],
               mul(ad.derivative(choice.val), stepSize));
         }
-      }, this);
+      }.bind(this));
     }
   };
 

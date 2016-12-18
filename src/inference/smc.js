@@ -205,7 +205,7 @@ module.exports = function(env) {
   };
 
   SMC.prototype.particlesAreWeighted = function(particles) {
-    var lw = _.take(particles).logWeight;
+    var lw = _.head(particles).logWeight;
     return _.some(particles, function(p) { return p.logWeight !== lw; });
   };
 
@@ -296,7 +296,7 @@ module.exports = function(env) {
       }
     }.bind(this);
 
-    var logAvgW = _.take(this.completeParticles).logWeight;
+    var logAvgW = _.head(this.completeParticles).logWeight;
 
     return util.cpsForEach(
         function(particle, i, ps, k) {
