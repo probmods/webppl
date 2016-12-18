@@ -82,7 +82,8 @@ module.exports = function(grunt) {
         .map(function(name) { return ['--require', name]; })
         .flatten().value();
     pkgArg = ' -t [' + ['./src/bundle.js'].concat(requires).join(' ') + ']';
-    return pkgArg + ' -t brfs src/browser.js -o bundle/webppl.js';
+    // We don't want to browserify the mongodb package, so we mark it as "external"
+    return pkgArg + ' -t brfs src/browser.js -o bundle/webppl.js -x mongodb';
   }
 
   grunt.loadNpmTasks('grunt-gjslint');

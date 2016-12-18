@@ -14,6 +14,7 @@
 var assert = require('assert');
 var _ = require('underscore');
 
+
 function addEq(g, h) {
   // In-place addition.
   _.each(h, function(hs, a) {
@@ -78,6 +79,7 @@ function deepCopy(g) {
     return arr.map(function(tensor) { return tensor.clone(); });
   });
 }
+
 
 module.exports = {
   addEq: addEq,

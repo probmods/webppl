@@ -5,7 +5,7 @@ var assert = require('assert');
 var fs = require('fs');
 var util = require('../util');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 var guide = require('../guide');
 var graph = require('./elbograph');
 
@@ -17,7 +17,7 @@ var JoinNode = graph.JoinNode;
 
 module.exports = function(env) {
 
-  function ELBO(wpplFn, s, a, options, state, params, step, cont) {
+  function ELBO(wpplFn, s, a, options, state, step, cont) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
       avgBaselines: true,
@@ -31,10 +31,6 @@ module.exports = function(env) {
       // understanding/debugging weight propagation.
       debugWeights: false
     });
-
-    // The current values of all initialized parameters.
-    // (Scalars/tensors, not their AD nodes.)
-    this.params = params;
 
     this.step = step;
     this.state = state;

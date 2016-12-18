@@ -15,7 +15,8 @@ var nodeutil = require('util');
 var present = require('present');
 var util = require('../util');
 var optMethods = require('adnn/opt');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
+var params = require('../params/params');
 var fs = require('fs');
 var nodeUtil = require('util');
 
@@ -46,7 +47,6 @@ module.exports = function(env) {
     }
 
     options = util.mergeDefaults(options, {
-      params: {},
       optMethod: 'adam',
       estimator: 'ELBO',
       steps: 1,
@@ -65,11 +65,11 @@ module.exports = function(env) {
       checkpointParamsThrottle: 10000
     });
 
-    // Create a (cps) function 'estimator' which takes parameters to
-    // gradient estimates. Every application of the estimator function
-    // is passed the 'state' variable. This allows an estimator to
-    // maintain state between calls by modifying the contents of this
-    // object.
+    // Create a (cps) function 'estimator' which computes gradient
+    // estimates based on the (local copy) of the current parameter
+    // set. Every application of the estimator function is passed the
+    // 'state' variable. This allows an estimator to maintain state
+    // between calls by modifying the contents of this object.
     var state = {};
     var estimator = util.getValAndOpts(options.estimator, function(name, opts) {
       if (!_.has(estimators, name)) {
@@ -85,8 +85,6 @@ module.exports = function(env) {
       name = (name === 'gd') ? 'sgd' : name;
       return optMethods[name](opts);
     });
-
-    var paramObj = paramStruct.deepCopy(options.params);
 
     var showProgress = _.throttle(function(i, objective) {
       console.log('Iteration ' + i + ': ' + objective);
@@ -112,16 +110,7 @@ module.exports = function(env) {
     var saveParams, checkpointParams;
     if (options.checkpointParams) {
       saveParams = function() {
-        // Turn tensor data into regular Array before serialization
-        // I think this is faster than using a custom 'replacer' with JSON.stringify?
-        var prms = _.mapObject(paramObj, function(lst) {
-          return lst.map(function(tensor) {
-            var tcopy = _.clone(tensor);
-            tcopy.data = tensor.toFlatArray();
-            return tcopy;
-          });
-        });
-        fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
+        params.save(options.checkpointParamsFilename);
       };
       checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
@@ -133,7 +122,7 @@ module.exports = function(env) {
         // Loop body.
         function(i, next) {
 
-          return estimator(paramObj, i, function(gradObj, objective) {
+          return estimator(i, function(gradObj, objective) {
             if (options.checkGradients) {
               checkGradients(gradObj);
             }
@@ -160,9 +149,17 @@ module.exports = function(env) {
 
             history.push(objective);
 
-            optimizer(gradObj, paramObj, i);
+            // Retrieve latest params from store
+            return params.sync(function(paramsObj) {
 
-            return next();
+              // Update local copy of params
+              optimizer(gradObj, paramsObj, i);
+
+              // Send updated params to store
+              return params.set(paramsObj, next);
+
+            }, { incremental: true });
+
           });
 
         },
@@ -177,7 +174,7 @@ module.exports = function(env) {
               // Save final params
               saveParams();
             }
-            return k(s, paramObj);
+            return k(s);
           }, a, {history: history});
         });
 

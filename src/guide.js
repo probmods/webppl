@@ -6,6 +6,7 @@ var util = require('./util');
 var Tensor = require('./tensor');
 var ad = require('./ad');
 var dists = require('./dists');
+var params = require('./params/params');
 
 var T = ad.tensor;
 
@@ -57,7 +58,7 @@ function makeParam(paramSpec, paramName, baseName, env) {
 }
 
 function registerParam(env, name, dims) {
-  return util.registerParams(env, name, function() {
+  return params.register(env, name, function() {
     return [new Tensor(dims)];
   })[0];
 }
