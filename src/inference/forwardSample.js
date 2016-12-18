@@ -17,7 +17,7 @@ module.exports = function(env) {
       guide: false, // true = sample guide, false = sample target
       verbose: false,
       params: {},
-      logDist: true,
+      logDist: false,
       logDistFilename: 'forwardDist.csv'
     });
 
