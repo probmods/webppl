@@ -203,7 +203,7 @@ Parameters
    can be used directly in the model.
 
    Optimizing the :ref:`ELBO <elbo>` yields maximum likelihood
-   estimation for model parameters. ``modelParam`` cannot used with
+   estimation for model parameters. ``modelParam`` cannot be used with
    other inference strategies as it does not have an interpretation in
    the fully Bayesian setting. Attempting to do so will raise an
    exception.
