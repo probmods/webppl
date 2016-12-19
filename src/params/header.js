@@ -18,11 +18,17 @@ function setParams(s, k, a, prms) {
 }
 
 function setParamsId(s, k, a, id) {
-  return k(s, config.setId(id));
+  config.setId(id);
+  return params.sync(function() {
+    return k(s, id);
+  });
 }
 
 function setFreshParamsId(s, k, a) {
-  return k(s, config.setFreshId());
+  var id = config.setFreshId();
+  return params.sync(function() {
+    return k(s, id);
+  });
 }
 
 function getParamsId(s, k, a, id) {
