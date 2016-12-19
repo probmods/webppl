@@ -8,11 +8,20 @@
 
   // Check (indirectly) that a guide is automatically generated, by
   // checking that a parameter is created.
-  _.size(Infer({method: 'SMC', particles: 1, importance: 'default', model() {
-    return flip();
-  }}).guideParams),
 
-  _.size(Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
-    return flip();
-  }}).guideParams)
+  (function() {
+    setFreshParamsId();
+    Infer({method: 'SMC', particles: 1, importance: 'default', model() {
+      return flip();
+    }});
+    return _.size(getParams());
+  })(),
+
+  (function() {
+    setFreshParamsId();
+    Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
+      return flip();
+    }});
+    return _.size(getParams());
+  })()
 ];

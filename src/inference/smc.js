@@ -8,7 +8,6 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
 var guide = require('../guide');
 
 module.exports = function(env) {
@@ -26,8 +25,7 @@ module.exports = function(env) {
       finalRejuv: true,
       saveTraces: false,
       importance: 'default',
-      onlyMAP: false,
-      params: {}
+      onlyMAP: false
     });
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
@@ -47,10 +45,6 @@ module.exports = function(env) {
     this.saveTraces = options.saveTraces;
     this.importanceOpt = options.importance;
     this.onlyMAP = options.onlyMAP;
-
-    // Perform a copy to avoid modifying the input when SMC causes
-    // previously unseen params to be initialized.
-    this.params = paramStruct.copy(options.params);
 
     this.particles = [];
     this.completeParticles = [];
@@ -339,12 +333,6 @@ module.exports = function(env) {
           if (this.saveTraces) {
             dist.traces = traces;
           }
-          // Even though SMC doesn't modify guide parameters, it may
-          // cause parameters not previously seen to be initialized.
-          // Subsequent optimization should happen on the parameters
-          // that generated the example traces, so we return them
-          // here.
-          dist.guideParams = this.params;
           env.coroutine = this.coroutine;
           return this.k(this.s, dist);
         }.bind(this),

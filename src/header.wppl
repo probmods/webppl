@@ -231,6 +231,10 @@ var mapObject = function(fn, obj) {
   );
 };
 
+var extend = function() {
+  return _.extendOwn.apply(_, [{}].concat(arguments));
+}
+
 var reduce = function(fn, init, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -469,8 +473,8 @@ var SampleGuide = function(wpplFn, options) {
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
-  var params = Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.extendOwn({params: params}, _.pick(options, 'samples', 'verbose'));
+  Optimize(wpplFn, _.omit(options, 'samples'));
+  var opts = _.pick(options, 'samples', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 

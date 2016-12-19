@@ -15,11 +15,9 @@ module.exports = function(env) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
       guide: false, // true = sample guide, false = sample target
-      verbose: false,
-      params: {}
+      verbose: false
     });
 
-    this.params = this.opts.params;
     this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;

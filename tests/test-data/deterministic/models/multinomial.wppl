@@ -1,0 +1,6 @@
+map(function(score) { return Math.exp(score); }, [
+  Multinomial({ps: [1, 0], n: 1}).score([1, 0]),
+  Multinomial({ps: [1, 0], n: 1}).score([0, 1]),
+  Multinomial({ps: [.4, .6], n: 1}).score([1, 0]),
+  Multinomial({ps: [.4, .6], n: 1}).score([0, 1])
+]);

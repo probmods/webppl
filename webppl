@@ -8,24 +8,15 @@ var pkg = require('./src/pkg');
 var util = require('./src/util');
 var pkginfo = require('./src/pkginfo');
 var git = require('./src/git');
-var dists = require('./src/dists');
 var errors = require('./src/errors/errors');
 var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
+var paramsConfig = require('./src/params/config');
 var parseArgs = require('minimist');
 var _ = require('underscore');
 
-function printWebPPLValue(x) {
-  if (dists.isDist(x) && x.print) {
-    console.log(x.meta.name + ':');
-    console.log(x.print());
-  } else {
-    console.log(x);
-  }
-};
-
 function topK(s, x) {
-  printWebPPLValue(x);
+  console.log(x);
 };
 
 function run(code, packages, verbose, debug, programFile) {
@@ -82,7 +73,6 @@ function compile(code, packages, verbose, debug, programFile, outputFile) {
 
   compiledCode += lines([
     'var __runner__ = util.trampolineRunners.cli();',
-    printWebPPLValue.toString() + ';',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
     "main({})(__runner__)({}, topK, '');"
@@ -116,7 +106,8 @@ function main() {
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
     console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
-                '[--require path] [--random-seed int]');
+                '[--require path] [--random-seed int] [--param-store name] ' +
+                '[--param-id id]');
     return;
   }
 
@@ -136,10 +127,25 @@ function main() {
     return pkg.load(pkg.read(name_or_path, packagePaths, argv.verbose));
   });
 
+  // Random seed
   var seed = argv['random-seed'];
   if (seed !== undefined) {
     util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
+  }
+
+  // Parameter store type
+  var paramStoreName = argv['param-store'];
+  if (paramStoreName) {
+    paramsConfig.setStore(paramStoreName);
+  }
+
+  // Parameter table id
+  var paramId = argv['param-id'];
+  if (paramId) {
+    paramsConfig.setId(paramId);
+  } else {
+    paramsConfig.setFreshId();
   }
 
   processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);

@@ -362,14 +362,10 @@ Forward Sampling
 
    .. describe:: guide
 
-      When ``true``, execute the guide. Otherwise, execute the target.
+      When ``true``, execute the guide using the current global
+      parameters. Otherwise, execute the target.
 
       Default: ``false``
-
-   .. describe:: params
-
-      Guide program parameters. Optional, and only used when executing
-      the guide program.
 
    Example usage::
 
