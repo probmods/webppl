@@ -349,7 +349,7 @@ Forward Sampling
    Example usage::
 
      Infer({method: 'forward', model: model});
-     Infer({method: 'forward', guide: true, params: optimizedParams, model: model});
+     Infer({method: 'forward', guide: true, model: model});
 
 .. rubric:: Bibliography
 
