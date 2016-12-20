@@ -6,14 +6,15 @@ var Tensor = require('./tensor');
 var special = require('./math/special');
 
 var valueRec = function(x) {
-  if (ad.isLifted(x)) {
+  // Optimization: Return fast for common unlifted types. This
+  // minimizes the overhead (of distribution argument checks for
+  // example) when not using AD.
+  if (typeof x === 'number' || x instanceof Tensor) {
+    return x;
+  } else if (ad.isLifted(x)) {
     return x.x;
   } else if (_.isArray(x)) {
     return _.map(x, valueRec);
-  } else if (x instanceof Tensor) {
-    // Optimization: tensors don't contain tapes, so return now rather
-    // than descend into the tensor object.
-    return x;
   } else if (_.isObject(x) && !_.isFunction(x)) {
     // Ensure prototype chain is preserved
     var proto = Object.getPrototypeOf(x);

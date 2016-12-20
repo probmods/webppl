@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!usr/bin/env node
 
 'use strict';
 
@@ -12,23 +12,13 @@ function makeTemplates(obj) {
 }
 
 var t = makeTemplates({
-  func:            '.. js:function:: <%= name %>({<%= args %>})\n',
-  arg:             '<%= name %>: ...',
-  param:           '  * <%= name %>: <%= desc %>',
-  paramWithDomain: '  * <%= name %>: <%= desc %> *(<%= domain %>)*',
-  desc:            '  <%= desc %>\n',
+  func:          '.. js:function:: <%= name %>({<%= args %>})\n',
+  arg:           '<%= name %>: ...',
+  param:         '  * <%= name %>: <%= desc %>',
+  paramWithType: '  * <%= name %>: <%= desc %> *(<%= type.desc %>)*',
+  desc:          '  <%= desc %>\n',
   wikiEntry:     '  `Wikipedia entry <https://en.wikipedia.org/wiki/<%= page %>>`__\n'
 });
-
-function formatDomain(interval) {
-  if (interval.a === -Infinity) {
-    return '<' + interval.b;
-  } else if (interval.b === Infinity) {
-    return '>' + interval.a;
-  } else {
-    return 'in [' + [interval.a, interval.b] + ']';
-  }
-}
 
 var metadata = dists.metadata().filter(function(meta) { return !meta.nodoc; });
 
@@ -42,11 +32,8 @@ var body = metadata.map(function(meta) {
   }));
 
   meta.params.forEach(function(param) {
-    var p = _.extend({desc: ''}, param);
-    if (p.domain) {
-      p.domain = formatDomain(p.domain);
-    }
-    out.push((param.domain ? t.paramWithDomain : t.param)(p));
+    var p = _.assign({desc: ''}, param);
+    out.push((param.type ? t.paramWithType : t.param)(p));
   });
 
   out.push('');
