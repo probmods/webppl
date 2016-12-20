@@ -25,28 +25,29 @@ function run(code, packages, verbose, debug, programFile) {
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  try {
-    webppl.run(code, topK, {
-      bundles: webppl.parsePackageCode(packages, verbose),
-      filename: programFile,
-      verbose: verbose,
-      debug: debug
-    });
-  } catch (error) {
-    if (error instanceof Error && error.wpplRuntimeError) {
-      try {
-        var stack = errors.recoverStack(error, parseV8);
-        showError(error, stack, programFile, debug);
-        process.exitCode = 1;
-      } catch (e) {
-        // If we fail to generate a readable error message re-throw
-        // the original error.
-        throw error;
+  webppl.run(code, topK, {
+    bundles: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose,
+    debug: debug,
+    errorHandlers: [
+      function(error) {
+        if (error instanceof Error && error.wpplRuntimeError) {
+          try {
+            var stack = errors.recoverStack(error, parseV8);
+            showError(error, stack, programFile, debug);
+            process.exitCode = 1;
+          } catch (e) {
+            // If we fail to generate a readable error message re-throw
+            // the original error.
+            throw error;
+          }
+        } else {
+          throw error;
+        }
       }
-    } else {
-      throw error;
-    }
-  }
+    ]
+  });
 }
 
 var lines = function(ar) {
