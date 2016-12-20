@@ -8,10 +8,13 @@ var Trace = require('../trace');
 var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var guide = require('../guide');
 
 module.exports = function(env) {
 
   var kernels = require('./kernels')(env);
+
+  var validImportanceOptVals = ['default', 'ignoreGuide', 'autoGuide'];
 
   function SMC(s, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'SMC');
@@ -21,9 +24,15 @@ module.exports = function(env) {
       rejuvKernel: 'MH',
       finalRejuv: true,
       saveTraces: false,
-      ignoreGuide: false,
+      importance: 'default',
       onlyMAP: false
     });
+
+    if (!_.includes(validImportanceOptVals, options.importance)) {
+      var msg = options.importance + ' is not a valid importance option. ' +
+          'Valid options are: ' + validImportanceOptVals;
+      throw new Error(msg);
+    }
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
@@ -34,7 +43,7 @@ module.exports = function(env) {
     this.numParticles = options.particles;
     this.debug = options.debug;
     this.saveTraces = options.saveTraces;
-    this.ignoreGuide = options.ignoreGuide;
+    this.importanceOpt = options.importance;
     this.onlyMAP = options.onlyMAP;
 
     this.particles = [];
@@ -62,31 +71,42 @@ module.exports = function(env) {
   };
 
   SMC.prototype.sample = function(s, k, a, dist, options) {
-    var _val, choiceScore, importanceScore;
+    options = options || {};
+    var thunk = (this.importanceOpt === 'ignoreGuide') ? undefined : options.guide;
+    return guide.runIfThunkElseNull(thunk, env, s, a, function(s, maybeDist) {
 
-    if (options && _.has(options, 'guide') && !this.ignoreGuide) {
-      // Guide available.
-      var importanceDist = options.guide;
-      _val = importanceDist.sample();
-      choiceScore = dist.score(_val);
-      importanceScore = importanceDist.score(_val);
-    } else {
-      // No guide, sample from prior.
-      _val = dist.sample();
-      choiceScore = importanceScore = dist.score(_val);
-    }
+      // maybeDist will be null if either the 'ignoreGuide' option is
+      // set, or no guide is specified in the program.
 
-    var particle = this.currentParticle();
-    particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
+      // Auto guide if requested.
+      var importanceDist =
+          !maybeDist && (this.importanceOpt === 'autoGuide') ?
+          guide.independent(dist, a, env) :
+          maybeDist;
 
-    var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
-    // Optimization: Choices are not required for PF without rejuvenation.
-    if (this.performRejuv || this.saveTraces) {
-      particle.trace.addChoice(dist, val, a, s, k, options);
-    } else {
-      particle.trace.score = ad.scalar.add(particle.trace.score, choiceScore);
-    }
-    return k(s, val);
+      var _val, choiceScore, importanceScore;
+      if (importanceDist) {
+        _val = importanceDist.sample();
+        choiceScore = dist.score(_val);
+        importanceScore = importanceDist.score(_val);
+      } else {
+        // No importance distribution, sample from prior.
+        _val = dist.sample();
+        choiceScore = importanceScore = dist.score(_val);
+      }
+
+      var particle = this.currentParticle();
+      particle.logWeight += ad.value(choiceScore) - ad.value(importanceScore);
+
+      var val = this.adRequired && dist.isContinuous ? ad.lift(_val) : _val;
+      // Optimization: Choices are not required for PF without rejuvenation.
+      if (this.performRejuv || this.saveTraces) {
+        particle.trace.addChoice(dist, val, a, s, k, options);
+      } else {
+        particle.trace.score = ad.scalar.add(particle.trace.score, choiceScore);
+      }
+      return k(s, val);
+    }.bind(this));
   };
 
   SMC.prototype.factor = function(s, k, a, score) {

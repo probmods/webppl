@@ -271,6 +271,34 @@ SMC
 
          Default: ``'MH'``
 
+      .. describe:: importance
+
+         Controls the importance distribution used during inference.
+
+         Specifying an importance distribution can be useful when you
+         know something about the posterior distribution, as
+         specifying an importance distribution that is closer to the
+         posterior than the prior will improve the statistical
+         efficiency of inference.
+
+         This option accepts the following values:
+
+         * ``'default'``: When a random choice has a :ref:`guide
+           distribution <guides>` specified, use that as the
+           importance distribution. For all other random choices, use
+           the prior.
+
+         * ``'ignoreGuide'``: Use the prior as the importance
+           distribution for all random choices.
+
+         * ``'autoGuide'``: When a random choice has a :ref:`guide
+           distribution <guides>` specified, use that as the
+           importance distribution. For all other random choices,
+           automatically generate a mean-field guide and use that as
+           the importance distribution.
+
+           Default: ``'default'``
+
       .. describe:: onlyMAP
 
          When ``true``, only the sample with the highest score is
@@ -281,13 +309,6 @@ SMC
    Example usage::
 
      Infer({method: 'SMC', particles: 100, rejuvSteps: 5, model: model});
-
-   By default SMC uses the prior as the importance distribution. Other
-   distributions can be used by specifying :ref:`guide distributions
-   <guides>`. This can be useful when you know something about the
-   posterior distribution as specifying an importance distribution
-   that is closer to the posterior than the prior will improve the
-   statistical efficiency of inference.
 
 Optimization
 ------------

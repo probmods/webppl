@@ -39,6 +39,7 @@ function getParamsId(s, k, a, id) {
 module.exports = function(env) {
 
   var dimsForScalarParam = [1];
+  var paramWarningIssued = false;
 
   // param provides a convenient wrapper around the primitive
   // params.register.
@@ -48,6 +49,12 @@ module.exports = function(env) {
       sigma: .1,
       dims: dimsForScalarParam
     });
+
+    if (!env.coroutine._guide && !paramWarningIssued) {
+      paramWarningIssued = true;
+      util.warn('Warning: Parameter created outside of the guide.');
+    }
+
     var mu = options.mu;
     var sigma = options.sigma;
     var dims = options.dims;

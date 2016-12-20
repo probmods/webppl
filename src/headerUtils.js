@@ -81,7 +81,6 @@ module.exports = function(env) {
     return k(s, new Tensor(dims).fill(1));
   };
 
-
   // It is the responsibility of individual coroutines to implement
   // data sub-sampling and to make use of the conditional independence
   // information mapData provides. To do so, coroutines can implement

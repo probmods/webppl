@@ -10,11 +10,99 @@ var params = require('./params/params');
 
 var T = ad.tensor;
 
+function notAllowed(fn) {
+  return function() {
+    throw new Error(fn + ' cannot be used within the guide.');
+  };
+}
+
+var sampleNotAllowed = notAllowed('sample');
+var factorNotAllowed = notAllowed('factor');
+
+function guideCoroutine(env) {
+  return {
+    sample: sampleNotAllowed,
+    factor: factorNotAllowed,
+    incrementalize: env.defaultCoroutine.incrementalize,
+    // Copy the entry address from the current coroutine so that
+    // parameter names continue to be relative to it.
+    a: env.coroutine.a,
+    // Use params/paramsSeen of the current coroutine so that params
+    // are fetch/tracked correctly.
+    params: env.coroutine.params,
+    paramsSeen: env.coroutine.paramsSeen,
+    // A flag used when creating parameters to check whether we're in
+    // a guide thunk. Note that this does the right thing if Infer is
+    // used within a guide. This can be checked from a webppl program
+    // using the `inGuide()` helper.
+    _guide: true
+  };
+}
+
+function runInCoroutine(coroutine, env, k, f) {
+  var prevCoroutine = env.coroutine;
+  env.coroutine = coroutine;
+  return f(function(s, val) {
+    env.coroutine = prevCoroutine;
+    return k(s, val);
+  });
+}
+
+function runThunk(thunk, env, s, a, k) {
+  if (!_.isFunction(thunk)) {
+    throw new Error('The guide is expected to be a function.');
+  }
+  // Run the thunk with the guide coroutine installed. Check the
+  // return value is a distribution before continuing.
+  return runInCoroutine(
+      guideCoroutine(env),
+      env, k,
+      function(k) {
+        return thunk(s, function(s2, dist) {
+          // Clear the stack now the thunk has returned.
+          return function() {
+            if (!dists.isDist(dist)) {
+              throw new Error('The guide did not return a distribution.');
+            }
+            return k(s2, dist);
+          };
+        }, a + '_guide');
+      });
+}
+
+function runIfThunk(s, k, a, env, maybeThunk, alternate) {
+  return maybeThunk ?
+      runThunk(maybeThunk, env, s, a, k) :
+      alternate(s, k, a);
+}
+
+// Convenient variations on runGuideThunk.
+
+function runIfThunkElseNull(maybeThunk, env, s, a, k) {
+  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
+    return k(s, null);
+  });
+}
+
+function runIfThunkElseAuto(maybeThunk, targetDist, env, s, a, k) {
+  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
+    return k(s, independent(targetDist, a, env));
+  });
+}
+
 // Returns an independent guide distribution for the given target
 // distribution, sample address pair. Guiding all choices with
 // independent guide distributions and optimizing the elbo yields
 // mean-field variational inference.
+
+var autoGuideWarningIssued = false;
+
 function independent(targetDist, sampleAddress, env) {
+
+  if (!autoGuideWarningIssued) {
+    autoGuideWarningIssued = true;
+    util.warn('Automatically generating guide for one or more choices.');
+  }
 
   // Include the distribution name in the guide parameter name to
   // avoid collisions when the distribution type changes between
@@ -246,5 +334,7 @@ function squishToInterval(interval) {
 }
 
 module.exports = {
-  independent: independent
+  independent: independent,
+  runIfThunkElseAuto: runIfThunkElseAuto,
+  runIfThunkElseNull: runIfThunkElseNull
 };
