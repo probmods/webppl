@@ -218,6 +218,9 @@ function prepare(codeAndAssets, k, options) {
   var currentAddress = {value: undefined};
   var defaultHandler = function(error) {
     errors.extendError(error, codeAndAssets, currentAddress);
+    // Trigger clean-up. When using the mongo store, the process won't
+    // exit until the connection is closed.
+    cleanup(_.identity);
     throw error;
   };
   var allErrorHandlers = [defaultHandler].concat(options.errorHandlers);
@@ -232,8 +235,9 @@ function prepare(codeAndAssets, k, options) {
 
   // Before the program finishes, we tell the param store to finish up
   // gracefully (e.g., shutting down a connection to a remote store).
+  var cleanup = params.stop;
   var finish = function(s, x) {
-    return params.stop(function() {
+    return cleanup(function() {
       return k(s, x);
     });
   };
