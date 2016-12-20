@@ -15,15 +15,15 @@ module.exports = function(env) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
       guide: false, // true = sample guide, false = sample target
-      verbose: false,
-      params: {}
+      verbose: false
     });
 
-    this.params = this.opts.params;
     this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
     this.a = a;
+
+    this.factorWarningIssued = false;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -70,6 +70,12 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a, score) {
+      if (!this.opts.guide && !this.factorWarningIssued) {
+        this.factorWarningIssued = true;
+        var msg = 'Note that factor, condition and observe statements are ' +
+            'ignored when forward sampling from a model.';
+        util.warn(msg);
+      }
       this.logWeight += ad.value(score);
       return k(s);
     },

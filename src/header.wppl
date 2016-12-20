@@ -473,8 +473,8 @@ var SampleGuide = function(wpplFn, options) {
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
-  var params = Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.assign({params: params}, _.pick(options, 'samples', 'verbose'));
+  Optimize(wpplFn, _.omit(options, 'samples'));
+  var opts = _.pick(options, 'samples', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 

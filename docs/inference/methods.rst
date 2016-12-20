@@ -321,15 +321,16 @@ Forward Sampling
 .. js:function:: Infer({model: ..., method: 'forward'[, ...]})
 
    This method builds a histogram of return values obtained by
-   repeatedly executing either the target or :ref:`guide <guides>`
-   program given by ``model``.
+   repeatedly executing the program given by ``model``, ignoring any
+   ``factor`` statements encountered while doing so. Since
+   ``condition`` and ``observe`` are written in terms of ``factor``,
+   they are also effectively ignored.
 
-   While the :ref:`guide <guides>` does not include ``factor``
-   statements by definition, those in the target are ignored by this
-   method.
-
-   When executing the target, this method often corresponds to
-   sampling from the prior of a model.
+   This means that unlike all other methods described here, forward
+   sampling does not perform marginal inference. However, sampling
+   from a model without any factors etc. taken into account is often
+   useful in practice, and this method is provided as a convenient way
+   to achieve that.
 
    The following options are supported:
 
@@ -341,19 +342,15 @@ Forward Sampling
 
    .. describe:: guide
 
-      When ``true``, execute the guide. Otherwise, execute the target.
+      When ``true``, sample random choices from the guide using the
+      current global parameters. Otherwise, sample from the model.
 
       Default: ``false``
-
-   .. describe:: params
-
-      Guide program parameters. Optional, and only used when executing
-      the guide program.
 
    Example usage::
 
      Infer({method: 'forward', model: model});
-     Infer({method: 'forward', guide: true, params: optimizedParams, model: model});
+     Infer({method: 'forward', guide: true, model: model});
 
 .. rubric:: Bibliography
 

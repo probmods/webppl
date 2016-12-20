@@ -18,11 +18,11 @@ var _ = require('lodash');
 var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
-var paramStruct = require('../paramStruct');
+var paramStruct = require('../params/struct');
 
 module.exports = function(env) {
 
-  function EUBO(wpplFn, s, a, options, state, params, step, cont) {
+  function EUBO(wpplFn, s, a, options, state, step, cont) {
     this.opts = util.mergeDefaults(options, {
       batchSize: 1
     });
@@ -38,7 +38,6 @@ module.exports = function(env) {
       throw 'Invalid batchSize.';
     }
 
-    this.params = params;
     this.cont = cont;
 
     this.wpplFn = wpplFn;

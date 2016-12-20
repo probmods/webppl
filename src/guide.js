@@ -6,7 +6,7 @@ var util = require('./util');
 var Tensor = require('./tensor');
 var ad = require('./ad');
 var dists = require('./dists');
-var domains = require('./domain');
+var params = require('./params/params');
 
 var T = ad.tensor;
 
@@ -39,19 +39,10 @@ function independent(targetDist, sampleAddress, env) {
 
 function makeParam(paramSpec, paramName, baseName, env) {
   var dims = paramSpec.dims; // e.g. [2, 1]
-  var domain = paramSpec.domain; // e.g. new RealInterval(0, Infinity)
+  var squish = paramSpec.squish;
   var name = baseName + paramName;
 
-  var viParamDim, squish;
-  if (domain) {
-    var ret = squishFn(domain, dims);
-    viParamDim = ret.dimsIn;
-    squish = ret.f;
-  } else {
-    viParamDim = dims;
-  }
-
-  var param = registerParam(env, name, viParamDim);
+  var param = registerParam(env, name, dims);
 
   // Apply squishing.
   if (squish) {
@@ -67,36 +58,22 @@ function makeParam(paramSpec, paramName, baseName, env) {
 }
 
 function registerParam(env, name, dims) {
-  return util.registerParams(env, name, function() {
+  return params.register(env, name, function() {
     return [new Tensor(dims)];
   })[0];
 }
 
-// This function specifies an appropriate guide distribution for the
-// given target distribution. This specification is abstract, given in
-// terms of the distribution type, and a description of the parameters
-// required to use this type as a guide. It's left to callers to
-// generate suitable parameters and instantiate the distribution.
+// This function generates a description of the guide distribution
+// required for the given target distribution.
 
-// For example:
+// It includes the type of the guide distribution, and information
+// about how to map optimizable parameters to the parameters of the
+// guide distribution.
 
-// spec(Gaussian({mu: 0, sigma: 1}))
-//
-// =>
-//
-// {
-//   type: TensorGaussian,
-//   params: {
-//     mu: {param: {dims: [1]}},
-//     sigma: {param: {dims: [1]}},
-//     dims: {const: [0, 1]}
-//   }
-// }
-
-// Note that all parameters described are tensors. If a distribution
-// is parameterized by a scalar then the spec includes a tensor with
-// dims=[1] for that parameter. It is the responsibility of callers to
-// turn this back into a scalar before use.
+// Note that guide parameters are always tensors. If a distribution
+// has a scalar parameter then a guide parameter with dims=[1] is
+// used. The `independent` function takes care of turning this back
+// into a scalar before it is passed to the distribution.
 
 function spec(targetDist) {
   if (targetDist instanceof dists.Dirichlet) {
@@ -131,28 +108,43 @@ function throwAutoGuideError(targetDist) {
 // distribution instance, and get information about their domain from
 // the distribution meta-data.
 function defaultSpec(targetDist) {
-  var paramSpec = _.map(targetDist.meta.params, function(paramMeta) {
-
+  var params = _.map(targetDist.meta.params, function(paramMeta) {
     var name = paramMeta.name;
     var targetParam = ad.value(targetDist.params[name]);
-
-    var dims;
-    if (targetParam instanceof Tensor) {
-      dims = targetParam.dims;
-    } else if (_.isNumber(targetParam)) {
-      dims = [1];
-    } else {
-      throwAutoGuideError(targetDist);
-    }
-
-    return [name, {param: {dims: dims, domain: paramMeta.domain}}];
-
+    return [name, paramSpec(paramMeta.type, targetParam)];
   });
 
   return {
     type: targetDist.constructor,
-    params: _.fromPairs(paramSpec)
+    params: _.fromPairs(params)
   };
+}
+
+// Describes the default approach to guiding a distribution parameter
+// of a given type. The current value of the corresponding parameter
+// in the target distribution is used to determine the dimension of
+// tensor valued distribution parameters at run time.
+
+function paramSpec(type, targetParam) {
+  switch (type.name) {
+    case 'real':
+      return {param: {dims: [1], squish: squishToInterval(type.bounds)}};
+    case 'vector':
+    case 'vectorOrRealArray':
+      // Both vectors and arrays have a length property.
+      return {param: {dims: [targetParam.length, 1], squish: squishToInterval(type.bounds)}};
+    case 'tensor':
+      return {param: {dims: targetParam.dims, squish: squishToInterval(type.bounds)}};
+    case 'int':
+      return {const: targetParam};
+    case 'array':
+      if (type.elementType.name === 'any') {
+        return {const: targetParam};
+      }
+    default:
+      var msg = 'Can\'t generate specification for parameter of type "' + type.name + '".';
+      throw new Error(msg);
+  }
 }
 
 function dirichletSpec(targetDist) {
@@ -161,7 +153,7 @@ function dirichletSpec(targetDist) {
     type: dists.LogisticNormal,
     params: {
       mu: {param: {dims: [d, 1]}},
-      sigma: {param: {dims: [d, 1], domain: domains.gt(0)}}
+      sigma: {param: {dims: [d, 1], squish: squishTo(0, Infinity)}}
     }
   };
 }
@@ -172,7 +164,7 @@ function tensorGaussianSpec(targetDist) {
     type: dists.DiagCovGaussian,
     params: {
       mu: {param: {dims: dims}},
-      sigma: {param: {dims: dims, domain: domains.gt(0)}}
+      sigma: {param: {dims: dims, squish: squishTo(0, Infinity)}}
     }
   };
 }
@@ -184,7 +176,7 @@ function uniformSpec(targetDist) {
       a: {const: targetDist.params.a},
       b: {const: targetDist.params.b},
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: domains.gt(0)}}
+      sigma: {param: {dims: [1], squish: squishTo(0, Infinity)}}
     }
   };
 }
@@ -196,7 +188,7 @@ function betaSpec(targetDist) {
       a: {const: 0},
       b: {const: 1},
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: domains.gt(0)}}
+      sigma: {param: {dims: [1], squish: squishTo(0, Infinity)}}
     }
   };
 }
@@ -206,7 +198,7 @@ function gammaSpec(targetDist) {
     type: dists.IspNormal,
     params: {
       mu: {param: {dims: [1]}},
-      sigma: {param: {dims: [1], domain: domains.gt(0)}}
+      sigma: {param: {dims: [1], squish: squishTo(0, Infinity)}}
     }
   };
 }
@@ -216,7 +208,7 @@ function discreteSpec(targetDist) {
   return {
     type: dists.Discrete,
     params: {
-      ps: {param: {dims: [d, 1], domain: domains.simplex}}
+      ps: {param: {dims: [d - 1, 1], squish: dists.squishToProbSimplex}}
     }
   };
 }
@@ -225,34 +217,10 @@ function softplus(x) {
   return T.log(T.add(T.exp(x), 1));
 }
 
-// Returns a function `f` that maps from tensors of unbounded reals to
-// tensors in `domain` of dimension `dimsOut`. The function `f` takes
-// a tensor of unbounded reals of dimension `dimsIn`.
-
-// Parameters:
-// domain: Output domain
-// dimsOut: Output dimension
-
-// Returns:
-// dimsIn: Input dimension
-// f: Squishing function
-
-function squishFn(domain, dimsOut) {
-  if (domain instanceof domains.RealInterval) {
-    return {dimsIn: dimsOut, f: squishToInterval(domain)};
-  } else if (domain === domains.simplex) {
-    if (dimsOut.length !== 2 || dimsOut[1] !== 1) {
-      throw new Error('Can only map vectors to the probability simplex.');
-    }
-    return {dimsIn: [dimsOut[0] - 1, 1], f: dists.squishToProbSimplex};
-  } else {
-    throw new Error('Unknown domain type.');
+function squishTo(a, b) {
+  if (a === -Infinity && b === Infinity) {
+    throw new Error('Squishing not required here.');
   }
-}
-
-function squishToInterval(domain) {
-  var a = domain.a;
-  var b = domain.b;
   if (a === -Infinity) {
     return function(x) {
       var y = softplus(x);
@@ -269,6 +237,12 @@ function squishToInterval(domain) {
       return T.add(T.mul(y, b - a), a);
     };
   }
+}
+
+function squishToInterval(interval) {
+  return interval && interval.isBounded ?
+      squishTo(interval.low, interval.high) :
+      null;
 }
 
 module.exports = {

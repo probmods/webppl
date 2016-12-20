@@ -22,6 +22,7 @@ var caching = require('./transforms/caching');
 var thunkify = require('./syntax').thunkify;
 var util = require('./util');
 var errors = require('./errors/errors');
+var params = require('./params/params');
 
 // Container for coroutine object and shared top-level
 // functions (sample, factor, exit)
@@ -225,14 +226,32 @@ function prepare(codeAndAssets, k, options) {
   var baseRunner = options.baseRunner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
+  // We store the trampoline runner so that header functions that call
+  // external asynchronous functions can resume execution in callbacks.
+  global.trampolineRunner = runner;
+
+  // Before the program finishes, we tell the param store to finish up
+  // gracefully (e.g., shutting down a connection to a remote store).
+  var finish = function(s, x) {
+    return params.stop(function() {
+      return k(s, x);
+    });
+  };
+
   var run = function() {
     // We reset env since a previous call to run may have raised an
     // exception and left an inference coroutine installed.
     env.reset();
-    eval.call(global, codeAndAssets.code)(currentAddress)(runner)(options.initialStore, k, '');
+    // We initialize the parameter store (e.g., connecting to a remote
+    // store, retrieving params).
+    params.init(function() {
+      var wpplFn = eval.call(global, codeAndAssets.code)(currentAddress)(runner);
+      var initialAddress = '';
+      return wpplFn(options.initialStore, finish, initialAddress);
+    });
   };
 
-  return {run: run, runner: runner};
+  return { run: run };
 }
 
 function run(code, k, options) {

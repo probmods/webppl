@@ -1,6 +1,6 @@
 .. js:function:: Bernoulli({p: ...})
 
-  * p: success probability *(in [0,1])*
+  * p: success probability *(real [0, 1])*
 
   Distribution over ``{true, false}``
 
@@ -8,8 +8,8 @@
 
 .. js:function:: Beta({a: ..., b: ...})
 
-  * a: shape (real) *(>0)*
-  * b: shape (real) *(>0)*
+  * a: shape *(real (0, Infinity))*
+  * b: shape *(real (0, Infinity))*
 
   Distribution over ``[0, 1]``
 
@@ -17,8 +17,8 @@
 
 .. js:function:: Binomial({p: ..., n: ...})
 
-  * p: success probability *(in [0,1])*
-  * n: number of trials (integer > 0)
+  * p: success probability *(real [0, 1])*
+  * n: number of trials *(int (>=1))*
 
   Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.
 
@@ -26,8 +26,8 @@
 
 .. js:function:: Categorical({ps: ..., vs: ...})
 
-  * ps: array or vector of probabilities (can be unnormalized) *(>0)*
-  * vs: support (array of values)
+  * ps: probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
+  * vs: support *(any array)*
 
   Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``
 
@@ -35,8 +35,8 @@
 
 .. js:function:: Cauchy({location: ..., scale: ...})
 
-  * location: (real in [-Infinity, Infinity])
-  * scale: (real) *(>0)*
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
 
   Distribution over ``[-Infinity, Infinity]``
 
@@ -50,14 +50,14 @@
 
 .. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
 
-  * mu: mean tensor
-  * sigma: tensor of standard deviations *(>0)*
+  * mu: mean *(tensor)*
+  * sigma: standard deviations *(tensor (0, Infinity))*
 
   A distribution over tensors in which each element is independent and Gaussian distributed, with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with diagonal covariance matrix. The distribution is over tensors that have the same shape as the parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.
 
 .. js:function:: Dirichlet({alpha: ...})
 
-  * alpha: vector of concentration parameters *(>0)*
+  * alpha: concentration *(vector (0, Infinity))*
 
   Distribution over probability vectors. If ``alpha`` has length ``d`` then the distribution is over probability vectors of length ``d``.
 
@@ -65,7 +65,7 @@
 
 .. js:function:: Discrete({ps: ...})
 
-  * ps: array or vector of probabilities (can be unnormalized) *(>0)*
+  * ps: probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
 
   Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
 
@@ -73,7 +73,7 @@
 
 .. js:function:: Exponential({a: ...})
 
-  * a: rate (real) *(>0)*
+  * a: rate *(real (0, Infinity))*
 
   Distribution over ``[0, Infinity]``
 
@@ -81,8 +81,8 @@
 
 .. js:function:: Gamma({shape: ..., scale: ...})
 
-  * shape: shape parameter (real) *(>0)*
-  * scale: scale parameter (real) *(>0)*
+  * shape:  *(real (0, Infinity))*
+  * scale:  *(real (0, Infinity))*
 
   Distribution over positive reals.
 
@@ -90,8 +90,8 @@
 
 .. js:function:: Gaussian({mu: ..., sigma: ...})
 
-  * mu: mean (real)
-  * sigma: standard deviation (real) *(>0)*
+  * mu: mean *(real)*
+  * sigma: standard deviation *(real (0, Infinity))*
 
   Distribution over reals.
 
@@ -99,8 +99,8 @@
 
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
-  * mu: mean vector
-  * sigma: vector of standard deviations *(>0)*
+  * mu: mean *(vector)*
+  * sigma: standard deviations *(vector (0, Infinity))*
 
   A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
 
@@ -108,10 +108,10 @@
 
 .. js:function:: LogitNormal({mu: ..., sigma: ..., a: ..., b: ...})
 
-  * mu: location (real)
-  * sigma: scale (real) *(>0)*
-  * a: lower bound (real)
-  * b: upper bound (real) *(>a)*
+  * mu: location *(real)*
+  * sigma: scale *(real (0, Infinity))*
+  * a: lower bound *(real)*
+  * b: upper bound (>a) *(real)*
 
   A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.
 
@@ -119,8 +119,8 @@
 
 .. js:function:: Multinomial({ps: ..., n: ...})
 
-  * ps: probabilities (array of reals that sum to 1) *(in [0,1])*
-  * n: number of trials (integer > 0)
+  * ps: probabilities *(real array with elements that sum to one)*
+  * n: number of trials *(int (>=1))*
 
   Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.
 
@@ -128,14 +128,14 @@
 
 .. js:function:: MultivariateBernoulli({ps: ...})
 
-  * ps: probabilities *(in [0,1])*
+  * ps: probabilities *(vector [0, 1])*
 
   Distribution over a vector of independent Bernoulli variables. Each element of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which has support ``{true, false}``.
 
 .. js:function:: MultivariateGaussian({mu: ..., cov: ...})
 
-  * mu: mean vector
-  * cov: covariance matrix (must be symmetric positive semidefinite)
+  * mu: mean *(vector)*
+  * cov: covariance *(positive definite matrix)*
 
   Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
 
@@ -143,7 +143,7 @@
 
 .. js:function:: Poisson({mu: ...})
 
-  * mu: mean (real) *(>0)*
+  * mu: mean *(real (0, Infinity))*
 
   Distribution over integers.
 
@@ -151,7 +151,7 @@
 
 .. js:function:: RandomInteger({n: ...})
 
-  * n: number of possible values (integer >= 1)
+  * n: number of possible values *(int (>=1))*
 
   Uniform distribution over ``{0,1,...,n-1}``
 
@@ -159,16 +159,16 @@
 
 .. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
 
-  * mu: mean
-  * sigma: standard deviation *(>0)*
-  * dims: dimension of tensor
+  * mu: mean *(real)*
+  * sigma: standard deviation *(real (0, Infinity))*
+  * dims: dimension of tensor *(int (>=1) array)*
 
   Distribution over a tensor of independent Gaussian variables.
 
 .. js:function:: Uniform({a: ..., b: ...})
 
-  * a: lower bound (real)
-  * b: upper bound (real > a)
+  * a: lower bound *(real)*
+  * b: upper bound *(real)*
 
   Continuous uniform distribution over ``[a, b]``
 

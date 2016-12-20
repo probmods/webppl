@@ -38,7 +38,7 @@ Optimize
 .. js:function:: Optimize(options)
 
    :param object options: Optimization options.
-   :returns: Optimized parameters.
+   :returns: Nothing.
 
    Optimizes the parameters of the guide program specified by the
    ``model`` option.
@@ -94,10 +94,10 @@ Optimize
 
 Example usage::
 
-  var newParams = Optimize({model: model, steps: 100});
-  var newParams = Optimize({model: model, steps: 100, params: oldParams});
-  var newParams = Optimize({model: model, optMethod: 'adagrad'});
-  var newParams = Optimize({model: model, optMethod: {sgd: {stepSize: 0.5}}});
+  Optimize({model: model, steps: 100});
+  Optimize({model: model, steps: 100, params: oldParams});
+  Optimize({model: model, optMethod: 'adagrad'});
+  Optimize({model: model, optMethod: {sgd: {stepSize: 0.5}}});
 
 Estimators
 ++++++++++
@@ -203,7 +203,7 @@ Parameters
    can be used directly in the model.
 
    Optimizing the :ref:`ELBO <elbo>` yields maximum likelihood
-   estimation for model parameters. ``modelParam`` cannot used with
+   estimation for model parameters. ``modelParam`` cannot be used with
    other inference strategies as it does not have an interpretation in
    the fully Bayesian setting. Attempting to do so will raise an
    exception.
