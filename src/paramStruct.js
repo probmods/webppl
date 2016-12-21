@@ -29,6 +29,21 @@ function addEq(g, h) {
   });
 }
 
+function subEq(g, h) {
+  // In-place addition.
+  _.each(h, function(hs, a) {
+    if (!_.has(g, a)) {
+      g[a] = hs;
+    } else {
+      var gs = g[a];
+      assert.strictEqual(gs.length, hs.length);
+      for (var i = 0; i < gs.length; i++) {
+        gs[i].subeq(hs[i]);
+      }
+    }
+  });
+}
+
 function mulEq(g, s) {
   // In-place multiplication by a scalar.
   _.each(g, function(gs) {
