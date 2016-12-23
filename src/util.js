@@ -271,7 +271,7 @@ function timeif(bool, name, thunk) {
 }
 
 function pipeline(fns) {
-  return _.flowRight.apply(null, fns.reverse());
+  return _.flow.apply(null, fns);
 }
 
 function warn(msg) {

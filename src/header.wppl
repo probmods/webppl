@@ -531,7 +531,7 @@ var Vector = function(arr) {
 var Matrix = function(arr) {
   var n = arr.length;
   var m = arr[0].length;
-  var t = ad.tensor.fromScalars(_.flattenDeep(arr));
+  var t = ad.tensor.fromScalars(_.flatten(arr));
   return ad.tensor.reshape(t, [n, m]);
 };
 var Tensor = function(dims, arr) {
