@@ -190,6 +190,7 @@ function compile(code, options) {
   };
 
   var r = util.timeif(options.verbose, 'compile', _compile);
+  // provide compiled code and sourceMap to support reflection
   global.__sourceMap__ = r.sourceMap;
   global.__compiled__ = r.code;
   return r;
@@ -264,6 +265,7 @@ function prepare(codeAndAssets, k, options) {
 function run(code, k, options) {
   options = options || {};
   var codeAndAssets = compile(code, options);
+  // provide compiled code and sourceMap to support reflection
   global.__compiled__ = codeAndAssets.code;
   if (_.has(codeAndAssets, 'sourceMap')) {
     global.__sourceMap__ = codeAndAssets.sourceMap;
