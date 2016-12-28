@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var fs = require('fs');
 var webppl = require('../src/main');
 var dists = require('../src/dists');

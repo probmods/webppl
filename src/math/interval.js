@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 
 function Interval(low, high, lopen, ropen) {
   this.low = low;
@@ -33,8 +33,8 @@ function parse(str) {
   if (endPoints.length !== 2 ||
       typeof endPoints[0] !== 'number' || isNaN(endPoints[0]) ||
       typeof endPoints[1] !== 'number' || isNaN(endPoints[1]) ||
-      !_.contains(['[', '('], str[0]) ||
-      !_.contains([']', ')'], str.slice(-1)[0])) {
+      !_.includes(['[', '('], str[0]) ||
+      !_.includes([']', ')'], str.slice(-1)[0])) {
     throw new Error('Failed to parse "' + str + '" as an interval.');
   }
   var low = endPoints[0];

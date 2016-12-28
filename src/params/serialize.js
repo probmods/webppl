@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore')
+var _ = require('lodash')
 var Tensor = require('../tensor');
 
 
@@ -12,7 +12,7 @@ function serializeTensor(tensor) {
 }
 
 function serializeParams(paramObj) {
-  var prms = _.mapObject(paramObj, function(lst) {
+  var prms = _.mapValues(paramObj, function(lst) {
     return lst.map(serializeTensor);
   });
   return prms;

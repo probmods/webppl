@@ -1,5 +1,5 @@
 var builders = require('ast-types').builders;
-var _ = require('underscore');
+var _ = require('lodash');
 
 // The ast-type builders don't provide a convenient way to set the
 // source location of a built node. As a work-around, we wrap each
@@ -12,7 +12,7 @@ function isLocationNode(node) {
   return _.has(node, 'start') && _.has(node, 'end');
 }
 
-module.exports = _.mapObject(builders, function(builder) {
+module.exports = _.mapValues(builders, function(builder) {
   return function() {
     var args = _.toArray(arguments);
     if (args.length > 0 && isLocationNode(_.last(args))) {

@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('../util');
 
 module.exports = function(env) {
@@ -13,7 +13,7 @@ module.exports = function(env) {
     // The options arg is passed to both kernels as SMC passes
     // exitFactor via options.
     return HMCKernel(function(trace) {
-      var opts = _.extendOwn({ discreteOnly: true, adRequired: true }, options);
+      var opts = _.assign({ discreteOnly: true, adRequired: true }, options);
       return MHKernel(cont, trace, opts);
     }, oldTrace, options);
   }
@@ -51,8 +51,8 @@ module.exports = function(env) {
     var options = _.isString(obj) ? {} : _.values(obj)[0];
     var kernel = kernels[name];
 
-    return _.extendOwn(function(cont, oldTrace, extraOptions) {
-      var allOptions = _.extendOwn({}, options, extraOptions);
+    return _.assign(function(cont, oldTrace, extraOptions) {
+      var allOptions = _.assign({}, options, extraOptions);
       return kernel(cont, oldTrace, allOptions);
     }, kernel);
   }

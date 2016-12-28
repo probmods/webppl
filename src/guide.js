@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('./util');
 var Tensor = require('./tensor');
 var ad = require('./ad');
@@ -113,7 +113,7 @@ function independent(targetDist, sampleAddress, env) {
 
   var distSpec = spec(targetDist);
 
-  var guideParams = _.mapObject(distSpec.params, function(spec, name) {
+  var guideParams = _.mapValues(distSpec.params, function(spec, name) {
 
     return _.has(spec, 'param') ?
         makeParam(spec.param, name, baseName, env) :
@@ -204,7 +204,7 @@ function defaultSpec(targetDist) {
 
   return {
     type: targetDist.constructor,
-    params: _.object(params)
+    params: _.fromPairs(params)
   };
 }
 

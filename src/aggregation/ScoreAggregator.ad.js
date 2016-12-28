@@ -2,7 +2,7 @@
 'use ad';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var dists = require('../dists');
 var util = require('../util');
 
@@ -36,7 +36,7 @@ function normalize(dist) {
   var logNorm = _.reduce(dist, function(acc, obj) {
     return logsumexp(acc, obj.score);
   }, -Infinity);
-  return _.mapObject(dist, function(obj) {
+  return _.mapValues(dist, function(obj) {
     return { val: obj.val, prob: Math.exp(obj.score - logNorm) };
   });
 }

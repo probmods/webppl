@@ -8,7 +8,7 @@
 // Separating this out helps because we can avoid including it in the
 // browser bundle unnecessarily.
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var colors = require('colors/safe');
 var fs = require('fs');
@@ -84,11 +84,11 @@ function showRecoveredStack() {
 }
 
 function findEntryByFileName(stack, fileName) {
-  return _.findWhere(stack, {fileName: fileName});
+  return _.find(stack, {fileName: fileName});
 }
 
 function findNonNativeEntry(stack) {
-  var entry = _.findWhere(stack, {native: false});
+  var entry = _.find(stack, {native: false});
   assert.ok(entry !== undefined);
   return entry;
 }

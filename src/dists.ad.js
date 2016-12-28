@@ -30,7 +30,7 @@
 'use strict';
 
 var Tensor = require('./tensor');
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
@@ -118,7 +118,7 @@ var finiteSupport = {
     return _.reduce(this.support(), function(memo, x) {
       var score = this.score(x);
       return memo - (score === -Infinity ? 0 : Math.exp(score) * score);
-    }, 0, this);
+    }.bind(this), 0);
   },
 
   toJSON: function() {
@@ -165,7 +165,7 @@ function makeDistributionType(options) {
     };
   }
 
-  var parameterNames = _.pluck(options.params, 'name');
+  var parameterNames = _.map(options.params, 'name');
   var parameterTypes = _.map(options.params, function(param) {
     if (_.has(param, 'type') && !(param.type && param.type.check)) {
       throw new Error('Invalid type given for parameter ' + param.name + ' of ' + options.name + '.');
@@ -204,8 +204,8 @@ function makeDistributionType(options) {
 
   dist.prototype.meta = _.pick(options, 'name', 'desc', 'params', 'nodoc', 'nohelper', 'wikipedia');
 
-  _.extendOwn.apply(_, [dist.prototype].concat(options.mixins));
-  _.extendOwn(dist.prototype, _.pick(options, methodNames));
+  _.assign.apply(_, [dist.prototype].concat(options.mixins));
+  _.assign(dist.prototype, _.pick(options, methodNames));
 
   ['sample', 'score'].forEach(function(method) {
     if (!dist.prototype[method]) {
@@ -1415,7 +1415,7 @@ var Categorical = makeDistributionType({
   nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
-    this.ixmap = _.object(this.params.vs.map(function(v, ix) {
+    this.ixmap = _.fromPairs(this.params.vs.map(function(v, ix) {
       return [util.serialize(v), ix];
     }));
   },
@@ -1461,7 +1461,7 @@ var Delta = makeDistributionType({
 
 function metadata() {
   return _.chain(distributions)
-    .pairs() // pair[0] = key, pair[1] = value
+    .toPairs() // pair[0] = key, pair[1] = value
     .sortBy(function(pair) { return pair[0]; })
     .map(function(pair) { return pair[1]; })
     .map(function(dist) { return dist.prototype.meta; })

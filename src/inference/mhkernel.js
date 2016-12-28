@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
@@ -136,7 +136,7 @@ module.exports = function(env) {
   MHKernel.prototype.finish = function(trace, accepted) {
     assert(_.isBoolean(accepted));
     if (accepted && trace.value === env.query) {
-      trace.value = _.extendOwn({}, this.oldTrace.value, env.query.getTable());
+      trace.value = _.assign({}, this.oldTrace.value, env.query.getTable());
     }
     if (this.oldTrace.info) {
       var oldInfo = this.oldTrace.info;

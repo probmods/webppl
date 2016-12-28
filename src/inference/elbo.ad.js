@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var fs = require('fs');
 var util = require('../util');
@@ -153,7 +153,7 @@ module.exports = function(env) {
           ret.objective.backprop();
         }
 
-        var grads = _.mapObject(this.paramsSeen, function(params) {
+        var grads = _.mapValues(this.paramsSeen, function(params) {
           return params.map(ad.derivative);
         });
 

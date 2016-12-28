@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var ad = require('../ad');
 var Tensor = require('../tensor');
 var util = require('../util');

@@ -6,7 +6,7 @@
 // Some additional information is added to the types to help generate
 // documentation and guide distributions.
 
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('./util');
 var interval = require('./math/interval');
 

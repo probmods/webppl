@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var Trace = require('../trace');
 var ad = require('../ad');

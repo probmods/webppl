@@ -222,17 +222,17 @@ var mapIndexed = function(fn, l) {
 }
 
 var mapObject = function(fn, obj) {
-  return _.object(
+  return _.fromPairs(
       map(
       function(kv) {
         return [kv[0], fn(kv[0], kv[1])]
       },
-      _.pairs(obj))
+      _.toPairs(obj))
   );
 };
 
 var extend = function() {
-  return _.extendOwn.apply(_, [{}].concat(arguments));
+  return _.assign.apply(_, [{}].concat(arguments));
 }
 
 var reduce = function(fn, init, ar) {
@@ -469,7 +469,7 @@ var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
 };
 
 var SampleGuide = function(wpplFn, options) {
-  return ForwardSample(wpplFn, _.extendOwn({guide: true}, _.omit(options, 'guide')));
+  return ForwardSample(wpplFn, _.assign({guide: true}, _.omit(options, 'guide')));
 };
 
 var OptimizeThenSample = function(wpplFn, options) {

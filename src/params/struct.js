@@ -12,7 +12,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 
 
 function addEq(g, h) {
@@ -69,13 +69,13 @@ function clip(g, threshold, normOfG) {
 
 function copy(g) {
   // Shallow copy.
-  return _.mapObject(g, function(arr) {
+  return _.mapValues(g, function(arr) {
     return arr.slice();
   });
 }
 
 function deepCopy(g) {
-  return _.mapObject(g, function(arr) {
+  return _.mapValues(g, function(arr) {
     return arr.map(function(tensor) { return tensor.clone(); });
   });
 }

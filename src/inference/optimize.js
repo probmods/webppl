@@ -10,7 +10,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var nodeutil = require('util');
 var present = require('present');
 var util = require('../util');
@@ -185,7 +185,7 @@ module.exports = function(env) {
   }
 
   function allFinite(tensor) {
-    return _.all(tensor.data, isFinite);
+    return _.every(tensor.data, isFinite);
   }
 
   function checkGradients(gradObj) {

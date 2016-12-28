@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var seedrandom = require('seedrandom');
 var ad = require('./ad');
@@ -175,7 +175,7 @@ function histStd(hist) {
 
 function sameKeys(obj1, obj2) {
   return _.size(obj1) === _.size(obj2) &&
-      _.all(_.keys(obj1), function(key) { return _.has(obj2, key); });
+      _.every(_.keys(obj1), function(key) { return _.has(obj2, key); });
 }
 
 function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSupport) {
@@ -185,7 +185,7 @@ function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSuppo
   if (exactSupport && !sameKeys(actualHist, expectedHist)) {
     return false;
   }
-  return _.all(expectedHist, function(expectedValue, key) {
+  return _.every(expectedHist, function(expectedValue, key) {
     var value = actualHist[key] || 0;
     return Math.abs(value - expectedValue) <= tolerance;
   });
@@ -268,10 +268,6 @@ function time(name, thunk) {
 
 function timeif(bool, name, thunk) {
   return bool ? time(name, thunk) : thunk();
-}
-
-function pipeline(fns) {
-  return _.compose.apply(null, fns.reverse());
 }
 
 function warn(msg) {
@@ -371,7 +367,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   timeif: timeif,
-  pipeline: pipeline,
   warn: warn,
   fatal: fatal,
   jsnew: jsnew,

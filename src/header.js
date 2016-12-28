@@ -19,7 +19,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var nn = require('adnn/nn');
 
 try {

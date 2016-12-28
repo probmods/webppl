@@ -2,7 +2,7 @@
 
 var path = require('path');
 var fs = require('fs');
-var _ = require('underscore');
+var _ = require('lodash');
 var pkginfo = require('./pkginfo');
 
 var isJsModule = function(path) {

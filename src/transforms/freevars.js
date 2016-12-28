@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 
 var Syntax = require('estraverse').Syntax;
 var replace = require('estraverse').replace;

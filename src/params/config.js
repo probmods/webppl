@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var memoryStore = require('./store/memory');
 var mongoStore = require('./store/mongo');
 

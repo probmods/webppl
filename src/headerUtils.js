@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var serialize = require('./util').serialize
 var Tensor = require('./tensor');
 var LRU = require('lru-cache');

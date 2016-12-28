@@ -7,7 +7,7 @@
 'use strict';
 'use ad';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var PriorityQueue = require('priorityqueuejs');
 var util = require('../util');
 var ScoreAggregator = require('../aggregation/ScoreAggregator');
@@ -82,13 +82,12 @@ module.exports = function(env) {
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     var support = getSupport(dist);
-
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
       this.enqueueContinuation(
           k, value, this.score + dist.score(value), store);
-    }, this);
+    }.bind(this));
 
     // Call the next state on the queue
     return this.nextInQueue();

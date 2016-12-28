@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var Syntax = require('estraverse').Syntax;
 var replace = require('estraverse').replace;
 var build = require('./builders');
@@ -56,7 +56,7 @@ function naming(node, map) {
       } else {
         var lit = genlit();
         var name = node.callee.type === Syntax.Identifier ? node.callee.name : null;
-        map[lit.value] = _.extendOwn({name: name}, node.loc);
+        map[lit.value] = _.assign({name: name}, node.loc);
         return build.callExpression(node.callee,
             [makeAddressExtension(addresses[0], lit)].concat(node.arguments), node.loc);
       }

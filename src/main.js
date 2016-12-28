@@ -6,7 +6,7 @@ var build = types.builders;
 var esprima = require('esprima');
 var escodegen = require('escodegen');
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 
 var ad = require('./transforms/ad').ad;
 var cps = require('./transforms/cps').cps;
@@ -61,7 +61,7 @@ function parse(code, filename) {
 function parseAll(bundles) {
   return bundles.map(function(bundle) {
     var ast = parse(bundle.code, bundle.filename);
-    return _.extendOwn({ ast: ast }, bundle);
+    return _.assign({ ast: ast }, bundle);
   });
 }
 
@@ -98,7 +98,7 @@ function parsePackageCode(packages, verbose) {
   function _parsePackageCode() {
     var allPackages = [headerPackage()].concat(packages);
 
-    return util.pipeline([
+    return _.flow([
       unpack,
       parseAll
     ])(allPackages);
@@ -130,7 +130,7 @@ function generateCodeAndSourceMap(code, filename, bundles, ast) {
   // Embed the original source in the source map for later use in
   // error handling.
   sourceMap.sourcesContent = sourceMap.sources.map(function(fn) {
-    return (fn === filename) ? code : _.findWhere(bundles, {filename: fn}).code;
+    return (fn === filename) ? code : _.find(bundles, {filename: fn}).code;
   });
   return {code: codeAndMap.code, sourceMap: sourceMap};
 }
@@ -165,10 +165,10 @@ function compile(code, options) {
 
   function _compile() {
     var programAst = parse(code, options.filename);
-    var asts = _.pluck(bundles, 'ast').map(copyAst).concat(programAst);
+    var asts = _.map(bundles, 'ast').map(copyAst).concat(programAst);
     assert.strictEqual(bundles[0].filename, 'dists.wppl');
     assert.strictEqual(bundles[1].filename, 'header.wppl');
-    var doCaching = _.any(asts.slice(2), caching.transformRequired);
+    var doCaching = _.some(asts.slice(2), caching.transformRequired);
 
     if (options.verbose && doCaching) {
       console.log('Caching transform will be applied.');
@@ -180,11 +180,11 @@ function compile(code, options) {
       return obj;
     };
 
-    return util.pipeline([
+    return _.flow([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
-      util.pipeline(transforms),
+      _.flow(transforms),
       generateCodeAndAssets
     ])(asts);
   };

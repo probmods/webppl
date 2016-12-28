@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert');
-var _ = require('underscore');
+var _ = require('lodash');
 var stackTrace = require('stack-trace');
 
 function parseV8(error) {

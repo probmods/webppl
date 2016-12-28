@@ -4,7 +4,7 @@
 
 var fs = require('fs');
 var path = require('path');
-var _ = require('underscore');
+var _ = require('lodash');
 var dists = require('../src/dists.ad.js');
 
 var helpers = {
@@ -32,7 +32,7 @@ var helpers = {
   }
 };
 
-var t = _.mapObject({
+var t = _.mapValues({
   ctor: 'var <%= name %> = function(params) { return util.jsnew(dists.<%= name %>, params); };',
   helper: [
     'var <% print(downcaseInitial(name)) %> = function(<% print(fnParams(params)) %>) {',

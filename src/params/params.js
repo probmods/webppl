@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var fs = require('fs');
 var ad = require('../ad');
 var config = require('./config');
@@ -36,7 +36,7 @@ function sync(k, options) {
       throw new Error('Expected store to return params, got', params);
     }
     if (options && options.incremental) {
-      _.extendOwn(_params, params);
+      _.assign(_params, params);
     } else {
       _params = params;
     }

@@ -23,14 +23,14 @@
     "estemplate": "^0.4.0",
     "estraverse": "^4.1.0",
     "esutils": "^2.0.2",
+    "lodash": "^4.17.2",
     "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
     "present": "^1.0.0",
     "priorityqueuejs": "~1.0.0",
     "seedrandom": "^2.4.2",
     "source-map": "^0.5.3",
-    "stack-trace": "0.0.9",
-    "underscore": "^1.8.3"
+    "stack-trace": "0.0.9"
   },
   "devDependencies": {
     "aws-sdk": "^2.4.1",
