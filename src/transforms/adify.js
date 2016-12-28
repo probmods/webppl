@@ -71,7 +71,7 @@ function removeUseAdExpressions(ast) {
 }
 
 function adifyMain(code, adRequirePath) {
-  return util.pipeline([
+  return _.flow([
     parse,
     function(node) {
       return isMarkedForGlobalTransform(node) ?

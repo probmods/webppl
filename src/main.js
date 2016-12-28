@@ -98,7 +98,7 @@ function parsePackageCode(packages, verbose) {
   function _parsePackageCode() {
     var allPackages = [headerPackage()].concat(packages);
 
-    return util.pipeline([
+    return _.flow([
       unpack,
       parseAll
     ])(allPackages);
@@ -180,11 +180,11 @@ function compile(code, options) {
       return obj;
     };
 
-    return util.pipeline([
+    return _.flow([
       doCaching ? applyCaching : _.identity,
       concatPrograms,
       doCaching ? freevars : _.identity,
-      util.pipeline(transforms),
+      _.flow(transforms),
       generateCodeAndAssets
     ])(asts);
   };

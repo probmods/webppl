@@ -270,10 +270,6 @@ function timeif(bool, name, thunk) {
   return bool ? time(name, thunk) : thunk();
 }
 
-function pipeline(fns) {
-  return _.flow.apply(null, fns);
-}
-
 function warn(msg) {
   if (!global.suppressWarnings) {
     console.warn(msg)
@@ -371,7 +367,6 @@ module.exports = {
   serialize: serialize,
   deserialize: deserialize,
   timeif: timeif,
-  pipeline: pipeline,
   warn: warn,
   fatal: fatal,
   jsnew: jsnew,

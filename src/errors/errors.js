@@ -40,7 +40,7 @@ function addressToWpplCallStack(address, addressMap) {
 }
 
 function recoverStack(error, parseStack) {
-  return util.pipeline([
+  return _.flow([
     parseStack,
     filterJsStackTrace,
     function(s) { return sourceMapJsStackTrace(s, error.sourceMap); },
