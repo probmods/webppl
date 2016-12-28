@@ -168,7 +168,7 @@
 .. js:function:: Uniform({a: ..., b: ...})
 
   * a: lower bound *(real)*
-  * b: upper bound *(real)*
+  * b: upper bound (>a) *(real)*
 
   Continuous uniform distribution over ``[a, b]``
 
