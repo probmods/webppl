@@ -43,6 +43,7 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+    this.guideRequired = true;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;

@@ -22,6 +22,7 @@ module.exports = function(env) {
     this.s = s;
     this.k = k;
     this.a = a;
+    this.guideRequired = this.opts.guide;
 
     this.factorWarningIssued = false;
 

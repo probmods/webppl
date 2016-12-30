@@ -333,6 +333,7 @@ function squishToInterval(interval) {
 
 module.exports = {
   independent: independent,
+  runThunk: runThunk,
   getDist: getDist,
   getDistOrAuto: getDistOrAuto
 };

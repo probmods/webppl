@@ -239,6 +239,7 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guideThunks: { hist: { exact: true } },
       guidedFlip: true,
       mapData: true
     }
@@ -558,6 +559,7 @@ var tests = [
         args: { verbose: false, checkGradients: false }
       },
       withCaching: true,
+      guideThunks: { hist: { exact: true } },
       gaussianMean: true,
       guidedFlip: true,
       guidedGaussian: {

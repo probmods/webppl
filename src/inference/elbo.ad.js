@@ -39,6 +39,7 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+    this.guideRequired = true;
 
     // Initialize mapData state.
     this.mapDataStack = [{multiplier: 1}];
