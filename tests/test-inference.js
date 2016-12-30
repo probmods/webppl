@@ -703,11 +703,15 @@ var generateTestCases = function(seed) {
       exports[testDef.name][modelName] = _.partial(performTest, modelName, testDef);
     });
   });
+  var oldSuppressWarnings;
   exports.setUp = function(callback) {
+    oldSuppressWarnings = global.suppressWarnings;
+    global.suppressWarnings = true;
     util.seedRNG(seed);
     callback();
   };
   exports.tearDown = function(callback) {
+    global.suppressWarnings = oldSuppressWarnings;
     util.resetRNG();
     callback();
   };
