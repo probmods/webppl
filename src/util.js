@@ -270,9 +270,19 @@ function timeif(bool, name, thunk) {
   return bool ? time(name, thunk) : thunk();
 }
 
-function warn(msg) {
-  if (!global.suppressWarnings) {
-    console.warn(msg)
+var warningsIssued = {};
+
+function resetWarnings() {
+  warningsIssued = {};
+}
+
+function warn(msg, onceOnly) {
+  if (!global.suppressWarnings &&
+      (!onceOnly || !_.has(warningsIssued, msg))) {
+    console.warn(msg);
+    if (onceOnly) {
+      warningsIssued[msg] = true;
+    }
   }
 }
 
@@ -368,6 +378,7 @@ module.exports = {
   deserialize: deserialize,
   timeif: timeif,
   warn: warn,
+  resetWarnings: resetWarnings,
   fatal: fatal,
   jsnew: jsnew,
   isInteger: isInteger,
