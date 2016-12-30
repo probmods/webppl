@@ -81,13 +81,13 @@ function runDistThunkCond(s, k, a, env, maybeThunk, alternate) {
       alternate(s, k, a);
 }
 
-function runIfThunkElseNull(maybeThunk, env, s, a, k) {
+function getDist(maybeThunk, env, s, a, k) {
   return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, null);
   });
 }
 
-function runIfThunkElseAuto(maybeThunk, targetDist, env, s, a, k) {
+function getDistOrAuto(maybeThunk, targetDist, env, s, a, k) {
   return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, independent(targetDist, a, env));
   });
@@ -333,6 +333,6 @@ function squishToInterval(interval) {
 
 module.exports = {
   independent: independent,
-  runIfThunkElseAuto: runIfThunkElseAuto,
-  runIfThunkElseNull: runIfThunkElseNull
+  getDist: getDist,
+  getDistOrAuto: getDistOrAuto
 };
