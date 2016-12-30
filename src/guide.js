@@ -57,34 +57,40 @@ function runThunk(thunk, env, s, a, k) {
       guideCoroutine(env),
       env, k,
       function(k) {
-        return thunk(s, function(s2, dist) {
+        return thunk(s, function(s2, val) {
           // Clear the stack now the thunk has returned.
           return function() {
-            if (!dists.isDist(dist)) {
-              throw new Error('The guide did not return a distribution.');
-            }
-            return k(s2, dist);
+            return k(s2, val);
           };
         }, a + '_guide');
       });
 }
 
-function runIfThunk(s, k, a, env, maybeThunk, alternate) {
+function runDistThunk(thunk, env, s, a, k) {
+  return runThunk(thunk, env, s, a, function(s2, dist) {
+    if (!dists.isDist(dist)) {
+      throw new Error('The guide did not return a distribution.');
+    }
+    return k(s2, dist);
+  });
+}
+
+function runDistThunkCond(s, k, a, env, maybeThunk, alternate) {
   return maybeThunk ?
-      runThunk(maybeThunk, env, s, a, k) :
+      runDistThunk(maybeThunk, env, s, a, k) :
       alternate(s, k, a);
 }
 
 // Convenient variations on runGuideThunk.
 
 function runIfThunkElseNull(maybeThunk, env, s, a, k) {
-  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
+  return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, null);
   });
 }
 
 function runIfThunkElseAuto(maybeThunk, targetDist, env, s, a, k) {
-  return runIfThunk(s, k, a, env, maybeThunk, function(s, k, a) {
+  return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, independent(targetDist, a, env));
   });
 }
