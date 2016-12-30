@@ -27,9 +27,8 @@ function guideCoroutine(env) {
     // Copy the entry address from the current coroutine so that
     // parameter names continue to be relative to it.
     a: env.coroutine.a,
-    // Use params/paramsSeen of the current coroutine so that params
-    // are fetch/tracked correctly.
-    params: env.coroutine.params,
+    // Use paramsSeen of the current coroutine so that params are
+    // tracked correctly.
     paramsSeen: env.coroutine.paramsSeen,
     // A flag used when creating parameters to check whether we're in
     // a guide thunk. Note that this does the right thing if Infer is
