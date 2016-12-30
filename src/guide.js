@@ -81,8 +81,6 @@ function runDistThunkCond(s, k, a, env, maybeThunk, alternate) {
       alternate(s, k, a);
 }
 
-// Convenient variations on runGuideThunk.
-
 function runIfThunkElseNull(maybeThunk, env, s, a, k) {
   return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
     return k(s, null);
