@@ -253,6 +253,7 @@ function prepare(codeAndAssets, k, options) {
       var initialAddress = '';
       return wpplFn(options.initialStore, finish, initialAddress);
     });
+    util.resetWarnings();
   };
 
   return { run: run };

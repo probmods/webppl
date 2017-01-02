@@ -203,14 +203,8 @@ module.exports = function(env) {
     });
   }
 
-  var issuedGradWarning = {};
-
   function logGradWarning(name, i, problem) {
-    var key = name + i + problem;
-    if (!_.has(issuedGradWarning, key)) {
-      console.warn('Gradient for param ' + name + ':' + i + ' is ' + problem + '.');
-      issuedGradWarning[key] = true;
-    }
+    util.warn('Gradient for param ' + name + ':' + i + ' is ' + problem + '.', true);
   }
 
   return {
