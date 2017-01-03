@@ -359,6 +359,7 @@ var tests = [
         std: { tol: 0.4 },
         args: { samples: 200000, burn: 1 }
       },
+      funnyDrift: true,
       withCaching: true,
       variableSupport: true,
       query: true,
