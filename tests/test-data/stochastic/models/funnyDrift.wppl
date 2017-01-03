@@ -1,0 +1,11 @@
+// Test for the problem described in issue 147.
+var model = function() {
+  if (flip()) {
+    sample(Gaussian({mu: 0, sigma: 2}), {
+      driftKernel(prevVal) { return Gaussian({mu: 100, sigma: 1}); }
+    });
+    return true;
+  } else {
+    return false;
+  }
+};
