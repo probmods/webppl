@@ -239,7 +239,14 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
-      guideThunks: { hist: { exact: true } },
+      guideThunks: {
+        hist: { exact: true },
+        args: { particles: 100 }
+      },
+      noGuideThunks: {
+        hist: { exact: true },
+        args: { particles: 100, importance: 'ignoreGuide' }
+      },
       guidedFlip: true,
       mapData: true
     }
