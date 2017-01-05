@@ -73,10 +73,7 @@ function set(params, k) {
 }
 
 
-function register(env, name, getParams) {
-
-  // getParams is expected to be a function which is used to
-  // initialize parameters the first time they are encountered.
+function register(env, name, initParams) {
 
   var paramTable = get();
   var paramsSeen = env.coroutine.paramsSeen;
@@ -98,9 +95,9 @@ function register(env, name, getParams) {
       _params = paramTable[name];
     } else {
       // Never seen. Fetch initial values and add to store.
-      _params = getParams();
+      _params = initParams();
       assert.ok(_.every(_params, _.negate(ad.isLifted)),
-                'getParams unexpectedly returned a lifted value.');
+                'initParams unexpectedly returned a lifted value.');
       paramTable[name] = _params;
     }
 
