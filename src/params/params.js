@@ -112,13 +112,14 @@ function register(env, name, getParams) {
       paramTable[name] = _params;
     }
 
-    var params = _params.map(ad.lift);
-
     if (paramsSeen) {
+      var params = _params.map(ad.lift);
       paramsSeen[name] = params;
+      return params;
+    } else {
+      return _params;
     }
 
-    return params;
   }
 
 }
