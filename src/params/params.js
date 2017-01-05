@@ -105,12 +105,12 @@ function register(env, name, getParams) {
       params = paramTable[name].map(ad.lift);
     } else {
       // Never seen. Fetch initial values, add to store and lift.
-      var prms = getParams();
-      assert.ok(_.every(prms, _.negate(ad.isLifted)),
+      var _params = getParams();
+      assert.ok(_.every(_params, _.negate(ad.isLifted)),
                 'getParams unexpectedly returned a lifted value.');
 
-      paramTable[name] = prms;
-      params = prms.map(ad.lift);
+      paramTable[name] = _params;
+      params = _params.map(ad.lift);
     }
 
     if (paramsSeen) {
