@@ -76,43 +76,37 @@ function set(params, k) {
 function register(env, name, getParams) {
 
   // getParams is expected to be a function which is used to
-  // initialize parameters the first time they are encoutered. At
-  // present I consider it to be `register` responsibility to
-  // perform lifting of params, so ideally `getParams` would not
-  // return lifted params. However, in the case of NN, `getParams`
-  // returns params already lifted. Hence, `getParams()` is replaced
-  // with `getParams().map(ad.value)` throughout this function.
+  // initialize parameters the first time they are encountered.
 
   var paramTable = get();
   var paramsSeen = env.coroutine.paramsSeen;
 
   if (paramsSeen && _.has(paramsSeen, name)) {
 
-    // We've already lifted these params during this execution.
+    // We've already lifted these parameters during this execution.
     // Re-use ad graph nodes.
 
     return paramsSeen[name];
 
   } else {
 
-    // This is the first time we've encounter these params during
-    // this execution. we will lift params at this point.
-
+    // Get parameter values from the store, or initialize if this is a
+    // new parameter.
     var _params;
-
     if (_.has(paramTable, name)) {
-      // Seen on previous execution. Fetch from store and lift.
+      // Parameters already initialized. Fetch values from store.
       _params = paramTable[name];
     } else {
-      // Never seen. Fetch initial values, add to store and lift.
+      // Never seen. Fetch initial values and add to store.
       _params = getParams();
       assert.ok(_.every(_params, _.negate(ad.isLifted)),
                 'getParams unexpectedly returned a lifted value.');
-
       paramTable[name] = _params;
     }
 
     if (paramsSeen) {
+      // Lift parameters if the current coroutine is tracking
+      // parameters for optimization.
       var params = _params.map(ad.lift);
       paramsSeen[name] = params;
       return params;
@@ -121,7 +115,6 @@ function register(env, name, getParams) {
     }
 
   }
-
 }
 
 
