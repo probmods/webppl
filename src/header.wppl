@@ -522,6 +522,23 @@ var modelParam = function(options) {
   }});
 };
 
+var nnEval = function(net, arg) {
+  var params = adnnParams(net);
+  net.setParameters(params);
+  return net.eval(arg);
+};
+
+var nnEvalModel = function(net, arg) {
+  var params = adnnParams(net);
+  var modelParams = map(function(param) {
+    return sample(ImproperUniform(), {guide() {
+      return Delta({v: param});
+    }});
+  }, params);
+  net.setParameters(modelParams);
+  return net.eval(arg);
+};
+
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
   var n = arr.length;

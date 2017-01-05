@@ -621,7 +621,22 @@ var tests = [
           verbose: false
         }
       },
-      mapData: true
+      mapData: true,
+      nnEval: {
+        mean: { tol: 0.2 },
+        args: {
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      nnEvalModel: {
+        args: {
+          samples: 1,
+          steps: 10000,
+          verbose: false
+        }
+      }
     }
   }
 ];
