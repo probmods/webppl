@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var _ = require('lodash');
 var fs = require('fs');
 var ad = require('../ad');
@@ -104,7 +105,10 @@ function register(env, name, getParams) {
       params = paramTable[name].map(ad.lift);
     } else {
       // Never seen. Fetch initial values, add to store and lift.
-      var prms = getParams().map(ad.value);
+      var prms = getParams();
+      assert.ok(_.every(prms, _.negate(ad.isLifted)),
+                'getParams unexpectedly returned a lifted value.');
+
       paramTable[name] = prms;
       params = prms.map(ad.lift);
     }
