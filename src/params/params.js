@@ -98,20 +98,21 @@ function register(env, name, getParams) {
     // This is the first time we've encounter these params during
     // this execution. we will lift params at this point.
 
-    var params;
+    var _params;
 
     if (_.has(paramTable, name)) {
       // Seen on previous execution. Fetch from store and lift.
-      params = paramTable[name].map(ad.lift);
+      _params = paramTable[name];
     } else {
       // Never seen. Fetch initial values, add to store and lift.
-      var _params = getParams();
+      _params = getParams();
       assert.ok(_.every(_params, _.negate(ad.isLifted)),
                 'getParams unexpectedly returned a lifted value.');
 
       paramTable[name] = _params;
-      params = _params.map(ad.lift);
     }
+
+    var params = _params.map(ad.lift);
 
     if (paramsSeen) {
       paramsSeen[name] = params;
