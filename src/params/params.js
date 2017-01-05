@@ -72,7 +72,7 @@ function set(params, k) {
 }
 
 
-function register(env, name, getParams, setParams) {
+function register(env, name, getParams) {
 
   // getParams is expected to be a function which is used to
   // initialize parameters the first time they are encoutered. At
@@ -111,11 +111,6 @@ function register(env, name, getParams, setParams) {
 
     if (paramsSeen) {
       paramsSeen[name] = params;
-    }
-
-    // Callback with the fresh ad graph nodes.
-    if (setParams) {
-      setParams(params);
     }
 
     return params;
