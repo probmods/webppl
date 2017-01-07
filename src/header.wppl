@@ -538,3 +538,9 @@ var Tensor = function(dims, arr) {
   var t = ad.tensor.fromScalars(arr);
   return ad.tensor.reshape(t, dims);
 };
+
+var marginalize = function(dist, project) {
+  return Infer({model() {
+    return project(sample(dist));
+  }});
+};
