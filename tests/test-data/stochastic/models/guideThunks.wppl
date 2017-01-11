@@ -1,0 +1,17 @@
+var model = function() {
+  globalStore.t1 = false;
+  globalStore.t2 = false;
+
+  guide(function() {
+    globalStore.t1 = true;
+  });
+  assert.ok(globalStore.t1, 'Guide thunk 1 did not run.');
+
+  sample(Bernoulli({p: 0.5}), {guide() {
+    globalStore.t2 = true;
+    return Bernoulli({p: Math.sigmoid(param())});
+  }});
+  assert.ok(globalStore.t2, 'Guide thunk 2 did not run.');
+
+  return true;
+};

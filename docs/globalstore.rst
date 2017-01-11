@@ -1,3 +1,5 @@
+.. _globalstore:
+
 The Global Store
 ================
 

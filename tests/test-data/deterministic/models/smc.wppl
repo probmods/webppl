@@ -1,11 +1,4 @@
 [
-  // Check that the guide is ignored.
-  Infer({method: 'SMC', particles: 1, importance: 'ignoreGuide', model() {
-    return sample(Delta({v: 0}), {guide() {
-      assert.ok(false);
-    }});
-  }}).support(),
-
   // Check (indirectly) that a guide is automatically generated, by
   // checking that a parameter is created.
 
