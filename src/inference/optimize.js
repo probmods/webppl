@@ -1,11 +1,4 @@
-// Optimizes the parameters of a guide program.
-
-// Takes a wpplFn representing the target and guide and optionally the
-// current parameters and returns optimized parameters. (The
-// parameters passed in are not modified.)
-
-// If initial parameters are not given, the parameters are initialized
-// lazily as specified by the guide.
+// Gradient based optimization of parameters.
 
 'use strict';
 
