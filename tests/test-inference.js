@@ -610,8 +610,8 @@ var tests = [
         }
       },
       tensorGaussian: {
+        mean: { tol: 0.15 },
         args: {
-          mean: { tol: 0.15 },
           samples: 5000,
           steps: 10000,
           verbose: false
