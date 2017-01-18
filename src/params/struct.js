@@ -63,7 +63,6 @@ function clip(g, threshold, normOfG) {
   assert.ok(_.isNumber(threshold));
   if (normOfG > threshold) {
     mulEq(g, threshold / normOfG);
-    assert.ok(Math.abs(threshold - norm(g)) < 1e-10);
   }
 }
 
