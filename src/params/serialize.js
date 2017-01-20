@@ -3,22 +3,21 @@
 var _ = require('lodash')
 var Tensor = require('../tensor');
 
-
-function serializeTensor(tensor) {
+function tensorToObject(tensor) {
   return {
     dims: tensor.dims,
     data: tensor.toFlatArray()
   };
 }
 
-function serializeParams(paramObj) {
+function tensorsToObjects(paramObj) {
   var prms = _.mapValues(paramObj, function(lst) {
-    return lst.map(serializeTensor);
+    return lst.map(tensorToObject);
   });
   return prms;
 }
 
-function deserializeParams(paramObj) {
+function objectsToTensors(paramObj) {
   var prms = {};
   for (var name in paramObj) {
     prms[name] = paramObj[name].map(function(tensor) {
@@ -28,8 +27,17 @@ function deserializeParams(paramObj) {
   return prms;
 }
 
+function serializeParams(paramObj) {
+  return JSON.stringify(tensorsToObjects(paramObj));
+}
+
+function deserializeParams(str) {
+  return objectsToTensors(JSON.parse(str));
+}
 
 module.exports = {
+  tensorsToObjects: tensorsToObjects,
+  objectsToTensors: objectsToTensors,
   serializeParams: serializeParams,
   deserializeParams: deserializeParams
 };
