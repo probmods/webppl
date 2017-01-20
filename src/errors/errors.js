@@ -27,7 +27,7 @@ function addressToWpplCallStack(address, addressMap) {
   var stack = addressToStack(address);
   return _.chain(stack).map(function(id) {
     var loc = addressMap[id];
-    return loc && {
+    return loc && loc.start && {
       fileName: loc.source,
       lineNumber: loc.start.line,
       columnNumber: loc.start.column,
