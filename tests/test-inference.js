@@ -691,6 +691,16 @@ var tests = [
           samples: 10000,
           verbose: false
         }
+      },
+      weightDecayL2: {
+        mean: { tol: 0.01 },
+        args: {
+          samples: 1,
+          steps: 1000,
+          optMethod: { adam: { stepSize: 0.1 } },
+          weightDecay: { l2: { strength: 1 } },
+          verbose: false
+        }
       }
     }
   },

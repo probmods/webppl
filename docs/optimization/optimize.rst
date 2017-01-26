@@ -49,6 +49,23 @@ Optimize
 
       Default: ``ELBO``
 
+   .. describe:: weightDecay
+
+      Specifies the strength of an L2 penalty applied to all
+      parameters during optimization.
+
+      More specifically, a term ``0.5 * strength * paramVal^2`` is
+      added to the objective for each parameter encountered during
+      optimization. Note that this addition is not reflected in the
+      value of the objective reported during optimization.
+
+      For parameters of the model, when the objective is the ELBO,
+      this is equivalent to specifying a mean zero and variance
+      ``1/strength`` Gaussian prior and a Delta guide for each
+      parameter.
+
+      Default: ``0``
+
    .. describe:: verbose
 
       Default: ``true``

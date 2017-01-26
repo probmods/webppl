@@ -79,6 +79,13 @@ function deepCopy(g) {
   });
 }
 
+// Returns a deep copy of g that includes only those keys present in
+// h. Assumes that every key in h is also a key in g.
+function select(g, h) {
+  return _.mapValues(h, function(unused, key) {
+    return g[key].map(function(tensor) { return tensor.clone(); });
+  });
+}
 
 module.exports = {
   addEq: addEq,
@@ -87,5 +94,6 @@ module.exports = {
   norm: norm,
   clip: clip,
   copy: copy,
-  deepCopy: deepCopy
+  deepCopy: deepCopy,
+  select: select
 };
