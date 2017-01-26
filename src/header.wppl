@@ -540,7 +540,13 @@ var Tensor = function(dims, arr) {
 };
 
 var marginalize = function(dist, project) {
-  return Infer({model() {
-    return project(sample(dist));
-  }});
+  if (_.isString(project)) {
+    return Infer({model(){
+      return sample(dist)[project]
+    }})
+  } else {
+    return Infer({model() {
+      return project(sample(dist));
+    }});
+  }
 };
