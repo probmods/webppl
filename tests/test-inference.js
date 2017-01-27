@@ -239,6 +239,14 @@ var tests = [
       nestedEnum7: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnum8: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
+      guideThunks: {
+        hist: { exact: true },
+        args: { particles: 100 }
+      },
+      noGuideThunks: {
+        hist: { exact: true },
+        args: { particles: 100, importance: 'ignoreGuide' }
+      },
       guidedFlip: true,
       mapData: true
     }
@@ -559,6 +567,7 @@ var tests = [
         args: { verbose: false, checkGradients: false }
       },
       withCaching: true,
+      guideThunks: { hist: { exact: true } },
       gaussianMean: true,
       guidedFlip: true,
       guidedGaussian: {
@@ -601,6 +610,7 @@ var tests = [
         }
       },
       tensorGaussian: {
+        mean: { tol: 0.15 },
         args: {
           samples: 5000,
           steps: 10000,

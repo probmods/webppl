@@ -22,6 +22,7 @@ module.exports = function(env) {
     this.s = s;
     this.k = k;
     this.a = a;
+    this.guideRequired = this.opts.guide;
 
     this.factorWarningIssued = false;
 
@@ -65,7 +66,7 @@ module.exports = function(env) {
     sample: function(s, k, a, dist, options) {
       if (this.opts.guide) {
         options = options || {};
-        return guide.runIfThunkElseAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+        return guide.getDistOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
           return k(s, guideDist.sample());
         });
       } else {

@@ -172,6 +172,15 @@ var testDefs = [
             {line: 11, col: 9, name: 'f'},
             {line: 10, col: 0, name: 'Enumerate'}],
     debug: true
+  },
+
+  { name: 'with caching transform',
+    code: ["Infer({method: 'incrementalMH',",
+           '  model: function() {',
+           '  assert.ok(false);',
+           '}});'].join('\n'),
+    stack: [{line: 3, col: 9, name: 'ok'}],
+    debug: true
   }
 ];
 

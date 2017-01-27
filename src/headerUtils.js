@@ -6,6 +6,7 @@ var Tensor = require('./tensor');
 var LRU = require('lru-cache');
 var ad = require('./ad');
 var assert = require('assert');
+var runThunk = require('./guide').runThunk;
 
 module.exports = function(env) {
 
@@ -154,6 +155,16 @@ module.exports = function(env) {
     }
   }
 
+  function guide(s, k, a, thunk) {
+    if (env.coroutine.guideRequired) {
+      return runThunk(thunk, env, s, a, function(s2, val) {
+        return k(s2);
+      });
+    } else {
+      return k(s);
+    }
+  }
+
   return {
     display: display,
     cache: cache,
@@ -162,7 +173,8 @@ module.exports = function(env) {
     _addr: _addr,
     zeros: zeros,
     ones: ones,
-    mapData: mapData
+    mapData: mapData,
+    guide: guide
   };
 
 };

@@ -7,6 +7,7 @@ var util = require('../util');
 var dists = require('../dists');
 var config = require('./config');
 var params = require('./params');
+var serialize = require('./serialize');
 
 
 function getParams(s, k, a) {
@@ -35,6 +36,13 @@ function getParamsId(s, k, a, id) {
   return k(s, config.getId());
 }
 
+function serializeParams(s, k, a, paramsObj) {
+  return k(s, serialize.serializeParams(paramsObj));
+}
+
+function deserializeParams(s, k, a, str) {
+  return k(s, serialize.deserializeParams(str));
+}
 
 module.exports = function(env) {
 
@@ -85,6 +93,8 @@ module.exports = function(env) {
     param: param,
     setFreshParamsId: setFreshParamsId,
     setParams: setParams,
-    setParamsId: setParamsId
+    setParamsId: setParamsId,
+    serializeParams: serializeParams,
+    deserializeParams: deserializeParams
   };
 };

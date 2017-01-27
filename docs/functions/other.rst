@@ -41,7 +41,6 @@ Other
 
      marginalize(dist, 'a') // => Marginal with p(true) = 0.9, p(false) = 0.1
 
-
 .. js:function:: mapObject(fn, obj)
 
    Returns the object obtained by mapping the function ``fn`` over the

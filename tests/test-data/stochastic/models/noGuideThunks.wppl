@@ -1,0 +1,11 @@
+var model = function() {
+  guide(function() {
+    assert.ok(false, 'Guide thunk 1 ran unexpectedly.');
+  });
+
+  sample(Bernoulli({p: 0.5}), {guide() {
+    assert.ok(false, 'Guide thunk 2 ran unexpectedly.');
+  }});
+
+  return true;
+};

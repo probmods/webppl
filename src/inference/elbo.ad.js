@@ -39,6 +39,7 @@ module.exports = function(env) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
+    this.guideRequired = true;
 
     // Initialize mapData state.
     this.mapDataStack = [{multiplier: 1}];
@@ -242,7 +243,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      return guide.runIfThunkElseAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+      return guide.getDistOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
 
         var ret = this.sampleGuide(guideDist, options);
         var val = ret.val;
