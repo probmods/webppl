@@ -17,6 +17,31 @@ Header
 
       expectation(Categorical({ps: [.2, .8], vs: [0, 1]})); // => 0.8
 
+.. js:function:: marginalize(dist, project)
+
+   Marginalizes out certain variables in a distribution. ``project``
+   can be either a function or a string. Using it as a function:
+
+   ::
+
+      var dist = Infer({model: function() {
+        var a = flip(0.9);
+        var b = flip();
+        var c = flip();
+        return {a: a, b: b, c: c};
+      }});
+
+      marginalize(dist, function(x) {
+        return x.a;
+      }) // => Marginal with p(true) = 0.9, p(false) = 0.1
+
+   Using it as a string:
+
+   ::
+
+     marginalize(dist, 'a') // => Marginal with p(true) = 0.9, p(false) = 0.1
+
+
 .. js:function:: mapObject(fn, obj)
 
    Returns the object obtained by mapping the function ``fn`` over the
