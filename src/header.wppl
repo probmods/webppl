@@ -541,11 +541,11 @@ var Tensor = function(dims, arr) {
 
 var marginalize = function(dist, project) {
   if (_.isString(project)) {
-    return Infer({model() {
+    return Infer({model: function() {
       return sample(dist)[project]
     }})
   } else {
-    return Infer({model() {
+    return Infer({model: function() {
       return project(sample(dist));
     }});
   }
