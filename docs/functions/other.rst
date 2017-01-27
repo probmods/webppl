@@ -1,5 +1,5 @@
-Header
-======
+Other
+=====
 
 .. js:function:: display(val)
 
