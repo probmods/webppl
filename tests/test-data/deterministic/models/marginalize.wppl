@@ -1,0 +1,13 @@
+var dist = Infer({model: function() {
+  var a = uniformDraw([4, 5, 6]);
+  var b = flip();
+  var c = flip(0.9);
+  return {a: a, b: b, c: c};
+}});
+
+[
+  expectation(marginalize(dist, 'a')),
+  expectation(marginalize(dist, function(x) {
+    return x.a;
+  }))
+]
