@@ -1,4 +1,23 @@
 [
   param({mu: 1, sigma: 0}),
-  T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0}))
+  T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})),
+
+  // Check (indirectly) that a guide is automatically generated, by
+  // checking that a parameter is created.
+
+  (function() {
+    setFreshParamsId();
+    Infer({method: 'SMC', particles: 1, importance: 'default', model() {
+      return flip();
+    }});
+    return _.size(getParams());
+  })(),
+
+  (function() {
+    setFreshParamsId();
+    Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
+      return flip();
+    }});
+    return _.size(getParams());
+  })()
 ];
