@@ -1,3 +1,9 @@
+var numParamsCreatedBy = function(thunk) {
+  setFreshParamsId();
+  thunk();
+  return _.size(getParams());
+};
+
 [
   param({mu: 1, sigma: 0}) === 1,
   T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})) === 6,
@@ -5,19 +11,15 @@
   // Check (indirectly) that a guide is automatically generated, by
   // checking that a parameter is created.
 
-  (function() {
-    setFreshParamsId();
+  numParamsCreatedBy(function() {
     Infer({method: 'SMC', particles: 1, importance: 'default', model() {
       return flip();
     }});
-    return _.size(getParams()) === 0;
-  })(),
+  }) === 0,
 
-  (function() {
-    setFreshParamsId();
+  numParamsCreatedBy(function() {
     Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
       return flip();
     }});
-    return _.size(getParams()) === 1;
-  })()
+  }) === 1,
 ];
