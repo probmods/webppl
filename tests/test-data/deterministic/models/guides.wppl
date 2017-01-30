@@ -22,4 +22,22 @@ var numParamsCreatedBy = function(thunk) {
       return flip();
     }});
   }) === 1,
+
+  numParamsCreatedBy(function() {
+    Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
+      return sample(Bernoulli({p: 0.5}), {noAutoGuide: true});
+    }});
+  }) === 0,
+
+  numParamsCreatedBy(function() {
+    Infer({method: 'forward', samples: 1, guide: true, model() {
+      return sample(Bernoulli({p: 0.5}));
+    }});
+  }) === 1,
+
+  numParamsCreatedBy(function() {
+    Infer({method: 'forward', samples: 1, guide: true, model() {
+      return sample(Bernoulli({p: 0.5}), {noAutoGuide: true});
+    }});
+  }) === 0
 ];
