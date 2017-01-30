@@ -1,6 +1,6 @@
 [
-  param({mu: 1, sigma: 0}),
-  T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})),
+  param({mu: 1, sigma: 0}) === 1,
+  T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})) === 6,
 
   // Check (indirectly) that a guide is automatically generated, by
   // checking that a parameter is created.
@@ -10,7 +10,7 @@
     Infer({method: 'SMC', particles: 1, importance: 'default', model() {
       return flip();
     }});
-    return _.size(getParams());
+    return _.size(getParams()) === 0;
   })(),
 
   (function() {
@@ -18,6 +18,6 @@
     Infer({method: 'SMC', particles: 1, importance: 'autoGuide', model() {
       return flip();
     }});
-    return _.size(getParams());
+    return _.size(getParams()) === 1;
   })()
 ];
