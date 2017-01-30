@@ -92,12 +92,6 @@ function getDist(maybeThunk, noAutoGuide, targetDist, env, s, a, k) {
   });
 }
 
-function getDistOrAuto(maybeThunk, targetDist, env, s, a, k) {
-  return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
-    return k(s, independent(targetDist, a, env));
-  });
-}
-
 // Returns an independent guide distribution for the given target
 // distribution, sample address pair. Guiding all choices with
 // independent guide distributions and optimizing the elbo yields
@@ -339,6 +333,5 @@ function squishToInterval(interval) {
 module.exports = {
   independent: independent,
   runThunk: runThunk,
-  getDist: getDist,
-  getDistOrAuto: getDistOrAuto
+  getDist: getDist
 };
