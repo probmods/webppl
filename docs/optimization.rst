@@ -204,4 +204,27 @@ Parameters
    ``modelParam`` supports the same options as ``param``. See the
    :ref:`documentation for param <param>` for details.
 
+Neural Networks
+~~~~~~~~~~~~~~~
+
+Neural networks created with the `adnn neural network module`_ can be
+used in WebPPL programs. When doing so, the ``nnEval`` or
+``nnEvalModel`` methods should be used to evaluate the network on an
+input, rather than calling ``eval`` directly on the network object.
+This serves to notify the optimization back-end that the parameters of
+the network should be included in optimization.
+
+.. js:function:: nnEval(net, input)
+
+   Evaluate the network ``net`` on ``input``, treating the network
+   parameters as guide parameters. Use this when the network forms
+   part of the guide program.
+
+.. js:function:: nnEvalModel(net, input)
+
+   Similar to ``nnEval``, but the parameters of the network
+   will be treated as model parameters rather than guide parameters.
+   Use this when the network forms part of the generative model.
+
 .. _adnn optimization module: https://github.com/dritchie/adnn/tree/master/opt
+.. _adnn neural network module: https://github.com/dritchie/adnn/tree/master/nn

@@ -1,0 +1,7 @@
+var net = nn.constantparams([1]);
+
+var model = function() {
+  var mu = T.get(nnEvalModel(net), 0);
+  observe(Gaussian({mu, sigma: 1}), -4);
+  return mu;
+};

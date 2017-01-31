@@ -87,10 +87,25 @@ module.exports = function(env) {
     return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
   };
 
+  // Fetch the parameters for an adnn neural net.
+  var adnnParams = function(s, k, a, net) {
+    if (!(net && net.name)) {
+      throw new Error('A network with a non-empty name is required.');
+    }
+    if (!net.isTraining) {
+      net.setTraining(true);
+    }
+    var p = params.register(env, net.name, function() {
+      return net.getParameters().map(ad.value);
+    });
+    return k(s, p);
+  };
+
   return {
     getParams: getParams,
     getParamsId: getParamsId,
     param: param,
+    adnnParams: adnnParams,
     setFreshParamsId: setFreshParamsId,
     setParams: setParams,
     setParamsId: setParamsId,

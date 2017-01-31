@@ -1,0 +1,8 @@
+var net = nn.constantparams([1]);
+
+var model = function() {
+  return sample(Gaussian({mu: -4, sigma: 1}), {guide() {
+    var mu = T.get(nnEval(net), 0);
+    return Gaussian({mu, sigma: 1});
+  }});
+};
