@@ -115,7 +115,11 @@ module.exports = function(env) {
     sample: function(s, k, a, dist, options) {
       'use ad';
       options = options || {};
-      return guide.getDistOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+      return guide.getDist(options.guide, options.noAutoGuide, dist, env, s, a, function(s, guideDist) {
+        if (!guideDist) {
+          throw new Error('EUBO: No guide distribution to optimize.');
+        }
+
         var rel = util.relativizeAddress(env, a);
         var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
         assert.notStrictEqual(guideVal, undefined);

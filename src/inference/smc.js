@@ -74,16 +74,8 @@ module.exports = function(env) {
   SMC.prototype.sample = function(s, k, a, dist, options) {
     options = options || {};
     var thunk = (this.importanceOpt === 'ignoreGuide') ? undefined : options.guide;
-    return guide.getDist(thunk, env, s, a, function(s, maybeDist) {
-
-      // maybeDist will be null if either the 'ignoreGuide' option is
-      // set, or no guide is specified in the program.
-
-      // Auto guide if requested.
-      var importanceDist =
-          !maybeDist && (this.importanceOpt === 'autoGuide') ?
-          guide.independent(dist, a, env) :
-          maybeDist;
+    var noAutoGuide = (this.importanceOpt !== 'autoGuide') || options.noAutoGuide;
+    return guide.getDist(thunk, noAutoGuide, dist, env, s, a, function(s, importanceDist) {
 
       var _val, choiceScore, importanceScore;
       if (importanceDist) {

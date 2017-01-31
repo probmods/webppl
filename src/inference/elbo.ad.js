@@ -243,7 +243,10 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      return guide.getDistOrAuto(options.guide, dist, env, s, a, function(s, guideDist) {
+      return guide.getDist(options.guide, options.noAutoGuide, dist, env, s, a, function(s, guideDist) {
+        if (!guideDist) {
+          throw new Error('ELBO: No guide distribution to optimize.');
+        }
 
         var ret = this.sampleGuide(guideDist, options);
         var val = ret.val;
