@@ -26,7 +26,7 @@
     "three": "^0.82.1",
     "underscore": "^1.8.3",
     "watchify": "^3.7.0",
-    "webppl-editor": "probmods/webppl-editor#1.0.8",
+    "webppl-editor": "probmods/webppl-editor#1.0.9",
     "webppl-viz": "github:probmods/webppl-viz#0.7.11"
   },
   "scripts": {

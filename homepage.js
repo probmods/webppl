@@ -634,7 +634,7 @@ module.exports = charenc;
 
   function getConfig(cm) {
     var deflt = cm.state.closeBrackets;
-    if (!deflt) return null;
+    if (!deflt || deflt.override) return deflt;
     var mode = cm.getModeAt(cm.getCursor());
     return mode.closeBrackets || deflt;
   }
@@ -1893,12 +1893,12 @@ function moveLogically(line, start, dir, byUnit) {
 var bidiOrdering = (function() {
   // Character types for codepoints 0 to 0xff
   var lowTypes = "bbbbbbbbbtstwsbbbbbbbbbbbbbbssstwNN%%%NNNNNN,N,N1111111111NNNNNNNLLLLLLLLLLLLLLLLLLLLLLLLLLNNNNNNLLLLLLLLLLLLLLLLLLLLLLLLLLNNNNbbbbbbsbbbbbbbbbbbbbbbbbbbbbbbbbb,N%%%%NNNNLNNNNN%%11NLNNN1LNNNNNLLLLLLLLLLLLLLLLLLLLLLLNLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLN"
-  // Character types for codepoints 0x600 to 0x6ff
-  var arabicTypes = "rrrrrrrrrrrr,rNNmmmmmmrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrmmmmmmmmmmmmmmrrrrrrrnnnnnnnnnn%nnrrrmrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrmmmmmmmmmmmmmmmmmmmNmmmm"
+  // Character types for codepoints 0x600 to 0x6f9
+  var arabicTypes = "nnnnnnNNr%%r,rNNmmmmmmmmmmmrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrmmmmmmmmmmmmmmmmmmmmmnnnnnnnnnn%nnrrrmrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrmmmmmmmnNmmmmmmrrmmNmmmmrr1111111111"
   function charType(code) {
     if (code <= 0xf7) { return lowTypes.charAt(code) }
     else if (0x590 <= code && code <= 0x5f4) { return "R" }
-    else if (0x600 <= code && code <= 0x6ed) { return arabicTypes.charAt(code - 0x600) }
+    else if (0x600 <= code && code <= 0x6f9) { return arabicTypes.charAt(code - 0x600) }
     else if (0x6ee <= code && code <= 0x8ac) { return "r" }
     else if (0x2000 <= code && code <= 0x200b) { return "w" }
     else if (code == 0x200c) { return "b" }
@@ -2662,6 +2662,9 @@ function buildLineContent(cm, lineView) {
                  col: 0, pos: 0, cm: cm,
                  trailingSpace: false,
                  splitSpaces: (ie || webkit) && cm.getOption("lineWrapping")}
+  // hide from accessibility tree
+  content.setAttribute("role", "presentation")
+  builder.pre.setAttribute("role", "presentation")
   lineView.measure = {}
 
   // Iterate over the logical lines that make up this visual line.
@@ -4204,7 +4207,7 @@ function measureForScrollbars(cm) {
   }
 }
 
-function NativeScrollbars(place, scroll, cm) {
+var NativeScrollbars = function(place, scroll, cm) {
   this.cm = cm
   var vert = this.vert = elt("div", [elt("div", null, null, "min-width: 1px")], "CodeMirror-vscrollbar")
   var horiz = this.horiz = elt("div", [elt("div", null, null, "height: 100%; min-height: 1px")], "CodeMirror-hscrollbar")
@@ -4220,91 +4223,92 @@ function NativeScrollbars(place, scroll, cm) {
   this.checkedZeroWidth = false
   // Need to set a minimum width to see the scrollbar on IE7 (but must not set it on IE8).
   if (ie && ie_version < 8) { this.horiz.style.minHeight = this.vert.style.minWidth = "18px" }
-}
+};
 
-NativeScrollbars.prototype = copyObj({
-  update: function(measure) {
-    var needsH = measure.scrollWidth > measure.clientWidth + 1
-    var needsV = measure.scrollHeight > measure.clientHeight + 1
-    var sWidth = measure.nativeBarWidth
+NativeScrollbars.prototype.update = function (measure) {
+  var needsH = measure.scrollWidth > measure.clientWidth + 1
+  var needsV = measure.scrollHeight > measure.clientHeight + 1
+  var sWidth = measure.nativeBarWidth
 
-    if (needsV) {
-      this.vert.style.display = "block"
-      this.vert.style.bottom = needsH ? sWidth + "px" : "0"
-      var totalHeight = measure.viewHeight - (needsH ? sWidth : 0)
-      // A bug in IE8 can cause this value to be negative, so guard it.
-      this.vert.firstChild.style.height =
-        Math.max(0, measure.scrollHeight - measure.clientHeight + totalHeight) + "px"
-    } else {
-      this.vert.style.display = ""
-      this.vert.firstChild.style.height = "0"
-    }
-
-    if (needsH) {
-      this.horiz.style.display = "block"
-      this.horiz.style.right = needsV ? sWidth + "px" : "0"
-      this.horiz.style.left = measure.barLeft + "px"
-      var totalWidth = measure.viewWidth - measure.barLeft - (needsV ? sWidth : 0)
-      this.horiz.firstChild.style.width =
-        (measure.scrollWidth - measure.clientWidth + totalWidth) + "px"
-    } else {
-      this.horiz.style.display = ""
-      this.horiz.firstChild.style.width = "0"
-    }
-
-    if (!this.checkedZeroWidth && measure.clientHeight > 0) {
-      if (sWidth == 0) { this.zeroWidthHack() }
-      this.checkedZeroWidth = true
-    }
-
-    return {right: needsV ? sWidth : 0, bottom: needsH ? sWidth : 0}
-  },
-  setScrollLeft: function(pos) {
-    if (this.horiz.scrollLeft != pos) { this.horiz.scrollLeft = pos }
-    if (this.disableHoriz) { this.enableZeroWidthBar(this.horiz, this.disableHoriz) }
-  },
-  setScrollTop: function(pos) {
-    if (this.vert.scrollTop != pos) { this.vert.scrollTop = pos }
-    if (this.disableVert) { this.enableZeroWidthBar(this.vert, this.disableVert) }
-  },
-  zeroWidthHack: function() {
-    var w = mac && !mac_geMountainLion ? "12px" : "18px"
-    this.horiz.style.height = this.vert.style.width = w
-    this.horiz.style.pointerEvents = this.vert.style.pointerEvents = "none"
-    this.disableHoriz = new Delayed
-    this.disableVert = new Delayed
-  },
-  enableZeroWidthBar: function(bar, delay) {
-    bar.style.pointerEvents = "auto"
-    function maybeDisable() {
-      // To find out whether the scrollbar is still visible, we
-      // check whether the element under the pixel in the bottom
-      // left corner of the scrollbar box is the scrollbar box
-      // itself (when the bar is still visible) or its filler child
-      // (when the bar is hidden). If it is still visible, we keep
-      // it enabled, if it's hidden, we disable pointer events.
-      var box = bar.getBoundingClientRect()
-      var elt = document.elementFromPoint(box.left + 1, box.bottom - 1)
-      if (elt != bar) { bar.style.pointerEvents = "none" }
-      else { delay.set(1000, maybeDisable) }
-    }
-    delay.set(1000, maybeDisable)
-  },
-  clear: function() {
-    var parent = this.horiz.parentNode
-    parent.removeChild(this.horiz)
-    parent.removeChild(this.vert)
+  if (needsV) {
+    this.vert.style.display = "block"
+    this.vert.style.bottom = needsH ? sWidth + "px" : "0"
+    var totalHeight = measure.viewHeight - (needsH ? sWidth : 0)
+    // A bug in IE8 can cause this value to be negative, so guard it.
+    this.vert.firstChild.style.height =
+      Math.max(0, measure.scrollHeight - measure.clientHeight + totalHeight) + "px"
+  } else {
+    this.vert.style.display = ""
+    this.vert.firstChild.style.height = "0"
   }
-}, NativeScrollbars.prototype)
 
-function NullScrollbars() {}
+  if (needsH) {
+    this.horiz.style.display = "block"
+    this.horiz.style.right = needsV ? sWidth + "px" : "0"
+    this.horiz.style.left = measure.barLeft + "px"
+    var totalWidth = measure.viewWidth - measure.barLeft - (needsV ? sWidth : 0)
+    this.horiz.firstChild.style.width =
+      (measure.scrollWidth - measure.clientWidth + totalWidth) + "px"
+  } else {
+    this.horiz.style.display = ""
+    this.horiz.firstChild.style.width = "0"
+  }
 
-NullScrollbars.prototype = copyObj({
-  update: function() { return {bottom: 0, right: 0} },
-  setScrollLeft: function() {},
-  setScrollTop: function() {},
-  clear: function() {}
-}, NullScrollbars.prototype)
+  if (!this.checkedZeroWidth && measure.clientHeight > 0) {
+    if (sWidth == 0) { this.zeroWidthHack() }
+    this.checkedZeroWidth = true
+  }
+
+  return {right: needsV ? sWidth : 0, bottom: needsH ? sWidth : 0}
+};
+
+NativeScrollbars.prototype.setScrollLeft = function (pos) {
+  if (this.horiz.scrollLeft != pos) { this.horiz.scrollLeft = pos }
+  if (this.disableHoriz) { this.enableZeroWidthBar(this.horiz, this.disableHoriz) }
+};
+
+NativeScrollbars.prototype.setScrollTop = function (pos) {
+  if (this.vert.scrollTop != pos) { this.vert.scrollTop = pos }
+  if (this.disableVert) { this.enableZeroWidthBar(this.vert, this.disableVert) }
+};
+
+NativeScrollbars.prototype.zeroWidthHack = function () {
+  var w = mac && !mac_geMountainLion ? "12px" : "18px"
+  this.horiz.style.height = this.vert.style.width = w
+  this.horiz.style.pointerEvents = this.vert.style.pointerEvents = "none"
+  this.disableHoriz = new Delayed
+  this.disableVert = new Delayed
+};
+
+NativeScrollbars.prototype.enableZeroWidthBar = function (bar, delay) {
+  bar.style.pointerEvents = "auto"
+  function maybeDisable() {
+    // To find out whether the scrollbar is still visible, we
+    // check whether the element under the pixel in the bottom
+    // left corner of the scrollbar box is the scrollbar box
+    // itself (when the bar is still visible) or its filler child
+    // (when the bar is hidden). If it is still visible, we keep
+    // it enabled, if it's hidden, we disable pointer events.
+    var box = bar.getBoundingClientRect()
+    var elt = document.elementFromPoint(box.left + 1, box.bottom - 1)
+    if (elt != bar) { bar.style.pointerEvents = "none" }
+    else { delay.set(1000, maybeDisable) }
+  }
+  delay.set(1000, maybeDisable)
+};
+
+NativeScrollbars.prototype.clear = function () {
+  var parent = this.horiz.parentNode
+  parent.removeChild(this.horiz)
+  parent.removeChild(this.vert)
+};
+
+var NullScrollbars = function () {};
+
+NullScrollbars.prototype.update = function () { return {bottom: 0, right: 0} };
+NullScrollbars.prototype.setScrollLeft = function () {};
+NullScrollbars.prototype.setScrollTop = function () {};
+NullScrollbars.prototype.clear = function () {};
 
 function updateScrollbars(cm, measure) {
   if (!measure) { measure = measureForScrollbars(cm) }
@@ -4883,7 +4887,7 @@ function highlightWorker(cm) {
 
 // DISPLAY DRAWING
 
-function DisplayUpdate(cm, viewport, force) {
+var DisplayUpdate = function(cm, viewport, force) {
   var display = cm.display
 
   this.viewport = viewport
@@ -4896,18 +4900,18 @@ function DisplayUpdate(cm, viewport, force) {
   this.force = force
   this.dims = getDimensions(cm)
   this.events = []
-}
+};
 
-DisplayUpdate.prototype.signal = function(emitter, type) {
+DisplayUpdate.prototype.signal = function (emitter, type) {
   if (hasHandler(emitter, type))
     { this.events.push(arguments) }
-}
-DisplayUpdate.prototype.finish = function() {
-  var this$1 = this;
+};
+DisplayUpdate.prototype.finish = function () {
+    var this$1 = this;
 
   for (var i = 0; i < this.events.length; i++)
     { signal.apply(null, this$1.events[i]) }
-}
+};
 
 function maybeClipScrollbars(cm) {
   var display = cm.display
@@ -6499,6 +6503,7 @@ function markText(doc, from, to, options, type) {
     // Showing up as a widget implies collapsed (widget replaces text)
     marker.collapsed = true
     marker.widgetNode = elt("span", [marker.replacedWith], "CodeMirror-widget")
+    marker.widgetNode.setAttribute("role", "presentation") // hide from accessibility tree
     if (!options.handleMouseEvents) { marker.widgetNode.setAttribute("cm-ignore-events", "true") }
     if (options.insertLeft) { marker.widgetNode.insertLeft = true }
   }
@@ -6846,7 +6851,6 @@ Doc.prototype = createObj(BranchChunk.prototype, {
   clearGutter: docMethodOp(function(gutterID) {
     var this$1 = this;
 
-    var i = this.first
     this.iter(function (line) {
       if (line.gutterMarkers && line.gutterMarkers[gutterID]) {
         changeLine(this$1, line, "gutter", function () {
@@ -6855,7 +6859,6 @@ Doc.prototype = createObj(BranchChunk.prototype, {
           return true
         })
       }
-      ++i
     })
   }),
 
@@ -8035,7 +8038,7 @@ function defineOptions(CodeMirror) {
     for (var i = newBreaks.length - 1; i >= 0; i--)
       { replaceRange(cm.doc, val, newBreaks[i], Pos(newBreaks[i].line, newBreaks[i].ch + val.length)) }
   })
-  option("specialChars", /[\u0000-\u001f\u007f\u00ad\u200b-\u200f\u2028\u2029\ufeff]/g, function (cm, val, old) {
+  option("specialChars", /[\u0000-\u001f\u007f\u00ad\u061c\u200b-\u200f\u2028\u2029\ufeff]/g, function (cm, val, old) {
     cm.state.specialChars = new RegExp(val.source + (val.test("\t") ? "" : "|\t"), "g")
     if (old != Init) { cm.refresh() }
   })
@@ -8125,7 +8128,7 @@ function defineOptions(CodeMirror) {
 function guttersChanged(cm) {
   updateGutters(cm)
   regChange(cm)
-  setTimeout(function () { return alignHorizontally(cm); }, 20)
+  alignHorizontally(cm)
 }
 
 function dragDropChanged(cm, value, old) {
@@ -8180,7 +8183,6 @@ function CodeMirror(place, options) {
   themeChanged(this)
   if (options.lineWrapping)
     { this.display.wrapper.className += " CodeMirror-wrap" }
-  if (options.autofocus && !mobile) { display.input.focus() }
   initScrollbars(this)
 
   this.state = {
@@ -8198,6 +8200,8 @@ function CodeMirror(place, options) {
     keySeq: null,  // Unfinished key sequence
     specialChars: null
   }
+
+  if (options.autofocus && !mobile) { display.input.focus() }
 
   // Override magic textarea content restore that IE sometimes does
   // on our hidden textarea on reload
@@ -8554,6 +8558,7 @@ function addEditorMethods(CodeMirror) {
       options[option] = value
       if (optionHandlers.hasOwnProperty(option))
         { operation(this, optionHandlers[option])(this, value, old) }
+      signal(this, "optionChange", this, option)
     },
 
     getOption: function(option) {return this.options[option]},
@@ -9061,331 +9066,333 @@ function findPosV(cm, pos, dir, unit) {
 
 // CONTENTEDITABLE INPUT STYLE
 
-function ContentEditableInput(cm) {
+var ContentEditableInput = function(cm) {
   this.cm = cm
   this.lastAnchorNode = this.lastAnchorOffset = this.lastFocusNode = this.lastFocusOffset = null
   this.polling = new Delayed()
   this.composing = null
   this.gracePeriod = false
   this.readDOMTimeout = null
-}
+};
 
-ContentEditableInput.prototype = copyObj({
-  init: function(display) {
+ContentEditableInput.prototype.init = function (display) {
     var this$1 = this;
 
-    var input = this, cm = input.cm
-    var div = input.div = display.lineDiv
-    disableBrowserMagic(div, cm.options.spellcheck)
+  var input = this, cm = input.cm
+  var div = input.div = display.lineDiv
+  disableBrowserMagic(div, cm.options.spellcheck)
 
-    on(div, "paste", function (e) {
-      if (signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
-      // IE doesn't fire input events, so we schedule a read for the pasted content in this way
-      if (ie_version <= 11) { setTimeout(operation(cm, function () {
-        if (!input.pollContent()) { regChange(cm) }
-      }), 20) }
-    })
+  on(div, "paste", function (e) {
+    if (signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
+    // IE doesn't fire input events, so we schedule a read for the pasted content in this way
+    if (ie_version <= 11) { setTimeout(operation(cm, function () {
+      if (!input.pollContent()) { regChange(cm) }
+    }), 20) }
+  })
 
-    on(div, "compositionstart", function (e) {
-      this$1.composing = {data: e.data}
-    })
-    on(div, "compositionupdate", function (e) {
-      if (!this$1.composing) { this$1.composing = {data: e.data} }
-    })
-    on(div, "compositionend", function (e) {
-      if (this$1.composing) {
-        if (e.data != this$1.composing.data) { this$1.readFromDOMSoon() }
-        this$1.composing = null
+  on(div, "compositionstart", function (e) {
+    this$1.composing = {data: e.data, done: false}
+  })
+  on(div, "compositionupdate", function (e) {
+    if (!this$1.composing) { this$1.composing = {data: e.data, done: false} }
+  })
+  on(div, "compositionend", function (e) {
+    if (this$1.composing) {
+      if (e.data != this$1.composing.data) { this$1.readFromDOMSoon() }
+      this$1.composing.done = true
+    }
+  })
+
+  on(div, "touchstart", function () { return input.forceCompositionEnd(); })
+
+  on(div, "input", function () {
+    if (!this$1.composing) { this$1.readFromDOMSoon() }
+  })
+
+  function onCopyCut(e) {
+    if (signalDOMEvent(cm, e)) { return }
+    if (cm.somethingSelected()) {
+      setLastCopied({lineWise: false, text: cm.getSelections()})
+      if (e.type == "cut") { cm.replaceSelection("", null, "cut") }
+    } else if (!cm.options.lineWiseCopyCut) {
+      return
+    } else {
+      var ranges = copyableRanges(cm)
+      setLastCopied({lineWise: true, text: ranges.text})
+      if (e.type == "cut") {
+        cm.operation(function () {
+          cm.setSelections(ranges.ranges, 0, sel_dontScroll)
+          cm.replaceSelection("", null, "cut")
+        })
       }
-    })
-
-    on(div, "touchstart", function () { return input.forceCompositionEnd(); })
-
-    on(div, "input", function () {
-      if (!this$1.composing) { this$1.readFromDOMSoon() }
-    })
-
-    function onCopyCut(e) {
-      if (signalDOMEvent(cm, e)) { return }
-      if (cm.somethingSelected()) {
-        setLastCopied({lineWise: false, text: cm.getSelections()})
-        if (e.type == "cut") { cm.replaceSelection("", null, "cut") }
-      } else if (!cm.options.lineWiseCopyCut) {
+    }
+    if (e.clipboardData) {
+      e.clipboardData.clearData()
+      var content = lastCopied.text.join("\n")
+      // iOS exposes the clipboard API, but seems to discard content inserted into it
+      e.clipboardData.setData("Text", content)
+      if (e.clipboardData.getData("Text") == content) {
+        e.preventDefault()
         return
-      } else {
-        var ranges = copyableRanges(cm)
-        setLastCopied({lineWise: true, text: ranges.text})
-        if (e.type == "cut") {
-          cm.operation(function () {
-            cm.setSelections(ranges.ranges, 0, sel_dontScroll)
-            cm.replaceSelection("", null, "cut")
-          })
-        }
       }
-      if (e.clipboardData) {
-        e.clipboardData.clearData()
-        var content = lastCopied.text.join("\n")
-        // iOS exposes the clipboard API, but seems to discard content inserted into it
-        e.clipboardData.setData("Text", content)
-        if (e.clipboardData.getData("Text") == content) {
-          e.preventDefault()
-          return
-        }
-      }
-      // Old-fashioned briefly-focus-a-textarea hack
-      var kludge = hiddenTextarea(), te = kludge.firstChild
-      cm.display.lineSpace.insertBefore(kludge, cm.display.lineSpace.firstChild)
-      te.value = lastCopied.text.join("\n")
-      var hadFocus = document.activeElement
-      selectInput(te)
-      setTimeout(function () {
-        cm.display.lineSpace.removeChild(kludge)
-        hadFocus.focus()
-        if (hadFocus == div) { input.showPrimarySelection() }
-      }, 50)
     }
-    on(div, "copy", onCopyCut)
-    on(div, "cut", onCopyCut)
-  },
+    // Old-fashioned briefly-focus-a-textarea hack
+    var kludge = hiddenTextarea(), te = kludge.firstChild
+    cm.display.lineSpace.insertBefore(kludge, cm.display.lineSpace.firstChild)
+    te.value = lastCopied.text.join("\n")
+    var hadFocus = document.activeElement
+    selectInput(te)
+    setTimeout(function () {
+      cm.display.lineSpace.removeChild(kludge)
+      hadFocus.focus()
+      if (hadFocus == div) { input.showPrimarySelection() }
+    }, 50)
+  }
+  on(div, "copy", onCopyCut)
+  on(div, "cut", onCopyCut)
+};
 
-  prepareSelection: function() {
-    var result = prepareSelection(this.cm, false)
-    result.focus = this.cm.state.focused
-    return result
-  },
+ContentEditableInput.prototype.prepareSelection = function () {
+  var result = prepareSelection(this.cm, false)
+  result.focus = this.cm.state.focused
+  return result
+};
 
-  showSelection: function(info, takeFocus) {
-    if (!info || !this.cm.display.view.length) { return }
-    if (info.focus || takeFocus) { this.showPrimarySelection() }
-    this.showMultipleSelections(info)
-  },
+ContentEditableInput.prototype.showSelection = function (info, takeFocus) {
+  if (!info || !this.cm.display.view.length) { return }
+  if (info.focus || takeFocus) { this.showPrimarySelection() }
+  this.showMultipleSelections(info)
+};
 
-  showPrimarySelection: function() {
-    var sel = window.getSelection(), prim = this.cm.doc.sel.primary()
-    var curAnchor = domToPos(this.cm, sel.anchorNode, sel.anchorOffset)
-    var curFocus = domToPos(this.cm, sel.focusNode, sel.focusOffset)
-    if (curAnchor && !curAnchor.bad && curFocus && !curFocus.bad &&
-        cmp(minPos(curAnchor, curFocus), prim.from()) == 0 &&
-        cmp(maxPos(curAnchor, curFocus), prim.to()) == 0)
-      { return }
+ContentEditableInput.prototype.showPrimarySelection = function () {
+  var sel = window.getSelection(), prim = this.cm.doc.sel.primary()
+  var curAnchor = domToPos(this.cm, sel.anchorNode, sel.anchorOffset)
+  var curFocus = domToPos(this.cm, sel.focusNode, sel.focusOffset)
+  if (curAnchor && !curAnchor.bad && curFocus && !curFocus.bad &&
+      cmp(minPos(curAnchor, curFocus), prim.from()) == 0 &&
+      cmp(maxPos(curAnchor, curFocus), prim.to()) == 0)
+    { return }
 
-    var start = posToDOM(this.cm, prim.from())
-    var end = posToDOM(this.cm, prim.to())
-    if (!start && !end) { return }
+  var start = posToDOM(this.cm, prim.from())
+  var end = posToDOM(this.cm, prim.to())
+  if (!start && !end) { return }
 
-    var view = this.cm.display.view
-    var old = sel.rangeCount && sel.getRangeAt(0)
-    if (!start) {
-      start = {node: view[0].measure.map[2], offset: 0}
-    } else if (!end) { // FIXME dangerously hacky
-      var measure = view[view.length - 1].measure
-      var map = measure.maps ? measure.maps[measure.maps.length - 1] : measure.map
-      end = {node: map[map.length - 1], offset: map[map.length - 2] - map[map.length - 3]}
-    }
+  var view = this.cm.display.view
+  var old = sel.rangeCount && sel.getRangeAt(0)
+  if (!start) {
+    start = {node: view[0].measure.map[2], offset: 0}
+  } else if (!end) { // FIXME dangerously hacky
+    var measure = view[view.length - 1].measure
+    var map = measure.maps ? measure.maps[measure.maps.length - 1] : measure.map
+    end = {node: map[map.length - 1], offset: map[map.length - 2] - map[map.length - 3]}
+  }
 
-    var rng
-    try { rng = range(start.node, start.offset, end.offset, end.node) }
-    catch(e) {} // Our model of the DOM might be outdated, in which case the range we try to set can be impossible
-    if (rng) {
-      if (!gecko && this.cm.state.focused) {
-        sel.collapse(start.node, start.offset)
-        if (!rng.collapsed) {
-          sel.removeAllRanges()
-          sel.addRange(rng)
-        }
-      } else {
+  var rng
+  try { rng = range(start.node, start.offset, end.offset, end.node) }
+  catch(e) {} // Our model of the DOM might be outdated, in which case the range we try to set can be impossible
+  if (rng) {
+    if (!gecko && this.cm.state.focused) {
+      sel.collapse(start.node, start.offset)
+      if (!rng.collapsed) {
         sel.removeAllRanges()
         sel.addRange(rng)
       }
-      if (old && sel.anchorNode == null) { sel.addRange(old) }
-      else if (gecko) { this.startGracePeriod() }
+    } else {
+      sel.removeAllRanges()
+      sel.addRange(rng)
     }
-    this.rememberSelection()
-  },
+    if (old && sel.anchorNode == null) { sel.addRange(old) }
+    else if (gecko) { this.startGracePeriod() }
+  }
+  this.rememberSelection()
+};
 
-  startGracePeriod: function() {
+ContentEditableInput.prototype.startGracePeriod = function () {
     var this$1 = this;
 
-    clearTimeout(this.gracePeriod)
-    this.gracePeriod = setTimeout(function () {
-      this$1.gracePeriod = false
-      if (this$1.selectionChanged())
-        { this$1.cm.operation(function () { return this$1.cm.curOp.selectionChanged = true; }) }
-    }, 20)
-  },
+  clearTimeout(this.gracePeriod)
+  this.gracePeriod = setTimeout(function () {
+    this$1.gracePeriod = false
+    if (this$1.selectionChanged())
+      { this$1.cm.operation(function () { return this$1.cm.curOp.selectionChanged = true; }) }
+  }, 20)
+};
 
-  showMultipleSelections: function(info) {
-    removeChildrenAndAdd(this.cm.display.cursorDiv, info.cursors)
-    removeChildrenAndAdd(this.cm.display.selectionDiv, info.selection)
-  },
+ContentEditableInput.prototype.showMultipleSelections = function (info) {
+  removeChildrenAndAdd(this.cm.display.cursorDiv, info.cursors)
+  removeChildrenAndAdd(this.cm.display.selectionDiv, info.selection)
+};
 
-  rememberSelection: function() {
-    var sel = window.getSelection()
-    this.lastAnchorNode = sel.anchorNode; this.lastAnchorOffset = sel.anchorOffset
-    this.lastFocusNode = sel.focusNode; this.lastFocusOffset = sel.focusOffset
-  },
+ContentEditableInput.prototype.rememberSelection = function () {
+  var sel = window.getSelection()
+  this.lastAnchorNode = sel.anchorNode; this.lastAnchorOffset = sel.anchorOffset
+  this.lastFocusNode = sel.focusNode; this.lastFocusOffset = sel.focusOffset
+};
 
-  selectionInEditor: function() {
-    var sel = window.getSelection()
-    if (!sel.rangeCount) { return false }
-    var node = sel.getRangeAt(0).commonAncestorContainer
-    return contains(this.div, node)
-  },
+ContentEditableInput.prototype.selectionInEditor = function () {
+  var sel = window.getSelection()
+  if (!sel.rangeCount) { return false }
+  var node = sel.getRangeAt(0).commonAncestorContainer
+  return contains(this.div, node)
+};
 
-  focus: function() {
-    if (this.cm.options.readOnly != "nocursor") {
-      if (!this.selectionInEditor())
-        { this.showSelection(this.prepareSelection(), true) }
-      this.div.focus()
-    }
-  },
-  blur: function() { this.div.blur() },
-  getField: function() { return this.div },
-
-  supportsTouch: function() { return true },
-
-  receivedFocus: function() {
-    var input = this
-    if (this.selectionInEditor())
-      { this.pollSelection() }
-    else
-      { runInOp(this.cm, function () { return input.cm.curOp.selectionChanged = true; }) }
-
-    function poll() {
-      if (input.cm.state.focused) {
-        input.pollSelection()
-        input.polling.set(input.cm.options.pollInterval, poll)
-      }
-    }
-    this.polling.set(this.cm.options.pollInterval, poll)
-  },
-
-  selectionChanged: function() {
-    var sel = window.getSelection()
-    return sel.anchorNode != this.lastAnchorNode || sel.anchorOffset != this.lastAnchorOffset ||
-      sel.focusNode != this.lastFocusNode || sel.focusOffset != this.lastFocusOffset
-  },
-
-  pollSelection: function() {
-    if (!this.composing && this.readDOMTimeout == null && !this.gracePeriod && this.selectionChanged()) {
-      var sel = window.getSelection(), cm = this.cm
-      this.rememberSelection()
-      var anchor = domToPos(cm, sel.anchorNode, sel.anchorOffset)
-      var head = domToPos(cm, sel.focusNode, sel.focusOffset)
-      if (anchor && head) { runInOp(cm, function () {
-        setSelection(cm.doc, simpleSelection(anchor, head), sel_dontScroll)
-        if (anchor.bad || head.bad) { cm.curOp.selectionChanged = true }
-      }) }
-    }
-  },
-
-  pollContent: function() {
-    if (this.readDOMTimeout != null) {
-      clearTimeout(this.readDOMTimeout)
-      this.readDOMTimeout = null
-    }
-
-    var cm = this.cm, display = cm.display, sel = cm.doc.sel.primary()
-    var from = sel.from(), to = sel.to()
-    if (from.ch == 0 && from.line > cm.firstLine())
-      { from = Pos(from.line - 1, getLine(cm.doc, from.line - 1).length) }
-    if (to.ch == getLine(cm.doc, to.line).text.length && to.line < cm.lastLine())
-      { to = Pos(to.line + 1, 0) }
-    if (from.line < display.viewFrom || to.line > display.viewTo - 1) { return false }
-
-    var fromIndex, fromLine, fromNode
-    if (from.line == display.viewFrom || (fromIndex = findViewIndex(cm, from.line)) == 0) {
-      fromLine = lineNo(display.view[0].line)
-      fromNode = display.view[0].node
-    } else {
-      fromLine = lineNo(display.view[fromIndex].line)
-      fromNode = display.view[fromIndex - 1].node.nextSibling
-    }
-    var toIndex = findViewIndex(cm, to.line)
-    var toLine, toNode
-    if (toIndex == display.view.length - 1) {
-      toLine = display.viewTo - 1
-      toNode = display.lineDiv.lastChild
-    } else {
-      toLine = lineNo(display.view[toIndex + 1].line) - 1
-      toNode = display.view[toIndex + 1].node.previousSibling
-    }
-
-    if (!fromNode) { return false }
-    var newText = cm.doc.splitLines(domTextBetween(cm, fromNode, toNode, fromLine, toLine))
-    var oldText = getBetween(cm.doc, Pos(fromLine, 0), Pos(toLine, getLine(cm.doc, toLine).text.length))
-    while (newText.length > 1 && oldText.length > 1) {
-      if (lst(newText) == lst(oldText)) { newText.pop(); oldText.pop(); toLine-- }
-      else if (newText[0] == oldText[0]) { newText.shift(); oldText.shift(); fromLine++ }
-      else { break }
-    }
-
-    var cutFront = 0, cutEnd = 0
-    var newTop = newText[0], oldTop = oldText[0], maxCutFront = Math.min(newTop.length, oldTop.length)
-    while (cutFront < maxCutFront && newTop.charCodeAt(cutFront) == oldTop.charCodeAt(cutFront))
-      { ++cutFront }
-    var newBot = lst(newText), oldBot = lst(oldText)
-    var maxCutEnd = Math.min(newBot.length - (newText.length == 1 ? cutFront : 0),
-                             oldBot.length - (oldText.length == 1 ? cutFront : 0))
-    while (cutEnd < maxCutEnd &&
-           newBot.charCodeAt(newBot.length - cutEnd - 1) == oldBot.charCodeAt(oldBot.length - cutEnd - 1))
-      { ++cutEnd }
-
-    newText[newText.length - 1] = newBot.slice(0, newBot.length - cutEnd).replace(/^\u200b+/, "")
-    newText[0] = newText[0].slice(cutFront).replace(/\u200b+$/, "")
-
-    var chFrom = Pos(fromLine, cutFront)
-    var chTo = Pos(toLine, oldText.length ? lst(oldText).length - cutEnd : 0)
-    if (newText.length > 1 || newText[0] || cmp(chFrom, chTo)) {
-      replaceRange(cm.doc, newText, chFrom, chTo, "+input")
-      return true
-    }
-  },
-
-  ensurePolled: function() {
-    this.forceCompositionEnd()
-  },
-  reset: function() {
-    this.forceCompositionEnd()
-  },
-  forceCompositionEnd: function() {
-    if (!this.composing) { return }
-    this.composing = null
-    if (!this.pollContent()) { regChange(this.cm) }
-    this.div.blur()
+ContentEditableInput.prototype.focus = function () {
+  if (this.cm.options.readOnly != "nocursor") {
+    if (!this.selectionInEditor())
+      { this.showSelection(this.prepareSelection(), true) }
     this.div.focus()
-  },
-  readFromDOMSoon: function() {
+  }
+};
+ContentEditableInput.prototype.blur = function () { this.div.blur() };
+ContentEditableInput.prototype.getField = function () { return this.div };
+
+ContentEditableInput.prototype.supportsTouch = function () { return true };
+
+ContentEditableInput.prototype.receivedFocus = function () {
+  var input = this
+  if (this.selectionInEditor())
+    { this.pollSelection() }
+  else
+    { runInOp(this.cm, function () { return input.cm.curOp.selectionChanged = true; }) }
+
+  function poll() {
+    if (input.cm.state.focused) {
+      input.pollSelection()
+      input.polling.set(input.cm.options.pollInterval, poll)
+    }
+  }
+  this.polling.set(this.cm.options.pollInterval, poll)
+};
+
+ContentEditableInput.prototype.selectionChanged = function () {
+  var sel = window.getSelection()
+  return sel.anchorNode != this.lastAnchorNode || sel.anchorOffset != this.lastAnchorOffset ||
+    sel.focusNode != this.lastFocusNode || sel.focusOffset != this.lastFocusOffset
+};
+
+ContentEditableInput.prototype.pollSelection = function () {
+  if (!this.composing && this.readDOMTimeout == null && !this.gracePeriod && this.selectionChanged()) {
+    var sel = window.getSelection(), cm = this.cm
+    this.rememberSelection()
+    var anchor = domToPos(cm, sel.anchorNode, sel.anchorOffset)
+    var head = domToPos(cm, sel.focusNode, sel.focusOffset)
+    if (anchor && head) { runInOp(cm, function () {
+      setSelection(cm.doc, simpleSelection(anchor, head), sel_dontScroll)
+      if (anchor.bad || head.bad) { cm.curOp.selectionChanged = true }
+    }) }
+  }
+};
+
+ContentEditableInput.prototype.pollContent = function () {
+  if (this.readDOMTimeout != null) {
+    clearTimeout(this.readDOMTimeout)
+    this.readDOMTimeout = null
+  }
+
+  var cm = this.cm, display = cm.display, sel = cm.doc.sel.primary()
+  var from = sel.from(), to = sel.to()
+  if (from.ch == 0 && from.line > cm.firstLine())
+    { from = Pos(from.line - 1, getLine(cm.doc, from.line - 1).length) }
+  if (to.ch == getLine(cm.doc, to.line).text.length && to.line < cm.lastLine())
+    { to = Pos(to.line + 1, 0) }
+  if (from.line < display.viewFrom || to.line > display.viewTo - 1) { return false }
+
+  var fromIndex, fromLine, fromNode
+  if (from.line == display.viewFrom || (fromIndex = findViewIndex(cm, from.line)) == 0) {
+    fromLine = lineNo(display.view[0].line)
+    fromNode = display.view[0].node
+  } else {
+    fromLine = lineNo(display.view[fromIndex].line)
+    fromNode = display.view[fromIndex - 1].node.nextSibling
+  }
+  var toIndex = findViewIndex(cm, to.line)
+  var toLine, toNode
+  if (toIndex == display.view.length - 1) {
+    toLine = display.viewTo - 1
+    toNode = display.lineDiv.lastChild
+  } else {
+    toLine = lineNo(display.view[toIndex + 1].line) - 1
+    toNode = display.view[toIndex + 1].node.previousSibling
+  }
+
+  if (!fromNode) { return false }
+  var newText = cm.doc.splitLines(domTextBetween(cm, fromNode, toNode, fromLine, toLine))
+  var oldText = getBetween(cm.doc, Pos(fromLine, 0), Pos(toLine, getLine(cm.doc, toLine).text.length))
+  while (newText.length > 1 && oldText.length > 1) {
+    if (lst(newText) == lst(oldText)) { newText.pop(); oldText.pop(); toLine-- }
+    else if (newText[0] == oldText[0]) { newText.shift(); oldText.shift(); fromLine++ }
+    else { break }
+  }
+
+  var cutFront = 0, cutEnd = 0
+  var newTop = newText[0], oldTop = oldText[0], maxCutFront = Math.min(newTop.length, oldTop.length)
+  while (cutFront < maxCutFront && newTop.charCodeAt(cutFront) == oldTop.charCodeAt(cutFront))
+    { ++cutFront }
+  var newBot = lst(newText), oldBot = lst(oldText)
+  var maxCutEnd = Math.min(newBot.length - (newText.length == 1 ? cutFront : 0),
+                           oldBot.length - (oldText.length == 1 ? cutFront : 0))
+  while (cutEnd < maxCutEnd &&
+         newBot.charCodeAt(newBot.length - cutEnd - 1) == oldBot.charCodeAt(oldBot.length - cutEnd - 1))
+    { ++cutEnd }
+
+  newText[newText.length - 1] = newBot.slice(0, newBot.length - cutEnd).replace(/^\u200b+/, "")
+  newText[0] = newText[0].slice(cutFront).replace(/\u200b+$/, "")
+
+  var chFrom = Pos(fromLine, cutFront)
+  var chTo = Pos(toLine, oldText.length ? lst(oldText).length - cutEnd : 0)
+  if (newText.length > 1 || newText[0] || cmp(chFrom, chTo)) {
+    replaceRange(cm.doc, newText, chFrom, chTo, "+input")
+    return true
+  }
+};
+
+ContentEditableInput.prototype.ensurePolled = function () {
+  this.forceCompositionEnd()
+};
+ContentEditableInput.prototype.reset = function () {
+  this.forceCompositionEnd()
+};
+ContentEditableInput.prototype.forceCompositionEnd = function () {
+  if (!this.composing) { return }
+  clearTimeout(this.readDOMTimeout)
+  this.composing = null
+  if (!this.pollContent()) { regChange(this.cm) }
+  this.div.blur()
+  this.div.focus()
+};
+ContentEditableInput.prototype.readFromDOMSoon = function () {
     var this$1 = this;
 
-    if (this.readDOMTimeout != null) { return }
-    this.readDOMTimeout = setTimeout(function () {
-      this$1.readDOMTimeout = null
-      if (this$1.composing) { return }
-      if (this$1.cm.isReadOnly() || !this$1.pollContent())
-        { runInOp(this$1.cm, function () { return regChange(this$1.cm); }) }
-    }, 80)
-  },
+  if (this.readDOMTimeout != null) { return }
+  this.readDOMTimeout = setTimeout(function () {
+    this$1.readDOMTimeout = null
+    if (this$1.composing) {
+      if (this$1.composing.done) { this$1.composing = null }
+      else { return }
+    }
+    if (this$1.cm.isReadOnly() || !this$1.pollContent())
+      { runInOp(this$1.cm, function () { return regChange(this$1.cm); }) }
+  }, 80)
+};
 
-  setUneditable: function(node) {
-    node.contentEditable = "false"
-  },
+ContentEditableInput.prototype.setUneditable = function (node) {
+  node.contentEditable = "false"
+};
 
-  onKeyPress: function(e) {
-    e.preventDefault()
-    if (!this.cm.isReadOnly())
-      { operation(this.cm, applyTextInput)(this.cm, String.fromCharCode(e.charCode == null ? e.keyCode : e.charCode), 0) }
-  },
+ContentEditableInput.prototype.onKeyPress = function (e) {
+  e.preventDefault()
+  if (!this.cm.isReadOnly())
+    { operation(this.cm, applyTextInput)(this.cm, String.fromCharCode(e.charCode == null ? e.keyCode : e.charCode), 0) }
+};
 
-  readOnlyChanged: function(val) {
-    this.div.contentEditable = String(val != "nocursor")
-  },
+ContentEditableInput.prototype.readOnlyChanged = function (val) {
+  this.div.contentEditable = String(val != "nocursor")
+};
 
-  onContextMenu: nothing,
-  resetPosition: nothing,
+ContentEditableInput.prototype.onContextMenu = function () {};
+ContentEditableInput.prototype.resetPosition = function () {};
 
-  needsContentAttribute: true
-  }, ContentEditableInput.prototype)
+ContentEditableInput.prototype.needsContentAttribute = true
 
 function posToDOM(cm, pos) {
   var view = findViewForLine(cm, pos.line)
@@ -9522,7 +9529,7 @@ function locateNodeInLineView(lineView, node, offset) {
 
 // TEXTAREA INPUT STYLE
 
-function TextareaInput(cm) {
+var TextareaInput = function(cm) {
   this.cm = cm
   // See input.poll and input.reset
   this.prevInput = ""
@@ -9539,335 +9546,333 @@ function TextareaInput(cm) {
   // Used to work around IE issue with selection being forgotten when focus moves away from textarea
   this.hasSelection = false
   this.composing = null
-}
+};
 
-TextareaInput.prototype = copyObj({
-  init: function(display) {
+TextareaInput.prototype.init = function (display) {
     var this$1 = this;
 
-    var input = this, cm = this.cm
+  var input = this, cm = this.cm
 
-    // Wraps and hides input textarea
-    var div = this.wrapper = hiddenTextarea()
-    // The semihidden textarea that is focused when the editor is
-    // focused, and receives input.
-    var te = this.textarea = div.firstChild
-    display.wrapper.insertBefore(div, display.wrapper.firstChild)
+  // Wraps and hides input textarea
+  var div = this.wrapper = hiddenTextarea()
+  // The semihidden textarea that is focused when the editor is
+  // focused, and receives input.
+  var te = this.textarea = div.firstChild
+  display.wrapper.insertBefore(div, display.wrapper.firstChild)
 
-    // Needed to hide big blue blinking cursor on Mobile Safari (doesn't seem to work in iOS 8 anymore)
-    if (ios) { te.style.width = "0px" }
+  // Needed to hide big blue blinking cursor on Mobile Safari (doesn't seem to work in iOS 8 anymore)
+  if (ios) { te.style.width = "0px" }
 
-    on(te, "input", function () {
-      if (ie && ie_version >= 9 && this$1.hasSelection) { this$1.hasSelection = null }
-      input.poll()
-    })
+  on(te, "input", function () {
+    if (ie && ie_version >= 9 && this$1.hasSelection) { this$1.hasSelection = null }
+    input.poll()
+  })
 
-    on(te, "paste", function (e) {
-      if (signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
+  on(te, "paste", function (e) {
+    if (signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
 
-      cm.state.pasteIncoming = true
-      input.fastPoll()
-    })
+    cm.state.pasteIncoming = true
+    input.fastPoll()
+  })
 
-    function prepareCopyCut(e) {
-      if (signalDOMEvent(cm, e)) { return }
-      if (cm.somethingSelected()) {
-        setLastCopied({lineWise: false, text: cm.getSelections()})
-        if (input.inaccurateSelection) {
-          input.prevInput = ""
-          input.inaccurateSelection = false
-          te.value = lastCopied.text.join("\n")
-          selectInput(te)
-        }
-      } else if (!cm.options.lineWiseCopyCut) {
-        return
-      } else {
-        var ranges = copyableRanges(cm)
-        setLastCopied({lineWise: true, text: ranges.text})
-        if (e.type == "cut") {
-          cm.setSelections(ranges.ranges, null, sel_dontScroll)
-        } else {
-          input.prevInput = ""
-          te.value = ranges.text.join("\n")
-          selectInput(te)
-        }
-      }
-      if (e.type == "cut") { cm.state.cutIncoming = true }
-    }
-    on(te, "cut", prepareCopyCut)
-    on(te, "copy", prepareCopyCut)
-
-    on(display.scroller, "paste", function (e) {
-      if (eventInWidget(display, e) || signalDOMEvent(cm, e)) { return }
-      cm.state.pasteIncoming = true
-      input.focus()
-    })
-
-    // Prevent normal selection in the editor (we handle our own)
-    on(display.lineSpace, "selectstart", function (e) {
-      if (!eventInWidget(display, e)) { e_preventDefault(e) }
-    })
-
-    on(te, "compositionstart", function () {
-      var start = cm.getCursor("from")
-      if (input.composing) { input.composing.range.clear() }
-      input.composing = {
-        start: start,
-        range: cm.markText(start, cm.getCursor("to"), {className: "CodeMirror-composing"})
-      }
-    })
-    on(te, "compositionend", function () {
-      if (input.composing) {
-        input.poll()
-        input.composing.range.clear()
-        input.composing = null
-      }
-    })
-  },
-
-  prepareSelection: function() {
-    // Redraw the selection and/or cursor
-    var cm = this.cm, display = cm.display, doc = cm.doc
-    var result = prepareSelection(cm)
-
-    // Move the hidden textarea near the cursor to prevent scrolling artifacts
-    if (cm.options.moveInputWithCursor) {
-      var headPos = cursorCoords(cm, doc.sel.primary().head, "div")
-      var wrapOff = display.wrapper.getBoundingClientRect(), lineOff = display.lineDiv.getBoundingClientRect()
-      result.teTop = Math.max(0, Math.min(display.wrapper.clientHeight - 10,
-                                          headPos.top + lineOff.top - wrapOff.top))
-      result.teLeft = Math.max(0, Math.min(display.wrapper.clientWidth - 10,
-                                           headPos.left + lineOff.left - wrapOff.left))
-    }
-
-    return result
-  },
-
-  showSelection: function(drawn) {
-    var cm = this.cm, display = cm.display
-    removeChildrenAndAdd(display.cursorDiv, drawn.cursors)
-    removeChildrenAndAdd(display.selectionDiv, drawn.selection)
-    if (drawn.teTop != null) {
-      this.wrapper.style.top = drawn.teTop + "px"
-      this.wrapper.style.left = drawn.teLeft + "px"
-    }
-  },
-
-  // Reset the input to correspond to the selection (or to be empty,
-  // when not typing and nothing is selected)
-  reset: function(typing) {
-    if (this.contextMenuPending) { return }
-    var minimal, selected, cm = this.cm, doc = cm.doc
+  function prepareCopyCut(e) {
+    if (signalDOMEvent(cm, e)) { return }
     if (cm.somethingSelected()) {
-      this.prevInput = ""
-      var range = doc.sel.primary()
-      minimal = hasCopyEvent &&
-        (range.to().line - range.from().line > 100 || (selected = cm.getSelection()).length > 1000)
-      var content = minimal ? "-" : selected || cm.getSelection()
-      this.textarea.value = content
-      if (cm.state.focused) { selectInput(this.textarea) }
-      if (ie && ie_version >= 9) { this.hasSelection = content }
-    } else if (!typing) {
-      this.prevInput = this.textarea.value = ""
-      if (ie && ie_version >= 9) { this.hasSelection = null }
-    }
-    this.inaccurateSelection = minimal
-  },
-
-  getField: function() { return this.textarea },
-
-  supportsTouch: function() { return false },
-
-  focus: function() {
-    if (this.cm.options.readOnly != "nocursor" && (!mobile || activeElt() != this.textarea)) {
-      try { this.textarea.focus() }
-      catch (e) {} // IE8 will throw if the textarea is display: none or not in DOM
-    }
-  },
-
-  blur: function() { this.textarea.blur() },
-
-  resetPosition: function() {
-    this.wrapper.style.top = this.wrapper.style.left = 0
-  },
-
-  receivedFocus: function() { this.slowPoll() },
-
-  // Poll for input changes, using the normal rate of polling. This
-  // runs as long as the editor is focused.
-  slowPoll: function() {
-    var this$1 = this;
-
-    if (this.pollingFast) { return }
-    this.polling.set(this.cm.options.pollInterval, function () {
-      this$1.poll()
-      if (this$1.cm.state.focused) { this$1.slowPoll() }
-    })
-  },
-
-  // When an event has just come in that is likely to add or change
-  // something in the input textarea, we poll faster, to ensure that
-  // the change appears on the screen quickly.
-  fastPoll: function() {
-    var missed = false, input = this
-    input.pollingFast = true
-    function p() {
-      var changed = input.poll()
-      if (!changed && !missed) {missed = true; input.polling.set(60, p)}
-      else {input.pollingFast = false; input.slowPoll()}
-    }
-    input.polling.set(20, p)
-  },
-
-  // Read input from the textarea, and update the document to match.
-  // When something is selected, it is present in the textarea, and
-  // selected (unless it is huge, in which case a placeholder is
-  // used). When nothing is selected, the cursor sits after previously
-  // seen text (can be empty), which is stored in prevInput (we must
-  // not reset the textarea when typing, because that breaks IME).
-  poll: function() {
-    var this$1 = this;
-
-    var cm = this.cm, input = this.textarea, prevInput = this.prevInput
-    // Since this is called a *lot*, try to bail out as cheaply as
-    // possible when it is clear that nothing happened. hasSelection
-    // will be the case when there is a lot of text in the textarea,
-    // in which case reading its value would be expensive.
-    if (this.contextMenuPending || !cm.state.focused ||
-        (hasSelection(input) && !prevInput && !this.composing) ||
-        cm.isReadOnly() || cm.options.disableInput || cm.state.keySeq)
-      { return false }
-
-    var text = input.value
-    // If nothing changed, bail.
-    if (text == prevInput && !cm.somethingSelected()) { return false }
-    // Work around nonsensical selection resetting in IE9/10, and
-    // inexplicable appearance of private area unicode characters on
-    // some key combos in Mac (#2689).
-    if (ie && ie_version >= 9 && this.hasSelection === text ||
-        mac && /[\uf700-\uf7ff]/.test(text)) {
-      cm.display.input.reset()
-      return false
-    }
-
-    if (cm.doc.sel == cm.display.selForContextMenu) {
-      var first = text.charCodeAt(0)
-      if (first == 0x200b && !prevInput) { prevInput = "\u200b" }
-      if (first == 0x21da) { this.reset(); return this.cm.execCommand("undo") }
-    }
-    // Find the part of the input that is actually new
-    var same = 0, l = Math.min(prevInput.length, text.length)
-    while (same < l && prevInput.charCodeAt(same) == text.charCodeAt(same)) { ++same }
-
-    runInOp(cm, function () {
-      applyTextInput(cm, text.slice(same), prevInput.length - same,
-                     null, this$1.composing ? "*compose" : null)
-
-      // Don't leave long text in the textarea, since it makes further polling slow
-      if (text.length > 1000 || text.indexOf("\n") > -1) { input.value = this$1.prevInput = "" }
-      else { this$1.prevInput = text }
-
-      if (this$1.composing) {
-        this$1.composing.range.clear()
-        this$1.composing.range = cm.markText(this$1.composing.start, cm.getCursor("to"),
-                                           {className: "CodeMirror-composing"})
+      setLastCopied({lineWise: false, text: cm.getSelections()})
+      if (input.inaccurateSelection) {
+        input.prevInput = ""
+        input.inaccurateSelection = false
+        te.value = lastCopied.text.join("\n")
+        selectInput(te)
       }
-    })
-    return true
-  },
-
-  ensurePolled: function() {
-    if (this.pollingFast && this.poll()) { this.pollingFast = false }
-  },
-
-  onKeyPress: function() {
-    if (ie && ie_version >= 9) { this.hasSelection = null }
-    this.fastPoll()
-  },
-
-  onContextMenu: function(e) {
-    var input = this, cm = input.cm, display = cm.display, te = input.textarea
-    var pos = posFromMouse(cm, e), scrollPos = display.scroller.scrollTop
-    if (!pos || presto) { return } // Opera is difficult.
-
-    // Reset the current text selection only if the click is done outside of the selection
-    // and 'resetSelectionOnContextMenu' option is true.
-    var reset = cm.options.resetSelectionOnContextMenu
-    if (reset && cm.doc.sel.contains(pos) == -1)
-      { operation(cm, setSelection)(cm.doc, simpleSelection(pos), sel_dontScroll) }
-
-    var oldCSS = te.style.cssText, oldWrapperCSS = input.wrapper.style.cssText
-    input.wrapper.style.cssText = "position: absolute"
-    var wrapperBox = input.wrapper.getBoundingClientRect()
-    te.style.cssText = "position: absolute; width: 30px; height: 30px;\n      top: " + (e.clientY - wrapperBox.top - 5) + "px; left: " + (e.clientX - wrapperBox.left - 5) + "px;\n      z-index: 1000; background: " + (ie ? "rgba(255, 255, 255, .05)" : "transparent") + ";\n      outline: none; border-width: 0; outline: none; overflow: hidden; opacity: .05; filter: alpha(opacity=5);"
-    var oldScrollY
-    if (webkit) { oldScrollY = window.scrollY } // Work around Chrome issue (#2712)
-    display.input.focus()
-    if (webkit) { window.scrollTo(null, oldScrollY) }
-    display.input.reset()
-    // Adds "Select all" to context menu in FF
-    if (!cm.somethingSelected()) { te.value = input.prevInput = " " }
-    input.contextMenuPending = true
-    display.selForContextMenu = cm.doc.sel
-    clearTimeout(display.detectingSelectAll)
-
-    // Select-all will be greyed out if there's nothing to select, so
-    // this adds a zero-width space so that we can later check whether
-    // it got selected.
-    function prepareSelectAllHack() {
-      if (te.selectionStart != null) {
-        var selected = cm.somethingSelected()
-        var extval = "\u200b" + (selected ? te.value : "")
-        te.value = "\u21da" // Used to catch context-menu undo
-        te.value = extval
-        input.prevInput = selected ? "" : "\u200b"
-        te.selectionStart = 1; te.selectionEnd = extval.length
-        // Re-set this, in case some other handler touched the
-        // selection in the meantime.
-        display.selForContextMenu = cm.doc.sel
-      }
-    }
-    function rehide() {
-      input.contextMenuPending = false
-      input.wrapper.style.cssText = oldWrapperCSS
-      te.style.cssText = oldCSS
-      if (ie && ie_version < 9) { display.scrollbars.setScrollTop(display.scroller.scrollTop = scrollPos) }
-
-      // Try to detect the user choosing select-all
-      if (te.selectionStart != null) {
-        if (!ie || (ie && ie_version < 9)) { prepareSelectAllHack() }
-        var i = 0, poll = function () {
-          if (display.selForContextMenu == cm.doc.sel && te.selectionStart == 0 &&
-              te.selectionEnd > 0 && input.prevInput == "\u200b")
-            { operation(cm, selectAll)(cm) }
-          else if (i++ < 10) { display.detectingSelectAll = setTimeout(poll, 500) }
-          else { display.input.reset() }
-        }
-        display.detectingSelectAll = setTimeout(poll, 200)
-      }
-    }
-
-    if (ie && ie_version >= 9) { prepareSelectAllHack() }
-    if (captureRightClick) {
-      e_stop(e)
-      var mouseup = function () {
-        off(window, "mouseup", mouseup)
-        setTimeout(rehide, 20)
-      }
-      on(window, "mouseup", mouseup)
+    } else if (!cm.options.lineWiseCopyCut) {
+      return
     } else {
-      setTimeout(rehide, 50)
+      var ranges = copyableRanges(cm)
+      setLastCopied({lineWise: true, text: ranges.text})
+      if (e.type == "cut") {
+        cm.setSelections(ranges.ranges, null, sel_dontScroll)
+      } else {
+        input.prevInput = ""
+        te.value = ranges.text.join("\n")
+        selectInput(te)
+      }
     }
-  },
+    if (e.type == "cut") { cm.state.cutIncoming = true }
+  }
+  on(te, "cut", prepareCopyCut)
+  on(te, "copy", prepareCopyCut)
 
-  readOnlyChanged: function(val) {
-    if (!val) { this.reset() }
-  },
+  on(display.scroller, "paste", function (e) {
+    if (eventInWidget(display, e) || signalDOMEvent(cm, e)) { return }
+    cm.state.pasteIncoming = true
+    input.focus()
+  })
 
-  setUneditable: nothing,
+  // Prevent normal selection in the editor (we handle our own)
+  on(display.lineSpace, "selectstart", function (e) {
+    if (!eventInWidget(display, e)) { e_preventDefault(e) }
+  })
 
-  needsContentAttribute: false
-}, TextareaInput.prototype)
+  on(te, "compositionstart", function () {
+    var start = cm.getCursor("from")
+    if (input.composing) { input.composing.range.clear() }
+    input.composing = {
+      start: start,
+      range: cm.markText(start, cm.getCursor("to"), {className: "CodeMirror-composing"})
+    }
+  })
+  on(te, "compositionend", function () {
+    if (input.composing) {
+      input.poll()
+      input.composing.range.clear()
+      input.composing = null
+    }
+  })
+};
+
+TextareaInput.prototype.prepareSelection = function () {
+  // Redraw the selection and/or cursor
+  var cm = this.cm, display = cm.display, doc = cm.doc
+  var result = prepareSelection(cm)
+
+  // Move the hidden textarea near the cursor to prevent scrolling artifacts
+  if (cm.options.moveInputWithCursor) {
+    var headPos = cursorCoords(cm, doc.sel.primary().head, "div")
+    var wrapOff = display.wrapper.getBoundingClientRect(), lineOff = display.lineDiv.getBoundingClientRect()
+    result.teTop = Math.max(0, Math.min(display.wrapper.clientHeight - 10,
+                                        headPos.top + lineOff.top - wrapOff.top))
+    result.teLeft = Math.max(0, Math.min(display.wrapper.clientWidth - 10,
+                                         headPos.left + lineOff.left - wrapOff.left))
+  }
+
+  return result
+};
+
+TextareaInput.prototype.showSelection = function (drawn) {
+  var cm = this.cm, display = cm.display
+  removeChildrenAndAdd(display.cursorDiv, drawn.cursors)
+  removeChildrenAndAdd(display.selectionDiv, drawn.selection)
+  if (drawn.teTop != null) {
+    this.wrapper.style.top = drawn.teTop + "px"
+    this.wrapper.style.left = drawn.teLeft + "px"
+  }
+};
+
+// Reset the input to correspond to the selection (or to be empty,
+// when not typing and nothing is selected)
+TextareaInput.prototype.reset = function (typing) {
+  if (this.contextMenuPending) { return }
+  var minimal, selected, cm = this.cm, doc = cm.doc
+  if (cm.somethingSelected()) {
+    this.prevInput = ""
+    var range = doc.sel.primary()
+    minimal = hasCopyEvent &&
+      (range.to().line - range.from().line > 100 || (selected = cm.getSelection()).length > 1000)
+    var content = minimal ? "-" : selected || cm.getSelection()
+    this.textarea.value = content
+    if (cm.state.focused) { selectInput(this.textarea) }
+    if (ie && ie_version >= 9) { this.hasSelection = content }
+  } else if (!typing) {
+    this.prevInput = this.textarea.value = ""
+    if (ie && ie_version >= 9) { this.hasSelection = null }
+  }
+  this.inaccurateSelection = minimal
+};
+
+TextareaInput.prototype.getField = function () { return this.textarea };
+
+TextareaInput.prototype.supportsTouch = function () { return false };
+
+TextareaInput.prototype.focus = function () {
+  if (this.cm.options.readOnly != "nocursor" && (!mobile || activeElt() != this.textarea)) {
+    try { this.textarea.focus() }
+    catch (e) {} // IE8 will throw if the textarea is display: none or not in DOM
+  }
+};
+
+TextareaInput.prototype.blur = function () { this.textarea.blur() };
+
+TextareaInput.prototype.resetPosition = function () {
+  this.wrapper.style.top = this.wrapper.style.left = 0
+};
+
+TextareaInput.prototype.receivedFocus = function () { this.slowPoll() };
+
+// Poll for input changes, using the normal rate of polling. This
+// runs as long as the editor is focused.
+TextareaInput.prototype.slowPoll = function () {
+    var this$1 = this;
+
+  if (this.pollingFast) { return }
+  this.polling.set(this.cm.options.pollInterval, function () {
+    this$1.poll()
+    if (this$1.cm.state.focused) { this$1.slowPoll() }
+  })
+};
+
+// When an event has just come in that is likely to add or change
+// something in the input textarea, we poll faster, to ensure that
+// the change appears on the screen quickly.
+TextareaInput.prototype.fastPoll = function () {
+  var missed = false, input = this
+  input.pollingFast = true
+  function p() {
+    var changed = input.poll()
+    if (!changed && !missed) {missed = true; input.polling.set(60, p)}
+    else {input.pollingFast = false; input.slowPoll()}
+  }
+  input.polling.set(20, p)
+};
+
+// Read input from the textarea, and update the document to match.
+// When something is selected, it is present in the textarea, and
+// selected (unless it is huge, in which case a placeholder is
+// used). When nothing is selected, the cursor sits after previously
+// seen text (can be empty), which is stored in prevInput (we must
+// not reset the textarea when typing, because that breaks IME).
+TextareaInput.prototype.poll = function () {
+    var this$1 = this;
+
+  var cm = this.cm, input = this.textarea, prevInput = this.prevInput
+  // Since this is called a *lot*, try to bail out as cheaply as
+  // possible when it is clear that nothing happened. hasSelection
+  // will be the case when there is a lot of text in the textarea,
+  // in which case reading its value would be expensive.
+  if (this.contextMenuPending || !cm.state.focused ||
+      (hasSelection(input) && !prevInput && !this.composing) ||
+      cm.isReadOnly() || cm.options.disableInput || cm.state.keySeq)
+    { return false }
+
+  var text = input.value
+  // If nothing changed, bail.
+  if (text == prevInput && !cm.somethingSelected()) { return false }
+  // Work around nonsensical selection resetting in IE9/10, and
+  // inexplicable appearance of private area unicode characters on
+  // some key combos in Mac (#2689).
+  if (ie && ie_version >= 9 && this.hasSelection === text ||
+      mac && /[\uf700-\uf7ff]/.test(text)) {
+    cm.display.input.reset()
+    return false
+  }
+
+  if (cm.doc.sel == cm.display.selForContextMenu) {
+    var first = text.charCodeAt(0)
+    if (first == 0x200b && !prevInput) { prevInput = "\u200b" }
+    if (first == 0x21da) { this.reset(); return this.cm.execCommand("undo") }
+  }
+  // Find the part of the input that is actually new
+  var same = 0, l = Math.min(prevInput.length, text.length)
+  while (same < l && prevInput.charCodeAt(same) == text.charCodeAt(same)) { ++same }
+
+  runInOp(cm, function () {
+    applyTextInput(cm, text.slice(same), prevInput.length - same,
+                   null, this$1.composing ? "*compose" : null)
+
+    // Don't leave long text in the textarea, since it makes further polling slow
+    if (text.length > 1000 || text.indexOf("\n") > -1) { input.value = this$1.prevInput = "" }
+    else { this$1.prevInput = text }
+
+    if (this$1.composing) {
+      this$1.composing.range.clear()
+      this$1.composing.range = cm.markText(this$1.composing.start, cm.getCursor("to"),
+                                         {className: "CodeMirror-composing"})
+    }
+  })
+  return true
+};
+
+TextareaInput.prototype.ensurePolled = function () {
+  if (this.pollingFast && this.poll()) { this.pollingFast = false }
+};
+
+TextareaInput.prototype.onKeyPress = function () {
+  if (ie && ie_version >= 9) { this.hasSelection = null }
+  this.fastPoll()
+};
+
+TextareaInput.prototype.onContextMenu = function (e) {
+  var input = this, cm = input.cm, display = cm.display, te = input.textarea
+  var pos = posFromMouse(cm, e), scrollPos = display.scroller.scrollTop
+  if (!pos || presto) { return } // Opera is difficult.
+
+  // Reset the current text selection only if the click is done outside of the selection
+  // and 'resetSelectionOnContextMenu' option is true.
+  var reset = cm.options.resetSelectionOnContextMenu
+  if (reset && cm.doc.sel.contains(pos) == -1)
+    { operation(cm, setSelection)(cm.doc, simpleSelection(pos), sel_dontScroll) }
+
+  var oldCSS = te.style.cssText, oldWrapperCSS = input.wrapper.style.cssText
+  input.wrapper.style.cssText = "position: absolute"
+  var wrapperBox = input.wrapper.getBoundingClientRect()
+  te.style.cssText = "position: absolute; width: 30px; height: 30px;\n      top: " + (e.clientY - wrapperBox.top - 5) + "px; left: " + (e.clientX - wrapperBox.left - 5) + "px;\n      z-index: 1000; background: " + (ie ? "rgba(255, 255, 255, .05)" : "transparent") + ";\n      outline: none; border-width: 0; outline: none; overflow: hidden; opacity: .05; filter: alpha(opacity=5);"
+  var oldScrollY
+  if (webkit) { oldScrollY = window.scrollY } // Work around Chrome issue (#2712)
+  display.input.focus()
+  if (webkit) { window.scrollTo(null, oldScrollY) }
+  display.input.reset()
+  // Adds "Select all" to context menu in FF
+  if (!cm.somethingSelected()) { te.value = input.prevInput = " " }
+  input.contextMenuPending = true
+  display.selForContextMenu = cm.doc.sel
+  clearTimeout(display.detectingSelectAll)
+
+  // Select-all will be greyed out if there's nothing to select, so
+  // this adds a zero-width space so that we can later check whether
+  // it got selected.
+  function prepareSelectAllHack() {
+    if (te.selectionStart != null) {
+      var selected = cm.somethingSelected()
+      var extval = "\u200b" + (selected ? te.value : "")
+      te.value = "\u21da" // Used to catch context-menu undo
+      te.value = extval
+      input.prevInput = selected ? "" : "\u200b"
+      te.selectionStart = 1; te.selectionEnd = extval.length
+      // Re-set this, in case some other handler touched the
+      // selection in the meantime.
+      display.selForContextMenu = cm.doc.sel
+    }
+  }
+  function rehide() {
+    input.contextMenuPending = false
+    input.wrapper.style.cssText = oldWrapperCSS
+    te.style.cssText = oldCSS
+    if (ie && ie_version < 9) { display.scrollbars.setScrollTop(display.scroller.scrollTop = scrollPos) }
+
+    // Try to detect the user choosing select-all
+    if (te.selectionStart != null) {
+      if (!ie || (ie && ie_version < 9)) { prepareSelectAllHack() }
+      var i = 0, poll = function () {
+        if (display.selForContextMenu == cm.doc.sel && te.selectionStart == 0 &&
+            te.selectionEnd > 0 && input.prevInput == "\u200b")
+          { operation(cm, selectAll)(cm) }
+        else if (i++ < 10) { display.detectingSelectAll = setTimeout(poll, 500) }
+        else { display.input.reset() }
+      }
+      display.detectingSelectAll = setTimeout(poll, 200)
+    }
+  }
+
+  if (ie && ie_version >= 9) { prepareSelectAllHack() }
+  if (captureRightClick) {
+    e_stop(e)
+    var mouseup = function () {
+      off(window, "mouseup", mouseup)
+      setTimeout(rehide, 20)
+    }
+    on(window, "mouseup", mouseup)
+  } else {
+    setTimeout(rehide, 50)
+  }
+};
+
+TextareaInput.prototype.readOnlyChanged = function (val) {
+  if (!val) { this.reset() }
+};
+
+TextareaInput.prototype.setUneditable = function () {};
+
+TextareaInput.prototype.needsContentAttribute = false
 
 function fromTextArea(textarea, options) {
   options = options ? copyObj(options) : {}
@@ -10018,7 +10023,7 @@ CodeMirror.fromTextArea = fromTextArea
 
 addLegacyProps(CodeMirror)
 
-CodeMirror.version = "5.21.0"
+CodeMirror.version = "5.23.0"
 
 return CodeMirror;
 
@@ -21511,7 +21516,7 @@ module.exports={
         "spec": ">=1.7.1 <2.0.0",
         "type": "range"
       },
-      "/Users/long/wp/homepage/node_modules/vega"
+      "/webppl/node_modules/vega"
     ]
   ],
   "_from": "datalib@>=1.7.1 <2.0.0",
@@ -21548,7 +21553,7 @@ module.exports={
   "_shasum": "4722715bb91f5a2411cf42bf984932cc403eba48",
   "_shrinkwrap": null,
   "_spec": "datalib@^1.7.1",
-  "_where": "/Users/long/wp/homepage/node_modules/vega",
+  "_where": "/webppl/node_modules/vega",
   "author": {
     "name": "Jeffrey Heer",
     "url": "http://idl.cs.washington.edu"
@@ -25757,12 +25762,18 @@ module.exports = hyphenateStyleName;
  * will remain to ensure logic does not differ in production.
  */
 
-function invariant(condition, format, a, b, c, d, e, f) {
-  if (process.env.NODE_ENV !== 'production') {
+var validateFormat = function validateFormat(format) {};
+
+if (process.env.NODE_ENV !== 'production') {
+  validateFormat = function validateFormat(format) {
     if (format === undefined) {
       throw new Error('invariant requires an error message argument');
     }
-  }
+  };
+}
+
+function invariant(condition, format, a, b, c, d, e, f) {
+  validateFormat(format);
 
   if (!condition) {
     var error;
@@ -45111,8 +45122,15 @@ module.exports = matchAt;
 })();
 
 },{"charenc":4,"crypt":10,"is-buffer":64}],94:[function(require,module,exports){
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
 'use strict';
 /* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 var propIsEnumerable = Object.prototype.propertyIsEnumerable;
 
@@ -45133,7 +45151,7 @@ function shouldUseNative() {
 		// Detect buggy property enumeration order in older V8 versions.
 
 		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
-		var test1 = new String('abc');  // eslint-disable-line
+		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
 		test1[5] = 'de';
 		if (Object.getOwnPropertyNames(test1)[0] === '5') {
 			return false;
@@ -45162,7 +45180,7 @@ function shouldUseNative() {
 		}
 
 		return true;
-	} catch (e) {
+	} catch (err) {
 		// We don't expect any of the above to throw, but better to be safe.
 		return false;
 	}
@@ -45182,8 +45200,8 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 			}
 		}
 
-		if (Object.getOwnPropertySymbols) {
-			symbols = Object.getOwnPropertySymbols(from);
+		if (getOwnPropertySymbols) {
+			symbols = getOwnPropertySymbols(from);
 			for (var i = 0; i < symbols.length; i++) {
 				if (propIsEnumerable.call(from, symbols[i])) {
 					to[symbols[i]] = from[symbols[i]];
@@ -49245,17 +49263,6 @@ var fourArgumentPooler = function (a1, a2, a3, a4) {
   }
 };
 
-var fiveArgumentPooler = function (a1, a2, a3, a4, a5) {
-  var Klass = this;
-  if (Klass.instancePool.length) {
-    var instance = Klass.instancePool.pop();
-    Klass.call(instance, a1, a2, a3, a4, a5);
-    return instance;
-  } else {
-    return new Klass(a1, a2, a3, a4, a5);
-  }
-};
-
 var standardReleaser = function (instance) {
   var Klass = this;
   !(instance instanceof Klass) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Trying to release an instance into a pool of a different type.') : _prodInvariant('25') : void 0;
@@ -49295,8 +49302,7 @@ var PooledClass = {
   oneArgumentPooler: oneArgumentPooler,
   twoArgumentPooler: twoArgumentPooler,
   threeArgumentPooler: threeArgumentPooler,
-  fourArgumentPooler: fourArgumentPooler,
-  fiveArgumentPooler: fiveArgumentPooler
+  fourArgumentPooler: fourArgumentPooler
 };
 
 module.exports = PooledClass;
@@ -50099,7 +50105,7 @@ var ReactCompositeComponent = {
       // Since plain JS classes are defined without any special initialization
       // logic, we can not catch common errors early. Therefore, we have to
       // catch them here, at initialization time, instead.
-      process.env.NODE_ENV !== 'production' ? warning(!inst.getInitialState || inst.getInitialState.isReactClassApproved, 'getInitialState was defined on %s, a plain JavaScript class. ' + 'This is only supported for classes created using React.createClass. ' + 'Did you mean to define a state property instead?', this.getName() || 'a component') : void 0;
+      process.env.NODE_ENV !== 'production' ? warning(!inst.getInitialState || inst.getInitialState.isReactClassApproved || inst.state, 'getInitialState was defined on %s, a plain JavaScript class. ' + 'This is only supported for classes created using React.createClass. ' + 'Did you mean to define a state property instead?', this.getName() || 'a component') : void 0;
       process.env.NODE_ENV !== 'production' ? warning(!inst.getDefaultProps || inst.getDefaultProps.isReactClassApproved, 'getDefaultProps was defined on %s, a plain JavaScript class. ' + 'This is only supported for classes created using React.createClass. ' + 'Use a static property to define defaultProps instead.', this.getName() || 'a component') : void 0;
       process.env.NODE_ENV !== 'production' ? warning(!inst.propTypes, 'propTypes was defined as an instance property on %s. Use a static ' + 'property to define propTypes instead.', this.getName() || 'a component') : void 0;
       process.env.NODE_ENV !== 'production' ? warning(!inst.contextTypes, 'contextTypes was defined as an instance property on %s. Use a ' + 'static property to define contextTypes instead.', this.getName() || 'a component') : void 0;
@@ -51565,12 +51571,18 @@ ReactDOMComponent.Mixin = {
     } else {
       var contentToUse = CONTENT_TYPES[typeof props.children] ? props.children : null;
       var childrenToUse = contentToUse != null ? null : props.children;
+      // TODO: Validate that text is allowed as a child of this node
       if (contentToUse != null) {
-        // TODO: Validate that text is allowed as a child of this node
-        if (process.env.NODE_ENV !== 'production') {
-          setAndValidateContentChildDev.call(this, contentToUse);
+        // Avoid setting textContent when the text is empty. In IE11 setting
+        // textContent on a text area will cause the placeholder to not
+        // show within the textarea until it has been focused and blurred again.
+        // https://github.com/facebook/react/issues/6731#issuecomment-254874553
+        if (contentToUse !== '') {
+          if (process.env.NODE_ENV !== 'production') {
+            setAndValidateContentChildDev.call(this, contentToUse);
+          }
+          DOMLazyTree.queueText(lazyTree, contentToUse);
         }
-        DOMLazyTree.queueText(lazyTree, contentToUse);
       } else if (childrenToUse != null) {
         var mountImages = this.mountChildren(childrenToUse, transaction, context);
         for (var i = 0; i < mountImages.length; i++) {
@@ -51922,6 +51934,13 @@ var Flags = ReactDOMComponentFlags;
 var internalInstanceKey = '__reactInternalInstance$' + Math.random().toString(36).slice(2);
 
 /**
+ * Check if a given node should be cached.
+ */
+function shouldPrecacheNode(node, nodeID) {
+  return node.nodeType === 1 && node.getAttribute(ATTR_NAME) === String(nodeID) || node.nodeType === 8 && node.nodeValue === ' react-text: ' + nodeID + ' ' || node.nodeType === 8 && node.nodeValue === ' react-empty: ' + nodeID + ' ';
+}
+
+/**
  * Drill down (through composites and empty components) until we get a host or
  * host text component.
  *
@@ -51986,7 +52005,7 @@ function precacheChildNodes(inst, node) {
     }
     // We assume the child nodes are in the same order as the child instances.
     for (; childNode !== null; childNode = childNode.nextSibling) {
-      if (childNode.nodeType === 1 && childNode.getAttribute(ATTR_NAME) === String(childID) || childNode.nodeType === 8 && childNode.nodeValue === ' react-text: ' + childID + ' ' || childNode.nodeType === 8 && childNode.nodeValue === ' react-empty: ' + childID + ' ') {
+      if (shouldPrecacheNode(childNode, childID)) {
         precacheNode(childInst, childNode);
         continue outer;
       }
@@ -52394,7 +52413,17 @@ var ReactDOMInput = {
       }
     } else {
       if (props.value == null && props.defaultValue != null) {
-        node.defaultValue = '' + props.defaultValue;
+        // In Chrome, assigning defaultValue to certain input types triggers input validation.
+        // For number inputs, the display value loses trailing decimal points. For email inputs,
+        // Chrome raises "The specified value <x> is not a valid email address".
+        //
+        // Here we check to see if the defaultValue has actually changed, avoiding these problems
+        // when the user is inputting text
+        //
+        // https://github.com/facebook/react/issues/7253
+        if (node.defaultValue !== '' + props.defaultValue) {
+          node.defaultValue = '' + props.defaultValue;
+        }
       }
       if (props.checked == null && props.defaultChecked != null) {
         node.defaultChecked = !!props.defaultChecked;
@@ -53489,9 +53518,15 @@ var ReactDOMTextarea = {
     // This is in postMount because we need access to the DOM node, which is not
     // available until after the component has mounted.
     var node = ReactDOMComponentTree.getNodeFromInstance(inst);
+    var textContent = node.textContent;
 
-    // Warning: node.value may be the empty string at this point (IE11) if placeholder is set.
-    node.value = node.textContent; // Detach value from defaultValue
+    // Only set node.value if textContent is equal to the expected
+    // initial value. In IE10/IE11 there is a bug where the placeholder attribute
+    // will populate textContent as well.
+    // https://developer.microsoft.com/microsoft-edge/platform/issues/101525/
+    if (textContent === inst._wrapperState.initialValue) {
+      node.value = textContent;
+    }
   }
 };
 
@@ -54626,14 +54661,11 @@ module.exports = ReactFeatureFlags;
 
 'use strict';
 
-var _prodInvariant = require('./reactProdInvariant'),
-    _assign = require('object-assign');
+var _prodInvariant = require('./reactProdInvariant');
 
 var invariant = require('fbjs/lib/invariant');
 
 var genericComponentClass = null;
-// This registry keeps track of wrapper classes around host tags.
-var tagToComponentClass = {};
 var textComponentClass = null;
 
 var ReactHostComponentInjection = {
@@ -54646,11 +54678,6 @@ var ReactHostComponentInjection = {
   // rendered as props.
   injectTextComponentClass: function (componentClass) {
     textComponentClass = componentClass;
-  },
-  // This accepts a keyed object with classes as values. Each key represents a
-  // tag. That particular tag will use this class instead of the generic one.
-  injectComponentClasses: function (componentClasses) {
-    _assign(tagToComponentClass, componentClasses);
   }
 };
 
@@ -54690,7 +54717,7 @@ var ReactHostComponent = {
 
 module.exports = ReactHostComponent;
 }).call(this,require('_process'))
-},{"./reactProdInvariant":218,"_process":95,"fbjs/lib/invariant":56,"object-assign":94}],156:[function(require,module,exports){
+},{"./reactProdInvariant":218,"_process":95,"fbjs/lib/invariant":56}],156:[function(require,module,exports){
 /**
  * Copyright 2016-present, Facebook, Inc.
  * All rights reserved.
@@ -57385,7 +57412,7 @@ module.exports = ReactUpdates;
 
 'use strict';
 
-module.exports = '15.4.1';
+module.exports = '15.4.2';
 },{}],177:[function(require,module,exports){
 /**
  * Copyright 2013-present, Facebook, Inc.
@@ -60407,7 +60434,17 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
     var element = node;
-    !(element && (typeof element.type === 'function' || typeof element.type === 'string')) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s', element.type == null ? element.type : typeof element.type, getDeclarationErrorAddendum(element._owner)) : _prodInvariant('130', element.type == null ? element.type : typeof element.type, getDeclarationErrorAddendum(element._owner)) : void 0;
+    var type = element.type;
+    if (typeof type !== 'function' && typeof type !== 'string') {
+      var info = '';
+      if (process.env.NODE_ENV !== 'production') {
+        if (type === undefined || typeof type === 'object' && type !== null && Object.keys(type).length === 0) {
+          info += ' You likely forgot to export your component from the file ' + 'it\'s defined in.';
+        }
+      }
+      info += getDeclarationErrorAddendum(element._owner);
+      !false ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s', type == null ? type : typeof type, info) : _prodInvariant('130', type == null ? type : typeof type, info) : void 0;
+    }
 
     // Special case string values
     if (typeof element.type === 'string') {
@@ -63579,7 +63616,14 @@ var ReactElementValidator = {
     // We warn in this case but don't throw. We expect the element creation to
     // succeed and there will likely be errors in render.
     if (!validType) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'React.createElement: type should not be null, undefined, boolean, or ' + 'number. It should be a string (for DOM elements) or a ReactClass ' + '(for composite components).%s', getDeclarationErrorAddendum()) : void 0;
+      if (typeof type !== 'function' && typeof type !== 'string') {
+        var info = '';
+        if (type === undefined || typeof type === 'object' && type !== null && Object.keys(type).length === 0) {
+          info += ' You likely forgot to export your component from the file ' + 'it\'s defined in.';
+        }
+        info += getDeclarationErrorAddendum();
+        process.env.NODE_ENV !== 'production' ? warning(false, 'React.createElement: type is invalid -- expected a string (for ' + 'built-in components) or a class/function (for composite ' + 'components) but got: %s.%s', type == null ? type : typeof type, info) : void 0;
+      }
     }
 
     var element = ReactElement.createElement.apply(this, arguments);
@@ -64569,7 +64613,7 @@ module.exports = traverseAllChildren;
 module.exports = require('./lib/React');
 
 },{"./lib/React":227}],250:[function(require,module,exports){
-;/*! showdown 01-12-2016 */
+;/*! showdown 30-01-2017 */
 (function(){
 /**
  * Created by Tivie on 13-07-2015.
@@ -64593,6 +64637,11 @@ function getDefaultOpts(simple) {
       defaultValue: false,
       describe: 'Specify a prefix to generated header ids',
       type: 'string'
+    },
+    ghCompatibleHeaderId: {
+      defaultValue: false,
+      describe: 'Generate header ids compatible with github style (spaces are replaced with dashes, a bunch of non alphanumeric chars are removed)',
+      type: 'boolean'
     },
     headerLevelStart: {
       defaultValue: false,
@@ -64663,6 +64712,26 @@ function getDefaultOpts(simple) {
       defaultValue: false,
       description: 'Parses simple line breaks as <br> (GFM Style)',
       type: 'boolean'
+    },
+    requireSpaceBeforeHeadingText: {
+      defaultValue: false,
+      description: 'Makes adding a space between `#` and the header text mandatory (GFM Style)',
+      type: 'boolean'
+    },
+    ghMentions: {
+      defaultValue: false,
+      description: 'Enables github @mentions',
+      type: 'boolean'
+    },
+    ghMentionsLink: {
+      defaultValue: 'https://github.com/{u}',
+      description: 'Changes the link generated by @mentions. Only applies if ghMentions option is enabled.',
+      type: 'string'
+    },
+    encodeEmails: {
+      defaultValue: true,
+      description: 'Encode e-mail addresses through the use of Character Entities, transforming ASCII e-mail addresses into its equivalent decimal entities',
+      type: 'boolean'
     }
   };
   if (simple === false) {
@@ -64677,6 +64746,18 @@ function getDefaultOpts(simple) {
   return ret;
 }
 
+function allOptionsOn() {
+  'use strict';
+  var options = getDefaultOpts(true),
+      ret = {};
+  for (var opt in options) {
+    if (options.hasOwnProperty(opt)) {
+      ret[opt] = true;
+    }
+  }
+  return ret;
+}
+
 /**
  * Created by Tivie on 06-01-2015.
  */
@@ -64686,6 +64767,7 @@ var showdown = {},
     parsers = {},
     extensions = {},
     globalOptions = getDefaultOpts(true),
+    setFlavor = 'vanilla',
     flavor = {
       github: {
         omitExtraWLInCodeBlocks:              true,
@@ -64699,9 +64781,13 @@ var showdown = {},
         ghCodeBlocks:                         true,
         tasklists:                            true,
         disableForced4SpacesIndentedSublists: true,
-        simpleLineBreaks:                     true
+        simpleLineBreaks:                     true,
+        requireSpaceBeforeHeadingText:        true,
+        ghCompatibleHeaderId:                 true,
+        ghMentions:                           true
       },
-      vanilla: getDefaultOpts(true)
+      vanilla: getDefaultOpts(true),
+      allOn: allOptionsOn()
     };
 
 /**
@@ -64765,13 +64851,36 @@ showdown.resetOptions = function () {
  */
 showdown.setFlavor = function (name) {
   'use strict';
-  if (flavor.hasOwnProperty(name)) {
-    var preset = flavor[name];
-    for (var option in preset) {
-      if (preset.hasOwnProperty(option)) {
-        globalOptions[option] = preset[option];
-      }
+  if (!flavor.hasOwnProperty(name)) {
+    throw Error(name + ' flavor was not found');
+  }
+  var preset = flavor[name];
+  setFlavor = name;
+  for (var option in preset) {
+    if (preset.hasOwnProperty(option)) {
+      globalOptions[option] = preset[option];
     }
+  }
+};
+
+/**
+ * Get the currently set flavor
+ * @returns {string}
+ */
+showdown.getFlavor = function () {
+  'use strict';
+  return setFlavor;
+};
+
+/**
+ * Get the options of a specified flavor. Returns undefined if the flavor was not found
+ * @param {string} name Name of the flavor
+ * @returns {{}|undefined}
+ */
+showdown.getFlavorOptions = function (name) {
+  'use strict';
+  if (flavor.hasOwnProperty(name)) {
+    return flavor[name];
   }
 };
 
@@ -65020,7 +65129,7 @@ if (!showdown.hasOwnProperty('helper')) {
  * @param {string} a
  * @returns {boolean}
  */
-showdown.helper.isString = function isString(a) {
+showdown.helper.isString = function (a) {
   'use strict';
   return (typeof a === 'string' || a instanceof String);
 };
@@ -65028,30 +65137,13 @@ showdown.helper.isString = function isString(a) {
 /**
  * Check if var is a function
  * @static
- * @param {string} a
+ * @param {*} a
  * @returns {boolean}
  */
-showdown.helper.isFunction = function isFunction(a) {
+showdown.helper.isFunction = function (a) {
   'use strict';
   var getType = {};
   return a && getType.toString.call(a) === '[object Function]';
-};
-
-/**
- * ForEach helper function
- * @static
- * @param {*} obj
- * @param {function} callback
- */
-showdown.helper.forEach = function forEach(obj, callback) {
-  'use strict';
-  if (typeof obj.forEach === 'function') {
-    obj.forEach(callback);
-  } else {
-    for (var i = 0; i < obj.length; i++) {
-      callback(obj[i], i, obj);
-    }
-  }
 };
 
 /**
@@ -65060,7 +65152,7 @@ showdown.helper.forEach = function forEach(obj, callback) {
  * @param {*} a
  * @returns {boolean}
  */
-showdown.helper.isArray = function isArray(a) {
+showdown.helper.isArray = function (a) {
   'use strict';
   return a.constructor === Array;
 };
@@ -65071,9 +65163,48 @@ showdown.helper.isArray = function isArray(a) {
  * @param {*} value The value to check.
  * @returns {boolean} Returns `true` if `value` is `undefined`, else `false`.
  */
-showdown.helper.isUndefined = function isUndefined(value) {
+showdown.helper.isUndefined = function (value) {
   'use strict';
   return typeof value === 'undefined';
+};
+
+/**
+ * ForEach helper function
+ * Iterates over Arrays and Objects (own properties only)
+ * @static
+ * @param {*} obj
+ * @param {function} callback Accepts 3 params: 1. value, 2. key, 3. the original array/object
+ */
+showdown.helper.forEach = function (obj, callback) {
+  'use strict';
+  // check if obj is defined
+  if (showdown.helper.isUndefined(obj)) {
+    throw new Error('obj param is required');
+  }
+
+  if (showdown.helper.isUndefined(callback)) {
+    throw new Error('callback param is required');
+  }
+
+  if (!showdown.helper.isFunction(callback)) {
+    throw new Error('callback param must be a function/closure');
+  }
+
+  if (typeof obj.forEach === 'function') {
+    obj.forEach(callback);
+  } else if (showdown.helper.isArray(obj)) {
+    for (var i = 0; i < obj.length; i++) {
+      callback(obj[i], i, obj);
+    }
+  } else if (typeof (obj) === 'object') {
+    for (var prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        callback(obj[prop], prop, obj);
+      }
+    }
+  } else {
+    throw new Error('obj does not seem to be an array or an iterable object');
+  }
 };
 
 /**
@@ -65084,13 +65215,13 @@ showdown.helper.isUndefined = function isUndefined(value) {
  */
 showdown.helper.stdExtName = function (s) {
   'use strict';
-  return s.replace(/[_-]||\s/g, '').toLowerCase();
+  return s.replace(/[_?*+\/\\.^-]/g, '').replace(/\s/g, '').toLowerCase();
 };
 
 function escapeCharactersCallback(wholeMatch, m1) {
   'use strict';
   var charCodeToEscape = m1.charCodeAt(0);
-  return '~E' + charCodeToEscape + 'E';
+  return '¨E' + charCodeToEscape + 'E';
 }
 
 /**
@@ -65110,7 +65241,7 @@ showdown.helper.escapeCharactersCallback = escapeCharactersCallback;
  * @param {boolean} afterBackslash
  * @returns {XML|string|void|*}
  */
-showdown.helper.escapeCharacters = function escapeCharacters(text, charsToEscape, afterBackslash) {
+showdown.helper.escapeCharacters = function (text, charsToEscape, afterBackslash) {
   'use strict';
   // First we have to escape the escape characters so that
   // we can build a character class out of them
@@ -65260,9 +65391,50 @@ showdown.helper.replaceRecursiveRegExp = function (str, replacement, left, right
 };
 
 /**
+ * Obfuscate an e-mail address through the use of Character Entities,
+ * transforming ASCII characters into their equivalent decimal or hex entities.
+ *
+ * Since it has a random component, subsequent calls to this function produce different results
+ *
+ * @param {string} mail
+ * @returns {string}
+ */
+showdown.helper.encodeEmailAddress = function (mail) {
+  'use strict';
+  var encode = [
+    function (ch) {
+      return '&#' + ch.charCodeAt(0) + ';';
+    },
+    function (ch) {
+      return '&#x' + ch.charCodeAt(0).toString(16) + ';';
+    },
+    function (ch) {
+      return ch;
+    }
+  ];
+
+  mail = mail.replace(/./g, function (ch) {
+    if (ch === '@') {
+      // this *must* be encoded. I insist.
+      ch = encode[Math.floor(Math.random() * 2)](ch);
+    } else {
+      var r = Math.random();
+      // roughly 10% raw, 45% hex, 45% dec
+      ch = (
+        r > 0.9 ? encode[2](ch) : r > 0.45 ? encode[1](ch) : encode[0](ch)
+      );
+    }
+    return ch;
+  });
+
+  return mail;
+};
+
+/**
  * POLYFILLS
  */
-if (showdown.helper.isUndefined(console)) {
+// use this instead of builtin is undefined for IE8 compatibility
+if (typeof(console) === 'undefined') {
   console = {
     warn: function (msg) {
       'use strict';
@@ -65278,6 +65450,14 @@ if (showdown.helper.isUndefined(console)) {
     }
   };
 }
+
+/**
+ * Common regexes.
+ * We declare some common regexes to improve performance
+ */
+showdown.helper.regexes = {
+  asteriskAndDash: /([*_])/g
+};
 
 /**
  * Created by Estevao on 31-05-2015.
@@ -65319,7 +65499,12 @@ showdown.Converter = function (converterOptions) {
        * @private
        * @type {{}}
        */
-      listeners = {};
+      listeners = {},
+
+      /**
+       * The flavor set in this converter
+       */
+      setConvFlavor = setFlavor;
 
   _constructor();
 
@@ -65407,7 +65592,7 @@ showdown.Converter = function (converterOptions) {
           outputModifiers.push(ext[i]);
           break;
       }
-      if (ext[i].hasOwnProperty(listeners)) {
+      if (ext[i].hasOwnProperty('listeners')) {
         for (var ln in ext[i].listeners) {
           if (ext[i].listeners.hasOwnProperty(ln)) {
             listen(ln, ext[i].listeners[ln]);
@@ -65534,20 +65719,22 @@ showdown.Converter = function (converterOptions) {
       ghCodeBlocks:    []
     };
 
-    // attacklab: Replace ~ with ~T
-    // This lets us use tilde as an escape char to avoid md5 hashes
+    // This lets us use ¨ trema as an escape char to avoid md5 hashes
     // The choice of character is arbitrary; anything that isn't
     // magic in Markdown will work.
-    text = text.replace(/~/g, '~T');
+    text = text.replace(/¨/g, '¨T');
 
-    // attacklab: Replace $ with ~D
+    // Replace $ with ¨D
     // RegExp interprets $ as a special character
     // when it's in a replacement string
-    text = text.replace(/\$/g, '~D');
+    text = text.replace(/\$/g, '¨D');
 
     // Standardize line endings
     text = text.replace(/\r\n/g, '\n'); // DOS to Unix
     text = text.replace(/\r/g, '\n'); // Mac to Unix
+
+    // Stardardize line spaces (nbsp causes trouble in older browsers and some regex flavors)
+    text = text.replace(/\u00A0/g, ' ');
 
     if (options.smartIndentationFix) {
       text = rTrimInputText(text);
@@ -65559,8 +65746,13 @@ showdown.Converter = function (converterOptions) {
     // detab
     text = showdown.subParser('detab')(text, options, globals);
 
-    // stripBlankLines
-    text = showdown.subParser('stripBlankLines')(text, options, globals);
+    /**
+     * Strip any lines consisting only of spaces and tabs.
+     * This makes subsequent regexs easier to write, because we can
+     * match consecutive blank lines with /\n+/ instead of something
+     * contorted like /[ \t]*\n+/
+     */
+    text = text.replace(/^[ \t]+$/mg, '');
 
     //run languageExtensions
     showdown.helper.forEach(langExtensions, function (ext) {
@@ -65578,10 +65770,10 @@ showdown.Converter = function (converterOptions) {
     text = showdown.subParser('unescapeSpecialChars')(text, options, globals);
 
     // attacklab: Restore dollar signs
-    text = text.replace(/~D/g, '$$');
+    text = text.replace(/¨D/g, '$$');
 
-    // attacklab: Restore tildes
-    text = text.replace(/~T/g, '~');
+    // attacklab: Restore tremas
+    text = text.replace(/¨T/g, '¨');
 
     // Run output modifiers
     showdown.helper.forEach(outputModifiers, function (ext) {
@@ -65640,14 +65832,24 @@ showdown.Converter = function (converterOptions) {
    * @param {string} name
    */
   this.setFlavor = function (name) {
-    if (flavor.hasOwnProperty(name)) {
-      var preset = flavor[name];
-      for (var option in preset) {
-        if (preset.hasOwnProperty(option)) {
-          options[option] = preset[option];
-        }
+    if (!flavor.hasOwnProperty(name)) {
+      throw Error(name + ' flavor was not found');
+    }
+    var preset = flavor[name];
+    setConvFlavor = name;
+    for (var option in preset) {
+      if (preset.hasOwnProperty(option)) {
+        options[option] = preset[option];
       }
     }
+  };
+
+  /**
+   * Get the currently set flavor of this converter
+   * @returns {string}
+   */
+  this.getFlavor = function () {
+    return setConvFlavor;
   };
 
   /**
@@ -65727,12 +65929,15 @@ showdown.subParser('anchors', function (text, options, globals) {
       }
     }
 
-    url = showdown.helper.escapeCharacters(url, '*_', false);
+    //url = showdown.helper.escapeCharacters(url, '*_', false); // replaced line to improve performance
+    url = url.replace(showdown.helper.regexes.asteriskAndDash, showdown.helper.escapeCharactersCallback);
+
     var result = '<a href="' + url + '"';
 
     if (title !== '' && title !== null) {
       title = title.replace(/"/g, '&quot;');
-      title = showdown.helper.escapeCharacters(title, '*_', false);
+      //title = showdown.helper.escapeCharacters(title, '*_', false); // replaced line to improve performance
+      title = title.replace(showdown.helper.regexes.asteriskAndDash, showdown.helper.escapeCharactersCallback);
       result += ' title="' + title + '"';
     }
 
@@ -65748,10 +65953,26 @@ showdown.subParser('anchors', function (text, options, globals) {
   text = text.replace(/(\[((?:\[[^\]]*]|[^\[\]])*)]\([ \t]*()<?(.*?(?:\(.*?\).*?)?)>?[ \t]*((['"])(.*?)\6[ \t]*)?\))/g,
                       writeAnchorTag);
 
-  // Last, handle reference-style shortcuts: [link text]
+  // handle reference-style shortcuts: [link text]
   // These must come last in case you've also got [link test][1]
   // or [link test](/foo)
   text = text.replace(/(\[([^\[\]]+)])()()()()()/g, writeAnchorTag);
+
+  // Lastly handle GithubMentions if option is enabled
+  if (options.ghMentions) {
+    text = text.replace(/(^|\s)(\\)?(@([a-z\d\-]+))(?=[.!?;,[\]()]|\s|$)/gmi, function (wm, st, escape, mentions, username) {
+      if (escape === '\\') {
+        return st + mentions;
+      }
+
+      //check if options.ghMentionsLink is a string
+      if (!showdown.helper.isString(options.ghMentionsLink)) {
+        throw new Error('ghMentionsLink option must be a string');
+      }
+      var lnk = options.ghMentionsLink.replace(/\{u}/g, username);
+      return st + '<a href="' + lnk + '">' + mentions + '</a>';
+    });
+  }
 
   text = globals.converter._dispatch('anchors.after', text, options, globals);
   return text;
@@ -65765,8 +65986,8 @@ showdown.subParser('autoLinks', function (text, options, globals) {
   var simpleURLRegex  = /\b(((https?|ftp|dict):\/\/|www\.)[^'">\s]+\.[^'">\s]+)()(?=\s|$)(?!["<>])/gi,
       simpleURLRegex2 = /\b(((https?|ftp|dict):\/\/|www\.)[^'">\s]+\.[^'">\s]+?)([.!?()]?)(?=\s|$)(?!["<>])/gi,
       delimUrlRegex   = /<(((https?|ftp|dict):\/\/|www\.)[^'">\s]+)>/gi,
-      simpleMailRegex = /(?:^|\s)([A-Za-z0-9!#$%&'*+-/=?^_`{|}~.]+@[-a-z0-9]+(\.[-a-z0-9]+)*\.[a-z]+)(?:$|\s)/gi,
-      delimMailRegex  = /<(?:mailto:)?([-.\w]+@[-a-z0-9]+(\.[-a-z0-9]+)*\.[a-z]+)>/gi;
+      simpleMailRegex = /(^|\s)(?:mailto:)?([A-Za-z0-9!#$%&'*+-/=?^_`{|}~.]+@[-a-z0-9]+(\.[-a-z0-9]+)*\.[a-z]+)(?=$|\s)/gmi,
+      delimMailRegex  = /<()(?:mailto:)?([-.\w]+@[-a-z0-9]+(\.[-a-z0-9]+)*\.[a-z]+)>/gi;
 
   text = text.replace(delimUrlRegex, replaceLink);
   text = text.replace(delimMailRegex, replaceMail);
@@ -65794,9 +66015,17 @@ showdown.subParser('autoLinks', function (text, options, globals) {
     return '<a href="' + link + '">' + lnkTxt + '</a>' + append;
   }
 
-  function replaceMail(wholeMatch, mail) {
-    var unescapedStr = showdown.subParser('unescapeSpecialChars')(mail);
-    return showdown.subParser('encodeEmailAddress')(unescapedStr);
+  function replaceMail(wholeMatch, b, mail) {
+    var href = 'mailto:';
+    b = b || '';
+    mail = showdown.subParser('unescapeSpecialChars')(mail, options, globals);
+    if (options.encodeEmails) {
+      mail = showdown.helper.encodeEmailAddress(mail);
+      href = showdown.helper.encodeEmailAddress(href + mail);
+    } else {
+      href = href + mail;
+    }
+    return b + '<a href="' + href + '">' + mail + '</a>';
   }
 
   text = globals.converter._dispatch('autoLinks.after', text, options, globals);
@@ -65819,10 +66048,7 @@ showdown.subParser('blockGamut', function (text, options, globals) {
   text = showdown.subParser('headers')(text, options, globals);
 
   // Do Horizontal Rules:
-  var key = showdown.subParser('hashBlock')('<hr />', options, globals);
-  text = text.replace(/^[ ]{0,2}([ ]?\*[ ]?){3,}[ \t]*$/gm, key);
-  text = text.replace(/^[ ]{0,2}([ ]?\-[ ]?){3,}[ \t]*$/gm, key);
-  text = text.replace(/^[ ]{0,2}([ ]?_[ ]?){3,}[ \t]*$/gm, key);
+  text = showdown.subParser('horizontalRule')(text, options, globals);
 
   text = showdown.subParser('lists')(text, options, globals);
   text = showdown.subParser('codeBlocks')(text, options, globals);
@@ -65850,10 +66076,10 @@ showdown.subParser('blockQuotes', function (text, options, globals) {
 
     // attacklab: hack around Konqueror 3.5.4 bug:
     // "----------bug".replace(/^-/g,"") == "bug"
-    bq = bq.replace(/^[ \t]*>[ \t]?/gm, '~0'); // trim one level of quoting
+    bq = bq.replace(/^[ \t]*>[ \t]?/gm, '¨0'); // trim one level of quoting
 
     // attacklab: clean up hack
-    bq = bq.replace(/~0/g, '');
+    bq = bq.replace(/¨0/g, '');
 
     bq = bq.replace(/^[ \t]+$/gm, ''); // trim whitespace-only lines
     bq = showdown.subParser('githubCodeBlocks')(bq, options, globals);
@@ -65864,8 +66090,8 @@ showdown.subParser('blockQuotes', function (text, options, globals) {
     bq = bq.replace(/(\s*<pre>[^\r]+?<\/pre>)/gm, function (wholeMatch, m1) {
       var pre = m1;
       // attacklab: hack around Konqueror 3.5.4 bug:
-      pre = pre.replace(/^  /mg, '~0');
-      pre = pre.replace(/~0/g, '');
+      pre = pre.replace(/^  /mg, '¨0');
+      pre = pre.replace(/¨0/g, '');
       return pre;
     });
 
@@ -65885,17 +66111,17 @@ showdown.subParser('codeBlocks', function (text, options, globals) {
   text = globals.converter._dispatch('codeBlocks.before', text, options, globals);
 
   // sentinel workarounds for lack of \A and \Z, safari\khtml bug
-  text += '~0';
+  text += '¨0';
 
-  var pattern = /(?:\n\n|^)((?:(?:[ ]{4}|\t).*\n+)+)(\n*[ ]{0,3}[^ \t\n]|(?=~0))/g;
+  var pattern = /(?:\n\n|^)((?:(?:[ ]{4}|\t).*\n+)+)(\n*[ ]{0,3}[^ \t\n]|(?=¨0))/g;
   text = text.replace(pattern, function (wholeMatch, m1, m2) {
     var codeblock = m1,
         nextChar = m2,
         end = '\n';
 
-    codeblock = showdown.subParser('outdent')(codeblock);
-    codeblock = showdown.subParser('encodeCode')(codeblock);
-    codeblock = showdown.subParser('detab')(codeblock);
+    codeblock = showdown.subParser('outdent')(codeblock, options, globals);
+    codeblock = showdown.subParser('encodeCode')(codeblock, options, globals);
+    codeblock = showdown.subParser('detab')(codeblock, options, globals);
     codeblock = codeblock.replace(/^\n+/g, ''); // trim leading newlines
     codeblock = codeblock.replace(/\n+$/g, ''); // trim trailing newlines
 
@@ -65909,7 +66135,7 @@ showdown.subParser('codeBlocks', function (text, options, globals) {
   });
 
   // strip sentinel
-  text = text.replace(/~0/, '');
+  text = text.replace(/¨0/, '');
 
   text = globals.converter._dispatch('codeBlocks.after', text, options, globals);
   return text;
@@ -65945,19 +66171,6 @@ showdown.subParser('codeSpans', function (text, options, globals) {
 
   text = globals.converter._dispatch('codeSpans.before', text, options, globals);
 
-  /*
-   text = text.replace(/
-   (^|[^\\])					// Character before opening ` can't be a backslash
-   (`+)						// $2 = Opening run of `
-   (							// $3 = The code block
-   [^\r]*?
-   [^`]					// attacklab: work around lack of lookbehind
-   )
-   \2							// Matching closer
-   (?!`)
-   /gm, function(){...});
-   */
-
   if (typeof(text) === 'undefined') {
     text = '';
   }
@@ -65966,7 +66179,7 @@ showdown.subParser('codeSpans', function (text, options, globals) {
       var c = m3;
       c = c.replace(/^([ \t]*)/g, '');	// leading whitespace
       c = c.replace(/[ \t]*$/g, '');	// trailing whitespace
-      c = showdown.subParser('encodeCode')(c);
+      c = showdown.subParser('encodeCode')(c, options, globals);
       return m1 + '<code>' + c + '</code>';
     }
   );
@@ -65978,17 +66191,18 @@ showdown.subParser('codeSpans', function (text, options, globals) {
 /**
  * Convert all tabs to spaces
  */
-showdown.subParser('detab', function (text) {
+showdown.subParser('detab', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('detab.before', text, options, globals);
 
   // expand first n-1 tabs
   text = text.replace(/\t(?=\t)/g, '    '); // g_tab_width
 
   // replace the nth with two sentinels
-  text = text.replace(/\t/g, '~A~B');
+  text = text.replace(/\t/g, '¨A¨B');
 
   // use the sentinel to anchor our regex so it doesn't explode
-  text = text.replace(/~B(.+?)~A/g, function (wholeMatch, m1) {
+  text = text.replace(/¨B(.+?)¨A/g, function (wholeMatch, m1) {
     var leadingText = m1,
         numSpaces = 4 - leadingText.length % 4;  // g_tab_width
 
@@ -66001,25 +66215,28 @@ showdown.subParser('detab', function (text) {
   });
 
   // clean up sentinels
-  text = text.replace(/~A/g, '    ');  // g_tab_width
-  text = text.replace(/~B/g, '');
+  text = text.replace(/¨A/g, '    ');  // g_tab_width
+  text = text.replace(/¨B/g, '');
 
+  text = globals.converter._dispatch('detab.after', text, options, globals);
   return text;
-
 });
 
 /**
  * Smart processing for ampersands and angle brackets that need to be encoded.
  */
-showdown.subParser('encodeAmpsAndAngles', function (text) {
+showdown.subParser('encodeAmpsAndAngles', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('encodeAmpsAndAngles.before', text, options, globals);
+
   // Ampersand-encoding based entirely on Nat Irons's Amputator MT plugin:
   // http://bumppo.net/projects/amputator/
   text = text.replace(/&(?!#?[xX]?(?:[0-9a-fA-F]+|\w+);)/g, '&amp;');
 
   // Encode naked <'s
-  text = text.replace(/<(?![a-z\/?\$!])/gi, '&lt;');
+  text = text.replace(/<(?![a-z\/?$!])/gi, '&lt;');
 
+  text = globals.converter._dispatch('encodeAmpsAndAngles.after', text, options, globals);
   return text;
 });
 
@@ -66034,10 +66251,14 @@ showdown.subParser('encodeAmpsAndAngles', function (text) {
  * ...but we're sidestepping its use of the (slow) RegExp constructor
  * as an optimization for Firefox.  This function gets called a LOT.
  */
-showdown.subParser('encodeBackslashEscapes', function (text) {
+showdown.subParser('encodeBackslashEscapes', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('encodeBackslashEscapes.before', text, options, globals);
+
   text = text.replace(/\\(\\)/g, showdown.helper.escapeCharactersCallback);
-  text = text.replace(/\\([`*_{}\[\]()>#+-.!])/g, showdown.helper.escapeCharactersCallback);
+  text = text.replace(/\\([`*_{}\[\]()>#+.!~=-])/g, showdown.helper.escapeCharactersCallback);
+
+  text = globals.converter._dispatch('encodeBackslashEscapes.after', text, options, globals);
   return text;
 });
 
@@ -66046,100 +66267,44 @@ showdown.subParser('encodeBackslashEscapes', function (text) {
  * The point is that in code, these characters are literals,
  * and lose their special Markdown meanings.
  */
-showdown.subParser('encodeCode', function (text) {
+showdown.subParser('encodeCode', function (text, options, globals) {
   'use strict';
+
+  text = globals.converter._dispatch('encodeCode.before', text, options, globals);
 
   // Encode all ampersands; HTML entities are not
   // entities within a Markdown code span.
-  text = text.replace(/&/g, '&amp;');
-
+  text = text
+    .replace(/&/g, '&amp;')
   // Do the angle bracket song and dance:
-  text = text.replace(/</g, '&lt;');
-  text = text.replace(/>/g, '&gt;');
-
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
   // Now, escape characters that are magic in Markdown:
-  text = showdown.helper.escapeCharacters(text, '*_{}[]\\', false);
+    .replace(/([*_{}\[\]\\=~-])/g, showdown.helper.escapeCharactersCallback);
 
-  // jj the line above breaks this:
-  //---
-  //* Item
-  //   1. Subitem
-  //            special char: *
-  // ---
-
+  text = globals.converter._dispatch('encodeCode.after', text, options, globals);
   return text;
 });
 
 /**
- *  Input: an email address, e.g. "foo@example.com"
- *
- *  Output: the email address as a mailto link, with each character
- *    of the address encoded as either a decimal or hex entity, in
- *    the hopes of foiling most address harvesting spam bots. E.g.:
- *
- *    <a href="&#x6D;&#97;&#105;&#108;&#x74;&#111;:&#102;&#111;&#111;&#64;&#101;
- *       x&#x61;&#109;&#x70;&#108;&#x65;&#x2E;&#99;&#111;&#109;">&#102;&#111;&#111;
- *       &#64;&#101;x&#x61;&#109;&#x70;&#108;&#x65;&#x2E;&#99;&#111;&#109;</a>
- *
- *  Based on a filter by Matthew Wickline, posted to the BBEdit-Talk
- *  mailing list: <http://tinyurl.com/yu7ue>
- *
- */
-showdown.subParser('encodeEmailAddress', function (addr) {
-  'use strict';
-
-  var encode = [
-    function (ch) {
-      return '&#' + ch.charCodeAt(0) + ';';
-    },
-    function (ch) {
-      return '&#x' + ch.charCodeAt(0).toString(16) + ';';
-    },
-    function (ch) {
-      return ch;
-    }
-  ];
-
-  addr = 'mailto:' + addr;
-
-  addr = addr.replace(/./g, function (ch) {
-    if (ch === '@') {
-      // this *must* be encoded. I insist.
-      ch = encode[Math.floor(Math.random() * 2)](ch);
-    } else if (ch !== ':') {
-      // leave ':' alone (to spot mailto: later)
-      var r = Math.random();
-      // roughly 10% raw, 45% hex, 45% dec
-      ch = (
-        r > 0.9 ? encode[2](ch) : r > 0.45 ? encode[1](ch) : encode[0](ch)
-      );
-    }
-    return ch;
-  });
-
-  addr = '<a href="' + addr + '">' + addr + '</a>';
-  addr = addr.replace(/">.+:/g, '">'); // strip the mailto: from the visible part
-
-  return addr;
-});
-
-/**
- * Within tags -- meaning between < and > -- encode [\ ` * _] so they
+ * Within tags -- meaning between < and > -- encode [\ ` * _ ~ =] so they
  * don't conflict with their use in Markdown for code, italics and strong.
  */
-showdown.subParser('escapeSpecialCharsWithinTagAttributes', function (text) {
+showdown.subParser('escapeSpecialCharsWithinTagAttributes', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('escapeSpecialCharsWithinTagAttributes.before', text, options, globals);
 
   // Build a regex to find HTML tags and comments.  See Friedl's
   // "Mastering Regular Expressions", 2nd Ed., pp. 200-201.
   var regex = /(<[a-z\/!$]("[^"]*"|'[^']*'|[^'">])*>|<!(--.*?--\s*)+>)/gi;
 
   text = text.replace(regex, function (wholeMatch) {
-    var tag = wholeMatch.replace(/(.)<\/?code>(?=.)/g, '$1`');
-    tag = showdown.helper.escapeCharacters(tag, '\\`*_', false);
-    return tag;
+    return wholeMatch
+      .replace(/(.)<\/?code>(?=.)/g, '$1`')
+      .replace(/([\\`*_~=])/g, showdown.helper.escapeCharactersCallback);
   });
 
+  text = globals.converter._dispatch('escapeSpecialCharsWithinTagAttributes.after', text, options, globals);
   return text;
 });
 
@@ -66163,14 +66328,14 @@ showdown.subParser('githubCodeBlocks', function (text, options, globals) {
 
   text = globals.converter._dispatch('githubCodeBlocks.before', text, options, globals);
 
-  text += '~0';
+  text += '¨0';
 
   text = text.replace(/(?:^|\n)```(.*)\n([\s\S]*?)\n```/g, function (wholeMatch, language, codeblock) {
     var end = (options.omitExtraWLInCodeBlocks) ? '' : '\n';
 
     // First parse the github code block
-    codeblock = showdown.subParser('encodeCode')(codeblock);
-    codeblock = showdown.subParser('detab')(codeblock);
+    codeblock = showdown.subParser('encodeCode')(codeblock, options, globals);
+    codeblock = showdown.subParser('detab')(codeblock, options, globals);
     codeblock = codeblock.replace(/^\n+/g, ''); // trim leading newlines
     codeblock = codeblock.replace(/\n+$/g, ''); // trim trailing whitespace
 
@@ -66181,19 +66346,22 @@ showdown.subParser('githubCodeBlocks', function (text, options, globals) {
     // Since GHCodeblocks can be false positives, we need to
     // store the primitive text and the parsed text in a global var,
     // and then return a token
-    return '\n\n~G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
+    return '\n\n¨G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
   });
 
   // attacklab: strip sentinel
-  text = text.replace(/~0/, '');
+  text = text.replace(/¨0/, '');
 
   return globals.converter._dispatch('githubCodeBlocks.after', text, options, globals);
 });
 
 showdown.subParser('hashBlock', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('hashBlock.before', text, options, globals);
   text = text.replace(/(^\n+|\n+$)/g, '');
-  return '\n\n~K' + (globals.gHtmlBlocks.push(text) - 1) + 'K\n\n';
+  text = '\n\n¨K' + (globals.gHtmlBlocks.push(text) - 1) + 'K\n\n';
+  text = globals.converter._dispatch('hashBlock.after', text, options, globals);
+  return text;
 });
 
 showdown.subParser('hashElement', function (text, options, globals) {
@@ -66209,8 +66377,8 @@ showdown.subParser('hashElement', function (text, options, globals) {
     // strip trailing blank lines
     blockText = blockText.replace(/\n+$/g, '');
 
-    // Replace the element text with a marker ("~KxK" where x is its key)
-    blockText = '\n\n~K' + (globals.gHtmlBlocks.push(blockText) - 1) + 'K\n\n';
+    // Replace the element text with a marker ("¨KxK" where x is its key)
+    blockText = '\n\n¨K' + (globals.gHtmlBlocks.push(blockText) - 1) + 'K\n\n';
 
     return blockText;
   };
@@ -66218,6 +66386,7 @@ showdown.subParser('hashElement', function (text, options, globals) {
 
 showdown.subParser('hashHTMLBlocks', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('hashHTMLBlocks.before', text, options, globals);
 
   var blockTags = [
       'pre',
@@ -66262,7 +66431,7 @@ showdown.subParser('hashHTMLBlocks', function (text, options, globals) {
       if (left.search(/\bmarkdown\b/) !== -1) {
         txt = left + globals.converter.makeHtml(match) + right;
       }
-      return '\n\n~K' + (globals.gHtmlBlocks.push(txt) - 1) + 'K\n\n';
+      return '\n\n¨K' + (globals.gHtmlBlocks.push(txt) - 1) + 'K\n\n';
     };
 
   for (var i = 0; i < blockTags.length; ++i) {
@@ -66275,56 +66444,65 @@ showdown.subParser('hashHTMLBlocks', function (text, options, globals) {
 
   // Special case for standalone HTML comments
   text = showdown.helper.replaceRecursiveRegExp(text, function (txt) {
-    return '\n\n~K' + (globals.gHtmlBlocks.push(txt) - 1) + 'K\n\n';
+    return '\n\n¨K' + (globals.gHtmlBlocks.push(txt) - 1) + 'K\n\n';
   }, '^ {0,3}<!--', '-->', 'gm');
 
   // PHP and ASP-style processor instructions (<?...?> and <%...%>)
   text = text.replace(/(?:\n\n)( {0,3}(?:<([?%])[^\r]*?\2>)[ \t]*(?=\n{2,}))/g,
     showdown.subParser('hashElement')(text, options, globals));
 
+  text = globals.converter._dispatch('hashHTMLBlocks.after', text, options, globals);
   return text;
 });
 
 /**
  * Hash span elements that should not be parsed as markdown
  */
-showdown.subParser('hashHTMLSpans', function (text, config, globals) {
+showdown.subParser('hashHTMLSpans', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('hashHTMLSpans.before', text, options, globals);
 
   var matches = showdown.helper.matchRecursiveRegExp(text, '<code\\b[^>]*>', '</code>', 'gi');
 
   for (var i = 0; i < matches.length; ++i) {
-    text = text.replace(matches[i][0], '~L' + (globals.gHtmlSpans.push(matches[i][0]) - 1) + 'L');
+    text = text.replace(matches[i][0], '¨C' + (globals.gHtmlSpans.push(matches[i][0]) - 1) + 'C');
   }
+
+  text = globals.converter._dispatch('hashHTMLSpans.after', text, options, globals);
   return text;
 });
 
 /**
  * Unhash HTML spans
  */
-showdown.subParser('unhashHTMLSpans', function (text, config, globals) {
+showdown.subParser('unhashHTMLSpans', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('unhashHTMLSpans.before', text, options, globals);
 
   for (var i = 0; i < globals.gHtmlSpans.length; ++i) {
-    text = text.replace('~L' + i + 'L', globals.gHtmlSpans[i]);
+    text = text.replace('¨C' + i + 'C', globals.gHtmlSpans[i]);
   }
 
+  text = globals.converter._dispatch('unhashHTMLSpans.after', text, options, globals);
   return text;
 });
 
 /**
  * Hash span elements that should not be parsed as markdown
  */
-showdown.subParser('hashPreCodeTags', function (text, config, globals) {
+showdown.subParser('hashPreCodeTags', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('hashPreCodeTags.before', text, options, globals);
 
   var repFunc = function (wholeMatch, match, left, right) {
     // encode html entities
-    var codeblock = left + showdown.subParser('encodeCode')(match) + right;
-    return '\n\n~G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
+    var codeblock = left + showdown.subParser('encodeCode')(match, options, globals) + right;
+    return '\n\n¨G' + (globals.ghCodeBlocks.push({text: wholeMatch, codeblock: codeblock}) - 1) + 'G\n\n';
   };
 
   text = showdown.helper.replaceRecursiveRegExp(text, repFunc, '^ {0,3}<pre\\b[^>]*>\\s*<code\\b[^>]*>', '^ {0,3}</code>\\s*</pre>', 'gim');
+
+  text = globals.converter._dispatch('hashPreCodeTags.after', text, options, globals);
   return text;
 });
 
@@ -66335,6 +66513,7 @@ showdown.subParser('headers', function (text, options, globals) {
 
   var prefixHeader = options.prefixHeaderId,
       headerLevelStart = (isNaN(parseInt(options.headerLevelStart))) ? 1 : parseInt(options.headerLevelStart),
+      ghHeaderId = options.ghCompatibleHeaderId,
 
   // Set text-style headers:
   //	Header 1
@@ -66370,7 +66549,9 @@ showdown.subParser('headers', function (text, options, globals) {
   //  ...
   //  ###### Header 6
   //
-  text = text.replace(/^(#{1,6})[ \t]*(.+?)[ \t]*#*\n+/gm, function (wholeMatch, m1, m2) {
+  var atxStyle = (options.requireSpaceBeforeHeadingText) ? /^(#{1,6})[ \t]+(.+?)[ \t]*#*\n+/gm : /^(#{1,6})[ \t]*(.+?)[ \t]*#*\n+/gm;
+
+  text = text.replace(atxStyle, function (wholeMatch, m1, m2) {
     var span = showdown.subParser('spanGamut')(m2, options, globals),
         hID = (options.noHeaderId) ? '' : ' id="' + headerId(m2) + '"',
         hLevel = headerLevelStart - 1 + m1.length,
@@ -66380,7 +66561,22 @@ showdown.subParser('headers', function (text, options, globals) {
   });
 
   function headerId(m) {
-    var title, escapedId = m.replace(/[^\w]/g, '').toLowerCase();
+    var title, escapedId;
+
+    if (ghHeaderId) {
+      escapedId = m
+        .replace(/ /g, '-')
+        // replace previously escaped chars (&, ¨ and $)
+        .replace(/&amp;/g, '')
+        .replace(/¨T/g, '')
+        .replace(/¨D/g, '')
+        // replace rest of the chars (&~$ are repeated as they might have been escaped)
+        // borrowed from github's redcarpet (some they should produce similar results)
+        .replace(/[&+$,\/:;=?@"#{}|^¨~\[\]`\\*)(%.!'<>]/g, '')
+        .toLowerCase();
+    } else {
+      escapedId = m.replace(/[^\w]/g, '').toLowerCase();
+    }
 
     if (globals.hashLinkCounts[escapedId]) {
       title = escapedId + '-' + (globals.hashLinkCounts[escapedId]++);
@@ -66401,6 +66597,22 @@ showdown.subParser('headers', function (text, options, globals) {
   }
 
   text = globals.converter._dispatch('headers.after', text, options, globals);
+  return text;
+});
+
+/**
+ * Turn Markdown link shortcuts into XHTML <a> tags.
+ */
+showdown.subParser('horizontalRule', function (text, options, globals) {
+  'use strict';
+  text = globals.converter._dispatch('horizontalRule.before', text, options, globals);
+
+  var key = showdown.subParser('hashBlock')('<hr />', options, globals);
+  text = text.replace(/^ {0,2}( ?-){3,}[ \t]*$/gm, key);
+  text = text.replace(/^ {0,2}( ?\*){3,}[ \t]*$/gm, key);
+  text = text.replace(/^ {0,2}( ?_){3,}[ \t]*$/gm, key);
+
+  text = globals.converter._dispatch('horizontalRule.after', text, options, globals);
   return text;
 });
 
@@ -66448,14 +66660,19 @@ showdown.subParser('images', function (text, options, globals) {
       }
     }
 
-    altText = altText.replace(/"/g, '&quot;');
-    altText = showdown.helper.escapeCharacters(altText, '*_', false);
-    url = showdown.helper.escapeCharacters(url, '*_', false);
+    altText = altText
+      .replace(/"/g, '&quot;')
+    //altText = showdown.helper.escapeCharacters(altText, '*_', false);
+      .replace(showdown.helper.regexes.asteriskAndDash, showdown.helper.escapeCharactersCallback);
+    //url = showdown.helper.escapeCharacters(url, '*_', false);
+    url = url.replace(showdown.helper.regexes.asteriskAndDash, showdown.helper.escapeCharactersCallback);
     var result = '<img src="' + url + '" alt="' + altText + '"';
 
     if (title) {
-      title = title.replace(/"/g, '&quot;');
-      title = showdown.helper.escapeCharacters(title, '*_', false);
+      title = title
+        .replace(/"/g, '&quot;')
+      //title = showdown.helper.escapeCharacters(title, '*_', false);
+        .replace(showdown.helper.regexes.asteriskAndDash, showdown.helper.escapeCharactersCallback);
       result += ' title="' + title + '"';
     }
 
@@ -66487,20 +66704,33 @@ showdown.subParser('italicsAndBold', function (text, options, globals) {
 
   text = globals.converter._dispatch('italicsAndBold.before', text, options, globals);
 
-  if (options.literalMidWordUnderscores) {
-    //underscores
-    // Since we are consuming a \s character, we need to add it
-    text = text.replace(/(^|\s|>|\b)__(?=\S)([\s\S]+?)__(?=\b|<|\s|$)/gm, '$1<strong>$2</strong>');
-    text = text.replace(/(^|\s|>|\b)_(?=\S)([\s\S]+?)_(?=\b|<|\s|$)/gm, '$1<em>$2</em>');
-    //asterisks
-    text = text.replace(/(\*\*)(?=\S)([^\r]*?\S[*]*)\1/g, '<strong>$2</strong>');
-    text = text.replace(/(\*)(?=\S)([^\r]*?\S)\1/g, '<em>$2</em>');
+  // it's faster to have 2 separate regexes for each case than have just one
+  // because of backtracing, in some cases, it could lead to an exponential effect
+  // called "catastrophic backtrace". Ominous!
 
+  // Parse underscores
+  if (options.literalMidWordUnderscores) {
+    text = text.replace(/\b__(\S[\s\S]*?)__\b/gm, '<strong>$1</strong>');
+    text = text.replace(/\b_(\S[\s\S]*?)_\b/gm, '<em>$1</em>');
   } else {
-    // <strong> must go first:
-    text = text.replace(/(\*\*|__)(?=\S)([^\r]*?\S[*_]*)\1/g, '<strong>$2</strong>');
-    text = text.replace(/(\*|_)(?=\S)([^\r]*?\S)\1/g, '<em>$2</em>');
+    text = text.replace(/__(\S[\s\S]*?)__/g, function (wm, m) {
+      return (/\S$/.test(m)) ? '<strong>' + m + '</strong>' : wm;
+    });
+    text = text.replace(/_(\S[\s\S]*?)_/g, function (wm, m) {
+      // !/^_[^_]/.test(m) - test if it doesn't start with __ (since it seems redundant, we removed it)
+      return (/\S$/.test(m)) ? '<em>' + m + '</em>' : wm;
+    });
   }
+
+  // Now parse asterisks
+  text = text.replace(/\*\*(\S[\s\S]*?)\*\*/g, function (wm, m) {
+    return (/\S$/.test(m)) ? '<strong>' + m + '</strong>' : wm;
+  });
+
+  text = text.replace(/\*(\S[\s\S]*?)\*/g, function (wm, m) {
+    // !/^\*[^*]/.test(m) - test if it doesn't start with ** (since it seems redundant, we removed it)
+    return (/\S$/.test(m)) ? '<em>' + m + '</em>' : wm;
+  });
 
   text = globals.converter._dispatch('italicsAndBold.after', text, options, globals);
   return text;
@@ -66511,8 +66741,8 @@ showdown.subParser('italicsAndBold', function (text, options, globals) {
  */
 showdown.subParser('lists', function (text, options, globals) {
   'use strict';
-
   text = globals.converter._dispatch('lists.before', text, options, globals);
+
   /**
    * Process the contents of a single ordered or unordered list, splitting it
    * into individual list items.
@@ -66547,16 +66777,16 @@ showdown.subParser('lists', function (text, options, globals) {
     listStr = listStr.replace(/\n{2,}$/, '\n');
 
     // attacklab: add sentinel to emulate \z
-    listStr += '~0';
+    listStr += '¨0';
 
-    var rgx = /(\n)?(^ {0,3})([*+-]|\d+[.])[ \t]+((\[(x|X| )?])?[ \t]*[^\r]+?(\n{1,2}))(?=\n*(~0| {0,3}([*+-]|\d+[.])[ \t]+))/gm,
-        isParagraphed = (/\n[ \t]*\n(?!~0)/.test(listStr));
+    var rgx = /(\n)?(^ {0,3})([*+-]|\d+[.])[ \t]+((\[(x|X| )?])?[ \t]*[^\r]+?(\n{1,2}))(?=\n*(¨0| {0,3}([*+-]|\d+[.])[ \t]+))/gm,
+        isParagraphed = (/\n[ \t]*\n(?!¨0)/.test(listStr));
 
     // Since version 1.5, nesting sublists requires 4 spaces (or 1 tab) indentation,
     // which is a syntax breaking change
     // activating this option reverts to old behavior
     if (options.disableForced4SpacesIndentedSublists) {
-      rgx = /(\n)?(^ {0,3})([*+-]|\d+[.])[ \t]+((\[(x|X| )?])?[ \t]*[^\r]+?(\n{1,2}))(?=\n*(~0|\2([*+-]|\d+[.])[ \t]+))/gm;
+      rgx = /(\n)?(^ {0,3})([*+-]|\d+[.])[ \t]+((\[(x|X| )?])?[ \t]*[^\r]+?(\n{1,2}))(?=\n*(¨0|\2([*+-]|\d+[.])[ \t]+))/gm;
     }
 
     listStr = listStr.replace(rgx, function (wholeMatch, m1, m2, m3, m4, taskbtn, checked) {
@@ -66578,6 +66808,18 @@ showdown.subParser('lists', function (text, options, globals) {
         });
       }
 
+      // ISSUE #312
+      // This input: - - - a
+      // causes trouble to the parser, since it interprets it as:
+      // <ul><li><li><li>a</li></li></li></ul>
+      // instead of:
+      // <ul><li>- - a</li></ul>
+      // So, to prevent it, we will put a marker (¨A)in the beginning of the line
+      // Kind of hackish/monkey patching, but seems more effective than overcomplicating the list parser
+      item = item.replace(/^([-*+]|\d\.)[ \t]+[\S\n ]*/g, function (wm2) {
+        return '¨A' + wm2;
+      });
+
       // m1 - Leading line or
       // Has a double return (multi paragraph) or
       // Has sublist
@@ -66588,18 +66830,29 @@ showdown.subParser('lists', function (text, options, globals) {
         // Recursion for sub-lists:
         item = showdown.subParser('lists')(item, options, globals);
         item = item.replace(/\n$/, ''); // chomp(item)
+        item = showdown.subParser('hashHTMLBlocks')(item, options, globals);
+        // Colapse double linebreaks
+        item = item.replace(/\n\n+/g, '\n\n');
+        // replace double linebreaks with a placeholder
+        item = item.replace(/\n\n/g, '¨B');
         if (isParagraphed) {
           item = showdown.subParser('paragraphs')(item, options, globals);
         } else {
           item = showdown.subParser('spanGamut')(item, options, globals);
         }
+        item = item.replace(/¨B/g, '\n\n');
       }
+
+      // now we need to remove the marker (¨A)
+      item = item.replace('¨A', '');
+      // we can finally wrap the line in list item tags
       item =  '<li' + bulletStyle + '>' + item + '</li>\n';
+
       return item;
     });
 
     // attacklab: strip sentinel
-    listStr = listStr.replace(/~0/g, '');
+    listStr = listStr.replace(/¨0/g, '');
 
     globals.gListLevel--;
 
@@ -66651,17 +66904,17 @@ showdown.subParser('lists', function (text, options, globals) {
 
   // add sentinel to hack around khtml/safari bug:
   // http://bugs.webkit.org/show_bug.cgi?id=11231
-  text += '~0';
+  text += '¨0';
 
   if (globals.gListLevel) {
-    text = text.replace(/^(( {0,3}([*+-]|\d+[.])[ \t]+)[^\r]+?(~0|\n{2,}(?=\S)(?![ \t]*(?:[*+-]|\d+[.])[ \t]+)))/gm,
+    text = text.replace(/^(( {0,3}([*+-]|\d+[.])[ \t]+)[^\r]+?(¨0|\n{2,}(?=\S)(?![ \t]*(?:[*+-]|\d+[.])[ \t]+)))/gm,
       function (wholeMatch, list, m2) {
         var listType = (m2.search(/[*+-]/g) > -1) ? 'ul' : 'ol';
         return parseConsecutiveLists(list, listType, true);
       }
     );
   } else {
-    text = text.replace(/(\n\n|^\n?)(( {0,3}([*+-]|\d+[.])[ \t]+)[^\r]+?(~0|\n{2,}(?=\S)(?![ \t]*(?:[*+-]|\d+[.])[ \t]+)))/gm,
+    text = text.replace(/(\n\n|^\n?)(( {0,3}([*+-]|\d+[.])[ \t]+)[^\r]+?(¨0|\n{2,}(?=\S)(?![ \t]*(?:[*+-]|\d+[.])[ \t]+)))/gm,
       function (wholeMatch, m1, list, m3) {
         var listType = (m3.search(/[*+-]/g) > -1) ? 'ul' : 'ol';
         return parseConsecutiveLists(list, listType, false);
@@ -66670,8 +66923,7 @@ showdown.subParser('lists', function (text, options, globals) {
   }
 
   // strip sentinel
-  text = text.replace(/~0/, '');
-
+  text = text.replace(/¨0/, '');
   text = globals.converter._dispatch('lists.after', text, options, globals);
   return text;
 });
@@ -66679,16 +66931,18 @@ showdown.subParser('lists', function (text, options, globals) {
 /**
  * Remove one level of line-leading tabs or spaces
  */
-showdown.subParser('outdent', function (text) {
+showdown.subParser('outdent', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('outdent.before', text, options, globals);
 
   // attacklab: hack around Konqueror 3.5.4 bug:
   // "----------bug".replace(/^-/g,"") == "bug"
-  text = text.replace(/^(\t|[ ]{1,4})/gm, '~0'); // attacklab: g_tab_width
+  text = text.replace(/^(\t|[ ]{1,4})/gm, '¨0'); // attacklab: g_tab_width
 
   // attacklab: clean up hack
-  text = text.replace(/~0/g, '');
+  text = text.replace(/¨0/g, '');
 
+  text = globals.converter._dispatch('outdent.after', text, options, globals);
   return text;
 });
 
@@ -66710,9 +66964,12 @@ showdown.subParser('paragraphs', function (text, options, globals) {
   for (var i = 0; i < end; i++) {
     var str = grafs[i];
     // if this is an HTML marker, copy it
-    if (str.search(/~(K|G)(\d+)\1/g) >= 0) {
+    if (str.search(/¨(K|G)(\d+)\1/g) >= 0) {
       grafsOut.push(str);
-    } else {
+
+    // test for presence of characters to prevent empty lines being parsed
+    // as paragraphs (resulting in undesired extra empty paragraphs)
+    } else if (str.search(/\S/) >= 0) {
       str = showdown.subParser('spanGamut')(str, options, globals);
       str = str.replace(/^([ \t]*)/g, '<p>');
       str += '</p>';
@@ -66727,7 +66984,7 @@ showdown.subParser('paragraphs', function (text, options, globals) {
         grafsOutIt = grafsOut[i],
         codeFlag = false;
     // if this is a marker for an html block...
-    while (grafsOutIt.search(/~(K|G)(\d+)\1/) >= 0) {
+    while (grafsOutIt.search(/¨(K|G)(\d+)\1/) >= 0) {
       var delim = RegExp.$1,
           num   = RegExp.$2;
 
@@ -66737,14 +66994,14 @@ showdown.subParser('paragraphs', function (text, options, globals) {
         // we need to check if ghBlock is a false positive
         if (codeFlag) {
           // use encoded version of all text
-          blockText = showdown.subParser('encodeCode')(globals.ghCodeBlocks[num].text);
+          blockText = showdown.subParser('encodeCode')(globals.ghCodeBlocks[num].text, options, globals);
         } else {
           blockText = globals.ghCodeBlocks[num].codeblock;
         }
       }
       blockText = blockText.replace(/\$/g, '$$$$'); // Escape any dollar signs
 
-      grafsOutIt = grafsOutIt.replace(/(\n\n)?~(K|G)\d+\2(\n\n)?/, blockText);
+      grafsOutIt = grafsOutIt.replace(/(\n\n)?¨(K|G)\d+\2(\n\n)?/, blockText);
       // Check if grafsOutIt is a pre->code
       if (/^<pre\b[^>]*>\s*<code\b[^>]*>/.test(grafsOutIt)) {
         codeFlag = true;
@@ -66806,11 +67063,11 @@ showdown.subParser('spanGamut', function (text, options, globals) {
   text = showdown.subParser('strikethrough')(text, options, globals);
 
   // Do hard breaks
-
-  // GFM style hard breaks
   if (options.simpleLineBreaks) {
+    // GFM style hard breaks
     text = text.replace(/\n/g, '<br />\n');
   } else {
+    // Vanilla hard breaks
     text = text.replace(/  +\n/g, '<br />\n');
   }
 
@@ -66823,22 +67080,11 @@ showdown.subParser('strikethrough', function (text, options, globals) {
 
   if (options.strikethrough) {
     text = globals.converter._dispatch('strikethrough.before', text, options, globals);
-    text = text.replace(/(?:~T){2}([\s\S]+?)(?:~T){2}/g, '<del>$1</del>');
+    text = text.replace(/(?:~){2}([\s\S]+?)(?:~){2}/g, '<del>$1</del>');
     text = globals.converter._dispatch('strikethrough.after', text, options, globals);
   }
 
   return text;
-});
-
-/**
- * Strip any lines consisting only of spaces and tabs.
- * This makes subsequent regexs easier to write, because we can
- * match consecutive blank lines with /\n+/ instead of something
- * contorted like /[ \t]*\n+/
- */
-showdown.subParser('stripBlankLines', function (text) {
-  'use strict';
-  return text.replace(/^[ \t]+$/mg, '');
 });
 
 /**
@@ -66849,14 +67095,14 @@ showdown.subParser('stripBlankLines', function (text) {
 showdown.subParser('stripLinkDefinitions', function (text, options, globals) {
   'use strict';
 
-  var regex = /^ {0,3}\[(.+)]:[ \t]*\n?[ \t]*<?(\S+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n+|(?=~0))/gm;
+  var regex = /^ {0,3}\[(.+)]:[ \t]*\n?[ \t]*<?(\S+?)>?(?: =([*\d]+[A-Za-z%]{0,4})x([*\d]+[A-Za-z%]{0,4}))?[ \t]*\n?[ \t]*(?:(\n*)["|'(](.+?)["|')][ \t]*)?(?:\n+|(?=¨0))/gm;
 
   // attacklab: sentinel workarounds for lack of \A and \Z, safari\khtml bug
-  text += '~0';
+  text += '¨0';
 
   text = text.replace(regex, function (wholeMatch, linkId, url, width, height, blankLines, title) {
     linkId = linkId.toLowerCase();
-    globals.gUrls[linkId] = showdown.subParser('encodeAmpsAndAngles')(url);  // Link IDs are case-insensitive
+    globals.gUrls[linkId] = showdown.subParser('encodeAmpsAndAngles')(url, options, globals);  // Link IDs are case-insensitive
 
     if (blankLines) {
       // Oops, found blank lines, so it's not a title.
@@ -66879,7 +67125,7 @@ showdown.subParser('stripLinkDefinitions', function (text, options, globals) {
   });
 
   // attacklab: strip sentinel
-  text = text.replace(/~0/, '');
+  text = text.replace(/¨0/, '');
 
   return text;
 });
@@ -66891,7 +67137,7 @@ showdown.subParser('tables', function (text, options, globals) {
     return text;
   }
 
-  var tableRgx = /^ {0,3}\|?.+\|.+\n[ \t]{0,3}\|?[ \t]*:?[ \t]*(?:-|=){2,}[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*(?:-|=){2,}[\s\S]+?(?:\n\n|~0)/gm;
+  var tableRgx = /^ {0,3}\|?.+\|.+\n[ \t]{0,3}\|?[ \t]*:?[ \t]*(?:-|=){2,}[ \t]*:?[ \t]*\|[ \t]*:?[ \t]*(?:-|=){2,}[\s\S]+?(?:\n\n|¨0)/gm;
 
   function parseStyles(sLine) {
     if (/^:[ \t]*--*$/.test(sLine)) {
@@ -67017,13 +67263,16 @@ showdown.subParser('tables', function (text, options, globals) {
 /**
  * Swap back in all the special characters we've hidden.
  */
-showdown.subParser('unescapeSpecialChars', function (text) {
+showdown.subParser('unescapeSpecialChars', function (text, options, globals) {
   'use strict';
+  text = globals.converter._dispatch('unescapeSpecialChars.before', text, options, globals);
 
-  text = text.replace(/~E(\d+)E/g, function (wholeMatch, m1) {
+  text = text.replace(/¨E(\d+)E/g, function (wholeMatch, m1) {
     var charCodeToReplace = parseInt(m1);
     return String.fromCharCode(charCodeToReplace);
   });
+
+  text = globals.converter._dispatch('unescapeSpecialChars.after', text, options, globals);
   return text;
 });
 
@@ -74245,7 +74494,7 @@ module.exports={
         "spec": ">=1.2.0 <2.0.0",
         "type": "range"
       },
-      "/Users/long/wp/homepage/node_modules/webppl-viz"
+      "/webppl/node_modules/webppl-viz"
     ]
   ],
   "_from": "vega-lite@>=1.2.0 <2.0.0",
@@ -74263,6 +74512,7 @@ module.exports={
   },
   "_npmVersion": "3.10.8",
   "_phantomChildren": {
+    "camelcase": "3.0.0",
     "cliui": "3.2.0",
     "decamelize": "1.2.0",
     "get-caller-file": "1.0.2",
@@ -74275,7 +74525,7 @@ module.exports={
     "string-width": "1.0.2",
     "which-module": "1.0.0",
     "y18n": "3.2.1",
-    "yargs-parser": "4.2.0"
+    "yargs-parser": "4.2.1"
   },
   "_requested": {
     "raw": "vega-lite@^1.2.0",
@@ -74293,7 +74543,7 @@ module.exports={
   "_shasum": "48b012975522137927086ae3a46755b7ed2e8989",
   "_shrinkwrap": null,
   "_spec": "vega-lite@^1.2.0",
-  "_where": "/Users/long/wp/homepage/node_modules/webppl-viz",
+  "_where": "/webppl/node_modules/webppl-viz",
   "author": {
     "name": "Jeffrey Heer, Dominik Moritz, Kanit \"Ham\" Wongsuphasawat"
   },
@@ -84281,7 +84531,7 @@ module.exports = {
 
 },{}],368:[function(require,module,exports){
 module.exports = {
-  version: '2.6.3',
+  version: '2.6.5',
   dataflow: require('vega-dataflow'),
   parse: require('./src/parse/'),
   scene: {
@@ -84361,7 +84611,7 @@ prototype.initialize = function() {
     .initialize(null, w, h, pad)
     .background(bg);
 
-  return this;
+  return (this._repaint = true, this);
 };
 
 module.exports = HeadlessView;
@@ -84533,7 +84783,9 @@ module.exports = Model;
 var d3 = (typeof window !== "undefined" ? window['d3'] : typeof global !== "undefined" ? global['d3'] : null),
     dl = require('datalib'),
     df = require('vega-dataflow'),
-    sg = require('vega-scenegraph').render,
+        scene = require('vega-scenegraph'),
+    sg = scene.render,
+    bound = scene.bound,
     log = require('vega-logging'),
     Deps = df.Dependencies,
     parseStreams = require('../parse/streams'),
@@ -84720,11 +84972,30 @@ prototype.padding = function(pad) {
   return (this._repaint = true, this);
 };
 
+function viewBounds() {
+  var s = this.model().scene(),
+      legends = s.items[0].legendItems,
+      i = 0, len = legends.length,
+      b, lb;
+
+  // For strict padding, clip legend height to prevent a tiny data rectangle.
+  if (this._strict) {
+    b = bound.mark(s, null, false);
+    for (; i<len; ++i) {
+      lb = legends[i].bounds;
+      b.add(lb.x1, 0).add(lb.x2, 0);
+    }
+    return b;
+  }
+
+  return s.bounds;
+}
+
 prototype.autopad = function(opt) {
   if (this._autopad < 1) return this;
   else this._autopad = 0;
 
-  var b = this.model().scene().bounds,
+  var b = viewBounds.call(this),
       pad = this._padding,
       config = this.model().config(),
       inset = config.autopadInset,
@@ -88207,7 +88478,7 @@ function domainMinMax(scale, group) {
       domain[z] = def.domainMax;
     }
   }
-  if (def.type !== Types.LOG && def.type !== Types.TIME && (def.zero || def.zero===undefined)) {
+  if (def.type !== Types.LOG && def.type !== Types.TIME && def.type !== Types.TIME_UTC && (def.zero || def.zero===undefined)) {
     domain[0] = Math.min(0, domain[0]);
     domain[z] = Math.max(0, domain[z]);
   }
@@ -88255,6 +88526,12 @@ function range(group) {
       rev = dl.accessor(rev.field)(group.datum);
     }
     if (rev) rng = rng.reverse();
+  }
+
+  var start = rng[0], end = rng[rng.length-1];
+  if (start === null && end !== null || start !== null && end === null) {
+    log.error('Range is underspecified. Please ensure either the ' +
+      '"range" property or both "rangeMin" and "rangeMax" are specified.');
   }
 
   return rng;
@@ -92659,13 +92936,16 @@ var CodeEditor = React.createClass({
       }
     }
   },
-  makeResultContainer: function () {
-    // TODO: take property arguments so that we can, e.g., make the div inline or have a border or something
+  makeResultContainer: function (_options) {
+    var options = _.defaults(_options || {}, {});
     this.addResult(_.extend({ type: 'DOM' }));
 
     // return the most recent custom component
     // TODO: don't depend on jquery for this
     var element = _.last($(ReactDOM.findDOMNode(this)).find('.custom'));
+    if (options.css) {
+      $(element).css(options.css);
+    }
     return element;
   },
   // ------------------------------------------------------------
@@ -92728,7 +93008,6 @@ var CodeEditor = React.createClass({
       // undo global variable changes
       global['console'] = nativeConsole;
       global['print'] = null;
-      global['resumeTrampoline'] = null;
       global['onerror'] = null;
       wpEditor['makeResultContainer'] = null;
 
@@ -92899,7 +93178,6 @@ var CodeEditor = React.createClass({
         var compiled = compileCache[code];
         var prepared = webppl.prepare(compiled, endJob, { errorHandlers: [handleRunError], debug: true, baseRunner: baseRunner });
         comp.runner = baseRunner;
-        global['resumeTrampoline'] = prepared.runner;
 
         comp.setState({ execution: 'running' });
 
