@@ -20,7 +20,7 @@ var _collection = null;
 
 
 function resume(thunk) {
-  global.trampolineRunner(thunk);
+  global.resumeTrampoline(thunk);
 }
 
 function assertInit() {
