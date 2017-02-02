@@ -83,7 +83,7 @@ function clone(dist) {
   return new dist.constructor(dist.params);
 }
 
-var serialize = function(dist) {
+var serialize = function(dist) { 
   return util.serialize(dist);
 };
 
@@ -138,7 +138,7 @@ var noHMC = {
   noHMC: true
 };
 
-var methodNames = ['sample', 'score', 'support', 'print', 'base', 'transform'];
+var methodNames = ['sample', 'score', 'support', 'print', 'toCSV', 'base', 'transform'];
 
 function makeDistributionType(options) {
   options = util.mergeDefaults(options, {
@@ -1326,6 +1326,9 @@ var Marginal = makeDistributionType({
   },
   print: function() {
     return printMarginal(this.params.dist);
+  },
+  log: function() {
+    return logMarginal(this.getDist());
   }
 });
 
@@ -1349,6 +1352,7 @@ var SampleBasedMarginal = makeDistributionType({
     // samples is an array of objects like: {value: ..., score: ...}
     this.samples = this.params.samples;
 
+    // TODO: understand that part
     this.getDist = function() {
       if (this._cacheddist) {
         return this._cacheddist;
@@ -1394,6 +1398,9 @@ var SampleBasedMarginal = makeDistributionType({
   },
   print: function() {
     return printMarginal(this.getDist());
+  },
+  toCSV: function() {
+    return marginalToCSV(this.getDist());
   }
 });
 
@@ -1404,6 +1411,12 @@ function printMarginal(dist) {
     .join('\n');
 }
 
+function marginalToCSV(dist) {
+  return 'probability,value\n' + _.map(dist, function(obj, val) { return [obj.prob, obj.val]; })
+    //.sort(function(a, b) { return b[1] - a[1]; })
+    .map(function(pair) { console.log(pair); return pair[0] + ',' + pair[1];})
+    .join('\n');
+}
 
 var Categorical = makeDistributionType({
   name: 'Categorical',

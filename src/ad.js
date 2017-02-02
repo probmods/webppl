@@ -53,6 +53,24 @@ ad.scalar.logGamma = ad.newUnaryFunction({
   }
 });
 
+// TODO: sumreduce0
+ad.tensor.sumreduce0 = ad.newUnaryFunction({
+  OutputType: Tensor,
+  name: 'sumreduce0',
+  forward: function(a) {
+    return a.sumreduce0();
+  },
+  backward: function(a) {
+    var h = a.x.dims[0];
+    var w = a.x.dims[1];
+    for (var i = 0; i < h; i++) {
+      for (var j = 0; j < w; j++) {
+        a.dx.data[i * w + j] += this.dx.data[i];
+      }
+    }
+  }
+});
+
 ad.scalar.plus = function(x) {
   return ad.scalar.add(0, x);
 };

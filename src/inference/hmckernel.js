@@ -111,7 +111,7 @@ module.exports = function(env) {
 
     // Zero derivatives left over from previous HMC iterations, or
     // from the rejuvenation of a particle which shares parts of the
-    // ad graph which this trace.
+    // ad graph with this trace.
     if (ad.isLifted(this.oldTrace.score)) {
       this.oldTrace.score.zeroDerivatives();
     }

@@ -7,17 +7,23 @@ var _ = require('lodash');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var fs = require('fs');
 var guide = require('../guide');
 
 module.exports = function(env) {
 
   function ForwardSample(s, k, a, wpplFn, options) {
     this.opts = util.mergeDefaults(options, {
-      samples: 1,
+      samples: 100,
       guide: false, // true = sample guide, false = sample target
-      verbose: false
+      verbose: false,
+      params: {},
+      logDist: true,
+      logDistFilename: 'forwardDist.csv'
     });
 
+    // Setting the params to this field allows util.registerParams to access them (paramStore)
+    //this.params = this.opts.params;
     this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
@@ -57,6 +63,9 @@ module.exports = function(env) {
             if (!this.opts.guide) {
               var numSamples = this.opts.samples;
               dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(numSamples);
+            }
+            if (this.opts.logDist) {
+              fs.writeFileSync(this.opts.logDistFilename, dist.toCSV());
             }
             return this.k(this.s, dist);
           }.bind(this));
