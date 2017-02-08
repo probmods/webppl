@@ -12,4 +12,5 @@ src/inference/enumerate.js
 src/inference/elbo.js
 src/inference/eubo.js
 src/inference/sdream.js
+src/inference/dream.js
 src/aggregation/ScoreAggregator.js
