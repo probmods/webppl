@@ -17,9 +17,7 @@ module.exports = function(env) {
 
   var estimators = {
     ELBO: require('./elbo')(env),
-    EUBO: require('./eubo')(env),
-    DREAM: require('./dreamEubo')(env),
-    SDREAM: require('./dream')(env)
+    EUBO: require('./eubo')(env)
   };
 
   function Optimize(s, k, a, fnOrOptions, maybeOptions) {
@@ -44,38 +42,21 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       optMethod: 'adam',
       estimator: 'ELBO',
-      steps: 100, 
-      minSteps: 300,
-      clip: false,              
+      steps: 1,
+      clip: false,              // false = no clipping, otherwise specifies threshold.
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
-      //stopCriterion: 'MAX_ITERATIONS',
-      toleranceThreshold: [-1, 0.000001, 0.01, 0.001, 0.0001, 0.01, 0.01],
-      
       onFinish: function(s, k, a) { return k(s); },
-      stopCriterionCallback: function(val) { return true; },
 
-      logProgress: true,
+      logProgress: false,
       logProgressFilename: 'optimizeProgress.csv',
-      logProgressThin: 1, 
-      logProgressThrottle: 0, 
+      logProgressThrottle: 200,
 
       checkpointParams: false,
       checkpointParamsFilename: 'optimizeParams.json',
-      checkpointParamsThrottle: 50,
-      keepParamsHistory: true,
-      logPosteriorProgress: true,
-      logPosteriorFilenamePrefix: 'optimizePosterior',
-      logPosteriorFilenameThrottle: 500,
-
-      history: [],
+      checkpointParamsThrottle: 10000
     });
-
-    var saveAverage = false;
-
-    //options.stopCriterion = stopCriterionType[options.stopCriterion];
-    //options.toleranceThreshold = options.toleranceThreshold[options.stopCriterion]; //TODO: refactor
 
     // Create a (cps) function 'estimator' which computes gradient
     // estimates based on the (local copy) of the current parameter
@@ -98,58 +79,14 @@ module.exports = function(env) {
       return optMethods[name](opts);
     });
 
-    var objDiff = NaN, objRelDiff = NaN, avgDiff = NaN, avgRelDiff = NaN; 
-    var normRel = NaN; 
-    var counter = 0;
-    var stop = function(obj, gradNorm, paramNorm, i) {
-      // var maxCount = 150;
-      // if (!options.stopCriterion) {
-        return false;
-      // }
-
-      // objDiff = i ? obj - options.average.mean : NaN;
-      // objRelDiff = (!isNaN(options.average.mean)) ? objDiff / Math.abs(options.average.mean) : NaN;
-      // avgDiff = i ? options.average.mean - options.averageSlow.mean : NaN;
-      // avgRelDiff = (!isNaN(options.averageSlow.mean)) ? avgDiff / Math.abs(options.averageSlow.mean) : NaN;
-      // normRel = gradNorm / paramNorm;
-      // var diffs = [i, objDiff, objRelDiff, gradNorm, normRel, avgDiff, avgRelDiff];
-      // var ret = (Math.abs(diffs[options.stopCriterion]) < options.toleranceThreshold) &&
-      //           options.stopCriterionCallback(diffs[options.stopCriterion]);
-      // if (ret) { 
-      //   console.log(counter);
-      // }
-      // if (i < options.minSteps) {
-      //   return false;
-      // }
-      // if (ret) {
-      //   counter++;
-      // }
-      // return (counter > maxCount);
-    }
-
-    var paramObj;
-
-    var computeObjectiveAvgAndVar = function(i, objective) {
-      if (!i) {
-        options.average.mean = objective; 
-        options.average.variance = 0;
-      
-      }
-      var diff = objective - options.average.mean;
-      var incr = (1 - options.average.alpha) * diff;
-      options.average.mean += incr; 
-      options.average.variance = options.average.alpha * (options.average.variance + diff * incr);     
-    }
-
     var showProgress = _.throttle(function(i, objective) {
-      console.log('Iteration ' + i + ': ' + objective); //  + ": " + options.average.objective
-    }, 150, { trailing: false });
+      console.log('Iteration ' + i + ': ' + objective);
+    }, 200, { trailing: false });
 
-    //var history = [];
+    var history = [];
 
     // For writing progress to disk
     var logFile, logProgress;
-
     if (options.logProgress) {
       logFile = fs.openSync(options.logProgressFilename, 'w');
       fs.writeSync(logFile, 'index,iter,time,objective\n');
@@ -163,155 +100,76 @@ module.exports = function(env) {
     }
 
     // For checkpointing params to disk
-    var paramsFile, saveParams, checkpointParams;
+    var saveParams, checkpointParams;
     if (options.checkpointParams) {
-      var paramsFileLength = 0;
-      var paramsNcalls = 0;
-
-      if (options.keepParamsHistory) {
-        // Open file and write JSON array
-        paramsFile = fs.openSync(options.checkpointParamsFilename, 'w');
-        paramsFileLength += fs.writeSync(paramsFile, '[]');
-      }
-
       saveParams = function() {
-        //params.save(options.checkpointParamsFilename); TODO
-        // Turn tensor data into regular Array before serialization
-        // I think this is faster than using a custom 'replacer' with JSON.stringify?
-        var prms = _.mapObject(saveAverage ? options.average.paramObj : paramObj, function(lst) {
-          return lst.map(function(tensor) {
-            var tcopy = _.clone(tensor);
-            tcopy.data = tensor.toFlatArray();
-            return tcopy;
-          });
-        });
-
-        if (options.keepParamsHistory) {
-          // All param objects except the first need ',' prefix to be concatenated correctly to the JSON array
-          var sep = paramsNcalls ? ',\n' : '';
-          // Ignore last character ']' so that we overwrite it to append the new param object
-          paramsFileLength--;
-          paramsFileLength += fs.writeSync(paramsFile, sep + JSON.stringify(prms) + ']', paramsFileLength);
-        }
-        else {
-          // Overwrite previous params with new ones
-          paramsFileLength = fs.writeFileSync(options.checkpointParamsFilename, JSON.stringify(prms));
-        }
-        paramsNcalls++;
-      }.bind(this);
-      checkpointParams = options.checkpointParamsThrottle ?
-          _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false }) : saveParams;
-    }
-
-    var logPosteriorProgress, savePosterior;
-    if (options.logPosteriorProgress) {
-      var posteriorNcalls = 0;
-      savePosterior = function() {
-        options.paramHistory.push({i: posteriorNcalls, params: paramStruct.deepCopy(paramObj)});
-        posteriorNcalls++;
+        params.save(options.checkpointParamsFilename);
       };
-
-      logPosteriorProgress = function(i) {if (!(i % 250)) savePosterior(); }
-
-      //logPosteriorProgress = options.logPosteriorFilenameThrottle ? 
-      //  _.throttle(savePosterior, options.logPosteriorFilenameThrottle, { trailing: false }) : savePosterior;
+      checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
 
-    var iterations, gradNorm, paramNorm, globalObjective;
     // Main loop.
-    var finalize = function() {
-      return options.onFinish(s, function(s) {
-        if (options.logProgress) {
-          fs.closeSync(logFile);
-        }
-        if (options.checkpointParams) {
-          // Save final params
-          saveParams();
-          saveAverage = true;
-          saveParams();
-          if (options.keepParamsHistory) {
-            fs.closeSync(paramsFile);
-          }
-        }
-        if (options.logPosteriorProgress) {
-          savePosterior();
-        }
-        if (options.verbose) {
-          //console.log(returnedConfig);
-        }
-        return k(s);
-      }, a, {history: options.history});
-    }.bind(this);
-
     return util.cpsLoop(
         options.steps,
 
         // Loop body.
-        function(i, next, cont) {
-          //debugger;
-          iterations = i;
+        function(i, next) {
+
           return estimator(i, function(gradObj, objective) {
-            globalObjective = objective;
-            var currentIter = function(paramObj) {
-              //debugger;
-              if (options.checkGradients) {
-                checkGradients(gradObj);
-              }
+            if (options.checkGradients) {
+              checkGradients(gradObj);
+            }
 
-              if (options.clip || options.showGradNorm || options.logProgress) { // || options.stopCriterion
-                gradNorm = paramStruct.norm(gradObj);
-                paramNorm = paramStruct.norm(paramObj);
-                if (options.showGradNorm) {
-                  console.log('L2 norm of gradient: ' + gradNorm);
-                }
-                if (options.clip) {
-                  paramStruct.clip(gradObj, options.clip, gradNorm);
-                }
+            if (options.clip || options.showGradNorm) {
+              var norm = paramStruct.norm(gradObj);
+              if (options.showGradNorm) {
+                console.log('L2 norm of gradient: ' + norm);
               }
+              if (options.clip) {
+                paramStruct.clip(gradObj, options.clip, norm);
+              }
+            }
 
-              if (options.verbose) {
-                showProgress(i, objective);
-              }
-              if (options.logProgress) {
-                logProgress(i, objective, gradNorm, paramNorm);
-              }
-              if (options.checkpointParams) {
-                checkpointParams();
-              }
-              if (options.logPosteriorProgress) {
-                logPosteriorProgress(i);
-              }
+            if (options.verbose) {
+              showProgress(i, objective);
+            }
+            if (options.logProgress) {
+              logProgress(i, objective);
+            }
+            if (options.checkpointParams) {
+              checkpointParams();
+            }
 
-              optimizer(gradObj, paramObj, i);
-
-            }.bind(this);
-            
-            var nextOrCont = function() {
-              if (isNaN(objective) || objective === Infinity || objective === -Infinity ) { //|| stop(objective, gradNorm, paramNorm, i) || t > 2000
-                return cont();
-              }
-              return next();
-            }.bind(this);
+            history.push(objective);
 
             // Retrieve latest params from store
             return params.sync(function(paramsObj) {
 
-              paramObj = paramsObj;
-
-              currentIter(paramObj);
               // Update local copy of params
-              // optimizer(gradObj, paramsObj, i);
+              optimizer(gradObj, paramsObj, i);
 
               // Send updated params to store
-              return params.set(paramsObj, nextOrCont);
+              return params.set(paramsObj, next);
 
-            }.bind(this), { incremental: true });
-          }, finalize);
+            }, { incremental: true });
+
+          });
 
         },
 
         // Loop continuation.
-        finalize);
+        function() {
+          return options.onFinish(s, function(s) {
+            if (options.logProgress) {
+              fs.closeSync(logFile);
+            }
+            if (options.checkpointParams) {
+              // Save final params
+              saveParams();
+            }
+            return k(s);
+          }, a, {history: history});
+        });
 
   }
 

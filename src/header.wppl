@@ -235,7 +235,6 @@ var extend = function() {
   return _.assign.apply(_, [{}].concat(arguments));
 }
 
-// TODO change the order or this and map?
 var reduce = function(fn, init, ar) {
   var n = ar.length;
   var helper = function(i) {
@@ -401,7 +400,7 @@ var repeat = function(n, fn) {
 
 var compose = function(f, g) {
   return function(x) {
-    return f(g(x)); // TODO switch?
+    return f(g(x));
   };
 };
 
@@ -464,20 +463,9 @@ var SampleGuide = function(wpplFn, options) {
   return ForwardSample(wpplFn, _.assign({guide: true}, _.omit(options, 'guide')));
 };
 
-// Dream training - includes two phases:
-// DreamSample which does a forward pass and records the traces and observations
-// Optimize which does a EUBO-scoring pass based on records from the forward pass
-// Ultimately it samples from the optimized guide distribution
-// var DreamTrainThenSample = function(wpplFn, options) {
-//   var ret = DreamSample(wpplFn, options);
-//   // TODO: should params be passed between steps?
-//   var opts = _.extendOwn({}, options, {params: ret.params, estimator: {DREAM: {records: ret.records }}});
-//   return OptimizeThenSample(wpplFn, opts);
-// };
-
 var OptimizeThenSample = function(wpplFn, options) {
   Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.pick(options, 'samples', 'verbose', 'logDistFilename');
+  var opts = _.pick(options, 'samples', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 
@@ -503,7 +491,6 @@ var Infer = function(options, maybeFn) {
     incrementalMH: IncrementalMH,
     forward: ForwardSample,
     optimize: OptimizeThenSample
-    //dreamTrain: DreamTrainThenSample
   };
 
   var methodName = options.method || 'enumerate';
@@ -526,7 +513,6 @@ var modelParam = function(options) {
   }});
 };
 
-//TODO: why is this not part of ad.tensor etc?
 // Convenience functions for building tensors out of scalars
 var Vector = function(arr) {
   var n = arr.length;

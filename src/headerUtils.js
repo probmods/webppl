@@ -88,11 +88,10 @@ module.exports = function(env) {
   // one or more of the following methods:
 
   // mapDataFetch: Called when mapData is entered, providing an
-  // opportunity to perform book-keeping etc. This method returns
-  // an array of the data to be used. For instance, when
-  // sub-sampling the data, only the relevant subarray is returned.
-  // It is also possible to inject data from different sources
-  // rather than opts.
+  // opportunity to perform book-keeping etc. When sub-sampling data
+  // this method should return an array of indices indicating the data
+  // to be mapped over. Alternatively, null can be returned to
+  // indicate that all data should be used.
 
   // mapDataEnter/mapDataLeave: Called before/after every application
   // of the observation function.
@@ -118,33 +117,31 @@ module.exports = function(env) {
       throw new Error('mapData: Invalid batchSize.');
     }
 
-    // var ix = env.coroutine.mapDataFetch ?
-    //     env.coroutine.mapDataFetch(data, batchSize, a) :
-    //     null;
-    var _data = env.coroutine.mapDataFetch ?
+    var ix = env.coroutine.mapDataFetch ?
         env.coroutine.mapDataFetch(data, batchSize, a) :
-        data;
+        null;
 
-    // assert.ok(ix === null || _.isArray(ix));
-    assert.ok(_data === null || _.isArray(_data));
-    // var doReturn = ix === null; // We return undefined when sub-sampling data.
+    assert.ok(ix === null || _.isArray(ix));
+    var doReturn = ix === null; // We return undefined when sub-sampling data.
 
     return cpsMapData(s, function(s, v) {
       if (env.coroutine.mapDataFinal) {
         env.coroutine.mapDataFinal(a);
       }
-      return k(s, v);
-    }, a, _data, obsFn);
+      return k(s, doReturn ? v : undefined);
+    }, a, data, ix, obsFn);
   }
 
-  function cpsMapData(s, k, a, data, f, acc, i) {
+  function cpsMapData(s, k, a, data, indices, f, acc, i) {
     i = (i === undefined) ? 0 : i;
     acc = (acc === undefined) ? [] : acc;
-    if (i === data.length) {
+    var length = (indices === null) ? data.length : indices.length;
+    if (i === length) {
       return k(s, acc);
     } else {
+      var ix = (indices === null) ? i : indices[i];
       if (env.coroutine.mapDataEnter) {
-        env.coroutine.mapDataEnter(data[i]);
+        env.coroutine.mapDataEnter();
       }
       return f(s, function(s, v) {
         if (env.coroutine.mapDataLeave) {
@@ -152,9 +149,9 @@ module.exports = function(env) {
         }
 
         return function() {
-          return cpsMapData(s, k, a, data, f, acc.concat([v]), i + 1);
+          return cpsMapData(s, k, a, data, indices, f, acc.concat([v]), i + 1);
         };
-      }, a.concat('_$$' + i), data[i], i);
+      }, a.concat('_$$' + ix), data[ix], ix);
     }
   }
 

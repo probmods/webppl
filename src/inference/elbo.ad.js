@@ -32,10 +32,6 @@ module.exports = function(env) {
       debugWeights: false
     });
 
-    // The current values of all initialized parameters.
-    // (Scalars/tensors, not their AD nodes.)
-    // this.params = params;
-
     this.step = step;
     this.state = state;
     this.cont = cont;
@@ -117,7 +113,7 @@ module.exports = function(env) {
         // Loop continuation.
         function() {
           paramStruct.divEq(grad, this.opts.samples);
-          elbo /= this.opts.samples; // Average estimations.
+          elbo /= this.opts.samples;
           this.updateBaselines();
           env.coroutine = this.coroutine;
           return this.cont(grad, elbo);
@@ -348,19 +344,8 @@ module.exports = function(env) {
         // Signal to mapDataFinal that the batch was empty.
         this.mapDataStack.push(null);
       }
-      if (ix === null) {
-          //  var ob = util.random() < 0.35;
-          //  return [ob];
-          return data;
-      }
 
-      var batch = new Array(ix.length);
-      for (var i = 0; i < ix.length; i++) {
-        batch[i] = data[ix[i]];
-      }
-      
-      return batch;
-
+      return ix;
     },
 
     mapDataEnter: function() {
