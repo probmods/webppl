@@ -1,5 +1,4 @@
 'use strict';
-'use ad';
 
 var _ = require('lodash');
 var Trace = require('../../trace');
@@ -59,6 +58,7 @@ module.exports = function(env) {
       var sampleFn = this.insideMapData ? this.sampleLocal : this.sampleGlobal;
       return sampleFn.call(this, s, a, dist, options, function(s, val) {
         this.record.trace.addChoice(dist, val, a, s, k, options);
+        console.log(val);
         return k(s, val);
       }.bind(this));
     },

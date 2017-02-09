@@ -1,5 +1,4 @@
 'use strict';
-'use ad';
 
 // var _ = require('lodash');
 var util = require('../../util');
