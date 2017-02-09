@@ -3,7 +3,7 @@
 
 // var _ = require('lodash');
 var util = require('../../util');
-// var paramStruct = require('../params/struct');
+var paramStruct = require('../../params/struct');
 // var Trace = require('../trace');
 // var guide = require('../guide');
 
@@ -45,48 +45,35 @@ var util = require('../../util');
 module.exports = function(env) {
 
   var dreamSample = require('./sample')(env);
+  var dreamGradients = require('./gradients')(env);
 
-  // --------------------------------------------------
-  // Coroutine to estimate gradients.
-  // --------------------------------------------------
-
-
-
-  // --------------------------------------------------
-  // Estimator for use with Optimize.
-  // --------------------------------------------------
   return function(wpplFn, s, a, options, state, step, cont) {
     var opts = util.mergeDefaults(options, {
       samples: 1
     });
 
-    var objectiveVal = 0;
+    var objVal = 0;
     var grad = {};
 
     return util.cpsLoop(
       opts.samples,
       // Loop body.
       function(i, next) {
-
         return dreamSample(wpplFn, s, a, function(record) {
-
+          console.log('record:');
           console.log(record);
-          return next();
-
-          //return estimateGradient(function(g, objectiveVal_i) {
-            //paramStruct.addEq(grad, g);
-            //objectiveVal += objectiveVal_i;
-            //return next();
-          //});
-
+          return dreamGradients(wpplFn, record, s, a, function(g, objVal_i) {
+            paramStruct.addEq(grad, g);
+            objVal += objVal_i;
+            return next();
+          });
         });
-
       },
       // Continuation.
       function() {
-        // TODO: divide by num samples.
-        return cont(grad, objectiveVal);
-
+        paramStruct.divEq(grad, opts.samples);
+        objVal /= opts.samples;
+        return cont(grad, objVal);
       });
   };
 
