@@ -97,9 +97,7 @@ module.exports = function(env) {
         throw new Error('dream: nested mapData is not supported by this estimator.');
       }
       this.insideMapData = true;
-
-      // TODO: Need to return the fantasized data here.
-      return null;
+      return {data: this.record.data, ix: null};
     },
 
     mapDataFinal: function() {

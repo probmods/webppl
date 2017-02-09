@@ -124,7 +124,7 @@ module.exports = function(env) {
 
       // TODO: Sub-sample a desired number of data points?
       // TODO: Return dummy data? nulls/arrays of nulls perhaps?
-      return null; // Indicate that all of data should be mapped over.
+      return {data: data, ix: null}; // Indicate that all of data should be mapped over.
     },
 
     mapDataFinal: function() {
