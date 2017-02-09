@@ -5,7 +5,6 @@ var assert = require('assert');
 var _ = require('lodash');
 var guide = require('../../guide');
 var ad = require('../../ad');
-var util = require('../../util');
 
 module.exports = function(env) {
 
@@ -59,12 +58,9 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       options = options || {};
-      // TODO: Is relativizing the address required here? Unlike with
-      // SMC + EUBO I think the addresses will already line up.
-      var rel = util.relativizeAddress(env, a);
-      var val = this.record.trace.findChoice(
-          this.record.trace.baseAddress + rel).val;
-      assert.ok(val !== undefined, 'dream: No value for this choice in the trace.');
+      var choice = this.record.trace.findChoice(a);
+      assert.ok(choice !== undefined, 'dream: No entry for this choice in the trace.');
+      var val = choice.val;
 
       if (this.insideMapData) {
         return guide.getDist(
