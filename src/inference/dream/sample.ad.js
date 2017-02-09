@@ -87,9 +87,6 @@ module.exports = function(env) {
     },
 
     observe: function(s, k, a, dist) {
-      // I suspect that the current implementation doesn't support
-      // observe been used outside of mapData? Add to assumptions if
-      // this stays.
       if (!this.insideMapData) {
         throw new Error('dream: observe can only be used within mapData with this estimator.');
       }

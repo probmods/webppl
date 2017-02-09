@@ -21,6 +21,8 @@ var util = require('../../util');
 // 3. There are no factor statements. (See sample.ad.js for
 // reasoning.)
 
+// 4. observe is only used within mapData.
+
 // var model = function() {
 //   mapData({data: [x, y]}, function(datum) {
 //     // latent random choices
