@@ -18,6 +18,9 @@ var util = require('../../util');
 // and in the order in which they appear in the array. See below for
 // examples of each of these.
 
+// 3. There are no factor statements. (See sample.ad.js for
+// reasoning.)
+
 // var model = function() {
 //   mapData({data: [x, y]}, function(datum) {
 //     // latent random choices

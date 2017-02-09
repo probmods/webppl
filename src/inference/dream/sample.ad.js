@@ -7,6 +7,20 @@ var guide = require('../../guide');
 
 module.exports = function(env) {
 
+  // This coroutine generates samples from something like "the
+  // posterior predictive distribution over local random choices".
+
+  // This amounts to sampling global choices (those outside of
+  // mapData) from the guide, and local choices (those inside mapData)
+  // from the target.
+
+  // We assume we can generate samples from this distribution directly
+  // by forward sampling. This implies that there should be no factor
+  // statements in the model. (If there were we'd need to account for
+  // this with e.g. importance sampling?)
+
+  // TODO: What about choices *after* mapData?
+
   function dreamSample(wpplFn, s, a, cont) {
     this.wpplFn = wpplFn;
     this.s = s;
@@ -62,10 +76,8 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a) {
-      // TODO: Update the trace score here?
-      // Double check it makes sense to support factor statements in
-      // dream. Mention in comments at top-level either way.
-      return k(s);
+      // See comments at top of this file.
+      throw new Error('dream: factor not supported, use observe instead.');
     },
 
     observe: function(s, k, a, dist) {
