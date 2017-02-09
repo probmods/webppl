@@ -21,13 +21,22 @@ module.exports = function(env) {
 
   // TODO: What about choices *after* mapData?
 
+  // The trace data structure is only used as a dictionary in which
+  // sampled choices are stored for later look up. In particular
+  // `trace.score` is not maintained by this coroutine. All
+  // scores/gradients are computed by a separate coroutine.
+
+  // TODO: Consider using a plain object for choices if we don't reuse
+  // EUBO to compute gradients?
+
   function dreamSample(wpplFn, s, a, cont) {
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
     this.cont = cont;
 
-    // A 'record' stores the fantasized data.
+    // A 'record' stores random choices (in the trace) and the
+    // fantasized data.
     var trace = new Trace(this.wpplFn, s, env.exit, a);
     this.record = {trace: trace, data: []};
 
@@ -49,9 +58,6 @@ module.exports = function(env) {
     sample: function(s, k, a, dist, options) {
       var sampleFn = this.insideMapData ? this.sampleLocal : this.sampleGlobal;
       return sampleFn.call(this, s, a, dist, options, function(s, val) {
-        // TODO: Do we really need to use a full trace here. Could we
-        // not just use an object to map from addresses to sampled
-        // values? (Also need to track score?)
         this.record.trace.addChoice(dist, val, a, s, k, options);
         return k(s, val);
       }.bind(this));
@@ -92,7 +98,6 @@ module.exports = function(env) {
       }
 
       var val = dist.sample();
-      this.record.trace.addChoice(dist, val, a, s, k);
       // TODO: Update targetScore? (Also see sample.)
       this.obs.push(val);
       return k(s, val);
