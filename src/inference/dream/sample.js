@@ -58,15 +58,11 @@ module.exports = function(env) {
       var sampleFn = this.insideMapData ? this.sampleLocal : this.sampleGlobal;
       return sampleFn.call(this, s, a, dist, options, function(s, val) {
         this.record.trace.addChoice(dist, val, a, s, k, options);
-        console.log(val);
         return k(s, val);
       }.bind(this));
     },
 
     sampleLocal: function(s, a, targetDist, options, k) {
-      // TODO: Update targetScore? (Also see observe.) Would this fit
-      // better in the estimator phase? (I guess there's a reason it's
-      // not already there?)
       return k(s, targetDist.sample());
     },
 
@@ -95,7 +91,6 @@ module.exports = function(env) {
       }
 
       var val = dist.sample();
-      // TODO: Update targetScore? (Also see sample.)
       this.obs.push(val);
       return k(s, val);
     },

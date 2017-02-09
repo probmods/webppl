@@ -64,7 +64,7 @@ module.exports = function(env) {
       var rel = util.relativizeAddress(env, a);
       var val = this.record.trace.findChoice(
           this.record.trace.baseAddress + rel).val;
-      assert.notStrictEqual(val, undefined, 'dream: No value for this choice in the trace.');
+      assert.ok(val !== undefined, 'dream: No value for this choice in the trace.');
 
       if (this.insideMapData) {
         return guide.getDist(

@@ -1,10 +1,7 @@
 'use strict';
 
-// var _ = require('lodash');
 var util = require('../../util');
 var paramStruct = require('../../params/struct');
-// var Trace = require('../trace');
-// var guide = require('../guide');
 
 // This estimator makes the following assumptions:
 
@@ -22,6 +19,8 @@ var paramStruct = require('../../params/struct');
 
 // 4. observe is only used within mapData.
 
+// Examples:
+
 // var model = function() {
 //   mapData({data: [x, y]}, function(datum) {
 //     // latent random choices
@@ -36,10 +35,6 @@ var paramStruct = require('../../params/struct');
 //     observe(dist, arr[1]);
 //   });
 // };
-
-
-// I assume that we have one of these schemes, that is data doesn't
-// contain a mixture of both.
 
 module.exports = function(env) {
 
@@ -59,8 +54,6 @@ module.exports = function(env) {
       // Loop body.
       function(i, next) {
         return dreamSample(wpplFn, s, a, function(record) {
-          console.log('record:');
-          console.log(record);
           return dreamGradients(wpplFn, record, s, a, function(g, objVal_i) {
             paramStruct.addEq(grad, g);
             objVal += objVal_i;
