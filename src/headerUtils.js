@@ -88,10 +88,12 @@ module.exports = function(env) {
   // one or more of the following methods:
 
   // mapDataFetch: Called when mapData is entered, providing an
-  // opportunity to perform book-keeping etc. When sub-sampling data
-  // this method should return an array of indices indicating the data
-  // to be mapped over. Alternatively, null can be returned to
-  // indicate that all data should be used.
+  // opportunity to perform book-keeping etc. The method should return
+  // an object with data and ix properties. The data property will
+  // often reference the original data array. When sub-sampling data
+  // the ix property should reference an array of indices indicating
+  // the elements of the data array to be mapped over. Alternatively,
+  // null can be returned to indicate that all data should be used.
 
   // mapDataEnter/mapDataLeave: Called before/after every application
   // of the observation function.
@@ -117,9 +119,11 @@ module.exports = function(env) {
       throw new Error('mapData: Invalid batchSize.');
     }
 
-    var ix = env.coroutine.mapDataFetch ?
+    var ret = env.coroutine.mapDataFetch ?
         env.coroutine.mapDataFetch(data, batchSize, a) :
-        null;
+        {data: data, ix: null};
+    var ix = ret.ix;
+    var finalData = ret.data;
 
     assert.ok(ix === null || _.isArray(ix));
     var doReturn = ix === null; // We return undefined when sub-sampling data.
@@ -129,7 +133,7 @@ module.exports = function(env) {
         env.coroutine.mapDataFinal(a);
       }
       return k(s, doReturn ? v : undefined);
-    }, a, data, ix, obsFn);
+    }, a, finalData, ix, obsFn);
   }
 
   function cpsMapData(s, k, a, data, indices, f, acc, i) {

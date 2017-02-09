@@ -345,7 +345,7 @@ module.exports = function(env) {
         this.mapDataStack.push(null);
       }
 
-      return ix;
+      return {data: data, ix: ix};
     },
 
     mapDataEnter: function() {
