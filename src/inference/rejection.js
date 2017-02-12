@@ -22,6 +22,10 @@ module.exports = function(env) {
       maxScore: 0,
       incremental: false
     });
+    this.probe = options.probe;
+    this.numSamplesBak = options.samples;
+    this.startTime = Date.now();
+
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
     this.incremental = options.incremental;
@@ -43,6 +47,14 @@ module.exports = function(env) {
   }
 
   Rejection.prototype.run = function() {
+    var elapseSec = (Date.now() - this.startTime) / 1000.0
+    if (elapseSec > 2) {
+      console.log('.....')
+      var numFound = this.numSamplesBak - this.numSamples;
+      if (numFound < this.probe) {
+        return this.k(this.s, -1);
+      }
+    }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);

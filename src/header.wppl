@@ -478,11 +478,25 @@ var OptimizeThenSample = function(wpplFn, options) {
   return SampleGuide(wpplFn, opts);
 };
 
-var Infer = function(options, maybeFn) {
-  if (!util.isObject(options)) {
-    util.fatal('Infer: expected first argument to be an options object.');
+
+var DefaultInfer = function(wpplFn, options) {
+  var enumTol = 100;
+  var samplesInTwoSec = 10;
+  console.log('Trying Enumerate');
+  var enumResult = Enumerate(wpplFn, {probe : enumTol, strategy: 'depthFirst'});
+  if (!util.isObject(enumResult)) {
+    console.log('Trying Rejection');
+    var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 20});
+    if (!util.isObject(rejResult)) {
+      console.log('SMC')
+      return SMC(wpplFn);
+    }
   }
-  var wpplFn = maybeFn || options.model;
+};
+
+var Infer = function(options, maybeFn) {
+  var wpplFn = !util.isObject(options)? options : maybeFn || options.model;
+  // console.log(wpplFn)
   if (!_.isFunction(wpplFn)) {
     util.fatal('Infer: a model was not specified.');
   }
@@ -499,10 +513,11 @@ var Infer = function(options, maybeFn) {
     enumerate: Enumerate,
     incrementalMH: IncrementalMH,
     forward: ForwardSample,
-    optimize: OptimizeThenSample
+    optimize: OptimizeThenSample,
+    defaultInfer: DefaultInfer
   };
 
-  var methodName = options.method || 'enumerate';
+  var methodName = options.method || 'defaultInfer';
   if (!_.has(methodMap, methodName)) {
     var methodNames = _.keys(methodMap);
     var msg = 'Infer: \'' + methodName +
