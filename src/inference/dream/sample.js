@@ -119,7 +119,11 @@ module.exports = function(env) {
 
       // TODO: Sub-sample a desired number of data points?
       // TODO: Return dummy data? nulls/arrays of nulls perhaps?
-      return {data: data, ix: null}; // Indicate that all of data should be mapped over.
+
+      // We extend the address used to enter mapData so that addresses
+      // used while fantasizing don't overlap with those used when
+      // mapping over the real data.
+      return {data: data, ix: null, address: a + '_dream'}; // Indicate that all of data should be mapped over.
     },
 
     mapDataFinal: function() {

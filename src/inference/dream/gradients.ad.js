@@ -88,12 +88,12 @@ module.exports = function(env) {
       return k(s);
     },
 
-    mapDataFetch: function() {
+    mapDataFetch: function(data, batchSize, a) {
       if (this.insideMapData) {
         throw new Error('dream: nested mapData is not supported by this estimator.');
       }
       this.insideMapData = true;
-      return {data: this.record.data, ix: null};
+      return {data: this.record.data, ix: null, address: a + '_dream'};
     },
 
     mapDataFinal: function() {

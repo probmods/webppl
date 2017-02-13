@@ -93,7 +93,9 @@ module.exports = function(env) {
   // often reference the original data array. When sub-sampling data
   // the ix property should reference an array of indices indicating
   // the elements of the data array to be mapped over. Alternatively,
-  // null can be returned to indicate that all data should be used.
+  // null can be returned to indicate that all data should be used. An
+  // optional address can also be returned. When present, mapData
+  // behaves as though it was called with this alternative address.
 
   // mapDataEnter/mapDataLeave: Called before/after every application
   // of the observation function.
@@ -124,6 +126,7 @@ module.exports = function(env) {
         {data: data, ix: null};
     var ix = ret.ix;
     var finalData = ret.data;
+    var address = ret.address || a;
 
     assert.ok(ix === null || _.isArray(ix));
     var doReturn = ix === null; // We return undefined when sub-sampling data.
@@ -133,7 +136,7 @@ module.exports = function(env) {
         env.coroutine.mapDataFinal(a);
       }
       return k(s, doReturn ? v : undefined);
-    }, a, finalData, ix, obsFn);
+    }, address, finalData, ix, obsFn);
   }
 
   function cpsMapData(s, k, a, data, indices, f, acc, i) {
