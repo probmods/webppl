@@ -49,7 +49,11 @@ var tests = [
       mixed4: true,
       bivariateGaussian: true,
       indirectDependency: true,
-      guidedFlip: true
+      guidedFlip: true,
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        args: { samples: 150, onlyMAP: true }
+      }
     }
   },
   {
@@ -631,7 +635,16 @@ var tests = [
           verbose: false
         }
       },
-      mapData: true
+      mapData: true,
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        args: {
+          steps: 10000,
+          samples: 150,
+          onlyMAP: true,
+          verbose: false
+        }
+      }
     }
   }
 ];

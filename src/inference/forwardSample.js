@@ -15,6 +15,7 @@ module.exports = function(env) {
     this.opts = util.mergeDefaults(options, {
       samples: 1,
       guide: false, // true = sample guide, false = sample target
+      onlyMAP: false,
       verbose: false
     });
 
@@ -34,7 +35,7 @@ module.exports = function(env) {
 
     run: function() {
 
-      var hist = new CountAggregator();
+      var hist = new CountAggregator(this.opts.onlyMAP);
       var logWeights = [];   // Save total factor weights
 
       return util.cpsLoop(
@@ -42,10 +43,11 @@ module.exports = function(env) {
 
           // Loop body.
           function(i, next) {
+            this.score = 0;
             this.logWeight = 0;
             return this.wpplFn(_.clone(this.s), function(s, val) {
               logWeights.push(this.logWeight);
-              hist.add(val);
+              hist.add(val, this.score);
               return next();
             }.bind(this), this.a);
           }.bind(this),
@@ -64,16 +66,21 @@ module.exports = function(env) {
     },
 
     sample: function(s, k, a, dist, options) {
+      var cont = function(s, dist) {
+        var val = dist.sample();
+        this.score += dist.score(val);
+        return k(s, val);
+      }.bind(this);
+
       if (this.opts.guide) {
         options = options || {};
         return guide.getDist(
             options.guide, options.noAutoGuide, dist, env, s, a,
             function(s, maybeGuideDist) {
-              var d = maybeGuideDist || dist;
-              return k(s, d.sample());
+              return cont(s, maybeGuideDist || dist);
             });
       } else {
-        return k(s, dist.sample());
+        return cont(s, dist);
       }
     },
 
