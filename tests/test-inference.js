@@ -52,6 +52,7 @@ var tests = [
       guidedFlip: true,
       onlyMAP: {
         mean: { tol: 0.1 },
+        std: { tol: 0 },
         args: { samples: 150, onlyMAP: true }
       }
     }
@@ -116,7 +117,11 @@ var tests = [
       variableSupport: true,
       query: true,
       query2: { hist: { tol: 0.1, exactSupport: true } },
-      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        std: { tol: 0 },
+        args: { samples: 150, onlyMAP: true }
+      },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -226,7 +231,11 @@ var tests = [
       store: { hist: { tol: 0 }, args: { particles: 100 } },
       store2: { hist: { tol: 0 }, args: { particles: 100 } },
       notapes: { hist: { tol: 0 }, args: { samples: 100 } },
-      onlyMAP: { mean: { tol: 0.1 }, args: { particles: 150, onlyMAP: true } },
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        std: { tol: 0 },
+        args: { particles: 150, onlyMAP: true }
+      },
       gaussianMean: { mean: { tol: 0.3 }, std: { tol: 0.3 }, args: { particles: 10000 } },
       varFactors1: { args: { particles: 5000 } },
       varFactors2: true,
@@ -376,7 +385,11 @@ var tests = [
       variableSupport: true,
       query: true,
       query2: { hist: { tol: 0.1, exactSupport: true } },
-      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, onlyMAP: true } },
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        std: { tol: 0 },
+        args: { samples: 150, onlyMAP: true }
+      },
       nestedEnum1: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum2: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
       nestedEnum3: { mean: { tol: 0.1 }, std: { tol: 0.075 } },
@@ -412,7 +425,11 @@ var tests = [
       variableSupport: true,
       query: true,
       query2: { hist: { tol: 0.1, exactSupport: true } },
-      onlyMAP: { mean: { tol: 0.1 }, args: { samples: 150, kernel: 'HMC', onlyMAP: true } },
+      onlyMAP: {
+        mean: { tol: 0.1 },
+        std: { tol: 0 },
+        args: { samples: 150, kernel: 'HMC', onlyMAP: true }
+      },
       mixed1: true,
       mixed1Factor: true,
       mixed2: {
@@ -638,6 +655,7 @@ var tests = [
       mapData: true,
       onlyMAP: {
         mean: { tol: 0.1 },
+        std: { tol: 0 },
         args: {
           steps: 10000,
           samples: 150,
