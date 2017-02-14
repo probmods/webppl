@@ -24,9 +24,6 @@ module.exports = function(env) {
   // `trace.score` is not maintained by this coroutine. All
   // scores/gradients are computed by a separate coroutine.
 
-  // TODO: Consider using a plain object for choices if we don't reuse
-  // EUBO to compute gradients?
-
   function dreamSample(wpplFn, s, a, cont) {
     this.wpplFn = wpplFn;
     this.s = s;
