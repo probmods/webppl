@@ -60,24 +60,24 @@ module.exports = function(env) {
 
       return util.cpsForEach(
 
-        // Body.
-        function(trace, i, traces, next) {
-          return this.estimateGradient(trace, function(g, eubo_i) {
-            paramStruct.addEq(grad, g); // Accumulate gradient estimates.
-            eubo += eubo_i;
-            return next();
-          });
-        }.bind(this),
+          // Body.
+          function(trace, i, traces, next) {
+            return this.estimateGradient(trace, function(g, eubo_i) {
+              paramStruct.addEq(grad, g); // Accumulate gradient estimates.
+              eubo += eubo_i;
+              return next();
+            });
+          }.bind(this),
 
-        // Continuation.
-        function() {
-          paramStruct.divEq(grad, traces.length);
-          eubo /= traces.length;
-          env.coroutine = this.coroutine;
-          return this.cont(grad, eubo);
-        }.bind(this),
+          // Continuation.
+          function() {
+            paramStruct.divEq(grad, traces.length);
+            eubo /= traces.length;
+            env.coroutine = this.coroutine;
+            return this.cont(grad, eubo);
+          }.bind(this),
 
-        traces);
+          traces);
 
     },
 
