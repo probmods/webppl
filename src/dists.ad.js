@@ -286,18 +286,18 @@ function mvBernoulliScore(ps, x) {
   var pSub1 = ad.tensor.sub(ps, 1);
 
   return ad.tensor.sumreduce(
-    ad.tensor.log(
+      ad.tensor.log(
       ad.tensor.add(
-        ad.tensor.mul(x, ps),
-        ad.tensor.mul(xSub1, pSub1))));
+      ad.tensor.mul(x, ps),
+      ad.tensor.mul(xSub1, pSub1))));
 }
 
 
 var MultivariateBernoulli = makeDistributionType({
   name: 'MultivariateBernoulli',
   desc: 'Distribution over a vector of independent Bernoulli variables. Each element ' +
-    'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
-    'has support ``{true, false}``.',
+      'of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which ' +
+      'has support ``{true, false}``.',
   params: [{name: 'ps', desc: 'probabilities', type: types.unitIntervalVector}],
   mixins: [finiteSupport],
   sample: function() {
@@ -393,7 +393,7 @@ var Gaussian = makeDistributionType({
     // distribution described by params.
     var mu = this.params.mu;
     var sigma = this.params.sigma;
-    return ad.scalar.add(ad.scalar.mul(sigma, x), mu);  }
+    return ad.scalar.add(ad.scalar.mul(sigma, x), mu); }
 });
 
 
@@ -410,7 +410,6 @@ function mvGaussianSample(mu, cov) {
 function mvGaussianScore(mu, cov, x) {
   var _x = ad.value(x);
   var _mu = ad.value(mu);
-  var _cov = ad.value(cov);
   if (!util.isVector(_x) || !util.tensorEqDim0(_x, _mu)) {
     return -Infinity;
   }
@@ -422,7 +421,7 @@ function mvGaussianScore(mu, cov, x) {
   var zT = ad.tensor.transpose(z);
   var prec = ad.tensor.inverse(cov);
   return ad.scalar.mul(-0.5, ad.scalar.add(
-    dLog2Pi, ad.scalar.add(
+      dLog2Pi, ad.scalar.add(
       logDetCov,
       ad.tensor.get(ad.tensor.dot(ad.tensor.dot(zT, prec), z), 0))));
 }
@@ -431,8 +430,8 @@ function mvGaussianScore(mu, cov, x) {
 var MultivariateGaussian = makeDistributionType({
   name: 'MultivariateGaussian',
   desc: 'Multivariate Gaussian distribution with full covariance matrix. ' +
-    'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
-    'then the distribution is over vectors of length ``d``.',
+      'If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, ' +
+      'then the distribution is over vectors of length ``d``.',
   params: [{name: 'mu', desc: 'mean', type: types.unboundedVector},
            {name: 'cov', desc: 'covariance', type: types.posDefMatrix}],
   wikipedia: 'Multivariate_normal_distribution',
@@ -476,7 +475,7 @@ function diagCovGaussianScore(mu, sigma, x) {
   var z = ad.tensor.div(ad.tensor.sub(x, mu), sigma);
 
   return ad.scalar.mul(-0.5, ad.scalar.add(
-    dLog2Pi, ad.scalar.add(
+      dLog2Pi, ad.scalar.add(
       logDetCov,
       ad.tensor.sumreduce(ad.tensor.mul(z, z)))));
 }
@@ -485,9 +484,9 @@ function diagCovGaussianScore(mu, sigma, x) {
 var DiagCovGaussian = makeDistributionType({
   name: 'DiagCovGaussian',
   desc: 'A distribution over tensors in which each element is independent and Gaussian distributed, ' +
-    'with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with ' +
-    'diagonal covariance matrix. The distribution is over tensors that have the same shape as the ' +
-    'parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.',
+      'with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with ' +
+      'diagonal covariance matrix. The distribution is over tensors that have the same shape as the ' +
+      'parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.',
   params: [
     {name: 'mu', desc: 'mean', type: types.unboundedTensor},
     {name: 'sigma', desc: 'standard deviations', type: types.positiveTensor}
@@ -530,8 +529,8 @@ var squishToProbSimplex = function(x) {
 var LogisticNormal = makeDistributionType({
   name: 'LogisticNormal',
   desc: 'A distribution over probability vectors obtained by transforming a random variable ' +
-    'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` ' +
-    'then the distribution is over probability vectors of length ``d+1``.',
+      'drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` ' +
+      'then the distribution is over probability vectors of length ``d+1``.',
   params: [
     {name: 'mu', desc: 'mean', type: types.unboundedVector},
     {name: 'sigma', desc: 'standard deviations', type: types.positiveVector}
@@ -736,10 +735,10 @@ var Cauchy = makeDistributionType({
     var location = this.params.location;
     return -LOG_PI - Math.log(scale) - Math.log(1 + Math.pow((x - location) / scale, 2));
   },
-  base: function () {
+  base: function() {
     return new Uniform({a: 0, b: 1});
   },
-  transform: function (x) {
+  transform: function(x) {
     'use ad';
     var location = this.params.location;
     var scale = this.params.scale;
@@ -761,7 +760,7 @@ function discreteScore(ps, i) {
 
 function inDiscreteSupport(val, dim) {
   return (val === Math.floor(val)) && (0 <= val) && (val < dim);
-};
+}
 
 function discreteScoreVector(probs, val) {
   'use ad';
@@ -905,10 +904,10 @@ var Exponential = makeDistributionType({
     'use ad';
     return Math.log(this.params.a) - this.params.a * val;
   },
-  base: function () {
+  base: function() {
     return new Uniform({a: 0, b: 1});
   },
-  transform: function (x) {
+  transform: function(x) {
     'use ad';
     return Math.log(x) / -this.params.a;
   },
@@ -1238,20 +1237,20 @@ function dirichletScore(alpha, val) {
   }
 
   return ad.scalar.add(
-    ad.tensor.sumreduce(
+      ad.tensor.sumreduce(
       ad.tensor.sub(
-        ad.tensor.mul(
+      ad.tensor.mul(
           ad.tensor.sub(alpha, 1),
           ad.tensor.log(val)),
-        ad.tensor.logGamma(alpha))),
-    ad.scalar.logGamma(ad.tensor.sumreduce(alpha)));
+      ad.tensor.logGamma(alpha))),
+      ad.scalar.logGamma(ad.tensor.sumreduce(alpha)));
 }
 
 var Dirichlet = makeDistributionType({
   name: 'Dirichlet',
   desc: 'Distribution over probability vectors. ' +
-    'If ``alpha`` has length ``d`` then the distribution ' +
-    'is over probability vectors of length ``d``.',
+      'If ``alpha`` has length ``d`` then the distribution ' +
+      'is over probability vectors of length ``d``.',
   params: [{name: 'alpha', desc: 'concentration', type: types.positiveVector}],
   wikipedia: true,
   mixins: [continuousSupport, noHMC],
@@ -1399,9 +1398,9 @@ var SampleBasedMarginal = makeDistributionType({
 
 function printMarginal(dist) {
   return 'Marginal:\n' + _.map(dist, function(obj, val) { return [val, obj.prob]; })
-    .sort(function(a, b) { return b[1] - a[1]; })
-    .map(function(pair) { return '    ' + pair[0] + ' : ' + pair[1]; })
-    .join('\n');
+      .sort(function(a, b) { return b[1] - a[1]; })
+      .map(function(pair) { return '    ' + pair[0] + ' : ' + pair[1]; })
+      .join('\n');
 }
 
 
@@ -1461,11 +1460,11 @@ var Delta = makeDistributionType({
 
 function metadata() {
   return _.chain(distributions)
-    .toPairs() // pair[0] = key, pair[1] = value
-    .sortBy(function(pair) { return pair[0]; })
-    .map(function(pair) { return pair[1]; })
-    .map(function(dist) { return dist.prototype.meta; })
-    .value();
+      .toPairs() // pair[0] = key, pair[1] = value
+      .sortBy(function(pair) { return pair[0]; })
+      .map(function(pair) { return pair[1]; })
+      .map(function(dist) { return dist.prototype.meta; })
+      .value();
 }
 
 var distributions = {
