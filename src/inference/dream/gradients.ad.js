@@ -15,6 +15,7 @@ module.exports = function(env) {
     this.a = a;
     this.cont = cont;
 
+    this.guideRequired = true;
     this.insideMapData = false;
 
     this.coroutine = env.coroutine;

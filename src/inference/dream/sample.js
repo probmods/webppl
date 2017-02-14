@@ -35,6 +35,7 @@ module.exports = function(env) {
     var trace = new Trace(this.wpplFn, s, env.exit, a);
     this.record = {trace: trace, data: []};
 
+    this.guideRequired = true;
     this.insideMapData = false;
 
     this.coroutine = env.coroutine;
