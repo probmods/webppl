@@ -651,7 +651,8 @@ var tests = [
     },
     models: {
       deterministic: { hist: { exact: true } },
-      withCaching: true
+      withCaching: true,
+      dream1: true
     }
   }
 ];
