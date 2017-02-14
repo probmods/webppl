@@ -99,7 +99,10 @@ module.exports = function(env) {
 
     mapDataFinal: function() {
       this.insideMapData = false;
-    }
+    },
+
+    incrementalize: env.defaultCoroutine.incrementalize,
+    constructor: dreamGradients
 
   };
 

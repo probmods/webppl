@@ -64,6 +64,7 @@ module.exports = function(env) {
     },
 
     sampleGlobal: function(s, a, dist, options, k) {
+      options = options || {};
       return guide.getDist(
         options.guide, options.noAutoGuide, dist, env, s, a,
         function(s, guideDist) {
@@ -141,7 +142,10 @@ module.exports = function(env) {
 
     mapDataFinal: function() {
       this.insideMapData = false;
-    }
+    },
+
+    incrementalize: env.defaultCoroutine.incrementalize,
+    constructor: dreamSample
 
   };
 
