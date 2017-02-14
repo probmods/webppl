@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('lodash');
+var util = require('../../util');
 var Trace = require('../../trace');
 var guide = require('../../guide');
 
@@ -17,8 +18,6 @@ module.exports = function(env) {
   // by forward sampling. This implies that there should be no factor
   // statements in the model. (If there were we'd need to account for
   // this with e.g. importance sampling?)
-
-  // TODO: What about choices *after* mapData?
 
   // The trace data structure is only used as a dictionary in which
   // sampled choices are stored for later look up. In particular
@@ -104,26 +103,42 @@ module.exports = function(env) {
       this.record.data.push(datum);
     },
 
-    mapDataFetch: function(data, batchSize, a) {
+    mapDataFetch: function(data, opts, a) {
       if (this.insideMapData) {
         throw new Error('dream: nested mapData is not supported by this estimator.');
       }
       this.insideMapData = true;
 
+      var batchSize = _.has(opts, 'dreamBatchSize') ? opts.dreamBatchSize : 1;
+      if (!(util.isInteger(batchSize) && batchSize >= 0)) {
+        throw new Error('dream: dreamBatchSize should be a non negative integer.');
+      }
+
+      if (_.isEmpty(data)) {
+        // In general, we need data to yield to the observation
+        // function in order to generate fantasy data.
+        throw new Error('dream: data should be non empty.');
+      }
+
       // Flag indicating whether each element of the original data is
       // an array of observations or a single observation. (We check
       // the first datum, and assume the rest of data would return the
       // same.)
+      this.obsArr = _.isArray(data[0]);
 
-      this.obsArr = data.length > 0 && _.isArray(data[0]);
-
-      // TODO: Sub-sample a desired number of data points?
-      // TODO: Return dummy data? nulls/arrays of nulls perhaps?
+      var ix = _.times(batchSize, function() {
+        return Math.floor(util.random() * data.length);
+      });
+      var batch = _.at(data, ix);
 
       // We extend the address used to enter mapData so that addresses
       // used while fantasizing don't overlap with those used when
       // mapping over the real data.
-      return {data: data, ix: null, address: a + '_dream'}; // Indicate that all of data should be mapped over.
+
+      // We don't return the original indices since it's not important
+      // that these are included in the address used to call the
+      // observation function.
+      return {data: batch, ix: null, address: a + '_dream'};
     },
 
     mapDataFinal: function() {
