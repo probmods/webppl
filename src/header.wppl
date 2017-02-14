@@ -474,7 +474,7 @@ var SampleGuide = function(wpplFn, options) {
 
 var OptimizeThenSample = function(wpplFn, options) {
   Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.pick(options, 'samples', 'verbose');
+  var opts = _.pick(options, 'samples', 'onlyMAP', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 
