@@ -38,8 +38,8 @@ module.exports = function(env) {
 
       return this.wpplFn(_.clone(this.s), function(s, val) {
 
-        // We only backprop through logq, so we don't build ad graph
-        // for logp. This is a sanity check for that.
+        // We only backprop through logq, so we don't build an ad
+        // graph for logp. This is a sanity check for that.
         assert.ok(_.isNumber(this.logp), 'dream: Expected a number.');
 
         var objective = -this.logq;
@@ -82,9 +82,10 @@ module.exports = function(env) {
 
     factor: function(s, k, a, score) {
       // This will only be called by the default implementation of
-      // observe. During the sampling phase we check that factor isn't
-      // called, and given the trace this phase is a (deterministic)
-      // replay of that.
+      // observe. (Because we checked that factor isn't called during
+      // the sampling phase, and since we're reusing choices from the
+      // trace, the execution here will follow the same path through
+      // the program.)
       this.logp += ad.value(score);
       return k(s);
     },

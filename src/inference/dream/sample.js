@@ -14,11 +14,6 @@ module.exports = function(env) {
   // mapData) from the guide, and local choices (those inside mapData)
   // from the target.
 
-  // We assume we can generate samples from this distribution directly
-  // by forward sampling. This implies that there should be no factor
-  // statements in the model. (If there were we'd need to account for
-  // this with e.g. importance sampling?)
-
   // The trace data structure is only used as a dictionary in which
   // sampled choices are stored for later look up. In particular
   // `trace.score` is not maintained by this coroutine. All
@@ -76,7 +71,6 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a) {
-      // See comments at top of this file.
       throw new Error('dream: factor not supported, use observe instead.');
     },
 
