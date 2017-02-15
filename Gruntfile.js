@@ -3,6 +3,21 @@
 var _ = require('lodash');
 var open = require('open');
 var child_process = require('child_process');
+var path = require('path');
+var fs = require('fs');
+
+function isCodeGenFile(fn) {
+  return isPlainJsFile(fn) && fs.existsSync(adSource(fn));
+}
+
+function isPlainJsFile(fn) {
+  return path.extname(fn) === '.js' &&
+         path.extname(path.parse(fn).name) !== '.ad';
+}
+
+function adSource(fn) {
+  return fn.slice(0, -3) + '.ad.js';
+}
 
 var jslintSettings = {
   options: {
@@ -16,8 +31,9 @@ var jslintSettings = {
     src: [
       'Gruntfile.js',
       'src/header.wppl',
-      'src/**/!(dists|enumerate|elbo|eubo|sdream|ScoreAggregator).js'
-    ]
+      'src/**/*.js'
+    ],
+    filter: _.negate(isCodeGenFile)
   },
   test: {
     src: ['tests/**/*.js']
@@ -35,12 +51,15 @@ module.exports = function(grunt) {
       all: ['tests/test-*.js']
     },
     jshint: {
-      files: [
-        'Gruntfile.js',
-        'src/header.wppl',
-        'src/**/*.js',
-        'tests/**/*.js'
-      ],
+      all: {
+        src: [
+          'Gruntfile.js',
+          'src/header.wppl',
+          'src/**/*.js',
+          'tests/**/*.js'
+        ],
+        filter: _.negate(isCodeGenFile)
+      },
       options: {
         maxerr: 500,
         camelcase: true,

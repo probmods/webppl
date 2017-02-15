@@ -82,7 +82,7 @@ module.exports = function(env) {
     var _score = ad.value(score);
     if (!isFinite(_score)) { // Also catches NaN.
       var msg = 'ELBO: The score of the previous sample under the ' +
-            source + ' program was ' + _score + '.';
+          source + ' program was ' + _score + '.';
       if (_.isNaN(_score)) {
         msg += ' Reducing the step size may help.';
       }
@@ -98,26 +98,26 @@ module.exports = function(env) {
       var grad = {};
 
       return util.cpsLoop(
-        this.opts.samples,
+          this.opts.samples,
 
-        // Loop body.
-        function(i, next) {
-          this.iter = i;
-          return this.estimateGradient(function(g, elbo_i) {
-            paramStruct.addEq(grad, g); // Accumulate gradient estimates.
-            elbo += elbo_i;
-            return next();
-          });
-        }.bind(this),
+          // Loop body.
+          function(i, next) {
+            this.iter = i;
+            return this.estimateGradient(function(g, elbo_i) {
+              paramStruct.addEq(grad, g); // Accumulate gradient estimates.
+              elbo += elbo_i;
+              return next();
+            });
+          }.bind(this),
 
-        // Loop continuation.
-        function() {
-          paramStruct.divEq(grad, this.opts.samples);
-          elbo /= this.opts.samples;
-          this.updateBaselines();
-          env.coroutine = this.coroutine;
-          return this.cont(grad, elbo);
-        }.bind(this));
+          // Loop continuation.
+          function() {
+            paramStruct.divEq(grad, this.opts.samples);
+            elbo /= this.opts.samples;
+            this.updateBaselines();
+            env.coroutine = this.coroutine;
+            return this.cont(grad, elbo);
+          }.bind(this));
 
     },
 
@@ -236,8 +236,8 @@ module.exports = function(env) {
       // weight for any factors not seen during this step.
       _.each(this.baselineUpdates, function(obj, address) {
         baselines[address] = _.has(baselines, address) ?
-          decay * baselines[address] + (1 - decay) * obj.mean :
-          obj.mean;
+            decay * baselines[address] + (1 - decay) * obj.mean :
+            obj.mean;
       }, this);
     },
 
@@ -259,8 +259,8 @@ module.exports = function(env) {
         var m = top(this.mapDataStack).multiplier;
 
         var node = new SampleNode(
-          this.prevNode, logp, logq,
-          ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
+            this.prevNode, logp, logq,
+            ret.reparam, a, dist, guideDist, val, m, this.opts.debugWeights);
 
         this.prevNode = node;
         this.nodes.push(node);
@@ -297,7 +297,7 @@ module.exports = function(env) {
       }
       var m = top(this.mapDataStack).multiplier;
       var node = new FactorNode(
-        this.prevNode, score, m, this.opts.debugWeights);
+          this.prevNode, score, m, this.opts.debugWeights);
       this.prevNode = node;
       this.nodes.push(node);
       return k(s);
