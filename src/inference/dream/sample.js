@@ -66,13 +66,13 @@ module.exports = function(env) {
     sampleGlobal: function(s, a, dist, options, k) {
       options = options || {};
       return guide.getDist(
-        options.guide, options.noAutoGuide, dist, env, s, a,
-        function(s, guideDist) {
-          if (!guideDist) {
-            throw new Error('dream: No guide distribution specified.');
-          }
-          return k(s, guideDist.sample());
-        });
+          options.guide, options.noAutoGuide, dist, env, s, a,
+          function(s, guideDist) {
+            if (!guideDist) {
+              throw new Error('dream: No guide distribution specified.');
+            }
+            return k(s, guideDist.sample());
+          });
     },
 
     factor: function(s, k, a) {

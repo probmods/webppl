@@ -50,23 +50,23 @@ module.exports = function(env) {
     var grad = {};
 
     return util.cpsLoop(
-      opts.samples,
-      // Loop body.
-      function(i, next) {
-        return dreamSample(wpplFn, s, a, function(record) {
-          return dreamGradients(wpplFn, record, s, a, function(g, objVal_i) {
-            paramStruct.addEq(grad, g);
-            objVal += objVal_i;
-            return next();
+        opts.samples,
+        // Loop body.
+        function(i, next) {
+          return dreamSample(wpplFn, s, a, function(record) {
+            return dreamGradients(wpplFn, record, s, a, function(g, objVal_i) {
+              paramStruct.addEq(grad, g);
+              objVal += objVal_i;
+              return next();
+            });
           });
+        },
+        // Continuation.
+        function() {
+          paramStruct.divEq(grad, opts.samples);
+          objVal /= opts.samples;
+          return cont(grad, objVal);
         });
-      },
-      // Continuation.
-      function() {
-        paramStruct.divEq(grad, opts.samples);
-        objVal /= opts.samples;
-        return cont(grad, objVal);
-      });
   };
 
 };

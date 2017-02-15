@@ -65,15 +65,15 @@ module.exports = function(env) {
 
       if (this.insideMapData) {
         return guide.getDist(
-          options.guide, options.noAutoGuide, dist, env, s, a,
-          function(s, guideDist) {
-            if (!guideDist) {
-              throw new Error('dream: No guide distribution specified.');
-            }
-            this.logp += ad.value(dist.score(val));
-            this.logq += guideDist.score(val);
-            return k(s, val);
-          }.bind(this));
+            options.guide, options.noAutoGuide, dist, env, s, a,
+            function(s, guideDist) {
+              if (!guideDist) {
+                throw new Error('dream: No guide distribution specified.');
+              }
+              this.logp += ad.value(dist.score(val));
+              this.logq += guideDist.score(val);
+              return k(s, val);
+            }.bind(this));
       }
       else {
         return k(s, val);
