@@ -93,7 +93,7 @@ module.exports = function(env) {
   };
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
-    console.log('sample')
+    // console.log('sample')
     var support = getSupport(dist);
     if (!support) {
       return this.exit();
@@ -114,7 +114,7 @@ module.exports = function(env) {
 
   Enumerate.prototype.factor = function(s, k, a, score) {
     // Update score and continue
-    console.log('factor')
+    // console.log('factor')
     this.score += score;
     if (this.score === -Infinity) {
       return this.exit();
@@ -155,14 +155,16 @@ module.exports = function(env) {
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    console.log(this.level_sizes)
+    // console.log(this.level_sizes)
     if (this.probe && this.first_trace){
       if (this.level_sizes.length < 1) {
+        console.log('sampling from continuous distribution...quit Enumerate')
         return this.k(this.store, -1);
       }
       this.first_trace = false;
       var complexity = getComplexity(this.level_sizes)
       if (complexity > this.probe) {
+        console.log(complexity + ' operations' + '...quit Enumerate')
         return this.k(this.store, complexity);
       }
     }
@@ -174,10 +176,10 @@ module.exports = function(env) {
 
     // If anything is left in queue do it:
     if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {
-      console.log('exit1->next')
+      // console.log('exit1->next')
       return this.nextInQueue();
     } else {
-      console.log('exit2')
+      // console.log('exit2')
       if (this.marginal.size === 0) {
         throw new Error('All paths explored by Enumerate have probability zero.');
       }

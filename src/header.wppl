@@ -480,17 +480,23 @@ var OptimizeThenSample = function(wpplFn, options) {
 
 
 var DefaultInfer = function(wpplFn, options) {
-  var enumTol = 100;
-  var samplesInTwoSec = 10;
-  console.log('Trying Enumerate');
+  var enumTol = 20000;
+  var samplesInTwoSec = 1000; //from 1 to 100
+  console.log('Doing Enumerate');
   var enumResult = Enumerate(wpplFn, {probe : enumTol, strategy: 'depthFirst'});
-  if (!util.isObject(enumResult)) {
-    console.log('Trying Rejection');
-    var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 20});
-    if (!util.isObject(rejResult)) {
-      console.log('SMC')
+  if (typeof enumResult !== 'object') {
+    console.log('Doing Rejection');
+    var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 1000});
+    if (typeof rejResult !== 'object') {
+      console.log('Doing SMC')
       return SMC(wpplFn);
+    } else {
+      console.log('Rejection done')
+      return rejResult;
     }
+  } else {
+    console.log('Enumerate done')
+    return enumResult;
   }
 };
 

@@ -25,6 +25,7 @@ module.exports = function(env) {
     this.probe = options.probe;
     this.numSamplesBak = options.samples;
     this.startTime = Date.now();
+    this.flag = true
 
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
@@ -48,12 +49,15 @@ module.exports = function(env) {
 
   Rejection.prototype.run = function() {
     var elapseSec = (Date.now() - this.startTime) / 1000.0
-    if (elapseSec > 2) {
-      console.log('.....')
+    if (elapseSec > 2 && this.flag) {
+      // console.log('.....')
+      this.flag = false;
       var numFound = this.numSamplesBak - this.numSamples;
       if (numFound < this.probe) {
+        console.log('getting ' + numFound + ' samples in 2 seconds...quit')
         return this.k(this.s, -1);
       }
+      console.log('getting ' + numFound + ' samples in 2 seconds...continue');
     }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
