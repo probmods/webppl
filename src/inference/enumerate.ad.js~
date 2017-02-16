@@ -23,6 +23,7 @@ module.exports = function(env) {
     this.probe = options.probe;
     this.first_trace = true;
     this.level_sizes = []
+    this.counter = 1
 
     this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
@@ -54,6 +55,9 @@ module.exports = function(env) {
 
   Enumerate.prototype.nextInQueue = function() {
     var nextState = this.queue.deq();
+    if (this.probe) {
+      this.counter += 1;
+    }
     this.score = nextState.score;
     return nextState.continuation(nextState.store, nextState.value);
   };

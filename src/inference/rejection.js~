@@ -54,7 +54,7 @@ module.exports = function(env) {
       this.flag = false;
       var numFound = this.numSamplesBak - this.numSamples;
       if (numFound < this.probe) {
-        console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection')
+        console.log('only getting ' + numFound + ' samples in 2 seconds...quit')
         return this.k(this.s, -1);
       }
       console.log('getting ' + numFound + ' samples in 2 seconds...continue');
