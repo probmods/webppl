@@ -1,5 +1,7 @@
 .DS_Store
-.pyc
+*~
+*.svg
+*.pyc
 *.swp
 node_modules
 npm-debug.log
