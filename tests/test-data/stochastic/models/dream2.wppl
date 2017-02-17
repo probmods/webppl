@@ -1,0 +1,7 @@
+var model = function() {
+  var bool = flip(.5);
+  mapData({data: [false]}, function(x) {
+    observe(Bernoulli({p: bool ? .1 : .9}), x);
+  });
+  return bool;
+};

@@ -670,9 +670,9 @@ var tests = [
     method: 'optimize',
     settings: {
       args: {
-        samples: 100,
-        steps: 1000,
-        optMethod: {adam: {stepSize: 0.1}},
+        samples: 10000,
+        steps: 10000,
+        optMethod: {adam: {stepSize: 0.01}},
         estimator: 'dream',
         verbose: false
       },
@@ -683,7 +683,9 @@ var tests = [
     models: {
       deterministic: { hist: { exact: true } },
       withCaching: true,
-      dream1: true
+      dream1: true,
+      dream2: true,
+      dream3: true
     }
   }
 ];
