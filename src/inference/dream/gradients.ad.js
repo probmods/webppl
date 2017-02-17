@@ -51,7 +51,7 @@ module.exports = function(env) {
           return params.map(ad.derivative);
         });
 
-        return cont(grads, this.logp - ad.value(this.logq));
+        return cont(grads, -ad.value(this.logq));
 
       }.bind(this), this.a);
 
