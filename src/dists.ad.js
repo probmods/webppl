@@ -115,6 +115,7 @@ var finiteSupport = {
   },
 
   entropy: function() {
+    'use ad';
     return _.reduce(this.support(), function(memo, x) {
       var score = this.score(x);
       return memo - (score === -Infinity ? 0 : Math.exp(score) * score);
