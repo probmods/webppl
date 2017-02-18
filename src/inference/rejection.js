@@ -25,7 +25,9 @@ module.exports = function(env) {
     this.probe = options.probe;
     this.numSamplesBak = options.samples;
     this.startTime = Date.now();
-    this.flag = true
+
+    this.hasFactor = false;
+    this.interleavingSampleFactor = false;
 
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
@@ -49,13 +51,12 @@ module.exports = function(env) {
 
   Rejection.prototype.run = function() {
     var elapseSec = (Date.now() - this.startTime) / 1000.0
-    if (elapseSec > 2 && this.flag) {
+    if (elapseSec > 2) {
       // console.log('.....')
-      this.flag = false;
       var numFound = this.numSamplesBak - this.numSamples;
       if (numFound < this.probe) {
         console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection')
-        return this.k(this.s, -1);
+        return this.k(this.s, this.interleavingSampleFactor);
       }
       console.log('getting ' + numFound + ' samples in 2 seconds...continue');
     }
@@ -65,10 +66,16 @@ module.exports = function(env) {
   };
 
   Rejection.prototype.sample = function(s, k, a, dist) {
+    if (this.hasFactor) {
+      this.interleavingSampleFactor = true;
+    }
     return k(s, dist.sample());
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {
+    if (!this.hasFactor) {
+      this.hasFactor = true;
+    }
     if (this.incremental) {
       assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
     }
@@ -79,6 +86,7 @@ module.exports = function(env) {
     if ((this.incremental && (this.scoreSoFar <= this.threshold)) ||
         (score === -Infinity)) {
       // Reject.
+      this.hasFactor = false;
       return this.run();
     } else {
       return k(s);
@@ -98,6 +106,7 @@ module.exports = function(env) {
       env.coroutine = this.oldCoroutine;
       return this.k(this.s, this.hist.toDist());
     } else {
+      this.hasFactor = false;
       return this.run();
     }
   };

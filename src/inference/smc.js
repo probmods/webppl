@@ -34,6 +34,9 @@ module.exports = function(env) {
       throw new Error(msg);
     }
 
+    this.probe = options.probe? true : false;
+    this.err = undefined;
+
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
 
@@ -145,7 +148,16 @@ module.exports = function(env) {
     var logW = util.logsumexp(_.map(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
 
-    assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
+    try {
+      assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
+    } catch(err) {
+      if (env.coroutine.probe) {
+        env.coroutine.err = err;
+        env.coroutine.finish();
+      } else {
+        throw err;
+      }
+    }
 
     // Compute list of retained particles.
     var retainedParticles = [];
@@ -185,7 +197,16 @@ module.exports = function(env) {
       return cont(particles);
     }
 
-    assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
+    try {
+      assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
+    } catch(err) {
+      if (env.coroutine.probe) {
+        env.coroutine.err = err;
+        env.coroutine.finish();
+      } else {
+        throw err;
+      }
+    }
 
     return util.cpsForEach(
         function(p, i, ps, next) {
@@ -289,7 +310,20 @@ module.exports = function(env) {
   };
 
   SMC.prototype.finish = function(s, val) {
-    assert.strictEqual(this.completeParticles.length, this.numParticles);
+    if (this.err) {
+      return this.k(this.s, this.err.toString());
+    }
+
+    try {
+      assert.strictEqual(this.completeParticles.length, this.numParticles);
+    } catch(err) {
+      if (env.coroutine.probe) {
+        env.coroutine.err = err;
+        return this.k(this.s, this.err.toString());
+      } else {
+        throw err;
+      }
+    }
 
     var hist = new CountAggregator(this.onlyMAP);
     var traces = [];

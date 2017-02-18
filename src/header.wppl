@@ -481,17 +481,26 @@ var OptimizeThenSample = function(wpplFn, options) {
 
 var DefaultInfer = function(wpplFn, options) {
   var enumTol = 20000;
-  var samplesInTwoSec = 1000; //from 1 to 100
+  var samplesInTwoSec = 1000; //from 1 to 1000
   console.log('Doing Enumerate');
   var enumResult = Enumerate(wpplFn, {probe : enumTol, strategy: 'depthFirst'});
   if (typeof enumResult !== 'object') {
     console.log('Doing Rejection');
     var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 1000});
     if (typeof rejResult !== 'object') {
-      console.log('Doing SMC')
-      return SMC(wpplFn);
+      if (rejResult) {
+        console.log('Doing SMC: interleaving samples and factors detected');
+        var smcResult = SMC(wpplFn, {probe: true, particles: 1000});
+        if (typeof smcResult === 'object') {
+          return smcResult;
+        } else {
+          console.log('Quit SMC because of '+ smcResult)
+        }
+      }
+      console.log('Doing MCMC');
+      return MCMC(wpplFn);
     } else {
-      console.log('Rejection done')
+      console.log('Rejection done');
       return rejResult;
     }
   } else {
