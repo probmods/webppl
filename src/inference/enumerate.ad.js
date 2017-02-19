@@ -21,8 +21,12 @@ module.exports = function(env) {
     });
 
     this.probe = options.probe;
+    // console.log('this.probe:' + this.probe)
+    this.timeOut = false;
+    this.maxTime = 5000;
+    this.sampleContinuous = false;
     this.first_trace = true;
-    this.level_sizes = []
+    this.level_sizes = [];
 
     this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
@@ -49,6 +53,7 @@ module.exports = function(env) {
     // Run the wppl computation, when the computation returns we want it
     // to call the exit method of this coroutine so we pass that as the
     // continuation.
+    this.startTime = Date.now();
     return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
@@ -88,14 +93,31 @@ module.exports = function(env) {
     return supp;
   };
 
-  Enumerate.prototype.sample = function(store, k, a, dist) {
-    // console.log('sample')
-    var support = getSupport(dist);
-    if (!support) {
-      return this.exit();
+  var shuffle = function(array) {
+    var j, x, i;
+    for (i = array.length; i; i--) {
+        j = Math.floor(Math.random() * i);
+        x = array[i - 1];
+        array[i - 1] = array[j];
+        array[j] = x;
     }
-    if (this.probe && this.first_trace) {
+  }
+
+  Enumerate.prototype.sample = function(store, k, a, dist) {
+    var support = getSupport(dist);
+    if (this.probe) {
+      // console.log('time:'+(Date.now() - this.startTime))
+      if (Date.now() - this.startTime > this.maxTime) {
+        this.timeOut = true;
+        console.log('timeout')
+        return this.exit();
+      }
+      if (!support) {
+        this.sampleContinuous = true;
+        return this.exit();
+      }
       this.level_sizes.push(support.length)
+      shuffle(support)
     }
     // For each value in support, add the continuation paired with
     // support value and score to queue:
@@ -151,17 +173,20 @@ module.exports = function(env) {
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    // console.log(this.level_sizes)
-    if (this.probe && this.first_trace){
-      if (this.level_sizes.length < 1) {
-        console.log('sampling from continuous distribution...quit Enumerate')
+    // console.log('exit:' + this.probe)
+    if (this.probe){
+      if (this.first_trace) {
+        this.first_trace = false;
+        var complexity = getComplexity(this.level_sizes)
+        if (complexity > this.probe) {
+          return this.k(this.store, complexity);
+        }
+      }
+      if (this.sampleContinuous) {
         return this.k(this.store, -1);
       }
-      this.first_trace = false;
-      var complexity = getComplexity(this.level_sizes)
-      if (complexity > this.probe) {
-        console.log(complexity + ' operations' + '...quit Enumerate')
-        return this.k(this.store, complexity);
+      if (this.timeOut) {
+        return this.k(this.store, 0);
       }
     }
     // We have reached an exit of the computation. Accumulate probability into retval bin.

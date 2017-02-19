@@ -50,7 +50,7 @@ module.exports = function(env) {
   }
 
   Rejection.prototype.run = function() {
-    var elapseSec = (Date.now() - this.startTime) / 1000.0
+    var elapseSec = (Date.now() - this.startTime) / 1000.0;
     if (elapseSec > 2) {
       // console.log('.....')
       var numFound = this.numSamplesBak - this.numSamples;
@@ -58,7 +58,6 @@ module.exports = function(env) {
         console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection')
         return this.k(this.s, this.interleavingSampleFactor);
       }
-      console.log('getting ' + numFound + ' samples in 2 seconds...continue');
     }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
@@ -94,7 +93,15 @@ module.exports = function(env) {
   };
 
   Rejection.prototype.exit = function(s, retval) {
-    assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
+    try {
+      assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
+    } catch(err) {
+      if (this.probe) {
+        return this.k(this.s, this.interleavingSampleFactor);
+      } else {
+        throw err;
+      }
+    }
 
     if (this.scoreSoFar > this.threshold) {
       // Accept.

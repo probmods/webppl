@@ -480,32 +480,36 @@ var OptimizeThenSample = function(wpplFn, options) {
 
 
 var DefaultInfer = function(wpplFn, options) {
-  var enumTol = 20000;
-  var samplesInTwoSec = 1000; //from 1 to 1000
-  console.log('Doing Enumerate');
+  var enumTol = 200000;
+  var samplesInTwoSec = 500; //from 1 to 1000
+  console.log('doing enumerate');
   var enumResult = Enumerate(wpplFn, {probe : enumTol, strategy: 'depthFirst'});
-  if (typeof enumResult !== 'object') {
-    console.log('Doing Rejection');
-    var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 1000});
-    if (typeof rejResult !== 'object') {
-      if (rejResult) {
-        console.log('Doing SMC: interleaving samples and factors detected');
-        var smcResult = SMC(wpplFn, {probe: true, particles: 1000});
-        if (typeof smcResult === 'object') {
-          return smcResult;
-        } else {
-          console.log('Quit SMC because of '+ smcResult)
-        }
-      }
-      console.log('Doing MCMC');
-      return MCMC(wpplFn);
-    } else {
-      console.log('Rejection done');
-      return rejResult;
-    }
-  } else {
-    console.log('Enumerate done')
+  if (typeof enumResult === 'object') {
     return enumResult;
+  } else if (enumResult < 0) {
+    console.log('sampling from continuous distribution...quit enumerate')
+  } else if (enumResult === 0) {
+    console.log('time out...quit Enumerate')
+  } else {
+    console.log(enumResult + ' computations ahead...quit enumerate')
+  }
+  console.log('doing Rejection');
+  var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 1000});
+  if (typeof rejResult !== 'object') {
+    if (rejResult) {
+      console.log('doing SMC: interleaving samples and factors detected');
+      var smcResult = SMC(wpplFn, {probe: true, particles: 1000});
+      if (typeof smcResult === 'object') {
+        return smcResult;
+      } else {
+        console.log('quit SMC because of '+ smcResult)
+      }
+    }
+    console.log('doing MCMC');
+    return MCMC(wpplFn, {samples: 1000});
+  } else {
+    console.log('rejection done');
+    return rejResult;
   }
 };
 
@@ -533,6 +537,7 @@ var Infer = function(options, maybeFn) {
   };
 
   var methodName = options.method || 'defaultInfer';
+  console.log(methodName)
   if (!_.has(methodMap, methodName)) {
     var methodNames = _.keys(methodMap);
     var msg = 'Infer: \'' + methodName +
