@@ -482,40 +482,38 @@ var OptimizeThenSample = function(wpplFn, options) {
 var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
   var samplesInTwoSec = 500; //from 1 to 1000
-  console.log('doing enumerate');
+  console.log('using "enumerate"');
   var enumResult = Enumerate(wpplFn, {probe : enumTol, strategy: 'depthFirst'});
   if (typeof enumResult === 'object') {
     return enumResult;
   } else if (enumResult < 0) {
     console.log('sampling from continuous distribution...quit enumerate')
   } else if (enumResult === 0) {
-    console.log('time out...quit Enumerate')
+    console.log('time out...quit enumerate')
   } else {
     console.log(enumResult + ' computations ahead...quit enumerate')
   }
-  console.log('doing Rejection');
+  console.log('using "rejection"');
   var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: 1000});
   if (typeof rejResult !== 'object') {
     if (rejResult) {
-      console.log('doing SMC: interleaving samples and factors detected');
+      console.log('using "SMC"...(interleaving samples and factors detected)');
       var smcResult = SMC(wpplFn, {probe: true, particles: 1000});
       if (typeof smcResult === 'object') {
         return smcResult;
       } else {
-        console.log('quit SMC because of '+ smcResult)
+        console.log('quit SMC because of ' + smcResult)
       }
     }
-    console.log('doing MCMC');
+    console.log('using "MCMC"');
     return MCMC(wpplFn, {samples: 1000});
   } else {
-    console.log('rejection done');
     return rejResult;
   }
 };
 
 var Infer = function(options, maybeFn) {
   var wpplFn = !util.isObject(options)? options : maybeFn || options.model;
-  // console.log(wpplFn)
   if (!_.isFunction(wpplFn)) {
     util.fatal('Infer: a model was not specified.');
   }
