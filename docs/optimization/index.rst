@@ -18,7 +18,18 @@ statements.
 If we endow this guide program with adjustable parameters, then we can
 optimize those parameters so as to minimize the distance between the
 joint distribution of the choices in the guide program and those in
-the target.
+the target. For example::
+
+   Optimize({
+     steps: 10000, 
+     model: function() {
+       var x = sample(Gaussian({ mu: 0, sigma: 1 }), {
+         guide: function() {
+           return Gaussian({ mu: param(), sigma: 1 });
+         }});
+       factor(-(x-2)*(x-2))
+       return x;
+     }});
 
 This general approach includes a number of well-known algorithms as
 special cases.
