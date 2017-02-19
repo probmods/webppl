@@ -43,3 +43,4 @@ optimization <optimize>`, primitives for specifying :ref:`parameters
 
    optimize
    parameters
+   async
