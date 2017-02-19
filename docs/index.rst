@@ -21,7 +21,7 @@ WebPPL Documentation
    sample
    distributions
    inference/index
-   optimization
+   optimization/index
    functions/index
    globalstore
    packages
