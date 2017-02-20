@@ -103,6 +103,7 @@ module.exports = function(env) {
         throw new Error('dream: nested mapData is not supported by this estimator.');
       }
       this.insideMapData = true;
+      this.guideRequired = false;
 
       var batchSize = _.has(opts, 'dreamBatchSize') ? opts.dreamBatchSize : 1;
       if (!(util.isInteger(batchSize) && batchSize >= 0)) {
@@ -143,6 +144,7 @@ module.exports = function(env) {
 
     mapDataFinal: function() {
       this.insideMapData = false;
+      this.guideRequired = true;
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
