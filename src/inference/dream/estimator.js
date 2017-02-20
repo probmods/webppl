@@ -42,7 +42,7 @@ var paramStruct = require('../../params/struct');
 
 module.exports = function(env) {
 
-  var dreamSample = require('./sample')(env);
+  var dreamSample = require('./sample')(env).dreamSample;
   var dreamGradients = require('./gradients')(env);
 
   return function(wpplFn, s, a, options, state, step, cont) {
@@ -57,13 +57,13 @@ module.exports = function(env) {
         opts.samples,
         // Loop body.
         function(i, next) {
-          return dreamSample(wpplFn, s, a, function(record) {
+          return dreamSample(s, function(s, record) {
             return dreamGradients(wpplFn, record, s, a, function(g, objVal_i) {
               paramStruct.addEq(grad, g);
               objVal += objVal_i;
               return next();
             });
-          });
+          }, a, wpplFn);
         },
         // Continuation.
         function() {

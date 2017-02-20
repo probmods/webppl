@@ -19,11 +19,11 @@ module.exports = function(env) {
   // `trace.score` is not maintained by this coroutine. All
   // scores/gradients are computed by a separate coroutine.
 
-  function dreamSample(wpplFn, s, a, cont) {
+  function dreamSample(s, k, a, wpplFn) {
     this.wpplFn = wpplFn;
     this.s = s;
+    this.k = k;
     this.a = a;
-    this.cont = cont;
 
     // A 'record' stores random choices (in the trace) and the
     // fantasized data.
@@ -42,7 +42,7 @@ module.exports = function(env) {
     run: function() {
       return this.wpplFn(_.clone(this.s), function(s, val) {
         env.coroutine = this.coroutine;
-        return this.cont(this.record);
+        return this.k(this.s, this.record);
       }.bind(this), this.a);
     },
 
@@ -143,10 +143,12 @@ module.exports = function(env) {
 
   };
 
-  return function() {
-    var coroutine = Object.create(dreamSample.prototype);
-    dreamSample.apply(coroutine, arguments);
-    return coroutine.run();
+  return {
+    dreamSample: function() {
+      var coroutine = Object.create(dreamSample.prototype);
+      dreamSample.apply(coroutine, arguments);
+      return coroutine.run();
+    }
   };
 
 };
