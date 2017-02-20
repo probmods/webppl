@@ -80,21 +80,21 @@ module.exports = function(env) {
       }
 
       var val = dist.sample();
-      this.obs.push(val);
+      this.observations.push(val);
       return k(s, val);
     },
 
     mapDataEnter: function() {
-      this.obs = [];
+      this.observations = [];
     },
 
     mapDataLeave: function() {
-      if (_.isEmpty(this.obs)) {
+      if (_.isEmpty(this.observations)) {
         throw new Error('dream: expected at least one observation to be made.');
       }
       // If there was only a single observation, unwrap it from the
       // array.
-      var datum = this.obs.length === 1 ? this.obs[0] : this.obs;
+      var datum = this.observations.length === 1 ? this.observations[0] : this.observations;
       this.record.data.push(datum);
     },
 
