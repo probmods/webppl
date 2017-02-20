@@ -109,9 +109,20 @@ module.exports = function(env) {
         throw new Error('dream: dreamBatchSize should be a non negative integer.');
       }
 
+      // The current implementation yields elements of the actual data
+      // set to the observation function while fantasizing. This is to
+      // support models that use the structure of an observation as
+      // part of the generative process.
+
+      // (Time series models that generate a sequence by mapping over
+      // a sequence of observations for example.)
+
+      // This may be unnecessary in many cases -- optimization may
+      // work fine if we instead yielded e.g. `undefined`. But these
+      // models that rely on the structure of an observation would
+      // error out if we didn't do this.
+
       if (_.isEmpty(data)) {
-        // In general, we need data to yield to the observation
-        // function in order to generate fantasy data.
         throw new Error('dream: data should be non empty.');
       }
 
