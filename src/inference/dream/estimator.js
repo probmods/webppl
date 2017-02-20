@@ -5,7 +5,7 @@ var paramStruct = require('../../params/struct');
 
 // This estimator currently makes the following assumptions:
 
-// 1. The model contains exactly one `mapData`.
+// 1. The model does not nest calls to `mapData`.
 
 // 2. Every evaluation of the observation function (associated with a
 // `mapData`) includes one or more calls to `observe`, and either:
