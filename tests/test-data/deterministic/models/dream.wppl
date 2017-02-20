@@ -1,0 +1,40 @@
+var check = function(name, expectedData, model) {
+  var actualData = dreamSample(model).data;
+  var pass = _.isEqual(expectedData, actualData);
+  if (!pass) {
+    display('Check "' + name + '" failed.');
+    display('Expected:');
+    display(JSON.stringify(expectedData));
+    display('Actual:');
+    display(JSON.stringify(actualData));
+  }
+  return pass;
+};
+
+_.every([
+  check(
+      'one observation',
+      ['a'],
+      function() {
+        mapData({data: ['A']}, function(x) {
+          observe(Delta({v: 'a'}), x);
+        });
+      }),
+  check(
+      'two observations',
+      [['a', 'b']],
+      function() {
+        mapData({data: [['A', 'B']]}, function(arr) {
+          observe(Delta({v: 'a'}), arr[0]);
+          observe(Delta({v: 'b'}), arr[1]);
+        });
+      }),
+  check(
+      'batch size',
+      ['a', 'a'],
+      function() {
+        mapData({data: ['A'], dreamBatchSize: 2}, function(x) {
+          observe(Delta({v: 'a'}), x);
+        });
+      }),
+]);
