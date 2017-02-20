@@ -7,12 +7,31 @@ var paramStruct = require('../../params/struct');
 
 // 1. The model contains exactly one `mapData`.
 
-// 2. Either a) each element of the data array is observed (passed to
-// `observe` as its second argument) exactly once in the corresponding
-// observation function, or b) each element of the data array is
-// itself an array, of which each element is observed exactly once,
-// and in the order in which they appear in the array. See below for
-// examples of each of these.
+// 2. Every evaluation of the observation function (associated with a
+// `mapData`) includes one or more calls to `observe`, and either:
+
+// 2a. There is exactly one call to `observe`, and the value yielded
+// to the observation function is the value passed to `observe`. For
+// example:
+
+// var model = function() {
+//   mapData({data}, function(datum) {
+//     observe(dist, datum);
+//   });
+// };
+
+// 2b. There is more than one call to `observe`, the value yielded to
+// the observation function is an array, and successive observations
+// are passed successive elements of the array, starting from the
+// first element. For example:
+
+// var model = function() {
+//   mapData({data}, function(arr) {
+//     observe(dist, arr[0]);
+//     observe(dist, arr[1]);
+//     observe(dist, arr[2]);
+//   });
+// };
 
 // 3. There are no factor statements. We assume we can generate
 // samples from the posterior predictive distribution directly by
@@ -20,25 +39,6 @@ var paramStruct = require('../../params/struct');
 // account for them with e.g. importance sampling.
 
 // 4. observe is only used within mapData.
-
-// Examples:
-
-// var model = function() {
-//   // global random choices
-//   mapData({data: [x, y]}, function(datum) {
-//     // latent random choices
-//     observe(dist, datum);
-//   });
-// };
-
-// var model = function() {
-//   // global random choices
-//   mapData({data: [[x1, y1], [x2, y2]]}, function(arr) {
-//     // latent random choices
-//     observe(dist, arr[0]);
-//     observe(dist, arr[1]);
-//   });
-// };
 
 module.exports = function(env) {
 

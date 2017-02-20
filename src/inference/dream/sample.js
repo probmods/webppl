@@ -78,9 +78,6 @@ module.exports = function(env) {
       if (!this.insideMapData) {
         throw new Error('dream: observe can only be used within mapData with this estimator.');
       }
-      if (!this.obsArr && this.obs.length !== 0) {
-        throw new Error('dream: Expected to see only a single observe per data point.');
-      }
 
       var val = dist.sample();
       this.obs.push(val);
@@ -92,7 +89,12 @@ module.exports = function(env) {
     },
 
     mapDataLeave: function() {
-      var datum = this.obsArr ? this.obs : this.obs[0];
+      if (_.isEmpty(this.obs)) {
+        throw new Error('dream: expected at least one observation to be made.');
+      }
+      // If there was only a single observation, unwrap it from the
+      // array.
+      var datum = this.obs.length === 1 ? this.obs[0] : this.obs;
       this.record.data.push(datum);
     },
 
@@ -112,12 +114,6 @@ module.exports = function(env) {
         // function in order to generate fantasy data.
         throw new Error('dream: data should be non empty.');
       }
-
-      // Flag indicating whether each element of the original data is
-      // an array of observations or a single observation. (We check
-      // the first datum, and assume the rest of data would return the
-      // same.)
-      this.obsArr = _.isArray(data[0]);
 
       var ix = _.times(batchSize, function() {
         return Math.floor(util.random() * data.length);

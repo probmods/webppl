@@ -21,6 +21,14 @@ _.every([
         });
       }),
   check(
+      'one array valued observation',
+      [['a']],
+      function() {
+        mapData({data: [['A']]}, function(x) {
+          observe(Delta({v: ['a']}), x);
+        });
+      }),
+  check(
       'two observations',
       [['a', 'b']],
       function() {
