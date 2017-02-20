@@ -34,13 +34,9 @@ module.exports = function(env) {
     estimateGradient: function(cont) {
 
       this.paramsSeen = {};
-      this.logp = this.logq = 0;
+      this.logq = 0;
 
       return this.wpplFn(_.clone(this.s), function(s, val) {
-
-        // We only backprop through logq, so we don't build an ad
-        // graph for logp. This is a sanity check for that.
-        assert.ok(_.isNumber(this.logp), 'dream: Expected a number.');
 
         var objective = -this.logq;
         if (ad.isLifted(objective)) {
@@ -70,7 +66,6 @@ module.exports = function(env) {
               if (!guideDist) {
                 throw new Error('dream: No guide distribution specified.');
               }
-              this.logp += ad.value(dist.score(val));
               this.logq += guideDist.score(val);
               return k(s, val);
             }.bind(this));
@@ -86,7 +81,6 @@ module.exports = function(env) {
       // the sampling phase, and since we're reusing choices from the
       // trace, the execution here will follow the same path through
       // the program.)
-      this.logp += ad.value(score);
       return k(s);
     },
 
