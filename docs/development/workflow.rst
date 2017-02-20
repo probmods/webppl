@@ -1,6 +1,8 @@
 Workflow
 ========
 
+.. highlight:: none
+
 .. toctree::
    :maxdepth: 2
 

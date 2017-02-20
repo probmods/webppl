@@ -3,6 +3,8 @@
 Parallelization
 ===============
 
+.. highlight:: none
+
 Sharing parameters across processes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
