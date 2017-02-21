@@ -57,7 +57,7 @@ function get() {
 
 // Save the local parameter table to a file
 function save(filename) {
-  var s = JSON.stringify(serializeParams(_params));
+  var s = serializeParams(_params);
   fs.writeFileSync(filename, s);
 }
 

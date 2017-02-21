@@ -81,15 +81,14 @@ function runDistThunkCond(s, k, a, env, maybeThunk, alternate) {
       alternate(s, k, a);
 }
 
-function getDist(maybeThunk, env, s, a, k) {
+// Runs the guide thunk passed to a `sample` statement, and returns
+// the guide distribution returned by the thunk. When no guide is
+// given, then the 'noAutoGuide' flag determines whether to
+// automatically generate a suitable guide distribution or return
+// `null`.
+function getDist(maybeThunk, noAutoGuide, targetDist, env, s, a, k) {
   return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
-    return k(s, null);
-  });
-}
-
-function getDistOrAuto(maybeThunk, targetDist, env, s, a, k) {
-  return runDistThunkCond(s, k, a, env, maybeThunk, function(s, k, a) {
-    return k(s, independent(targetDist, a, env));
+    return k(s, noAutoGuide ? null : independent(targetDist, a, env));
   });
 }
 
@@ -334,6 +333,5 @@ function squishToInterval(interval) {
 module.exports = {
   independent: independent,
   runThunk: runThunk,
-  getDist: getDist,
-  getDistOrAuto: getDistOrAuto
+  getDist: getDist
 };

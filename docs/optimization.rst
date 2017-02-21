@@ -81,12 +81,6 @@ Optimize
 
       Default: ``ELBO``
 
-   .. describe:: params
-
-      Initial parameter values.
-
-      Default: ``{}``
-
    .. describe:: verbose
 
       Default: ``true``
@@ -95,7 +89,6 @@ Optimize
 Example usage::
 
   Optimize({model: model, steps: 100});
-  Optimize({model: model, steps: 100, params: oldParams});
   Optimize({model: model, optMethod: 'adagrad'});
   Optimize({model: model, optMethod: {sgd: {stepSize: 0.5}}});
 

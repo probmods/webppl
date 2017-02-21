@@ -231,7 +231,7 @@ function prepare(codeAndAssets, k, options) {
 
   // We store the trampoline runner so that header functions that call
   // external asynchronous functions can resume execution in callbacks.
-  global.trampolineRunner = runner;
+  global.resumeTrampoline = runner;
 
   // Before the program finishes, we tell the param store to finish up
   // gracefully (e.g., shutting down a connection to a remote store).

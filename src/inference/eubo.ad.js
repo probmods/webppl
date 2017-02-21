@@ -19,6 +19,7 @@ var assert = require('assert');
 var util = require('../util');
 var ad = require('../ad');
 var paramStruct = require('../params/struct');
+var guide = require('../guide');
 
 module.exports = function(env) {
 
@@ -113,25 +114,27 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       'use ad';
+      options = options || {};
+      return guide.getDist(options.guide, options.noAutoGuide, dist, env, s, a, function(s, guideDist) {
+        if (!guideDist) {
+          throw new Error('EUBO: No guide distribution to optimize.');
+        }
 
-      if (!_.has(options, 'guide')) {
-        throw 'Guide not specified.';
-      }
+        var rel = util.relativizeAddress(env, a);
+        var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
+        assert.notStrictEqual(guideVal, undefined);
 
-      var guideDist = options.guide;
-      var rel = util.relativizeAddress(env, a);
-      var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
-      assert.notStrictEqual(guideVal, undefined);
+        // We unlift guideVal to maintain the separation between the
+        // ad graph we're building in order to optimize the parameters
+        // and any ad graphs associated with the example traces. (The
+        // choices in an example trace can be ad nodes when they are
+        // generated with SMC + HMC rejuv.)
+        var _guideVal = ad.value(guideVal);
 
-      // We unlift guideVal to maintain the separation between the ad
-      // graph we're building in order to optimize the parameters and
-      // any ad graphs associated with the example traces. (The
-      // choices in an example trace can be ad nodes when they are
-      // generated with SMC + HMC rejuv.)
-      var _guideVal = ad.value(guideVal);
+        this.logq += guideDist.score(_guideVal);
+        return k(s, _guideVal);
 
-      this.logq += guideDist.score(_guideVal);
-      return k(s, _guideVal);
+      }.bind(this));
     },
 
     factor: function(s, k, a, score) {

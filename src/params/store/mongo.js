@@ -2,8 +2,8 @@
 
 var _ = require('lodash');
 var paramStruct = require('../struct');
-var serializeParams = require('../serialize').serializeParams;
-var deserializeParams = require('../serialize').deserializeParams;
+var tensorsToObjects = require('../serialize').tensorsToObjects;
+var objectsToTensors = require('../serialize').objectsToTensors;
 
 try {
   // This is an optional dependence. We don't install it automatically with webppl.
@@ -20,7 +20,7 @@ var _collection = null;
 
 
 function resume(thunk) {
-  global.trampolineRunner(thunk);
+  global.resumeTrampoline(thunk);
 }
 
 function assertInit() {
@@ -45,7 +45,7 @@ function _loadParams(id, k) {
         throw new Error('Expected to find `params` property, got ' +
                         JSON.stringify(data));
       }
-      return k(deserializeParams(data.params));
+      return k(objectsToTensors(data.params));
     }
   });
 }
@@ -54,7 +54,7 @@ function _storeParams(id, params, k) {
   assertInit();
   _collection.update(
       { _id: id },
-      { params: serializeParams(params) },
+      { params: tensorsToObjects(params) },
       { upsert: true },
       function(err, result) {
         if (err) {
