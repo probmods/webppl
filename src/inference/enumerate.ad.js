@@ -21,11 +21,10 @@ module.exports = function(env) {
     });
 
     this.probe = options.probe;
-    // console.log('this.probe:' + this.probe)
-    this.timeOut = false;
-    this.maxTime = 5000;
-    this.sampleContinuous = false;
-    this.first_trace = true;
+    this.timeOut = false; // whether running out of this.maxTime
+    this.maxTime = 5000; // Time bound for enumeration under probe mode
+    this.invalidDist = false;
+    this.first_trace = true; // whether enumeration has reached the first leaf/exit
     this.level_sizes = [];
 
     this.maxExecutions = options.maxExecutions;
@@ -86,6 +85,9 @@ module.exports = function(env) {
 
     // Check that support is non-empty
     if (supp.length === 0) {
+      if (env.coroutine.probe) {
+        return;
+      }
       console.error(dist);
       throw new Error('Enumerate encountered a distribution with empty support!');
     }
@@ -106,14 +108,14 @@ module.exports = function(env) {
   Enumerate.prototype.sample = function(store, k, a, dist) {
     var support = getSupport(dist);
     if (this.probe) {
-      // console.log('time:'+(Date.now() - this.startTime))
+      // Time checker
       if (Date.now() - this.startTime > this.maxTime) {
         this.timeOut = true;
-        console.log('timeout')
         return this.exit();
       }
+      // Support checker
       if (!support) {
-        this.sampleContinuous = true;
+        this.invalidDist = true;
         return this.exit();
       }
       this.level_sizes.push(support.length)
@@ -132,7 +134,6 @@ module.exports = function(env) {
 
   Enumerate.prototype.factor = function(s, k, a, score) {
     // Update score and continue
-    // console.log('factor')
     this.score += score;
     if (this.score === -Infinity) {
       return this.exit();
@@ -162,6 +163,7 @@ module.exports = function(env) {
   };
 
   var getComplexity = function(sizes) {
+    // Estimate enumeration tree size by support length at each level
     var num_nodes = 1;
     var num_evals = 1;
     var num_levels = sizes.length;
@@ -173,19 +175,22 @@ module.exports = function(env) {
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    // console.log('exit:' + this.probe)
     if (this.probe){
+      // under probe model, might exit earlier here
       if (this.first_trace) {
         this.first_trace = false;
         var complexity = getComplexity(this.level_sizes)
         if (complexity > this.probe) {
+          // exit if estimated enumeration tree size is above threshold
           return this.k(this.store, complexity);
         }
       }
-      if (this.sampleContinuous) {
+      if (this.invalidDist) {
+        // exit if the dist to sample from is discrete or has infinite supports
         return this.k(this.store, -1);
       }
       if (this.timeOut) {
+        // exit if time is up
         return this.k(this.store, 0);
       }
     }
@@ -197,10 +202,8 @@ module.exports = function(env) {
 
     // If anything is left in queue do it:
     if (this.queue.size() > 0 && (this.numCompletedExecutions < this.maxExecutions)) {
-      // console.log('exit1->next')
       return this.nextInQueue();
     } else {
-      // console.log('exit2')
       if (this.marginal.size === 0) {
         throw new Error('All paths explored by Enumerate have probability zero.');
       }

@@ -151,6 +151,7 @@ module.exports = function(env) {
     try {
       assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
     } catch(err) {
+      // not throw err if in probe mode
       if (env.coroutine.probe) {
         env.coroutine.err = err;
         env.coroutine.finish();
@@ -200,6 +201,7 @@ module.exports = function(env) {
     try {
       assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
     } catch(err) {
+      // not throw err if in probe mode
       if (env.coroutine.probe) {
         env.coroutine.err = err;
         env.coroutine.finish();

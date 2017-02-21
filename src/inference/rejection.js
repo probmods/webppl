@@ -52,7 +52,7 @@ module.exports = function(env) {
   Rejection.prototype.run = function() {
     var elapseSec = (Date.now() - this.startTime) / 1000.0;
     if (elapseSec > 2) {
-      // console.log('.....')
+      // count how many samples are collected in ~2 secs
       var numFound = this.numSamplesBak - this.numSamples;
       if (numFound < this.probe) {
         console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection')
