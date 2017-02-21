@@ -664,6 +664,29 @@ var tests = [
         }
       }
     }
+  },
+  {
+    name: 'OptimizeDream',
+    method: 'optimize',
+    settings: {
+      args: {
+        samples: 10000,
+        steps: 10000,
+        optMethod: {adam: {stepSize: 0.01}},
+        estimator: 'dream',
+        verbose: false
+      },
+      hist: { tol: 0.1 },
+      mean: { tol: 0.1 },
+      std: { tol: 0.1 }
+    },
+    models: {
+      deterministic: { hist: { exact: true } },
+      withCaching: true,
+      dream1: true,
+      dream2: true,
+      dream3: true
+    }
   }
 ];
 
