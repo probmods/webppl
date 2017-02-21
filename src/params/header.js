@@ -44,12 +44,16 @@ function deserializeParams(s, k, a, str) {
   return k(s, serialize.deserializeParams(str));
 }
 
+function defaultInit(mu, sigma) {
+  return function(s, k, a, dims) {
+    return k(s, dists.tensorGaussianSample(mu, sigma, dims));
+  };
+}
+
 module.exports = function(env) {
 
   var dimsForScalarParam = [1];
 
-  // param provides a convenient wrapper around the primitive
-  // params.register.
   var param = function(s, k, a, options) {
     options = util.mergeDefaults(options, {
       mu: 0,
@@ -61,30 +65,31 @@ module.exports = function(env) {
       util.warn('Warning: Parameter created outside of the guide.', true);
     }
 
-    var mu = options.mu;
-    var sigma = options.sigma;
     var dims = options.dims;
     var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
 
-    var val = params.register(env, name, function() {
-
-      // Initialization.
-
-      var val = new Tensor(dims);
-      if (sigma === 0) {
-        val.fill(mu);
-      } else {
-        for (var i = 0; i < val.length; i++) {
-          val.data[i] = dists.gaussianSample(mu, sigma);
-        }
+    if (params.exists(name)) {
+      return finish(s);
+    } else {
+      var init = _.has(options, 'init') ? options.init : defaultInit(options.mu, options.sigma);
+      if (!_.isFunction(init)) {
+        throw new Error('Expected the init argument to be a function.');
       }
+      return init(s, function(s, initialVal) {
+        params.create(name, initialVal);
+        if (!_.isEqual(dims, initialVal.dims)) {
+          var msg = 'The init function did not return a tensor with the expected shape.';
+          throw new Error(msg);
+        }
+        return finish(s);
+      }, a, dims);
+    }
 
-      // params.register tracks an array of parameters for each
-      // name/address.
-      return [val];
-
-    })[0];
-    return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
+    function finish(s) {
+      var val = params.fetch(name, env);
+      var valDims = ad.value(val).dims;
+      return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
+    };
   };
 
   return {

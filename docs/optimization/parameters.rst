@@ -5,9 +5,8 @@ Parameters
 
 .. js:function:: param([options])
 
-   Retrieves the value of a parameter by name. If the parameter does
-   not exist, it is created and initialized with a draw from a
-   Gaussian distribution.
+   Retrieves the value of a parameter by name. The parameter is
+   created if it does not already exist.
 
    The following options are supported:
 
@@ -18,19 +17,29 @@ Parameters
 
       When ``dims`` is omitted, ``param`` returns a scalar.
 
+   .. describe:: init
+
+      A function that computes the initial value of the parameter. The
+      function is passed the dimension of a tensor as its only
+      argument, and should return a tensor of that dimension.
+
+      When ``init`` is omitted, the parameter is initialized with a
+      draw from the Gaussian distribution described by the ``mu`` and
+      ``sigma`` options.
+
    .. describe:: mu
 
       The mean of the Gaussian distribution from which the initial
-      parameter value is drawn.
+      parameter value is drawn when ``init`` is omitted.
 
       Default: ``0``
 
    .. describe:: sigma
 
       The standard deviation of the Gaussian distribution from which
-      the initial parameter value is drawn. Specify a standard
-      deviation of ``0`` to deterministically initialize the parameter
-      to ``mu``.
+      the initial parameter value is drawn when ``init`` is omitted.
+      Specify a standard deviation of ``0`` to deterministically
+      initialize the parameter to ``mu``.
 
       Default: ``0.1``
 
@@ -46,6 +55,7 @@ Parameters
      param({name: 'myparam'})
      param({mu: 0, sigma: 0.01, name: 'myparam'})
      param({dims: [10, 10]})
+     param({dims: [2, 1], init: function(dims) { return ones(dims); }})
 
 .. js:function:: modelParam([options])
 

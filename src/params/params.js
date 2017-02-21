@@ -4,6 +4,7 @@ var assert = require('assert');
 var _ = require('lodash');
 var fs = require('fs');
 var ad = require('../ad');
+var util = require('../util');
 var config = require('./config');
 var serializeParams = require('./serialize').serializeParams;
 
@@ -54,6 +55,9 @@ function get() {
   return _params;
 }
 
+function exists(name) {
+  return _.has(_params, name);
+}
 
 // Save the local parameter table to a file
 function save(filename) {
@@ -72,55 +76,54 @@ function set(params, k) {
   return store.setParams(id, params, next);
 }
 
+function create(name, initialVal) {
+  if (exists(name)) {
+    throw new Error('Parameter "' + name + '" already exists.');
+  }
+  if (!util.isTensor(initialVal)) {
+    throw new Error('Expected an (unlifted) tensor.');
+  }
+  var paramTable = get();
+  paramTable[name] = [initialVal];
+}
 
-function register(env, name, initParams) {
+function fetch(name, env) {
+  if (!exists(name)) {
+    throw new Error('Parameter "' + name + '" does not exist.');
+  }
 
   var paramTable = get();
   var paramsSeen = env.coroutine.paramsSeen;
 
-  if (paramsSeen && _.has(paramsSeen, name)) {
+  // If we're outside of optimization, just return the value of the
+  // parameter, unlifted.
+  if (!paramsSeen) {
+    return paramTable[name][0];
+  }
 
-    // We've already lifted these parameters during this execution.
-    // Re-use ad graph nodes.
-
-    return paramsSeen[name];
-
+  // Otherwise we're doing optimization.
+  if (_.has(paramsSeen, name)) {
+    // Return the same AD graph node that was seen earlier this
+    // execution.
+    return paramsSeen[name][0];
   } else {
-
-    // Get parameter values from the store, or initialize if this is a
-    // new parameter.
-    var _params;
-    if (_.has(paramTable, name)) {
-      // Parameters already initialized. Fetch values from store.
-      _params = paramTable[name];
-    } else {
-      // Never seen. Fetch initial values and add to store.
-      _params = initParams();
-      assert.ok(_.every(_params, _.negate(ad.isLifted)),
-                'initParams unexpectedly returned a lifted value.');
-      paramTable[name] = _params;
-    }
-
-    if (paramsSeen) {
-      // Lift parameters if the current coroutine is tracking
-      // parameters for optimization.
-      var params = _params.map(ad.lift);
-      paramsSeen[name] = params;
-      return params;
-    } else {
-      return _params;
-    }
-
+    // Fetch the value and lift. Add to paramsSeen so that the
+    // coroutine knows to update this parameter.
+    var _param = paramTable[name][0];
+    var param = ad.lift(_param);
+    paramsSeen[name] = [param];
+    return param;
   }
 }
-
 
 module.exports = {
   get: get,
   set: set,
   init: init,
   stop: stop,
-  register: register,
   save: save,
-  sync: sync
+  sync: sync,
+  exists: exists,
+  create: create,
+  fetch: fetch
 };
