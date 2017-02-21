@@ -491,7 +491,7 @@ var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
   var samplesInTwoSec = 500; //from 1 to sampleNum
   var sampleNum = 1000;
-  console.log('using "enumerate"');
+  // console.log('using "enumerate"');
   var enumResult = Enumerate(wpplFn, {probe: enumTol, strategy: 'depthFirst'});
   if (typeof enumResult === 'object') {
     return enumResult;
