@@ -496,11 +496,11 @@ var DefaultInfer = function(wpplFn, options) {
   if (typeof enumResult === 'object') {
     return enumResult;
   } else if (enumResult < 0) {
-    console.log('sampling from continuous distribution...quit enumerate')
+    console.log('sampling from continuous distribution...quit enumerate');
   } else if (enumResult === 0) {
     console.log('time out...quit enumerate')
   } else {
-    console.log(enumResult + ' computations ahead...quit enumerate')
+    console.log(enumResult + ' computations ahead...quit enumerate');
   }
   console.log('using "rejection"');
   var rejResult = Rejection(wpplFn, {probe : samplesInTwoSec, samples: sampleNum});
@@ -511,7 +511,7 @@ var DefaultInfer = function(wpplFn, options) {
       if (typeof smcResult === 'object') {
         return smcResult;
       } else {
-        console.log('quit SMC because of ' + smcResult)
+        console.log('quit SMC because of ' + smcResult);
       }
     }
     console.log('using "MCMC"');

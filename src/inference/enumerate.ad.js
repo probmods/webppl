@@ -24,7 +24,7 @@ module.exports = function(env) {
     this.timeOut = false; // whether running out of this.maxTime
     this.maxTime = 5000; // Time bound for enumeration under probe mode
     this.invalidDist = false;
-    this.first_trace = true; // whether enumeration has reached the first leaf/exit
+    this.first_path = true; // whether enumeration has reached the first leaf/exit
     this.level_sizes = [];
 
     this.maxExecutions = options.maxExecutions;
@@ -96,6 +96,7 @@ module.exports = function(env) {
   };
 
   var shuffle = function(array) {
+    // shuffle array
     var j, x, i;
     for (i = array.length; i; i--) {
         j = Math.floor(Math.random() * i);
@@ -118,8 +119,9 @@ module.exports = function(env) {
         this.invalidDist = true;
         return this.exit();
       }
-      this.level_sizes.push(support.length)
-      shuffle(support)
+      this.level_sizes.push(support.length);
+      // do shuffle to make sure the DFS randomly choose a path
+      shuffle(support);
     }
     // For each value in support, add the continuation paired with
     // support value and score to queue:
@@ -171,15 +173,15 @@ module.exports = function(env) {
         num_nodes *= sizes[i];
         num_evals += num_nodes;
     }
-    return num_evals
+    return num_evals;
   }
 
   Enumerate.prototype.exit = function(s, retval) {
     if (this.probe){
       // under probe model, might exit earlier here
-      if (this.first_trace) {
-        this.first_trace = false;
-        var complexity = getComplexity(this.level_sizes)
+      if (this.first_path) {
+        this.first_path = false;
+        var complexity = getComplexity(this.level_sizes);
         if (complexity > this.probe) {
           // exit if estimated enumeration tree size is above threshold
           return this.k(this.store, complexity);

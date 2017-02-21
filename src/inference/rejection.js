@@ -55,7 +55,7 @@ module.exports = function(env) {
       // count how many samples are collected in ~2 secs
       var numFound = this.numSamplesBak - this.numSamples;
       if (numFound < this.probe) {
-        console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection')
+        console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection');
         return this.k(this.s, this.interleavingSampleFactor);
       }
     }
