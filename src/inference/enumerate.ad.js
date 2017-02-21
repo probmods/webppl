@@ -99,10 +99,10 @@ module.exports = function(env) {
     // shuffle array
     var j, x, i;
     for (i = array.length; i; i--) {
-        j = Math.floor(Math.random() * i);
-        x = array[i - 1];
-        array[i - 1] = array[j];
-        array[j] = x;
+      j = Math.floor(Math.random() * i);
+      x = array[i - 1];
+      array[i - 1] = array[j];
+      array[j] = x;
     }
   }
 
@@ -168,16 +168,15 @@ module.exports = function(env) {
     // Estimate enumeration tree size by support length at each level
     var num_nodes = 1;
     var num_evals = 1;
-    var num_levels = sizes.length;
     for (var i in sizes) {
-        num_nodes *= sizes[i];
-        num_evals += num_nodes;
+      num_nodes *= sizes[i];
+      num_evals += num_nodes;
     }
     return num_evals;
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    if (this.probe){
+    if (this.probe) {
       // under probe model, might exit earlier here
       if (this.first_path) {
         this.first_path = false;

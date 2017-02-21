@@ -34,7 +34,7 @@ module.exports = function(env) {
       throw new Error(msg);
     }
 
-    this.probe = options.probe? true : false;
+    this.probe = options.probe ? true : false;
     this.err = undefined;
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -150,7 +150,7 @@ module.exports = function(env) {
 
     try {
       assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
-    } catch(err) {
+    } catch (err) {
       // not throw err if in probe mode
       if (env.coroutine.probe) {
         env.coroutine.err = err;
@@ -200,7 +200,7 @@ module.exports = function(env) {
 
     try {
       assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
-    } catch(err) {
+    } catch (err) {
       // not throw err if in probe mode
       if (env.coroutine.probe) {
         env.coroutine.err = err;
@@ -318,7 +318,7 @@ module.exports = function(env) {
 
     try {
       assert.strictEqual(this.completeParticles.length, this.numParticles);
-    } catch(err) {
+    } catch (err) {
       if (env.coroutine.probe) {
         env.coroutine.err = err;
         return this.k(this.s, this.err.toString());

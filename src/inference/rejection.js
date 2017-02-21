@@ -95,7 +95,7 @@ module.exports = function(env) {
   Rejection.prototype.exit = function(s, retval) {
     try {
       assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
-    } catch(err) {
+    } catch (err) {
       if (this.probe) {
         return this.k(this.s, this.interleavingSampleFactor);
       } else {
