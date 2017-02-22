@@ -518,7 +518,7 @@ var DiagCovGaussian = makeDistributionType({
 });
 
 function laplaceSample(mu, b) {
-  // Generated from https://en.wikipedia.org/wiki/Laplace_distribution#Generating_random_variables_according_to_the_Laplace_distribution
+  // Generated from goo.gl/3BxCGd (wiki)
   var z = util.random();
   var u = (1 - z) * -0.5 + z * 0.5;
   return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
@@ -533,7 +533,7 @@ var Laplace = makeDistributionType({
   name: 'Laplace',
   desc: 'Distribution over ``[-Infinity, Infinity]``',
   params: [{name: 'mu', desc: 'mean', type: types.unboundedReal},
-            {name: 'b', desc: 'scale', type: types.positiveReal}],
+           {name: 'b', desc: 'scale', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
@@ -542,10 +542,10 @@ var Laplace = makeDistributionType({
   score: function(val) {
     return laplaceScore(this.params.mu, this.params.b, val);
   },
-  base: function () {
+  base: function() {
     return new Laplace({mu: 0, b: 1});
   },
-  transform: function (x) {
+  transform: function(x) {
     var mu = this.params.mu;
     var b = this.params.b;
     return ad.scalar.add(ad.scalar.mul(b, x), mu);
@@ -697,8 +697,6 @@ var IspNormal = makeDistributionType({
   }
 });
 
-
-
 function tensorGaussianSample(mu, sigma, dims) {
   var x = new Tensor(dims);
   var n = x.length;
@@ -772,7 +770,7 @@ function tensorLaplaceScore(mu, b, dims, x) {
   }
 
   var l = _x.length;
-  var ln2b =  scOp.log(2*b);
+  var ln2b = scOp.mul(l, scOp.log(2 * b));
   var xMuB = scOp.div(tnOp.sumreduce(tnOp.abs(tnOp.sub(x, mu))), b);
   var sum = scOp.sum(ln2b, xMuB);
   return scOp.mul(-1, sum)
