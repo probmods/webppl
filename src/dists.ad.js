@@ -517,6 +517,11 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
+function laplaceScore(mu, b, x) {
+  'use ad';
+  return -1 * (Math.log(2 * b) + Math.abs(x - mu) / b);
+}
+
 var Laplace = makeDistributionType({
   name: 'Laplace',
   desc: 'Distribution over ``[-Infinity, Infinity]``',
@@ -530,8 +535,7 @@ var Laplace = makeDistributionType({
     return this.params.mu - this.params.b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
   },
   score: function(val) {
-    'use ad';
-    return Math.log(this.params.a) - this.params.a * val;
+    return laplaceScore(this.params.mu, this.params.b, x);
   },
   base: function () {
     return new Laplace({mu: 0, b: 1});
@@ -1520,7 +1524,8 @@ var distributions = {
   Marginal: Marginal,
   SampleBasedMarginal: SampleBasedMarginal,
   Categorical: Categorical,
-  Delta: Delta
+  Delta: Delta,
+  Laplace: Laplace
 };
 
 module.exports = _.assign({
