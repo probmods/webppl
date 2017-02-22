@@ -34,6 +34,7 @@ try {
   var incrementalmh = require('./inference/incrementalmh');
   var optimize = require('./inference/optimize');
   var forwardSample = require('./inference/forwardSample');
+  var dreamSample = require('./inference/dream/sample');
   var headerUtils = require('./headerUtils');
   var params = require('./params/header');
   var Query = require('./query').Query;
@@ -50,7 +51,6 @@ try {
 }
 
 module.exports = function(env) {
-
 
   // Inference interface
 
@@ -88,6 +88,24 @@ module.exports = function(env) {
   env.factor = function(s, k, a, score) {
     assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
     return env.coroutine.factor(s, k, a, score);
+  };
+
+  // If observation value is given then factor accordingly,
+  // otherwise sample a new value.
+  // The value is passed to the continuation.
+  env.observe = function(s, k, a, dist, val) {
+    if (typeof env.coroutine.observe === 'function') {
+      return env.coroutine.observe(s, k, a, dist, val);
+    } else {
+      if (val !== undefined) {
+        var factorK = function(s) {
+          return k(s, val);
+        };
+        return env.factor(s, factorK, a, dist.score(val));
+      } else {
+        return env.sample(s, k, a, dist);
+      }
+    }
   };
 
   env.sampleWithFactor = function(s, k, a, dist, scoreFn) {
@@ -134,6 +152,7 @@ module.exports = function(env) {
     factor: env.factor,
     sample: env.sample,
     sampleWithFactor: env.sampleWithFactor,
+    observe: env.observe,
     incrementalize: env.incrementalize,
     query: env.query
   });
@@ -152,7 +171,7 @@ module.exports = function(env) {
   // Inference functions and header utils
   var headerModules = [
     enumerate, asyncpf, mcmc, incrementalmh, pmcmc,
-    smc, rejection, optimize, forwardSample,
+    smc, rejection, optimize, forwardSample, dreamSample,
     headerUtils, params
   ];
   headerModules.forEach(function(mod) {

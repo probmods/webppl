@@ -1,0 +1,16 @@
+// The fantasized data (both the latent and the observation) are
+// constant here. So this is a contrived way of doing what amounts to
+// MLE for the mean of a Gaussian (the guide) from which we observe a
+// single observation. Note that the mean parameter is scaled by the
+// (constant) fantasized observation.
+
+var model = function() {
+  var mu = param({name: 'mu'});
+  mapData({data: [0]}, function(x) {
+    sample(Delta({v: 5}), {guide() {
+      return Gaussian({mu: mu * x, sigma: 1});
+    }});
+    observe(Delta({v: 2}), x);
+  });
+  return mu;
+};

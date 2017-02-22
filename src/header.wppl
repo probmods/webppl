@@ -447,15 +447,6 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
-var observe = function(dist, val) {
-  if (val !== undefined) {
-    factor(dist.score(val));
-    return val;
-  } else {
-    return sample(dist);
-  }
-};
-
 var MH = function(wpplFn, samples, burn) {
   return MCMC(wpplFn, { samples: samples, burn: burn });
 };
@@ -474,7 +465,7 @@ var SampleGuide = function(wpplFn, options) {
 
 var OptimizeThenSample = function(wpplFn, options) {
   Optimize(wpplFn, _.omit(options, 'samples'));
-  var opts = _.pick(options, 'samples', 'verbose');
+  var opts = _.pick(options, 'samples', 'onlyMAP', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 

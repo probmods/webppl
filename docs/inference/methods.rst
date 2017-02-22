@@ -329,6 +329,13 @@ Optimization
 
          Default: ``1``
 
+      .. describe:: onlyMAP
+
+         When ``true``, only the sample with the highest score is
+         retained. The marginal is a delta distribution on this value.
+
+         Default: ``false``
+
    In addition, all of the options supported by :ref:`Optimize
    <optimize>` are also supported here.
 
@@ -365,6 +372,13 @@ Forward Sampling
 
       When ``true``, sample random choices from the guide using the
       current global parameters. Otherwise, sample from the model.
+
+      Default: ``false``
+
+   .. describe:: onlyMAP
+
+      When ``true``, only the sample with the highest score is
+      retained. The marginal is a delta distribution on this value.
 
       Default: ``false``
 
