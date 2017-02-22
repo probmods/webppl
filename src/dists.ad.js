@@ -519,8 +519,9 @@ var DiagCovGaussian = makeDistributionType({
 
 function laplaceSample(mu, b) {
   // Generated from https://en.wikipedia.org/wiki/Laplace_distribution#Generating_random_variables_according_to_the_Laplace_distribution
-  var u = Uniform({a: -0.5, b: 0.5});
-  return this.params.mu - this.params.b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  var z = util.random();
+  var u = (1 - z) * -0.5 + z * 0.5;
+  return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
 }
 
 function laplaceScore(mu, b, x) {
@@ -539,7 +540,7 @@ var Laplace = makeDistributionType({
     return laplaceSample(ad.value(this.params.mu), ad.value(this.params.b));
   },
   score: function(val) {
-    return laplaceScore(this.params.mu, this.params.b, x);
+    return laplaceScore(this.params.mu, this.params.b, val);
   },
   base: function () {
     return new Laplace({mu: 0, b: 1});

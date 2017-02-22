@@ -1,0 +1,4 @@
+var model = function() {
+  var x = tensorLaplace(0, 2.5, [2]);
+  return T.sumreduce(x);
+};
