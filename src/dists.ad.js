@@ -517,6 +517,44 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
+function laplaceSample(mu, b) {
+  // Generated from https://en.wikipedia.org/wiki/Laplace_distribution#Generating_random_variables_according_to_the_Laplace_distribution
+  var z = util.random();
+  var u = (1 - z) * -0.5 + z * 0.5;
+  return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+}
+
+function laplaceScore(mu, b, x) {
+  'use ad';
+  return -1 * (Math.log(2 * b) + Math.abs(x - mu) / b);
+}
+
+var Laplace = makeDistributionType({
+  name: 'Laplace',
+  desc: 'Distribution over ``[-Infinity, Infinity]``',
+  params: [{name: 'mu', desc: 'mean', type: types.unboundedReal},
+            {name: 'b', desc: 'scale', type: types.positiveReal}],
+  wikipedia: true,
+  mixins: [continuousSupport],
+  sample: function() {
+    return laplaceSample(ad.value(this.params.mu), ad.value(this.params.b));
+  },
+  score: function(val) {
+    return laplaceScore(this.params.mu, this.params.b, val);
+  },
+  base: function () {
+    return new Laplace({mu: 0, b: 1});
+  },
+  transform: function (x) {
+    var mu = this.params.mu;
+    var b = this.params.b;
+    return ad.scalar.add(ad.scalar.mul(b, x), mu);
+  },
+  support: function() {
+    return { lower: -Infinity, upper: Infinity };
+  }
+});
+
 var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
@@ -553,8 +591,6 @@ var LogisticNormal = makeDistributionType({
     var sigma = this.params.sigma;
     var _mu = ad.value(mu);
     var _val = ad.value(val);
-
-
 
     if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
       return -Infinity;
@@ -717,6 +753,59 @@ var TensorGaussian = makeDistributionType({
   }
 });
 
+function tensorLaplaceSample(mu, b, dims) {
+  var x = new Tensor(dims);
+  var n = x.length;
+  while (n--) {
+    x.data[n] = laplaceSample(mu, b);
+  }
+  return x;
+}
+
+function tensorLaplaceScore(mu, b, dims, x) {
+  var _x = ad.value(x);
+  var scOp = ad.scalar;
+  var tnOp = ad.tensor;
+
+  if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
+    return -Infinity;
+  }
+
+  var l = _x.length;
+  var ln2b =  scOp.log(2*b);
+  var xMuB = scOp.div(tnOp.sumreduce(tnOp.abs(tnOp.sub(x, mu))), b);
+  var sum = scOp.sum(ln2b, xMuB);
+  return scOp.mul(-1, sum)
+}
+
+var TensorLaplace = makeDistributionType({
+  name: 'TensorLaplace',
+  desc: 'Distribution over a tensor of independent Laplace variables.',
+  params: [
+    {name: 'mu', desc: 'mean', type: types.unboundedReal},
+    {name: 'b', desc: 'scale', type: types.positiveReal},
+    {name: 'dims', desc: 'dimension of tensor', type: types.array(types.positiveInt)}
+  ],
+  mixins: [continuousSupport],
+  sample: function() {
+    var mu = ad.value(this.params.mu);
+    var b = ad.value(this.params.b);
+    var dims = this.params.dims;
+    return tensorLaplaceSample(mu, b, dims);
+  },
+  score: function(x) {
+    return tensorLaplaceScore(this.params.mu, this.params.b, this.params.dims, x);
+  },
+  base: function() {
+    var dims = this.params.dims;
+    return new TensorLaplace({mu: 0, b: 1, dims: dims});
+  },
+  transform: function(x) {
+    var mu = this.params.mu;
+    var b = this.params.b;
+    return ad.tensor.add(ad.tensor.mul(x, b), mu);
+  }
+});
 
 
 var Cauchy = makeDistributionType({
@@ -1478,6 +1567,8 @@ var distributions = {
   MultivariateGaussian: MultivariateGaussian,
   DiagCovGaussian: DiagCovGaussian,
   TensorGaussian: TensorGaussian,
+  Laplace: Laplace,
+  TensorLaplace: TensorLaplace,
   LogisticNormal: LogisticNormal,
   LogitNormal: LogitNormal,
   IspNormal: IspNormal,
@@ -1503,6 +1594,8 @@ module.exports = _.assign({
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
   tensorGaussianSample: tensorGaussianSample,
+  laplaceSample: laplaceSample,
+  tensorLaplaceSample: tensorLaplaceSample,
   gammaSample: gammaSample,
   dirichletSample: dirichletSample,
   // helpers

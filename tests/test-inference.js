@@ -29,6 +29,8 @@ var tests = [
       uniform: { args: { samples: 10000 } },
       beta: true,
       exponential: true,
+      laplace: { args: { samples: 10000 } },
+      tensorLaplace: true,
       binomial: true,
       multinomial: true,
       poisson: true,
