@@ -517,6 +517,35 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
+var Laplace = makeDistributionType({
+  name: 'Laplace',
+  desc: 'Distribution over ``[-Infinity, Infinity]``',
+  params: [{name: 'mu', desc: 'mean', type: types.unboundedReal},
+            {name: 'b', desc: 'scale', type: types.positiveReal}],
+  wikipedia: true,
+  mixins: [continuousSupport],
+  sample: function() {
+    // Generated from https://en.wikipedia.org/wiki/Laplace_distribution#Generating_random_variables_according_to_the_Laplace_distribution
+    var u = Uniform({a: -0.5, b: 0.5});
+    return this.params.mu - this.params.b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  },
+  score: function(val) {
+    'use ad';
+    return Math.log(this.params.a) - this.params.a * val;
+  },
+  base: function () {
+    return new Laplace({mu: 0, b: 1});
+  },
+  transform: function (x) {
+    var mu = this.params.mu;
+    var b = this.params.b;
+    return ad.scalar.add(ad.scalar.mul(b, x), mu);
+  },
+  support: function() {
+    return { lower: -Infinity, upper: Infinity };
+  }
+});
+
 var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
@@ -553,8 +582,6 @@ var LogisticNormal = makeDistributionType({
     var sigma = this.params.sigma;
     var _mu = ad.value(mu);
     var _val = ad.value(val);
-
-
 
     if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
       return -Infinity;
