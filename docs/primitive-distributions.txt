@@ -102,7 +102,7 @@
   * mu: mean *(real)*
   * b: scale *(real (0, Infinity))*
 
-  Distribution over reals.
+  Distribution over ``[-Infinity, Infinity]``
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Laplace_distribution>`__
 
@@ -180,7 +180,7 @@
   * b: scale *(real (0, Infinity))*
   * dims: dimension of tensor *(int (>=1) array)*
 
-  Distribution over a tensor of independent Gaussian variables.
+  Distribution over a tensor of independent Laplace variables.
 
 .. js:function:: Uniform({a: ..., b: ...})
 
