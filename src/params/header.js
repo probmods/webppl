@@ -52,6 +52,8 @@ function defaultInit(mu, sigma) {
 
 module.exports = function(env) {
 
+  var applyd = require('../headerUtils')(env).applyd;
+
   var dimsForScalarParam = [1];
 
   var param = function(s, k, a, options) {
@@ -75,14 +77,14 @@ module.exports = function(env) {
       if (!_.isFunction(init)) {
         throw new Error('Expected the init argument to be a function.');
       }
-      return init(s, function(s, initialVal) {
+      return applyd(s, function(s, initialVal) {
         params.create(name, initialVal);
         if (!_.isEqual(dims, initialVal.dims)) {
           var msg = 'The init function did not return a tensor with the expected shape.';
           throw new Error(msg);
         }
         return finish(s);
-      }, a, dims);
+      }, a, init, [dims], 'parameter initialization');
     }
 
     function finish(s) {
