@@ -390,11 +390,12 @@ var Gaussian = makeDistributionType({
     return new Gaussian({mu: 0, sigma: 1});
   },
   transform: function(x) {
+    'use ad';
     // Transform a sample x from the base distribution to the
     // distribution described by params.
     var mu = this.params.mu;
     var sigma = this.params.sigma;
-    return ad.scalar.add(ad.scalar.mul(sigma, x), mu); }
+    return sigma * x + mu; }
 });
 
 
@@ -520,7 +521,7 @@ var DiagCovGaussian = makeDistributionType({
 function laplaceSample(mu, b) {
   // Generated from goo.gl/3BxCGd (wiki)
   var z = util.random();
-  var u = (1 - z) * -0.5 + z * 0.5;
+  var u = z - 0.5;
   return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
 }
 
@@ -546,9 +547,10 @@ var Laplace = makeDistributionType({
     return new Laplace({mu: 0, b: 1});
   },
   transform: function(x) {
+    'use ad';
     var mu = this.params.mu;
     var b = this.params.b;
-    return ad.scalar.add(ad.scalar.mul(b, x), mu);
+    return b * x + mu;
   },
   support: function() {
     return { lower: -Infinity, upper: Infinity };
