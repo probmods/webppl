@@ -96,7 +96,7 @@ module.exports = function(env) {
     try {
       assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
     } catch (err) {
-      if (this.minSampleRate) {
+      if (this.minSampleRate) { // TODO: change this to throwOnError
         return this.k(this.s, this.interleavingSampleFactor);
       } else {
         throw err;

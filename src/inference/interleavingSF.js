@@ -1,128 +1,111 @@
-// InterleavingSF sampling
-//
-// maxScore: An upper bound on the total factor score per-execution.
-//
-// incremental: When true, improves efficiency by rejecting samples at factor
-// statements where possible. Requires score <= 0 for all factors across all
-// possible executions.
+// Coroutine to sample from the target (ignoring factor statements) or
+// guide program.
 
 'use strict';
 
 var _ = require('lodash');
-var assert = require('assert');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
+var ad = require('../ad');
+var guide = require('../guide');
 
 module.exports = function(env) {
 
   function InterleavingSF(s, k, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'InterleavingSF');
-    options = util.mergeDefaults(options, {
+    this.opts = util.mergeDefaults(options, {
       samples: 1,
-      maxScore: 0,
-      incremental: false
+      guide: false, // true = sample guide, false = sample target
+      verbose: false
     });
-    this.minSampleRate = options.minSampleRate;
-    this.numSamplesBak = options.samples;
-    this.startTime = Date.now();
 
-    this.hasFactor = false;
-    this.interleavingSampleFactor = false;
-
-    this.numSamples = options.samples;
-    this.maxScore = options.maxScore;
-    this.incremental = options.incremental;
+    this.wpplFn = wpplFn;
     this.s = s;
     this.k = k;
     this.a = a;
-    this.wpplFn = wpplFn;
-    this.hist = new CountAggregator();
-    this.oldCoroutine = env.coroutine;
+    this.guideRequired = this.opts.guide;
+    this.hasFactor = false;
+    this.interleavingSampleFactor = false;
+
+    this.factorWarningIssued = false;
+
+    this.coroutine = env.coroutine;
     env.coroutine = this;
-    this.startTime = Date.now();
-
-    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
-      throw new Error('samples should be a positive integer.');
-    }
-
-    if (this.incremental && this.maxScore > 0) {
-      util.warn('InterleavingSF: Reduce maxScore to zero for better performance.');
-    }
   }
 
-  InterleavingSF.prototype.run = function() {
-    var elapseSec = (Date.now() - this.startTime) / 1000.0;
-    if (elapseSec > 1) {
-      console.log('warning: strict condition might affect inference accuracy');
-      return this.k(this.s, this.interleavingSampleFactor);
-    }
-    this.scoreSoFar = 0;
-    this.threshold = this.maxScore + Math.log(util.random());
-    return this.wpplFn(_.clone(this.s), env.exit, this.a);
-  };
+  InterleavingSF.prototype = {
 
-  InterleavingSF.prototype.sample = function(s, k, a, dist) {
-    if (this.hasFactor) {
-      this.interleavingSampleFactor = true;
-    }
-    return k(s, dist.sample());
-  };
+    run: function() {
 
-  InterleavingSF.prototype.factor = function(s, k, a, score) {
-    if (!this.hasFactor) {
-      this.hasFactor = true;
-    }
-    if (this.incremental) {
-      assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
-    }
-    this.scoreSoFar += score;
-    // In incremental mode we can reject as soon as scoreSoFar falls below
-    // threshold. (As all future scores are assumed to be <= 0 therefore
-    // scoreSoFar can not increase.)
-    if ((this.incremental && (this.scoreSoFar <= this.threshold)) ||
-        (score === -Infinity)) {
-      // Reject.
-      this.hasFactor = false;
-      return this.run();
-    } else {
-      return k(s);
-    }
-  };
+      var hist = new CountAggregator();
+      var logWeights = [];   // Save total factor weights
 
-  InterleavingSF.prototype.exit = function(s, retval) {
-    try {
-      assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
-    } catch (err) {
-      if (this.minSampleRate) {
-        return this.k(this.s, this.interleavingSampleFactor);
-      } else {
-        throw err;
+      return util.cpsLoop(
+          this.opts.samples,
+
+          // Loop body.
+          function(i, next) {
+            this.logWeight = 0;
+            return this.wpplFn(_.clone(this.s), function(s, val) {
+              logWeights.push(this.logWeight);
+              hist.add(val);
+              return next();
+            }.bind(this), this.a);
+          }.bind(this),
+
+          // Continuation.
+          function() {
+            env.coroutine = this.coroutine;
+            var dist = hist.toDist();
+            if (!this.opts.guide) {
+              var numSamples = this.opts.samples;
+              dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(numSamples);
+            }
+            return this.k(this.s, this.interleavingSampleFactor);
+          }.bind(this));
+
+    },
+
+    sample: function(s, k, a, dist, options) {
+      if (this.hasFactor) {
+        this.interleavingSampleFactor = true;
       }
-    }
+      if (this.opts.guide) {
+        options = options || {};
+        return guide.getDist(
+            options.guide, options.noAutoGuide, dist, env, s, a,
+            function(s, maybeGuideDist) {
+              var d = maybeGuideDist || dist;
+              return k(s, d.sample());
+            });
+      } else {
+        return k(s, dist.sample());
+      }
+    },
 
-    if (this.scoreSoFar > this.threshold) {
-      // Accept.
-      this.hist.add(retval);
-      this.numSamples -= 1;
-    }
+    factor: function(s, k, a, score) {
+      if (!this.hasFactor) {
+        this.hasFactor = true;
+      }
+      if (!this.opts.guide && !this.factorWarningIssued) {
+        this.factorWarningIssued = true;
+        var msg = 'Note that factor, condition and observe statements are ' +
+            'ignored when forward sampling from a model.';
+        util.warn(msg);
+      }
+      this.logWeight += ad.value(score);
+      return k(s);
+    },
 
-    if (this.numSamples === 0) {
-      env.coroutine = this.oldCoroutine;
-      return this.k(this.s, this.interleavingSampleFactor);
-    } else {
-      this.hasFactor = false;
-      return this.run();
-    }
+    incrementalize: env.defaultCoroutine.incrementalize,
+    constructor: InterleavingSF
+
   };
-
-  InterleavingSF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
-
-  function check(s, k, a, wpplFn, options) {
-    return new InterleavingSF(s, k, a, wpplFn, options).run();
-  }
 
   return {
-    InterleavingSF: check
+    InterleavingSF: function() {
+      var coroutine = Object.create(InterleavingSF.prototype);
+      InterleavingSF.apply(coroutine, arguments);
+      return coroutine.run();
+    }
   };
-
 };
