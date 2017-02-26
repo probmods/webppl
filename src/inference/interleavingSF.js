@@ -117,12 +117,12 @@ module.exports = function(env) {
 
   InterleavingSF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function rej(s, k, a, wpplFn, options) {
+  function check(s, k, a, wpplFn, options) {
     return new InterleavingSF(s, k, a, wpplFn, options).run();
   }
 
   return {
-    InterleavingSF: rej
+    InterleavingSF: check
   };
 
 };
