@@ -499,7 +499,7 @@ var DefaultInfer = function(wpplFn, options) {
     console.log(enumResult);
   }
   console.log('using "rejection"');
-  var rejResult = Rejection(wpplFn, {minSampleRate: samplesInTwoSec, samples: sampleNum});
+  var rejResult = Rejection(wpplFn, {probe: samplesInTwoSec, samples: sampleNum});
   if (typeof rejResult !== 'object') {
     var interleavingSF = InterleavingSF(wpplFn);
     if (interleavingSF) {

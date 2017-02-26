@@ -21,6 +21,8 @@ module.exports = function(env) {
     });
 
     this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
+
+    // the value of options.probe is the max enumeration tree size
     this.probe = options.probe;
     if (this.probe) {
       this.throwOnError = false;
