@@ -175,7 +175,7 @@ module.exports = function(env) {
         var complexity = getComplexity(this.level_sizes);
         if (complexity > this.probe) {
           // exit if estimated enumeration tree size is above threshold
-          return this.error(complexity + ' computations ahead...quit enumerate');
+          return this.error(complexity + ' computations ahead.');
         }
       }
     }
