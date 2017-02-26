@@ -54,20 +54,20 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
-  Enumerate.prototype.error = function(errType) {
-    if (this.throwOnError) {
-      throw new Error(errType);
-    } else {
-      return this.k(this.store, errType);
-    }
-  }
-
   Enumerate.prototype.run = function() {
     // Run the wppl computation, when the computation returns we want it
     // to call the exit method of this coroutine so we pass that as the
     // continuation.
     return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
+
+  Enumerate.prototype.error = function(errType) {
+    if (this.throwOnError) {
+      throw new Error(errType);
+    } else {
+      return this.k(this.store, errType + '..quit enumerate');
+    }
+  }
 
   Enumerate.prototype.nextInQueue = function() {
     var nextState = this.queue.deq();
@@ -96,7 +96,7 @@ module.exports = function(env) {
     // Check that support is non-empty
     if (supp.length === 0) {
       console.error(dist);
-      return 'Enumerate encountered a distribution with empty support!';
+      return 'Enumerate encountered a distribution with empty support.';
     }
     return supp;
   };
@@ -110,7 +110,7 @@ module.exports = function(env) {
     if (this.probe) {
       // Time checker
       if (Date.now() - this.startTime > this.maxTime) {
-        return this.error('enumerate timeout: max time was set to ' + this.maxTime);
+        return this.error('Enumerate timeout: max time was set to ' + this.maxTime);
       }
       this.level_sizes.push(support.length);
     }

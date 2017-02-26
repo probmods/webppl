@@ -481,7 +481,7 @@ var OptimizeThenSample = function(wpplFn, options) {
 /*
  * DefaultInfer() called when no options are specified
  * var enumTol: upper bound for enumeration tree size, enumeration ends when above threshold.
- * var samplesInTwoSec: lower bound for #sample/2sec, rejection ends when below threshold.
+ * var minSampleRate: lower bound for #sample/sec, rejection ends when below threshold.
  * var sampleNum: number of samples/particles used for default rejection/SMC/MCMC.
  * the "probe" field in the option is a signal to enumerate/rejection/SMC
  * in probe mode these methods don't throw error, but return useful information for deciding
@@ -489,7 +489,7 @@ var OptimizeThenSample = function(wpplFn, options) {
  */
 var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
-  var samplesInTwoSec = 500; //from 1 to sampleNum
+  var minSampleRate = 250; //from 1 to sampleNum
   var sampleNum = 1000;
   // console.log('using "enumerate"');
   var enumResult = Enumerate(wpplFn, {probe: enumTol, strategy: 'depthFirst'});
@@ -499,13 +499,13 @@ var DefaultInfer = function(wpplFn, options) {
     console.log(enumResult);
   }
   console.log('using "rejection"');
-  var rejResult = Rejection(wpplFn, {probe: samplesInTwoSec, samples: sampleNum});
-  if (typeof rejResult !== 'object') {
+  var rejResult = Rejection(wpplFn, {probe: minSampleRate, samples: sampleNum});
+  if (!_.isObjectLike(rejResult)) {
     var interleavingSF = InterleavingSF(wpplFn);
     if (interleavingSF) {
       console.log('using "SMC"...(interleaving samples and factors detected)');
       var smcResult = SMC(wpplFn, {probe: true, particles: sampleNum});
-      if (typeof smcResult === 'object') {
+      if (_.isObjectLike(smcResult)) {
         return smcResult;
       } else {
         console.log('quit SMC because of ' + smcResult);

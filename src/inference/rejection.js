@@ -9,7 +9,6 @@
 'use strict';
 
 var _ = require('lodash');
-var assert = require('assert');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 
@@ -22,7 +21,13 @@ module.exports = function(env) {
       maxScore: 0,
       incremental: false
     });
+
+    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
+    // the value of options.probe is the min sample rate
     this.probe = options.probe;
+    if (this.probe) {
+      this.throwOnError = false;
+    }
     this.numSamplesBak = options.samples;
     this.startTime = Date.now();
 
@@ -40,29 +45,35 @@ module.exports = function(env) {
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
-      throw new Error('samples should be a positive integer.');
-    }
-
     if (this.incremental && this.maxScore > 0) {
       util.warn('Rejection: Reduce maxScore to zero for better performance.');
     }
   }
 
   Rejection.prototype.run = function() {
+    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
+      return this.error('"samples" should be a positive integer.');
+    }
     var elapseSec = (Date.now() - this.startTime) / 1000.0;
     if (elapseSec > 2) {
       // count how many samples are collected in ~2 secs
-      var numFound = this.numSamplesBak - this.numSamples;
-      if (numFound < this.probe) {
-        console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection');
-        return this.k(this.s, this.interleavingSampleFactor);
+      var minSampleRate = (this.numSamplesBak - this.numSamples) / 2;
+      if (minSampleRate < this.probe) {
+        return this.error(minSampleRate + ' samples/sec is below threshold.')
       }
     }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
+
+  Rejection.prototype.error = function(errType) {
+    if (this.throwOnError) {
+      throw new Error(errType);
+    } else {
+      return this.k(this.s, errType + '..quit rejection');
+    }
+  }
 
   Rejection.prototype.sample = function(s, k, a, dist) {
     if (this.hasFactor) {
@@ -76,7 +87,9 @@ module.exports = function(env) {
       this.hasFactor = true;
     }
     if (this.incremental) {
-      assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
+      if (score <= 0) {
+        return this.error('Score must be <= 0 for incremental rejection.');
+      }
     }
     this.scoreSoFar += score;
     // In incremental mode we can reject as soon as scoreSoFar falls below
@@ -93,14 +106,8 @@ module.exports = function(env) {
   };
 
   Rejection.prototype.exit = function(s, retval) {
-    try {
-      assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
-    } catch (err) {
-      if (this.probe) {
-        return this.k(this.s, this.interleavingSampleFactor);
-      } else {
-        throw err;
-      }
+    if (this.scoreSoFar <= this.maxScore) {
+      return this.error('Score exceeded upper bound.')
     }
 
     if (this.scoreSoFar > this.threshold) {
