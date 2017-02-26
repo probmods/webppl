@@ -31,9 +31,6 @@ module.exports = function(env) {
     this.numSamplesBak = options.samples;
     this.startTime = Date.now();
 
-    this.hasFactor = false;
-    this.interleavingSampleFactor = false;
-
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
     this.incremental = options.incremental;
@@ -76,16 +73,10 @@ module.exports = function(env) {
   }
 
   Rejection.prototype.sample = function(s, k, a, dist) {
-    if (this.hasFactor) {
-      this.interleavingSampleFactor = true;
-    }
     return k(s, dist.sample());
   };
 
   Rejection.prototype.factor = function(s, k, a, score) {
-    if (!this.hasFactor) {
-      this.hasFactor = true;
-    }
     if (this.incremental) {
       if (score <= 0) {
         return this.error('Score must be <= 0 for incremental rejection.');
@@ -98,7 +89,6 @@ module.exports = function(env) {
     if ((this.incremental && (this.scoreSoFar <= this.threshold)) ||
         (score === -Infinity)) {
       // Reject.
-      this.hasFactor = false;
       return this.run();
     } else {
       return k(s);
@@ -120,7 +110,6 @@ module.exports = function(env) {
       env.coroutine = this.oldCoroutine;
       return this.k(this.s, this.hist.toDist());
     } else {
-      this.hasFactor = false;
       return this.run();
     }
   };
