@@ -493,21 +493,15 @@ var DefaultInfer = function(wpplFn, options) {
   var sampleNum = 1000;
   // console.log('using "enumerate"');
   var enumResult = Enumerate(wpplFn, {probe: enumTol, strategy: 'depthFirst'});
-  if (typeof enumResult === 'object') {
+  if (_.isObjectLike(enumResult)) {
     return enumResult;
-  } else if (enumResult < 0) {
-    console.log('sampling from continuous distribution...quit enumerate');
-  } else if (enumResult === 0) {
-    console.log('time out...quit enumerate')
   } else {
-    console.log(enumResult + ' computations ahead...quit enumerate');
+    console.log(enumResult);
   }
   console.log('using "rejection"');
   var rejResult = Rejection(wpplFn, {minSampleRate: samplesInTwoSec, samples: sampleNum});
   if (typeof rejResult !== 'object') {
     var interleavingSF = InterleavingSF(wpplFn);
-    console.log(typeof interleavingSF);
-    console.log(interleavingSF);
     if (interleavingSF) {
       console.log('using "SMC"...(interleaving samples and factors detected)');
       var smcResult = SMC(wpplFn, {probe: true, particles: sampleNum});

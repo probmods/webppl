@@ -20,11 +20,14 @@ module.exports = function(env) {
       maxExecutions: Infinity
     });
 
-    this.throwOnError = options.throwOnError;
+    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
     this.probe = options.probe;
-    this.timeOut = false; // whether running out of this.maxTime
+    if (this.probe) {
+      this.throwOnError = false;
+    }
+
     this.maxTime = 5000; // Time bound for enumeration under probe mode
-    this.invalidDist = false;
+    this.startTime = Date.now();
     this.first_path = true; // whether enumeration has reached the first leaf/exit
     this.level_sizes = [];
 
@@ -49,11 +52,18 @@ module.exports = function(env) {
     env.coroutine = this;
   }
 
+  Enumerate.prototype.error = function(errType) {
+    if (this.throwOnError) {
+      throw new Error(errType);
+    } else {
+      return this.k(this.store, errType);
+    }
+  }
+
   Enumerate.prototype.run = function() {
     // Run the wppl computation, when the computation returns we want it
     // to call the exit method of this coroutine so we pass that as the
     // continuation.
-    this.startTime = Date.now();
     return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
@@ -76,41 +86,33 @@ module.exports = function(env) {
   var getSupport = function(dist) {
     // Find support of this distribution:
     if (dist.isContinuous || !dist.support) {
-      if (env.coroutine.probe) {
-        return;
-      }
       console.error(dist);
-      throw new Error('Enumerate can only be used with distributions that have finite support.');
+      return 'Enumerate can only be used with distributions that have finite support.';
     }
     var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
-      if (env.coroutine.probe) {
-        return;
-      }
       console.error(dist);
-      throw new Error('Enumerate encountered a distribution with empty support!');
+      return 'Enumerate encountered a distribution with empty support!';
     }
-
     return supp;
   };
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     var support = getSupport(dist);
+    if (_.isString(support)) {
+      // Support checker
+      return this.error(support);
+    }
     if (this.probe) {
       // Time checker
       if (Date.now() - this.startTime > this.maxTime) {
-        this.timeOut = true;
-        return this.exit();
-      }
-      // Support checker
-      if (!support) {
-        this.invalidDist = true;
-        return this.exit();
+        return this.error('enumerate timeout: max time was set to ' + this.maxTime);
       }
       this.level_sizes.push(support.length);
     }
+
     // For each value in support, add the continuation paired with
     // support value and score to queue:
     _.each(support, function(value) {
@@ -171,16 +173,8 @@ module.exports = function(env) {
         var complexity = getComplexity(this.level_sizes);
         if (complexity > this.probe) {
           // exit if estimated enumeration tree size is above threshold
-          return this.k(this.store, complexity);
+          return this.error(complexity + ' computations ahead...quit enumerate');
         }
-      }
-      if (this.invalidDist) {
-        // exit if the dist to sample from is discrete or has infinite supports
-        return this.k(this.store, -1);
-      }
-      if (this.timeOut) {
-        // exit if time is up
-        return this.k(this.store, 0);
       }
     }
     // We have reached an exit of the computation. Accumulate probability into retval bin.
@@ -194,7 +188,7 @@ module.exports = function(env) {
       return this.nextInQueue();
     } else {
       if (this.marginal.size === 0) {
-        throw new Error('All paths explored by Enumerate have probability zero.');
+        return this.error('All paths explored by Enumerate have probability zero.');
       }
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;
