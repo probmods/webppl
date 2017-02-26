@@ -22,7 +22,7 @@ module.exports = function(env) {
       maxScore: 0,
       incremental: false
     });
-    this.probe = options.probe;
+    this.minSampleRate = options.minSampleRate;
     this.numSamplesBak = options.samples;
     this.startTime = Date.now();
 
@@ -54,7 +54,7 @@ module.exports = function(env) {
     if (elapseSec > 2) {
       // count how many samples are collected in ~2 secs
       var numFound = this.numSamplesBak - this.numSamples;
-      if (numFound < this.probe) {
+      if (numFound < this.minSampleRate) {
         console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection');
         return this.k(this.s, this.interleavingSampleFactor);
       }
@@ -96,7 +96,7 @@ module.exports = function(env) {
     try {
       assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
     } catch (err) {
-      if (this.probe) {
+      if (this.minSampleRate) {
         return this.k(this.s, this.interleavingSampleFactor);
       } else {
         throw err;

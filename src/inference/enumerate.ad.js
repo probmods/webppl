@@ -20,6 +20,7 @@ module.exports = function(env) {
       maxExecutions: Infinity
     });
 
+    this.throwOnError = options.throwOnError;
     this.probe = options.probe;
     this.timeOut = false; // whether running out of this.maxTime
     this.maxTime = 5000; // Time bound for enumeration under probe mode
@@ -95,17 +96,6 @@ module.exports = function(env) {
     return supp;
   };
 
-  var shuffle = function(array) {
-    // shuffle array
-    var j, x, i;
-    for (i = array.length; i; i--) {
-      j = Math.floor(Math.random() * i);
-      x = array[i - 1];
-      array[i - 1] = array[j];
-      array[j] = x;
-    }
-  }
-
   Enumerate.prototype.sample = function(store, k, a, dist) {
     var support = getSupport(dist);
     if (this.probe) {
@@ -120,8 +110,6 @@ module.exports = function(env) {
         return this.exit();
       }
       this.level_sizes.push(support.length);
-      // do shuffle to make sure the DFS randomly choose a path
-      shuffle(support);
     }
     // For each value in support, add the continuation paired with
     // support value and score to queue:
