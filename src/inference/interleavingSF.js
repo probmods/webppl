@@ -1,4 +1,4 @@
-// Rejection sampling
+// InterleavingSF sampling
 //
 // maxScore: An upper bound on the total factor score per-execution.
 //
@@ -15,8 +15,8 @@ var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
-  function Rejection(s, k, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'Rejection');
+  function InterleavingSF(s, k, a, wpplFn, options) {
+    util.throwUnlessOpts(options, 'InterleavingSF');
     options = util.mergeDefaults(options, {
       samples: 1,
       maxScore: 0,
@@ -39,39 +39,36 @@ module.exports = function(env) {
     this.hist = new CountAggregator();
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
+    this.startTime = Date.now();
 
     if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
       throw new Error('samples should be a positive integer.');
     }
 
     if (this.incremental && this.maxScore > 0) {
-      util.warn('Rejection: Reduce maxScore to zero for better performance.');
+      util.warn('InterleavingSF: Reduce maxScore to zero for better performance.');
     }
   }
 
-  Rejection.prototype.run = function() {
+  InterleavingSF.prototype.run = function() {
     var elapseSec = (Date.now() - this.startTime) / 1000.0;
-    if (elapseSec > 2) {
-      // count how many samples are collected in ~2 secs
-      var numFound = this.numSamplesBak - this.numSamples;
-      if (numFound < this.minSampleRate) {
-        console.log('only getting ' + numFound + ' samples in 2 seconds...quit Rejection');
-        return this.k(this.s, this.interleavingSampleFactor);
-      }
+    if (elapseSec > 1) {
+      console.log('warning: strict condition might affect inference accuracy');
+      return this.k(this.s, this.interleavingSampleFactor);
     }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
-  Rejection.prototype.sample = function(s, k, a, dist) {
+  InterleavingSF.prototype.sample = function(s, k, a, dist) {
     if (this.hasFactor) {
       this.interleavingSampleFactor = true;
     }
     return k(s, dist.sample());
   };
 
-  Rejection.prototype.factor = function(s, k, a, score) {
+  InterleavingSF.prototype.factor = function(s, k, a, score) {
     if (!this.hasFactor) {
       this.hasFactor = true;
     }
@@ -92,7 +89,7 @@ module.exports = function(env) {
     }
   };
 
-  Rejection.prototype.exit = function(s, retval) {
+  InterleavingSF.prototype.exit = function(s, retval) {
     try {
       assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
     } catch (err) {
@@ -118,14 +115,14 @@ module.exports = function(env) {
     }
   };
 
-  Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
+  InterleavingSF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
   function rej(s, k, a, wpplFn, options) {
-    return new Rejection(s, k, a, wpplFn, options).run();
+    return new InterleavingSF(s, k, a, wpplFn, options).run();
   }
 
   return {
-    Rejection: rej
+    InterleavingSF: rej
   };
 
 };

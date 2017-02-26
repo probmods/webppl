@@ -505,7 +505,10 @@ var DefaultInfer = function(wpplFn, options) {
   console.log('using "rejection"');
   var rejResult = Rejection(wpplFn, {minSampleRate: samplesInTwoSec, samples: sampleNum});
   if (typeof rejResult !== 'object') {
-    if (rejResult) {
+    var interleavingSF = InterleavingSF(wpplFn);
+    console.log(typeof interleavingSF);
+    console.log(interleavingSF);
+    if (interleavingSF) {
       console.log('using "SMC"...(interleaving samples and factors detected)');
       var smcResult = SMC(wpplFn, {probe: true, particles: sampleNum});
       if (typeof smcResult === 'object') {
