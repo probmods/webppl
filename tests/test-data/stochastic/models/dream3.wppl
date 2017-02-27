@@ -1,0 +1,15 @@
+var guideBool = function(x) {
+  var p = param({name: x ? 'a' : 'b'});
+  return Bernoulli({p: Math.sigmoid(p)});
+};
+
+var model = function() {
+  var arr = mapData({data: [false]}, function(x) {
+    var bool = sample(Bernoulli({p: .5}), {guide() { return guideBool(x); }});
+    observe(Bernoulli({p: bool ? .1 : .9}), x);
+    return bool;
+  });
+  // We need this check because mapData returns undefined while
+  // dreaming.
+  return arr && first(arr);
+};

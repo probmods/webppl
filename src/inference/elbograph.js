@@ -70,7 +70,7 @@ function JoinNode() {
 function propagateWeights(nodes) {
   // Note that this modifies the weights of the graph in-place.
   var i = nodes.length;
-  while(--i) {
+  while (--i) {
     var node = nodes[i];
     if (node instanceof SplitNode) {
       // Account for (a) the fact that we (potentially) only looked
@@ -84,7 +84,7 @@ function propagateWeights(nodes) {
       parent.weight += node.weight;
     });
   }
-};
+}
 
 var edge = function(parent, child) {
   return '  ' + parent.id + ' -> ' + child.id + ';';
@@ -118,7 +118,7 @@ function generateDot(nodes) {
     });
   });
   return 'digraph {\n' + edges.join('\n') + '\n}\n';
-};
+}
 
 module.exports = {
   RootNode: RootNode,

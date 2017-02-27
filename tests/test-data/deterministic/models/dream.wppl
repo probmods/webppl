@@ -1,0 +1,27 @@
+var dream = function(model) {
+  return dreamSample(model).data;
+};
+
+[
+  dream(function() {
+    mapData({data: ['A']}, function(x) {
+      observe(Delta({v: 'a'}), x);
+    });
+  }),
+  dream(function() {
+    mapData({data: [['A']]}, function(x) {
+      observe(Delta({v: ['a']}), x);
+    });
+  }),
+  dream(function() {
+    mapData({data: [['A', 'B']]}, function(arr) {
+      observe(Delta({v: 'a'}), arr[0]);
+      observe(Delta({v: 'b'}), arr[1]);
+    });
+  }),
+  dream(function() {
+    mapData({data: ['A'], dreamBatchSize: 2}, function(x) {
+      observe(Delta({v: 'a'}), x);
+    });
+  }),
+];
