@@ -33,8 +33,11 @@ module.exports = function(env) {
           'Valid options are: ' + validImportanceOptVals;
       throw new Error(msg);
     }
-
+    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
     this.probe = options.probe ? true : false;
+    if (this.probe) {
+      this.throwOnError = false;
+    }
     this.err = undefined;
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
@@ -73,6 +76,17 @@ module.exports = function(env) {
   SMC.prototype.run = function() {
     return this.runCurrentParticle();
   };
+
+  SMC.prototype.error = function(errType) {
+    if (this.throwOnError) {
+      throw new Error(errType);
+    } else {
+      this.err = errType + '..quit SMC';
+      // different from enumerate and rejection because of CPS
+      // directly call this.k doesn't work
+      return this.finish();
+    }
+  }
 
   SMC.prototype.sample = function(s, k, a, dist, options) {
     options = options || {};
@@ -137,7 +151,7 @@ module.exports = function(env) {
   };
 
   function resampleParticles(particles) {
-
+    // return env.coroutine.error('nothing');
     // Skip resampling if doing ParticleFilterAsMH.
     if (particles.length === 1) {
       return particles;
@@ -148,16 +162,9 @@ module.exports = function(env) {
     var logW = util.logsumexp(_.map(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
 
-    try {
-      assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
-    } catch (err) {
-      // not throw err if in probe mode
-      if (env.coroutine.probe) {
-        env.coroutine.err = err;
-        env.coroutine.finish();
-      } else {
-        throw err;
-      }
+    if (logAvgW === -Infinity) {
+      // do not return, execution continues
+      env.coroutine.error('All particles have zero weight.');
     }
 
     // Compute list of retained particles.
@@ -198,16 +205,8 @@ module.exports = function(env) {
       return cont(particles);
     }
 
-    try {
-      assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
-    } catch (err) {
-      // not throw err if in probe mode
-      if (env.coroutine.probe) {
-        env.coroutine.err = err;
-        env.coroutine.finish();
-      } else {
-        throw err;
-      }
+    if (this.particlesAreWeighted(particles)) {
+      return this.error('Cannot rejuvenate weighted particles.');
     }
 
     return util.cpsForEach(
@@ -264,9 +263,13 @@ module.exports = function(env) {
       // Active and complete particles are combined here and
       // re-partitioned after rejuvenation.
       var allParticles = this.allParticles();
-      assert(this.particlesAreInSync(allParticles));
+      if (!this.particlesAreInSync(allParticles)) {
+        return this.error('Not all particles are in sync');
+      }
       var resampledParticles = resampleParticles(allParticles);
-      assert.strictEqual(resampledParticles.length, this.numParticles);
+      if (resampledParticles.length !== this.numParticles) {
+        return this.error('resampledParticles.length !== this.numParticles');
+      }
 
       var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
         return acc + (p.trace.isComplete() ? 0 : 1);
@@ -276,7 +279,9 @@ module.exports = function(env) {
         // We still have active particles, wrap-around:
         this.particleIndex = 0;
         return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
-          assert(this.particlesAreInSync(rejuvenatedParticles));
+          if (!this.particlesAreInSync(rejuvenatedParticles)) {
+            return this.error('Rejuvenated particles are not in sync');
+          }
 
           var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
           this.completeParticles = p[0];
@@ -316,15 +321,8 @@ module.exports = function(env) {
       return this.k(this.s, this.err.toString());
     }
 
-    try {
-      assert.strictEqual(this.completeParticles.length, this.numParticles);
-    } catch (err) {
-      if (env.coroutine.probe) {
-        env.coroutine.err = err;
-        return this.k(this.s, this.err.toString());
-      } else {
-        throw err;
-      }
+    if (this.completeParticles.length !== this.numParticles) {
+      return this.error('completeParticles.length !== this.numParticles');
     }
 
     var hist = new CountAggregator(this.onlyMAP);

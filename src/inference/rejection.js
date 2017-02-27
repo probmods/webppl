@@ -78,7 +78,7 @@ module.exports = function(env) {
 
   Rejection.prototype.factor = function(s, k, a, score) {
     if (this.incremental) {
-      if (score <= 0) {
+      if (score > 0) {
         return this.error('Score must be <= 0 for incremental rejection.');
       }
     }
@@ -96,7 +96,7 @@ module.exports = function(env) {
   };
 
   Rejection.prototype.exit = function(s, retval) {
-    if (this.scoreSoFar <= this.maxScore) {
+    if (this.scoreSoFar > this.maxScore) {
       return this.error('Score exceeded upper bound.')
     }
 

@@ -501,6 +501,7 @@ var DefaultInfer = function(wpplFn, options) {
   console.log('using "rejection"');
   var rejResult = Rejection(wpplFn, {probe: minSampleRate, samples: sampleNum});
   if (!_.isObjectLike(rejResult)) {
+    console.log(rejResult);
     var interleavingSF = InterleavingSF(wpplFn);
     if (interleavingSF) {
       console.log('using "SMC"...(interleaving samples and factors detected)');
