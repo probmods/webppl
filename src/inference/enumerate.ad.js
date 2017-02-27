@@ -25,10 +25,11 @@ module.exports = function(env) {
     // the value of options.probe is the max enumeration tree size
     this.probe = options.probe;
     if (this.probe) {
+      // not throw error in probe mode
       this.throwOnError = false;
     }
 
-    this.maxTime = 5000; // Time bound for enumeration under probe mode
+    this.maxTime = 5000; // Time upper threshold for enumeration in probe mode
     this.startTime = Date.now();
     this.first_path = true; // whether enumeration has reached the first leaf/exit
     this.level_sizes = [];
@@ -61,6 +62,9 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
   Enumerate.prototype.error = function(errType) {
     if (this.throwOnError) {
       throw new Error(errType);
@@ -105,6 +109,7 @@ module.exports = function(env) {
     var support = getSupport(dist);
     if (_.isString(support)) {
       // Support checker
+      // String means error
       return this.error(support);
     }
     if (this.probe) {

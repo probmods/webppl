@@ -1,5 +1,7 @@
-// Coroutine to sample from the target (ignoring factor statements) or
-// guide program.
+// Coroutine to check if there are interleaving samples and factors
+// in the wppl script.
+// Return: boolean. true for interleaving samples and factors,
+// false for non-interleaving.
 
 'use strict';
 
@@ -15,7 +17,10 @@ module.exports = function(env) {
     this.s = s;
     this.k = k;
     this.a = a;
+
+    // has seen at least one factor operation
     this.hasFactor = false;
+    // interleaving samples and factor
     this.interleavingSampleFactor = false;
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -46,6 +51,7 @@ module.exports = function(env) {
 
     sample: function(s, k, a, dist, options) {
       if (this.hasFactor) {
+        // has a sample after factor, therefore interleaving
         this.interleavingSampleFactor = true;
       }
       return k(s, dist.sample());

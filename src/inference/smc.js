@@ -36,6 +36,7 @@ module.exports = function(env) {
     this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
     this.probe = options.probe ? true : false;
     if (this.probe) {
+      // not throw error in probe mode
       this.throwOnError = false;
     }
     this.err = undefined;
@@ -77,13 +78,16 @@ module.exports = function(env) {
     return this.runCurrentParticle();
   };
 
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
   SMC.prototype.error = function(errType) {
     if (this.throwOnError) {
       throw new Error(errType);
     } else {
       this.err = errType + '..quit SMC';
-      // different from enumerate and rejection because of CPS
-      // directly call this.k doesn't work
+      // the way to return differs from enumerate and rejection because of CPS
+      // directly calling this.k doesn't work
       return this.finish();
     }
   }

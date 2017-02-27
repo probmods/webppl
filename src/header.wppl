@@ -491,28 +491,27 @@ var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
   var minSampleRate = 250; //from 1 to sampleNum
   var sampleNum = 1000;
-  // console.log('using "enumerate"');
   var enumResult = Enumerate(wpplFn, {probe: enumTol, strategy: 'depthFirst'});
   if (_.isObjectLike(enumResult)) {
     return enumResult;
   } else {
     console.log(enumResult);
   }
-  console.log('using "rejection"');
+  console.log('Using "rejection"');
   var rejResult = Rejection(wpplFn, {probe: minSampleRate, samples: sampleNum});
   if (!_.isObjectLike(rejResult)) {
     console.log(rejResult);
     var interleavingSF = InterleavingSF(wpplFn);
     if (interleavingSF) {
-      console.log('using "SMC"...(interleaving samples and factors detected)');
+      console.log('Using "SMC" (interleaving samples and factors detected)');
       var smcResult = SMC(wpplFn, {probe: true, particles: sampleNum});
       if (_.isObjectLike(smcResult)) {
         return smcResult;
       } else {
-        console.log('quit SMC because of ' + smcResult);
+        console.log(smcResult);
       }
     }
-    console.log('using "MCMC"');
+    console.log('Using "MCMC"');
     return MCMC(wpplFn, {samples: sampleNum});
   } else {
     return rejResult;

@@ -26,6 +26,7 @@ module.exports = function(env) {
     // the value of options.probe is the min sample rate
     this.probe = options.probe;
     if (this.probe) {
+      // not throw error in probe mode
       this.throwOnError = false;
     }
     this.numSamplesBak = options.samples;
@@ -53,7 +54,8 @@ module.exports = function(env) {
     }
     var elapseSec = (Date.now() - this.startTime) / 1000.0;
     if (elapseSec > 2) {
-      // count how many samples are collected in ~2 secs
+      // count the number of samples collected in ~2 secs
+      // compute number of samples per sec
       var minSampleRate = (this.numSamplesBak - this.numSamples) / 2;
       if (minSampleRate < this.probe) {
         return this.error(minSampleRate + ' samples/sec is below threshold.')
@@ -64,6 +66,9 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
 
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
   Rejection.prototype.error = function(errType) {
     if (this.throwOnError) {
       throw new Error(errType);
