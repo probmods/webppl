@@ -90,46 +90,47 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(dist) {
+  var getSupport = function(dist, cont) {
     // Find support of this distribution:
     if (dist.isContinuous || !dist.support) {
       console.error(dist);
-      return 'Enumerate can only be used with distributions that have finite support.';
+      return env.coroutine.error('Enumerate can only be used with distributions that have finite support.');
     }
     var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
       console.error(dist);
-      return 'Enumerate encountered a distribution with empty support.';
+      return env.coroutine.error('Enumerate encountered a distribution with empty support.');
     }
-    return supp;
+    return cont(supp);
   };
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
-    var support = getSupport(dist);
-    if (_.isString(support)) {
-      // Support checker
-      // String means error
-      return this.error(support);
-    }
-    if (this.probe) {
-      // Time checker
-      if (Date.now() - this.startTime > this.maxTime) {
-        return this.error('Enumerate timeout: max time was set to ' + this.maxTime);
+    return getSupport(dist, function(support) {
+      if (_.isString(support)) {
+        // Support checker
+        // String means error
+        return this.error(support);
       }
-      this.level_sizes.push(support.length);
-    }
+      if (this.probe) {
+        // Time checker
+        if (Date.now() - this.startTime > this.maxTime) {
+          return this.error('Enumerate timeout: max time was set to ' + this.maxTime);
+        }
+        this.level_sizes.push(support.length);
+      }
 
-    // For each value in support, add the continuation paired with
-    // support value and score to queue:
-    _.each(support, function(value) {
-      this.enqueueContinuation(
-          k, value, this.score + dist.score(value), store);
-    }.bind(this));
+      // For each value in support, add the continuation paired with
+      // support value and score to queue:
+      _.each(support, function(value) {
+        this.enqueueContinuation(
+            k, value, this.score + dist.score(value), store);
+      }.bind(this));
 
-    // Call the next state on the queue
-    return this.nextInQueue();
+      // Call the next state on the queue
+      return this.nextInQueue();
+    });
   };
 
   Enumerate.prototype.factor = function(s, k, a, score) {

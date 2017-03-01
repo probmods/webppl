@@ -87,9 +87,7 @@ module.exports = function(env) {
       throw new Error(errType);
     } else {
       this.err = errType;
-      // the way to return differs from enumerate and rejection because of CPS
-      // directly calling this.k doesn't work
-      return this.finish();
+      return this.k(this.s, errType);
     }
   }
 
