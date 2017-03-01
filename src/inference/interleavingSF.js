@@ -35,7 +35,6 @@ module.exports = function(env) {
 
           // Loop body.
           function(i, next) {
-            this.logWeight = 0;
             return this.wpplFn(_.clone(this.s), function(s, val) {
               return next();
             }.bind(this), this.a);

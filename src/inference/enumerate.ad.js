@@ -17,10 +17,11 @@ module.exports = function(env) {
   function Enumerate(store, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
-      maxExecutions: Infinity
+      maxExecutions: Infinity,
+      throwOnError: true
     });
 
-    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
+    this.throwOnError = options.throwOnError;
 
     // the value of options.probe is the max enumeration tree size
     this.probe = options.probe;
@@ -69,7 +70,7 @@ module.exports = function(env) {
     if (this.throwOnError) {
       throw new Error(errType);
     } else {
-      return this.k(this.store, errType + '..quit enumerate');
+      return this.k(this.store, errType);
     }
   }
 

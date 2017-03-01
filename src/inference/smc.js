@@ -25,7 +25,8 @@ module.exports = function(env) {
       finalRejuv: true,
       saveTraces: false,
       importance: 'default',
-      onlyMAP: false
+      onlyMAP: false,
+      throwOnError: true
     });
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
@@ -33,7 +34,7 @@ module.exports = function(env) {
           'Valid options are: ' + validImportanceOptVals;
       throw new Error(msg);
     }
-    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
+    this.throwOnError = options.throwOnError;
     this.probe = options.probe ? true : false;
     if (this.probe) {
       // not throw error in probe mode
@@ -85,7 +86,7 @@ module.exports = function(env) {
     if (this.throwOnError) {
       throw new Error(errType);
     } else {
-      this.err = errType + '..quit SMC';
+      this.err = errType;
       // the way to return differs from enumerate and rejection because of CPS
       // directly calling this.k doesn't work
       return this.finish();
@@ -155,7 +156,6 @@ module.exports = function(env) {
   };
 
   function resampleParticles(particles) {
-    // return env.coroutine.error('nothing');
     // Skip resampling if doing ParticleFilterAsMH.
     if (particles.length === 1) {
       return particles;

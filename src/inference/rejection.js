@@ -19,17 +19,15 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       samples: 1,
       maxScore: 0,
-      incremental: false
+      incremental: false,
+      throwOnError: true,
+      minSampleRate: 0
     });
 
-    this.throwOnError = options.throwOnError !== undefined ? options.throwOnError : true;
+    this.throwOnError = options.throwOnError;
     // the value of options.probe is the min sample rate
-    this.probe = options.probe;
-    if (this.probe) {
-      // not throw error in probe mode
-      this.throwOnError = false;
-    }
-    this.numSamplesBak = options.samples;
+    this.minSampleRate = options.minSampleRate;
+    this.numSamplesTotal = options.samples;
     this.startTime = Date.now();
 
     this.numSamples = options.samples;
@@ -56,9 +54,9 @@ module.exports = function(env) {
     if (elapseSec > 2) {
       // count the number of samples collected in ~2 secs
       // compute number of samples per sec
-      var minSampleRate = (this.numSamplesBak - this.numSamples) / 2;
-      if (minSampleRate < this.probe) {
-        return this.error(minSampleRate + ' samples/sec is below threshold.')
+      var sampleRate = (this.numSamplesTotal - this.numSamples) / 2;
+      if (sampleRate < this.minSampleRate) {
+        return this.error(sampleRate + ' samples/sec is below threshold.')
       }
     }
     this.scoreSoFar = 0;
@@ -73,7 +71,7 @@ module.exports = function(env) {
     if (this.throwOnError) {
       throw new Error(errType);
     } else {
-      return this.k(this.s, errType + '..quit rejection');
+      return this.k(this.s, errType);
     }
   }
 
