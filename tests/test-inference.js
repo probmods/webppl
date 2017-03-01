@@ -602,14 +602,6 @@ var tests = [
           verbose: false
         }
       },
-      laplace: {
-        std: { tol: 0.2 },
-        args: {
-          samples: 10000,
-          steps: 10000,
-          verbose: false
-        }
-      },
       guidedUniform: {
         args: {
           samples: 10000,

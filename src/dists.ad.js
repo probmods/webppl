@@ -518,39 +518,39 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
-function laplaceSample(mu, b) {
+function laplaceSample(location, scale) {
   // Generated from goo.gl/3BxCGd (wiki)
   var z = util.random();
   var u = z - 0.5;
-  return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  return location - scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
 }
 
-function laplaceScore(mu, b, x) {
+function laplaceScore(location, scale, x) {
   'use ad';
-  return -1 * (Math.log(2 * b) + Math.abs(x - mu) / b);
+  return -1 * (Math.log(2 * scale) + Math.abs(x - location) / scale);
 }
 
 var Laplace = makeDistributionType({
   name: 'Laplace',
   desc: 'Distribution over ``[-Infinity, Infinity]``',
-  params: [{name: 'mu', desc: 'mean', type: types.unboundedReal},
-           {name: 'b', desc: 'scale', type: types.positiveReal}],
+  params: [{name: 'location', desc: '', type: types.unboundedReal},
+           {name: 'scale', desc: '', type: types.positiveReal}],
   wikipedia: true,
   mixins: [continuousSupport],
   sample: function() {
-    return laplaceSample(ad.value(this.params.mu), ad.value(this.params.b));
+    return laplaceSample(ad.value(this.params.location), ad.value(this.params.scale));
   },
   score: function(val) {
-    return laplaceScore(this.params.mu, this.params.b, val);
+    return laplaceScore(this.params.location, this.params.scale, val);
   },
   base: function() {
-    return new Laplace({mu: 0, b: 1});
+    return new Laplace({location: 0, scale: 1});
   },
   transform: function(x) {
     'use ad';
-    var mu = this.params.mu;
-    var b = this.params.b;
-    return b * x + mu;
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return scale * x + location;
   },
   support: function() {
     return { lower: -Infinity, upper: Infinity };
@@ -753,16 +753,16 @@ var TensorGaussian = makeDistributionType({
   }
 });
 
-function tensorLaplaceSample(mu, b, dims) {
+function tensorLaplaceSample(location, scale, dims) {
   var x = new Tensor(dims);
   var n = x.length;
   while (n--) {
-    x.data[n] = laplaceSample(mu, b);
+    x.data[n] = laplaceSample(location, scale);
   }
   return x;
 }
 
-function tensorLaplaceScore(mu, b, dims, x) {
+function tensorLaplaceScore(location, scale, dims, x) {
   'use ad';
   var _x = ad.value(x);
 
@@ -771,8 +771,8 @@ function tensorLaplaceScore(mu, b, dims, x) {
   }
 
   var l = _x.length;
-  var ln2b = l * Math.log(2 * b);
-  var xMuB = T.sumreduce(T.abs(T.sub(x, mu))) / b;
+  var ln2b = l * Math.log(2 * scale);
+  var xMuB = T.sumreduce(T.abs(T.sub(x, location))) / scale;
   return -1 * (ln2b + xMuB);
 }
 
@@ -780,28 +780,28 @@ var TensorLaplace = makeDistributionType({
   name: 'TensorLaplace',
   desc: 'Distribution over a tensor of independent Laplace variables.',
   params: [
-    {name: 'mu', desc: 'mean', type: types.unboundedReal},
-    {name: 'b', desc: 'scale', type: types.positiveReal},
+    {name: 'location', desc: '', type: types.unboundedReal},
+    {name: 'scale', desc: '', type: types.positiveReal},
     {name: 'dims', desc: 'dimension of tensor', type: types.array(types.positiveInt)}
   ],
   mixins: [continuousSupport],
   sample: function() {
-    var mu = ad.value(this.params.mu);
-    var b = ad.value(this.params.b);
+    var location = ad.value(this.params.location);
+    var scale = ad.value(this.params.scale);
     var dims = this.params.dims;
-    return tensorLaplaceSample(mu, b, dims);
+    return tensorLaplaceSample(location, scale, dims);
   },
   score: function(x) {
-    return tensorLaplaceScore(this.params.mu, this.params.b, this.params.dims, x);
+    return tensorLaplaceScore(this.params.location, this.params.scale, this.params.dims, x);
   },
   base: function() {
     var dims = this.params.dims;
-    return new TensorLaplace({mu: 0, b: 1, dims: dims});
+    return new TensorLaplace({location: 0, scale: 1, dims: dims});
   },
   transform: function(x) {
-    var mu = this.params.mu;
-    var b = this.params.b;
-    return ad.tensor.add(ad.tensor.mul(x, b), mu);
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return ad.tensor.add(ad.tensor.mul(x, scale), location);
   }
 });
 
