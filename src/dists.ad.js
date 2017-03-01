@@ -763,19 +763,17 @@ function tensorLaplaceSample(mu, b, dims) {
 }
 
 function tensorLaplaceScore(mu, b, dims, x) {
+  'use ad';
   var _x = ad.value(x);
-  var scOp = ad.scalar;
-  var tnOp = ad.tensor;
 
   if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
     return -Infinity;
   }
 
   var l = _x.length;
-  var ln2b = scOp.mul(l, scOp.log(2 * b));
-  var xMuB = scOp.div(tnOp.sumreduce(tnOp.abs(tnOp.sub(x, mu))), b);
-  var sum = scOp.sum(ln2b, xMuB);
-  return scOp.mul(-1, sum)
+  var ln2b = l * Math.log(2 * b);
+  var xMuB = T.sumreduce(T.abs(T.sub(x, mu))) / b;
+  return -1 * (ln2b + xMuB);
 }
 
 var TensorLaplace = makeDistributionType({
