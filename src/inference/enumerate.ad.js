@@ -133,24 +133,23 @@ module.exports = function(env) {
   };
 
   Enumerate.prototype.sampleWithFactor = function(store, k, a, dist, scoreFn) {
-    var support = getSupport(dist);
-
-    // Allows extra factors to be taken into account in making
-    // exploration decisions:
-
-    return util.cpsForEach(
-        function(value, i, support, nextK) {
-          return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + dist.score(value) + extraScore;
-            env.coroutine.enqueueContinuation(k, value, score, store);
-            return nextK();
-          }, a, value);
-        },
-        function() {
-          // Call the next state on the queue
-          return env.coroutine.nextInQueue();
-        },
-        support);
+    return getSupport(dist, function(support) {
+      // Allows extra factors to be taken into account in making
+      // exploration decisions:
+      return util.cpsForEach(
+          function(value, i, support, nextK) {
+            return scoreFn(store, function(store, extraScore) {
+              var score = env.coroutine.score + dist.score(value) + extraScore;
+              env.coroutine.enqueueContinuation(k, value, score, store);
+              return nextK();
+            }, a, value);
+          },
+          function() {
+            // Call the next state on the queue
+            return env.coroutine.nextInQueue();
+          },
+          support);
+    });
   };
 
   var getComplexity = function(sizes) {
