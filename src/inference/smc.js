@@ -35,7 +35,6 @@ module.exports = function(env) {
       throw new Error(msg);
     }
     this.throwOnError = options.throwOnError;
-    this.err = undefined;
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
@@ -202,9 +201,7 @@ module.exports = function(env) {
       return cont(particles);
     }
 
-    if (this.particlesAreWeighted(particles)) {
-      return this.error('Cannot rejuvenate weighted particles.');
-    }
+    assert(!this.particlesAreWeighted(particles), 'Cannot rejuvenate weighted particles.');
 
     return util.cpsForEach(
         function(p, i, ps, next) {
@@ -260,13 +257,9 @@ module.exports = function(env) {
       // Active and complete particles are combined here and
       // re-partitioned after rejuvenation.
       var allParticles = this.allParticles();
-      if (!this.particlesAreInSync(allParticles)) {
-        return this.error('Not all particles are in sync');
-      }
+      assert(this.particlesAreInSync(allParticles));
       var resampledParticles = resampleParticles(allParticles);
-      if (resampledParticles.length !== this.numParticles) {
-        return this.error('resampledParticles.length !== this.numParticles');
-      }
+      assert.strictEqual(resampledParticles.length, this.numParticles);
 
       var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
         return acc + (p.trace.isComplete() ? 0 : 1);
@@ -276,9 +269,7 @@ module.exports = function(env) {
         // We still have active particles, wrap-around:
         this.particleIndex = 0;
         return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
-          if (!this.particlesAreInSync(rejuvenatedParticles)) {
-            return this.error('Rejuvenated particles are not in sync');
-          }
+          assert(this.particlesAreInSync(rejuvenatedParticles));
 
           var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
           this.completeParticles = p[0];
@@ -314,13 +305,7 @@ module.exports = function(env) {
   };
 
   SMC.prototype.finish = function(s, val) {
-    if (this.err) {
-      return this.k(this.s, this.err.toString());
-    }
-
-    if (this.completeParticles.length !== this.numParticles) {
-      return this.error('completeParticles.length !== this.numParticles');
-    }
+    assert.strictEqual(this.completeParticles.length, this.numParticles);
 
     var hist = new CountAggregator(this.onlyMAP);
     var traces = [];

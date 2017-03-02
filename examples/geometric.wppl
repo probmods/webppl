@@ -2,6 +2,6 @@ var geometric = function(p) {
   return flip(p) ? 1 + geometric(p) : 1;
 };
 
-Infer({maxExecutions: 10, model() {
+Infer({method: 'enumerate', maxExecutions: 10, model() {
   return geometric(0.5);
 }});

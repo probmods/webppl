@@ -20,7 +20,7 @@ returns the distribution on return values represented as a
    });
 
 This example has no inference options specified. By default, ``Infer``
-will perform inference using one of the method among enumeration,
+will perform inference using one of the methods among enumeration,
 rejection sampling, SMC and MCMC. The method to use is chosen by a decision
 tree based on the characteristics of the given model, such as whether it
 is enumerable in a timely manner, whether there are interleaving
