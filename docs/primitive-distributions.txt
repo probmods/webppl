@@ -97,10 +97,10 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
-.. js:function:: Laplace({mu: ..., b: ...})
+.. js:function:: Laplace({location: ..., scale: ...})
 
-  * mu: mean *(real)*
-  * b: scale *(real (0, Infinity))*
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
 
   Distribution over ``[-Infinity, Infinity]``
 
@@ -174,10 +174,10 @@
 
   Distribution over a tensor of independent Gaussian variables.
 
-.. js:function:: TensorLaplace({mu: ..., b: ..., dims: ...})
+.. js:function:: TensorLaplace({location: ..., scale: ..., dims: ...})
 
-  * mu: mean *(real)*
-  * b: scale *(real (0, Infinity))*
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
   * dims: dimension of tensor *(int (>=1) array)*
 
   Distribution over a tensor of independent Laplace variables.

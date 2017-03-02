@@ -640,6 +640,23 @@ var tests = [
           verbose: false
         }
       },
+      tensorLaplace: {
+        std: { tol: 0.15 },
+        args: {
+          stepSize: 0.002,
+          samples: 10000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      laplace: {
+        args: {
+          stepSize: 0.001,
+          samples: 10000,
+          steps: 20000,
+          verbose: false
+        }
+      },
       exponential: {
         args: {
           samples: 10000,

@@ -223,7 +223,7 @@ function paramSpec(type, targetParam) {
     case 'int':
       return {const: targetParam};
     case 'array':
-      if (type.elementType.name === 'any') {
+      if (type.elementType.name === 'any' || type.elementType.name === 'int') {
         return {const: targetParam};
       }
     default:
