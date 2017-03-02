@@ -482,7 +482,7 @@ var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
   var minSampleRate = 250; //from 1 to sampleNum
   var sampleNum = 1000;
-  var enumResult = Enumerate(wpplFn, {probe: enumTol, strategy: 'depthFirst'});
+  var enumResult = Enumerate(wpplFn, {maxComplexity: enumTol, timeOut: 5000, throwOnError: false, strategy: 'depthFirst'});
   if (dists.isDist(enumResult)) {
     return enumResult;
   } else {
@@ -495,7 +495,7 @@ var DefaultInfer = function(wpplFn, options) {
     var interleavingSF = InterleavingSF(wpplFn);
     if (interleavingSF) {
       console.log('Using "SMC" (interleaving samples and factors detected)');
-      var smcResult = SMC(wpplFn, {probe: true, particles: sampleNum});
+      var smcResult = SMC(wpplFn, {throwOnError: false, particles: sampleNum});
       if (dists.isDist(smcResult)) {
         return smcResult;
       } else {

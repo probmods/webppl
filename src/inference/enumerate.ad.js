@@ -18,19 +18,13 @@ module.exports = function(env) {
     util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity,
-      throwOnError: true
+      throwOnError: true,
+      timeOut: Infinity,
+      maxComplexity: Infinity
     });
 
     this.throwOnError = options.throwOnError;
-
-    // the value of options.probe is the max enumeration tree size
-    this.probe = options.probe;
-    if (this.probe) {
-      // not throw error in probe mode
-      this.throwOnError = false;
-    }
-
-    this.maxTime = 5000; // Time upper threshold for enumeration in probe mode
+    this.timeOut = options.timeOut; // Time upper threshold for enumeration
     this.startTime = Date.now();
     this.first_path = true; // whether enumeration has reached the first leaf/exit
     this.level_sizes = [];
@@ -108,28 +102,24 @@ module.exports = function(env) {
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     return getSupport(dist, function(support) {
-      if (_.isString(support)) {
-        // Support checker
-        // String means error
-        return this.error(support);
-      }
-      if (this.probe) {
+      if (isFinite(env.coroutine.timeOut)) {
         // Time checker
-        if (Date.now() - this.startTime > this.maxTime) {
-          return this.error('Enumerate timeout: max time was set to ' + this.maxTime);
+        if (Date.now() - env.coroutine.startTime > env.coroutine.timeOut) {
+          return env.coroutine.error('Enumerate timeout: max time was set to ' + env.coroutine.timeOut);
         }
-        this.level_sizes.push(support.length);
       }
-
+      if (isFinite(env.coroutine.maxComplexity)) {
+        env.coroutine.level_sizes.push(support.length);
+      }
       // For each value in support, add the continuation paired with
       // support value and score to queue:
       _.each(support, function(value) {
-        this.enqueueContinuation(
-            k, value, this.score + dist.score(value), store);
-      }.bind(this));
+        env.coroutine.enqueueContinuation(
+            k, value, env.coroutine.score + dist.score(value), store);
+      }.bind(env.coroutine));
 
       // Call the next state on the queue
-      return this.nextInQueue();
+      return env.coroutine.nextInQueue();
     });
   };
 
@@ -175,12 +165,12 @@ module.exports = function(env) {
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    if (this.probe) {
-      // under probe model, might exit earlier here
+    if (isFinite(this.maxComplexity)) {
+      // under default infer mode, might exit earlier here
       if (this.first_path) {
         this.first_path = false;
         var complexity = getComplexity(this.level_sizes);
-        if (complexity > this.probe) {
+        if (complexity > this.maxComplexity) {
           // exit if estimated enumeration tree size is above threshold
           return this.error(complexity + ' computations ahead.');
         }

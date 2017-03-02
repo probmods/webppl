@@ -35,11 +35,6 @@ module.exports = function(env) {
       throw new Error(msg);
     }
     this.throwOnError = options.throwOnError;
-    this.probe = options.probe ? true : false;
-    if (this.probe) {
-      // not throw error in probe mode
-      this.throwOnError = false;
-    }
     this.err = undefined;
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);

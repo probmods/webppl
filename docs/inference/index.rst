@@ -15,14 +15,18 @@ function of zero arguments representing a stochastic computation and
 returns the distribution on return values represented as a
 :ref:`distribution object<distributions>`. For example::
 
-   Infer({model: function() {
+   Infer(function() {
        return flip() + flip();
-   }});
+   });
 
-``Infer`` will perform inference using :ref:`enumeration<enumerate>`
-by default, but several other implementations of marginal inference
-are also built into WebPPL. Information about the individual methods
-is available here:
+This example has no inference options specified. By default, ``Infer``
+will perform inference using one of the method among enumeration,
+rejection sampling, SMC and MCMC. The method to use is chosen by a decision
+tree based on the characteristics of the given model, such as whether it
+is enumerable in a timely manner, whether there are interleaving
+samples and factors etc. Several other implementations of marginal
+inference are also built into WebPPL. Information about the individual
+methods is available here:
 
 .. toctree::
    :maxdepth: 2
