@@ -482,7 +482,8 @@ var DefaultInfer = function(wpplFn, options) {
   var enumTol = 200000;
   var minSampleRate = 250; //from 1 to sampleNum
   var sampleNum = 1000;
-  var enumResult = Enumerate(wpplFn, {maxComplexity: enumTol, timeOut: 5000, throwOnError: false, strategy: 'depthFirst'});
+  var enumResult = Enumerate(wpplFn, {maxComplexity: enumTol, timeOut: 5000,
+    throwOnError: false, strategy: 'depthFirst'});
   if (dists.isDist(enumResult)) {
     return enumResult;
   } else {
