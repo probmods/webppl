@@ -100,8 +100,8 @@ module.exports = function(env) {
       var valDims = ad.value(val).dims;
       if (!_.isEqual(dims, valDims)) {
         var msg = 'The dims specified here (' + JSON.stringify(dims) +
-            ') do not match the dims of the current value (' +
-            JSON.stringify(valDims) + '). The current value may ' +
+            ') do not match the dims of the current parameter value (' +
+            JSON.stringify(valDims) + '). This value may ' +
             'come from an earlier call to param, or from a previous ' +
             'execution when a persistent parameter store is used.';
         throw new Error(msg);
