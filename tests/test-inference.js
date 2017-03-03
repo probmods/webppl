@@ -643,15 +643,15 @@ var tests = [
       tensorLaplace: {
         std: { tol: 0.15 },
         args: {
-          stepSize: 0.002,
+          optMethod: {gd: {stepSize: 0.002}},
           samples: 10000,
           steps: 10000,
           verbose: false
         }
       },
       laplace: {
+        std: { tol: 0.15 },
         args: {
-          stepSize: 0.001,
           samples: 10000,
           steps: 20000,
           verbose: false
