@@ -11,58 +11,31 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function ForwardSample(s, k, a, wpplFn, options) {
-    this.opts = util.mergeDefaults(options, {
-      samples: 1,
-      guide: false, // true = sample guide, false = sample target
-      onlyMAP: false,
-      verbose: false
-    });
-
-    this.wpplFn = wpplFn;
+  function RunForward(s, k, a, wpplFn, sampleGuide) {
     this.s = s;
     this.k = k;
     this.a = a;
-    this.guideRequired = this.opts.guide;
+    this.wpplFn = wpplFn;
+    this.sampleGuide = sampleGuide;
 
-    this.factorWarningIssued = false;
+    // Indicate that guide thunks should run.
+    this.guideRequired = sampleGuide;
+
+    this.score = 0;
+    this.logWeight = 0;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
-  ForwardSample.prototype = {
+  RunForward.prototype = {
 
     run: function() {
-
-      var hist = new CountAggregator(this.opts.onlyMAP);
-      var logWeights = [];   // Save total factor weights
-
-      return util.cpsLoop(
-          this.opts.samples,
-
-          // Loop body.
-          function(i, next) {
-            this.score = 0;
-            this.logWeight = 0;
-            return this.wpplFn(_.clone(this.s), function(s, val) {
-              logWeights.push(this.logWeight);
-              hist.add(val, this.score);
-              return next();
-            }.bind(this), this.a);
-          }.bind(this),
-
-          // Continuation.
-          function() {
-            env.coroutine = this.coroutine;
-            var dist = hist.toDist();
-            if (!this.opts.guide) {
-              var numSamples = this.opts.samples;
-              dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(numSamples);
-            }
-            return this.k(this.s, dist);
-          }.bind(this));
-
+      return this.wpplFn(_.clone(this.s), function(s, val) {
+        env.coroutine = this.coroutine;
+        var ret = {val: val, score: this.score, logWeight: this.logWeight};
+        return this.k(this.s, ret);
+      }.bind(this), this.a);
     },
 
     sample: function(s, k, a, dist, options) {
@@ -72,7 +45,7 @@ module.exports = function(env) {
         return k(s, val);
       }.bind(this);
 
-      if (this.opts.guide) {
+      if (this.sampleGuide) {
         options = options || {};
         return guide.getDist(
             options.guide, options.noAutoGuide, dist, env, s, a,
@@ -85,27 +58,61 @@ module.exports = function(env) {
     },
 
     factor: function(s, k, a, score) {
-      if (!this.opts.guide && !this.factorWarningIssued) {
-        this.factorWarningIssued = true;
+      if (!this.sampleGuide) {
         var msg = 'Note that factor, condition and observe statements are ' +
             'ignored when forward sampling from a model.';
-        util.warn(msg);
+        util.warn(msg, true);
       }
       this.logWeight += ad.value(score);
       return k(s);
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
-    constructor: ForwardSample
+    constructor: RunForward
 
   };
 
+  function runForward() {
+    var coroutine = Object.create(RunForward.prototype);
+    RunForward.apply(coroutine, arguments);
+    return coroutine.run();
+  }
+
+  function ForwardSample(s, k, a, wpplFn, options) {
+    var opts = util.mergeDefaults(options, {
+      samples: 1,
+      guide: false, // true = sample guide, false = sample target
+      onlyMAP: false,
+      verbose: false
+    });
+
+    var hist = new CountAggregator(opts.onlyMAP);
+    var logWeights = [];   // Save total factor weights
+
+    return util.cpsLoop(
+        opts.samples,
+        // Loop body.
+        function(i, next) {
+          return runForward(s, function(s, ret) {
+            logWeights.push(ret.logWeight);
+            hist.add(ret.val, ret.score);
+            return next();
+          }, a, wpplFn, opts.guide);
+        },
+        // Continuation.
+        function() {
+          var dist = hist.toDist();
+          if (!opts.guide) {
+            dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(opts.samples);
+          }
+          return k(s, dist);
+        }
+    );
+  }
+
   return {
-    ForwardSample: function() {
-      var coroutine = Object.create(ForwardSample.prototype);
-      ForwardSample.apply(coroutine, arguments);
-      return coroutine.run();
-    }
+    ForwardSample: ForwardSample,
+    runForward: runForward
   };
 
 };
