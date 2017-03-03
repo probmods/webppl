@@ -52,7 +52,7 @@ function defaultInit(mu, sigma) {
 
 module.exports = function(env) {
 
-  var applyd = require('../headerUtils')(env).applyd;
+  var runForward = require('../inference/forwardSample')(env).runForward;
 
   var dimsForScalarParam = [1];
 
@@ -77,14 +77,22 @@ module.exports = function(env) {
       if (!_.isFunction(init)) {
         throw new Error('Expected the init argument to be a function.');
       }
-      return applyd(s, function(s, initialVal) {
+
+      var appliedInit = function(s, k, a) {
+        return init.apply(global, [s, k, a, dims]);
+      };
+
+      var next = function(k, ret) {
+        var initialVal = ret.val;
         params.create(name, initialVal);
         if (!_.isEqual(dims, initialVal.dims)) {
           var msg = 'The init function did not return a tensor with the expected shape.';
           throw new Error(msg);
         }
         return finish(s);
-      }, a, init, [dims], 'parameter initialization');
+      };
+
+      return runForward(s, next, a, appliedInit);
     }
 
     function finish(s) {

@@ -60,7 +60,7 @@ module.exports = function(env) {
     factor: function(s, k, a, score) {
       if (!this.sampleGuide) {
         var msg = 'Note that factor, condition and observe statements are ' +
-            'ignored when forward sampling from a model.';
+            'ignored when forward sampling.';
         util.warn(msg, true);
       }
       this.logWeight += ad.value(score);
