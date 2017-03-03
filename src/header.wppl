@@ -480,16 +480,18 @@ var DefaultInfer = function(wpplFn, options) {
   var maxEnumTreeSize = 200000;
   var minSampleRate = 250; //from 1 to samples
   var samples = 1000;
-  var enumResult = Enumerate(wpplFn, {maxEnumTreeSize: maxEnumTreeSize, maxRuntimeInMilliseconds: 5000,
+  var enumResult = Enumerate(wpplFn, {maxEnumTreeSize: maxEnumTreeSize, maxRuntimeInMS: 5000,
     throwOnError: false, strategy: 'depthFirst'});
   if (dists.isDist(enumResult)) {
     return enumResult;
-  } else {
+  } else if (enumResult instanceof Error) {
     console.log(enumResult.message + '..quit enumerate');
+  } else {
+    throw new Error('Invalid return value from enumerate');
   }
   console.log('Using "rejection"');
   var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: samples});
-  if (!dists.isDist(rejResult)) {
+  if (rejResult instanceof Error) {
     console.log(rejResult.message + '..quit rejection');
     var hasSampleAfterFactor = CheckSampleAfterFactor(wpplFn);
     if (hasSampleAfterFactor) {
@@ -497,14 +499,18 @@ var DefaultInfer = function(wpplFn, options) {
       var smcResult = SMC(wpplFn, {throwOnError: false, particles: samples});
       if (dists.isDist(smcResult)) {
         return smcResult;
-      } else {
+      } else if (smcResult instanceof Error) {
         console.log(smcResult.message + '..quit SMC');
+      } else {
+        throw new Error('Invalid return value from SMC');
       }
     }
     console.log('Using "MCMC"');
     return MCMC(wpplFn, {samples: samples});
-  } else {
+  } else if (dists.isDist(rejResult)) {
     return rejResult;
+  } else {
+    throw new Error('Invalid return value from rejection');
   }
 };
 
