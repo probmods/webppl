@@ -147,7 +147,7 @@ module.exports = function(env) {
     return this.completeParticles.concat(this.particles);
   };
 
-  function resampleParticles(particles, cont) {
+  function resampleParticles(particles) {
     // Skip resampling if doing ParticleFilterAsMH.
     if (particles.length === 1) {
       return particles;
@@ -192,7 +192,7 @@ module.exports = function(env) {
     // Reset all weights.
     _.each(allParticles, function(p) { p.logWeight = logAvgW; });
 
-    return cont(allParticles);
+    return allParticles;
   }
 
 
@@ -258,37 +258,36 @@ module.exports = function(env) {
       // re-partitioned after rejuvenation.
       var allParticles = this.allParticles();
       assert(this.particlesAreInSync(allParticles));
-      return resampleParticles(allParticles, function(resampledParticles) {
-        assert.strictEqual(resampledParticles.length, env.coroutine.numParticles);
+      var resampledParticles = resampleParticles(allParticles);
+      assert.strictEqual(resampledParticles.length, this.numParticles);
 
-        var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
-          return acc + (p.trace.isComplete() ? 0 : 1);
-        }, 0);
+      var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
+        return acc + (p.trace.isComplete() ? 0 : 1);
+      }, 0);
 
-        if (numActiveParticles > 0) {
-          // We still have active particles, wrap-around:
-          env.coroutine.particleIndex = 0;
-          return env.coroutine.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
-            assert(env.coroutine.particlesAreInSync(rejuvenatedParticles));
+      if (numActiveParticles > 0) {
+        // We still have active particles, wrap-around:
+        this.particleIndex = 0;
+        return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
+          assert(this.particlesAreInSync(rejuvenatedParticles));
 
-            var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
-            env.coroutine.completeParticles = p[0];
-            env.coroutine.particles = p[1];
-            env.coroutine.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
+          var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
+          this.completeParticles = p[0];
+          this.particles = p[1];
+          this.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
 
-            if (env.coroutine.particles.length > 0) {
-              return env.coroutine.runCurrentParticle();
-            } else {
-              return env.coroutine.finish();
-            }
-          }.bind(env.coroutine));
-        } else {
-          // All particles complete.
-          env.coroutine.particles = [];
-          env.coroutine.completeParticles = resampledParticles;
-          return env.coroutine.finish();
-        }
-      });
+          if (this.particles.length > 0) {
+            return this.runCurrentParticle();
+          } else {
+            return this.finish();
+          }
+        }.bind(this));
+      } else {
+        // All particles complete.
+        this.particles = [];
+        this.completeParticles = resampledParticles;
+        return this.finish();
+      }
     }
   };
 
