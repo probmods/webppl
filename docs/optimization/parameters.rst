@@ -27,12 +27,6 @@ Parameters
       draw from the Gaussian distribution described by the ``mu`` and
       ``sigma`` options.
 
-      Calling ``sample(dist)`` from an initialization function is not
-      supported, and will generate a run time error. Random
-      initialization strategies should instead be implemented in terms
-      of ``dist.sample()``. (Where ``dist`` is a :ref:`distribution
-      object <distributions>`.)
-
    .. describe:: mu
 
       The mean of the Gaussian distribution from which the initial
