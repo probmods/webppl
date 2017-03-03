@@ -106,8 +106,8 @@ module.exports = function(env) {
       if (isFinite(env.coroutine.maxRuntimeInMS)) {
         // Time checker
         if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMS) {
-          return env.coroutine.error('Enumerate timeout: max time was set to '
-            + env.coroutine.maxRuntimeInMS);
+          return env.coroutine.error('Enumerate timeout: max time was set to ' +
+            env.coroutine.maxRuntimeInMS);
         }
       }
       if (isFinite(env.coroutine.maxEnumTreeSize)) {
