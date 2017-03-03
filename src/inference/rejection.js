@@ -68,10 +68,11 @@ module.exports = function(env) {
   // this.throwOnError is true: directly throw error
   // this.throwOnError is false: return error (string) as infer result
   Rejection.prototype.error = function(errType) {
+    var err = new Error(errType);
     if (this.throwOnError) {
-      throw new Error(errType);
+      throw err;
     } else {
-      return this.k(this.s, errType);
+      return this.k(this.s, err);
     }
   }
 

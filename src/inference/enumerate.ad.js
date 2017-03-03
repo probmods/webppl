@@ -61,10 +61,11 @@ module.exports = function(env) {
   // this.throwOnError is true: directly throw error
   // this.throwOnError is false: return error (string) as infer result
   Enumerate.prototype.error = function(errType) {
+    var err = new Error(errType);
     if (this.throwOnError) {
-      throw new Error(errType);
+      throw err;
     } else {
-      return this.k(this.store, errType);
+      return this.k(this.store, err);
     }
   }
 
@@ -105,7 +106,8 @@ module.exports = function(env) {
       if (isFinite(env.coroutine.maxRuntimeInMilliseconds)) {
         // Time checker
         if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMilliseconds) {
-          return env.coroutine.error('Enumerate timeout: max time was set to ' + env.coroutine.maxRuntimeInMilliseconds);
+          return env.coroutine.error('Enumerate timeout: max time was set to '
+            + env.coroutine.maxRuntimeInMilliseconds);
         }
       }
       if (isFinite(env.coroutine.maxEnumTreeSize)) {

@@ -485,12 +485,12 @@ var DefaultInfer = function(wpplFn, options) {
   if (dists.isDist(enumResult)) {
     return enumResult;
   } else {
-    console.log(enumResult + '..quit enumerate');
+    console.log(enumResult.message + '..quit enumerate');
   }
   console.log('Using "rejection"');
   var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: samples});
   if (!dists.isDist(rejResult)) {
-    console.log(rejResult + '..quit rejection');
+    console.log(rejResult.message + '..quit rejection');
     var hasSampleAfterFactor = CheckSampleAfterFactor(wpplFn);
     if (hasSampleAfterFactor) {
       console.log('Using "SMC" (interleaving samples and factors detected)');
@@ -498,7 +498,7 @@ var DefaultInfer = function(wpplFn, options) {
       if (dists.isDist(smcResult)) {
         return smcResult;
       } else {
-        console.log(smcResult + '..quit SMC');
+        console.log(smcResult.message + '..quit SMC');
       }
     }
     console.log('Using "MCMC"');
