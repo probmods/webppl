@@ -19,12 +19,12 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity,
       throwOnError: true,
-      maxRuntimeInMilliseconds: Infinity,
+      maxRuntimeInMS: Infinity,
       maxEnumTreeSize: Infinity
     });
 
     this.throwOnError = options.throwOnError;
-    this.maxRuntimeInMilliseconds = options.maxRuntimeInMilliseconds; // Time upper threshold for enumeration
+    this.maxRuntimeInMS = options.maxRuntimeInMS; // Time upper threshold for enumeration
     this.startTime = Date.now();
     this.firstPath = true; // whether enumeration has reached the first leaf/exit
     this.levelSizes = [];
@@ -103,11 +103,11 @@ module.exports = function(env) {
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     return getSupport(dist, function(support) {
-      if (isFinite(env.coroutine.maxRuntimeInMilliseconds)) {
+      if (isFinite(env.coroutine.maxRuntimeInMS)) {
         // Time checker
-        if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMilliseconds) {
+        if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMS) {
           return env.coroutine.error('Enumerate timeout: max time was set to '
-            + env.coroutine.maxRuntimeInMilliseconds);
+            + env.coroutine.maxRuntimeInMS);
         }
       }
       if (isFinite(env.coroutine.maxEnumTreeSize)) {
