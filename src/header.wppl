@@ -471,18 +471,16 @@ var OptimizeThenSample = function(wpplFn, options) {
 
 /*
  * DefaultInfer() called when no options are specified
- * var enumTol: upper bound for enumeration tree size, enumeration ends when above threshold.
+ * var maxEnumTreeSize: upper bound for enumeration tree size, enumeration ends when above threshold.
  * var minSampleRate: lower bound for #sample/sec, rejection ends when below threshold.
- * var sampleNum: number of samples/particles used for default rejection/SMC/MCMC.
- * the "probe" field in the option is a signal to enumerate/rejection/SMC
- * in probe mode these methods don't throw error, but return useful information for deciding
+ * var samples: number of samples/particles used for default rejection/SMC/MCMC.
  * next step in the heuristics flowchart
  */
 var DefaultInfer = function(wpplFn, options) {
-  var enumTol = 200000;
-  var minSampleRate = 250; //from 1 to sampleNum
-  var sampleNum = 1000;
-  var enumResult = Enumerate(wpplFn, {maxComplexity: enumTol, timeOut: 5000,
+  var maxEnumTreeSize = 200000;
+  var minSampleRate = 250; //from 1 to samples
+  var samples = 1000;
+  var enumResult = Enumerate(wpplFn, {maxEnumTreeSize: maxEnumTreeSize, maxRuntimeInMilliseconds: 5000,
     throwOnError: false, strategy: 'depthFirst'});
   if (dists.isDist(enumResult)) {
     return enumResult;
@@ -490,13 +488,13 @@ var DefaultInfer = function(wpplFn, options) {
     console.log(enumResult + '..quit enumerate');
   }
   console.log('Using "rejection"');
-  var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: sampleNum});
+  var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: samples});
   if (!dists.isDist(rejResult)) {
     console.log(rejResult + '..quit rejection');
-    var interleavingSF = InterleavingSF(wpplFn);
-    if (interleavingSF) {
+    var hasSampleAfterFactor = CheckSampleAfterFactor(wpplFn);
+    if (hasSampleAfterFactor) {
       console.log('Using "SMC" (interleaving samples and factors detected)');
-      var smcResult = SMC(wpplFn, {throwOnError: false, particles: sampleNum});
+      var smcResult = SMC(wpplFn, {throwOnError: false, particles: samples});
       if (dists.isDist(smcResult)) {
         return smcResult;
       } else {
@@ -504,7 +502,7 @@ var DefaultInfer = function(wpplFn, options) {
       }
     }
     console.log('Using "MCMC"');
-    return MCMC(wpplFn, {samples: sampleNum});
+    return MCMC(wpplFn, {samples: samples});
   } else {
     return rejResult;
   }

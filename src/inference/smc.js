@@ -80,7 +80,6 @@ module.exports = function(env) {
     if (this.throwOnError) {
       throw new Error(errType);
     } else {
-      this.err = errType;
       return this.k(this.s, errType);
     }
   }

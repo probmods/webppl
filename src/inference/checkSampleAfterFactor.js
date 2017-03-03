@@ -11,7 +11,7 @@ var ad = require('../ad');
 
 module.exports = function(env) {
 
-  function InterleavingSF(s, k, a, wpplFn, options) {
+  function CheckSampleAfterFactor(s, k, a, wpplFn, options) {
     this.opts = {samples: 1};
     this.wpplFn = wpplFn;
     this.s = s;
@@ -20,13 +20,13 @@ module.exports = function(env) {
 
     // has seen at least one factor operation
     this.hasFactor = false;
-    // interleaving samples and factor
-    this.interleavingSampleFactor = false;
+    // at least one sample appears after factor
+    this.hasSampleAfterFactor = false;
     this.coroutine = env.coroutine;
     env.coroutine = this;
   }
 
-  InterleavingSF.prototype = {
+  CheckSampleAfterFactor.prototype = {
 
     run: function() {
 
@@ -43,15 +43,15 @@ module.exports = function(env) {
           // Continuation.
           function() {
             env.coroutine = this.coroutine;
-            return this.k(this.s, this.interleavingSampleFactor);
+            return this.k(this.s, this.hasSampleAfterFactor);
           }.bind(this));
 
     },
 
     sample: function(s, k, a, dist, options) {
       if (this.hasFactor) {
-        // has a sample after factor, therefore interleaving
-        this.interleavingSampleFactor = true;
+        // has a sample after factor
+        this.hasSampleAfterFactor = true;
       }
       return k(s, dist.sample());
     },
@@ -64,14 +64,14 @@ module.exports = function(env) {
     },
 
     incrementalize: env.defaultCoroutine.incrementalize,
-    constructor: InterleavingSF
+    constructor: CheckSampleAfterFactor
 
   };
 
   return {
-    InterleavingSF: function() {
-      var coroutine = Object.create(InterleavingSF.prototype);
-      InterleavingSF.apply(coroutine, arguments);
+    CheckSampleAfterFactor: function() {
+      var coroutine = Object.create(CheckSampleAfterFactor.prototype);
+      CheckSampleAfterFactor.apply(coroutine, arguments);
       return coroutine.run();
     }
   };

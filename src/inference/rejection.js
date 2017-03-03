@@ -25,7 +25,6 @@ module.exports = function(env) {
     });
 
     this.throwOnError = options.throwOnError;
-    // the value of options.probe is the min sample rate
     this.minSampleRate = options.minSampleRate;
     this.numSamplesTotal = options.samples;
     this.startTime = Date.now();
@@ -51,13 +50,14 @@ module.exports = function(env) {
       return this.error('"samples" should be a positive integer.');
     }
     var elapseSec = (Date.now() - this.startTime) / 1000.0;
-    if (elapseSec > 2) {
+    if (this.minSampleRate > 0 && elapseSec > 2) {
       // count the number of samples collected in ~2 secs
       // compute number of samples per sec
       var sampleRate = (this.numSamplesTotal - this.numSamples) / 2;
       if (sampleRate < this.minSampleRate) {
         return this.error(sampleRate + ' samples/sec is below threshold.')
       }
+      this.minSampleRate = 0;
     }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());

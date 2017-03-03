@@ -19,15 +19,15 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity,
       throwOnError: true,
-      timeOut: Infinity,
-      maxComplexity: Infinity
+      maxRuntimeInMilliseconds: Infinity,
+      maxEnumTreeSize: Infinity
     });
 
     this.throwOnError = options.throwOnError;
-    this.timeOut = options.timeOut; // Time upper threshold for enumeration
+    this.maxRuntimeInMilliseconds = options.maxRuntimeInMilliseconds; // Time upper threshold for enumeration
     this.startTime = Date.now();
-    this.first_path = true; // whether enumeration has reached the first leaf/exit
-    this.level_sizes = [];
+    this.firstPath = true; // whether enumeration has reached the first leaf/exit
+    this.levelSizes = [];
 
     this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
@@ -102,14 +102,14 @@ module.exports = function(env) {
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     return getSupport(dist, function(support) {
-      if (isFinite(env.coroutine.timeOut)) {
+      if (isFinite(env.coroutine.maxRuntimeInMilliseconds)) {
         // Time checker
-        if (Date.now() - env.coroutine.startTime > env.coroutine.timeOut) {
-          return env.coroutine.error('Enumerate timeout: max time was set to ' + env.coroutine.timeOut);
+        if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMilliseconds) {
+          return env.coroutine.error('Enumerate timeout: max time was set to ' + env.coroutine.maxRuntimeInMilliseconds);
         }
       }
-      if (isFinite(env.coroutine.maxComplexity)) {
-        env.coroutine.level_sizes.push(support.length);
+      if (isFinite(env.coroutine.maxEnumTreeSize)) {
+        env.coroutine.levelSizes.push(support.length);
       }
       // For each value in support, add the continuation paired with
       // support value and score to queue:
@@ -152,26 +152,26 @@ module.exports = function(env) {
     });
   };
 
-  var getComplexity = function(sizes) {
+  var estimateEnumTreeSize = function(sizes) {
     // Estimate enumeration tree size by support length at each level
-    var num_nodes = 1;
-    var num_evals = 1;
+    var numNodes = 1;
+    var enumTreeSize = 1;
     for (var i in sizes) {
-      num_nodes *= sizes[i];
-      num_evals += num_nodes;
+      numNodes *= sizes[i];
+      enumTreeSize += numNodes;
     }
-    return num_evals;
+    return enumTreeSize;
   }
 
   Enumerate.prototype.exit = function(s, retval) {
-    if (isFinite(this.maxComplexity)) {
+    if (isFinite(this.maxEnumTreeSize)) {
       // under default infer mode, might exit earlier here
-      if (this.first_path) {
-        this.first_path = false;
-        var complexity = getComplexity(this.level_sizes);
-        if (complexity > this.maxComplexity) {
+      if (this.firstPath) {
+        this.firstPath = false;
+        var estimatedTreeSize = estimateEnumTreeSize(this.levelSizes);
+        if (estimatedTreeSize > this.maxEnumTreeSize) {
           // exit if estimated enumeration tree size is above threshold
-          return this.error(complexity + ' computations ahead.');
+          return this.error(estimatedTreeSize + ' computations ahead.');
         }
       }
     }
