@@ -55,7 +55,7 @@ module.exports = function(env) {
       // compute number of samples per sec
       var sampleRate = (this.numSamplesTotal - this.numSamples) / elapseSec;
       if (sampleRate < this.minSampleRate) {
-        return this.error(sampleRate + ' samples/sec is below threshold.')
+        return this.error(sampleRate.toFixed(2) + ' samples/sec is below threshold.')
       }
       this.minSampleRate = 0;
     }
