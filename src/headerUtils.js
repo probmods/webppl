@@ -54,6 +54,31 @@ module.exports = function(env) {
     return wpplFn.apply(global, [s, k, a].concat(args));
   }
 
+  function notAllowed(fn, name) {
+    return function() {
+      throw new Error(fn + ' is not allowed in ' + name + '.');
+    };
+  }
+
+  function makeDeterministicCoroutine(name) {
+    return {
+      sample: notAllowed('sample', name),
+      factor: notAllowed('factor', name),
+      incrementalize: env.defaultCoroutine.incrementalize
+    };
+  }
+
+  // Applies a deterministic function. Attempts by wpplFn to call
+  // sample or factor generate an error.
+  function applyd(s, k, a, wpplFn, args, name) {
+    var coroutine = env.coroutine;
+    env.coroutine = makeDeterministicCoroutine(name);
+    return apply(s, function(s, val) {
+      env.coroutine = coroutine;
+      return k(s, val);
+    }, a, wpplFn, args);
+  }
+
   // Annotating a function object with its lexical id and
   //    a list of its free variable values.
   var __uniqueid = 0;
@@ -182,6 +207,7 @@ module.exports = function(env) {
     display: display,
     cache: cache,
     apply: apply,
+    applyd: applyd,
     _Fn: _Fn,
     _addr: _addr,
     zeros: zeros,

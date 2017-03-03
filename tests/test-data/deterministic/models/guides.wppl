@@ -6,6 +6,7 @@ var numParamsCreatedBy = function(thunk) {
 
 [
   param({mu: 1, sigma: 0}) === 1,
+  param({init: ones}) === 1,
   T.sumreduce(param({dims: [3, 2], mu: 1, sigma: 0})) === 6,
 
   // Check (indirectly) that a guide is automatically generated, by

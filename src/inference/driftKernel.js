@@ -4,11 +4,7 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  var driftKernelCoroutine = {
-    sample: notAllowed('sample'),
-    factor: notAllowed('factor'),
-    incrementalize: env.defaultCoroutine.incrementalize
-  };
+  var applyd = require('../headerUtils')(env).applyd;
 
   // A cps function to get the MH proposal distribution based on the
   // args passed to a sample statement and the value selected for this
@@ -24,24 +20,11 @@ module.exports = function(env) {
 
   function getProposalDist(s, a, dist, options, prevVal, k) {
     if (options && options.driftKernel) {
-      var coroutine = env.coroutine;
-      env.coroutine = driftKernelCoroutine;
-
-      return options.driftKernel(s, function(s, val) {
-        // Restore the previous coroutine.
-        env.coroutine = coroutine;
-        return k(s, val);
-      }, a, prevVal);
+      return applyd(s, k, a, options.driftKernel, [prevVal], 'drift kernel');
     } else {
       // Use the prior as the proposal distribution.
       return k(s, dist);
     }
-  }
-
-  function notAllowed(fn) {
-    return function() {
-      throw new Error(fn + ' not allowed inside drift kernels.');
-    };
   }
 
   // We show a warning when the score of a drift proposal is -Infinity

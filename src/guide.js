@@ -143,9 +143,10 @@ function makeParam(paramSpec, paramName, baseName, env) {
 }
 
 function registerParam(env, name, dims) {
-  return params.register(env, name, function() {
-    return [new Tensor(dims)];
-  })[0];
+  if (!params.exists(name)) {
+    params.create(name, new Tensor(dims));
+  }
+  return params.fetch(name, env);
 }
 
 // This function generates a description of the guide distribution
