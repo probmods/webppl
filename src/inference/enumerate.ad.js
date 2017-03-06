@@ -103,26 +103,26 @@ module.exports = function(env) {
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
     return getSupport(dist, function(support) {
-      if (isFinite(env.coroutine.maxRuntimeInMS)) {
+      if (isFinite(this.maxRuntimeInMS)) {
         // Time checker
-        if (Date.now() - env.coroutine.startTime > env.coroutine.maxRuntimeInMS) {
-          return env.coroutine.error('Enumerate timeout: max time was set to ' +
-              env.coroutine.maxRuntimeInMS);
+        if (Date.now() - this.startTime > this.maxRuntimeInMS) {
+          return this.error('Enumerate timeout: max time was set to ' +
+              this.maxRuntimeInMS);
         }
       }
-      if (isFinite(env.coroutine.maxEnumTreeSize)) {
-        env.coroutine.levelSizes.push(support.length);
+      if (isFinite(this.maxEnumTreeSize)) {
+        this.levelSizes.push(support.length);
       }
       // For each value in support, add the continuation paired with
       // support value and score to queue:
       _.each(support, function(value) {
-        env.coroutine.enqueueContinuation(
-            k, value, env.coroutine.score + dist.score(value), store);
-      }.bind(env.coroutine));
+        this.enqueueContinuation(
+            k, value, this.score + dist.score(value), store);
+      }.bind(this));
 
       // Call the next state on the queue
-      return env.coroutine.nextInQueue();
-    });
+      return this.nextInQueue();
+    }.bind(this));
   };
 
   Enumerate.prototype.factor = function(s, k, a, score) {

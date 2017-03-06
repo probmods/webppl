@@ -262,28 +262,28 @@ module.exports = function(env) {
         }, 0);
         if (numActiveParticles > 0) {
           // We still have active particles, wrap-around:
-          env.coroutine.particleIndex = 0;
-          return env.coroutine.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
-            assert(env.coroutine.particlesAreInSync(rejuvenatedParticles));
+          this.particleIndex = 0;
+          return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
+            assert(this.particlesAreInSync(rejuvenatedParticles));
 
             var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
-            env.coroutine.completeParticles = p[0];
-            env.coroutine.particles = p[1];
-            env.coroutine.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
+            this.completeParticles = p[0];
+            this.particles = p[1];
+            this.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
 
-            if (env.coroutine.particles.length > 0) {
-              return env.coroutine.runCurrentParticle();
+            if (this.particles.length > 0) {
+              return this.runCurrentParticle();
             } else {
-              return env.coroutine.finish();
+              return this.finish();
             }
-          }.bind(env.coroutine));
+          }.bind(this));
         } else {
           // All particles complete.
-          env.coroutine.particles = [];
-          env.coroutine.completeParticles = resampledParticles;
-          return env.coroutine.finish();
+          this.particles = [];
+          this.completeParticles = resampledParticles;
+          return this.finish();
         }
-      });
+      }.bind(this));
     }
   };
 
