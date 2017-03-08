@@ -25,7 +25,8 @@ module.exports = function(env) {
       finalRejuv: true,
       saveTraces: false,
       importance: 'default',
-      onlyMAP: false
+      onlyMAP: false,
+      throwOnError: true
     });
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
@@ -33,6 +34,7 @@ module.exports = function(env) {
           'Valid options are: ' + validImportanceOptVals;
       throw new Error(msg);
     }
+    this.throwOnError = options.throwOnError;
 
     this.rejuvKernel = kernels.parseOptions(options.rejuvKernel);
     this.rejuvSteps = options.rejuvSteps;
@@ -70,6 +72,18 @@ module.exports = function(env) {
   SMC.prototype.run = function() {
     return this.runCurrentParticle();
   };
+
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
+  SMC.prototype.error = function(errType) {
+    var err = new Error(errType);
+    if (this.throwOnError) {
+      throw err;
+    } else {
+      return this.k(this.s, err);
+    }
+  }
 
   SMC.prototype.sample = function(s, k, a, dist, options) {
     options = options || {};
@@ -133,20 +147,19 @@ module.exports = function(env) {
     return this.completeParticles.concat(this.particles);
   };
 
-  function resampleParticles(particles) {
-
+  function resampleParticles(particles, cont) {
     // Skip resampling if doing ParticleFilterAsMH.
     if (particles.length === 1) {
-      return particles;
+      return cont(particles);
     }
-
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = particles.length;
     var logW = util.logsumexp(_.map(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
-
-    assert.notStrictEqual(logAvgW, -Infinity, 'All particles have zero weight.');
-
+    if (logAvgW === -Infinity) {
+      // do not return, execution continues
+      return env.coroutine.error('All particles have zero weight.');
+    }
     // Compute list of retained particles.
     var retainedParticles = [];
     var newWeights = [];
@@ -175,8 +188,7 @@ module.exports = function(env) {
 
     // Reset all weights.
     _.each(allParticles, function(p) { p.logWeight = logAvgW; });
-
-    return allParticles;
+    return cont(allParticles);
   }
 
 
@@ -242,36 +254,36 @@ module.exports = function(env) {
       // re-partitioned after rejuvenation.
       var allParticles = this.allParticles();
       assert(this.particlesAreInSync(allParticles));
-      var resampledParticles = resampleParticles(allParticles);
-      assert.strictEqual(resampledParticles.length, this.numParticles);
+      return resampleParticles(allParticles, function(resampledParticles) {
+        assert.strictEqual(resampledParticles.length, env.coroutine.numParticles);
 
-      var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
-        return acc + (p.trace.isComplete() ? 0 : 1);
-      }, 0);
+        var numActiveParticles = _.reduce(resampledParticles, function(acc, p) {
+          return acc + (p.trace.isComplete() ? 0 : 1);
+        }, 0);
+        if (numActiveParticles > 0) {
+          // We still have active particles, wrap-around:
+          this.particleIndex = 0;
+          return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
+            assert(this.particlesAreInSync(rejuvenatedParticles));
 
-      if (numActiveParticles > 0) {
-        // We still have active particles, wrap-around:
-        this.particleIndex = 0;
-        return this.rejuvenateParticles(resampledParticles, function(rejuvenatedParticles) {
-          assert(this.particlesAreInSync(rejuvenatedParticles));
+            var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
+            this.completeParticles = p[0];
+            this.particles = p[1];
+            this.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
 
-          var p = _.partition(rejuvenatedParticles, function(p) { return p.trace.isComplete(); });
-          this.completeParticles = p[0];
-          this.particles = p[1];
-          this.debugLog(p[1].length + ' active particles after resample/rejuv.\n');
-
-          if (this.particles.length > 0) {
-            return this.runCurrentParticle();
-          } else {
-            return this.finish();
-          }
-        }.bind(this));
-      } else {
-        // All particles complete.
-        this.particles = [];
-        this.completeParticles = resampledParticles;
-        return this.finish();
-      }
+            if (this.particles.length > 0) {
+              return this.runCurrentParticle();
+            } else {
+              return this.finish();
+            }
+          }.bind(this));
+        } else {
+          // All particles complete.
+          this.particles = [];
+          this.completeParticles = resampledParticles;
+          return this.finish();
+        }
+      }.bind(this));
     }
   };
 

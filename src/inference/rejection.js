@@ -9,7 +9,6 @@
 'use strict';
 
 var _ = require('lodash');
-var assert = require('assert');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 
@@ -20,8 +19,16 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       samples: 1,
       maxScore: 0,
-      incremental: false
+      incremental: false,
+      throwOnError: true,
+      minSampleRate: 0
     });
+
+    this.throwOnError = options.throwOnError;
+    this.minSampleRate = options.minSampleRate;
+    this.numSamplesTotal = options.samples;
+    this.startTime = Date.now();
+
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
     this.incremental = options.incremental;
@@ -33,20 +40,41 @@ module.exports = function(env) {
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
-      throw new Error('samples should be a positive integer.');
-    }
-
     if (this.incremental && this.maxScore > 0) {
       util.warn('Rejection: Reduce maxScore to zero for better performance.');
     }
   }
 
   Rejection.prototype.run = function() {
+    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
+      return this.error('"samples" should be a positive integer.');
+    }
+    var elapseSec = (Date.now() - this.startTime) / 1000.0;
+    if (this.minSampleRate > 0 && elapseSec > 2) {
+      // count the number of samples collected in ~2 secs
+      // compute number of samples per sec
+      var sampleRate = (this.numSamplesTotal - this.numSamples) / elapseSec;
+      if (sampleRate < this.minSampleRate) {
+        return this.error(sampleRate.toFixed(2) + ' samples/sec is below threshold.')
+      }
+      this.minSampleRate = 0;
+    }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
   };
+
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
+  Rejection.prototype.error = function(errType) {
+    var err = new Error(errType);
+    if (this.throwOnError) {
+      throw err;
+    } else {
+      return this.k(this.s, err);
+    }
+  }
 
   Rejection.prototype.sample = function(s, k, a, dist) {
     return k(s, dist.sample());
@@ -54,7 +82,9 @@ module.exports = function(env) {
 
   Rejection.prototype.factor = function(s, k, a, score) {
     if (this.incremental) {
-      assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
+      if (score > 0) {
+        return this.error('Score must be <= 0 for incremental rejection.');
+      }
     }
     this.scoreSoFar += score;
     // In incremental mode we can reject as soon as scoreSoFar falls below
@@ -70,7 +100,9 @@ module.exports = function(env) {
   };
 
   Rejection.prototype.exit = function(s, retval) {
-    assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
+    if (this.scoreSoFar > this.maxScore) {
+      return this.error('Score exceeded upper bound.')
+    }
 
     if (this.scoreSoFar > this.threshold) {
       // Accept.

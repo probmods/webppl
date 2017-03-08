@@ -17,8 +17,18 @@ module.exports = function(env) {
   function Enumerate(store, k, a, wpplFn, options) {
     util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
-      maxExecutions: Infinity
+      maxExecutions: Infinity,
+      throwOnError: true,
+      maxRuntimeInMS: Infinity,
+      maxEnumTreeSize: Infinity
     });
+
+    this.throwOnError = options.throwOnError;
+    this.maxRuntimeInMS = options.maxRuntimeInMS; // Time upper threshold for enumeration
+    this.startTime = Date.now();
+    this.firstPath = true; // whether enumeration has reached the first leaf/exit
+    this.levelSizes = [];
+
     this.maxExecutions = options.maxExecutions;
     this.score = 0; // Used to track the score of the path currently being explored
     this.marginal = new ScoreAggregator(); // We will accumulate the marginal distribution here
@@ -47,6 +57,18 @@ module.exports = function(env) {
     return this.wpplFn(_.clone(this.store), env.exit, this.a);
   };
 
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
+  Enumerate.prototype.error = function(errType) {
+    var err = new Error(errType);
+    if (this.throwOnError) {
+      throw err;
+    } else {
+      return this.k(this.store, err);
+    }
+  }
+
   Enumerate.prototype.nextInQueue = function() {
     var nextState = this.queue.deq();
     this.score = nextState.score;
@@ -63,34 +85,44 @@ module.exports = function(env) {
     this.queue.enq(state);
   };
 
-  var getSupport = function(dist) {
+  var getSupport = function(dist, cont) {
     // Find support of this distribution:
     if (dist.isContinuous || !dist.support) {
       console.error(dist);
-      throw new Error('Enumerate can only be used with distributions that have finite support.');
+      return env.coroutine.error('Enumerate can only be used with distributions that have finite support.');
     }
     var supp = dist.support();
 
     // Check that support is non-empty
     if (supp.length === 0) {
       console.error(dist);
-      throw new Error('Enumerate encountered a distribution with empty support!');
+      return env.coroutine.error('Enumerate encountered a distribution with empty support.');
     }
-
-    return supp;
+    return cont(supp);
   };
 
   Enumerate.prototype.sample = function(store, k, a, dist) {
-    var support = getSupport(dist);
-    // For each value in support, add the continuation paired with
-    // support value and score to queue:
-    _.each(support, function(value) {
-      this.enqueueContinuation(
-          k, value, this.score + dist.score(value), store);
-    }.bind(this));
+    return getSupport(dist, function(support) {
+      if (isFinite(this.maxRuntimeInMS)) {
+        // Time checker
+        if (Date.now() - this.startTime > this.maxRuntimeInMS) {
+          return this.error('Enumerate timeout: max time was set to ' +
+              this.maxRuntimeInMS);
+        }
+      }
+      if (isFinite(this.maxEnumTreeSize)) {
+        this.levelSizes.push(support.length);
+      }
+      // For each value in support, add the continuation paired with
+      // support value and score to queue:
+      _.each(support, function(value) {
+        this.enqueueContinuation(
+            k, value, this.score + dist.score(value), store);
+      }.bind(this));
 
-    // Call the next state on the queue
-    return this.nextInQueue();
+      // Call the next state on the queue
+      return this.nextInQueue();
+    }.bind(this));
   };
 
   Enumerate.prototype.factor = function(s, k, a, score) {
@@ -103,27 +135,48 @@ module.exports = function(env) {
   };
 
   Enumerate.prototype.sampleWithFactor = function(store, k, a, dist, scoreFn) {
-    var support = getSupport(dist);
-
-    // Allows extra factors to be taken into account in making
-    // exploration decisions:
-
-    return util.cpsForEach(
-        function(value, i, support, nextK) {
-          return scoreFn(store, function(store, extraScore) {
-            var score = env.coroutine.score + dist.score(value) + extraScore;
-            env.coroutine.enqueueContinuation(k, value, score, store);
-            return nextK();
-          }, a, value);
-        },
-        function() {
-          // Call the next state on the queue
-          return env.coroutine.nextInQueue();
-        },
-        support);
+    return getSupport(dist, function(support) {
+      // Allows extra factors to be taken into account in making
+      // exploration decisions:
+      return util.cpsForEach(
+          function(value, i, support, nextK) {
+            return scoreFn(store, function(store, extraScore) {
+              var score = env.coroutine.score + dist.score(value) + extraScore;
+              env.coroutine.enqueueContinuation(k, value, score, store);
+              return nextK();
+            }, a, value);
+          },
+          function() {
+            // Call the next state on the queue
+            return env.coroutine.nextInQueue();
+          },
+          support);
+    });
   };
 
+  var estimateEnumTreeSize = function(sizes) {
+    // Estimate enumeration tree size by support length at each level
+    var numNodes = 1;
+    var enumTreeSize = 1;
+    for (var i in sizes) {
+      numNodes *= sizes[i];
+      enumTreeSize += numNodes;
+    }
+    return enumTreeSize;
+  }
+
   Enumerate.prototype.exit = function(s, retval) {
+    if (isFinite(this.maxEnumTreeSize)) {
+      // under default infer mode, might exit earlier here
+      if (this.firstPath) {
+        this.firstPath = false;
+        var estimatedTreeSize = estimateEnumTreeSize(this.levelSizes);
+        if (estimatedTreeSize > this.maxEnumTreeSize) {
+          // exit if estimated enumeration tree size is above threshold
+          return this.error(estimatedTreeSize + ' computations ahead.');
+        }
+      }
+    }
     // We have reached an exit of the computation. Accumulate probability into retval bin.
     this.marginal.add(retval, this.score);
 
@@ -135,7 +188,7 @@ module.exports = function(env) {
       return this.nextInQueue();
     } else {
       if (this.marginal.size === 0) {
-        throw new Error('All paths explored by Enumerate have probability zero.');
+        return this.error('All paths explored by Enumerate have probability zero.');
       }
       // Reinstate previous coroutine:
       env.coroutine = this.coroutine;
