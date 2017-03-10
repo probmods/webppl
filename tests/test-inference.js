@@ -30,7 +30,7 @@ var tests = [
       beta: true,
       exponential: true,
       laplace: { args: { samples: 10000 } },
-      tensorLaplace: true,
+      tensorLaplace: { args: { samples: 10000 } },
       binomial: true,
       multinomial: true,
       poisson: true,
@@ -641,19 +641,22 @@ var tests = [
         }
       },
       tensorLaplace: {
-        std: { tol: 0.15 },
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
         args: {
-          optMethod: {gd: {stepSize: 0.002}},
+          optMethod: {adam: {stepSize: 0.002}},
           samples: 10000,
-          steps: 10000,
+          steps: 20000,
           verbose: false
         }
       },
       laplace: {
-        std: { tol: 0.15 },
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
         args: {
+          optMethod: {adam: {stepSize: 0.001}},
           samples: 10000,
-          steps: 20000,
+          steps: 40000,
           verbose: false
         }
       },
