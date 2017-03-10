@@ -29,6 +29,8 @@ var tests = [
       uniform: { args: { samples: 10000 } },
       beta: true,
       exponential: true,
+      laplace: { args: { samples: 10000 } },
+      tensorLaplace: { args: { samples: 10000 } },
       binomial: true,
       multinomial: true,
       poisson: true,
@@ -635,6 +637,26 @@ var tests = [
         args: {
           samples: 5000,
           steps: 10000,
+          verbose: false
+        }
+      },
+      tensorLaplace: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: {
+          optMethod: {adam: {stepSize: 0.002}},
+          samples: 10000,
+          steps: 20000,
+          verbose: false
+        }
+      },
+      laplace: {
+        mean: { tol: 0.3 },
+        std: { tol: 0.3 },
+        args: {
+          optMethod: {adam: {stepSize: 0.001}},
+          samples: 10000,
+          steps: 40000,
           verbose: false
         }
       },

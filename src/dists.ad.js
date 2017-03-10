@@ -390,11 +390,12 @@ var Gaussian = makeDistributionType({
     return new Gaussian({mu: 0, sigma: 1});
   },
   transform: function(x) {
+    'use ad';
     // Transform a sample x from the base distribution to the
     // distribution described by params.
     var mu = this.params.mu;
     var sigma = this.params.sigma;
-    return ad.scalar.add(ad.scalar.mul(sigma, x), mu); }
+    return sigma * x + mu; }
 });
 
 
@@ -517,6 +518,45 @@ var DiagCovGaussian = makeDistributionType({
   }
 });
 
+function laplaceSample(location, scale) {
+  // Generated from goo.gl/3BxCGd (wiki)
+  var z = util.random();
+  var u = z - 0.5;
+  return location - scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+}
+
+function laplaceScore(location, scale, x) {
+  'use ad';
+  return -1 * (Math.log(2 * scale) + Math.abs(x - location) / scale);
+}
+
+var Laplace = makeDistributionType({
+  name: 'Laplace',
+  desc: 'Distribution over ``[-Infinity, Infinity]``',
+  params: [{name: 'location', desc: '', type: types.unboundedReal},
+           {name: 'scale', desc: '', type: types.positiveReal}],
+  wikipedia: true,
+  mixins: [continuousSupport],
+  sample: function() {
+    return laplaceSample(ad.value(this.params.location), ad.value(this.params.scale));
+  },
+  score: function(val) {
+    return laplaceScore(this.params.location, this.params.scale, val);
+  },
+  base: function() {
+    return new Laplace({location: 0, scale: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return scale * x + location;
+  },
+  support: function() {
+    return { lower: -Infinity, upper: Infinity };
+  }
+});
+
 var squishToProbSimplex = function(x) {
   // Map a d dimensional vector onto the d simplex.
   var d = ad.value(x).dims[0];
@@ -553,8 +593,6 @@ var LogisticNormal = makeDistributionType({
     var sigma = this.params.sigma;
     var _mu = ad.value(mu);
     var _val = ad.value(val);
-
-
 
     if (!util.isVector(_val) || _val.dims[0] - 1 !== _mu.dims[0]) {
       return -Infinity;
@@ -661,8 +699,6 @@ var IspNormal = makeDistributionType({
   }
 });
 
-
-
 function tensorGaussianSample(mu, sigma, dims) {
   var x = new Tensor(dims);
   var n = x.length;
@@ -717,6 +753,57 @@ var TensorGaussian = makeDistributionType({
   }
 });
 
+function tensorLaplaceSample(location, scale, dims) {
+  var x = new Tensor(dims);
+  var n = x.length;
+  while (n--) {
+    x.data[n] = laplaceSample(location, scale);
+  }
+  return x;
+}
+
+function tensorLaplaceScore(location, scale, dims, x) {
+  'use ad';
+  var _x = ad.value(x);
+
+  if (!util.isTensor(_x) || !_.isEqual(_x.dims, dims)) {
+    return -Infinity;
+  }
+
+  var l = _x.length;
+  var ln2b = l * Math.log(2 * scale);
+  var xMuB = T.sumreduce(T.abs(T.sub(x, location))) / scale;
+  return -1 * (ln2b + xMuB);
+}
+
+var TensorLaplace = makeDistributionType({
+  name: 'TensorLaplace',
+  desc: 'Distribution over a tensor of independent Laplace variables.',
+  params: [
+    {name: 'location', desc: '', type: types.unboundedReal},
+    {name: 'scale', desc: '', type: types.positiveReal},
+    {name: 'dims', desc: 'dimension of tensor', type: types.array(types.positiveInt)}
+  ],
+  mixins: [continuousSupport],
+  sample: function() {
+    var location = ad.value(this.params.location);
+    var scale = ad.value(this.params.scale);
+    var dims = this.params.dims;
+    return tensorLaplaceSample(location, scale, dims);
+  },
+  score: function(x) {
+    return tensorLaplaceScore(this.params.location, this.params.scale, this.params.dims, x);
+  },
+  base: function() {
+    var dims = this.params.dims;
+    return new TensorLaplace({location: 0, scale: 1, dims: dims});
+  },
+  transform: function(x) {
+    var location = this.params.location;
+    var scale = this.params.scale;
+    return ad.tensor.add(ad.tensor.mul(x, scale), location);
+  }
+});
 
 
 var Cauchy = makeDistributionType({
@@ -1478,6 +1565,8 @@ var distributions = {
   MultivariateGaussian: MultivariateGaussian,
   DiagCovGaussian: DiagCovGaussian,
   TensorGaussian: TensorGaussian,
+  Laplace: Laplace,
+  TensorLaplace: TensorLaplace,
   LogisticNormal: LogisticNormal,
   LogitNormal: LogitNormal,
   IspNormal: IspNormal,
@@ -1503,6 +1592,8 @@ module.exports = _.assign({
   discreteSample: discreteSample,
   gaussianSample: gaussianSample,
   tensorGaussianSample: tensorGaussianSample,
+  laplaceSample: laplaceSample,
+  tensorLaplaceSample: tensorLaplaceSample,
   gammaSample: gammaSample,
   dirichletSample: dirichletSample,
   // helpers

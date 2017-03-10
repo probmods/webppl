@@ -97,6 +97,15 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
+.. js:function:: Laplace({location: ..., scale: ...})
+
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
+
+  Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Laplace_distribution>`__
+
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
   * mu: mean *(vector)*
@@ -164,6 +173,14 @@
   * dims: dimension of tensor *(int (>=1) array)*
 
   Distribution over a tensor of independent Gaussian variables.
+
+.. js:function:: TensorLaplace({location: ..., scale: ..., dims: ...})
+
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
+  * dims: dimension of tensor *(int (>=1) array)*
+
+  Distribution over a tensor of independent Laplace variables.
 
 .. js:function:: Uniform({a: ..., b: ...})
 
