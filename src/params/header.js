@@ -18,6 +18,12 @@ function setParams(s, k, a, prms) {
   return params.set(prms, function() { return k(s); });
 }
 
+function syncParams(s, k, a) {
+  return params.sync(function() {
+    return k(s);
+  });
+}
+
 function setParamsId(s, k, a, id) {
   config.setId(id);
   return params.sync(function() {
@@ -117,6 +123,7 @@ module.exports = function(env) {
     setFreshParamsId: setFreshParamsId,
     setParams: setParams,
     setParamsId: setParamsId,
+    syncParams: syncParams,
     serializeParams: serializeParams,
     deserializeParams: deserializeParams
   };
