@@ -94,9 +94,9 @@ module.exports = function(env) {
   // If observation value is given then factor accordingly,
   // otherwise sample a new value.
   // The value is passed to the continuation.
-  env.observe = function(s, k, a, dist, val) {
+  env.observe = function(s, k, a, dist, val, options) {
     if (typeof env.coroutine.observe === 'function') {
-      return env.coroutine.observe(s, k, a, dist, val);
+      return env.coroutine.observe(s, k, a, dist, val, options);
     } else {
       if (val !== undefined) {
         var factorK = function(s) {
@@ -104,7 +104,7 @@ module.exports = function(env) {
         };
         return env.factor(s, factorK, a, dist.score(val));
       } else {
-        return env.sample(s, k, a, dist);
+        return env.sample(s, k, a, dist, options);
       }
     }
   };

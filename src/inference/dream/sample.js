@@ -74,7 +74,7 @@ module.exports = function(env) {
       throw new Error('dream: factor not supported, use observe instead.');
     },
 
-    observe: function(s, k, a, dist) {
+    observe: function(s, k, a, dist, options) {
       if (!this.insideMapData) {
         throw new Error('dream: observe can only be used within mapData with this estimator.');
       }
