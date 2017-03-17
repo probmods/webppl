@@ -64,7 +64,9 @@ module.exports = function(env) {
     });
 
     if (!env.coroutine._guide) {
-      util.warn('Warning: Parameter created outside of the guide.', true);
+      util.warn('Warning: Parameter ' +
+                (_.has(options, 'name') ? '"' + options.name + '" ' : '') +
+                'created outside of the guide.', true);
     }
 
     var dims = options.dims;
