@@ -1527,7 +1527,7 @@ var Delta = makeDistributionType({
       'from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` ' +
       'distribution parameterized by a random choice should not be used with MCMC based inference, ' +
       'as doing so produces incorrect results.',
-  params: [{name: 'v', desc: 'support element'}],
+  params: [{name: 'v', desc: 'support element', type: types.any}],
   mixins: [finiteSupport],
   sample: function() {
     return ad.value(this.params.v);
