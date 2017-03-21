@@ -176,7 +176,9 @@ function spec(targetDist) {
     return discreteSpec(targetDist);
   } else if (targetDist instanceof dists.RandomInteger ||
              targetDist instanceof dists.Binomial ||
-             targetDist instanceof dists.MultivariateGaussian) {
+             targetDist instanceof dists.MultivariateGaussian ||
+             targetDist instanceof dists.Marginal ||
+             targetDist instanceof dists.SampleBasedMarginal) {
     throwAutoGuideError(targetDist);
   } else {
     return defaultSpec(targetDist);
