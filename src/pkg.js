@@ -95,7 +95,7 @@ var load = function(pkg) {
 // expression which can be transformed by the browserify plugin.
 
 var stringify = function(obj) {
-  var kvs = _.chain(obj).mapObject(function(val, key) {
+  var kvs = _.chain(obj).mapValues(function(val, key) {
     if (_.isArray(val)) {
       return stringifyArray(val, wrappers[key]);
     } else if (_.isBoolean(val)) {
