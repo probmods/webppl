@@ -31,6 +31,8 @@ module.exports = function(env) {
     this.record = {trace: trace, data: []};
 
     this.guideRequired = true;
+    this.isParamBase = true;
+
     this.insideMapData = false;
 
     this.coroutine = env.coroutine;

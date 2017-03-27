@@ -20,6 +20,7 @@ module.exports = function(env) {
 
     // Indicate that guide thunks should run.
     this.guideRequired = sampleGuide;
+    this.isParamBase = true;
 
     this.score = 0;
     this.logWeight = 0;

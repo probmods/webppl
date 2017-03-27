@@ -45,6 +45,7 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
     this.guideRequired = true;
+    this.isParamBase = true;
 
     this.coroutine = env.coroutine;
     env.coroutine = this;
@@ -120,7 +121,7 @@ module.exports = function(env) {
           throw new Error('EUBO: No guide distribution to optimize.');
         }
 
-        var rel = util.relativizeAddress(env, a);
+        var rel = util.relativizeAddress(this.a, a);
         var guideVal = this.trace.findChoice(this.trace.baseAddress + rel).val;
         assert.notStrictEqual(guideVal, undefined);
 
