@@ -47,6 +47,7 @@ module.exports = function(env) {
     this.saveTraces = options.saveTraces;
     this.importanceOpt = options.importance;
     this.guideRequired = options.importance !== 'ignoreGuide';
+    this.isParamBase = true;
     this.onlyMAP = options.onlyMAP;
 
     this.particles = [];

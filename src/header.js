@@ -69,6 +69,7 @@ module.exports = function(env) {
       var args = [s, k, a].concat(args);
       return fn.apply(global, args);
     },
+    isParamBase: true,
     a: '' // Entry address. Enables relative addressing.
   };
 

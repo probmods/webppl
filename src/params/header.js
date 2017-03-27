@@ -70,7 +70,9 @@ module.exports = function(env) {
     }
 
     var dims = options.dims;
-    var name = _.has(options, 'name') ? options.name : util.relativizeAddress(env, a);
+    var name = _.has(options, 'name') ?
+        options.name :
+        util.relativizeAddress(params.baseAddress(env), a);
 
     if (params.exists(name)) {
       return finish(s);

@@ -684,6 +684,13 @@ var tests = [
           onlyMAP: true,
           verbose: false
         }
+      },
+      enumGuide: {
+        args: {
+          steps: 6000,
+          samples: 10000,
+          verbose: false
+        }
       }
     }
   },

@@ -40,6 +40,7 @@ module.exports = function(env) {
     this.s = s;
     this.a = a;
     this.guideRequired = true;
+    this.isParamBase = true;
 
     // Initialize mapData state.
     this.mapDataStack = [{multiplier: 1}];

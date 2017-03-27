@@ -93,7 +93,7 @@ function fetch(name, env) {
   }
 
   var paramTable = get();
-  var paramsSeen = env.coroutine.paramsSeen;
+  var paramsSeen = getParamsSeen(env);
 
   // If we're outside of optimization, just return the value of the
   // parameter, unlifted.
@@ -116,6 +116,35 @@ function fetch(name, env) {
   }
 }
 
+function findCoroutine(predicate, coroutine) {
+  if (predicate(coroutine)) {
+    return coroutine;
+  } else if (_.has(coroutine, 'coroutine')) {
+    return findCoroutine(predicate, coroutine.coroutine);
+  } else {
+    return null;
+  }
+}
+
+function getParamsSeen(env) {
+  var coroutine = findCoroutine(_.property('paramsSeen'), env.coroutine);
+  return coroutine ? coroutine.paramsSeen : null;
+}
+
+// Returns the base address used when automatically generating
+// parameter names based on relative stack addresses. The strategy is
+// to walk the coroutine stack starting from the current coroutine,
+// looking for the first coroutine with the isParamBase flag set. The
+// entry address of the coroutine found this way is returned. This is
+// expected to always find a coroutine, since env.defaultCoroutine has
+// the flag set.
+function baseAddress(env) {
+  var baseCoroutine = findCoroutine(_.property('isParamBase'), env.coroutine);
+  assert.ok(baseCoroutine, 'Could not find base coroutine.');
+  assert.ok(_.has(baseCoroutine, 'a'), 'Entry address not saved on coroutine.');
+  return baseCoroutine.a;
+}
+
 module.exports = {
   get: get,
   set: set,
@@ -125,5 +154,6 @@ module.exports = {
   sync: sync,
   exists: exists,
   create: create,
-  fetch: fetch
+  fetch: fetch,
+  baseAddress: baseAddress
 };
