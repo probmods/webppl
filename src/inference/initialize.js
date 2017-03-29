@@ -21,7 +21,7 @@ module.exports = function(env) {
 
     this.ad = options.ad;
     this.failures = 0;
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -62,7 +62,7 @@ module.exports = function(env) {
     if (this.trace.value === env.query) {
       this.trace.value = env.query.getTable();
     }
-    env.coroutine = this.coroutine;
+    env.coroutine = this.oldCoroutine;
     return this.cont(this.trace);
   };
 

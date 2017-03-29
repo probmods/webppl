@@ -46,7 +46,7 @@ module.exports = function(env) {
 
     // Move old coroutine out of the way
     // and install this as the current handler
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -191,7 +191,7 @@ module.exports = function(env) {
         return this.error('All paths explored by Enumerate have probability zero.');
       }
       // Reinstate previous coroutine:
-      env.coroutine = this.coroutine;
+      env.coroutine = this.oldCoroutine;
       // Return from enumeration by calling original continuation with original store:
       return this.k(this.store, this.marginal.toDist());
     }

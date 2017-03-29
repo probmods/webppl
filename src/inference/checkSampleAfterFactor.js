@@ -22,7 +22,7 @@ module.exports = function(env) {
     this.hasFactor = false;
     // at least one sample appears after factor
     this.hasSampleAfterFactor = false;
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -42,7 +42,7 @@ module.exports = function(env) {
 
           // Continuation.
           function() {
-            env.coroutine = this.coroutine;
+            env.coroutine = this.oldCoroutine;
             return this.k(this.s, this.hasSampleAfterFactor);
           }.bind(this));
 

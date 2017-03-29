@@ -53,7 +53,7 @@ module.exports = function(env) {
     }
     this.baselineUpdates = {};
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -116,7 +116,7 @@ module.exports = function(env) {
             paramStruct.divEq(grad, this.opts.samples);
             elbo /= this.opts.samples;
             this.updateBaselines();
-            env.coroutine = this.coroutine;
+            env.coroutine = this.oldCoroutine;
             return this.cont(grad, elbo);
           }.bind(this));
 

@@ -119,8 +119,8 @@ function fetch(name, env) {
 function findCoroutine(predicate, coroutine) {
   if (predicate(coroutine)) {
     return coroutine;
-  } else if (_.has(coroutine, 'coroutine')) {
-    return findCoroutine(predicate, coroutine.coroutine);
+  } else if (_.has(coroutine, 'oldCoroutine')) {
+    return findCoroutine(predicate, coroutine.oldCoroutine);
   } else {
     return null;
   }

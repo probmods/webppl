@@ -25,7 +25,7 @@ module.exports = function(env) {
     this.score = 0;
     this.logWeight = 0;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -33,7 +33,7 @@ module.exports = function(env) {
 
     run: function() {
       return this.wpplFn(_.clone(this.s), function(s, val) {
-        env.coroutine = this.coroutine;
+        env.coroutine = this.oldCoroutine;
         var ret = {val: val, score: this.score, logWeight: this.logWeight};
         return this.k(this.s, ret);
       }.bind(this), this.a);

@@ -35,7 +35,7 @@ module.exports = function(env) {
 
     this.insideMapData = false;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -43,7 +43,7 @@ module.exports = function(env) {
 
     run: function() {
       return this.wpplFn(_.clone(this.s), function(s, val) {
-        env.coroutine = this.coroutine;
+        env.coroutine = this.oldCoroutine;
         return this.k(this.s, this.record);
       }.bind(this), this.a);
     },
