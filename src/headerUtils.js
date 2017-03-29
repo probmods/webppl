@@ -64,7 +64,8 @@ module.exports = function(env) {
     return {
       sample: notAllowed('sample', name),
       factor: notAllowed('factor', name),
-      incrementalize: env.defaultCoroutine.incrementalize
+      incrementalize: env.defaultCoroutine.incrementalize,
+      oldCoroutine: env.coroutine
     };
   }
 
