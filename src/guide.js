@@ -24,7 +24,7 @@ function guideCoroutine(env) {
     sample: sampleNotAllowed,
     factor: factorNotAllowed,
     incrementalize: env.defaultCoroutine.incrementalize,
-    coroutine: env.coroutine,
+    oldCoroutine: env.coroutine,
     // A flag used when creating parameters to check whether we're in
     // a guide thunk. Note that this does the right thing if Infer is
     // used within a guide. This can be checked from a webppl program

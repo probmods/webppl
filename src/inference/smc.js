@@ -66,7 +66,7 @@ module.exports = function(env) {
     this.k = k;
     this.a = a;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -339,7 +339,7 @@ module.exports = function(env) {
           if (this.saveTraces) {
             dist.traces = traces;
           }
-          env.coroutine = this.coroutine;
+          env.coroutine = this.oldCoroutine;
           return this.k(this.s, dist);
         }.bind(this),
         this.completeParticles);
