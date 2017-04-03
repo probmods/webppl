@@ -15,6 +15,7 @@ var nodeUtil = require('util');
 
 module.exports = function(env) {
 
+  var applyd = require('../headerUtils')(env).applyd;
   var estimators = {
     ELBO: require('./elbo')(env),
     EUBO: require('./eubo')(env),
@@ -48,6 +49,7 @@ module.exports = function(env) {
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
+      onStep: function(s, k, a) { return k(s); },
       onFinish: function(s, k, a) { return k(s); },
 
       logProgress: false,
@@ -109,6 +111,12 @@ module.exports = function(env) {
       checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
 
+    var onStep = function(i, objective, cont) {
+      return applyd(s, function(s, val) {
+        return cont();
+      }, a, options.onStep, [i, objective], 'callback');
+    };
+
     // Main loop.
     return util.cpsLoop(
         options.steps,
@@ -150,7 +158,9 @@ module.exports = function(env) {
               optimizer(gradObj, paramsObj, i);
 
               // Send updated params to store
-              return params.set(paramsObj, next);
+              return params.set(paramsObj, function() {
+                return onStep(i, objective, next);
+              });
 
             }, { incremental: true });
 
