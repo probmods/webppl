@@ -49,6 +49,15 @@ Optimize
 
       Default: ``ELBO``
 
+   .. describe:: onStep
+
+      Specifies a function that will be called after each step. The
+      function will be passed the index of the current step and the
+      value of the objective as arguments. For example::
+
+        var callback = function(index, value) { /* ... */ };
+        Optimize({model: model, steps: 100, onStep: callback});
+
    .. describe:: verbose
 
       Default: ``true``
