@@ -44,7 +44,7 @@ Rejection sampling
 
       The number of samples to take.
 
-      Default: ``1``
+      Default: ``100``
 
    .. describe:: maxScore
 
@@ -327,7 +327,7 @@ Optimization
          The number of samples used to construct the marginal
          distribution.
 
-         Default: ``1``
+         Default: ``100``
 
       .. describe:: onlyMAP
 
@@ -366,7 +366,7 @@ Forward Sampling
 
       The number of samples to take.
 
-      Default: ``1``
+      Default: ``100``
 
    .. describe:: guide
 
