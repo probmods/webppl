@@ -394,7 +394,12 @@ var repeat = function(n, fn) {
       return helper(m1).concat(helper(m2));
     }
   }
-
+  if (!util.isInteger(n) || n < 0) {
+    error('Expected first argument to be a non-negative integer.');
+  }
+  if (!_.isFunction(fn)) {
+    error('Expected second argument to be a function.');
+  }
   return helper(n);
 }
 
