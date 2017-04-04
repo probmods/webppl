@@ -64,7 +64,7 @@ QUnit.test(
 
 QUnit.test(
     'handling throw string, debug=true',
-    errorTest('util.fatal("fail")', true, function(done, test, error) {
+    errorTest('util.jsthrow("fail")', true, function(done, test, error) {
       test.ok(typeof error === 'string');
       test.ok(error === 'fail');
       done();
@@ -72,7 +72,7 @@ QUnit.test(
 
 QUnit.test(
     'handling throw string, debug=false',
-    errorTest('util.fatal("fail")', false, function(done, test, error) {
+    errorTest('util.jsthrow("fail")', false, function(done, test, error) {
       test.ok(typeof error === 'string');
       test.ok(error === 'fail');
       done();

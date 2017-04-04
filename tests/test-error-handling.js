@@ -17,7 +17,7 @@ function getError(code, test) {
 var tests = [
   // Ensure thrown strings are passed through error handling code.
   function(test) {
-    var error = getError('util.fatal("fail")', test);
+    var error = getError('util.jsthrow("fail")', test);
     test.strictEqual(typeof error, 'string');
     test.ok(error.match(/fail/));
     test.done();

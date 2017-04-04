@@ -75,3 +75,7 @@ Other
    serializing them with ``JSON.stringify``. This means that memoizing
    a higher-order function will not work as expected, as all functions
    serialize to the same string.
+
+.. js:function:: error(msg)
+
+   Halts execution of the program and prints ``msg`` to the console.

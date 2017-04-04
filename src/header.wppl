@@ -447,6 +447,10 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
+var error = function(msg) {
+  util.error(msg);
+};
+
 var MH = function(wpplFn, samples, burn) {
   return MCMC(wpplFn, { samples: samples, burn: burn });
 };
@@ -487,7 +491,7 @@ var DefaultInfer = function(wpplFn, options) {
   } else if (enumResult instanceof Error) {
     console.log(enumResult.message + '..quit enumerate');
   } else {
-    util.fatal('Invalid return value from enumerate');
+    error('Invalid return value from enumerate');
   }
   console.log('Using "rejection"');
   var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: samples});
@@ -502,7 +506,7 @@ var DefaultInfer = function(wpplFn, options) {
       } else if (smcResult instanceof Error) {
         console.log(smcResult.message + '..quit SMC');
       } else {
-        util.fatal('Invalid return value from SMC');
+        error('Invalid return value from SMC');
       }
     }
     console.log('Using "MCMC"');
@@ -510,14 +514,14 @@ var DefaultInfer = function(wpplFn, options) {
   } else if (dists.isDist(rejResult)) {
     return rejResult;
   } else {
-    util.fatal('Invalid return value from rejection');
+    error('Invalid return value from rejection');
   }
 };
 
 var Infer = function(options, maybeFn) {
   var wpplFn = !util.isObject(options) ? options : maybeFn || options.model;
   if (!_.isFunction(wpplFn)) {
-    util.fatal('Infer: a model was not specified.');
+    error('Infer: a model was not specified.');
   }
 
   // Map from camelCase options to PascalCase coroutine names. Also
@@ -542,7 +546,7 @@ var Infer = function(options, maybeFn) {
     var msg = 'Infer: \'' + methodName +
         '\' is not a valid method. The following methods are available: ' +
         methodNames.join(', ') + '.';
-    util.fatal(msg);
+    error(msg);
   }
   var method = methodMap[methodName];
   return method(wpplFn, _.omit(options, 'method', 'model'));
