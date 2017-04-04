@@ -307,7 +307,12 @@ module.exports = function(env) {
     mapDataFetch: function(data, opts, address) {
 
       var batchSize = opts.batchSize !== undefined ? opts.batchSize : data.length;
-      if (batchSize < 0 || batchSize > data.length) {
+      var minBatchSize = _.isEmpty(data) ? 0 : 1;
+      var maxBatchSize = data.length;
+
+      if (!(util.isInteger(batchSize) &&
+            minBatchSize <= batchSize &&
+            batchSize <= maxBatchSize)) {
         throw new Error('ELBO: Invalid batchSize.');
       }
 
