@@ -41,6 +41,21 @@ Other
 
      marginalize(dist, 'a') // => Marginal with p(true) = 0.9, p(false) = 0.1
 
+.. js:function:: forward(model)
+
+   Evaluates function of zero arguments ``model``, ignoring any
+   :ref:`factor <factor>` statements.
+
+   Also see: :ref:`Forward Sampling <forward_sampling>`
+
+.. js:function:: forwardGuide(model)
+
+   Evaluates function of zero arguments ``model``, ignoring any
+   ``factor`` statements, and sampling from the :ref:`guide <guides>`
+   at each random choice.
+
+   Also see: :ref:`Forward Sampling <forward_sampling>`
+
 .. js:function:: mapObject(fn, obj)
 
    Returns the object obtained by mapping the function ``fn`` over the

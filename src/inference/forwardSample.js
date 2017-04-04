@@ -111,9 +111,20 @@ module.exports = function(env) {
     );
   }
 
+  function extractVal(k) {
+    return function(s, obj) {
+      return k(s, obj.val);
+    };
+  }
+
   return {
     ForwardSample: ForwardSample,
-    runForward: runForward
+    forward: function(s, k, a, model) {
+      return runForward(s, extractVal(k), a, model, false);
+    },
+    forwardGuide: function(s, k, a, model) {
+      return runForward(s, extractVal(k), a, model, true);
+    }
   };
 
 };
