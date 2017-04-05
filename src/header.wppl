@@ -384,9 +384,9 @@ var groupBy = function(cmp, ar) {
 
 var repeat = function(n, fn) {
   var helper = function(m) {
-    if (m == 0) {
+    if (m === 0) {
       return [];
-    } else if (m == 1) {
+    } else if (m === 1) {
       return [fn()];
     } else {
       var m1 = Math.ceil(m / 2),
