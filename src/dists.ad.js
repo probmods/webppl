@@ -1502,21 +1502,35 @@ var Categorical = makeDistributionType({
   nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
-    this.ixmap = _.fromPairs(this.params.vs.map(function(v, ix) {
-      return [util.serialize(v), ix];
-    }));
+    'use ad';
+    var ps = this.params.ps;
+    var vs = this.params.vs;
+    if (vs.length !== ad.value(ps).length) {
+      throw new Error('Parameters ps and vs should have the same length.');
+    }
+    if (vs.length === 0) {
+      throw new Error('Parameters ps and vs should have length > 0.');
+    }
+    var dist = {};
+    var norm = _.isArray(ps) ? sum(ps) : T.sumreduce(ps);
+    for (var i in vs) {
+      var val = vs[i];
+      var k = util.serialize(val);
+      if (!_.has(dist, k)) {
+        dist[k] = {val: val, prob: 0};
+      }
+      dist[k].prob += (_.isArray(ps) ? ps[i] : T.get(ps, i)) / norm;
+    }
+    this.marginal = new Marginal({dist: dist});
   },
   sample: function() {
-    var ix = discreteSample(toUnliftedArray(this.params.ps));
-    var vs = this.params.vs.map(ad.value);
-    return vs[ix];
+    return this.marginal.sample();
   },
   score: function(val) {
-    var ix = this.ixmap[util.serialize(val)];
-    return discreteScore(this.params.ps, ix);
+    return this.marginal.score(val);
   },
   support: function() {
-    return this.params.vs;
+    return this.marginal.support();
   }
 });
 

@@ -53,7 +53,7 @@ module.exports = function(env) {
     }
     this.baselineUpdates = {};
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -116,7 +116,7 @@ module.exports = function(env) {
             paramStruct.divEq(grad, this.opts.samples);
             elbo /= this.opts.samples;
             this.updateBaselines();
-            env.coroutine = this.coroutine;
+            env.coroutine = this.oldCoroutine;
             return this.cont(grad, elbo);
           }.bind(this));
 
@@ -307,7 +307,12 @@ module.exports = function(env) {
     mapDataFetch: function(data, opts, address) {
 
       var batchSize = opts.batchSize !== undefined ? opts.batchSize : data.length;
-      if (batchSize < 0 || batchSize > data.length) {
+      var minBatchSize = _.isEmpty(data) ? 0 : 1;
+      var maxBatchSize = data.length;
+
+      if (!(util.isInteger(batchSize) &&
+            minBatchSize <= batchSize &&
+            batchSize <= maxBatchSize)) {
         throw new Error('ELBO: Invalid batchSize.');
       }
 

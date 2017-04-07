@@ -82,8 +82,8 @@ module.exports = function(env) {
         throw new Error('Expected the init argument to be a function.');
       }
 
-      var appliedInit = function(s, k, a) {
-        return init.apply(global, [s, k, a, dims]);
+      var initThunk = function(s, k, a) {
+        return init(s, k, a, dims);
       };
 
       var next = function(k, ret) {
@@ -96,7 +96,7 @@ module.exports = function(env) {
         return finish(s);
       };
 
-      return runForward(s, next, a, appliedInit);
+      return runForward(s, next, a, initThunk);
     }
 
     function finish(s) {

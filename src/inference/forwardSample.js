@@ -25,7 +25,7 @@ module.exports = function(env) {
     this.score = 0;
     this.logWeight = 0;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -33,7 +33,7 @@ module.exports = function(env) {
 
     run: function() {
       return this.wpplFn(_.clone(this.s), function(s, val) {
-        env.coroutine = this.coroutine;
+        env.coroutine = this.oldCoroutine;
         var ret = {val: val, score: this.score, logWeight: this.logWeight};
         return this.k(this.s, ret);
       }.bind(this), this.a);
@@ -81,7 +81,7 @@ module.exports = function(env) {
 
   function ForwardSample(s, k, a, wpplFn, options) {
     var opts = util.mergeDefaults(options, {
-      samples: 1,
+      samples: 100,
       guide: false, // true = sample guide, false = sample target
       onlyMAP: false,
       verbose: false

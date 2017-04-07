@@ -32,7 +32,7 @@ module.exports = function(env) {
     this.discreteOnly = options.discreteOnly;
     this.adRequired = options.adRequired;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -149,7 +149,7 @@ module.exports = function(env) {
   };
 
   MHKernel.prototype.continue = function(trace) {
-    env.coroutine = this.coroutine;
+    env.coroutine = this.oldCoroutine;
     return this.cont(trace);
   };
 

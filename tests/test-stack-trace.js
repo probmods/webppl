@@ -73,17 +73,17 @@ var testDefs = [
   },
 
   { name: 'JS',
-    code: 'util.fatal(util.jsnew(Error))',
+    code: 'util.error("")',
     stack: [
       {file: RegExp(path.join('src', 'util.js') + '$'), webppl: false, name: null},
-      {line: 1, col: 16, file: 'webppl:program', name: 'jsnew'}],
+      {line: 1, col: 5, file: 'webppl:program', name: 'error'}],
     debug: true
   },
   { name: 'JS',
-    code: 'util.fatal(util.jsnew(Error))',
+    code: 'util.error("")',
     stack: [
       {file: RegExp(path.join('src', 'util.js') + '$'), webppl: false, name: null},
-      {line: 1, col: 16, file: 'webppl:program', name: 'jsnew'}],
+      {line: 1, col: 5, file: 'webppl:program', name: 'error'}],
     debug: false
   },
 
@@ -130,7 +130,7 @@ var testDefs = [
   },
 
   { name: 'no webppl entry in stack trace',
-    code: 'util.fatal(util.jsnew(Error))',
+    code: 'util.error("")',
     stack: [{file: RegExp(path.join('src', 'util.js') + '$'), webppl: false, name: null}],
     debug: true,
     limit: 1

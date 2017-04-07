@@ -47,7 +47,7 @@ module.exports = function(env) {
     this.guideRequired = true;
     this.isParamBase = true;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -74,7 +74,7 @@ module.exports = function(env) {
           function() {
             paramStruct.divEq(grad, traces.length);
             eubo /= traces.length;
-            env.coroutine = this.coroutine;
+            env.coroutine = this.oldCoroutine;
             return this.cont(grad, eubo);
           }.bind(this),
 

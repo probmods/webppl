@@ -20,7 +20,7 @@ module.exports = function(env) {
 
     this.insideMapData = false;
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -28,7 +28,7 @@ module.exports = function(env) {
 
     run: function() {
       return this.estimateGradient(function(grad, objVal) {
-        env.coroutine = this.coroutine;
+        env.coroutine = this.oldCoroutine;
         return this.cont(grad, objVal);
       }.bind(this));
     },

@@ -37,7 +37,7 @@ module.exports = function(env) {
     this.oldTrace = oldTrace;
     this.a = oldTrace.baseAddress; // Support relative addressing.
 
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
@@ -247,7 +247,7 @@ module.exports = function(env) {
   };
 
   HMCKernel.prototype.continue = function(trace) {
-    env.coroutine = this.coroutine;
+    env.coroutine = this.oldCoroutine;
     return this.cont(trace);
   };
 

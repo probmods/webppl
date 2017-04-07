@@ -286,8 +286,12 @@ function warn(msg, onceOnly) {
   }
 }
 
-function fatal(msg) {
-  throw msg;
+function error(msg) {
+  throw new Error(msg);
+}
+
+function jsthrow(obj) {
+  throw obj;
 }
 
 function jsnew(ctor, arg) {
@@ -374,8 +378,9 @@ module.exports = {
   timeif: timeif,
   warn: warn,
   resetWarnings: resetWarnings,
-  fatal: fatal,
+  error: error,
   jsnew: jsnew,
+  jsthrow: jsthrow,
   isInteger: isInteger,
   isObject: isObject,
   isTensor: isTensor,
