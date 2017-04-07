@@ -29,7 +29,7 @@ function parseOptions(opts, verbose) {
 // Each implementation of weight decay is expected to add a penalty
 // term for the parameters encountered while estimating gradients
 // only. The alternative of penalizing all parameters is not feasible,
-// since parameters are created lazily by the program been optimized.
+// since parameters are created lazily by the program being optimized.
 // Note that this strategy is equivalent to the weight decay produced
 // by using Gaussian priors and Delta guides when optimizing the ELBO.
 
