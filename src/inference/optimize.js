@@ -10,6 +10,7 @@ var util = require('../util');
 var optMethods = require('adnn/opt');
 var paramStruct = require('../params/struct');
 var params = require('../params/params');
+var weightDecay = require('./weightDecay');
 var fs = require('fs');
 var nodeUtil = require('util');
 
@@ -46,6 +47,7 @@ module.exports = function(env) {
       estimator: 'ELBO',
       steps: 1,
       clip: false,              // false = no clipping, otherwise specifies threshold.
+      weightDecay: 0,
       showGradNorm: false,
       checkGradients: true,
       verbose: true,
@@ -111,6 +113,9 @@ module.exports = function(env) {
       checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
     }
 
+    // Weight decay.
+    var decayWeights = weightDecay.parseOptions(options.weightDecay, options.verbose);
+
     var onStep = function(i, objective, cont) {
       return applyd(s, function(s, val) {
         return cont();
@@ -128,17 +133,6 @@ module.exports = function(env) {
             if (options.checkGradients) {
               checkGradients(gradObj);
             }
-
-            if (options.clip || options.showGradNorm) {
-              var norm = paramStruct.norm(gradObj);
-              if (options.showGradNorm) {
-                console.log('L2 norm of gradient: ' + norm);
-              }
-              if (options.clip) {
-                paramStruct.clip(gradObj, options.clip, norm);
-              }
-            }
-
             if (options.verbose) {
               showProgress(i, objective);
             }
@@ -153,6 +147,18 @@ module.exports = function(env) {
 
             // Retrieve latest params from store
             return params.sync(function(paramsObj) {
+
+              decayWeights(gradObj, paramsObj);
+
+              if (options.clip || options.showGradNorm) {
+                var norm = paramStruct.norm(gradObj);
+                if (options.showGradNorm) {
+                  console.log('L2 norm of gradient: ' + norm);
+                }
+                if (options.clip) {
+                  paramStruct.clip(gradObj, options.clip, norm);
+                }
+              }
 
               // Update local copy of params
               optimizer(gradObj, paramsObj, i);

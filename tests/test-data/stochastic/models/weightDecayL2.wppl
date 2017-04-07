@@ -1,0 +1,5 @@
+var model = function() {
+  var mu = param();
+  observe(Gaussian({mu, sigma: 1}), 3);
+  return mu;
+};
