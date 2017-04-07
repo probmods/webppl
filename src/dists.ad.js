@@ -1503,9 +1503,15 @@ var Categorical = makeDistributionType({
   mixins: [finiteSupport],
   constructor: function() {
     'use ad';
-    var dist = {};
     var ps = this.params.ps;
     var vs = this.params.vs;
+    if (vs.length !== ad.value(ps).length) {
+      throw new Error('Parameters ps and vs should have the same length.');
+    }
+    if (vs.length === 0) {
+      throw new Error('Parameters ps and vs should have length > 0.');
+    }
+    var dist = {};
     var norm = _.isArray(ps) ? sum(ps) : T.sumreduce(ps);
     for (var i in vs) {
       var val = vs[i];
