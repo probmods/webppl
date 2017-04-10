@@ -52,7 +52,7 @@ function defaultInit(mu, sigma) {
 
 module.exports = function(env) {
 
-  var runForward = require('../inference/forwardSample')(env).runForward;
+  var forward = require('../inference/forwardSample')(env).forward;
 
   var dimsForScalarParam = [1];
 
@@ -86,8 +86,7 @@ module.exports = function(env) {
         return init(s, k, a, dims);
       };
 
-      var next = function(k, ret) {
-        var initialVal = ret.val;
+      var next = function(k, initialVal) {
         params.create(name, initialVal);
         if (!_.isEqual(dims, initialVal.dims)) {
           var msg = 'The init function did not return a tensor with the expected shape.';
@@ -96,7 +95,7 @@ module.exports = function(env) {
         return finish(s);
       };
 
-      return runForward(s, next, a, initThunk);
+      return forward(s, next, a, initThunk);
     }
 
     function finish(s) {

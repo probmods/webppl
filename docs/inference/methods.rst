@@ -343,6 +343,8 @@ Optimization
 
      Infer({method: 'optimize', samples: 100, steps: 100, model: model});
 
+.. _forward_sampling:
+
 Forward Sampling
 ----------------
 

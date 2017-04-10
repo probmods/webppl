@@ -1,6 +1,6 @@
-sample(Infer({ method: 'forward', samples: 1, guide: true, model: function() {
+forwardGuide(function() {
   return observe(
       Discrete({ ps: [1] }),
       undefined,
       { guide: function() { return Delta({ v: 'ok' }); }});
-}}));
+});

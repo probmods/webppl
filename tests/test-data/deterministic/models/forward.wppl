@@ -1,0 +1,11 @@
+var model = function() {
+  factor(0);
+  return sample(Delta({v: 0}), {guide() {
+    return Delta({v: 1});
+  }});
+};
+
+[
+  forward(model),
+  forwardGuide(model)
+];
