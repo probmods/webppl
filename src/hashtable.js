@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 
+var util = require('./util');
+
 var FUNCTION = 'function', STRING = 'string', UNDEFINED = undefined;
 
 // // Require Array.prototype.splice, Object.prototype.hasOwnProperty and encodeURIComponent. In environments not
