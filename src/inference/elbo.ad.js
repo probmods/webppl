@@ -89,7 +89,7 @@ module.exports = function(env) {
       }
       throw new Error(msg);
     }
-  };
+  }
 
   ELBO.prototype = {
 

@@ -37,7 +37,7 @@ module.exports = function(env) {
           function(i, next) {
             return this.wpplFn(_.clone(this.s), function(s, val) {
               return next();
-            }.bind(this), this.a);
+            }, this.a);
           }.bind(this),
 
           // Continuation.

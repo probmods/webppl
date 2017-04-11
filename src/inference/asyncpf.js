@@ -59,7 +59,7 @@ module.exports = function(env) {
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
     this.oldStore = _.clone(s); // will be reinstated at the end
-  };
+  }
 
   AsyncPF.prototype.run = function(numP) {
     // allows for continuing pf

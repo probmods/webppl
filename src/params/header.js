@@ -110,7 +110,7 @@ module.exports = function(env) {
         throw new Error(msg);
       }
       return k(s, dims === dimsForScalarParam ? ad.tensor.get(val, 0) : val);
-    };
+    }
   };
 
   return {

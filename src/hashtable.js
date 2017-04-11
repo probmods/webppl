@@ -346,7 +346,7 @@ function Hashtable() {
             biggestBucket = buckets[0];
             var i = buckets.length;
             while (i--) {
-                            if (buckets[i].entries.length > biggestBucket.entries.length)
+              if (buckets[i].entries.length > biggestBucket.entries.length)
                 biggestBucket = buckets[i];
             }
           }

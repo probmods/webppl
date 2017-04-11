@@ -187,7 +187,7 @@ function compile(code, options) {
       _.flow(transforms),
       generateCodeAndAssets
     ])(asts);
-  };
+  }
 
   return util.timeif(options.verbose, 'compile', _compile);
 }

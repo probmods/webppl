@@ -158,7 +158,7 @@ module.exports = function(env) {
       });
       return miniBatch;
     }
-  };
+  }
 
   return function() {
     var coroutine = Object.create(EUBO.prototype);

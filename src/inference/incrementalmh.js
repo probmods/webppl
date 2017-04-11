@@ -579,13 +579,14 @@ module.exports = function(env) {
   }
 
   ArrayDistMasterList.prototype.size = function() { return this.distNodes.length; }
-      ArrayDistMasterList.prototype.oldSize = function() {
-        return this.oldDistNodes === undefined ? undefined : this.oldDistNodes.length;
-      }
 
-      ArrayDistMasterList.prototype.addDist = function(node) {
-        this.distNodes.push(node);
-      };
+  ArrayDistMasterList.prototype.oldSize = function() {
+    return this.oldDistNodes === undefined ? undefined : this.oldDistNodes.length;
+  }
+
+  ArrayDistMasterList.prototype.addDist = function(node) {
+    this.distNodes.push(node);
+  };
 
   ArrayDistMasterList.prototype.removeDist = function(node) {
     // Set it up to be removed as a post-process
@@ -621,14 +622,14 @@ module.exports = function(env) {
   }
 
   HashtableDistMasterList.prototype.size = function() { return this.numDists; }
-      HashtableDistMasterList.prototype.oldSize = function() { return this.oldNumDists; }
+  HashtableDistMasterList.prototype.oldSize = function() { return this.oldNumDists; }
 
-      HashtableDistMasterList.prototype.addDist = function(node) {
-        this.distNodeMap.put(node.address, node);
-        this.distsAdded.push(node);
-        this.numDists++;
+  HashtableDistMasterList.prototype.addDist = function(node) {
+    this.distNodeMap.put(node.address, node);
+    this.distsAdded.push(node);
+    this.numDists++;
         // this.checkConsistency("addDist");
-      };
+  };
 
   HashtableDistMasterList.prototype.removeDist = function(node) {
     this.distNodeMap.remove(node.address);
@@ -647,20 +648,20 @@ module.exports = function(env) {
 
   HashtableDistMasterList.prototype.getRandom = function() { return this.distNodeMap.getRandom(); }
 
-      HashtableDistMasterList.prototype.restoreOnReject = function() {
+  HashtableDistMasterList.prototype.restoreOnReject = function() {
         // this.checkConsistency("restoreOnReject");
-        this.numDists = this.oldNumDists;
-        var n = this.distsAdded.length;
-        while (n--) {
-          var node = this.distsAdded[n];
-          this.distNodeMap.remove(node.address);
-        }
-        n = this.distsRemoved.length;
-        while (n--) {
-          var node = this.distsRemoved[n];
-          this.distNodeMap.put(node.address, node);
-        }
-      };
+    this.numDists = this.oldNumDists;
+    var n = this.distsAdded.length;
+    while (n--) {
+      var node = this.distsAdded[n];
+      this.distNodeMap.remove(node.address);
+    }
+    n = this.distsRemoved.length;
+    while (n--) {
+      var node = this.distsRemoved[n];
+      this.distNodeMap.put(node.address, node);
+    }
+  };
 
   // For debugging
   HashtableDistMasterList.prototype.checkConsistency = function(tag) {
