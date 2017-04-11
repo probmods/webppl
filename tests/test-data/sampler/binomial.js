@@ -69,8 +69,6 @@ module.exports = {
     mode: function(params) {
       var p = params[0];
       var n = params[1];
-      // todo: when (n+1)p is an integer and p != 0 or 1,
-      // then there are two modes: (n+1)p and (n+1)p - 1
       return Math.floor((n + 1) * p)
     },
     variance: function(params) {
