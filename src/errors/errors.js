@@ -85,16 +85,18 @@ function sourceMapJsStackTrace(stackTrace, sourceMap) {
         column: entry.columnNumber
       });
 
-      return positionPopulated(pos) ?
-          {
-            fileName: pos.source,
-            lineNumber: pos.line,
-            columnNumber: pos.column,
-            native: entry.native,
-            webppl: true,
-            name: filterGensym(pos.name)
-          } :
-          null;
+      if (positionPopulated(pos)) {
+        return {
+          fileName: pos.source,
+          lineNumber: pos.line,
+          columnNumber: pos.column,
+          native: entry.native,
+          webppl: true,
+          name: filterGensym(pos.name)
+        };
+      } else {
+        return null;
+      }
     } else {
       return entry;
     }
