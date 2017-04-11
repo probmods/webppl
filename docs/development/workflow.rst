@@ -68,16 +68,16 @@ Linting
 
 To only run the linter::
 
-    grunt gjslint
+    grunt lint
 
 For more semantic linting, try::
 
     grunt hint
 
-If gjslint complains about style errors (like indentation), you can fix
-many of them automatically using::
+If the linter complains about style errors (like indentation), you can
+fix many of them automatically using::
 
-    grunt fixjsstyle
+    grunt lint --fix --force
 
 Browser version
 ---------------

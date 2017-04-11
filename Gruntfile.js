@@ -24,6 +24,29 @@ module.exports = function(grunt) {
     nodeunit: {
       all: ['tests/test-*.js']
     },
+    eslint: {
+      lib: {
+        src: [
+          'Gruntfile.js',
+          'src/**/*.js'
+        ],
+        filter: _.negate(isCodeGenFile)
+      },
+      test: {
+        src: ['tests/**/*.js']
+      },
+      wppl: {
+        src: [
+          'src/header.wppl',
+          'examples/*.wppl',
+          'tests/test-data/**/*.wppl'
+        ],
+        options: {
+          configFile: '.eslintrc.wppl.js'
+        }
+      },
+      options: {fix: "<%= grunt.option('fix') %>"}
+    },
     jshint: {
       all: {
         src: [
@@ -77,13 +100,15 @@ module.exports = function(grunt) {
     return pkgArg + ' -t brfs src/browser.js -o bundle/webppl.js -x mongodb';
   }
 
+  grunt.loadNpmTasks('grunt-eslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  grunt.registerTask('default', ['nodeunit']);
+  grunt.registerTask('default', ['eslint', 'nodeunit']);
   grunt.registerTask('test', ['nodeunit']);
+  grunt.registerTask('lint', ['eslint']);
   grunt.registerTask('hint', ['jshint']);
   grunt.registerTask('travis-phantomjs', ['bundle', 'test-phantomjs']);
 

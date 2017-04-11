@@ -35,11 +35,13 @@
   "devDependencies": {
     "aws-sdk": "^2.4.1",
     "brfs": "^1.4.3",
+    "eslint": "^3.19.0",
     "grunt": "^1.0.0",
     "grunt-contrib-clean": "^1.0.0",
     "grunt-contrib-jshint": "^1.1.0",
     "grunt-contrib-nodeunit": "^1.0.0",
     "grunt-contrib-watch": "^1.0.0",
+    "grunt-eslint": "^19.0.0",
     "nodeunit": "^0.9.1",
     "open": "0.0.5",
     "qunit-phantomjs-runner": "^2.1.0",
