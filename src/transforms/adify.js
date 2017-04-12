@@ -55,7 +55,11 @@ function addAdRequire(ast, adRequirePath) {
   assert.ok(isUseStrictExpr(useStrictNode));
   var requireNode = parse("var ad = require('" + adRequirePath + "');").body[0];
   var rest = body.slice(1);
-  return build.program([useStrictNode, requireNode].concat(rest));
+  // Remove any existing calls to require ad, to avoid duplication.
+  var restFiltered = rest.filter(function(node) {
+    return !_.isEqual(node, requireNode);
+  });
+  return build.program([useStrictNode, requireNode].concat(restFiltered));
 }
 
 function removeUseAdExpressions(ast) {
