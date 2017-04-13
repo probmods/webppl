@@ -176,7 +176,6 @@ module.exports = function(env) {
         if (node instanceof SampleNode && node.reparam) {
           return acc + node.multiplier * (node.logq - node.logp);
         } else if (node instanceof SampleNode) {
-          assert.ok(!node.param);
           var weight = naiveLR ? rootNode.weight : node.weight;
           assert.ok(_.isNumber(weight));
           var b = this.computeBaseline(node.address, weight);
