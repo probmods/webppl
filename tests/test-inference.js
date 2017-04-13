@@ -74,11 +74,13 @@ var tests = [
       deterministic: { hist: { exact: true } },
       store: { hist: { exact: true } },
       geometric: { args: { maxExecutions: 10 } },
+      binomial2: true,
       delta: { args: { exact: true } },
       discreteArr: true,
       discreteVec: true,
       categoricalArr: true,
       categoricalVec: true,
+      randomInteger2: true,
       cache: true,
       withCaching: true,
       earlyExit: { hist: { exact: true } },
@@ -671,6 +673,22 @@ var tests = [
         args: {
           samples: 10000,
           steps: 10000,
+          verbose: false
+        }
+      },
+      randomInteger2: {
+        args: {
+          samples: 1000,
+          steps: 1000,
+          optMethod: {adam: {stepSize: 0.1}},
+          verbose: false
+        }
+      },
+      binomial2: {
+        args: {
+          samples: 1000,
+          steps: 1000,
+          optMethod: {adam: {stepSize: 0.1}},
           verbose: false
         }
       },
