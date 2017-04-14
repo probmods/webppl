@@ -279,9 +279,11 @@ var Bernoulli = makeDistributionType({
 });
 
 function mvBernoulliScore(ps, x) {
-  assert.ok(ad.value(x).rank === 2);
-  assert.ok(ad.value(x).dims[1] === 1);
-  assert.ok(ad.value(x).dims[0] === ad.value(ps).dims[0]);
+  var _x = ad.value(x);
+  var _ps = ad.value(ps);
+  if (!util.isVector(_x) || !util.tensorEqDim0(_x, _ps)) {
+    return -Infinity;
+  }
 
   var xSub1 = ad.tensor.sub(x, 1);
   var pSub1 = ad.tensor.sub(ps, 1);
