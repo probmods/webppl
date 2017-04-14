@@ -164,7 +164,7 @@ module.exports = function(env) {
       }
     });
     return momentum;
-  };
+  }
 
   HMCKernel.prototype.leapFrogStep = function(cont, trace) {
     return this.positionStep(function(newTrace) {

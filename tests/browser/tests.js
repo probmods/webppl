@@ -1,5 +1,7 @@
 'use strict';
 
+/*global QUnit webppl util _*/
+
 QUnit.test('run', function(test) {
   var done = test.async();
   webppl.run('Infer({model: flip})', function(s, dist) {

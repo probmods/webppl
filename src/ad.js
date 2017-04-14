@@ -20,7 +20,6 @@ var valueRec = function(x) {
     var proto = Object.getPrototypeOf(x);
     var y = _.mapValues(x, valueRec);
     return _.assign(Object.create(proto), y);
-    return y;
   } else {
     return x;
   }

@@ -76,7 +76,6 @@ function kde(samps, kernel) {
 }
 
 function mode(samps) {
-  // TODO: accommodate multimodality
   // tally values and sort
   var tallied = _.sortBy(_.toPairs(_.countBy(samps)), '1');
   return _.last(tallied)[0];

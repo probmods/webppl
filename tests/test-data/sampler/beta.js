@@ -1,3 +1,5 @@
+var _ = require('lodash');
+var assert = require('assert');
 var dists = require('../../../src/dists');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');

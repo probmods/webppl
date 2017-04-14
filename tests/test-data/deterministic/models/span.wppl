@@ -5,12 +5,12 @@
   map(sum, span(isEven, mapN(idF, 1000))),
   map(sum, span(isEven, mapN(idF, 20000))),
   span(function(ar) { return isEven(ar.length) },
-       [[],
-        [1],
-        [1, 2],
-        [1, 2, 3],
-        [1, 2, 3, 4],
-        [1, 2, 3, 4, 5]
-       ]
+    [[],
+     [1],
+     [1, 2],
+     [1, 2, 3],
+     [1, 2, 3, 4],
+     [1, 2, 3, 4, 5]
+    ]
  )
 ]

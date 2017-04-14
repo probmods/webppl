@@ -223,11 +223,17 @@ function paramSpec(type, targetParam) {
     case 'array':
       if (type.elementType.name === 'any' || type.elementType.name === 'int') {
         return {const: targetParam};
+      } else {
+        throw paramSpecError(type);
       }
     default:
-      var msg = 'Can\'t generate specification for parameter of type "' + type.name + '".';
-      throw new Error(msg);
+      throw paramSpecError(type);
   }
+}
+
+function paramSpecError(type) {
+  var msg = 'Can\'t generate specification for parameter of type "' + type.name + '".';
+  return new Error(msg);
 }
 
 function dirichletSpec(targetDist) {

@@ -67,15 +67,12 @@ function shouldCache(callee) {
 }
 
 function exit(node) {
-  switch (node.type) {
-    case Syntax.CallExpression:
-      if (shouldCache(node.callee)) {
-        return build.callExpression(
-            build.identifier('incrementalize'),
-            [node.callee, build.arrayExpression(node.arguments)]
-        );
-      }
-    default:
+  if (node.type === Syntax.CallExpression &&
+      shouldCache(node.callee)) {
+    return build.callExpression(
+      build.identifier('incrementalize'),
+      [node.callee, build.arrayExpression(node.arguments)]
+    );
   }
 }
 

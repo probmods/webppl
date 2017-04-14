@@ -9,8 +9,6 @@ var fs = require('fs');
 var AWS = require('aws-sdk');
 var zlib = require('zlib');
 
-// TODO: browserify
-
 var version = require('../src/pkginfo').version(),
     fileName = 'webppl-' + version + '.js';
 

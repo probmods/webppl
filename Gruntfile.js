@@ -19,36 +19,33 @@ function adSource(fn) {
   return fn.slice(0, -3) + '.ad.js';
 }
 
-var jslintSettings = {
-  options: {
-    flags: ['--flagfile .gjslintrc'],
-    reporter: {
-      name: 'console'
-    },
-    force: false
-  },
-  lib: {
-    src: [
-      'Gruntfile.js',
-      'src/header.wppl',
-      'src/**/*.js'
-    ],
-    filter: _.negate(isCodeGenFile)
-  },
-  test: {
-    src: ['tests/**/*.js']
-  },
-  wppl: {
-    src: [
-      'tests/test-data/**/*.wppl',
-      'examples/*.wppl'
-    ]
-  }
-};
 module.exports = function(grunt) {
   grunt.initConfig({
     nodeunit: {
       all: ['tests/test-*.js']
+    },
+    eslint: {
+      lib: {
+        src: [
+          'Gruntfile.js',
+          'src/**/*.js'
+        ],
+        filter: _.negate(isCodeGenFile)
+      },
+      test: {
+        src: ['tests/**/*.js']
+      },
+      wppl: {
+        src: [
+          'src/header.wppl',
+          'examples/*.wppl',
+          'tests/test-data/**/*.wppl'
+        ],
+        options: {
+          configFile: '.eslintrc.wppl.js'
+        }
+      },
+      options: {fix: "<%= grunt.option('fix') %>"}
     },
     jshint: {
       all: {
@@ -80,8 +77,6 @@ module.exports = function(grunt) {
         newcap: false
       }
     },
-    gjslint: jslintSettings,
-    fixjsstyle: jslintSettings,
     clean: ['bundle/*.js'],
     watch: {
       ad: {
@@ -105,17 +100,16 @@ module.exports = function(grunt) {
     return pkgArg + ' -t brfs src/browser.js -o bundle/webppl.js -x mongodb';
   }
 
-  grunt.loadNpmTasks('grunt-gjslint');
+  grunt.loadNpmTasks('grunt-eslint');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  grunt.registerTask('default', ['gjslint', 'nodeunit']);
+  grunt.registerTask('default', ['eslint', 'nodeunit']);
   grunt.registerTask('test', ['nodeunit']);
-  grunt.registerTask('lint', ['gjslint']);
+  grunt.registerTask('lint', ['eslint']);
   grunt.registerTask('hint', ['jshint']);
-  grunt.registerTask('fixstyle', ['fixjsstyle']);
   grunt.registerTask('travis-phantomjs', ['bundle', 'test-phantomjs']);
 
   grunt.registerTask('build-ad', function() {

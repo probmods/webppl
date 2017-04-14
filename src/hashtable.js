@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 
+var util = require('./util');
+
 var FUNCTION = 'function', STRING = 'string', UNDEFINED = undefined;
 
 // // Require Array.prototype.splice, Object.prototype.hasOwnProperty and encodeURIComponent. In environments not
@@ -344,7 +346,7 @@ function Hashtable() {
             biggestBucket = buckets[0];
             var i = buckets.length;
             while (i--) {
-                            if (buckets[i].entries.length > biggestBucket.entries.length)
+              if (buckets[i].entries.length > biggestBucket.entries.length)
                 biggestBucket = buckets[i];
             }
           }
