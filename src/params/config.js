@@ -3,6 +3,7 @@
 var _ = require('lodash');
 var memoryStore = require('./store/memory');
 var mongoStore = require('./store/mongo');
+var fileStore = require('./store/file');
 
 
 // Id of active parameter table
@@ -38,7 +39,8 @@ function isManualId() {
 
 var stores = {
   memory: memoryStore,
-  mongo: mongoStore
+  mongo: mongoStore,
+  file: fileStore
 };
 
 var _store = memoryStore;
