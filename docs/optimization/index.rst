@@ -43,4 +43,5 @@ optimization <optimize>`, primitives for specifying :ref:`parameters
 
    optimize
    parameters
+   filestore
    async
