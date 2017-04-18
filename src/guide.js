@@ -168,10 +168,12 @@ function spec(targetDist) {
   } else if (targetDist instanceof dists.Beta) {
     return betaSpec(targetDist);
   } else if (targetDist instanceof dists.Discrete) {
-    return discreteSpec(targetDist);
-  } else if (targetDist instanceof dists.RandomInteger ||
-             targetDist instanceof dists.Binomial ||
-             targetDist instanceof dists.MultivariateGaussian ||
+    return discreteSpec(ad.value(targetDist.params.ps).length);
+  } else if (targetDist instanceof dists.RandomInteger) {
+    return discreteSpec(targetDist.params.n);
+  } else if (targetDist instanceof dists.Binomial) {
+    return discreteSpec(targetDist.params.n + 1);
+  } else if (targetDist instanceof dists.MultivariateGaussian ||
              targetDist instanceof dists.Marginal ||
              targetDist instanceof dists.SampleBasedMarginal) {
     throwAutoGuideError(targetDist);
@@ -292,12 +294,11 @@ function gammaSpec(targetDist) {
   };
 }
 
-function discreteSpec(targetDist) {
-  var d = ad.value(targetDist.params.ps).length;
+function discreteSpec(dim) {
   return {
     type: dists.Discrete,
     params: {
-      ps: {param: {dims: [d - 1, 1], squish: dists.squishToProbSimplex}}
+      ps: {param: {dims: [dim - 1, 1], squish: dists.squishToProbSimplex}}
     }
   };
 }

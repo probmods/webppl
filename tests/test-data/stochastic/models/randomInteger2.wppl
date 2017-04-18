@@ -1,0 +1,5 @@
+var model = function() {
+  var x = randomInteger(2);
+  factor(x === 0 ? 0 : Math.log(0.25));
+  return x;
+};
