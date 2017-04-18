@@ -6,9 +6,7 @@ module.exports = {
   },
   'extends': 'eslint:recommended',
   'globals': {
-    Float64Array: true,
-    ad: true,
-    T: true
+    Float64Array: true
   },
   'rules': {
     'indent': [

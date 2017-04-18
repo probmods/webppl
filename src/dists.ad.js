@@ -29,12 +29,15 @@
 
 'use strict';
 
+var ad = require('./ad');
 var Tensor = require('./tensor');
 var _ = require('lodash');
 var util = require('./util');
 var assert = require('assert');
 var inspect = require('util').inspect;
 var types = require('./types');
+
+var T = ad.tensor;
 
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
