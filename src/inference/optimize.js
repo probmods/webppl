@@ -56,11 +56,7 @@ module.exports = function(env) {
 
       logProgress: false,
       logProgressFilename: 'optimizeProgress.csv',
-      logProgressThrottle: 200,
-
-      checkpointParams: false,
-      checkpointParamsFilename: 'optimizeParams.json',
-      checkpointParamsThrottle: 10000
+      logProgressThrottle: 200
     });
 
     // Create a (cps) function 'estimator' which computes gradient
@@ -104,15 +100,6 @@ module.exports = function(env) {
       }, options.logProgressThrottle, { trailing: false });
     }
 
-    // For checkpointing params to disk
-    var saveParams, checkpointParams;
-    if (options.checkpointParams) {
-      saveParams = function() {
-        params.save(options.checkpointParamsFilename);
-      };
-      checkpointParams = _.throttle(saveParams, options.checkpointParamsThrottle, { trailing: false });
-    }
-
     // Weight decay.
     var decayWeights = weightDecay.parseOptions(options.weightDecay, options.verbose);
 
@@ -138,9 +125,6 @@ module.exports = function(env) {
             }
             if (options.logProgress) {
               logProgress(i, objective);
-            }
-            if (options.checkpointParams) {
-              checkpointParams();
             }
 
             history.push(objective);
@@ -179,10 +163,6 @@ module.exports = function(env) {
           return options.onFinish(s, function(s) {
             if (options.logProgress) {
               fs.closeSync(logFile);
-            }
-            if (options.checkpointParams) {
-              // Save final params
-              saveParams();
             }
             return k(s);
           }, a, {history: history});
