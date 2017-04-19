@@ -63,6 +63,9 @@ function stop(k) {
   return k();
 }
 
+// Parameters are read from the file the first time they are requested
+// by a call to `getParams`. Thereafter, we don't re-read from the
+// file as we do not support parallel use of this store.
 function getParams(id, k) {
   if (!_.has(store, id)) {
     store[id] = {params: read(id), timestamp: Date.now()};
@@ -71,7 +74,7 @@ function getParams(id, k) {
 }
 
 // Perform throttled writes to disk when Optimize updates parameters.
-// This makes to possible to recover progress should the program crash
+// This makes it possible to recover progress should the program crash
 // before the final write happens. The frequency of writes can be
 // controlled using an environment variable.
 function setParams(id, params, k) {
