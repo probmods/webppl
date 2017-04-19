@@ -63,6 +63,9 @@ function stop(k) {
   return k();
 }
 
+// Parameters are read from the file the first time they are requested
+// by a call to `getParams`. Thereafter, we don't re-read from the
+// file as we do not support parallel use of this store.
 function getParams(id, k) {
   if (!_.has(store, id)) {
     store[id] = {params: read(id), timestamp: Date.now()};
