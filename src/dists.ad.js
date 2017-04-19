@@ -1059,7 +1059,8 @@ function betaSample(a, b) {
 
 // see lemma 6.1 from Ahrens & Dieter's
 // Computer Methods for Sampling from Gamma, Beta, Poisson and Binomial Distributions
-function binomialSample(p, n) {
+function binomialSample(_p, _n) {
+  var p = _p, n = _n; // avoid mutating arguments
   var k = 0;
   var N = 10;
   var a, b;
