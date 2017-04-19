@@ -71,7 +71,7 @@ function getParams(id, k) {
 }
 
 // Perform throttled writes to disk when Optimize updates parameters.
-// This makes to possible to recover progress should the program crash
+// This makes it possible to recover progress should the program crash
 // before the final write happens. The frequency of writes can be
 // controlled using an environment variable.
 function setParams(id, params, k) {
