@@ -69,6 +69,10 @@ module.exports = {
     mode: function(params) {
       var p = params[0];
       var n = params[1];
+      if (Number.isInteger((n + 1) * p) &&
+          p !== 0 && p !== 1) {
+        throw new Error("Don't know how to test multimodal distributions.");
+      }
       return Math.floor((n + 1) * p)
     },
     variance: function(params) {
