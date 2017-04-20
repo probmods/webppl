@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var assert = require('assert');
+var util = require('../util');
 
 var abs = Math.abs,
     pow = Math.pow,
@@ -78,7 +79,14 @@ function kde(samps, kernel) {
 function mode(samps) {
   // tally values and sort
   var tallied = _.sortBy(_.toPairs(_.countBy(samps)), '1');
-  return _.last(tallied)[0];
+  var last = _.last(tallied);
+  if (tallied.length > 1) {
+    var penultimate = tallied.slice(-2)[0];
+    if (penultimate[1] === last[1]) {
+      util.warn('Samples have more than one mode.');
+    }
+  }
+  return last[0];
 }
 
 // estimate the mode of a continuous distribution from some

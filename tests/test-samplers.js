@@ -58,10 +58,10 @@ var generateSettingTest = function(seed, distMetadata, settings) {
   var n = settings.n;
 
   // only test the stats that aren't blacklisted
-  var populationStatisticFunctions = _.pick(distMetadata.populationStatisticFunctions,
-                                            function(v, k) {
-                                              return !_.includes(settings.skip, k)
-                                            });
+  var populationStatisticFunctions = _.pickBy(distMetadata.populationStatisticFunctions,
+                                              function(v, k) {
+                                                return !_.includes(settings.skip, k)
+                                              });
   var group = {};
 
   var moment = distMetadata.moment;
