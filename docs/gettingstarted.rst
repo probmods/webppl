@@ -13,7 +13,7 @@ Learning
 --------
 
 If you're new to probabilistic programming, `Probabilistic Models of
-Cognition <https://probmods.org/v2/>`_ is a great place to start
+Cognition <https://probmods.org>`_ is a great place to start
 learning the paradigm.
 
 The best guide to using WebPPL is `The Design and Implementation of
