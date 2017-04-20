@@ -131,6 +131,7 @@ function isPrimitive(node) {
     case Syntax.FunctionExpression:
     case Syntax.Identifier:
     case Syntax.CallExpression:
+    case Syntax.ConditionalExpression:
       return false;
     case Syntax.MemberExpression:
       return (types.Identifier.check(node.object) ||
