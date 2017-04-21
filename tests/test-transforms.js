@@ -518,7 +518,27 @@ var tests = {
              '  };' +
              '};' +
              'foo(10);'),
-      expected: 1 }
+      expected: 1 },
+
+    { name: 'testTopLevelIf1',
+      code: 'if (true) { 1 }',
+      expected: 1
+    },
+
+    { name: 'testTopLevelIf2',
+      code: 'if (false) { 1 } else { 2 }',
+      expected: 2
+    },
+
+    { name: 'testTopLevelIf3',
+      code: 'if (false) { 1 } else if (true) { 2 }',
+      expected: 2
+    },
+
+    { name: 'testTopLevelIf4',
+      code: 'if (false) { 1 } else if (false) { 2 } else { 3 }',
+      expected: 3
+    }
 
   ],
 

@@ -109,7 +109,7 @@ function returnify(nodes) {
         return build.ifStatement(
             test,
             build.blockStatement(returnify(consequent.body)),
-            alternate === null ? null : build.blockStatement(returnify(alternate.body)));
+            alternate === null ? null : build.blockStatement(returnify([alternate])));
       }),
       clause(Syntax.ReturnStatement, function(argument) {
         return build.returnStatement(argument);
