@@ -1264,6 +1264,10 @@ function lnfactExact(x) {
   return t;
 }
 
+// This method comes from Ahrens and Dieters' 1974 paper "Computer
+// Methods for Sampling from Gamma, Beta, Poisson and Binomial
+// Distributions". The method is called Method PG, see page 240.
+
 function poissonSample(mu) {
   var k = 0;
   while (mu > 10) {
