@@ -94,7 +94,7 @@ function compile(code, packages, verbose, debug, programFile, outputFile) {
 
 function main() {
 
-  var argv = parseArgs(process.argv.slice(2), {default: {debug: true}});
+  var argv = parseArgs(process.argv.slice(2), {default: {debug: true}, '--': true});
 
   // Print version if requested
   if (argv.version) {
@@ -148,6 +148,9 @@ function main() {
   } else {
     paramsConfig.setFreshId();
   }
+
+  // Parse arguments for program.
+  global.argv = parseArgs([programFile].concat(argv['--']));
 
   processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);
 }
