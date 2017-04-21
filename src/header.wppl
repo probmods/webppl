@@ -7,11 +7,6 @@ var flip = function(p) {
   return sample(Bernoulli(params));
 };
 
-var categorical = function(arg1, arg2) {
-  var params = util.isObject(arg1) ? arg1 : {ps: arg1, vs: arg2};
-  return params.vs[discrete(params.ps)];
-};
-
 var uniformDraw = function(arg) {
   var vs = util.isObject(arg) ? arg.vs : arg;
   if (vs.length == 0) {

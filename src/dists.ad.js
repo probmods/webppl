@@ -1504,7 +1504,6 @@ var Categorical = makeDistributionType({
     {name: 'ps', desc: 'probabilities (can be unnormalized)', type: types.nonNegativeVectorOrRealArray},
     {name: 'vs', desc: 'support', type: types.array(types.any)}],
   wikipedia: true,
-  nohelper: true,
   mixins: [finiteSupport],
   constructor: function() {
     'use ad';
