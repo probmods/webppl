@@ -189,7 +189,11 @@ function compile(code, options) {
     ])(asts);
   }
 
-  return util.timeif(options.verbose, 'compile', _compile);
+  var r = util.timeif(options.verbose, 'compile', _compile);
+  // provide compiled code and sourceMap to support reflection
+  global.__sourceMap__ = r.sourceMap;
+  global.__compiled__ = r.code;
+  return r;
 }
 
 function wrapWithHandler(f, handler) {
@@ -262,6 +266,11 @@ function prepare(codeAndAssets, k, options) {
 function run(code, k, options) {
   options = options || {};
   var codeAndAssets = compile(code, options);
+  // provide compiled code and sourceMap to support reflection
+  global.__compiled__ = codeAndAssets.code;
+  if (_.has(codeAndAssets, 'sourceMap')) {
+    global.__sourceMap__ = codeAndAssets.sourceMap;
+  }
   util.timeif(options.verbose, 'run', prepare(codeAndAssets, k, options).run);
 }
 
