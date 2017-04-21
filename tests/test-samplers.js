@@ -46,7 +46,8 @@ var distMetadataList = [
   require('./test-data/sampler/gamma'),
   require('./test-data/sampler/binomial'),
   require('./test-data/sampler/beta'),
-  require('./test-data/sampler/gaussian')
+  require('./test-data/sampler/gaussian'),
+  require('./test-data/sampler/poisson')
 ];
 
 var generateSettingTest = function(seed, distMetadata, settings) {

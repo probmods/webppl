@@ -1267,10 +1267,10 @@ function lnfactExact(x) {
 function poissonSample(mu) {
   var k = 0;
   while (mu > 10) {
-    var m = 7 / 8 * mu;
+    var m = Math.floor(7 / 8 * mu);
     var x = gammaSample(m, 1);
-    if (x > mu) {
-      return (k + binomialSample(mu / x, m - 1)) || 0;
+    if (x >= mu) {
+      return k + binomialSample(mu / x, m - 1);
     } else {
       mu -= x;
       k += m;
@@ -1282,7 +1282,7 @@ function poissonSample(mu) {
     p *= util.random();
     k++;
   } while (p > emu);
-  return (k - 1) || 0;
+  return k - 1;
 }
 
 var Poisson = makeDistributionType({
