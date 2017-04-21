@@ -451,7 +451,14 @@ var tests = {
         'var a = ((x === undefined) ? false : id(x.foo)) || true;',
         'a'
       ].join('\n'),
-      expected: true }
+      expected: true },
+
+    { name: 'testConditional5',
+      code: [
+        'var id = function(x){return x};',
+        '(true ? id : id)(0)'
+      ].join('\n'),
+      expected: 0 }
 
   ],
 
