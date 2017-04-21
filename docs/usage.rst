@@ -28,7 +28,7 @@ Passing arguments to the program
 Command line arguments can be passed through to the WebPPL program by
 placing them after a single ``--`` argument. Such arguments are parsed
 (with `minimist <https://www.npmjs.com/package/minimist>`_) and the
-result bound to the global variable ``argv``.
+result is bound to the global variable ``argv``.
 
 For example, this program::
 
