@@ -36,6 +36,7 @@ function run(code, packages, verbose, debug, programFile) {
           try {
             var stack = errors.recoverStack(error, parseV8);
             showError(error, stack, programFile, debug);
+            console.log(error.stack);
             process.exitCode = 1;
           } catch (e) {
             // If we fail to generate a readable error message re-throw
