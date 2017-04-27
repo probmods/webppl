@@ -88,7 +88,10 @@ module.exports = function(env) {
   };
 
   env.factor = function(s, k, a, score) {
-    assert.ok(!isNaN(ad.value(score)), 'factor() score was NaN');
+    var _score = ad.value(score);
+    if (typeof _score !== 'number' || isNaN(_score)) {
+      throw new Error('The score argument is not a number.');
+    }
     return env.coroutine.factor(s, k, a, score);
   };
 
