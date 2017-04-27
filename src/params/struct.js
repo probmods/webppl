@@ -1,60 +1,44 @@
 // Operations on the data structure that holds guide parameters or
 // gradients.
 
-// The data structure looks like this:
-
-// {
-//   name1: [tensor11, tensor12, ...],
-//   name2: [tensor21, tensor22, ...],
-//   ...
-// }
+// The data structure is a dictionary mapping parameter names (string)
+// to parameter values (tensor).
 
 'use strict';
 
 var assert = require('assert');
 var _ = require('lodash');
 
-
 function addEq(g, h) {
   // In-place addition.
-  _.each(h, function(hs, a) {
+  _.each(h, function(val, a) {
     if (!_.has(g, a)) {
-      g[a] = hs;
+      g[a] = val;
     } else {
-      var gs = g[a];
-      assert.strictEqual(gs.length, hs.length);
-      for (var i = 0; i < gs.length; i++) {
-        gs[i].addeq(hs[i]);
-      }
+      g[a].addeq(val);
     }
   });
 }
 
 function mulEq(g, s) {
   // In-place multiplication by a scalar.
-  _.each(g, function(gs) {
-    for (var i = 0; i < gs.length; i++) {
-      gs[i].muleq(s);
-    }
+  _.each(g, function(val) {
+    val.muleq(s);
   });
 }
 
 function divEq(g, s) {
   // In-place division by a scalar.
-  _.each(g, function(gs) {
-    for (var i = 0; i < gs.length; i++) {
-      gs[i].diveq(s);
-    }
+  _.each(g, function(val) {
+    val.diveq(s);
   });
 }
 
 function norm(g) {
   // Compute the L2 norm.
   var normsq = 0;
-  _.each(g, function(gs) {
-    _.each(gs, function(g) {
-      normsq += g.mul(g).sumreduce();
-    });
+  _.each(g, function(val) {
+    normsq += val.mul(val).sumreduce();
   });
   return Math.sqrt(normsq);
 }
@@ -67,8 +51,8 @@ function clip(g, threshold, normOfG) {
 }
 
 function deepCopy(g) {
-  return _.mapValues(g, function(arr) {
-    return arr.map(function(tensor) { return tensor.clone(); });
+  return _.mapValues(g, function(val) {
+    return val.clone();
   });
 }
 
@@ -76,7 +60,7 @@ function deepCopy(g) {
 // h. Assumes that every key in h is also a key in g.
 function select(g, h) {
   return _.mapValues(h, function(unused, key) {
-    return g[key].map(function(tensor) { return tensor.clone(); });
+    return g[key].clone();
   });
 }
 
