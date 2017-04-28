@@ -1518,14 +1518,23 @@ function printMarginal(dist) {
 
 var Categorical = makeDistributionType({
   name: 'Categorical',
-  desc: 'Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``',
+  desc: 'Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``. ' +
+    '``ps`` may be omitted, in which case a uniform distribution over ``vs`` is returned.',
   params: [
-    {name: 'ps', desc: 'probabilities (can be unnormalized)', type: types.nonNegativeVectorOrRealArray},
+    {name: 'ps', desc: 'probabilities (can be unnormalized)',
+      type: types.nonNegativeVectorOrRealArray, optional: true},
     {name: 'vs', desc: 'support', type: types.array(types.any)}],
   wikipedia: true,
   mixins: [finiteSupport],
   constructor: function() {
     'use ad';
+    // Add default for ps when omitted.
+    if (this.params.ps === undefined) {
+      this.params = {
+        ps: _.fill(Array(this.params.vs.length), 1),
+        vs: this.params.vs
+      };
+    }
     var ps = this.params.ps;
     var vs = this.params.vs;
     if (vs.length !== ad.value(ps).length) {

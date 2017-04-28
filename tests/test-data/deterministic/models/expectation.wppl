@@ -3,5 +3,6 @@
   expectation(Discrete({ps: [3, 5, 2]}), idF),
   expectation(Discrete({ps: Vector([3, 5, 2])}), idF),
   expectation(Categorical({ps: [3, 5, 2], vs: [0, 1, 2]}), idF),
-  expectation(Categorical({ps: Vector([3, 5, 2]), vs: [0, 1, 2]}), idF)
+  expectation(Categorical({ps: Vector([3, 5, 2]), vs: [0, 1, 2]}), idF),
+  expectation(Categorical({vs: [0, 1]}), idF)
 ];
