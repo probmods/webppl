@@ -220,7 +220,7 @@ function prepare(codeAndAssets, k, options) {
     errors.extendError(error, codeAndAssets, currentAddress);
     // Trigger clean-up. When using the mongo store, the process won't
     // exit until the connection is closed.
-    cleanup(_.identity);
+    runtimeTeardown(_.noop);
     throw error;
   };
   var allErrorHandlers = [defaultHandler].concat(options.errorHandlers);
@@ -229,31 +229,9 @@ function prepare(codeAndAssets, k, options) {
   var baseRunner = options.baseRunner || util.trampolineRunners[util.runningInBrowser() ? 'web' : 'cli']();
   var runner = wrapRunner(baseRunner, allErrorHandlers);
 
-  // We store the trampoline runner so that header functions that call
-  // external asynchronous functions can resume execution in callbacks.
-  global.resumeTrampoline = runner;
-
-  // Before the program finishes, we tell the param store to finish up
-  // gracefully (e.g., shutting down a connection to a remote store).
-  var cleanup = params.stop;
-  var finish = function(s, x) {
-    return cleanup(function() {
-      return k(s, x);
-    });
-  };
-
   var run = function() {
-    // We reset env since a previous call to run may have raised an
-    // exception and left an inference coroutine installed.
-    env.reset();
-    // We initialize the parameter store (e.g., connecting to a remote
-    // store, retrieving params).
-    params.init(function() {
-      var wpplFn = eval.call(global, codeAndAssets.code)(currentAddress)(runner);
-      var initialAddress = '';
-      return wpplFn(options.initialStore, finish, initialAddress);
-    });
-    util.resetWarnings();
+    var main = eval.call(global, codeAndAssets.code);
+    runEvaled(main, runner, currentAddress, options.initialStore, k, '');
   };
 
   return { run: run };
@@ -263,6 +241,37 @@ function run(code, k, options) {
   options = options || {};
   var codeAndAssets = compile(code, options);
   util.timeif(options.verbose, 'run', prepare(codeAndAssets, k, options).run);
+}
+
+function runEvaled(main, runner, addressCell, s, k, a) {
+  function finish(s, x) {
+    runtimeTeardown(function() {
+      return k(s, x);
+    });
+  }
+  runtimeSetup(runner, function() {
+    main(addressCell)(runner)(s, finish, a);
+  });
+}
+
+function runtimeSetup(runner, cont) {
+  // We store the trampoline runner so that header functions that call
+  // external asynchronous functions can resume execution in
+  // callbacks.
+  global.resumeTrampoline = runner;
+  // We reset env since a previous call to run may have raised an
+  // exception and left an inference coroutine installed.
+  env.reset();
+  util.resetWarnings();
+  // We initialize the parameter store (e.g., connecting to a remote
+  // store, retrieving params).
+  params.init(cont);
+}
+
+function runtimeTeardown(cont) {
+  // Before the program finishes, we tell the param store to finish up
+  // gracefully (e.g., shutting down a connection to a remote store).
+  params.stop(cont);
 }
 
 // Make webppl eval available within webppl
@@ -290,5 +299,6 @@ module.exports = {
   parsePackageCode: parsePackageCode,
   prepare: prepare,
   run: run,
+  runEvaled: runEvaled,
   compile: compile
 };
