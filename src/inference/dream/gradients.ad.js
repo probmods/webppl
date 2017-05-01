@@ -45,9 +45,7 @@ module.exports = function(env) {
           objective.backprop();
         }
 
-        var grads = _.mapValues(this.paramsSeen, function(params) {
-          return params.map(ad.derivative);
-        });
+        var grads = _.mapValues(this.paramsSeen, ad.derivative);
 
         return cont(grads, -ad.value(this.logq));
 

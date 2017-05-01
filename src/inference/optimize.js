@@ -180,21 +180,19 @@ module.exports = function(env) {
 
   function checkGradients(gradObj) {
     // Emit warning when component of gradient is zero.
-    _.each(gradObj, function(grads, name) {
-      _.each(grads, function(g, i) {
-        if (allZero(g)) {
-          logGradWarning(name, i, 'zero');
-        }
-        if (!allFinite(g)) {
-          // Catches NaN, ±Infinity.
-          logGradWarning(name, i, 'not finite');
-        }
-      });
+    _.each(gradObj, function(grad, name) {
+      if (allZero(grad)) {
+        logGradWarning(name, 'zero');
+      }
+      if (!allFinite(grad)) {
+        // Catches NaN, ±Infinity.
+        logGradWarning(name, 'not finite');
+      }
     });
   }
 
-  function logGradWarning(name, i, problem) {
-    util.warn('Gradient for param ' + name + ':' + i + ' is ' + problem + '.', true);
+  function logGradWarning(name, problem) {
+    util.warn('Gradient for param ' + name + ' is ' + problem + '.', true);
   }
 
   return {

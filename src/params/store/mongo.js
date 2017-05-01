@@ -1,7 +1,6 @@
 'use strict';
 
 var _ = require('lodash');
-var paramStruct = require('../struct');
 var tensorsToObjects = require('../serialize').tensorsToObjects;
 var objectsToTensors = require('../serialize').objectsToTensors;
 
