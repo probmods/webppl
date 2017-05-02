@@ -776,47 +776,48 @@ module.exports = function(env) {
 
   function IncrementalMH(s, k, a, wpplFn, opts) {
     util.throwUnlessOpts(opts, 'IncrementalMH');
-    // Extract options
-    var numSamples = opts.samples === undefined ? 1 : opts.samples;
-    var dontAdapt = opts.dontAdapt === undefined ? false : opts.dontAdapt;
-    var debuglevel = opts.debuglevel === undefined ? 0 : opts.debuglevel;
-    var verbose = opts.verbose === undefined ? false : opts.verbose;
-    var doFullRerun = opts.doFullRerun === undefined ? false : opts.doFullRerun;
-    var onlyMAP = opts.onlyMAP === undefined ? false : opts.onlyMAP;
-    var minHitRate = opts.cacheMinHitRate === undefined ? 0.00000001 : opts.cacheMinHitRate;
-    var fuseLength = opts.cacheFuseLength === undefined ? 50 : opts.cacheFuseLength;
-    var lag = opts.lag === undefined ? 0 : opts.lag;
-    var iterFuseLength = opts.cacheIterFuseLength === undefined ? 10 : opts.cacheIterFuseLength;
-    var burn = opts.burn === undefined ? 0 : opts.burn;
-    var verboseLag = opts.verboseLag === undefined ? 1 : opts.verboseLag;
+    opts = util.mergeDefaults(opts, {
+      samples: 1,
+      dontAdapt: false,
+      debuglevel: 0,
+      verbose: false,
+      doFullRerun: false,
+      onlyMAP: false,
+      cacheMinHitRate: 0.00000001,
+      cacheFuseLength: 50,
+      lag: 0,
+      cacheIterFuseLength: 10,
+      burn: 0,
+      verboseLag: 1
+    });
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
     //    caching, so disable adaptation in this case.
-    if (doFullRerun)
-      dontAdapt = true;
+    if (opts.doFullRerun)
+      opts.dontAdapt = true;
 
-    DEBUG = debuglevel;
-    this.verbose = verbose;
+    DEBUG = opts.debuglevel;
+    this.verbose = opts.verbose;
 
     this.k = k;
     this.oldStore = s;
-    this.iterations = numSamples * (lag + 1) + burn;
+    this.iterations = opts.samples * (opts.lag + 1) + opts.burn;
     this.wpplFn = wpplFn;
     this.s = s;
     this.a = a;
 
-    this.aggregator = new CountAggregator(onlyMAP);
+    this.aggregator = new CountAggregator(opts.onlyMAP);
 
     this.totalIterations = this.iterations;
     this.acceptedProps = 0;
-    this.lag = lag;
-    this.burn = burn;
-    this.verboseLag = verboseLag;
+    this.lag = opts.lag;
+    this.burn = opts.burn;
+    this.verboseLag = opts.verboseLag;
 
-    this.doFullRerun = doFullRerun;
+    this.doFullRerun = opts.doFullRerun;
 
-    this.doAdapt = !dontAdapt;
-    this.cacheAdapter = new CacheAdapter(minHitRate, fuseLength, iterFuseLength);
+    this.doAdapt = !opts.dontAdapt;
+    this.cacheAdapter = new CacheAdapter(opts.cacheMinHitRate, opts.cacheFuseLength, opts.cacheIterFuseLength);
 
     // Move old coroutine out of the way and install this as the current
     // handler.
