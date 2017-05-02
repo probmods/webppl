@@ -30,7 +30,7 @@ module.exports = function(env) {
       // is useful in combination with the dumpGraph option for
       // understanding/debugging weight propagation.
       debugWeights: false
-    });
+    }, 'ELBO');
     return function(wpplFn, s, a, state, step, cont) {
       return new ELBO(wpplFn, s, a, options, state, step, cont).run();
     };

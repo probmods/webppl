@@ -22,7 +22,7 @@ module.exports = function(env) {
       incremental: false,
       throwOnError: true,
       minSampleRate: 0
-    });
+    }, 'Rejection');
 
     this.throwOnError = options.throwOnError;
     this.minSampleRate = options.minSampleRate;

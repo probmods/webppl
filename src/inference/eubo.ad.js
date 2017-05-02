@@ -25,9 +25,10 @@ module.exports = function(env) {
 
   function estimator(options) {
     options = util.mergeDefaults(options, {
-      batchSize: 1
-    });
-    if (!_.has(options, 'traces')) {
+      batchSize: 1,
+      traces: undefined
+    }, 'EUBO');
+    if (!options.traces) {
       throw 'Example traces required.';
     }
     if (options.batchSize <= 0 ||

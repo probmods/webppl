@@ -17,8 +17,10 @@ module.exports = function(env) {
       kernel: 'MH',
       lag: 0,
       burn: 0,
+      verbose: false,
+      onlyMAP: false,
       callbacks: []
-    });
+    }, 'MCMC');
 
     options.kernel = kernels.parseOptions(options.kernel);
 

@@ -48,7 +48,7 @@ module.exports = function(env) {
   return function(options) {
     var opts = util.mergeDefaults(options, {
       samples: 1
-    });
+    }, 'dream');
     return function(wpplFn, s, a, state, step, cont) {
 
       var objVal = 0;

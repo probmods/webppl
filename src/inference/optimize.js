@@ -57,7 +57,7 @@ module.exports = function(env) {
       logProgress: false,
       logProgressFilename: 'optimizeProgress.csv',
       logProgressThrottle: 200
-    });
+    }, 'Optimize');
 
     // Create a (cps) function 'estimator' which computes gradient
     // estimates based on the (local copy) of the current parameter
@@ -71,7 +71,6 @@ module.exports = function(env) {
                         'The following estimators are available: ' +
                         _.keys(estimators).join(', ') + '.');
       }
-      opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
       return _.partial(estimators[name](opts), wpplFn, s, a, state);
     });
 

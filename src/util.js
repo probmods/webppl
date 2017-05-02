@@ -191,7 +191,13 @@ function histsApproximatelyEqual(actualHist, expectedHist, tolerance, exactSuppo
   });
 }
 
-function mergeDefaults(options, defaults) {
+function mergeDefaults(options, defaults, callerName) {
+  if (callerName) {
+    var extra = _.difference(_.keys(options), _.keys(defaults));
+    extra.forEach(function(name) {
+      warn('Warning: Unused option \"' + name + '\" given to ' + callerName + '.');
+    });
+  }
   return _.defaults(options ? _.clone(options) : {}, defaults);
 }
 

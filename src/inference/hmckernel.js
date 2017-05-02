@@ -24,7 +24,7 @@ module.exports = function(env) {
     options = util.mergeDefaults(options, {
       steps: 5,
       stepSize: 0.1
-    });
+    }, 'HMC kernel');
     assert.ok(options.steps > 0);
     var f = function(cont, oldTrace, runOpts) {
       return new HMCKernel(cont, oldTrace, options, runOpts).run();

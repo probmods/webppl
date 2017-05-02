@@ -27,7 +27,7 @@ module.exports = function(env) {
       importance: 'default',
       onlyMAP: false,
       throwOnError: true
-    });
+    }, 'SMC');
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
       var msg = options.importance + ' is not a valid importance option. ' +

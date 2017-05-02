@@ -789,7 +789,7 @@ module.exports = function(env) {
       cacheIterFuseLength: 10,
       burn: 0,
       verboseLag: 1
-    });
+    }, 'IncrementalMH');
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
     //    caching, so disable adaptation in this case.

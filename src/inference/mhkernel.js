@@ -14,7 +14,7 @@ module.exports = function(env) {
       adRequired: false,
       permissive: false,
       discreteOnly: false
-    });
+    }, 'MH kernel');
     return function(cont, oldTrace, runOpts) {
       return new MHKernel(cont, oldTrace, options, runOpts).run();
     };

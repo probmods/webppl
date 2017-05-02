@@ -468,7 +468,7 @@ var SampleGuide = function(wpplFn, options) {
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
-  Optimize(wpplFn, _.omit(options, 'samples'));
+  Optimize(wpplFn, _.omit(options, 'samples', 'onlyMAP'));
   var opts = _.pick(options, 'samples', 'onlyMAP', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
@@ -481,6 +481,7 @@ var OptimizeThenSample = function(wpplFn, options) {
  * next step in the heuristics flowchart
  */
 var DefaultInfer = function(wpplFn, options) {
+  util.mergeDefaults(options, {}, 'Infer');
   var maxEnumTreeSize = 200000;
   var minSampleRate = 250; //from 1 to samples
   var samples = 1000;
