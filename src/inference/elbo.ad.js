@@ -17,8 +17,8 @@ var JoinNode = graph.JoinNode;
 
 module.exports = function(env) {
 
-  function ELBO(wpplFn, s, a, options, state, step, cont) {
-    this.opts = util.mergeDefaults(options, {
+  function estimator(options) {
+    options = util.mergeDefaults(options, {
       samples: 1,
       avgBaselines: true,
       avgBaselineDecay: 0.9,
@@ -31,7 +31,13 @@ module.exports = function(env) {
       // understanding/debugging weight propagation.
       debugWeights: false
     });
+    return function(wpplFn, s, a, state, step, cont) {
+      return new ELBO(wpplFn, s, a, options, state, step, cont).run();
+    };
+  }
 
+  function ELBO(wpplFn, s, a, options, state, step, cont) {
+    this.opts = options;
     this.step = step;
     this.state = state;
     this.cont = cont;
@@ -388,10 +394,6 @@ module.exports = function(env) {
 
   };
 
-  return function() {
-    var coroutine = Object.create(ELBO.prototype);
-    ELBO.apply(coroutine, arguments);
-    return coroutine.run();
-  };
+  return estimator;
 
 };

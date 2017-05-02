@@ -72,7 +72,7 @@ module.exports = function(env) {
                         _.keys(estimators).join(', ') + '.');
       }
       opts = util.mergeDefaults(opts, _.pick(options, 'verbose'));
-      return _.partial(estimators[name], wpplFn, s, a, opts, state);
+      return _.partial(estimators[name](opts), wpplFn, s, a, state);
     });
 
     var optimizer = util.getValAndOpts(options.optMethod, function(name, opts) {

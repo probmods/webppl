@@ -23,21 +23,25 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function EUBO(wpplFn, s, a, options, state, step, cont) {
-    this.opts = util.mergeDefaults(options, {
+  function estimator(options) {
+    options = util.mergeDefaults(options, {
       batchSize: 1
     });
-
-    if (!_.has(this.opts, 'traces')) {
+    if (!_.has(options, 'traces')) {
       throw 'Example traces required.';
     }
-
-    this.traces = this.opts.traces;
-
-    if (this.opts.batchSize <= 0 ||
-        this.opts.batchSize > this.traces.length) {
+    if (options.batchSize <= 0 ||
+        options.batchSize > options.traces.length) {
       throw 'Invalid batchSize.';
     }
+    return function(wpplFn, s, a, state, step, cont) {
+      return new EUBO(wpplFn, s, a, options, state, step, cont).run();
+    };
+  }
+
+  function EUBO(wpplFn, s, a, options, state, step, cont) {
+    this.opts = options;
+    this.traces = this.opts.traces;
 
     this.cont = cont;
 
@@ -158,10 +162,6 @@ module.exports = function(env) {
     }
   }
 
-  return function() {
-    var coroutine = Object.create(EUBO.prototype);
-    EUBO.apply(coroutine, arguments);
-    return coroutine.run();
-  };
+  return estimator;
 
 };
