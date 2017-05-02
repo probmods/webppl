@@ -9,28 +9,36 @@ module.exports = function(env) {
 
   var drift = require('./driftKernel')(env);
 
-  function MHKernel(cont, oldTrace, options) {
-    var options = util.mergeDefaults(options, {
-      proposalBoundary: 0,
-      exitFactor: 0,
+  function kernel(options) {
+    options = util.mergeDefaults(options, {
+      adRequired: false,
       permissive: false,
-      discreteOnly: false,
-      adRequired: false
+      discreteOnly: false
     });
+    return function(cont, oldTrace, runOpts) {
+      return new MHKernel(cont, oldTrace, options, runOpts).run();
+    };
+  }
 
+  function MHKernel(cont, oldTrace, options, runOpts) {
+    this.discreteOnly = options.discreteOnly;
+    this.adRequired = options.adRequired;
     if (!options.permissive) {
       assert.notStrictEqual(oldTrace.score, -Infinity);
     }
+
+    runOpts = util.mergeDefaults(runOpts, {
+      proposalBoundary: 0,
+      exitFactor: 0
+    });
+
+    this.proposalBoundary = runOpts.proposalBoundary;
+    this.exitFactor = runOpts.exitFactor;
 
     this.cont = cont;
     this.oldTrace = oldTrace;
     this.a = oldTrace.baseAddress; // Support relative addressing.
     this.reused = {};
-
-    this.proposalBoundary = options.proposalBoundary;
-    this.exitFactor = options.exitFactor;
-    this.discreteOnly = options.discreteOnly;
-    this.adRequired = options.adRequired;
 
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
@@ -216,8 +224,6 @@ module.exports = function(env) {
     return score;
   };
 
-  return function(cont, runWppl, oldTrace, options) {
-    return new MHKernel(cont, runWppl, oldTrace, options).run();
-  };
+  return kernel;
 
 };

@@ -9,16 +9,17 @@ module.exports = function(env) {
   var MHKernel = require('./mhkernel')(env);
   var HMCKernel = require('./hmckernel')(env);
 
-  function HMCwithMHKernel(cont, oldTrace, options) {
-    // The options arg is passed to both kernels as SMC passes
-    // exitFactor via options.
-    return HMCKernel(function(trace) {
-      var opts = _.assign({ discreteOnly: true, adRequired: true }, options);
-      return MHKernel(cont, trace, opts);
-    }, oldTrace, options);
+  function HMCwithMHKernel(options) {
+    var hmc = HMCKernel(options);
+    var mh = MHKernel({discreteOnly: true, adRequired: true});
+    var f = function(cont, oldTrace, runOpts) {
+      return hmc(function(trace) {
+        return mh(cont, trace, runOpts);
+      }, oldTrace, runOpts);
+    };
+    f.adRequired = true;
+    return f;
   }
-
-  HMCwithMHKernel.adRequired = true;
 
   var kernels = {
     MH: MHKernel,
@@ -49,11 +50,10 @@ module.exports = function(env) {
 
     var name = _.isString(obj) ? obj : _.keys(obj)[0];
     var options = _.isString(obj) ? {} : _.values(obj)[0];
-    var kernel = kernels[name];
+    var kernel = kernels[name](options);
 
-    return _.assign(function(cont, oldTrace, extraOptions) {
-      var allOptions = _.assign({}, options, extraOptions);
-      return kernel(cont, oldTrace, allOptions);
+    return _.assign(function(cont, oldTrace, runOpts) {
+      return kernel(cont, oldTrace, runOpts);
     }, kernel);
   }
 
