@@ -84,7 +84,7 @@ function create(name, initialVal) {
     throw new Error('Expected an (unlifted) tensor.');
   }
   var paramTable = get();
-  paramTable[name] = [initialVal];
+  paramTable[name] = initialVal;
 }
 
 function fetch(name, env) {
@@ -98,20 +98,20 @@ function fetch(name, env) {
   // If we're outside of optimization, just return the value of the
   // parameter, unlifted.
   if (!paramsSeen) {
-    return paramTable[name][0];
+    return paramTable[name];
   }
 
   // Otherwise we're doing optimization.
   if (_.has(paramsSeen, name)) {
     // Return the same AD graph node that was seen earlier this
     // execution.
-    return paramsSeen[name][0];
+    return paramsSeen[name];
   } else {
     // Fetch the value and lift. Add to paramsSeen so that the
     // coroutine knows to update this parameter.
-    var _param = paramTable[name][0];
+    var _param = paramTable[name];
     var param = ad.lift(_param);
-    paramsSeen[name] = [param];
+    paramsSeen[name] = param;
     return param;
   }
 }

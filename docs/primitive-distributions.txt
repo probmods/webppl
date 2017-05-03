@@ -29,7 +29,7 @@
   * ps: probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
   * vs: support *(any array)*
 
-  Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``
+  Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``. ``ps`` may be omitted, in which case a uniform distribution over ``vs`` is returned.
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
 

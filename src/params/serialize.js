@@ -11,20 +11,13 @@ function tensorToObject(tensor) {
 }
 
 function tensorsToObjects(paramObj) {
-  var prms = _.mapValues(paramObj, function(lst) {
-    return lst.map(tensorToObject);
-  });
-  return prms;
+  return _.mapValues(paramObj, tensorToObject);
 }
 
 function objectsToTensors(paramObj) {
-  var prms = {};
-  for (var name in paramObj) {
-    prms[name] = paramObj[name].map(function(tensor) {
-      return new Tensor(tensor.dims).fromFlatArray(tensor.data);
-    });
-  }
-  return prms;
+  return _.mapValues(paramObj, function(tensor) {
+    return new Tensor(tensor.dims).fromFlatArray(tensor.data);
+  });
 }
 
 function serializeParams(paramObj) {

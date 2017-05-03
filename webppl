@@ -77,7 +77,7 @@ function compile(code, packages, verbose, debug, programFile, outputFile) {
     'var __runner__ = util.trampolineRunners.cli();',
     topK.toString() + ';',
     'var main = ' + compiledBody + '\n',
-    "main({})(__runner__)({}, topK, '');"
+    "webppl.runEvaled(main, __runner__, {}, {}, topK, '');"
   ]);
 
   // Write Javascript code to file

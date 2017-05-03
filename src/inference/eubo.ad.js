@@ -101,9 +101,7 @@ module.exports = function(env) {
         var objective = -this.logq;
         objective.backprop();
 
-        var grads = _.mapValues(this.paramsSeen, function(params) {
-          return params.map(ad.derivative);
-        });
+        var grads = _.mapValues(this.paramsSeen, ad.derivative);
 
         var logp = ad.value(trace.score);
         var logq = ad.value(this.logq);
