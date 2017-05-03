@@ -775,7 +775,6 @@ module.exports = function(env) {
   // ------------------------------------------------------------------
 
   function IncrementalMH(s, k, a, wpplFn, opts) {
-    util.throwUnlessOpts(opts, 'IncrementalMH');
     opts = util.mergeDefaults(opts, {
       samples: 1,
       dontAdapt: false,

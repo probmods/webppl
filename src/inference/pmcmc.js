@@ -16,7 +16,6 @@ module.exports = function(env) {
 
 
   function PMCMC(s, cc, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'PMCMC');
     // Move old coroutine out of the way and install this as the
     // current handler.
     this.oldCoroutine = env.coroutine;
