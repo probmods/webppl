@@ -285,6 +285,10 @@ module.exports = function(env) {
         reparam = false;
       }
 
+      if (dist.isContinuous && (!dist.base || !dist.transform)) {
+        var msg = 'Warning: Continuous distribution ' + dist.meta.name + ' does not support reparameterization.';
+        util.warn(msg, true);
+      }
 
       return {val: val, reparam: reparam};
     },
