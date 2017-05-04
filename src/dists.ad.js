@@ -435,7 +435,11 @@ function mvGaussianScore(mu, cov, x) {
 
   var d = _mu.dims[0];
   var dLog2Pi = d * LOG_2PI;
-  var logDetCov = ad.scalar.log(ad.tensor.determinant(cov));
+  var det = ad.tensor.determinant(cov);
+  if (ad.value(det) <= 0) {
+    throw new Error('The covariance matrix is not positive definite.');
+  }
+  var logDetCov = ad.scalar.log(det);
   var z = ad.tensor.sub(x, mu);
   var zT = ad.tensor.transpose(z);
   var prec = ad.tensor.inverse(cov);
