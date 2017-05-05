@@ -50,11 +50,7 @@ module.exports = function(env) {
 
     var name = _.isString(obj) ? obj : _.keys(obj)[0];
     var options = _.isString(obj) ? {} : _.values(obj)[0];
-    var kernel = kernels[name](options);
-
-    return _.assign(function(cont, oldTrace, runOpts) {
-      return kernel(cont, oldTrace, runOpts);
-    }, kernel);
+    return kernels[name](options);
   }
 
   // Combinators for kernel functions.
