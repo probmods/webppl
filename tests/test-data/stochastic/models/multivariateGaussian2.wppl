@@ -1,0 +1,16 @@
+
+var guide = function() {
+  var mu = param({name: 'mu', dims: [2, 1]});
+  var var1 = Math.exp(param({name: 'var1'}));
+  var var2 = Math.exp(param({name: 'var2'}));
+  var co = param({name: 'co'});
+  var cov = Matrix([[var1, co], [co, var2]]);
+  return MultivariateGaussian({mu, cov});
+};
+
+var model = function() {
+  var mu = Vector([2, 1]);
+  var cov = Matrix([[3,-2], [-2,2]]);
+  var x = sample(MultivariateGaussian({mu, cov}), {guide});
+  return T.sumreduce(x);
+};

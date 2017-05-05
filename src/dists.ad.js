@@ -471,6 +471,17 @@ var MultivariateGaussian = makeDistributionType({
   },
   score: function(val) {
     return mvGaussianScore(this.params.mu, this.params.cov, val);
+  },
+  base: function() {
+    var dims = ad.value(this.params.mu).dims;
+    return new TensorGaussian({mu: 0, sigma: 1, dims: dims});
+  },
+  transform: function(x) {
+    'use ad';
+    var mu = this.params.mu;
+    var cov = this.params.cov;
+    var L = T.cholesky(cov);
+    return T.add(T.dot(L, x), mu);
   }
 });
 
