@@ -11,14 +11,15 @@ module.exports = function(env) {
   var kernels = require('./kernels')(env);
 
   function MCMC(s, k, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'MCMC');
     var options = util.mergeDefaults(options, {
       samples: 100,
       kernel: 'MH',
       lag: 0,
       burn: 0,
+      verbose: false,
+      onlyMAP: false,
       callbacks: []
-    });
+    }, 'MCMC');
 
     options.kernel = kernels.parseOptions(options.kernel);
 

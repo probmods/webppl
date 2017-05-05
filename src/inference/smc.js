@@ -17,7 +17,6 @@ module.exports = function(env) {
   var validImportanceOptVals = ['default', 'ignoreGuide', 'autoGuide'];
 
   function SMC(s, k, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'SMC');
     var options = util.mergeDefaults(options, {
       particles: 100,
       rejuvSteps: 0,
@@ -27,7 +26,7 @@ module.exports = function(env) {
       importance: 'default',
       onlyMAP: false,
       throwOnError: true
-    });
+    }, 'SMC');
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
       var msg = options.importance + ' is not a valid importance option. ' +

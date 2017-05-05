@@ -15,13 +15,13 @@ var ScoreAggregator = require('../aggregation/ScoreAggregator');
 module.exports = function(env) {
 
   function Enumerate(store, k, a, wpplFn, options) {
-    util.throwUnlessOpts(options, 'Enumerate');
     options = util.mergeDefaults(options, {
       maxExecutions: Infinity,
+      strategy: undefined,
       throwOnError: true,
       maxRuntimeInMS: Infinity,
       maxEnumTreeSize: Infinity
-    });
+    }, 'Enumerate');
 
     this.throwOnError = options.throwOnError;
     this.maxRuntimeInMS = options.maxRuntimeInMS; // Time upper threshold for enumeration

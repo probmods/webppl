@@ -85,7 +85,7 @@ module.exports = function(env) {
       guide: false, // true = sample guide, false = sample target
       onlyMAP: false,
       verbose: false
-    });
+    }, 'ForwardSample');
 
     var hist = new CountAggregator(opts.onlyMAP);
     var logWeights = [];   // Save total factor weights

@@ -6,32 +6,29 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  var MHKernel = require('./mhkernel')(env);
-  var HMCKernel = require('./hmckernel')(env);
+  var makeMHKernel = require('./mhkernel')(env);
+  var makeHMCKernel = require('./hmckernel')(env);
 
-  function HMCwithMHKernel(cont, oldTrace, options) {
-    // The options arg is passed to both kernels as SMC passes
-    // exitFactor via options.
-    return HMCKernel(function(trace) {
-      var opts = _.assign({ discreteOnly: true, adRequired: true }, options);
-      return MHKernel(cont, trace, opts);
-    }, oldTrace, options);
+  function makeHMCwithMHKernel(options) {
+    var hmc = makeHMCKernel(options);
+    var mh = makeMHKernel({discreteOnly: true, adRequired: true});
+    var kernel = function(cont, oldTrace, runOpts) {
+      return hmc(function(trace) {
+        return mh(cont, trace, runOpts);
+      }, oldTrace, runOpts);
+    };
+    kernel.adRequired = true;
+    return kernel;
   }
 
-  HMCwithMHKernel.adRequired = true;
-
   var kernels = {
-    MH: MHKernel,
-    HMC: HMCwithMHKernel,
-    HMConly: HMCKernel
+    MH: makeMHKernel,
+    HMC: makeHMCwithMHKernel,
+    HMConly: makeHMCKernel
   };
 
-  // Takes an options object (as passed to inference algorithms) and
-  // converts kernel options into functions with options partially
-  // applied. For example:
-
-  // 'MH' => function(..., opts) { return MHKernel(..., opts); }
-  // { MH: options } => function(..., extraOpts) { return MHKernel(..., merge(options, extraOpts)) }
+  // Takes a kernel options object (as passed to inference algorithms)
+  // and returns the specified kernel with any options applied.
 
   function parseOptions(obj) {
     // Expects either a kernel name or an object containing a single
@@ -49,12 +46,7 @@ module.exports = function(env) {
 
     var name = _.isString(obj) ? obj : _.keys(obj)[0];
     var options = _.isString(obj) ? {} : _.values(obj)[0];
-    var kernel = kernels[name];
-
-    return _.assign(function(cont, oldTrace, extraOptions) {
-      var allOptions = _.assign({}, options, extraOptions);
-      return kernel(cont, oldTrace, allOptions);
-    }, kernel);
+    return kernels[name](options);
   }
 
   // Combinators for kernel functions.

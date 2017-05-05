@@ -45,15 +45,16 @@ module.exports = function(env) {
   var dreamSample = require('./sample')(env).dreamSample;
   var dreamGradients = require('./gradients')(env);
 
-  return function(wpplFn, s, a, options, state, step, cont) {
+  return function(options) {
     var opts = util.mergeDefaults(options, {
       samples: 1
-    });
+    }, 'dream');
+    return function(wpplFn, s, a, state, step, cont) {
 
-    var objVal = 0;
-    var grad = {};
+      var objVal = 0;
+      var grad = {};
 
-    return util.cpsLoop(
+      return util.cpsLoop(
         opts.samples,
         // Loop body.
         function(i, next) {
@@ -71,6 +72,6 @@ module.exports = function(env) {
           objVal /= opts.samples;
           return cont(grad, objVal);
         });
+    };
   };
-
 };
