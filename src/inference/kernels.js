@@ -6,25 +6,25 @@ var util = require('../util');
 
 module.exports = function(env) {
 
-  var MHKernel = require('./mhkernel')(env);
-  var HMCKernel = require('./hmckernel')(env);
+  var makeMHKernel = require('./mhkernel')(env);
+  var makeHMCKernel = require('./hmckernel')(env);
 
-  function HMCwithMHKernel(options) {
-    var hmc = HMCKernel(options);
-    var mh = MHKernel({discreteOnly: true, adRequired: true});
-    var f = function(cont, oldTrace, runOpts) {
+  function makeHMCwithMHKernel(options) {
+    var hmc = makeHMCKernel(options);
+    var mh = makeMHKernel({discreteOnly: true, adRequired: true});
+    var kernel = function(cont, oldTrace, runOpts) {
       return hmc(function(trace) {
         return mh(cont, trace, runOpts);
       }, oldTrace, runOpts);
     };
-    f.adRequired = true;
-    return f;
+    kernel.adRequired = true;
+    return kernel;
   }
 
   var kernels = {
-    MH: MHKernel,
-    HMC: HMCwithMHKernel,
-    HMConly: HMCKernel
+    MH: makeMHKernel,
+    HMC: makeHMCwithMHKernel,
+    HMConly: makeHMCKernel
   };
 
   // Takes a kernel options object (as passed to inference algorithms)

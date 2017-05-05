@@ -23,7 +23,7 @@ var guide = require('../guide');
 
 module.exports = function(env) {
 
-  function estimator(options) {
+  function makeEUBOEstimator(options) {
     options = util.mergeDefaults(options, {
       batchSize: 1,
       traces: undefined
@@ -163,6 +163,6 @@ module.exports = function(env) {
     }
   }
 
-  return estimator;
+  return makeEUBOEstimator;
 
 };

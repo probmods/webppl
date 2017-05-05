@@ -20,17 +20,17 @@ var sum = generic.sum;
 
 module.exports = function(env) {
 
-  function kernel(options) {
+  function makeHMCKernel(options) {
     options = util.mergeDefaults(options, {
       steps: 5,
       stepSize: 0.1
     }, 'HMC kernel');
     assert.ok(options.steps > 0);
-    var f = function(cont, oldTrace, runOpts) {
+    var kernel = function(cont, oldTrace, runOpts) {
       return new HMCKernel(cont, oldTrace, options, runOpts).run();
     };
-    f.adRequired = true;
-    return f;
+    kernel.adRequired = true;
+    return kernel;
   }
 
   function HMCKernel(cont, oldTrace, options, runOpts) {
@@ -263,6 +263,6 @@ module.exports = function(env) {
 
   HMCKernel.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return kernel;
+  return makeHMCKernel;
 
 };

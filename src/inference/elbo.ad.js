@@ -17,7 +17,7 @@ var JoinNode = graph.JoinNode;
 
 module.exports = function(env) {
 
-  function estimator(options) {
+  function makeELBOEstimator(options) {
     options = util.mergeDefaults(options, {
       samples: 1,
       avgBaselines: true,
@@ -394,6 +394,6 @@ module.exports = function(env) {
 
   };
 
-  return estimator;
+  return makeELBOEstimator;
 
 };

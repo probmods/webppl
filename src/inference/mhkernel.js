@@ -9,7 +9,7 @@ module.exports = function(env) {
 
   var drift = require('./driftKernel')(env);
 
-  function kernel(options) {
+  function makeMHKernel(options) {
     options = util.mergeDefaults(options, {
       adRequired: false,
       permissive: false,
@@ -224,6 +224,6 @@ module.exports = function(env) {
     return score;
   };
 
-  return kernel;
+  return makeMHKernel;
 
 };
