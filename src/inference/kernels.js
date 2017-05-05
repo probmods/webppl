@@ -27,12 +27,8 @@ module.exports = function(env) {
     HMConly: HMCKernel
   };
 
-  // Takes an options object (as passed to inference algorithms) and
-  // converts kernel options into functions with options partially
-  // applied. For example:
-
-  // 'MH' => function(..., opts) { return MHKernel(..., opts); }
-  // { MH: options } => function(..., extraOpts) { return MHKernel(..., merge(options, extraOpts)) }
+  // Takes a kernel options object (as passed to inference algorithms)
+  // and returns the specified kernel with any options applied.
 
   function parseOptions(obj) {
     // Expects either a kernel name or an object containing a single
