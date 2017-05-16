@@ -34,19 +34,14 @@ module.exports = function(env) {
     // Expects either a kernel name or an object containing a single
     // key/value pair where the key is a kernel name and the value is
     // an options object. e.g. 'MH' or { MH: { ... } }
-
-    function isKernelOption(obj) {
-      return _.isString(obj) && _.has(kernels, obj) ||
-          _.size(obj) === 1 && _.has(kernels, _.keys(obj)[0]);
-    }
-
-    if (!isKernelOption(obj)) {
-      throw new Error('Unrecognized kernel option: ' + JSON.stringify(obj));
-    }
-
-    var name = _.isString(obj) ? obj : _.keys(obj)[0];
-    var options = _.isString(obj) ? {} : _.values(obj)[0];
-    return kernels[name](options);
+    return util.getValAndOpts(obj, function(name, options) {
+      if (!_.has(kernels, name)) {
+        throw new Error(name + ' is not a valid kernel. ' +
+                        'The following kernels are available: ' +
+                        _.keys(kernels).join(', ') + '.');
+      }
+      return kernels[name](options);
+    });
   }
 
   // Combinators for kernel functions.
