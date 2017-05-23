@@ -84,7 +84,7 @@ Browser version
 
 To generate a version of WebPPL for in-browser use, run::
 
-    npm install -g browserify uglifyjs
+    npm install -g browserify uglify-js
     grunt bundle
 
 The output is written to ``bundle/webppl.js`` and a minified version

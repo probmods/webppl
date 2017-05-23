@@ -17,7 +17,7 @@ matrix:
 install:
   - npm install
   - npm install -g nodeunit grunt-cli
-  - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglifyjs; fi
+  - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglify-js; fi
 
 script:
   - grunt $TASK
