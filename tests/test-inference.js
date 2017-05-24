@@ -42,6 +42,7 @@ var tests = [
       categoricalVec: true,
       dirichlet: true,
       multivariateGaussian: true,
+      multivariateGaussian2: true,
       multivariateBernoulli: true,
       diagCovGaussian: true,
       tensorGaussian: true,
@@ -638,6 +639,16 @@ var tests = [
         mean: { tol: 0.15 },
         args: {
           samples: 5000,
+          steps: 10000,
+          verbose: false
+        }
+      },
+      multivariateGaussian2: {
+        mean: { tol: 0.2 },
+        std: { tol: 0.2 },
+        args: {
+          optMethod: { adam: { stepSize: 0.001 } },
+          samples: 10000,
           steps: 10000,
           verbose: false
         }

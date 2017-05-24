@@ -13,7 +13,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "adnn": "^2.0.4",
+    "adnn": "^2.0.8",
     "amdefine": "^1.0.0",
     "ast-types": "^0.9.11",
     "colors": "^1.1.2",
