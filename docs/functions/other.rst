@@ -81,6 +81,25 @@ Other
       var y = { b: 3, c: 4 };
       extend(x, y);  // => { a: 1, b: 3, c: 4 }
 
+.. js:function:: cache(fn, maxSize)
+
+   Returns a memoized version of ``fn``. The memoized function is
+   backed by a cache that is shared across all executions/possible
+   worlds.
+
+   ``cache`` is provided as a means of avoiding the repeated
+   computation of a *deterministic* function. The use of ``cache``
+   with a *stochastic* function is unlikely to be appropriate. For
+   stochastic memoization see :js:func:`mem`.
+
+   When ``maxSize`` is specified the memoized function is backed by a
+   LRU cache of size ``maxSize``. The cache has unbounded size when
+   ``maxSize`` is omitted.
+
+   ``cache`` can be used to memoize mutually recursive functions,
+   though for technical reasons it must currently be called as
+   ``dp.cache`` for this to work.
+
 .. js:function:: mem(fn)
 
    Returns a memoized version of ``fn``. The memoized function is
