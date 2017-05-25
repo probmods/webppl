@@ -14,12 +14,14 @@ module.exports = function(env) {
     return k(s, console.log(ad.valueRec(x)));
   }
 
+  var dp = {};
+
   // Caching for a wppl function f.
   //
   // Caution: if f isn't deterministic weird stuff can happen, since
   // caching is across all uses of f, even in different execution
   // paths.
-  function cache(s, k, a, f, maxSize) {
+  dp.cache = function(f, maxSize) {
     var c = LRU(maxSize);
     var cf = function(s, k, a) {
       var args = Array.prototype.slice.call(arguments, 3);
@@ -47,7 +49,11 @@ module.exports = function(env) {
         return f.apply(this, [s, newk, a].concat(args));
       }
     };
-    return k(s, cf);
+    return cf;
+  };
+
+  function cache(s, k, a, f, maxSize) {
+    return k(s, dp.cache(f, maxSize));
   }
 
   function apply(s, k, a, wpplFn, args) {
@@ -207,6 +213,7 @@ module.exports = function(env) {
   return {
     display: display,
     cache: cache,
+    dp: dp,
     apply: apply,
     applyd: applyd,
     _Fn: _Fn,
