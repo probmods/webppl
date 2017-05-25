@@ -49,6 +49,9 @@ module.exports = function(env) {
         return f.apply(this, [s, newk, a].concat(args));
       }
     };
+    // Make the cache publicly available to facilitate checking the
+    // complexity of algorithms.
+    cf.cache = c;
     return cf;
   };
 
