@@ -1,0 +1,211 @@
+'no caching';
+
+var softplus = function(x) {
+  return T.log(T.add(T.exp(x), 1));
+};
+
+var softmax = function(x) {
+  return T.softmax(x);
+};
+
+var sigmoid = function(x) {
+  return T.sigmoid(x);
+};
+
+var tanh = function(x) {
+  return T.tanh(x);
+};
+
+var relu = function(x) {
+  return nn.relu.eval(x);
+};
+
+var squishToProbSimplex = function(x) {
+  return dists.squishToProbSimplex(x);
+};
+
+var stack = function(arr) {
+  return reduce(compose, idF, arr);
+};
+
+// Nets created with "linear" default to using a weight initialization
+// based on "Understanding the difficulty of training deep feedforward
+// neural networks", often called Xavier initialization.
+
+// This initialization scheme may not be suitable for asymmetric
+// non-linearities.
+
+var xavier = function(dims) {
+  if (dims.length !== 2) {
+    error('Xavier initialization is only defined for matrices.');
+  }
+  var nin = dims[0];
+  var nout = dims[1];
+  var sigma = Math.sqrt(2 / (nin + nout));
+  return tensorGaussian({mu: 0, sigma, dims});
+};
+
+var checkNetName = function(name) {
+  if (!name) {
+    error('A network must be given a name.');
+  }
+};
+
+var mergeObj = function(o1, o2) {
+  return _.assign({}, o1, o2);
+};
+
+var linear = function(name, maybeArgs) {
+  checkNetName(name);
+  var args = maybeArgs || {};
+  var nin = args.in;
+  var nout = args.out;
+  if (!Number.isInteger(nin)) {
+    error('Argument "in" should be an integer.');
+  }
+  if (!Number.isInteger(nout)) {
+    error('Argument "out" should be an integer.');
+  }
+  var nnparam = args.param || param;
+  var init = args.init || xavier;
+  var w = nnparam({name, dims: [nout, nin], init});
+  return function(x) {
+    return T.dot(w, x);
+  };
+};
+
+var bias = function(name, maybeArgs) {
+  checkNetName(name);
+  var args = maybeArgs || {};
+  var nnparam = args.param || param;
+  var initb = _.has(args, 'initb') ? args.initb : 0;
+  if (!_.isNumber(initb)) {
+    error('Initial bias should be a number.');
+  }
+  var nout = args.out;
+  if (!Number.isInteger(nout)) {
+    error('Argument "out" should be an integer.');
+  }
+  var b = nnparam({name, dims: [nout, 1], mu: initb, sigma: 0});
+  return function(x) {
+    if (dims(x)[0] !== nout) {
+      error('Input vector has unexpected dimension.');
+    }
+    return T.add(x, b);
+  };
+};
+
+var affine = function(name, maybeArgs) {
+  checkNetName(name);
+  return compose(
+    bias(name + 'b', maybeArgs),
+    linear(name + 'w', maybeArgs));
+};
+
+var rnn = function(name, maybeArgs) {
+  checkNetName(name);
+  var args = maybeArgs || {};
+  var hdim = args.hdim;
+  var xdim = args.xdim;
+  if (!Number.isInteger(hdim)) {
+    error('Argument "hdim" should be an integer.');
+  }
+  if (!Number.isInteger(xdim)) {
+    error('Argument "xdim" should be an integer.');
+  }
+  var ctor = args.ctor || affine;
+  var output = args.output || tanh;
+  var nargs = mergeObj(args, {in: hdim + xdim, out: hdim});
+  var net = stack([output, ctor(name, nargs), concat]);
+  return function(hprev, x) {
+    if (dims(hprev)[0] !== hdim) {
+      error('Previous hidden vector has unexpected dimension');
+    }
+    if (dims(x)[0] !== xdim) {
+      error('Input vector has unexpected dimension');
+    }
+    return net([hprev, x]);
+  };
+};
+
+var gru = function(name, maybeArgs) {
+  checkNetName(name);
+  var args = maybeArgs || {};
+  var hdim = args.hdim;
+  var xdim = args.xdim;
+  if (!Number.isInteger(hdim)) {
+    error('Argument "hdim" should be an integer.');
+  }
+  if (!Number.isInteger(xdim)) {
+    error('Argument "xdim" should be an integer.');
+  }
+  var ctor = args.ctor || affine;
+  var nargs = mergeObj(args, {in: hdim + xdim, out: hdim});
+  var update = compose(sigmoid, ctor(name + 'update', nargs));
+  var reset = compose(sigmoid, ctor(name + 'reset', nargs));
+  var candidate = compose(tanh, ctor(name + 'candidate', nargs));
+  return function(hprev, x) {
+    if (dims(hprev)[0] !== hdim) {
+      error('Previous hidden vector has unexpected dimension');
+    }
+    if (dims(x)[0] !== xdim) {
+      error('Input vector has unexpected dimension');
+    }
+    var hprevx = concat([hprev, x]);
+    var r = reset(hprevx);
+    var z = update(hprevx);
+    var cand = candidate(concat([T.mul(hprev, r), x]));
+    var oneminusz = T.add(T.neg(z), 1);
+    return T.add(T.mul(oneminusz, hprev), T.mul(z, cand));
+  };
+};
+
+
+var lstm = function(name, maybeArgs) {
+  checkNetName(name);
+  var args = maybeArgs || {};
+  var hdim = args.hdim;
+  var xdim = args.xdim;
+  // hdim is the total dimension of the state. i.e. memory + hidden
+  // state vectors. Setting things up this way makes it easy to swap
+  // between gru and lstm.
+  if (!(Number.isInteger(hdim) && (hdim % 2 === 0))) {
+    error('Argument "hdim" should be an even integer.');
+  }
+  if (!Number.isInteger(xdim)) {
+    error('Argument "xdim" should be an integer.');
+  }
+  var dim = hdim / 2; // Dimension of memory and hidden state.
+  var nargs = mergeObj(args, {in: dim + xdim, out: dim});
+  // It's said that initializing the biases of the forget gate to a
+  // value greater than 0 is a good idea. This is so that the output
+  // is close to one at the start of optimization, ensuring
+  // information is passed along. This is mentioned in e.g. "An
+  // Empirical Exploration of Recurrent Network Architectures".
+  var forget = compose(
+    sigmoid,
+    affine(name + 'forget', mergeObj(nargs, {initb: 1})));
+  var input = compose(sigmoid, affine(name + 'input', nargs));
+  var output = compose(sigmoid, affine(name + 'output', nargs));
+  var candidate = compose(tanh, affine(name + 'candidate', nargs));
+  return function(prev, x) {
+    // For compatibility with the interface of e.g. gru we combine the
+    // memory and hidden state into a single vector, prev.
+    if (dims(prev)[0] !== hdim) {
+      error('Previous state vector has unexpected dimension');
+    }
+    if (dims(x)[0] !== xdim) {
+      error('Input vector has unexpected dimension');
+    }
+    var cprev = T.reshape(T.range(prev, 0, dim), [dim, 1]);
+    var hprev = T.reshape(T.range(prev, dim, hdim), [dim, 1]);
+    var hprevx = concat([hprev, x]);
+    var f = forget(hprevx);
+    var i = input(hprevx);
+    var o = output(hprevx);
+    var cand = candidate(hprevx);
+    var c = T.add(T.mul(f, cprev), T.mul(i, cand));
+    var h = T.mul(o, tanh(c));
+    return concat([c, h]);
+  };
+};

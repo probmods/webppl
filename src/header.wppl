@@ -578,6 +578,23 @@ var Tensor = function(dims, arr) {
   return ad.tensor.reshape(t, dims);
 };
 
+var dims = function(x) {
+  return ad.value(x).dims;
+};
+
+var concat = function(arr) {
+  var t = T.concat(arr);
+  return T.reshape(t, [dims(t)[0], 1]);
+};
+
+var idMatrix = function(n) {
+  return util.idMatrix(n);
+};
+
+var oneHot = function(index, length) {
+  return util.oneHot(index, length);
+};
+
 var marginalize = function(dist, project) {
   if (_.isString(project)) {
     return Infer({model: function() {
