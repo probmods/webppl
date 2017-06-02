@@ -59,6 +59,15 @@ Creation
 
      ones([10, 1])
 
+.. js:function:: idMatrix(n)
+
+   Returns the ``n`` by ``n`` identity matrix.
+
+.. js:function:: oneHot(k, n)
+
+   Returns a vector of length ``n`` in which the ``k`` :sup:`th` entry
+   is one and all other entries are zero.
+
 Operations
 ----------
 
@@ -67,3 +76,23 @@ WebPPL inherits its Tensor functionality from `adnn <https://github.com/dritchie
     var x = Vector([1, 2, 3]);
     var y = Vector([3, 4, 5]);
     var x = T.dot(x, y);        // instead of ad.tensor.dot(x, y)
+
+Other
+-----
+
+.. js:function:: dims(tensor)
+
+   Returns the shape of ``tensor``.
+
+   ::
+
+     dims(ones([3, 2])) // => [3, 2]
+
+.. js:function:: concat(arr)
+
+   Returns the vector obtained by concatenating array of vectors
+   ``arr``.
+
+   ::
+
+     concat([Vector([1, 2]), Vector([3, 4])]) // => Vector([1, 2, 3, 4])

@@ -347,6 +347,29 @@ function tensorEqDims(t1, t2) {
   return true;
 }
 
+function idMatrix(n) {
+  if (n <= 0) {
+    throw new Error('n should be > 0.');
+  }
+  var out = new Tensor([n, n]);
+  for (var i = 0; i < n; i++) {
+    out.data[i * (n + 1)] = 1;
+  }
+  return out;
+}
+
+function oneHot(index, length) {
+  if (length <= 0) {
+    throw new Error('length should be > 0.');
+  }
+  if (index < 0 || index >= length) {
+    throw new Error('index out of bounds');
+  }
+  var out = new Tensor([length, 1]);
+  out.data[index] = 1;
+  return out;
+}
+
 function relativizeAddress(baseAddress, address) {
   assert.ok(address.slice(0, baseAddress.length) === baseAddress, 'Address prefix mismatch.');
   return address.slice(baseAddress.length);
@@ -390,5 +413,7 @@ module.exports = {
   isMatrix: isMatrix,
   tensorEqDim0: tensorEqDim0,
   tensorEqDims: tensorEqDims,
+  idMatrix: idMatrix,
+  oneHot: oneHot,
   relativizeAddress: relativizeAddress
 };

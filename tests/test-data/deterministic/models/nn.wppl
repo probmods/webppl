@@ -1,0 +1,36 @@
+var check = function(tensor, expectedDims) {
+  return _.isEqual(dims(tensor), expectedDims) &&
+    _.every(ad.value(tensor).data, isFinite);
+};
+
+all(idF, [
+  (function() {
+    setFreshParamsId();
+    var net = affine('net', {in: 3, out: 2});
+    var out = net(ones([3, 1]));
+    return check(out, [2, 1]);
+  })(),
+
+  (function() {
+    var rnns = [rnn, gru, lstm];
+    return all(idF, map(function(makeRNN) {
+      setFreshParamsId();
+      var net = makeRNN('net', {hdim: 4, xdim: 2});
+      var out = net(ones([4, 1]), ones([2, 1]));
+      return check(out, [4, 1]);
+    }, rnns));
+  })(),
+
+  (function() {
+    var fns = [softplus, softmax, sigmoid, tanh, relu];
+    return all(idF, map(function(f) {
+      var out = f(zeros([3, 1]));
+      return check(out, [3, 1]);
+    }, fns));
+  })(),
+
+  (function() {
+    var out = squishToProbSimplex(Vector([-1,0,1]));
+    return check(out, [4,1]) && Math.abs(T.sumreduce(out) - 1) < 1e-8;
+  }())
+]);

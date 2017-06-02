@@ -1,0 +1,21 @@
+all(idF, [
+  (function() {
+    return _.isEqual(dims(ones([3, 2])), [3, 2]);
+  })(),
+
+  (function() {
+    var out = concat([Vector([1, 2]), Vector([3, 4])]);
+    return _.isEqual(dims(out), [4, 1]) &&
+      _.isEqual(T.toScalars(out), [1, 2, 3, 4]);
+  })(),
+
+  (function() {
+    var id = T.toScalars(idMatrix(2));
+    return _.isEqual(id, [1, 0, 0, 1]);
+  })(),
+
+  (function() {
+    var out = T.toScalars(oneHot(2, 4));
+    return _.isEqual(out, [0, 0, 1, 0]);
+  })()
+]);

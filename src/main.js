@@ -69,9 +69,11 @@ function headerPackage() {
   // Create a pseudo package from the header.
   var dists = fs.readFileSync(__dirname + '/dists.wppl', 'utf8');
   var header = fs.readFileSync(__dirname + '/header.wppl', 'utf8');
+  var nn = fs.readFileSync(__dirname + '/nn.wppl', 'utf8');
   return { wppl: [
     { code: dists, filename: 'dists.wppl' },
-    { code: header, filename: 'header.wppl' }
+    { code: header, filename: 'header.wppl' },
+    { code: nn, filename: 'nn.wppl' }
   ]};
 }
 
@@ -168,7 +170,8 @@ function compile(code, options) {
     var asts = _.map(bundles, 'ast').map(copyAst).concat(programAst);
     assert.strictEqual(bundles[0].filename, 'dists.wppl');
     assert.strictEqual(bundles[1].filename, 'header.wppl');
-    var doCaching = _.some(asts.slice(2), caching.transformRequired);
+    assert.strictEqual(bundles[2].filename, 'nn.wppl');
+    var doCaching = _.some(asts.slice(3), caching.transformRequired);
 
     if (options.verbose && doCaching) {
       console.log('Caching transform will be applied.');

@@ -1,0 +1,17 @@
+var truef = function(x) { return 2 * x + 1; };
+var x = [-2, -1, 0, 2, 4, 8];
+var data = zip(x, map(truef, x));
+
+var model = function() {
+  var net = stack([
+    function(out) { var x = T.get(out, 0); return x;},
+    affine('net', {in: 1, out: 1, param: modelParam}),
+    function(x) { return Vector([x]); }
+  ]);
+  mapData({data}, function(obs) {
+    var x = obs[0];
+    var y = obs[1];
+    observe(Gaussian({mu: net(x), sigma: 1}), y);
+  });
+  return net(6);
+};
