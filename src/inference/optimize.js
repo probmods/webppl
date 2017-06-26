@@ -103,9 +103,18 @@ module.exports = function(env) {
     var decayWeights = weightDecay.parseOptions(options.weightDecay, options.verbose);
 
     var onStep = function(i, objective, cont) {
-      return applyd(s, function(s, val) {
-        return cont();
+      return applyd(s, function(s, exitFlag) {
+        return exitFlag ? finish() : cont();
       }, a, options.onStep, [i, objective], 'callback');
+    };
+
+    var finish = function() {
+      return options.onFinish(s, function(s) {
+        if (options.logProgress) {
+          fs.closeSync(logFile);
+        }
+        return k(s);
+      }, a, {history: history});
     };
 
     // Main loop.
@@ -158,14 +167,7 @@ module.exports = function(env) {
         },
 
         // Loop continuation.
-        function() {
-          return options.onFinish(s, function(s) {
-            if (options.logProgress) {
-              fs.closeSync(logFile);
-            }
-            return k(s);
-          }, a, {history: history});
-        });
+        finish);
 
   }
 
