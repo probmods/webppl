@@ -75,6 +75,9 @@ Optimize
         var callback = function(index, value) { /* ... */ };
         Optimize({model: model, steps: 100, onStep: callback});
 
+      If this function returns ``true``, ``Optimize`` will return
+      immediately, skipping any remaining optimization steps.
+
    .. describe:: verbose
 
       Default: ``true``
