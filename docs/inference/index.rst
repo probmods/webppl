@@ -33,26 +33,8 @@ methods is available here:
 
    methods
 
-.. _factor:
+.. toctree::
+   :hidden:
 
-Factor
-------
+   conditioning
 
-The ``factor`` operator is a used *within* marginal inference to alter
-the implicit distribution of a stochastic computation by arbitrarily
-weighting particular executions.
-
-Note that because ``factor`` *interacts* with inference, it cannot be
-used outside of ``Infer``. Attempting to do so will produce an error.
-
-Marginal inference is often used to perform Bayesian inference. In
-this setting, the stochastic computation represents the prior, the
-``factor`` operator is used to introduce observations, and marginal
-inference computes the posterior distribution. This common pattern is
-aided by the helper function ``condition``.
-
-See `dippl.org
-<http://dippl.org/chapters/02-webppl.html#and-inference>`_ and
-`agentmodels.org
-<http://agentmodels.org/chapters/2-webppl.html#bayesian-inference-by-conditioning>`_
-for an introduction to these ideas.
