@@ -19,7 +19,7 @@ var params = {
   ACL: 'public-read',
   Bucket: 'cdn.webppl.org',
   Key: fileName,
-  Body: fs.createReadStream('bundle/webppl.js').pipe(gzip),
+  Body: fs.createReadStream('bundle/webppl.min.js').pipe(gzip),
   ContentEncoding: 'gzip',
   ContentType: 'application/javascript'
 };
