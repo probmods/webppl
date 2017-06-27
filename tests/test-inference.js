@@ -732,7 +732,7 @@ var tests = [
         }
       },
       nn: {
-        mean: { tol: 0.1 },
+        mean: { tol: 0.6 },
         args: {
           samples: 1,
           steps: 1000,
