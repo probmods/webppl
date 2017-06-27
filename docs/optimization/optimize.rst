@@ -11,6 +11,10 @@ Optimize
    Optimizes the parameters of the guide program specified by the
    ``model`` option.
 
+   A :ref:`default guide distribution <default_guides>` is used for
+   random choices that do not have a guide distribution specified
+   explicitly.
+
    The following options are supported:
 
    .. describe:: model
