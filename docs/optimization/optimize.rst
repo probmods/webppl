@@ -80,7 +80,7 @@ Optimize
 
    .. describe:: verbose
 
-      Default: ``true``
+      Default: ``false``
 
 
 Example usage::
