@@ -84,6 +84,14 @@ module.exports = function(env) {
     if (!dists.isDist(dist)) {
       throw new Error('sample() expected a distribution but received \"' + JSON.stringify(dist) + '\".');
     }
+    for (var name in options) {
+      if (name !== 'guide' &&
+          name !== 'driftKernel' &&
+          name !== 'noAutoGuide' &&
+          name !== 'reparam') {
+        throw new Error('Unknown option "' + name + '" passed to sample.');
+      }
+    }
     return env.coroutine.sample(s, k, a, dist, options);
   };
 

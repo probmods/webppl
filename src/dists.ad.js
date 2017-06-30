@@ -1647,10 +1647,10 @@ var distributions = {
 };
 
 // For each distribution type, we create a WebPPL function that
-// creates instances of the type. We include the argument check here
-// as we avoid the expensive slicing of arguments that would be
-// required if it were anywhere else. e.g. In the WebPPL distribution
-// header or in the distribution's JS constructor.
+// creates instances of that type. We include the argument check here
+// to avoid the expensive slicing of arguments that would be required
+// if it were anywhere else. e.g. In the WebPPL distribution header or
+// in the distribution's JS constructor.
 
 var wpplFns = _.chain(distributions)
     .mapValues(function(ctor) {
