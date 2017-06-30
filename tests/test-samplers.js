@@ -7,7 +7,6 @@
 
 var _ = require('lodash');
 var seedrandom = require('seedrandom');
-var assert = require('assert');
 var util = require('../src/util');
 var webppl = require('../src/main');
 var helpers = require('./helpers/helpers');

@@ -2,7 +2,6 @@
 
 'use strict';
 
-var assert = require('assert');
 var Tensor = require('../tensor');
 
 function add(x, y) {

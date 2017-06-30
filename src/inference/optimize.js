@@ -2,7 +2,6 @@
 
 'use strict';
 
-var assert = require('assert');
 var _ = require('lodash');
 var nodeutil = require('util');
 var present = require('present');
