@@ -1646,6 +1646,26 @@ var distributions = {
   Delta: Delta
 };
 
+// For each distribution type, we create a WebPPL function that
+// creates instances of the type. We include the argument check here
+// as we avoid the expensive slicing of arguments that would be
+// required if it were anywhere else. e.g. In the WebPPL distribution
+// header or in the distribution's JS constructor.
+
+var wpplFns = _.chain(distributions)
+    .mapValues(function(ctor) {
+      return function(s, k, a, params) {
+        if (arguments.length > 4) {
+          throw new Error('Too many arguments. Distributions take at most one argument.');
+        }
+        return k(s, new ctor(params));
+      };
+    })
+    .mapKeys(function(ctor, name) {
+      return 'make' + name;
+    })
+    .value();
+
 module.exports = _.assign({
   // rng
   betaSample: betaSample,
@@ -1664,4 +1684,4 @@ module.exports = _.assign({
   squishToProbSimplex: squishToProbSimplex,
   isDist: isDist,
   metadata: metadata
-}, distributions);
+}, distributions, wpplFns);

@@ -33,7 +33,7 @@ var helpers = {
 };
 
 var t = _.mapValues({
-  ctor: 'var <%= name %> = function(params) { return util.jsnew(dists.<%= name %>, params); };',
+  ctor: 'var <%= name %> = dists.make<%= name %>;',
   helper: [
     'var <% print(downcaseInitial(name)) %> = function(<% print(fnParams(params)) %>) {',
     '  var params = util.isObject(arg0) ? arg0 : {<% print(args2Obj(params)) %>};',

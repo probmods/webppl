@@ -297,10 +297,6 @@ function jsthrow(obj) {
   throw obj;
 }
 
-function jsnew(ctor, arg) {
-  return new ctor(arg);
-}
-
 // Equivalent to Number.isInteger(), which isn't available in the
 // version of phantom.js used on Travis at the time of writing.
 function isInteger(x) {
@@ -404,7 +400,6 @@ module.exports = {
   warn: warn,
   resetWarnings: resetWarnings,
   error: error,
-  jsnew: jsnew,
   jsthrow: jsthrow,
   isInteger: isInteger,
   isObject: isObject,
