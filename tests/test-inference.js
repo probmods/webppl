@@ -578,8 +578,7 @@ var tests = [
         samples: 5000,
         steps: 100,
         optMethod: 'gd',
-        estimator: { ELBO: { samples: 120 } },
-        verbose: false
+        estimator: { ELBO: { samples: 120 } }
       },
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },
@@ -590,7 +589,7 @@ var tests = [
       deterministic: true,
       store2: {
         hist: { exact: true },
-        args: { verbose: false, checkGradients: false }
+        args: { checkGradients: false }
       },
       withCaching: true,
       guideThunks: { hist: { exact: true } },
@@ -601,29 +600,25 @@ var tests = [
         std: { tol: 0.2 },
         args: {
           samples: 5000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       guidedUniform: {
         args: {
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       guidedGamma: {
         args: {
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       guidedBeta: {
         args: {
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       dirichlet: {
@@ -631,16 +626,14 @@ var tests = [
           samples: 5000,
           steps: 1000,
           optMethod: 'gd',
-          estimator: { ELBO: { samples: 1 } },
-          verbose: false
+          estimator: { ELBO: { samples: 1 } }
         }
       },
       tensorGaussian: {
         mean: { tol: 0.15 },
         args: {
           samples: 5000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       multivariateGaussian2: {
@@ -649,8 +642,7 @@ var tests = [
         args: {
           optMethod: { adam: { stepSize: 0.001 } },
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       tensorLaplace: {
@@ -659,8 +651,7 @@ var tests = [
         args: {
           optMethod: {adam: {stepSize: 0.002}},
           samples: 10000,
-          steps: 20000,
-          verbose: false
+          steps: 20000
         }
       },
       laplace: {
@@ -669,38 +660,33 @@ var tests = [
         args: {
           optMethod: {adam: {stepSize: 0.001}},
           samples: 10000,
-          steps: 40000,
-          verbose: false
+          steps: 40000
         }
       },
       exponential: {
         args: {
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       cauchy: {
         args: {
           samples: 10000,
-          steps: 10000,
-          verbose: false
+          steps: 10000
         }
       },
       randomInteger2: {
         args: {
           samples: 1000,
           steps: 1000,
-          optMethod: {adam: {stepSize: 0.1}},
-          verbose: false
+          optMethod: {adam: {stepSize: 0.1}}
         }
       },
       binomial2: {
         args: {
           samples: 1000,
           steps: 1000,
-          optMethod: {adam: {stepSize: 0.1}},
-          verbose: false
+          optMethod: {adam: {stepSize: 0.1}}
         }
       },
       mapData: true,
@@ -710,15 +696,13 @@ var tests = [
         args: {
           steps: 10000,
           samples: 150,
-          onlyMAP: true,
-          verbose: false
+          onlyMAP: true
         }
       },
       enumGuide: {
         args: {
           steps: 6000,
-          samples: 10000,
-          verbose: false
+          samples: 10000
         }
       },
       weightDecayL2: {
@@ -727,8 +711,7 @@ var tests = [
           samples: 1,
           steps: 1000,
           optMethod: { adam: { stepSize: 0.1 } },
-          weightDecay: { l2: { strength: 1 } },
-          verbose: false
+          weightDecay: { l2: { strength: 1 } }
         }
       },
       nn: {
@@ -736,8 +719,7 @@ var tests = [
         args: {
           samples: 1,
           steps: 1000,
-          optMethod: { adam: { stepSize: 0.01 } },
-          verbose: false
+          optMethod: { adam: { stepSize: 0.01 } }
         }
       }
     }
@@ -750,8 +732,7 @@ var tests = [
         samples: 10000,
         steps: 10000,
         optMethod: {adam: {stepSize: 0.01}},
-        estimator: 'dream',
-        verbose: false
+        estimator: 'dream'
       },
       hist: { tol: 0.1 },
       mean: { tol: 0.1 },

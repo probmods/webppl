@@ -49,7 +49,7 @@ module.exports = function(env) {
       weightDecay: 0,
       showGradNorm: false,
       checkGradients: true,
-      verbose: true,
+      verbose: false,
       onStep: function(s, k, a) { return k(s); },
       onFinish: function(s, k, a) { return k(s); },
 
