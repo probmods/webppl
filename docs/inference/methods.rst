@@ -239,6 +239,7 @@ Incremental MH
          :param any value: Value to be added to query.
          :returns: undefined
 
+.. _smc:
 
 SMC
 ---
@@ -293,9 +294,9 @@ SMC
 
          * ``'autoGuide'``: When a random choice has a :ref:`guide
            distribution <guides>` specified, use that as the
-           importance distribution. For all other random choices,
-           automatically generate a mean-field guide and use that as
-           the importance distribution.
+           importance distribution. For all other random choices, use
+           a :ref:`default guide distribution <default_guides>` as the
+           importance distribution.
 
            Default: ``'default'``
 
@@ -372,8 +373,12 @@ Forward Sampling
 
    .. describe:: guide
 
-      When ``true``, sample random choices from the guide using the
-      current global parameters. Otherwise, sample from the model.
+      When ``true``, sample random choices from the guide. A
+      :ref:`default guide distribution <default_guides>` is used for
+      random choices that do not have a guide distribution specified
+      explicitly.
+
+      When ``false``, sample from the model.
 
       Default: ``false``
 

@@ -93,7 +93,7 @@ function getDist(maybeThunk, noAutoGuide, targetDist, env, s, a, k) {
 
 function independent(targetDist, sampleAddress, env) {
 
-  util.warn('Automatically generating guide for one or more choices.', true);
+  util.warn('Using the default guide distribution for one or more choices.', true);
 
   // Include the distribution name in the guide parameter name to
   // avoid collisions when the distribution type changes between
