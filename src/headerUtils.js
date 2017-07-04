@@ -25,6 +25,12 @@ module.exports = function(env) {
     var c = LRU(maxSize);
     var cf = function(s, k, a) {
       var args = Array.prototype.slice.call(arguments, 3);
+
+      if (_.some(args, ad.isLifted)) {
+        throw new Error('Cannot cache functions of scalar/tensor arguments ' +
+                        'when performing automatic differentiation.');
+      }
+
       var stringedArgs = serialize(args);
       if (c.has(stringedArgs)) {
         return k(s, c.get(stringedArgs));

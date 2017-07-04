@@ -100,6 +100,11 @@ Other
    though for technical reasons it must currently be called as
    ``dp.cache`` for this to work.
 
+   ``cache`` does not support caching functions of scalar/tensor
+   arguments when performing inference with gradient based algorithms.
+   (e.g. :ref:`HMC <hmc>`, :ref:`ELBO <elbo>`.) Attempting to do so
+   will produce an error.
+
 .. js:function:: mem(fn)
 
    Returns a memoized version of ``fn``. The memoized function is
