@@ -14,6 +14,14 @@ var isJsModule = function(path) {
   }
 };
 
+var isNodeCoreModule = function(name) {
+  try {
+    return name === require.resolve(name);
+  } catch (e) {
+    return false;
+  }
+};
+
 var globalPkgDir = function() {
   // USERPROFILE is intended to support Windows. This is un-tested.
   var home = process.env.HOME || process.env.USERPROFILE;
@@ -38,8 +46,17 @@ var upcaseInitial = function(s) {
 };
 
 var read = function(name_or_path, paths, verbose) {
-  var paths = paths || [globalPkgDir()];
   var log = verbose ? function(x) { console.warn(x); return x; } : _.identity;
+
+  // Check if this is a Node core module. If so, use it.
+  if (!isPath(name_or_path) && isNodeCoreModule(name_or_path)) {
+    return log({
+      name: name_or_path,
+      js: { identifier: name_or_path, path: name_or_path },
+      headers: [],
+      wppl: []
+    });
+  }
 
   var readFirst = function(candidates) {
     if (candidates.length > 0) {
@@ -72,9 +89,10 @@ var read = function(name_or_path, paths, verbose) {
     }
   };
 
+  // Otherwise, attempt to load as WebPPL package.
+  var paths = paths || [globalPkgDir()];
   var joinName = function(p) { return path.join(p, name_or_path); };
   var allCandidates = isPath(name_or_path) ? [name_or_path] : paths.map(joinName);
-
   return log(readFirst(allCandidates))
 };
 

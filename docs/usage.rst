@@ -10,6 +10,13 @@ Running WebPPL programs::
 Arguments
 ---------
 
+Requiring `Node.js core modules
+<https://nodejs.org/api/modules.html#modules_core_modules>`_ or
+:ref:`WebPPL packages <packages>`::
+
+    webppl model.wppl --require fs
+    webppl model.wppl --require webppl-viz
+
 Seeding the random number generator::
 
     webppl examples/lda.wppl --random-seed 2344512342
