@@ -136,6 +136,8 @@ Example usage::
 
     Infer({method: 'MCMC', kernel: 'MH', model: model});
 
+.. _hmc:
+
 .. describe:: HMC
 
    Implements Hamiltonian Monte Carlo. [neal11]_
