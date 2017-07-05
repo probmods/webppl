@@ -13,6 +13,7 @@ var parseV8 = require('./src/errors/parsers').parseV8;
 var showError = require('./src/errors/node').showError;
 var paramsConfig = require('./src/params/config');
 var parseArgs = require('minimist');
+var args = require('./src/args');
 var _ = require('lodash');
 
 function topK(s, x) {
@@ -56,6 +57,8 @@ var lines = function(ar) {
 
 function compile(code, packages, verbose, debug, programFile, outputFile) {
   var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
+  compiledCode += 'var args = require("'+require.resolve('./src/args')+'");\n';
+  compiledCode += 'args.makeGlobal(__filename, process.argv.slice(2));\n';
   packages.forEach(function(pkg) {
     if (pkg.js) { compiledCode += 'var ' + pkg.js.identifier + ' = require("' + pkg.js.path + '");\n'; }
     pkg.headers.forEach(function(header) {
@@ -150,7 +153,7 @@ function main() {
   }
 
   // Parse arguments for program.
-  global.argv = parseArgs([programFile].concat(argv['--']));
+  args.makeGlobal(programFile, argv['--']);
 
   processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);
 }
