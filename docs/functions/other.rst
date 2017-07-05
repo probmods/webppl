@@ -1,6 +1,17 @@
 Other
 =====
 
+.. js:function:: flip([p])
+
+   Draws a sample from ``Bernoulli({p: p})``.
+
+   ``p`` defaults to ``0.5`` when omitted.
+
+.. js:function:: uniformDraw(arr)
+
+   Draws a sample from the uniform distribution over elements of array
+   ``arr``.
+
 .. js:function:: display(val)
 
    Prints a representation of the value ``val`` to the console.
