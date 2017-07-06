@@ -606,3 +606,12 @@ var marginalize = function(dist, project) {
     }});
   }
 };
+
+var kde = function(marginal, width) {
+  if (!(dists.isDist(marginal) &&
+        marginal.meta.name === 'SampleBasedMarginal')) {
+    error('kde expects a sample based marginal as its first argument.');
+  }
+  var data = _.map(marginal.samples, 'value');
+  return KDE(width === undefined ? {data} : {data, width});
+};

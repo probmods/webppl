@@ -129,3 +129,8 @@ Other
 .. js:function:: error(msg)
 
    Halts execution of the program and prints ``msg`` to the console.
+
+.. js:function:: kde(marginal[, kernelWidth])
+
+   Constructs a :js:func:`KDE` distribution from a sample based
+   marginal distribution.
