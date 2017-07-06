@@ -53,7 +53,11 @@ ad.scalar.logGamma = ad.newUnaryFunction({
 });
 
 ad.scalar.plus = function(x) {
-  return ad.scalar.add(0, x);
+  if (ad.isLifted(x) && typeof ad.value(x) === 'number') {
+    return x;
+  } else {
+    return +x;
+  }
 };
 
 // HACK: Used to access Tensor in daipp.
