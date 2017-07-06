@@ -114,7 +114,12 @@ module.exports = function(env) {
         var factorK = function(s) {
           return k(s, val);
         };
-        return env.factor(s, factorK, a, dist.score(val));
+        var score = dist.score(val);
+        if (ad.value(score) === -Infinity) {
+          util.warn('Warning: One or more values given to observe have a score of ' +
+                    '-Infinity under the ' + dist.meta.name + ' distribution.', true);
+        }
+        return env.factor(s, factorK, a, score);
       } else {
         return env.sample(s, k, a, dist, options);
       }
