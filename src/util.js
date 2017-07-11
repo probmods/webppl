@@ -113,9 +113,15 @@ function logsumexp(a) {
 }
 
 function logaddexp(a, b) {
-  assert.ok(a !== -Infinity || b !== -Infinity);
-  var m = Math.max(a, b);
-  return Math.log(Math.exp(a - m) + Math.exp(b - m)) + m;
+  if (a === -Infinity) {
+    return b;
+  } else if (b === -Infinity) {
+    return a;
+  } else if (a > b) {
+    return Math.log(1 + Math.exp(b - a)) + a;
+  } else {
+    return Math.log(1 + Math.exp(a - b)) + b;
+  }
 }
 
 var deleteIndex = function(arr, i) {

@@ -32,6 +32,29 @@ module.exports = {
 
   },
 
+  testLogAddExp: {
+    test1: function(test) {
+      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(1), Math.log(2))), 3, 1e-6);
+      test.done();
+    },
+    test2: function(test) {
+      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(2), Math.log(1))), 3, 1e-6);
+      test.done();
+    },
+    test3: function(test) {
+      testAlmostEqual(test, Math.exp(util.logaddexp(-Infinity, Math.log(1))), 1, 1e-6);
+      test.done();
+    },
+    test4: function(test) {
+      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(1), -Infinity)), 1, 1e-6);
+      test.done();
+    },
+    test5: function(test) {
+      testAlmostEqual(test, Math.exp(util.logaddexp(-Infinity, -Infinity)), 0, 1e-6);
+      test.done();
+    }
+  },
+
   testCpsIterate: {
 
     test1: function(test) {
