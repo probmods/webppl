@@ -112,6 +112,18 @@ function logsumexp(a) {
   return m + Math.log(sum);
 }
 
+function logaddexp(a, b) {
+  if (a === -Infinity) {
+    return b;
+  } else if (b === -Infinity) {
+    return a;
+  } else if (a > b) {
+    return Math.log(1 + Math.exp(b - a)) + a;
+  } else {
+    return Math.log(1 + Math.exp(a - b)) + b;
+  }
+}
+
 var deleteIndex = function(arr, i) {
   return arr.slice(0, i).concat(arr.slice(i + 1))
 }
@@ -385,6 +397,7 @@ module.exports = {
   histsApproximatelyEqual: histsApproximatelyEqual,
   gensym: gensym,
   logsumexp: logsumexp,
+  logaddexp: logaddexp,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   prettyJSON: prettyJSON,

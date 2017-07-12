@@ -97,6 +97,15 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
 
+.. js:function:: KDE({data: ..., width: ...})
+
+  * data: data array
+  * width: kernel width
+
+  A distribution based on a kernel density estimate of ``data``. A Gaussian kernel is used, and both real and vector valued data are supported. When the data are vector valued, ``width`` should be a vector specifying the kernel width for each dimension of the data. When ``width`` is omitted, Silverman's rule of thumb is used to select a kernel width. This rule assumes the data are approximately Gaussian distributed. When this assumption does not hold, a ``width`` should be specified in order to obtain sensible results.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Kernel_density_estimation>`__
+
 .. js:function:: Laplace({location: ..., scale: ...})
 
   * location:  *(real)*

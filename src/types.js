@@ -163,6 +163,7 @@ module.exports = {
   unboundedVector: vector(parseInterval('(-Infinity, Infinity)')),
   nonNegativeVector: vector(parseInterval('[0, Infinity)')),
   positiveVector: vector(parseInterval('(0, Infinity)')),
+  positiveVectorCB: vector(parseInterval('(0, Infinity)'), true),
   unitIntervalVector: vector(parseInterval('[0, 1]')),
   unboundedVectorOrRealArray: vectorOrRealArray(parseInterval('(-Infinity, Infinity)')),
   nonNegativeVectorOrRealArray: vectorOrRealArray(parseInterval('[0, Infinity)')),
