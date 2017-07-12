@@ -1,11 +1,11 @@
-var dists = require('../../../src/dists');
+var gaussian = require('../../../src/dists/gaussian');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');
 var doubleFactorial = require('../../../src/math/special').doubleFactorial;
 
 module.exports = {
   name: 'gaussian',
-  sampler: dists.gaussianSample,
+  sampler: gaussian.sample,
   inSupport: function(params, x) {
     return typeof x === 'number' && x > -Infinity && x < Infinity;
   },

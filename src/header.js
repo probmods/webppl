@@ -41,6 +41,7 @@ try {
   var Query = require('./query').Query;
   var ad = require('./ad');
   var Tensor = require('./tensor');
+  var numeric = require('./math/numeric');
 } catch (e) {
   if (e.code === 'MODULE_NOT_FOUND') {
     console.error(e.message);
@@ -178,7 +179,8 @@ module.exports = function(env) {
     ad: ad,
     nn: nn,
     T: ad.tensor,
-    dists: dists
+    dists: dists,
+    numeric: numeric
   });
 
   // Inference functions and header utils

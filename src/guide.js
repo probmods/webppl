@@ -6,6 +6,7 @@ var Tensor = require('./tensor');
 var ad = require('./ad');
 var dists = require('./dists');
 var params = require('./params/params');
+var numeric = require('./math/numeric');
 
 var T = ad.tensor;
 
@@ -297,7 +298,7 @@ function discreteSpec(dim) {
   return {
     type: dists.Discrete,
     params: {
-      ps: {param: {dims: [dim - 1, 1], squish: dists.squishToProbSimplex}}
+      ps: {param: {dims: [dim - 1, 1], squish: numeric.squishToProbSimplex}}
     }
   };
 }

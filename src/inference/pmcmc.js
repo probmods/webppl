@@ -4,7 +4,7 @@
 'use strict';
 
 var _ = require('lodash');
-var dists = require('../dists');
+var discrete = require('../dists/discrete');
 var util = require('../util')
 var CountAggregator = require('../aggregation/CountAggregator');
 
@@ -120,7 +120,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = dists.discreteSample(weights);
+      j = discrete.sample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 
