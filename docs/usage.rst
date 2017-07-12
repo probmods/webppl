@@ -48,3 +48,6 @@ When run with::
 Will produce the following output::
 
   { _: ['model.wppl'], 'my-flag': true, 'my-num': 100, 'my-str': 'hello' }
+
+Once compiled, a program takes its arguments directly, i.e. the ``--``
+separator is not required.
