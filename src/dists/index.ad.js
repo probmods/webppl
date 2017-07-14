@@ -4,42 +4,40 @@ var _ = require('lodash');
 var util = require('../util');
 var base = require('./base');
 
-var distributionNames = [
-  'Bernoulli',
-  'Beta',
-  'Binomial',
-  'Categorical',
-  'Cauchy',
-  'Delta',
-  'DiagCovGaussian',
-  'Dirichlet',
-  'Discrete',
-  'Exponential',
-  'Gamma',
-  'Gaussian',
-  'ImproperUniform',
-  'IspNormal',
-  'KDE',
-  'Laplace',
-  'LogisticNormal',
-  'LogitNormal',
-  'Marginal',
-  'Multinomial',
-  'MultivariateBernoulli',
-  'MultivariateGaussian',
-  'Poisson',
-  'RandomInteger',
-  'SampleBasedMarginal',
-  'TensorGaussian',
-  'TensorLaplace',
-  'Uniform'
-];
-
-var distributions = _.chain(distributionNames)
-    .map(function(name) {
-      return [name, require('./' + _.camelCase(name))[name]];
+var distributions = _.chain(
+  [
+    ['Bernoulli', require('./bernoulli')],
+    ['Beta', require('./beta')],
+    ['Binomial', require('./binomial')],
+    ['Categorical', require('./categorical')],
+    ['Cauchy', require('./cauchy')],
+    ['Delta', require('./delta')],
+    ['DiagCovGaussian', require('./diagCovGaussian')],
+    ['Dirichlet', require('./dirichlet')],
+    ['Discrete', require('./discrete')],
+    ['Exponential', require('./exponential')],
+    ['Gamma', require('./gamma')],
+    ['Gaussian', require('./gaussian')],
+    ['ImproperUniform', require('./improperUniform')],
+    ['IspNormal', require('./ispNormal')],
+    ['KDE', require('./kde')],
+    ['Laplace', require('./laplace')],
+    ['LogisticNormal', require('./logisticNormal')],
+    ['LogitNormal', require('./logitNormal')],
+    ['Marginal', require('./marginal')],
+    ['Multinomial', require('./multinomial')],
+    ['MultivariateBernoulli', require('./multivariateBernoulli')],
+    ['MultivariateGaussian', require('./multivariateGaussian')],
+    ['Poisson', require('./poisson')],
+    ['RandomInteger', require('./randomInteger')],
+    ['SampleBasedMarginal', require('./sampleBasedMarginal')],
+    ['TensorGaussian', require('./tensorGaussian')],
+    ['TensorLaplace', require('./tensorLaplace')],
+    ['Uniform', require('./uniform')],
+  ]).fromPairs()
+    .mapValues(function(module, name) {
+      return module[name];
     })
-    .fromPairs()
     .value();
 
 function metadata() {
