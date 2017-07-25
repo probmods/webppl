@@ -2,9 +2,7 @@
 
 'use strict';
 
-// Require this version so that we don't need to run the build in
-// order to build the docs.
-var dists = require('../src/dists.ad.js');
+var dists = require('../src/dists');
 var _ = require('lodash');
 
 function makeTemplates(obj) {

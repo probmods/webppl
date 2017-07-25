@@ -1,5 +1,5 @@
 var assert = require('assert');
-var dists = require('../../../src/dists');
+var poisson = require('../../../src/dists/poisson');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');
 
@@ -10,7 +10,7 @@ var ln = Math.log,
 
 module.exports = {
   name: 'poisson',
-  sampler: dists.poissonSample,
+  sampler: poisson.sample,
   type: 'integer',
   inSupport: function(params, x) {
     return Number.isInteger(x) && x >= 0;

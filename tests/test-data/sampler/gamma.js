@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var assert = require('assert');
-var dists = require('../../../src/dists');
+var gamma = require('../../../src/dists/gamma');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');
 
@@ -12,7 +12,7 @@ var ln = Math.log,
 
 module.exports = {
   name: 'gamma',
-  sampler: dists.gammaSample,
+  sampler: gamma.sample,
   inSupport: function(params, x) {
     return typeof x === 'number' && x > 0 && x < Infinity;
   },

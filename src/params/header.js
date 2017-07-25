@@ -4,7 +4,7 @@ var _ = require('lodash');
 var ad = require('../ad');
 var Tensor = require('../tensor');
 var util = require('../util');
-var dists = require('../dists');
+var tensorGaussian = require('../dists/tensorGaussian');
 var config = require('./config');
 var params = require('./params');
 var serialize = require('./serialize');
@@ -46,7 +46,7 @@ function deserializeParams(s, k, a, str) {
 
 function defaultInit(mu, sigma) {
   return function(s, k, a, dims) {
-    return k(s, dists.tensorGaussianSample(mu, sigma, dims));
+    return k(s, tensorGaussian.sample(mu, sigma, dims));
   };
 }
 

@@ -21,7 +21,7 @@ var relu = function(x) {
 };
 
 var squishToProbSimplex = function(x) {
-  return dists.squishToProbSimplex(x);
+  return numeric.squishToProbSimplex(x);
 };
 
 var stack = function(arr) {

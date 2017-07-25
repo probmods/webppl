@@ -1,4 +1,4 @@
-var dists = require('../../../src/dists');
+var binomial = require('../../../src/dists/binomial');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');
 
@@ -10,7 +10,7 @@ var ln = Math.log,
 
 module.exports = {
   name: 'binomial',
-  sampler: dists.binomialSample,
+  sampler: binomial.sample,
   type: 'integer',
   inSupport: function(params, x) {
     var n = params[1];

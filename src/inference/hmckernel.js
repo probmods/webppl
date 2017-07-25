@@ -7,7 +7,8 @@
 var _ = require('lodash');
 var assert = require('assert');
 var util = require('../util');
-var dists = require('../dists');
+var gaussian = require('../dists/gaussian');
+var tensorGaussian = require('../dists/tensorGaussian');
 var Trace = require('../trace');
 var ad = require('../ad');
 var Tensor = require('../tensor');
@@ -162,8 +163,8 @@ module.exports = function(env) {
     // Sample a value with same type (scalar/tensor) and dimension as
     // x from a standard Gaussian.
     return x instanceof Tensor ?
-        dists.tensorGaussianSample(0, 1, x.dims) :
-        dists.gaussianSample(0, 1);
+        tensorGaussian.sample(0, 1, x.dims) :
+        gaussian.sample(0, 1);
   }
 
   function sampleMomentum(trace) {

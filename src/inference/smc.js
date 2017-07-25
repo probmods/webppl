@@ -2,7 +2,7 @@
 
 var _ = require('lodash');
 var util = require('../util');
-var dists = require('../dists');
+var discrete = require('../dists/discrete');
 var Trace = require('../trace');
 
 var assert = require('assert');
@@ -179,7 +179,7 @@ module.exports = function(env) {
     var newParticles = [];
     var j;
     for (var i = 0; i < numNewParticles; i++) {
-      j = dists.discreteSample(newWeights);
+      j = discrete.sample(newWeights);
       newParticles.push(particles[j].copy());
     }
 
