@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var util = require('../util');
+var numeric = require('../math/numeric');
 var discrete = require('../dists/discrete');
 var Trace = require('../trace');
 
@@ -154,7 +155,7 @@ module.exports = function(env) {
     }
     // Residual resampling following Liu 2008; p. 72, section 3.4.4
     var m = particles.length;
-    var logW = util.logsumexp(_.map(particles, 'logWeight'));
+    var logW = numeric._logsumexp(_.map(particles, 'logWeight'));
     var logAvgW = logW - Math.log(m);
     if (logAvgW === -Infinity) {
       // do not return, execution continues

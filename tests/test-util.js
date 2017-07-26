@@ -20,11 +20,11 @@ module.exports = {
       var xs = [-Infinity, -100, -30, -1, 0, 1, 10];
       xs.forEach(
           function(x) {
-            testAlmostEqual(test, x, util.logsumexp([x]), epsilon);
+            testAlmostEqual(test, x, numeric._logsumexp([x]), epsilon);
             xs.forEach(
                 function(y) {
                   var targetVal = Math.log(Math.exp(x) + Math.exp(y));
-                  var actualVal = util.logsumexp([x, y]);
+                  var actualVal = numeric._logsumexp([x, y]);
                   testAlmostEqual(test, targetVal, actualVal, epsilon);
                 });
           });

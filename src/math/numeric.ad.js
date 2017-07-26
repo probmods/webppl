@@ -1,13 +1,38 @@
 'use strict';
 
+var _ = require('lodash');
 var ad = require('../ad');
 
 var LOG_PI = 1.1447298858494002;
 var LOG_2PI = 1.8378770664093453;
 
+// By convention, non-adified versions of functions are prefixed with
+// an underscore.
+
 function sum(xs) {
   'use ad';
   return xs.reduce(function(a, b) { return a + b; }, 0);
+}
+
+function _sum(xs) {
+  if (xs.length === 0) {
+    return 0.0;
+  } else {
+    var total = _.reduce(xs,
+        function(a, b) {
+          return a + b;
+        });
+    return total;
+  }
+}
+
+function product(xs) {
+  'use ad';
+  var result = 1;
+  for (var i = 0, n = xs.length; i < n; i++) {
+    result *= xs[i];
+  }
+  return result;
 }
 
 function fact(x) {
@@ -60,12 +85,24 @@ function logaddexp(a, b) {
   }
 }
 
+function _logsumexp(a) {
+  var m = Math.max.apply(null, a);
+  var sum = 0;
+  for (var i = 0; i < a.length; ++i) {
+    sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
+  }
+  return m + Math.log(sum);
+}
+
 module.exports = {
   LOG_PI: LOG_PI,
   LOG_2PI: LOG_2PI,
   sum: sum,
+  _sum: _sum,
+  product: product,
   fact: fact,
   lnfact: lnfact,
   squishToProbSimplex: squishToProbSimplex,
-  logaddexp: logaddexp
+  logaddexp: logaddexp,
+  _logsumexp: _logsumexp
 };

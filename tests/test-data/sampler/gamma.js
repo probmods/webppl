@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var assert = require('assert');
 var gamma = require('../../../src/dists/gamma');
-var util = require('../../../src/util');
+var numeric = require('../../../src/math/numeric');
 var statistics = require('../../../src/math/statistics');
 
 var ln = Math.log,
@@ -39,7 +39,7 @@ module.exports = {
     // HT http://ocw.mit.edu/courses/mathematics/
     // 18-443-statistics-for-applications-fall-2006/lecture-notes/lecture6.pdf
     // (but NB: they use shape, rate whereas we have shape, scale)
-    return util.product(_.range(0, n - 1).map(function(k) { return shape + k })) * pow(scale, n)
+    return numeric.product(_.range(0, n - 1).map(function(k) { return shape + k })) * pow(scale, n)
   },
   // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
   populationStatisticFunctions: {

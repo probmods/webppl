@@ -8,6 +8,7 @@
 
 var _ = require('lodash');
 var util = require('./util');
+var numeric = require('./math/numeric');
 var interval = require('./math/interval');
 
 var isInterval = interval.isInterval;
@@ -136,7 +137,7 @@ var probabilityArray = function() {
     name: 'probabilityArray',
     desc: 'real array with elements that sum to one',
     check: function(val) {
-      return baseType.check(val) && Math.abs(1 - util.sum(val)) < tol;
+      return baseType.check(val) && Math.abs(1 - numeric._sum(val)) < tol;
     }
   };
 };

@@ -9,7 +9,7 @@ var numeric = require('../math/numeric');
 var T = ad.tensor;
 
 function sample(theta) {
-  var thetaSum = util.sum(theta);
+  var thetaSum = numeric._sum(theta);
   var x = util.random() * thetaSum;
   var k = theta.length;
   var probAccum = 0;

@@ -16,7 +16,7 @@ function zeros(n) {
 }
 
 function sample(theta, n) {
-  // var thetaSum = util.sum(theta);
+  // var thetaSum = numeric._sum(theta);
   var a = zeros(theta.length);
   for (var i = 0; i < n; i++) {
     a[discrete.sample(theta)]++;

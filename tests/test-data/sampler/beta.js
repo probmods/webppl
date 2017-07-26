@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var assert = require('assert');
 var beta = require('../../../src/dists/beta');
-var util = require('../../../src/util');
+var numeric = require('../../../src/math/numeric');
 var statistics = require('../../../src/math/statistics');
 
 var ln = Math.log,
@@ -40,7 +40,7 @@ module.exports = {
     var a = params[0];
     var b = params[1];
     // https://en.wikipedia.org/wiki/Beta_distribution#Higher_moments
-    return util.product(_.range(0, n - 1).map(function(k) { return (a + k) / (a + b + k) }))
+    return numeric.product(_.range(0, n - 1).map(function(k) { return (a + k) / (a + b + k) }))
   },
   // mostly HT https://en.wikipedia.org/wiki/Gamma_distribution
   populationStatisticFunctions: {

@@ -5,6 +5,7 @@
 
 var _ = require('lodash');
 var util = require('../util');
+var numeric = require('../math/numeric');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 var guide = require('../guide');
@@ -104,7 +105,7 @@ module.exports = function(env) {
         function() {
           var dist = hist.toDist();
           if (!opts.guide) {
-            dist.normalizationConstant = util.logsumexp(logWeights) - Math.log(opts.samples);
+            dist.normalizationConstant = numeric._logsumexp(logWeights) - Math.log(opts.samples);
           }
           return k(s, dist);
         }
