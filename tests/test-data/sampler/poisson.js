@@ -1,3 +1,5 @@
+'use strict';
+
 var assert = require('assert');
 var poisson = require('../../../src/dists/poisson');
 var util = require('../../../src/util');

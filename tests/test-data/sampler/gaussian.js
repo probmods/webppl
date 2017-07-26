@@ -1,3 +1,5 @@
+'use strict';
+
 var gaussian = require('../../../src/dists/gaussian');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');

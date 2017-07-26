@@ -1,3 +1,5 @@
+'use strict';
+
 var binomial = require('../../../src/dists/binomial');
 var util = require('../../../src/util');
 var statistics = require('../../../src/math/statistics');

@@ -1,3 +1,5 @@
+'use strict';
+
 var replace = require('estraverse').replace;
 
 function addFilenameMain(ast, filename) {
