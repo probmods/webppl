@@ -8,6 +8,7 @@
 
 var _ = require('lodash');
 var util = require('../util');
+var numeric = require('../math/numeric');
 var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
@@ -114,8 +115,8 @@ module.exports = function(env) {
       var currWeight = this.activeParticle.weight;
       var denom = lk.length + currMultiplicity; // k - 1 + Ckn
       var prevWBar = lk[lk.length - 1].wbar;
-      var wbar = -Math.log(denom) + util.logsumexp([Math.log(lk.length) + prevWBar,
-                                                    Math.log(currMultiplicity) + currWeight]);
+      var wbar = -Math.log(denom) + numeric._logsumexp([Math.log(lk.length) + prevWBar,
+                                                        Math.log(currMultiplicity) + currWeight]);
       if (wbar > 0) throw new Error('Positive weight!!'); // sanity check
       var logRatio = currWeight - wbar;
       var numChildrenAndWeight = [];

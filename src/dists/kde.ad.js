@@ -6,6 +6,7 @@ var types = require('../types');
 var util = require('../util');
 var Tensor = require('../tensor');
 var stats = require('../math/statistics');
+var numeric = require('../math/numeric');
 var gaussian = require('./gaussian');
 var diagCovGaussian = require('./diagCovGaussian');
 
@@ -102,7 +103,7 @@ var KDE = base.makeDistributionType({
     var kernel = this.kernel;
     return data.reduce(
       function(acc, x) {
-        return util.logaddexp(acc, kernel.score(x, width, val));
+        return numeric.logaddexp(acc, kernel.score(x, width, val));
       },
       -Infinity) - Math.log(n);
   }

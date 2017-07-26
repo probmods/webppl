@@ -1,6 +1,7 @@
 'use strict';
 
 var util = require('../src/util');
+var numeric = require('../src/math/numeric');
 
 function testAlmostEqual(test, x, y, epsilon) {
   if (x === y) {
@@ -19,11 +20,11 @@ module.exports = {
       var xs = [-Infinity, -100, -30, -1, 0, 1, 10];
       xs.forEach(
           function(x) {
-            testAlmostEqual(test, x, util.logsumexp([x]), epsilon);
+            testAlmostEqual(test, x, numeric._logsumexp([x]), epsilon);
             xs.forEach(
                 function(y) {
                   var targetVal = Math.log(Math.exp(x) + Math.exp(y));
-                  var actualVal = util.logsumexp([x, y]);
+                  var actualVal = numeric._logsumexp([x, y]);
                   testAlmostEqual(test, targetVal, actualVal, epsilon);
                 });
           });
@@ -34,23 +35,23 @@ module.exports = {
 
   testLogAddExp: {
     test1: function(test) {
-      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(1), Math.log(2))), 3, 1e-6);
+      testAlmostEqual(test, Math.exp(numeric.logaddexp(Math.log(1), Math.log(2))), 3, 1e-6);
       test.done();
     },
     test2: function(test) {
-      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(2), Math.log(1))), 3, 1e-6);
+      testAlmostEqual(test, Math.exp(numeric.logaddexp(Math.log(2), Math.log(1))), 3, 1e-6);
       test.done();
     },
     test3: function(test) {
-      testAlmostEqual(test, Math.exp(util.logaddexp(-Infinity, Math.log(1))), 1, 1e-6);
+      testAlmostEqual(test, Math.exp(numeric.logaddexp(-Infinity, Math.log(1))), 1, 1e-6);
       test.done();
     },
     test4: function(test) {
-      testAlmostEqual(test, Math.exp(util.logaddexp(Math.log(1), -Infinity)), 1, 1e-6);
+      testAlmostEqual(test, Math.exp(numeric.logaddexp(Math.log(1), -Infinity)), 1, 1e-6);
       test.done();
     },
     test5: function(test) {
-      testAlmostEqual(test, Math.exp(util.logaddexp(-Infinity, -Infinity)), 0, 1e-6);
+      testAlmostEqual(test, Math.exp(numeric.logaddexp(-Infinity, -Infinity)), 0, 1e-6);
       test.done();
     }
   },

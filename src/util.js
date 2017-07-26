@@ -5,8 +5,12 @@ var assert = require('assert');
 var seedrandom = require('seedrandom');
 var ad = require('./ad');
 var Tensor = require('./tensor');
+var numeric = require('./math/numeric');
 
 var rng = Math.random;
+
+// Re-export sum from this module, as expected by webppl-viz.
+var sum = numeric._sum;
 
 var trampolineRunners = {
   web: function(yieldEvery) {
@@ -81,47 +85,6 @@ function prettyJSON(obj) {
 
 function asArray(arg) {
   return arg ? [].concat(arg) : [];
-}
-
-function sum(xs) {
-  if (xs.length === 0) {
-    return 0.0;
-  } else {
-    var total = _.reduce(xs,
-        function(a, b) {
-          return a + b;
-        });
-    return total;
-  }
-}
-
-function product(xs) {
-  var result = 1;
-  for (var i = 0, n = xs.length; i < n; i++) {
-    result *= xs[i];
-  }
-  return result;
-}
-
-function logsumexp(a) {
-  var m = Math.max.apply(null, a);
-  var sum = 0;
-  for (var i = 0; i < a.length; ++i) {
-    sum += (a[i] === -Infinity ? 0 : Math.exp(a[i] - m));
-  }
-  return m + Math.log(sum);
-}
-
-function logaddexp(a, b) {
-  if (a === -Infinity) {
-    return b;
-  } else if (b === -Infinity) {
-    return a;
-  } else if (a > b) {
-    return Math.log(1 + Math.exp(b - a)) + a;
-  } else {
-    return Math.log(1 + Math.exp(a - b)) + b;
-  }
 }
 
 var deleteIndex = function(arr, i) {
@@ -396,8 +359,6 @@ module.exports = {
   histStd: histStd,
   histsApproximatelyEqual: histsApproximatelyEqual,
   gensym: gensym,
-  logsumexp: logsumexp,
-  logaddexp: logaddexp,
   deleteIndex: deleteIndex,
   makeGensym: makeGensym,
   prettyJSON: prettyJSON,
@@ -405,7 +366,6 @@ module.exports = {
   mergeDefaults: mergeDefaults,
   getValAndOpts: getValAndOpts,
   sum: sum,
-  product: product,
   asArray: asArray,
   serialize: serialize,
   deserialize: deserialize,

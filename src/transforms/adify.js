@@ -8,7 +8,6 @@ var generate = require('escodegen').generate;
 var build = require('ast-types').builders;
 var _ = require('lodash');
 var ad = require('./ad').ad;
-var util = require('../util');
 
 function isMarkedForGlobalTransform(ast) {
   assert.ok(ast.type === 'Program');

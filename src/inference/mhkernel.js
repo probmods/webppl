@@ -3,6 +3,7 @@
 var _ = require('lodash');
 var assert = require('assert');
 var util = require('../util');
+var numeric = require('../math/numeric');
 var ad = require('../ad');
 
 module.exports = function(env) {
@@ -215,7 +216,7 @@ module.exports = function(env) {
     var score = ad.value(proposalDist.score(regenChoice.val));
 
     // Rest of the trace.
-    score += util.sum(toTrace.choices.slice(this.regenFrom + 1).map(function(choice) {
+    score += numeric._sum(toTrace.choices.slice(this.regenFrom + 1).map(function(choice) {
       return this.reused.hasOwnProperty(choice.address) ? 0 : ad.value(choice.dist.score(choice.val));
     }, this));
 
