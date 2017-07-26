@@ -1,3 +1,5 @@
+'use strict';
+
 var webppl = require('../src/main');
 var util = require('../src/util');
 var dists = require('../src/dists');

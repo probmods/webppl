@@ -4,6 +4,7 @@ module.exports = {
     'es6': true
   },
   'rules': {
-    'no-undef': 'off'
+    'no-undef': 'off',
+    'strict': 'off'
   }
 };

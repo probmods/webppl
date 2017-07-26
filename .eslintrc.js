@@ -43,6 +43,10 @@ module.exports = {
       'error',
       'single',
       {avoidEscape: true}
+    ],
+    'strict': [
+      'error',
+      'global'
     ]
   }
 };

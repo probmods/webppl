@@ -1,3 +1,5 @@
+'use strict';
+
 var builders = require('ast-types').builders;
 var _ = require('lodash');
 

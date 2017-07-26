@@ -20,6 +20,10 @@
  * limitations under the License.
  */
 
+// Don't force use of strict mode in this 3rd party module, as the use
+// of sloppy mode may be intentional.
+/* eslint strict: 'off' */
+
 var util = require('./util');
 
 var FUNCTION = 'function', STRING = 'string', UNDEFINED = undefined;
