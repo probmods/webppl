@@ -47,11 +47,25 @@ function squishToProbSimplex(x) {
   return ad.tensor.softmax(u);
 }
 
+function logaddexp(a, b) {
+  'use ad';
+  if (a === -Infinity) {
+    return b;
+  } else if (b === -Infinity) {
+    return a;
+  } else if (a > b) {
+    return Math.log(1 + Math.exp(b - a)) + a;
+  } else {
+    return Math.log(1 + Math.exp(a - b)) + b;
+  }
+}
+
 module.exports = {
   LOG_PI: LOG_PI,
   LOG_2PI: LOG_2PI,
   sum: sum,
   fact: fact,
   lnfact: lnfact,
-  squishToProbSimplex: squishToProbSimplex
+  squishToProbSimplex: squishToProbSimplex,
+  logaddexp: logaddexp
 };
