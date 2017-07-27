@@ -175,20 +175,27 @@ function makeDistributionType(options) {
   // Note that Chrome uses the name of this local variable in the
   // output of `console.log` when it's called on a distribution that
   // uses the default constructor.
-  var dist = function(params) {
+
+  // The option to skip parameter checks is only used internally. It
+  // makes it possible to avoid performing checks multiple times when
+  // one distribution uses another distribution internally.
+
+  var dist = function(params, skipParamChecks) {
     params = params || {};
-    parameterNames.forEach(function(p, i) {
-      if (params.hasOwnProperty(p)) {
-        var type = parameterTypes[i];
-        if (type && !type.check(ad.valueRec(params[p]))) {
-          throw new Error('Parameter \"' + p + '\" should be of type "' + type.desc + '".');
+    if (!skipParamChecks) {
+      parameterNames.forEach(function(p, i) {
+        if (params.hasOwnProperty(p)) {
+          var type = parameterTypes[i];
+          if (type && !type.check(ad.valueRec(params[p]))) {
+            throw new Error('Parameter \"' + p + '\" should be of type "' + type.desc + '".');
+          }
+        } else {
+          if (!parameterOptionalFlags[i]) {
+            throw new Error('Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.');
+          }
         }
-      } else {
-        if (!parameterOptionalFlags[i]) {
-          throw new Error('Parameter \"' + p + '\" missing from ' + this.meta.name + ' distribution.');
-        }
-      }
-    }, this);
+      }, this);
+    }
     this.params = params;
     if (extraConstructorFn !== undefined) {
       extraConstructorFn.call(this);

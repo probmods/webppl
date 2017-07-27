@@ -64,7 +64,7 @@ var Mixture = base.makeDistributionType({
     }
     this.support = support && _.constant(support);
 
-    this.indicatorDist = new Discrete({ps: ps});
+    this.indicatorDist = new Discrete({ps: ps}, true);
   },
   sample: function() {
     var i = this.indicatorDist.sample();
