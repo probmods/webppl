@@ -25,6 +25,7 @@ var distributions = _.chain(
     ['LogisticNormal', require('./logisticNormal')],
     ['LogitNormal', require('./logitNormal')],
     ['Marginal', require('./marginal')],
+    ['Mixture', require('./mixture')],
     ['Multinomial', require('./multinomial')],
     ['MultivariateBernoulli', require('./multivariateBernoulli')],
     ['MultivariateGaussian', require('./multivariateGaussian')],

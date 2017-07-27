@@ -135,6 +135,13 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution>`__
 
+.. js:function:: Mixture({dists: ..., ps: ...})
+
+  * dists: array of component distributions
+  * ps: component probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
+
+  A finite mixture of continuous distributions. The component distributions should all share a common support.
+
 .. js:function:: Multinomial({ps: ..., n: ...})
 
   * ps: probabilities *(real array with elements that sum to one)*

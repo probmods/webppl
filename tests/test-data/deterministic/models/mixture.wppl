@@ -1,0 +1,56 @@
+var approxEq = function(x, y) {
+  return Math.abs(x - y) < 1e-8;
+};
+
+var g1 = Gaussian({mu: ad.lift(0), sigma: 1});
+var g2 = Gaussian({mu: 1, sigma: 2});
+var g3 = DiagCovGaussian({mu: ad.lift(Vector([0])), sigma: Vector([1])});
+var g4 = DiagCovGaussian({mu: Vector([1]), sigma: Vector([2])});
+
+var cases = [
+
+  // Scoring
+
+  (function() {
+    var x = 3;
+    var m = Mixture({ps: [ad.lift(0.4), 0.6], dists: [g1, g2]});
+    var trueScore = Math.log(0.4 * Math.exp(g1.score(x)) + 0.6 * Math.exp(g2.score(x)));
+    return approxEq(m.score(x), trueScore);
+  })(),
+
+  (function() {
+    var x = 3;
+    var m = Mixture({ps: ad.lift(Vector([0.4, 0.6])), dists: [g1, g2]});
+    var trueScore = Math.log(0.4 * Math.exp(g1.score(x)) + 0.6 * Math.exp(g2.score(x)));
+    return approxEq(m.score(x), trueScore);
+  })(),
+
+  (function() {
+    var x = 3;
+    var m = Mixture({ps: [ad.lift(0.4), 0.6], dists: [g3, g4]});
+    var trueScore = Math.log(0.4 * Math.exp(g1.score(x)) + 0.6 * Math.exp(g2.score(x)));
+    return approxEq(m.score(Vector([x])), trueScore);
+  })(),
+
+  // Sampling
+
+  (function() {
+    var m = Mixture({ps: [1, 0], dists: [Gaussian({mu: -3, sigma: 1e-12}), g1]});
+    return approxEq(sample(m), -3);
+  })(),
+
+  // Support
+
+  (function() {
+    var m = Mixture({ps: [0.5, 0.5], dists: [g1, g2]});
+    return m.support === undefined;
+  })(),
+
+  (function() {
+    var m = Mixture({ps: [0.5, 0.5], dists: [Uniform({a: 0, b: 1}), Uniform({a: 0, b: 1})]});
+    return m.support().lower === 0 && m.support().upper === 1;
+  })()
+
+];
+
+all(idF, cases);
