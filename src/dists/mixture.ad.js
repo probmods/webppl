@@ -5,13 +5,10 @@ var ad = require('../ad');
 var base = require('./base');
 var types = require('../types');
 var numeric = require('../math/numeric');
+var util = require('../util');
 var Discrete = require('./discrete').Discrete;
 
-function isContinuousDist(d) {
-  return base.isDist(d) && d.isContinuous;
-}
-
-function supportEq(s1, s2) {
+function continuousSupportEq(s1, s2) {
   return s1 === s2 ||
     (s1 !== undefined &&
      s2 !== undefined &&
@@ -19,10 +16,22 @@ function supportEq(s1, s2) {
      s1.upper === s2.upper);
 }
 
+function unionDiscreteSupports(supports) {
+  return _.chain(supports)
+    .flatten()
+    .uniqWith(supportElemEq)
+    .value();
+}
+
+function supportElemEq(x, y) {
+  return util.serialize(x) === util.serialize(y);
+}
+
 var Mixture = base.makeDistributionType({
   name: 'Mixture',
-  desc: 'A finite mixture of continuous distributions. ' +
-    'The component distributions should all share a common support.',
+  desc: 'A finite mixture of distributions. ' +
+    'The component distributions should be either all discrete or all continuous. ' +
+    'All continuous distributions should share a common support.',
   params: [
     {
       name: 'dists',
@@ -35,7 +44,6 @@ var Mixture = base.makeDistributionType({
     }
   ],
   wikipedia: false,
-  mixins: [base.continuousSupport],
   constructor: function() {
     var dists = this.params.dists;
     var ps = this.params.ps;
@@ -52,17 +60,33 @@ var Mixture = base.makeDistributionType({
       throw new Error('Parameters ps and dists should be non-empty.');
     }
 
-    if (!_.every(dists, isContinuousDist)) {
-      throw new Error('Parameter dists should be an array of continuous distributions.');
+    if (!_.every(dists, base.isDist)) {
+      throw new Error('Parameter dists should be an array of distributions.');
     }
 
-    var support = dists[0].support && dists[0].support();
+    this.isContinuous = dists[0].isContinuous;
+    var support_0 = this.isContinuous ? dists[0].support && dists[0].support() : undefined;
+
     for (var i = 1; i < dists.length; i++) {
-      if (!supportEq(support, dists[i].support && dists[i].support())) {
-        throw new Error('All distributions should have the same support.');
+      var dist_i = dists[i];
+      if (dist_i.isContinuous !== this.isContinuous) {
+        throw new Error('Mixtures combining discrete and continuous distributions are not supported.');
+      }
+      if (this.isContinuous) {
+        var support_i = dist_i.support && dist_i.support();
+        if (!continuousSupportEq(support_0, support_i)) {
+          throw new Error('All continuous distributions should have the same support.');
+        }
       }
     }
-    this.support = support && _.constant(support);
+
+    if (this.isContinuous) {
+      this.support = support_0 && _.constant(support_0);
+    } else {
+      this.support = function() {
+        return unionDiscreteSupports(_.invokeMap(dists, 'support'));
+      };
+    }
 
     this.indicatorDist = new Discrete({ps: ps}, true);
   },
