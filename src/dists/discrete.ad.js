@@ -8,8 +8,10 @@ var util = require('../util');
 var numeric = require('../math/numeric');
 var T = ad.tensor;
 
-function sample(theta) {
-  var thetaSum = numeric._sum(theta);
+function sample(theta, thetaSum) {
+  if (thetaSum === undefined) {
+    thetaSum = numeric._sum(theta);
+  }
   var x = util.random() * thetaSum;
   var k = theta.length;
   var probAccum = 0;
@@ -22,24 +24,15 @@ function sample(theta) {
   return k - 1;
 }
 
-function score(ps, i) {
-  var scoreFn = _.isArray(ps) ? scoreArray : scoreVector;
-  return scoreFn(ps, i);
+function scoreVector(val, probs, norm) {
+  'use ad';
+  return Math.log(T.get(probs, val) / norm);
+
 }
 
-function scoreVector(probs, val) {
+function scoreArray(val, probs, norm) {
   'use ad';
-  var _probs = ad.value(probs);
-  var d = _probs.dims[0];
-  return inSupport(val, d) ?
-      Math.log(T.get(probs, val) / T.sumreduce(probs)) :
-      -Infinity;
-}
-
-function scoreArray(probs, val) {
-  'use ad';
-  var d = probs.length;
-  return inSupport(val, d) ? Math.log(probs[val] / numeric.sum(probs)) : -Infinity;
+  return Math.log(probs[val] / norm);
 }
 
 function inSupport(val, dim) {
@@ -60,15 +53,33 @@ var Discrete = base.makeDistributionType({
   ],
   wikipedia: 'Categorical_distribution',
   mixins: [base.finiteSupport],
+  constructor: function() {
+    // Compute the norm here, as it's required for both sampling and
+    // scoring.
+    if (_.isArray(this.params.ps)) {
+      this.norm = numeric.sum(this.params.ps);
+      this.scoreFn = scoreArray;
+      this.dim = this.params.ps.length;
+    }
+    else {
+      this.norm = T.sumreduce(this.params.ps);
+      this.scoreFn = scoreVector;
+      this.dim = ad.value(this.params.ps).length;
+    }
+  },
   sample: function() {
-    return sample(toUnliftedArray(this.params.ps));
+    return sample(toUnliftedArray(this.params.ps), ad.value(this.norm));
   },
   score: function(val) {
-    return score(this.params.ps, val);
+    if (inSupport(val, this.dim)) {
+      return this.scoreFn(val, this.params.ps, this.norm);
+    }
+    else {
+      return -Infinity;
+    }
   },
   support: function() {
-    // This does the right thing for arrays and vectors.
-    return _.range(ad.value(this.params.ps).length);
+    return _.range(this.dim);
   }
 });
 
