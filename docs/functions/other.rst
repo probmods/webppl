@@ -55,15 +55,15 @@ Other
 .. js:function:: forward(model)
 
    Evaluates function of zero arguments ``model``, ignoring any
-   :ref:`factor <factor>` statements.
+   :ref:`conditioning <conditioning>`.
 
    Also see: :ref:`Forward Sampling <forward_sampling>`
 
 .. js:function:: forwardGuide(model)
 
    Evaluates function of zero arguments ``model``, ignoring any
-   ``factor`` statements, and sampling from the :ref:`guide <guides>`
-   at each random choice.
+   :ref:`conditioning <conditioning>`, and sampling from the
+   :ref:`guide <guides>` at each random choice.
 
    Also see: :ref:`Forward Sampling <forward_sampling>`
 
