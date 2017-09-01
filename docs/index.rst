@@ -5,6 +5,7 @@ WebPPL Documentation
    :maxdepth: 2
 
    gettingstarted
+   language
 
 .. toctree::
    :maxdepth: 2
