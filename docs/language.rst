@@ -1,71 +1,90 @@
-The WebPPL Language
-=========
+Language Overview
+=================
 
-The WebPPL language begins with a subset of JavaScript, and adds to it primitive distributions and primitives to sample, Infer, etc.
+The WebPPL language begins with a subset of JavaScript, and adds to it
+:ref:`primitive distributions <primitive-distributions>` and
+operations to perform :ref:`sampling <sample>`, :ref:`conditioning
+<conditioning>` and :ref:`inference <inference>`.
 
-Following the notation from the [Mozilla Parser API](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API), the language consists of the subset of JavaScript that can be built from the following syntax elements, each shown with an `example`:
+Syntax
+------
 
-- *Program* - a complete program, consisting of a sequence of statements
-- *BlockStatement* - a sequence of statements surrounded by braces, `{ var x=1; var y=2; }`
-- *ExpressionStatement* - a statement containing a single expression, `3 + 4;`
-- *ReturnStatement* - `return 3;`
-- *EmptyStatement* - a solitary semicolon: `;`
-- *IfStatement* - `if (x > 1) { return 1; } else { return 2; }`
-- *VariableDeclaration* - `var x = 5;`
-- *Identifier* - `x`
-- *Literal* - `3`
-- *FunctionExpression* - `function (x) { return x; }`
-- *CallExpression* - `f(x)`
-- *ConditionalExpression* - `x ? y : z`
-- *ArrayExpression* - `[1, 2, 3]`
-- *MemberExpression* - `Math.log`
-- *BinaryExpression* - `3 + 4`
-- *LogicalExpression* - `true || false`
-- *UnaryExpression* - `-5`
-- *ObjectExpression* - `{a: 1, b: 2}` (currently object properties cannot be functions)
-- `global` *AssignmentExpression* - `globalStore.a = 1`
+Following the notation from the `Mozilla Parser API
+<https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API>`_,
+the language consists of the subset of JavaScript that can be built
+from the following syntax elements, each shown with an ``example``:
 
-Note that assignment (*AssignmentExpression*) is currently only supported for the `globalStore object`, and no looping constructs are currently supported (e.g., `for`, `while`, `do`). This is because a purely functional language is much easier to transform into Continuation-Passing Style (CPS), which the WebPPL implementation uses to implement inference algorithms such as Enumeration and Particle Filtering.
-While these restrictions mean that common JavaScript programming patterns aren't possible, this subset is still universal, because we allow recursive and higher-order functions. It encourages a functional style, similar to Haskell or LISP, that is pretty easy to use (once you get used to thinking functionally!).
+===================== ====
+Element               Example
+===================== ====
+Program               A complete program, consisting of a sequence of statements
+BlockStatement        A sequence of statements surrounded by braces, ``{var x = 1; var y = 2;}``
+ExpressionStatement   A statement containing a single expression, ``3 + 4;``
+ReturnStatement       ``return 3;``
+EmptyStatement        A solitary semicolon, ``;``
+IfStatement           ``if (x > 1) { return 1; } else { return 2; }``
+VariableDeclaration   ``var x = 5;``
+Identifier            ``x``
+Literal               ``3``
+FunctionExpression    ``function (x) { return x; }``
+CallExpression        ``f(x)``
+ConditionalExpression ``x ? y : z``
+ArrayExpression       ``[1, 2, 3]``
+MemberExpression      ``Math.log``
+BinaryExpression      ``3 + 4``
+LogicalExpression     ``true || false``
+UnaryExpression       ``-5``
+ObjectExpression      ``{a: 1, b: 2}``
+AssignmentExpression  ``globalStore.a = 1`` (Assignment is only supported by the :ref:`global store <globalstore>`.)
+===================== ====
 
-Distributions, sampling, factor, inference
----------
+Note that general assignment expressions and looping constructs are
+not currently supported (e.g. ``for``, ``while``, ``do``). This is
+because a purely functional language is much easier to transform into
+Continuation-Passing Style (CPS), which the `WebPPL implementation
+<http://dippl.org>`_ uses to implement inference algorithms such as
+:ref:`enumeration <enumerate>` and :ref:`SMC <smc>`. While these
+restrictions mean that common JavaScript programming patterns aren't
+possible, this subset is still universal, because we allow recursive
+and higher-order functions. It encourages a functional style, similar
+to Haskell or LISP, that is pretty easy to use (once you get used to
+thinking functionally!).
 
-WebPPL provides a number of primitive distribution constructors, such as `Bernoulli`, which take a parameters object and return a distribution object: `var dist = Bernoulli()`. See [Distributions] for a list.
+Here is a (very boring) program that uses much of the available
+syntax::
 
-To describe generative processes, distribution objects can be sampled from via `sample(dist)`.
+  var foo = function(x) {
+    var bar = Math.exp(x);
+    var baz = x === 0 ? [] : [Math.log(bar), foo(x-1)];
+    return baz;
+  }
 
-To control the implicit distribution over executions of a generative model, WebPPL provides `factor(score)`. Derived from `factor` is `condition(bool)`. (TODO: describe this better.... do we have condition and observe in the header?)
+  foo(5);
 
-Marginal inference is accomplished by applying `Infer(params,model)` to a generative model represented as a function with no arguments. See [Inference].
+Calling JavaScript Functions
+----------------------------
 
+JavaScript functions can be called from a WebPPL program, with a few
+restrictions:
 
+1. JavaScript functions must be deterministic and cannot carry state
+   from one call to another. (That is, the functions must be
+   'referentially transparent': calling ``obj.foo(args)`` must always
+   return the same value when called with given arguments.)
 
-Using JavaScript libraries
----------
+2. JavaScript functions can't be called with a WebPPL function as an
+   argument (that is, they can't be higher-order).
 
-Functions from the JavaScript environment that WebPPL is called from can be used in a WebPPL program, with a few restrictions. First, these external functions must be deterministic and cannot carry state from one call to another. (That is, the functions must be 'referentially transparent': calling obj.foo(args) must always return the same value when called with given arguments.) Second, external functions can't be called with a WebPPL function as an argument (that is, they can't be higher-order). Third, external functions must be invoked as the method of an object (indeed, this is the only use of object method invocation currently possible in WebPPL). So the use of `Math.log()` in the above example is allowed: it is a deterministic function invoked as a method of the `Math` object (which is a standard object in the JavaScript global environment).
+3. JavaScript functions must be invoked as the method of an object
+   (indeed, this is the only use of object method invocation currently
+   possible in WebPPL).
 
-(note: some of this should move to, or be about packages??)
+All of the JavaScript functions built into the environment in which
+WebPPL is running are automatically available for use. Additional
+functions can be added to the environment through the use of
+:ref:`packages <packages>`.
 
-Example
---------
-
-Here is a (very boring) program that uses much of the available syntax:
-
-~~~~
-var foo = function(x) {
-  var bar = Math.exp(x)
-  var baz =  x==0 ? [] : [Math.log(bar), foo(x-1)]
-  return baz
-}
-
-foo(5)
-~~~~
-
-
-
-Deviations from JavaScript
------------
-
-This section documents a few common "gotchas" for those familiar with JavaScript.
+Note that since JavaScript functions must be called as methods on an
+object, it is not possible to call global JavaScript functions such as
+``parseInt()`` directly. Instead, such functions should be called as
+methods on the built-in object ``_top``. e.g. ``_top.parseInt('0')``.
