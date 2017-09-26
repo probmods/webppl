@@ -73,9 +73,9 @@ Operations
 
 WebPPL inherits its Tensor functionality from `adnn <https://github.com/dritchie/adnn>`_. It supports all of the tensor functions documented `here <https://github.com/dritchie/adnn/blob/master/ad/README.md#available-ad-primitive-functions>`_. Specifically, the ``ad.tensor`` module (and all the functions it contains) are globally available in WebPPL. For convenience, WebPPL also aliases ``ad.tensor`` to ``T``, so you can write things like::
 
-    var x = Vector([1, 2, 3]);
+    var x = T.transpose(Vector([1, 2, 3]));
     var y = Vector([3, 4, 5]);
-    var x = T.dot(x, y);        // instead of ad.tensor.dot(x, y)
+    T.dot(x, y);
 
 Other
 -----
