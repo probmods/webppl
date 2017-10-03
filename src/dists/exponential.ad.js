@@ -18,7 +18,9 @@ var Exponential = base.makeDistributionType({
   },
   score: function(val) {
     'use ad';
-    return Math.log(this.params.a) - this.params.a * val;
+    return val >= 0 ?
+      Math.log(this.params.a) - this.params.a * val :
+      -Infinity;
   },
   base: function() {
     return new Uniform({a: 0, b: 1});
