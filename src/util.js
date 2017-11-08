@@ -9,8 +9,10 @@ var numeric = require('./math/numeric');
 
 var rng = Math.random;
 
-// Re-export sum from this module, as expected by webppl-viz.
+// Re-export sum & logsumexp from this module, as expected by
+// webppl-viz.
 var sum = numeric._sum;
+var logsumexp = numeric._logsumexp;
 
 var trampolineRunners = {
   web: function(yieldEvery) {
@@ -366,6 +368,7 @@ module.exports = {
   mergeDefaults: mergeDefaults,
   getValAndOpts: getValAndOpts,
   sum: sum,
+  logsumexp: logsumexp,
   asArray: asArray,
   serialize: serialize,
   deserialize: deserialize,
