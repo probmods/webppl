@@ -22,8 +22,6 @@ module.exports = function(env) {
       samples: 1,
       avgBaselines: true,
       avgBaselineDecay: 0.9,
-      // Weight all factors in the LR term by log p/q.
-      naiveLR: false,
       // Write a DOT file representation of first graph to disk.
       dumpGraph: false,
       // Use local weight of one for all sample and factor nodes. This
@@ -171,7 +169,6 @@ module.exports = function(env) {
 
     buildObjective: function() {
       'use ad';
-      var naiveLR = this.opts.naiveLR;
       var rootNode = this.nodes[0];
       assert.ok(rootNode instanceof RootNode);
       assert.ok(_.isNumber(rootNode.weight));
@@ -180,7 +177,7 @@ module.exports = function(env) {
         if (node instanceof SampleNode && node.reparam) {
           return acc + node.multiplier * (node.logq - node.logp);
         } else if (node instanceof SampleNode) {
-          var weight = naiveLR ? rootNode.weight : node.weight;
+          var weight = node.weight;
           assert.ok(_.isNumber(weight));
           var b = this.computeBaseline(node.address, weight);
           return acc + node.multiplier * ((node.logq * (weight - b)) - node.logp);
