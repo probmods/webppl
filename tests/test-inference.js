@@ -690,6 +690,15 @@ var tests = [
         }
       },
       mapData: true,
+      mapData2: {
+        mean: { tol: 2 },
+        args: {
+          samples: 1,
+          steps: 10000,
+          optMethod: { adam: { stepSize: 0.01 } },
+          estimator: { ELBO: { avgBaselines: false } }
+        }
+      },
       onlyMAP: {
         mean: { tol: 0.1 },
         std: { tol: 0 },
