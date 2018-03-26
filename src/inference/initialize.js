@@ -66,7 +66,7 @@ module.exports = function(env) {
     return k(s);
   };
 
-  Initialize.prototype.observe = function(s, k, a, erp, params, val) {
+  Initialize.prototype.observe = function(s, k, a, dist, val) {
     // observe acts like factor (hence factor is called in the end), but
     // it returns a value unlike factor. So we need to pass a modified k
     // to factor.
@@ -75,17 +75,17 @@ module.exports = function(env) {
     }
     if (this.initObserveMode === 'none') {
       assert (val !== undefined);
-      var score = erp.score(params, val);
+      var score = dist.score(val);
       return this.factor(s, factorCont(val), a, score);
     } else if (this.initObserveMode === 'build') {
-      var val = erp.sample(params);
-      var score = erp.score(params, val);
+      var val = dist.sample();
+      var score = dist.score(val);
       this.cacheTable[a] = val;
       return this.factor(s, factorCont(val), a, score);
     }
     else if (this.initObserveMode === 'use') {
       var val = this.cacheTable[a];
-      var score = (val === undefined) ? -Infinity : erp.score(params, val);
+      var score = (val === undefined) ? -Infinity : dist.score(val);
       return this.factor(s, factorCont(val), a, score);
     } else throw new Error ('Invalid observe mode. Shoule be one of - use/build/none');
   }

@@ -135,7 +135,7 @@ module.exports = function(env) {
     return k(s, val);
   };
 
-  MHKernel.prototype.observe = function(s, k, a, erp, params, val) {
+  MHKernel.prototype.observe = function(s, k, a, dist, val) {
     // observe acts like factor (hence factor is called in the end), but
     // it returns a value unlike factor. So we need to pass a modified k
     // to factor.
@@ -145,11 +145,11 @@ module.exports = function(env) {
     if (this.cacheTable !== undefined) {
       var val = this.cacheTable[a];
       assert(val !== undefined);
-      var score = (val === undefined) ? -Infinity : erp.score(params, val);
+      var score = (val === undefined) ? -Infinity : dist.score(val);
       return this.factor(s, factorCont(val), a, score);
     } else {
       assert(val !== undefined);
-      var score = erp.score(params, val);
+      var score = dist.score(val);
       return this.factor(s, factorCont(val), a, score);
     }
   }
