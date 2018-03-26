@@ -1,0 +1,17 @@
+var model = function() {
+  var flips = mapData({data: [0.8, 0.2]}, function(p) {
+    return sample(Bernoulli({p}), {guide() {
+      // The guide returned here is expected to be equivalent to:
+      // Bernoulli({p: Math.sigmoid(param())});
+
+      // The correct behavior relies on optimization and automatic
+      // parameter naming correctly handling the enumeration of the
+      // guide distribution.
+
+      return Infer({method: 'enumerate', model() {
+        return flip(Math.sigmoid(param()));
+      }});
+    }});
+  });
+  return first(flips);
+};

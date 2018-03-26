@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var fs = require('fs');
+var path = require('path');
+var adify = require('../src/transforms/adify').adify;
+
+function findFiles(root, regex) {
+  function walk(dir) {
+    fs.readdirSync(dir).forEach(function(f) {
+      var p = path.join(dir, f);
+      if (fs.lstatSync(p).isDirectory()) {
+        walk(p);
+      } else if (f.match(regex)) {
+        matches.push(p);
+      }
+    });
+  }
+  var matches = [];
+  walk(root);
+  return matches;
+}
+
+var root = path.join(__dirname, '..', 'src');
+
+function adRequirePath(srcFilename) {
+  var dir = path.dirname(srcFilename);
+  var adFileName = path.join(__dirname, '..', 'src', 'ad.js');
+  var adPath = path.normalize(path.dirname(path.relative(dir, adFileName)));
+  // Replace platform dependent path separator with '/' which is used
+  // with `require` across all platforms.
+  return adPath.split(path.sep).join('/') + '/' + 'ad';
+}
+
+// Don't match text editor temporary files. e.g. src/.#dists.ad.js
+findFiles(root, /^(\w.*)\.ad\.js$/).forEach(function(inFile) {
+  var outFile = inFile.replace(/\.ad\.js$/, '.js');
+  var code = fs.readFileSync(inFile, 'utf8');
+  fs.writeFileSync(outFile, adify(code, adRequirePath(inFile)));
+});

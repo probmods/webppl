@@ -1,0 +1,38 @@
+var optimize = function(model) {
+  var traces = Infer({
+    model,
+    method: 'SMC',
+    particles: 10,
+    importance: 'ignoreGuide',
+    saveTraces: true
+  }).traces;
+  Optimize({
+    model,
+    estimator: {EUBO: {traces}},
+    steps: 10,
+    verbose: false
+  });
+};
+
+// These serve as sanity checks so we at least know that EUBO runs
+// (without throwing an exception) on this simple model. At the time
+// of writing, we don't have a way to write inference tests for EUBO.
+
+[
+  (function() {
+    var model = function() {
+      return sample(Bernoulli({p: 0.9}), {guide() {
+        return Bernoulli({p: Math.sigmoid(param())});
+      }});
+    };
+    optimize(model);
+    return true;
+  })(),
+  (function() {
+    var model = function() {
+      return flip(0.9);
+    };
+    optimize(model);
+    return true;
+  })()
+];

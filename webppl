@@ -6,38 +6,59 @@ var path = require('path');
 var webppl = require('./src/main');
 var pkg = require('./src/pkg');
 var util = require('./src/util');
+var pkginfo = require('./src/pkginfo');
+var git = require('./src/git');
+var errors = require('./src/errors/errors');
+var parseV8 = require('./src/errors/parsers').parseV8;
+var showError = require('./src/errors/node').showError;
+var paramsConfig = require('./src/params/config');
 var parseArgs = require('minimist');
-var git = require('git-rev-2');
-var _ = require('underscore');
+var args = require('./src/args');
+var _ = require('lodash');
 
-function printWebPPLValue(x) {
-  if (isErp(x)) {
-    x.print();
-  } else {
-    console.log(x);
-  }
-}
+function topK(s, x) {
+  console.log(x);
+};
 
-function run(code, packages, verbose) {
+function run(code, packages, verbose, debug, programFile) {
   packages.forEach(function(pkg) {
     if (pkg.js) { global[pkg.js.identifier] = require(pkg.js.path); }
     pkg.headers.forEach(webppl.requireHeader);
   });
 
-  webppl.run(
-      code,
-      function(s, x) {
-        console.log('\n* Program return value:\n');
-        printWebPPLValue(x);
-      },
-      {
-        extra: webppl.parsePackageCode(packages, verbose),
-        verbose: verbose
-      });
+  webppl.run(code, topK, {
+    bundles: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose,
+    debug: debug,
+    errorHandlers: [
+      function(error) {
+        if (error instanceof Error && error.wpplRuntimeError) {
+          try {
+            var stack = errors.recoverStack(error, parseV8);
+            showError(error, stack, programFile, debug);
+            process.exitCode = 1;
+          } catch (e) {
+            // If we fail to generate a readable error message re-throw
+            // the original error.
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
+    ]
+  });
 }
 
-function compile(code, packages, verbose, outputFile) {
+var lines = function(ar) {
+  return ar.join('\n')
+}
+
+function compile(code, packages, verbose, debug, programFile, outputFile) {
   var compiledCode = 'var webppl = require("' + require.resolve('./src/main') + '");\n';
+  compiledCode += 'var args = require("'+require.resolve('./src/args')+'");\n';
+  compiledCode += 'args.makeGlobal(__filename, process.argv.slice(2));\n';
   packages.forEach(function(pkg) {
     if (pkg.js) { compiledCode += 'var ' + pkg.js.identifier + ' = require("' + pkg.js.path + '");\n'; }
     pkg.headers.forEach(function(header) {
@@ -45,15 +66,22 @@ function compile(code, packages, verbose, outputFile) {
     });
   });
 
-  var compileOptions = { extra: webppl.parsePackageCode(packages, verbose), verbose: verbose };
+  var compileOptions = {
+    bundles: webppl.parsePackageCode(packages, verbose),
+    filename: programFile,
+    verbose: verbose,
+    debug: debug
+  };
 
-  compiledCode += (
-      printWebPPLValue.toString() + '\n' +
-      'var topK = function(s, x){ \n' +
-      " console.log('\\n* Program return value:\\n'); \n" +
-      ' printWebPPLValue(x); \n};\n\n');
-  compiledCode += 'var main = ' + webppl.compile(code, compileOptions) + '\n\n';
-  compiledCode += "main({}, topK, '');";
+  var compiledBody = webppl.compile(code, compileOptions).code;
+
+  compiledCode += lines([
+    'var __runner__ = util.trampolineRunners.cli();',
+    topK.toString() + ';',
+    'var main = ' + compiledBody + '\n',
+    "webppl.runEvaled(main, __runner__, {}, {}, topK, '');"
+  ]);
+
   // Write Javascript code to file
   fs.writeFile(
       outputFile,
@@ -69,20 +97,12 @@ function compile(code, packages, verbose, outputFile) {
 
 function main() {
 
-  var argv = parseArgs(process.argv.slice(2));
+  var argv = parseArgs(process.argv.slice(2), {default: {debug: true}, '--': true});
 
   // Print version if requested
   if (argv.version) {
-    git.branch(
-        __dirname,
-        function(err, branch) {
-          __dirname,
-          git.short(
-              function(err, shortName) {
-                console.log(branch, shortName, __dirname);
-              });
-        }
-    );
+    var dir = __dirname;
+    console.log(_.filter([git.branch(dir), pkginfo.version(), dir]).join(' '));
     return;
   }
 
@@ -90,13 +110,13 @@ function main() {
   if (argv._[0] === undefined) {
     console.log('No program argument given! Run webppl as follows:');
     console.log('webppl program.wppl [--compile] [--out compiled.js] ' +
-                '[--require path] [--random-seed int]');
+                '[--require path] [--random-seed int] [--param-store name] ' +
+                '[--param-id id]');
     return;
   }
 
   // Load webppl code
   var programFile = argv._[0];
-  console.log('Processing', programFile);
 
   var code = fs.readFileSync(programFile, 'utf8');
   var processCode = argv.compile ? compile : run;
@@ -111,13 +131,31 @@ function main() {
     return pkg.load(pkg.read(name_or_path, packagePaths, argv.verbose));
   });
 
+  // Random seed
   var seed = argv['random-seed'];
   if (seed !== undefined) {
     util.assertValidRandomSeed(seed);
     util.seedRNG(seed);
   }
 
-  processCode(code, packages, argv.verbose, outputFile);
+  // Parameter store type
+  var paramStoreName = argv['param-store'];
+  if (paramStoreName) {
+    paramsConfig.setStore(paramStoreName);
+  }
+
+  // Parameter table id
+  var paramId = argv['param-id'];
+  if (paramId) {
+    paramsConfig.setId(paramId);
+  } else {
+    paramsConfig.setFreshId();
+  }
+
+  // Parse arguments for program.
+  args.makeGlobal(programFile, argv['--']);
+
+  processCode(code, packages, argv.verbose, argv.debug, programFile, outputFile);
 }
 
 main();

@@ -1,0 +1,22 @@
+var xs = [0, 1, 2, 3];
+var ys = [0, 1, 4, 6];
+
+var model = function() {
+  var m = gaussianDrift({mu: 0, sigma: 2});
+  var b = gaussianDrift({mu: 0, sigma: 2});
+
+  var sigma = gamma(1, 1);
+
+  var f = function(x) {
+    return m * x + b;
+  };
+
+  map2(
+      function(x, y) {
+        factor(Gaussian({mu: f(x), sigma: sigma}).score(y));
+      },
+      xs,
+      ys);
+
+  return m;
+};

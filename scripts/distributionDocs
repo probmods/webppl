@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+
+'use strict';
+
+var dists = require('../src/dists');
+var _ = require('lodash');
+
+function makeTemplates(obj) {
+  return _.mapValues(obj, _.template);
+}
+
+var t = makeTemplates({
+  func:          '.. js:function:: <%= name %>({<%= args %>})\n',
+  arg:           '<%= name %>: ...',
+  param:         '  * <%= name %>: <%= desc %>',
+  paramWithType: '  * <%= name %>: <%= desc %> *(<%= type.desc %>)*',
+  desc:          '  <%= desc %>\n',
+  wikiEntry:     '  `Wikipedia entry <https://en.wikipedia.org/wiki/<%= page %>>`__\n'
+});
+
+var metadata = dists.metadata().filter(function(meta) { return !meta.nodoc; });
+
+var body = metadata.map(function(meta) {
+
+  var out = [];
+
+  out.push(t.func({
+    name: meta.name,
+    args: meta.params.map(t.arg).join(', ')
+  }));
+
+  meta.params.forEach(function(param) {
+    var p = _.assign({desc: ''}, param);
+    out.push((param.type ? t.paramWithType : t.param)(p));
+  });
+
+  out.push('');
+
+  if (meta.desc) {
+    out.push(t.desc(meta));
+  }
+
+  if (meta.wikipedia) {
+    var page = (meta.wikipedia === true) ? meta.name + '_distribution' : meta.wikipedia;
+    out.push(t.wikiEntry({page: page}));
+  }
+
+  return out;
+
+});
+
+console.log(_.flatten(body).join('\n'));

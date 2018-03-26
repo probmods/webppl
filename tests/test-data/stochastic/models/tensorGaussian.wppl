@@ -1,0 +1,5 @@
+var sigma = 1 / Math.sqrt(2);
+var model = function() {
+  var x = tensorGaussian(1.5, sigma, [2]);
+  return T.sumreduce(x);
+};

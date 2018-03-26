@@ -24,6 +24,9 @@ if not on_rtd:
     html_theme = 'sphinx_rtd_theme'
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
+def setup(app):
+    app.add_stylesheet("css/custom.css")
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -100,6 +103,10 @@ exclude_patterns = ['_build']
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
 #show_authors = False
+
+# The default language to highlight source code in.
+# http://www.sphinx-doc.org/en/stable/config.html#confval-highlight_language
+highlight_language = 'javascript'
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

@@ -9,7 +9,8 @@ var parse = require('esprima').parse;
 var fail = require('../syntax').fail;
 var inProgram = require('../syntax').inProgram;
 var isPrimitive = require('../syntax').isPrimitive;
-
+var util = require('../util');
+var _ = require('lodash');
 
 function thunkify(node) {
   return build.functionExpression(
@@ -47,24 +48,27 @@ function trampoline(node) {
   }
 }
 
-var driver = parse(
-    ['(function(p) {',
-     '  return function(s, k, a) {',
-     '    var trampoline = p(s, k, a);',
-     '    while (trampoline) {',
-     '      trampoline = trampoline();',
-     '    }',
-     '  }',
-     '})'].join('\n')
-    ).body[0].expression;
+var driverFn = function(p) {
+  return function(runTrampoline) {
+    return function(s, k, a) {
+      runTrampoline(function() {
+        return p(s, k, a);
+      });
+    }
+  }
+}
+
+var driver = parse('(' + driverFn.toString() + ')').body[0].expression;
 
 function trampolineMain(node) {
-  return inProgram(function(node) {
+  var r = inProgram(function(node) {
     return build.callExpression(driver, [replace(node, {
       enter: skip,
       leave: trampoline
     })]);
   })(node, fail('trampoline', node));
+
+  return r;
 }
 
 module.exports = {

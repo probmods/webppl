@@ -1,0 +1,18 @@
+all(idF, [
+  (function() {
+    return 2 + 2 === 4;
+  })(),
+
+  (function() {
+    return +1 === 1;
+  })(),
+
+  (function() {
+    var x = ad.lift(1);
+    return +x === x;
+  })(),
+
+  (function() {
+    return +'1' === 1;
+  })()
+]);

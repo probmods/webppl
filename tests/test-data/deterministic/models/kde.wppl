@@ -1,0 +1,50 @@
+var approxEq = function(x, y) {
+  return Math.abs(x - y) < 0.001;
+};
+
+var cases = [
+  (function() {
+    var d = KDE({data: [1, 2], width: 1.5});
+    return approxEq(d.score(4), -2.621);
+  })(),
+
+  (function() {
+    var kde = KDE({data: [5], width: 0.00001});
+    return approxEq(sample(kde), 5);
+  })(),
+
+  (function() {
+    var kde = KDE({data: [1, 2]});
+    return approxEq(kde.params.width, 0.461);
+  })(),
+
+  (function() {
+    var data = [Vector([0, 1]), Vector([2, 4])];
+    var width = Vector([1, 1.5]);
+    var kde = KDE({data, width});
+    return approxEq(kde.score(Vector([-1, -2])), -5.436);
+  })(),
+
+  (function() {
+    var kde = KDE({data: [Vector([5, 6])], width: Vector([0.00001, 0.00001])});
+    var x0 = T.get(sample(kde), 0);
+    var x1 = T.get(sample(kde), 1);
+    return approxEq(x0, 5) && approxEq(x1, 6);
+  })(),
+
+  (function() {
+    var kde = KDE({data: [Vector([1]), Vector([2])]});
+    var width = T.get(kde.params.width, 0);
+    return approxEq(width, 0.461);
+  })(),
+
+  (function() {
+    var m = Infer({method: 'forward', samples: 1, model() {
+      return delta(5);
+    }});
+    var x = sample(kde(m, 0.00001));
+    return approxEq(x, 5);
+  })()
+];
+
+all(idF, cases);

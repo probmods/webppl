@@ -1,0 +1,5 @@
+var model = function() {
+  var x = uniform(0, 1);
+  assert.ok(_.isNumber(x));
+  return Math.floor(x);
+};

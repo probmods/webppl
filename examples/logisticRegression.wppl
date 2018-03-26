@@ -4,10 +4,10 @@ var labels = [false, false, true, true, true]
 var model = function() {
   var m = gaussian(0, 1)
   var b = gaussian(0, 1)
-  var sigmaSquared = gamma(1, 1)
+  var sigma = gamma(1, 1)
 
   var y = function(x) {
-    return gaussian(m * x + b, sigmaSquared)
+    return gaussian(m * x + b, sigma)
   }
   var sigmoid = function(x) {
     return 1 / (1 + Math.exp(-1 * y(x)))
@@ -15,7 +15,7 @@ var model = function() {
 
   map2(
       function(x, label) {
-        factor(bernoulliERP.score([sigmoid(x)], label))
+        factor(Bernoulli({p: sigmoid(x)}).score(label))
       },
       xs,
       labels)
@@ -23,4 +23,4 @@ var model = function() {
   return sigmoid(8)
 }
 
-MH(model, 100000, 20000)
+Infer({model, method: 'MCMC', samples: 10000, burn: 2000})

@@ -1,0 +1,30 @@
+// Regression test for the issue described here:
+// https://github.com/probmods/webppl/issues/892
+
+// Specifically, this checks that gradients from the LR and PW parts
+// of the estimators have the correct relative scaling. If not, then
+// the parameter will be pulled away from zero.
+
+var data = _.range(10000);
+
+var model = function() {
+  mapData({data, batchSize: 1}, function() {
+
+    var mu = param({name: 'mu', mu: 0, sigma: 0});
+
+    var mu1 = sample(Gaussian({mu: 0, sigma: 10}), {
+      guide() { Gaussian({mu, sigma: 1}); },
+      reparam: false
+    });
+    observe(Gaussian({mu: mu1, sigma: 1}), -10);
+
+    var mu2 = sample(Gaussian({mu: 0, sigma: 10}), {
+      guide() { Gaussian({mu, sigma: 1}); },
+      reparam: true
+    });
+    observe(Gaussian({mu: mu2, sigma: 1}), 10);
+
+  });
+
+  return param({name: 'mu'});
+};

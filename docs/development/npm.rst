@@ -1,21 +1,32 @@
 Updating the npm package
 ========================
 
-1. Update version in dev::
+.. highlight:: bash
+
+1. Get latest dev version::
 
     git checkout dev
     git pull
-    npm version patch  // or minor, or major; prints new version number
 
-2. Merge into master::
+2. Merge into master and test::
 
     git checkout master
+    git pull
     git merge dev
-    grunt
-    
-3. Push to remotes and npm::
+    grunt     
+
+3. Update version number on master::
+
+    npm version patch  # or minor, or major; prints new version number
+
+4. Merge updated version number into dev::
+
+    git checkout dev
+    git merge master
+
+4. Push to remotes and npm::
 
     git push origin dev
     git push origin master
-    git push origin v0.0.1  // again, use version printed by "npm version" command above
+    git push origin v0.0.1  # use version printed by "npm version" command above
     npm publish

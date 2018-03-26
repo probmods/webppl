@@ -95,7 +95,7 @@ function returnify(nodes) {
     return nodes;
   }
   else {
-    nodes[nodes.length - 1] = match(nodes[nodes.length - 1], [
+    var returnNode = match(nodes[nodes.length - 1], [
       clause(Syntax.BlockStatement, function(body) {
         return build.blockStatement(returnify(body));
       }),
@@ -109,12 +109,18 @@ function returnify(nodes) {
         return build.ifStatement(
             test,
             build.blockStatement(returnify(consequent.body)),
-            alternate === null ? null : build.blockStatement(returnify(alternate.body)));
+            alternate === null ? null : build.blockStatement(returnify([alternate])));
       }),
       clause(Syntax.ReturnStatement, function(argument) {
         return build.returnStatement(argument);
       })
-    ], fail('returnify', nodes[nodes.length - 1]));
+    ], function() { return; });
+
+    if (returnNode) {
+      nodes[nodes.length - 1] = returnNode;
+    } else {
+      nodes = nodes.concat(build.returnStatement(build.identifier('undefined')));
+    }
 
     return nodes;
   }
@@ -125,13 +131,14 @@ function isPrimitive(node) {
     case Syntax.FunctionExpression:
     case Syntax.Identifier:
     case Syntax.CallExpression:
+    case Syntax.ConditionalExpression:
       return false;
     case Syntax.MemberExpression:
       return (types.Identifier.check(node.object) ||
           (!node.computed) && types.Identifier.check(node.property));
     default:
       console.log(node);
-      throw "isPrimitive doesn't handle node";
+      throw new Error("isPrimitive doesn't handle node");
   }
 }
 

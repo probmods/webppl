@@ -1,0 +1,209 @@
+.. js:function:: Bernoulli({p: ...})
+
+  * p: success probability *(real [0, 1])*
+
+  Distribution over ``{true, false}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Bernoulli_distribution>`__
+
+.. js:function:: Beta({a: ..., b: ...})
+
+  * a: shape *(real (0, Infinity))*
+  * b: shape *(real (0, Infinity))*
+
+  Distribution over ``[0, 1]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Beta_distribution>`__
+
+.. js:function:: Binomial({p: ..., n: ...})
+
+  * p: success probability *(real [0, 1])*
+  * n: number of trials *(int (>=1))*
+
+  Distribution over the number of successes for ``n`` independent ``Bernoulli({p: p})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Binomial_distribution>`__
+
+.. js:function:: Categorical({ps: ..., vs: ...})
+
+  * ps: probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
+  * vs: support *(any array)*
+
+  Distribution over elements of ``vs`` with ``P(vs[i])`` proportional to ``ps[i]``. ``ps`` may be omitted, in which case a uniform distribution over ``vs`` is returned.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
+
+.. js:function:: Cauchy({location: ..., scale: ...})
+
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
+
+  Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Cauchy_distribution>`__
+
+.. js:function:: Delta({v: ...})
+
+  * v: support element *(any)*
+
+  Discrete distribution that assigns probability one to the single element in its support. This is only useful in special circumstances as sampling from ``Delta({v: val})`` can be replaced with ``val`` itself. Furthermore, a ``Delta`` distribution parameterized by a random choice should not be used with MCMC based inference, as doing so produces incorrect results.
+
+.. js:function:: DiagCovGaussian({mu: ..., sigma: ...})
+
+  * mu: mean *(tensor)*
+  * sigma: standard deviations *(tensor (0, Infinity))*
+
+  A distribution over tensors in which each element is independent and Gaussian distributed, with its own mean and standard deviation. i.e. A multivariate Gaussian distribution with diagonal covariance matrix. The distribution is over tensors that have the same shape as the parameters ``mu`` and ``sigma``, which in turn must have the same shape as each other.
+
+.. js:function:: Dirichlet({alpha: ...})
+
+  * alpha: concentration *(vector (0, Infinity))*
+
+  Distribution over probability vectors. If ``alpha`` has length ``d`` then the distribution is over probability vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Dirichlet_distribution>`__
+
+.. js:function:: Discrete({ps: ...})
+
+  * ps: probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
+
+  Distribution over ``{0,1,...,ps.length-1}`` with P(i) proportional to ``ps[i]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Categorical_distribution>`__
+
+.. js:function:: Exponential({a: ...})
+
+  * a: rate *(real (0, Infinity))*
+
+  Distribution over ``[0, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Exponential_distribution>`__
+
+.. js:function:: Gamma({shape: ..., scale: ...})
+
+  * shape:  *(real (0, Infinity))*
+  * scale:  *(real (0, Infinity))*
+
+  Distribution over positive reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Gamma_distribution>`__
+
+.. js:function:: Gaussian({mu: ..., sigma: ...})
+
+  * mu: mean *(real)*
+  * sigma: standard deviation *(real (0, Infinity))*
+
+  Distribution over reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Normal_distribution>`__
+
+.. js:function:: KDE({data: ..., width: ...})
+
+  * data: data array
+  * width: kernel width
+
+  A distribution based on a kernel density estimate of ``data``. A Gaussian kernel is used, and both real and vector valued data are supported. When the data are vector valued, ``width`` should be a vector specifying the kernel width for each dimension of the data. When ``width`` is omitted, Silverman's rule of thumb is used to select a kernel width. This rule assumes the data are approximately Gaussian distributed. When this assumption does not hold, a ``width`` should be specified in order to obtain sensible results.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Kernel_density_estimation>`__
+
+.. js:function:: Laplace({location: ..., scale: ...})
+
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
+
+  Distribution over ``[-Infinity, Infinity]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Laplace_distribution>`__
+
+.. js:function:: LogisticNormal({mu: ..., sigma: ...})
+
+  * mu: mean *(vector)*
+  * sigma: standard deviations *(vector (0, Infinity))*
+
+  A distribution over probability vectors obtained by transforming a random variable drawn from ``DiagCovGaussian({mu: mu, sigma: sigma})``. If ``mu`` and ``sigma`` have length ``d`` then the distribution is over probability vectors of length ``d+1``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution#Multivariate_generalization>`__
+
+.. js:function:: LogitNormal({mu: ..., sigma: ..., a: ..., b: ...})
+
+  * mu: location *(real)*
+  * sigma: scale *(real (0, Infinity))*
+  * a: lower bound *(real)*
+  * b: upper bound (>a) *(real)*
+
+  A distribution over ``(a,b)`` obtained by scaling and shifting a standard logit-normal.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Logit-normal_distribution>`__
+
+.. js:function:: Mixture({dists: ..., ps: ...})
+
+  * dists: array of component distributions
+  * ps: component probabilities (can be unnormalized) *(vector or real array [0, Infinity))*
+
+  A finite mixture of distributions. The component distributions should be either all discrete or all continuous. All continuous distributions should share a common support.
+
+.. js:function:: Multinomial({ps: ..., n: ...})
+
+  * ps: probabilities *(real array with elements that sum to one)*
+  * n: number of trials *(int (>=1))*
+
+  Distribution over counts for ``n`` independent ``Discrete({ps: ps})`` trials.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multinomial_distribution>`__
+
+.. js:function:: MultivariateBernoulli({ps: ...})
+
+  * ps: probabilities *(vector [0, 1])*
+
+  Distribution over a vector of independent Bernoulli variables. Each element of the vector takes on a value in ``{0, 1}``. Note that this differs from ``Bernoulli`` which has support ``{true, false}``.
+
+.. js:function:: MultivariateGaussian({mu: ..., cov: ...})
+
+  * mu: mean *(vector)*
+  * cov: covariance *(positive definite matrix)*
+
+  Multivariate Gaussian distribution with full covariance matrix. If ``mu`` has length d and ``cov`` is a ``d``-by-``d`` matrix, then the distribution is over vectors of length ``d``.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Multivariate_normal_distribution>`__
+
+.. js:function:: Poisson({mu: ...})
+
+  * mu: mean *(real (0, Infinity))*
+
+  Distribution over integers.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Poisson_distribution>`__
+
+.. js:function:: RandomInteger({n: ...})
+
+  * n: number of possible values *(int (>=1))*
+
+  Uniform distribution over ``{0,1,...,n-1}``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
+
+.. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
+
+  * mu: mean *(real)*
+  * sigma: standard deviation *(real (0, Infinity))*
+  * dims: dimension of tensor *(int (>=1) array)*
+
+  Distribution over a tensor of independent Gaussian variables.
+
+.. js:function:: TensorLaplace({location: ..., scale: ..., dims: ...})
+
+  * location:  *(real)*
+  * scale:  *(real (0, Infinity))*
+  * dims: dimension of tensor *(int (>=1) array)*
+
+  Distribution over a tensor of independent Laplace variables.
+
+.. js:function:: Uniform({a: ..., b: ...})
+
+  * a: lower bound *(real)*
+  * b: upper bound (>a) *(real)*
+
+  Continuous uniform distribution over ``[a, b]``
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)>`__
+

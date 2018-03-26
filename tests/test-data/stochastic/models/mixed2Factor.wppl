@@ -1,0 +1,8 @@
+var model = function() {
+  var x = flip();
+  var std = x ? 0.5 : 3;
+  var y = gaussian(1, std);
+  // This factor shifts the means of the Gaussians from 1 to 0.
+  factor((1 - 2 * y) / (2 * Math.pow(std, 2)));
+  return y;
+};

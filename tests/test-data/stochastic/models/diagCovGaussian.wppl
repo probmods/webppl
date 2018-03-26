@@ -1,0 +1,4 @@
+var model = function() {
+  var x = diagCovGaussian(Vector([1, 2]), Vector([1.5, 2.5]));
+  return T.sumreduce(x);
+};

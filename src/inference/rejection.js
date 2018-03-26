@@ -8,42 +8,82 @@
 
 'use strict';
 
-var erp = require('../erp');
-var assert = require('assert');
-var util = require('../util')
+var _ = require('lodash');
+var util = require('../util');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
-  function Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental) {
+  function Rejection(s, k, a, wpplFn, options) {
+    options = util.mergeDefaults(options, {
+      samples: 100,
+      maxScore: 0,
+      incremental: false,
+      throwOnError: true,
+      minSampleRate: 0
+    }, 'Rejection');
+
+    this.throwOnError = options.throwOnError;
+    this.minSampleRate = options.minSampleRate;
+    this.numSamplesTotal = options.samples;
+    this.startTime = Date.now();
+
+    this.numSamples = options.samples;
+    this.maxScore = options.maxScore;
+    this.incremental = options.incremental;
     this.s = s;
     this.k = k;
     this.a = a;
     this.wpplFn = wpplFn;
-    this.maxScore = maxScore === undefined ? 0 : maxScore
-    this.incremental = incremental;
-    this.hist = {};
-    this.numSamples = numSamples;
+    this.hist = new CountAggregator();
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
 
-    if (this.incremental) {
-      assert(this.maxScore <= 0, 'maxScore cannot be positive for incremental rejection.');
+    if (this.incremental && this.maxScore > 0) {
+      util.warn('Rejection: Reduce maxScore to zero for better performance.');
     }
   }
 
   Rejection.prototype.run = function() {
+    if (!_.isNumber(this.numSamples) || this.numSamples <= 0) {
+      return this.error('"samples" should be a positive integer.');
+    }
+    var elapseSec = (Date.now() - this.startTime) / 1000.0;
+    if (this.minSampleRate > 0 && elapseSec > 2) {
+      // count the number of samples collected in ~2 secs
+      // compute number of samples per sec
+      var sampleRate = (this.numSamplesTotal - this.numSamples) / elapseSec;
+      if (sampleRate < this.minSampleRate) {
+        return this.error(sampleRate.toFixed(2) + ' samples/sec is below threshold.')
+      }
+      this.minSampleRate = 0;
+    }
     this.scoreSoFar = 0;
     this.threshold = this.maxScore + Math.log(util.random());
     return this.wpplFn(_.clone(this.s), env.exit, this.a);
+  };
+
+  // Error function for error handling
+  // this.throwOnError is true: directly throw error
+  // this.throwOnError is false: return error (string) as infer result
+  Rejection.prototype.error = function(errType) {
+    var err = new Error(errType);
+    if (this.throwOnError) {
+      throw err;
+    } else {
+      return this.k(this.s, err);
+    }
   }
 
-  Rejection.prototype.sample = function(s, k, a, erp, params) {
-    return k(s, erp.sample(params));
-  }
+  Rejection.prototype.sample = function(s, k, a, dist) {
+    return k(s, dist.sample());
+  };
 
   Rejection.prototype.factor = function(s, k, a, score) {
     if (this.incremental) {
-      assert(score <= 0, 'Score must be <= 0 for incremental rejection.');
+      if (score > 0) {
+        return this.error('Score must be <= 0 for incremental rejection.');
+      }
     }
     this.scoreSoFar += score;
     // In incremental mode we can reject as soon as scoreSoFar falls below
@@ -56,34 +96,31 @@ module.exports = function(env) {
     } else {
       return k(s);
     }
-  }
+  };
 
   Rejection.prototype.exit = function(s, retval) {
-    assert(this.scoreSoFar <= this.maxScore, 'Score exceeded upper bound.');
+    if (this.scoreSoFar > this.maxScore) {
+      return this.error('Score exceeded upper bound.')
+    }
 
     if (this.scoreSoFar > this.threshold) {
       // Accept.
-      var r = util.serialize(retval);
-      if (this.hist[r] === undefined) {
-        this.hist[r] = { prob: 0, val: retval };
-      }
-      this.hist[r].prob += 1;
+      this.hist.add(retval);
       this.numSamples -= 1;
     }
 
     if (this.numSamples === 0) {
-      var dist = erp.makeMarginalERP(util.logHist(this.hist));
       env.coroutine = this.oldCoroutine;
-      return this.k(this.s, dist);
+      return this.k(this.s, this.hist.toDist());
     } else {
       return this.run();
     }
-  }
+  };
 
   Rejection.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function rej(s, k, a, wpplFn, numSamples, maxScore, incremental) {
-    return new Rejection(s, k, a, wpplFn, numSamples, maxScore, incremental).run();
+  function rej(s, k, a, wpplFn, options) {
+    return new Rejection(s, k, a, wpplFn, options).run();
   }
 
   return {

@@ -1,66 +1,68 @@
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var assert = require('assert');
 var Trace = require('../trace');
+var ad = require('../ad');
+var util = require('../util');
 
 module.exports = function(env) {
 
-  // This takes a wpplFn and returns a trace which has a non-zero probability.
+  // Returns a trace which has a non-zero probability.
 
   var warnAfter = [1e3, 1e4, 1e5, 1e6];
 
-  function Initialize(s, k, a, wpplFn, options) {
-    var options = util.mergeDefaults(options, {
-        initSampleMode: 'none', // Modes - none, use, build 
-        initObserveMode: 'none', // Modes - none, use, build 
-        cacheTable: undefined
-      });
-
-    if (options.initSampleMode === 'use' || options.initObserveMode === 'use')
-      assert (options.cacheTable !== undefined)
-    
-    if (options.initSampleMode === 'build' || options.initObserveMode === 'build')
-      if (options.cacheTable === undefined)
-        options.cacheTable = {}
-
+  function Initialize(cont, wpplFn, s, k, a, options) {
+    this.cont = cont;
     this.wpplFn = wpplFn;
-    this.initSampleMode = options.initSampleMode
-    this.initObserveMode = options.initObserveMode;
-    this.cacheTable = options.cacheTable;
     this.s = s;
     this.k = k;
     this.a = a;
+
+    options = util.mergeDefaults(options, {
+      initSampleMode: 'none', // Modes - none, use, build
+      initObserveMode: 'none', // Modes - none, use, build
+      cacheTable: undefined
+    });
+
+    this.initSampleMode = options.initSampleMode;
+    this.initObserveMode = options.initObserveMode;
+    this.cacheTable = options.cacheTable;
+
+    this.ad = options.ad;
+
     this.failures = 0;
-    this.coroutine = env.coroutine;
+    this.oldCoroutine = env.coroutine;
     env.coroutine = this;
   }
 
   Initialize.prototype.run = function() {
-    this.trace = new Trace();
+    this.trace = new Trace(this.wpplFn, this.s, this.k, this.a);
     env.query.clear();
-    return this.wpplFn(_.clone(this.s), env.exit, this.a);
+    return this.trace.continue();
   };
 
-  Initialize.prototype.sample = function(s, k, a, erp, params) {
-    var val;
+  Initialize.prototype.sample = function(s, k, a, dist, options) {
+    var _val;
     if (this.initSampleMode === 'none') {
-      val = erp.sample(params);
+      _val = dist.sample();
     } else if (this.initSampleMode === 'build') {
-      val = erp.sample(params);
-      this.cacheTable[a] = val;
+      _val = dist.sample();
+      this.cacheTable[a] = _val;
     } else if (this.initSampleMode === 'use') {
-      val = this.cacheTable[a];
+      _val = this.cacheTable[a];
     } else throw new Error ('Invalid sample mode. Shoule be one of - use/build/none');
-    this.trace.addChoice(erp, params, val, a, s, k);
+
+    var val = this.ad && dist.isContinuous ? ad.lift(_val) : _val;
+    this.trace.addChoice(dist, val, a, s, k, options);
     return k(s, val);
   };
 
   Initialize.prototype.factor = function(s, k, a, score) {
-    if (score === -Infinity) {
+    if (ad.value(score) === -Infinity) {
       return this.fail();
     }
-    this.trace.score += score;
+    this.trace.score = ad.scalar.add(this.trace.score, score);
     return k(s);
   };
 
@@ -101,17 +103,22 @@ module.exports = function(env) {
   Initialize.prototype.exit = function(s, val) {
     assert.notStrictEqual(this.trace.score, -Infinity);
     this.trace.complete(val);
-    env.coroutine = this.coroutine;
-    if (this.initSampleMode === 'build' || this.initObserveMode === 'build')
-      return this.k(this.s, this.trace, this.cacheTable);
-    else return this.k(this.s, this.trace);
+    if (this.trace.value === env.query) {
+      this.trace.value = env.query.getTable();
+    }
+    env.coroutine = this.oldCoroutine;
+
+    if (this.initSampleMode === 'build' || this.initObserveMode === 'build') {
+      return this.cont(this.trace, this.cacheTable);
+    } else {
+      return this.cont(this.trace);
+    }
   };
 
   Initialize.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  return {
-    Initialize: function(s, k, a, wpplFn, options) {
-      return new Initialize(s, k, a, wpplFn, options).run();
-    }
+  return function(cont, wpplFn, s, k, a, options) {
+    return new Initialize(cont, wpplFn, s, k, a, options).run();
   };
+
 };

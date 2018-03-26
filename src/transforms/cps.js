@@ -1,7 +1,6 @@
 'use strict';
 
-var assert = require('assert');
-var build = require('ast-types').builders;
+var build = require('./builders');
 var types = require('ast-types').namedTypes;
 var Syntax = require('estraverse').Syntax;
 
@@ -55,9 +54,25 @@ function atomize(node, metaK) {
       });
     }),
     clause(Syntax.AssignmentExpression, function(left, right) {
-      assert(left.type === Syntax.MemberExpression &&
-             left.object.name === 'globalStore',
-             'Assignment is allowed only to fields of globalStore.');
+      var err = false, line, msg;
+      if (left.type === Syntax.MemberExpression) {
+        if (!(left.object.name === 'globalStore')) {
+          err = true;
+          msg = 'You tried to assign to a field of ' + left.object.name +
+              ', but you can only assign to fields of globalStore';
+        }
+      } else {
+        err = true;
+        if (left.name === 'globalStore') {
+          msg = 'You must assign to a field of globalStore, not globalStore itself';
+        } else {
+          msg = 'Did you mean var ' + left.name + ' = ?'
+        }
+      }
+      if (err) {
+        line = left.loc.start.line;
+        throw new Error('Line ' + line + ': ' + msg);
+      }
       return atomize(left, function(left) {
         return atomize(right, function(right) {
           return metaK(build.assignmentExpression(node.operator, left, right));
@@ -81,6 +96,7 @@ function atomize(node, metaK) {
       }
       else {
         var x = genvar('result');
+        x.loc = node.loc;
         return cps(node, buildContinuation(x, metaK(x)));
       }
     }),
@@ -121,7 +137,7 @@ function atomize(node, metaK) {
     clause(Syntax.MemberExpression, function(object, property) {
       return atomize(object, function(object) {
         return atomize(property, function(property) {
-          return metaK(build.memberExpression(object, property, node.computed));
+          return metaK(build.memberExpression(object, property, node.computed, node.loc));
         });
       });
     }),

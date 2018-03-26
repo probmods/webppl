@@ -1,0 +1,17 @@
+var id = cache(function(x) { globalStore.x += 1; return x; });
+// Test mutual recursion between cached functions.
+var odd = dp.cache(function(n) { return n <= 0 ? false : even(n - 1); });
+var even = dp.cache(function(n) { return n <= 0 ? true : odd(n - 1); });
+
+[
+  (function() {
+    globalStore.x = 0;
+    id(0);
+    id(0);
+    return globalStore.x === 1;
+  })(),
+  id(Infinity) === Infinity,
+  id(-Infinity) === -Infinity,
+  odd(3),
+  even(4)
+];

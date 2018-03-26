@@ -3,7 +3,7 @@
 // Tests for deterministic code written in webppl (e.g., preamble functions)
 
 var webppl = require('../src/main');
-var helpers = require('./helpers');
+var helpers = require('./helpers/helpers');
 
 var testDataDir = './tests/test-data/deterministic/';
 
@@ -19,6 +19,16 @@ var generateTestCases = function() {
       test.done();
     };
   });
+  var oldSuppressWarnings;
+  exports.setUp = function(callback) {
+    oldSuppressWarnings = global.suppressWarnings;
+    global.suppressWarnings = true;
+    callback();
+  };
+  exports.tearDown = function(callback) {
+    global.suppressWarnings = oldSuppressWarnings;
+    callback();
+  };
 };
 
 generateTestCases();

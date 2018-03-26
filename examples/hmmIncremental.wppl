@@ -22,7 +22,7 @@ var hmm = function(n) {
   return hmmRecur(n, [true], [])
 }
 
-Enumerate(function() {
+Infer({method: 'enumerate', maxExecutions: 100, model() {
   var r = hmm(3)
   return r.states
-}, 100)
+}})

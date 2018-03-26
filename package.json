@@ -1,7 +1,7 @@
 {
   "name": "webppl",
   "description": "Probabilistic programming for the web",
-  "version": "0.4.0",
+  "version": "0.9.11",
   "author": "webppl contributors",
   "main": "src/main.js",
   "repository": {
@@ -13,38 +13,44 @@
     "test": "tests"
   },
   "dependencies": {
+    "adnn": "^2.0.8",
     "amdefine": "^1.0.0",
-    "ast-types": "^0.8.13",
+    "ast-types": "^0.9.11",
+    "colors": "^1.1.2",
     "escodegen": "^1.7.0",
     "esmangle": "^1.0.1",
-    "esprima": "^2.6.0",
-    "estemplate": "^0.4.0",
+    "esprima": "^3.1.3",
+    "estemplate": "^0.5.1",
     "estraverse": "^4.1.0",
     "esutils": "^2.0.2",
-    "git-rev-2": "^0.1.0",
-    "immutable": "^3.7.5",
+    "lodash": "^4.17.2",
+    "lru-cache": "^4.0.0",
     "minimist": "^1.2.0",
-    "numeric": "^1.2.6",
+    "present": "^1.0.0",
     "priorityqueuejs": "~1.0.0",
     "seedrandom": "^2.4.2",
-    "sweet.js": "probmods/sweet.js#browserify",
-    "underscore": "^1.8.3"
+    "source-map": "^0.5.3",
+    "stack-trace": "0.0.9"
   },
   "devDependencies": {
-    "brfs": "0.0.8",
-    "closure-linter-wrapper": "^1.0.1",
-    "grunt": "^0.4.5",
-    "grunt-contrib-clean": "^0.7.0",
-    "grunt-contrib-jshint": "^0.11.3",
-    "grunt-contrib-nodeunit": "^0.4.1",
-    "grunt-gjslint": "^0.2.0",
-    "nodeunit": "^0.9.1",
+    "aws-sdk": "^2.4.1",
+    "brfs": "^1.4.3",
+    "eslint": "^3.19.0",
+    "grunt": "^1.0.0",
+    "grunt-contrib-clean": "^1.0.0",
+    "grunt-contrib-jshint": "^1.1.0",
+    "grunt-contrib-nodeunit": "^1.0.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-eslint": "^19.0.0",
+    "nodeunit": "^0.11.0",
     "open": "0.0.5",
     "qunit-phantomjs-runner": "^2.1.0",
+    "qunitjs": "^2.3.1",
     "through2": "^2.0.0"
   },
   "scripts": {
-    "test": "nodeunit tests/test-*.js"
+    "test": "nodeunit tests",
+    "postinstall": "node scripts/adify && node scripts/distHeader"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"
@@ -54,7 +60,7 @@
     "webppl": "./webppl"
   },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=4"
   },
   "keywords": [
     "probabilistic",

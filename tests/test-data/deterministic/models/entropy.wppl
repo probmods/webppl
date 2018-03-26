@@ -1,0 +1,4 @@
+[
+  entropy(Bernoulli({p: 0})),
+  Math.exp(entropy(Bernoulli({p: 0.5})))
+];

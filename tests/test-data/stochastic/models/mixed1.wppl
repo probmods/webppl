@@ -1,0 +1,5 @@
+var model = function() {
+  var x = beta(1, 2);
+  var y = flip(x);
+  return y;
+};

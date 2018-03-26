@@ -1,86 +1,59 @@
 'no caching';
 
-// ERPs
+// Other distribution helpers
 
-var flip = function(theta) {
-  var theta = (theta !== undefined) ? theta : 0.5;
-  return sample(bernoulliERP, [theta]);
+var flip = function(p) {
+  var params = {p: (p !== undefined) ? p : .5};
+  return sample(Bernoulli(params));
 };
 
-var randomInteger = function(n) {
-  return sample(randomIntegerERP, [n]);
+var uniformDraw = function(arg) {
+  var vs = util.isObject(arg) ? arg.vs : arg;
+  if (vs.length == 0) {
+    return undefined;
+  } else {
+    return vs[sample(RandomInteger({n: vs.length}))];
+  }
 };
 
-var discrete = function(ps) {
-  return sample(discreteERP, [ps]);
+var serializeDist = function(d) {
+  return dists.serialize(d);
 };
 
-var categorical = function(ps, vs) {
-  return vs[discrete(ps)];
-}
-
-var gaussian = function(mu, sigma) {
-  return sample(gaussianERP, [mu, sigma]);
+var deserializeDist = function(JSONString) {
+  return dists.deserialize(JSONString);
 };
 
-var multivariateGaussian = function(mu, cov) {
-  return sample(multivariateGaussianERP, [mu, cov]);
+// Drift kernel helpers
+
+var gaussianDrift = function(params) {
+  return sample(Gaussian(_.omit(params, 'width')), {
+    driftKernel: function(prevVal) {
+      var width = _.has(params, 'width') ? params.width : params.sigma * 0.7;
+      return Gaussian({mu: prevVal, sigma: width});
+    }
+  });
 };
 
-var cauchy = function(location, scale) {
-  return sample(cauchyERP, [location, scale]);
+var dirichletDrift = function(params) {
+  return sample(Dirichlet(_.omit(params, 'concentration')), {
+    driftKernel: function(prevVal) {
+      var c = _.has(params, 'concentration') ? params.concentration : 10;
+      var alpha = T.mul(prevVal, c);
+      return Dirichlet({alpha: alpha});
+    }
+  });
 };
 
-var uniform = function(a, b) {
-  return sample(uniformERP, [a, b]);
-};
-
-var uniformDraw = function(l) {
-  return l[sample(randomIntegerERP, [l.length])];
-};
-
-var dirichlet = function(alpha) {
-  return sample(dirichletERP, alpha);
-};
-
-var poisson = function(mu) {
-  return sample(poissonERP, [mu]);
-};
-
-var binomial = function(p, n) {
-  return sample(binomialERP, [p, n]);
-};
-
-var beta = function(a, b) {
-  return sample(betaERP, [a, b]);
-};
-
-var exponential = function(a) {
-  return sample(exponentialERP, [a]);
-};
-
-var gamma = function(shape, scale) {
-  return sample(gammaERP, [shape, scale]);
-};
-
-var deltaERP = function(v) {
-  return _top.makeCategoricalERP([1.0], [v]);
-};
-
-var categoricalERP = function(ps, vs, extraParams) {
-  return _top.makeCategoricalERP(ps, vs, extraParams);
-};
-
-var multiplexERP = function(vs, erps) {
-  return _top.makeMultiplexERP(vs, erps);
-};
-
-var serializeERP = function(erp) {
-  return _top.serializeERP(erp);
-};
-
-var deserializeERP = function(JSONString) {
-  return _top.deserializeERP(JSONString);
+var uniformDrift = function(params) {
+  return sample(Uniform(_.omit(params, 'width')), {
+    driftKernel: function(prevVal) {
+      var width = _.has(params, 'width') ? params.width : 0.1;
+      var a = Math.max(params.a, prevVal - width);
+      var b = Math.min(params.b, prevVal + width);
+      return Uniform({a: a, b: b});
+    }
+  });
 };
 
 // XRPs
@@ -91,7 +64,7 @@ var makeBetaBernoulli = function(pseudocounts) {
   globalStore[bbname] = pseudocounts;
   return function() {
     var pc = globalStore[bbname];  // get current sufficient stats
-    var val = sample(bernoulliERP, [pc[0] / (pc[0] + pc[1])]);  // sample from predictive.
+    var val = sample(Bernoulli({p: pc[0] / (pc[0] + pc[1])}));  // sample from predictive.
     globalStore[bbname] = [pc[0] + val, pc[1] + !val];  // update sufficient stats
     return val;
   };
@@ -111,51 +84,25 @@ var makeDirichletDiscrete = function(pseudocounts) {
   globalStore[ddname] = pseudocounts;
   return function() {
     var pc = globalStore[ddname];  // get current sufficient stats
-    var val = sample(discreteERP, [pc]);  // sample from predictive. (doesn't need to be normalized.)
+    var val = sample(Discrete({ps: pc}));  // sample from predictive. (doesn't need to be normalized.)
     globalStore[ddname] = addCount(pc, val); // update sufficient stats
     return val;
   };
 };
 
-// Arithmetic and other functionals
-
-var plus = function(a, b) {
-  return a + b;
-};
-var minus = function(a, b) {
-  return a - b;
-};
-var mult = function(a, b) {
-  return a * b;
-};
-var div = function(a, b) {
-  return a / b;
-};
-
-var and = function(a, b) {
-  return a && b
-}
-var or = function(a, b) {
-  return a || b
-}
-
-var eq = function(a, b) {
-  return a === b;
-};
-var neq = function(a, b) {
-  return a != b;
-};
-var lt = function(a, b) {
-  return a < b;
-};
-var gt = function(a, b) {
-  return a > b;
-};
-var leq = function(a, b) {
-  return a <= b;
-};
-var geq = function(a, b) {
-  return a >= b;
+var mem = function(f) {
+  globalStore.memIndex = 1 + (globalStore.memIndex || 0);
+  var key = 'mem' + globalStore.memIndex;
+  return function() {
+    var stringedArgs = key + util.serialize(arguments);
+    if (_.has(globalStore, stringedArgs)) {
+      return globalStore[stringedArgs];
+    } else {
+      var val = apply(f, arguments);
+      globalStore[stringedArgs] = val;
+      return val;
+    }
+  };
 };
 
 var isEven = function(v) {
@@ -180,25 +127,22 @@ var trueF = function() {
   return true;
 };
 
-
 // Probability computations & calculations
 
-var MAP = function(erp) {
-  return erp.MAP();
+var MAP = function(dist) {
+  return dist.MAP();
 };
 
-var expectation = function(erp, func) {
+var expectation = function(dist, func) {
   var f = func || idF;
-  var supp = erp.support([]);
-  return mapReduce1(plus,
-                    function(s) {
-                      return Math.exp(erp.score([], s)) * f(s);
-                    },
-                    supp);
+  var supp = dist.support();
+  return reduce(function(s, acc) {
+    return acc + Math.exp(dist.score(s)) * f(s);
+  }, 0, supp);
 };
 
-var entropy = function(erp) {
-  return erp.entropy();
+var entropy = function(dist) {
+  return dist.entropy();
 };
 
 // Data structures & higher-order functions
@@ -240,140 +184,139 @@ var rest = function(xs) {
   return xs.slice(1);
 };
 
-var map = function(fn, ar) {
-  return ar.length === 0 ? [] : [fn(ar[0])].concat(map(fn, ar.slice(1)));
-};
-
-var map2 = function(f, l1, l2) {
-  return (l1.length === 0 || l2.length === 0 ?
-          [] :
-          [f(l1[0], l2[0])].concat(map2(f, l1.slice(1), l2.slice(1))));
-};
-
-var mapN = function(f, n) {
-  var fn = function(i, _acc) {return i === n ? _acc : fn(i + 1, snoc(_acc, f(i)))};
-  return fn(0, []);
+var map_helper = function(i, j, f) {
+  var n = j - i + 1;
+  if (n == 0) {
+    return []
+  } else if (n == 1) {
+    return [f(i)];
+  } else {
+    var n1 = Math.ceil(n / 2);
+    return map_helper(i, i + n1 - 1, f).concat(map_helper(i + n1, j, f));
+  }
 }
 
-var mapIndexed = function(f, l) {
-  var fn = function(ls, i, _acc) {
-    return ls.length === 0 ?
-        _acc :
-        fn(rest(ls), i + 1, snoc(_acc, f(i, first(ls))))
-  };
-  return fn(l, 0, []);
+// recursively split input array so that we only call
+// concat a logarithmic number of times
+var map = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(l[i]) })
 }
 
-var _ringAround = function(l, n) {
-  return l.slice(n).concat(l.slice(0, n));
-};
+// assumes that length l1 == length l2
+var map2 = function(fn, l1, l2) {
+  return map_helper(0, l1.length - 1, function(i) { return fn(l1[i], l2[i]) })
+}
 
-var ringForward = function(l, n) {
-  return _ringAround(l, n === undefined ? -1 : -n);
-};
+// sugar for map(f, [0,1,...,n-1])
+var mapN = function(fn, n) {
+  return map_helper(0, n - 1, function(i) { return fn(i) })
+}
 
-var ringBackward = function(l, n) {
-  return _ringAround(l, n === undefined ? 1 : n);
-};
-
-var mapPairs2 = function(f, l1, l2) {
-  var res = map(function(a) {
-    return map(function(b) {
-      return f(a, b);
-    }, l2)
-  }, l1);
-  return [].concat.apply([], res); // flatten
-};
-
-var mapPairsC = function(f, l) {
-  var fn = function(l1, l2, acc) {
-    return (l2.length === 0 ? acc :
-            fn(l1.slice(1),
-               l2.slice(1),
-               acc.concat(map(function(b) {
-                 return f(l1[0], b);
-               }, l2)))
-    );
-  };
-  return fn(l, l.slice(1), []);
-};
-
-var mapPairsNC = function(f, l) {
-  var res = mapPairs2(function(a, b) {
-    return a === b ? undefined : f(a, b);
-  }, l, l);
-  return remove(undefined, res);
-};
+var mapIndexed = function(fn, l) {
+  return map_helper(0, l.length - 1, function(i) { return fn(i, l[i]) })
+}
 
 var mapObject = function(fn, obj) {
-  return _.object(
+  return _.fromPairs(
       map(
       function(kv) {
         return [kv[0], fn(kv[0], kv[1])]
       },
-      _.pairs(obj))
+      _.toPairs(obj))
   );
 };
 
+var extend = function() {
+  return _.assign.apply(_, [{}].concat(arguments));
+}
+
 var reduce = function(fn, init, ar) {
-  return ar.length === 0 ? init : fn(ar[0], reduce(fn, init, ar.slice(1)));
-};
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return init
+    } else {
+      return fn(ar[i], helper(i + 1))
+    }
+  }
 
-var mapReduce = function(f, init, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(init),
-                ar);
-};
-
-var mapReduce1 = function(f, g, ar) {
-  // specialized to above reduce
-  return reduce(function(a, b) {return f(g(a), b);},
-                g(ar[ar.length - 1]),
-                ar.slice(0, -1));
+  return helper(0);
 };
 
 var sum = function(l) {
-  return reduce(plus, 0, l);
+  return reduce(function(a, b) { return a + b; }, 0, l);
 };
 var product = function(l) {
-  return reduce(mult, 1, l);
+  return reduce(function(a, b) { return a * b; }, 1, l);
 };
 
 var listMean = function(l) {
-  return reduce(plus, 0, l) / l.length;
+  return sum(l) / l.length;
 };
 var listVar = function(l, mu) {
   var mu = mu === undefined ? listMean(l) : mu;
-  return mapReduce1(plus, function(a) {
-    return (a - mu) * (a - mu);
-  }, l) / l.length;
+  return reduce(function(a, acc) {
+    return acc + (a - mu) * (a - mu);
+  }, 0, l) / l.length;
+
 };
 var listStdev = function(l, mu) {
   return Math.sqrt(listVar(l, mu));
 };
 
-var all = function(p, l) {
-  return mapReduce1(and, p, l);
+var normalize = function(xs) {
+  var Z = sum(xs);
+  return map(function(x) {
+    return x / Z;
+  }, xs);
 };
+
+var all = function(p, l) {
+  return reduce(function(x, acc) {
+    return acc && p(x);
+  }, true, l);
+};
+
 var any = function(p, l) {
-  return mapReduce1(or, p, l);
+  return reduce(function(x, acc) {
+    return acc || p(x);
+  }, false, l);
 };
 
 var zip = function(xs, ys) {
-  return xs.length === 0 ?
-      [] :
-      [[xs[0], ys[0]]].concat(zip(xs.slice(1), ys.slice(1)));
+  return map2(function(x, y) { return [x, y]},
+              xs,
+              ys)
 };
 
 var filter = function(fn, ar) {
-  return ar.length === 0 ?
-      [] :
-      append(fn(ar[0]) ? [ar[0]] : [], filter(fn, ar.slice(1)));
+  var helper = function(i, j) {
+    var n = j - i + 1;
+    if (n == 0) {
+      return [];
+    } else if (n == 1) {
+      return (fn(ar[i]) ? [ar[i]] : []);
+    } else {
+      var n1 = Math.ceil(n / 2);
+      return helper(i, i + n1 - 1).concat(helper(i + n1, j));
+    }
+  }
+
+  return helper(0, ar.length - 1)
 };
 
 var find = function(f, ar) {
-  return ar.length === 0 ? undefined : (f(ar[0]) ? ar[0] : find(f, ar.slice(1)));
+  var n = ar.length;
+  var helper = function(i) {
+    if (i === n) {
+      return undefined;
+    } else if (f(ar[i])) {
+      return ar[i];
+    } else {
+      return helper(i + 1);
+    }
+  }
+  return helper(0);
 };
 
 var remove = function(a, ar) {
@@ -382,36 +325,6 @@ var remove = function(a, ar) {
   }, ar);
 };
 
-var insertAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i));
-}
-
-var removeAt = function(ar, i) {
-  return ar.slice(0, i).concat(ar.slice(i + 1));
-}
-
-var replaceAt = function(ar, i, x) {
-  return ar.slice(0, i).concat([x]).concat(ar.slice(i + 1));
-}
-
-var drop = function(n, ar) {
-  return n > ar.length ? [] : ar.slice(n);
-};
-var take = function(n, ar) {
-  return n >= ar.length ? ar : ar.slice(0, n);
-};
-var dropWhile = function(p, ar) {
-  return p(ar[0]) ? dropWhile(p, ar.slice(1)) : ar;
-};
-var takeWhile = function(p, ar) {
-  return p(ar[0]) ? cons(ar[0], takeWhile(p, ar.slice(1))) : [];
-};
-
-var indexOf = function(x, xs) {
-  // prototype method doesn't return falsy value if not found
-  var i = xs.indexOf(x);
-  return i < 0 ? undefined : i
-};
 
 var minWith = function(f, ar) {
   var fn = function(_ar, _best) {
@@ -439,17 +352,21 @@ var maxWith = function(f, ar) {
   return fn(zip(ar, map(f, ar)), [-Infinity, -Infinity]);
 };
 
+// bin array into items satisfying a predicate p and items not satifying it
 var span = function(p, ar) {
-  var fn = function(ar, _ts, _fs) {
-    return (ar.length === 0 ?
+  var n = ar.length;
+  var helper = function(i, _ts, _fs) {
+    return (i === n ?
             [_ts, _fs] :
-            (p(ar[0]) ?
-             fn(ar.slice(1), snoc(_ts, ar[0]), _fs) :
-             fn(ar.slice(1), _ts, snoc(_fs, ar[0]))));
+            (p(ar[i]) ?
+             helper(i + 1, snoc(_ts, ar[i]), _fs) :
+             helper(i + 1, _ts, snoc(_fs, ar[i]))));
   };
-  return fn(ar, [], []);
+  return helper(0, [], []);
 };
 
+// group array items by a comparator
+// NB: there is still room for optimization here
 var groupBy = function(cmp, ar) {
   if (ar.length === 0) {
     return [];
@@ -461,12 +378,25 @@ var groupBy = function(cmp, ar) {
 };
 
 var repeat = function(n, fn) {
-  return n === 0 ? [] : append(repeat(n - 1, fn), [fn()]);
-};
-
-var push = function(xs, x) {
-  return xs.concat([x]);
-};
+  var helper = function(m) {
+    if (m === 0) {
+      return [];
+    } else if (m === 1) {
+      return [fn()];
+    } else {
+      var m1 = Math.ceil(m / 2),
+          m2 = m - m1;
+      return helper(m1).concat(helper(m2));
+    }
+  }
+  if (!util.isInteger(n) || n < 0) {
+    error('Expected first argument to be a non-negative integer.');
+  }
+  if (!_.isFunction(fn)) {
+    error('Expected second argument to be a function.');
+  }
+  return helper(n);
+}
 
 var compose = function(f, g) {
   return function(x) {
@@ -497,6 +427,14 @@ var _sort = function(l, pred, key) {
                  key));
 };
 
+var lt = function(a, b) {
+  return a < b;
+};
+
+var gt = function(a, b) {
+  return a > b;
+};
+
 var sort = function(l, pred, key) {
   return _sort(l, (pred || lt), (key || idF));
 };
@@ -509,6 +447,10 @@ var condition = function(bool) {
   factor(bool ? 0 : -Infinity);
 };
 
+var error = function(msg) {
+  util.error(msg);
+};
+
 var MH = function(wpplFn, samples, burn) {
   return MCMC(wpplFn, { samples: samples, burn: burn });
 };
@@ -519,4 +461,157 @@ var ParticleFilter = function(wpplFn, particles) {
 
 var ParticleFilterRejuv = function(wpplFn, particles, rejuvSteps) {
   return SMC(wpplFn, { particles: particles, rejuvSteps: rejuvSteps });
+};
+
+var SampleGuide = function(wpplFn, options) {
+  return ForwardSample(wpplFn, _.assign({guide: true}, _.omit(options, 'guide')));
+};
+
+var OptimizeThenSample = function(wpplFn, options) {
+  Optimize(wpplFn, _.omit(options, 'samples', 'onlyMAP'));
+  var opts = _.pick(options, 'samples', 'onlyMAP', 'verbose');
+  return SampleGuide(wpplFn, opts);
+};
+
+/*
+ * DefaultInfer() called when no options are specified
+ * var maxEnumTreeSize: upper bound for enumeration tree size, enumeration ends when above threshold.
+ * var minSampleRate: lower bound for #sample/sec, rejection ends when below threshold.
+ * var samples: number of samples/particles used for default rejection/SMC/MCMC.
+ * next step in the heuristics flowchart
+ */
+var DefaultInfer = function(wpplFn, options) {
+  util.mergeDefaults(options, {}, 'Infer');
+  var maxEnumTreeSize = 200000;
+  var minSampleRate = 250; //from 1 to samples
+  var samples = 1000;
+  var enumResult = Enumerate(wpplFn, {maxEnumTreeSize: maxEnumTreeSize, maxRuntimeInMS: 5000,
+    throwOnError: false, strategy: 'depthFirst'});
+  if (dists.isDist(enumResult)) {
+    return enumResult;
+  } else if (enumResult instanceof Error) {
+    console.log(enumResult.message + '..quit enumerate');
+  } else {
+    error('Invalid return value from enumerate');
+  }
+  console.log('Using "rejection"');
+  var rejResult = Rejection(wpplFn, {minSampleRate: minSampleRate, throwOnError: false, samples: samples});
+  if (rejResult instanceof Error) {
+    console.log(rejResult.message + '..quit rejection');
+    var hasSampleAfterFactor = CheckSampleAfterFactor(wpplFn);
+    if (hasSampleAfterFactor) {
+      console.log('Using "SMC" (interleaving samples and factors detected)');
+      var smcResult = SMC(wpplFn, {throwOnError: false, particles: samples});
+      if (dists.isDist(smcResult)) {
+        return smcResult;
+      } else if (smcResult instanceof Error) {
+        console.log(smcResult.message + '..quit SMC');
+      } else {
+        error('Invalid return value from SMC');
+      }
+    }
+    console.log('Using "MCMC"');
+    return MCMC(wpplFn, {samples: samples});
+  } else if (dists.isDist(rejResult)) {
+    return rejResult;
+  } else {
+    error('Invalid return value from rejection');
+  }
+};
+
+var Infer = function(options, maybeFn) {
+  var wpplFn = !util.isObject(options) ? options : maybeFn || options.model;
+  if (!_.isFunction(wpplFn)) {
+    error('Infer: a model was not specified.');
+  }
+
+  // Map from camelCase options to PascalCase coroutine names. Also
+  // used to ensure the supplied method name is a valid inference
+  // routine.
+  var methodMap = {
+    SMC: SMC,
+    MCMC: MCMC,
+    PMCMC: PMCMC,
+    asyncPF: AsyncPF,
+    rejection: Rejection,
+    enumerate: Enumerate,
+    incrementalMH: IncrementalMH,
+    forward: ForwardSample,
+    optimize: OptimizeThenSample,
+    defaultInfer: DefaultInfer
+  };
+
+  var methodName = options.method || 'defaultInfer';
+  if (!_.has(methodMap, methodName)) {
+    var methodNames = _.keys(methodMap);
+    var msg = 'Infer: \'' + methodName +
+        '\' is not a valid method. The following methods are available: ' +
+        methodNames.join(', ') + '.';
+    error(msg);
+  }
+  var method = methodMap[methodName];
+  return method(wpplFn, _.omit(options, 'method', 'model'));
+};
+
+// Convenience function for creating maximum likelihood model
+// parameters.
+var modelParam = function(options) {
+  return sample(ImproperUniform(), {guide() {
+    return Delta({v: param(options)});
+  }});
+};
+
+// Convenience functions for building tensors out of scalars
+var Vector = function(arr) {
+  var n = arr.length;
+  var t = ad.tensor.fromScalars(arr);
+  return ad.tensor.reshape(t, [n, 1]);
+};
+var Matrix = function(arr) {
+  var n = arr.length;
+  var m = arr[0].length;
+  var t = ad.tensor.fromScalars(_.flatten(arr));
+  return ad.tensor.reshape(t, [n, m]);
+};
+var Tensor = function(dims, arr) {
+  var t = ad.tensor.fromScalars(arr);
+  return ad.tensor.reshape(t, dims);
+};
+
+var dims = function(x) {
+  return ad.value(x).dims;
+};
+
+var concat = function(arr) {
+  var t = T.concat(arr);
+  return T.reshape(t, [dims(t)[0], 1]);
+};
+
+var idMatrix = function(n) {
+  return util.idMatrix(n);
+};
+
+var oneHot = function(index, length) {
+  return util.oneHot(index, length);
+};
+
+var marginalize = function(dist, project) {
+  if (_.isString(project)) {
+    return Infer({model: function() {
+      return sample(dist)[project]
+    }})
+  } else {
+    return Infer({model: function() {
+      return project(sample(dist));
+    }});
+  }
+};
+
+var kde = function(marginal, width) {
+  if (!(dists.isDist(marginal) &&
+        marginal.meta.name === 'SampleBasedMarginal')) {
+    error('kde expects a sample based marginal as its first argument.');
+  }
+  var data = _.map(marginal.samples, 'value');
+  return KDE(width === undefined ? {data} : {data, width});
 };

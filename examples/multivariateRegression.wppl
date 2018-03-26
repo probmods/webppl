@@ -1,30 +1,31 @@
-var xs = [
+var xs = map(Vector, [
   [0., 1],
   [1, 1.5],
   [2, 2],
   [3, 2.5],
-  [4, 3]]
+  [4, 3]
+])
 
 var ys = [0.5, 2.8, 5., 7.3, 9.5]
 
 var model = function() {
-  var cov = numeric.diag([1, 1])
-  var m = multivariateGaussian([0, 0], cov)
+  var cov = T.diagonal(ones([2, 1]))
+  var m = multivariateGaussian(zeros([2, 1]), cov)
   var e = gaussian(0, 2)
-  var sigmaSquared = gamma(1, 1)
+  var sigma = gamma(1, 1)
 
   var f = function(x) {
-    return numeric.dot(m, x) + e
+    return T.sumreduce(T.mul(m, x)) + e
   }
 
   map2(
       function(x, y) {
-        factor(gaussianERP.score([(f(x)), sigmaSquared], y))
+        factor(Gaussian({mu: f(x), sigma: sigma}).score(y))
       },
       xs,
       ys)
 
-  return f([5, 4])
+  return f(Vector([5, 4]))
 }
 
-MH(model, 100000)
+Infer({model, method: 'MCMC', samples: 10000})

@@ -2,12 +2,21 @@
 
 var path = require('path');
 var fs = require('fs');
-var _ = require('underscore');
+var _ = require('lodash');
+var pkginfo = require('./pkginfo');
 
 var isJsModule = function(path) {
   try {
     require.resolve(path);
     return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+var isNodeCoreModule = function(name) {
+  try {
+    return name === require.resolve(name);
   } catch (e) {
     return false;
   }
@@ -37,37 +46,53 @@ var upcaseInitial = function(s) {
 };
 
 var read = function(name_or_path, paths, verbose) {
-  var paths = paths || [globalPkgDir()];
   var log = verbose ? function(x) { console.warn(x); return x; } : _.identity;
+
+  // Check if this is a Node core module. If so, use it.
+  if (!isPath(name_or_path) && isNodeCoreModule(name_or_path)) {
+    return log({
+      name: name_or_path,
+      js: { identifier: name_or_path, path: name_or_path },
+      headers: [],
+      wppl: []
+    });
+  }
 
   var readFirst = function(candidates) {
     if (candidates.length > 0) {
       var candidate = path.resolve(candidates[0]);
       var candidatePackagePath = path.join(candidate, 'package.json');
       if (fs.existsSync(candidatePackagePath)) {
-        var name = path.basename(candidate);
+        var manifest = require(candidatePackagePath);
+        manifest.webppl = manifest.webppl || {};
+        var name = manifest.name;
         log('Loading module "' + name + '" from "' + candidate + '"');
-        var manifest = require(candidatePackagePath).webppl || {};
         var joinPath = function(fn) { return path.join(candidate, fn); };
         return {
           name: name,
           js: isJsModule(candidate) && { identifier: toCamelCase(name), path: candidate },
-          headers: _.map(manifest.headers, joinPath),
-          wppl: _.map(manifest.wppl, joinPath),
-          macros: _.map(manifest.macros, joinPath)
+          headers: _.map(manifest.webppl.headers, joinPath),
+          wppl: _.map(manifest.webppl.wppl, function(manifestPath) {
+            return {
+              rel: path.join(path.basename(candidate), manifestPath),
+              full: joinPath(manifestPath)
+            };
+          }),
+          version: pkginfo.version(candidate)
         };
       } else {
         return readFirst(candidates.slice(1));
       }
     } else {
       log(allCandidates);
-      throw 'Could not find WebPPL package: ' + name_or_path;
+      throw new Error('Could not find WebPPL package: ' + name_or_path);
     }
   };
 
+  // Otherwise, attempt to load as WebPPL package.
+  var paths = paths || [globalPkgDir()];
   var joinName = function(p) { return path.join(p, name_or_path); };
   var allCandidates = isPath(name_or_path) ? [name_or_path] : paths.map(joinName);
-
   return log(readFirst(allCandidates))
 };
 
@@ -75,39 +100,52 @@ var load = function(pkg) {
   return {
     js: pkg.js,
     headers: pkg.headers,
-    wppl: pkg.wppl.map(function(fn) { return fs.readFileSync(fn); }),
-    macros: pkg.macros.map(function(fn) { return fs.readFileSync(fn); })
+    wppl: pkg.wppl.map(function(path) {
+      return {
+        code: fs.readFileSync(path.full, 'utf8'),
+        filename: path.full
+      };
+    })
   };
 };
 
-var wrapWithQuotes = function(s) { return '"' + s + '"'; };
-var wrapWithRequire = function(s) { return 'require("' + s + '")'; };
-var wrapWithReadFile = function(s) { return 'fs.readFileSync("' + s + '", "utf8")'; };
+// Recursively transform a package (as returned by read) into an
+// expression which can be transformed by the browserify plugin.
 
-var wrappers = {
-  identifier: wrapWithQuotes,
-  name: wrapWithQuotes,
-  headers: wrapWithRequire,
-  path: wrapWithRequire,
-  wppl: wrapWithReadFile,
-  macros: wrapWithReadFile
+var stringify = function(obj) {
+  var kvs = _.chain(obj).mapValues(function(val, key) {
+    if (_.isArray(val)) {
+      return stringifyArray(val, wrappers[key]);
+    } else if (_.isBoolean(val)) {
+      return val.toString();
+    } else if (_.isObject(val)) {
+      return stringify(val);
+    } else {
+      return wrappers[key](val);
+    }
+  }).map(function(val, key) {
+    return key + ': ' + val;
+  }).value();
+  return '{' + kvs.join(', ') + '}';
 };
 
-// Recursively transform a package (as returned by read) into an expression
-// which can be transformed by the browserify plugin.
+var stringifyArray = function(arr, f) {
+  return '[' + arr.map(f).join(', ') + ']';
+};
 
-var stringify = function(obj, lastSeenKey) {
-  if (_.isArray(obj)) {
-    return '[' + obj.map(function(x) { return stringify(x, lastSeenKey); }).join(', ') + ']';
-  } else if (_.isObject(obj)) {
-    var s = _.map(obj, function(value, key) {
-      return key + ': ' + stringify(value, key) + '';
-    }).join(', ');
-    return '{ ' + s + ' }';
-  } else if (_.isString(obj)) {
-    return wrappers[lastSeenKey](obj);
-  }
-}
+var wrapWithRequire = function(path) { return 'require("' + path + '")'; };
+var wrapWithQuotes = function(s) { return '"' + s + '"'; };
+
+var wrappers = {
+  wppl: function(path) {
+    return '{ code: fs.readFileSync("' + path.full + '", "utf8"), filename: "' + path.rel + '" }';
+  },
+  headers: wrapWithRequire,
+  identifier: wrapWithQuotes,
+  path: wrapWithRequire,
+  name: wrapWithQuotes,
+  version: wrapWithQuotes
+};
 
 module.exports = {
   read: read,

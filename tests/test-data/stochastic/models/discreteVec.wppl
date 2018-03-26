@@ -1,0 +1,3 @@
+var model = function() {
+  return sample(Discrete({ps: Vector([1, 3])}));
+};

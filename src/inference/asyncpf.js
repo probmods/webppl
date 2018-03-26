@@ -6,9 +6,10 @@
 
 'use strict';
 
-var _ = require('underscore');
+var _ = require('lodash');
 var util = require('../util');
-var erp = require('../erp');
+var numeric = require('../math/numeric');
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -38,9 +39,9 @@ module.exports = function(env) {
     };
   }
 
-  function AsyncPF(s, k, a, wpplFn, numParticles, bufferSize) {
+  function AsyncPF(s, k, a, wpplFn, options) {
     this.numParticles = 0;      // K_0 -- initialized here, set in run
-    this.bufferSize = bufferSize == undefined ? numParticles : bufferSize; // \rho
+    this.bufferSize = options.bufferSize == undefined ? options.particles : options.bufferSize; // \rho
     this.initNumParticles = Math.floor(this.bufferSize * (1 / 2));         // \rho_0
     this.exitK = function(s) {return wpplFn(s, env.exit, a);};
     this.store = s;
@@ -51,14 +52,14 @@ module.exports = function(env) {
 
     this.obsWeights = {};
     this.exitedParticles = 0;
-    this.hist = {};
+    this.hist = new CountAggregator();
 
     // Move old coroutine out of the way and install this as current handler.
     this.k = k;
     this.oldCoroutine = env.coroutine;
     env.coroutine = this;
     this.oldStore = _.clone(s); // will be reinstated at the end
-  };
+  }
 
   AsyncPF.prototype.run = function(numP) {
     // allows for continuing pf
@@ -83,8 +84,8 @@ module.exports = function(env) {
     return p.continuation(p.store);
   };
 
-  AsyncPF.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+  AsyncPF.prototype.sample = function(s, cc, a, dist) {
+    return cc(s, dist.sample());
   };
 
   AsyncPF.prototype.factor = function(s, cc, a, score) {
@@ -114,9 +115,9 @@ module.exports = function(env) {
       var currWeight = this.activeParticle.weight;
       var denom = lk.length + currMultiplicity; // k - 1 + Ckn
       var prevWBar = lk[lk.length - 1].wbar;
-      var wbar = -Math.log(denom) + util.logsumexp([Math.log(lk.length) + prevWBar,
-                                                    Math.log(currMultiplicity) + currWeight]);
-      if (wbar > 0) throw 'Positive weight!!'; // sanity check
+      var wbar = -Math.log(denom) + numeric._logsumexp([Math.log(lk.length) + prevWBar,
+                                                        Math.log(currMultiplicity) + currWeight]);
+      if (wbar > 0) throw new Error('Positive weight!!'); // sanity check
       var logRatio = currWeight - wbar;
       var numChildrenAndWeight = [];
 
@@ -163,14 +164,12 @@ module.exports = function(env) {
     this.activeParticle.weight += Math.log(this.activeParticle.multiplicity);
     this.exitedParticles += 1;
 
-    var k = util.serialize(retval);
-    if (this.hist[k] === undefined) this.hist[k] = {prob: 0, val: retval};
-    this.hist[k].prob += 1;
+    this.hist.add(retval);
 
     if (this.exitedParticles < this.numParticles) {
       return this.run();
     } else {
-      var dist = erp.makeMarginalERP(util.logHist(this.hist));
+      var dist = this.hist.toDist();
 
       var lastFactorIndex = this.activeParticle.factorIndex;
       var olk = this.obsWeights[lastFactorIndex];
@@ -198,8 +197,9 @@ module.exports = function(env) {
 
   AsyncPF.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function asyncPF(s, cc, a, wpplFn, numParticles, bufferSize) {
-    return new AsyncPF(s, cc, a, wpplFn, numParticles, bufferSize).run(numParticles);
+  function asyncPF(s, cc, a, wpplFn, options) {
+    options = options || {};
+    return new AsyncPF(s, cc, a, wpplFn, options).run(options.particles);
   }
 
   return {

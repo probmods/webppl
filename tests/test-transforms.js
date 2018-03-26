@@ -1,7 +1,8 @@
 'use strict';
 
-require('../src/main');
-var _ = require('underscore');
+var webppl = require('../src/main');
+
+var _ = require('lodash');
 var parse = require('esprima').parse;
 var unparse = require('escodegen').generate;
 var thunkify = require('../src/syntax').thunkify;
@@ -12,6 +13,8 @@ var store = require('../src/transforms/store').store;
 var optimize = require('../src/transforms/optimize').optimize;
 var trampoline = require('../src/transforms/trampoline').trampoline;
 var varargs = require('../src/transforms/varargs').varargs;
+var freevars = require('../src/transforms/freevars').freevars;
+var util = require('../src/util');
 
 var fooObj = {
   bar: 1,
@@ -62,14 +65,14 @@ function check(test, code, newCode, expected, actual) {
   test.done();
 }
 
-var transformAstNaming = compose(naming, function(node) {
+var transformAstNaming = compose(_.property('ast'), naming, function(node) {
   return thunkify(node, fail('transform', node));
 });
 function runNaming(test, code, newCode, expected) {
   check(test, code, newCode, expected, eval(newCode)(''));
 }
 
-var transformAstCps = compose(cps, transformAstNaming);
+var transformAstCps = compose(cps, varargs, transformAstNaming);
 function runCps(test, code, newCode, expected) {
   eval(newCode)(function(actual) {
     check(test, code, newCode, expected, actual);
@@ -78,7 +81,8 @@ function runCps(test, code, newCode, expected) {
 
 var transformAstStorepassing = compose(store, transformAstCps);
 function runStorepassing(test, code, newCode, expected) {
-  eval(newCode)({}, function(store, actual) {
+  var f = eval(newCode);
+  f({}, function(store, actual) {
     check(test, code, newCode, expected, actual);
   }, '');
 }
@@ -86,11 +90,49 @@ function runStorepassing(test, code, newCode, expected) {
 var transformAstOptimize = compose(optimize, transformAstStorepassing);
 var runOptimize = runStorepassing;
 
-var transformAstVarargs = compose(varargs, transformAstOptimize);
-var runVarargs = runOptimize;
+var transformAstVarargs = transformAstStorepassing;
+var runVarargs = runStorepassing;
 
-var transformAstTrampoline = compose(trampoline, transformAstVarargs);
-var runTrampoline = runVarargs;
+var transformAstTrampoline = compose(trampoline, transformAstOptimize);
+
+function runTrampoline(test, code, newCode, expected) {
+  var f = eval(newCode);
+  // the result of trampoline transform needs to be evaluated an extra time,
+  // supplying the runner as an argument
+  f = f(util.trampolineRunners.cli());
+  f({}, function(store, actual) {
+    check(test, code, newCode, expected, actual);
+  }, '');
+}
+
+var transformAstFreevars = compose(freevars, function(node) {
+  // By thunkifying we ensure that freevars is exercised (by
+  // identifying the free variables of the thunk) even when the test
+  // code doesn't contain any functions.
+  return thunkify(node, fail('transform', node));
+});
+function runFreevars(test, code, newCode, expected) {
+  check(test, code, newCode, expected, eval(newCode)());
+}
+
+var selectFreevarsPrimitives = function() {
+  // Set global definitions
+  plus = function(x, y) {
+    return (x + y);
+  };
+  minus = function(x, y) {
+    return (x - y);
+  };
+  times = function(x, y) {
+    return (x * y);
+  };
+  and = function(x, y) {
+    return (x && y);
+  };
+  plusTwo = function(x, y) {
+    return (x + 2);
+  };
+};
 
 var selectNamingPrimitives = function() {
   // Set global definitions
@@ -183,6 +225,11 @@ function runTrampolineTest(test, code, expected) {
   return runTest(test, code, expected, transformAstTrampoline, runTrampoline);
 }
 
+function runFreevarsTest(test, code, expected) {
+  selectFreevarsPrimitives();
+  return runTest(test, code, expected, transformAstFreevars, runFreevars);
+}
+
 function generateTestFunctions(allTests, testRunner) {
   var exports = {};
   for (var testClassName in allTests) {
@@ -192,7 +239,7 @@ function generateTestFunctions(allTests, testRunner) {
       tests.forEach(
           function(obj) {
             exports[testClassName][obj.name] = function(test) {
-              if (!obj.runners || _.contains(obj.runners, testRunner)) {
+              if (!obj.runners || _.includes(obj.runners, testRunner)) {
                 return testRunner(test, obj.code, obj.expected);
               } else {
                 test.done();
@@ -318,6 +365,18 @@ var tests = {
 
   ],
 
+  testNoFinalExpression: [
+
+    { name: 'testEmptyProgram',
+      code: '',
+      expected: undefined },
+
+    { name: 'testVariableDeclaration',
+      code: 'var x = 1;',
+      expected: undefined }
+
+  ],
+
   testDebuggerStatement: [
 
     { name: 'test',
@@ -392,7 +451,14 @@ var tests = {
         'var a = ((x === undefined) ? false : id(x.foo)) || true;',
         'a'
       ].join('\n'),
-      expected: true }
+      expected: true },
+
+    { name: 'testConditional5',
+      code: [
+        'var id = function(x){return x};',
+        '(true ? id : id)(0)'
+      ].join('\n'),
+      expected: 0 }
 
   ],
 
@@ -459,7 +525,27 @@ var tests = {
              '  };' +
              '};' +
              'foo(10);'),
-      expected: 1 }
+      expected: 1 },
+
+    { name: 'testTopLevelIf1',
+      code: 'if (true) { 1 }',
+      expected: 1
+    },
+
+    { name: 'testTopLevelIf2',
+      code: 'if (false) { 1 } else { 2 }',
+      expected: 2
+    },
+
+    { name: 'testTopLevelIf3',
+      code: 'if (false) { 1 } else if (true) { 2 }',
+      expected: 2
+    },
+
+    { name: 'testTopLevelIf4',
+      code: 'if (false) { 1 } else if (false) { 2 } else { 3 }',
+      expected: 3
+    }
 
   ],
 
@@ -487,17 +573,17 @@ var tests = {
 
     { name: 'testNestedObject',
       code: ['var box = {',
-        '  sub: {',
-        '    f: function(x1){',
-        '      return function(x2){',
-        '        return x1 + x2;',
-        '      }',
-        '    }',
-        '  }',
-        '}',
-        '',
-        'var g = box.sub.f;',
-        'g(1)(2)'].join('\n'),
+             '  sub: {',
+             '    f: function(x1){',
+             '      return function(x2){',
+             '        return x1 + x2;',
+             '      }',
+             '    }',
+             '  }',
+             '}',
+             '',
+             'var g = box.sub.f;',
+             'g(1)(2)'].join('\n'),
       expected: 3 }
 
   ],
@@ -514,7 +600,11 @@ var tests = {
 
     { name: 'testMember3',
       code: 'var a = [1,2]; a[1]',
-      expected: 2 }
+      expected: 2 },
+
+    { name: 'testMember4',
+      code: '(function() { return fooObj; })().bar',
+      expected: 1 }
 
   ],
 
@@ -607,16 +697,12 @@ var tests = {
              'foo(3, 4);'),
       expected: 4,
       runners: [runVarargsTest, runTrampolineTest] },
-    // FIXME: This test currently fails because varargs happens after
-    //        cps which introduces additional closures. To fix this,
-    //        move the varargs transform up earlier in the order of
-    //        transforms?
-    // { name: 'testVarargs4',
-    //   code: ("var bar = function(){return function(xs){return xs;}};;" +
-    //          "var foo = function(){return bar()(arguments)};" +
-    //          "foo(3, 4);"),
-    //   expected: [3, 4],
-    //   runners: [runVarargsTest, runTrampolineTest] },
+    { name: 'testVarargs4',
+      code: ('var bar = function(){return function(xs){return xs;}};;' +
+             'var foo = function(){return bar()(arguments)};' +
+             'foo(3, 4);'),
+      expected: [3, 4],
+      runners: [runVarargsTest, runTrampolineTest] },
     { name: 'testApply',
       code: ('var foo = function(x, y){return x + y};' +
              'var bar = function(){ return apply(foo, arguments); };' +
@@ -635,3 +721,4 @@ exports.testOptimize = generateTestFunctions(tests, runOptimizeTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
 exports.testVarargs = generateTestFunctions(tests, runVarargsTest);
 exports.testTrampoline = generateTestFunctions(tests, runTrampolineTest);
+exports.testFreevars = generateTestFunctions(tests, runFreevarsTest);

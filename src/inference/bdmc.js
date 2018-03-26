@@ -5,9 +5,11 @@ var assert = require('assert');
 var fs = require('fs');
 var util = require('../util');
 var Query = require('../query').Query;
-var aggregation = require('../aggregation');
 
 module.exports = function(env){
+
+  var Initialize = require('./initialize')(env);
+  var kernels = require('./kernels')(env);
 
   function AIS (s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
@@ -27,19 +29,21 @@ module.exports = function(env){
       var initialize, run, finish;
 
       initialize = function() {
-          return Initialize(s, run, a, wpplFn,
-            {initObserveMode: options.initObserveMode,
+        return Initialize(run, wpplFn, s, env.exit, a,
+             {initObserveMode: options.initObserveMode,
              initSampleMode: options.initSampleMode,
              cacheTable: options.cacheTable});
       };
 
-      run = function(s, initialTrace) {
+      run = function(initialTrace) {
 
         var beginTime = (new Date()).getTime()
 
         var factorCoeff = 0;
         var increment = 1/options.steps;
         var weight = 0;
+
+        var MHKernel = kernels.parseOptions('MH');
 
         var mhStepKernel = function(k, trace) {
           weight += increment*(trace.score-trace.sampleScore);

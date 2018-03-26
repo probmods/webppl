@@ -1,121 +1,126 @@
 'use strict';
 
-var _ = require('underscore');
-var assert = require('assert');
+var _ = require('lodash');
 var util = require('../util');
-var Query = require('../query').Query;
-var aggregation = require('../aggregation');
+var CountAggregator = require('../aggregation/CountAggregator');
+var ad = require('../ad');
 
 module.exports = function(env) {
+
+  var Initialize = require('./initialize')(env);
+  var kernels = require('./kernels')(env);
 
   function MCMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
       samples: 100,
-      kernel: MHKernel,
+      kernel: 'MH',
       lag: 0,
-      burn: 0
-    });
+      burn: 0,
+      verbose: false,
+      onlyMAP: false,
+      callbacks: []
+    }, 'MCMC');
 
-    var log = function(s) {
-      if (options.verbose) {
-        console.log(s);
-      }
-    };
+    options.kernel = kernels.parseOptions(options.kernel);
 
-    var acceptedCount = 0;
-    var aggregator = (options.justSample || options.onlyMAP) ?
-        new aggregation.MAP(options.justSample) :
-        new aggregation.Histogram();
+    var callbacks = options.verbose ?
+        [makeVMCallbackForPlatform()].concat(options.callbacks) :
+        options.callbacks;
+    _.invokeMap(callbacks, 'setup', numIters(options));
+
+    var aggregator = new CountAggregator(options.onlyMAP);
+
+    var addToAggregator = options.kernel.adRequired ?
+        function(value, score) { aggregator.add(ad.valueRec(value), ad.value(score)); } :
+        aggregator.add.bind(aggregator);
 
     var initialize, run, finish;
 
     initialize = function() {
-      return Initialize(s, run, a, wpplFn);
+      _.invokeMap(callbacks, 'initialize');
+      return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
-    run = function(s, initialTrace) {
-      var logAccepted = tapKernel(function(trace) { acceptedCount += trace.info.accepted; });
-      var printCurrIter = makePrintCurrIteration(log);
-      var collectSample = makeExtractValue(initialTrace, aggregator.add.bind(aggregator));
-      var kernel = sequenceKernels(options.kernel, printCurrIter, logAccepted);
-      var chain = sequenceKernels(
-          repeatKernel(options.burn, kernel),
-          repeatKernel(options.samples,
-              sequenceKernels(
-                  repeatKernel(options.lag + 1, kernel),
+    run = function(initialTrace) {
+      initialTrace.info = { accepted: 0, total: 0 };
+      var callback = kernels.tap(function(trace) { _.invokeMap(callbacks, 'iteration', trace); });
+      var collectSample = makeExtractValue(addToAggregator);
+      var kernel = kernels.sequence(options.kernel, callback);
+      var chain = kernels.sequence(
+          kernels.repeat(options.burn, kernel),
+          kernels.repeat(options.samples,
+              kernels.sequence(
+                  kernels.repeat(options.lag + 1, kernel),
                   collectSample)));
       return chain(finish, initialTrace);
     };
 
-    finish = function() {
-      var iterations = options.samples * (options.lag + 1) + options.burn;
-      log('Acceptance ratio: ' + acceptedCount / iterations);
-      return k(s, aggregator.toERP());
+    finish = function(trace) {
+      _.invokeMap(callbacks, 'finish', trace);
+      return k(s, aggregator.toDist());
     };
 
     return initialize();
   }
 
-  function makeExtractValue(initialTrace, fn) {
-    var query = new Query();
-    if (initialTrace.value === env.query) {
-      query.addAll(env.query);
-    }
-    return tapKernel(function(trace) {
-      var value;
-      if (trace.value === env.query) {
-        if (trace.info.accepted) {
-          query.addAll(env.query);
-        }
-        value = query.getTable();
-      } else {
-        value = trace.value;
+  function makeExtractValue(fn) {
+    return kernels.tap(function(trace) {
+      fn(trace.value, trace.score);
+    });
+  }
+
+  function numIters(opts) {
+    return opts.burn + (opts.lag + 1) * opts.samples;
+  }
+
+  // Callbacks.
+
+  function makeVMCallback(opts) {
+    var curIter = 0;
+    return {
+      iteration: function(trace) {
+        opts.iteration(trace, curIter++);
+      },
+      finish: function(trace) {
+        opts.finish(trace, curIter - 1);
       }
-      fn(value, trace.score);
-    });
-  }
-
-  function makePrintCurrIteration(log) {
-    var i = 0;
-    return tapKernel(function() {
-      log('Iteration: ' + i++);
-    });
-  }
-
-  function tapKernel(fn) {
-    return function(k, trace) {
-      fn(trace);
-      return k(trace);
     };
   }
 
-  function sequenceKernels() {
-    var kernels = arguments;
-    assert(kernels.length > 1);
-    if (kernels.length === 2) {
-      return function(k, trace1) {
-        return kernels[0](function(trace2) {
-          return kernels[1](k, trace2);
-        }, trace1);
-      };
-    } else {
-      return sequenceKernels(
-          kernels[0],
-          sequenceKernels.apply(null, _.rest(kernels)))
-    }
+  function makeSimpleVMCallback() {
+    return makeVMCallback({
+      iteration: function(trace, i) {
+        console.log(formatOutput(trace, i));
+      },
+      finish: _.identity
+    });
   }
 
-  function repeatKernel(n, kernel) {
-    return function(k, trace) {
-      return util.cpsIterate(n, trace, kernel, k);
+  // Node.js only.
+  function makeOverwritingVMCallback() {
+    var writeCurIter = function(trace, i) {
+      process.stdout.write('\r' + formatOutput(trace, i));
     };
+    return makeVMCallback({
+      iteration: _.throttle(writeCurIter, 200, { trailing: false }),
+      finish: function(trace, i) {
+        writeCurIter(trace, i);
+        console.log();
+      }
+    });
+  }
+
+  function formatOutput(trace, i) {
+    var ratio = (trace.info.total === 0) ? 0 : trace.info.accepted / trace.info.total;
+    return 'Iteration: ' + i + ' | Acceptance ratio: ' + ratio.toFixed(4);
+  }
+
+  function makeVMCallbackForPlatform() {
+    return util.runningInBrowser() ? makeSimpleVMCallback() : makeOverwritingVMCallback();
   }
 
   return {
-    MCMC: MCMC,
-    tapKernel: tapKernel,
-    repeatKernel: repeatKernel,
-    sequenceKernels: sequenceKernels
+    MCMC: MCMC
   };
 
 };

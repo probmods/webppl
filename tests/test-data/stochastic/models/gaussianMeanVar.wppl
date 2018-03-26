@@ -1,0 +1,13 @@
+var a0 = 8;
+var b0 = 2;
+var mu0 = 0;
+var lambda0 = 1;
+
+var model = function() {
+  // Posterior marginal over tau is Gamma(a=9, b=3)
+  var tau = gamma(a0, 1 / b0);
+  var mu = gaussian(mu0, 1 / Math.sqrt(lambda0 * tau));
+  factor(Gaussian({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(1));
+  factor(Gaussian({mu: mu, sigma: 1 / Math.sqrt(tau)}).score(2));
+  return tau;
+};

@@ -1,0 +1,10 @@
+var logistic = function(x) {
+  return 1 / (1 + Math.exp(-x));
+};
+
+var model = function() {
+  var x = gaussian(5, 10);
+  var y = flip(logistic(x));
+  factor(y ? 0 : x / 10);
+  return y;
+};

@@ -1,0 +1,5 @@
+var x = { a: 1, b: 2 };
+var y = { b: 3, c: 4 };
+var z = { d: 5 };
+var w = extend(x, y, z);
+[x.a, x.b, x.c || null, x.d || null, y.a || null, y.b, y.c, y.d || null, w.a, w.b, w.c, w.d];

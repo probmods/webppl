@@ -3,9 +3,10 @@
 
 'use strict';
 
-var _ = require('underscore');
-var erp = require('../erp');
+var _ = require('lodash');
+var discrete = require('../dists/discrete');
 var util = require('../util')
+var CountAggregator = require('../aggregation/CountAggregator');
 
 module.exports = function(env) {
 
@@ -13,8 +14,8 @@ module.exports = function(env) {
     return xs[xs.length - 1];
   }
 
-  function PMCMC(s, cc, a, wpplFn, numParticles, numSweeps) {
 
+  function PMCMC(s, cc, a, wpplFn, options) {
     // Move old coroutine out of the way and install this as the
     // current handler.
     this.oldCoroutine = env.coroutine;
@@ -28,13 +29,13 @@ module.exports = function(env) {
     // Setup inference variables
     this.particleIndex = 0;  // marks the active particle
     this.retainedParticle = undefined;
-    this.numSweeps = numSweeps;
+    this.numSweeps = options.sweeps;
     this.sweep = 0;
     this.wpplFn = wpplFn;
     this.address = a;
-    this.numParticles = numParticles;
+    this.numParticles = options.particles;
     this.resetParticles();
-    this.returnHist = {};
+    this.hist = new CountAggregator();
   }
 
   PMCMC.prototype.run = function() {
@@ -80,8 +81,8 @@ module.exports = function(env) {
     return ((this.particleIndex + 1) === this.particles.length);
   };
 
-  PMCMC.prototype.sample = function(s, cc, a, erp, params) {
-    return cc(s, erp.sample(params));
+  PMCMC.prototype.sample = function(s, cc, a, dist) {
+    return cc(s, dist.sample());
   };
 
   PMCMC.prototype.particleAtStep = function(particle, step) {
@@ -119,7 +120,7 @@ module.exports = function(env) {
     var j;
     var newParticles = [];
     for (var i = 0; i < particles.length; i++) {
-      j = erp.multinomialSample(weights);
+      j = discrete.sample(weights);
       newParticles.push(this.copyParticle(particles[j]));
     }
 
@@ -168,11 +169,7 @@ module.exports = function(env) {
       if (this.sweep > 0) {
         this.particles.concat(this.retainedParticle).forEach(
             function(particle) {
-              var k = util.serialize(particle.value);
-              if (this.returnHist[k] === undefined) {
-                this.returnHist[k] = {prob: 0, val: particle.value};
-              }
-              this.returnHist[k].prob += 1;
+              this.hist.add(particle.value);
             }.bind(this));
       }
 
@@ -188,13 +185,11 @@ module.exports = function(env) {
         return this.activeContinuationWithStore();
 
       } else {
-        var dist = erp.makeMarginalERP(util.logHist(this.returnHist));
-
         // Reinstate previous coroutine:
         env.coroutine = this.oldCoroutine;
 
         // Return from particle filter by calling original continuation:
-        return this.k(this.oldStore, dist);
+        return this.k(this.oldStore, this.hist.toDist());
 
       }
     }
@@ -202,8 +197,8 @@ module.exports = function(env) {
 
   PMCMC.prototype.incrementalize = env.defaultCoroutine.incrementalize;
 
-  function pmc(s, cc, a, wpplFn, numParticles, numSweeps) {
-    return new PMCMC(s, cc, a, wpplFn, numParticles, numSweeps).run();
+  function pmc(s, cc, a, wpplFn, options) {
+    return new PMCMC(s, cc, a, wpplFn, options).run();
   }
 
   return {
