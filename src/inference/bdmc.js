@@ -1,3 +1,5 @@
+/*eslint no-warning-comments: "off"*/
+
 'use strict';
 
 var _ = require('underscore');
@@ -30,9 +32,9 @@ module.exports = function(env){
 
       initialize = function() {
         return Initialize(run, wpplFn, s, env.exit, a,
-             {initObserveMode: options.initObserveMode,
-             initSampleMode: options.initSampleMode,
-             cacheTable: options.cacheTable});
+          {initObserveMode: options.initObserveMode,
+            initSampleMode: options.initSampleMode,
+            cacheTable: options.cacheTable});
       };
 
       run = function(initialTrace) {
@@ -88,7 +90,7 @@ module.exports = function(env){
         return k(s, weights);
       }
     });
-  };
+  }
 
 
   function RAIS (s, k, a, wpplFn, options) {
@@ -110,11 +112,14 @@ module.exports = function(env){
 
       var initialize, run;
 
+      // FIXME: Added to make linter happy.
+      var MHKernel;
+
       initialize = function() {
-          return Initialize(s, run, a, wpplFn,
-            {initObserveMode: options.initObserveMode,
-             initSampleMode: options.initSampleMode,
-             cacheTable: options.cacheTable});
+        return Initialize(s, run, a, wpplFn,
+          {initObserveMode: options.initObserveMode,
+            initSampleMode: options.initSampleMode,
+            cacheTable: options.cacheTable});
       };
 
       run = function(s, initialTrace) {
@@ -172,7 +177,7 @@ module.exports = function(env){
         return k(s, weights);
       }
     });
-  };
+  }
 
   function BDMC(s, k, a, wpplFn, options) {
     var options = util.mergeDefaults(options, {
@@ -197,7 +202,7 @@ module.exports = function(env){
         priorCacheTable = table;
         return k();
       }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'use',
-                     cacheTable: _.clone(posteriorCacheTable)})
+        cacheTable: _.clone(posteriorCacheTable)})
     }
 
     var initialize = function(k) {
@@ -307,5 +312,5 @@ module.exports = function(env){
     BDMC: BDMC,
     repeatKernel: repeatKernel,
     sequenceKernels: sequenceKernels
-    };
+  };
 };
