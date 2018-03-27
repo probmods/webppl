@@ -25,6 +25,16 @@ module.exports = function(env) {
       cacheTable: undefined
     });
 
+    if (options.initSampleMode === 'use' || options.initObserveMode === 'use') {
+      assert.ok(options.cacheTable !== undefined);
+    }
+
+    if (options.initSampleMode === 'build' || options.initObserveMode === 'build') {
+      if (options.cacheTable === undefined) {
+        options.cacheTable = {};
+      }
+    }
+
     this.initSampleMode = options.initSampleMode;
     this.initObserveMode = options.initObserveMode;
     this.cacheTable = options.cacheTable;

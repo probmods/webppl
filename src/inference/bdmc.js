@@ -1,5 +1,3 @@
-/*eslint no-warning-comments: "off"*/
-
 'use strict';
 
 var _ = require('underscore');
@@ -112,17 +110,16 @@ module.exports = function(env){
 
       var initialize, run;
 
-      // FIXME: Added to make linter happy.
-      var MHKernel;
+      var MHKernel = kernels.parseOptions('MH');
 
       initialize = function() {
-        return Initialize(s, run, a, wpplFn,
+        return Initialize(run, wpplFn, s, env.exit, a,
           {initObserveMode: options.initObserveMode,
             initSampleMode: options.initSampleMode,
             cacheTable: options.cacheTable});
       };
 
-      run = function(s, initialTrace) {
+      run = function(initialTrace) {
 
         var factorCoeff = 1;
         var step = 1/options.steps;
@@ -191,17 +188,17 @@ module.exports = function(env){
     var gaps = [];
 
     var posteriorInitialize = function(k) {
-      return Initialize(s, function(s, trace, table) {
+      return Initialize(function(trace, table) {
         posteriorCacheTable = table;
         return k();
-      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'build'})
+      }, wpplFn, s, env.exit, a, {initSampleMode: 'build', initObserveMode: 'build'})
     }
 
     var priorInitialize = function(k) {
-      return Initialize(s, function(s, trace, table) {
+      return Initialize(function(trace, table) {
         priorCacheTable = table;
         return k();
-      }, a, wpplFn, {initSampleMode: 'build', initObserveMode: 'use',
+      }, wpplFn, s, env.exit, a, {initSampleMode: 'build', initObserveMode: 'use',
         cacheTable: _.clone(posteriorCacheTable)})
     }
 
