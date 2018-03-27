@@ -280,22 +280,6 @@ module.exports = function(env){
     })
   }
   
-  function sequenceKernels() {
-    var kernels = arguments;
-    assert(kernels.length > 1);
-    if (kernels.length === 2) {
-      return function(k, trace1) {
-        return kernels[0](function(trace2) {
-          return kernels[1](k, trace2);
-        }, trace1);
-      };
-    } else {
-      return sequenceKernels(
-          kernels[0],
-          sequenceKernels.apply(null, _.rest(kernels)))
-    }
-  }
-
   function repeatKernel(n, kernel) {
     return function(k, trace) {
       return util.cpsIterate(n, trace, kernel, k);
@@ -306,8 +290,6 @@ module.exports = function(env){
   return {
     AIS: AIS,
     RAIS: RAIS,
-    BDMC: BDMC,
-    repeatKernel: repeatKernel,
-    sequenceKernels: sequenceKernels
+    BDMC: BDMC
   };
 };
