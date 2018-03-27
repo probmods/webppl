@@ -4,7 +4,6 @@ var _ = require('lodash');
 var assert = require('assert');
 var fs = require('fs');
 var util = require('../util');
-var Query = require('../query').Query;
 
 module.exports = function(env){
 
