@@ -50,7 +50,7 @@
   },
   "scripts": {
     "test": "nodeunit tests",
-    "postinstall": "node scripts/adify && node scripts/distHeader"
+    "prepare": "node scripts/adify && node scripts/distHeader"
   },
   "bugs": {
     "url": "https://github.com/probmods/webppl/issues"
