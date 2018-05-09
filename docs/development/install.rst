@@ -1,7 +1,7 @@
 Installation from GitHub
 ========================
 
-.. highlight:: none
+.. highlight:: bash
 
 ::
 
