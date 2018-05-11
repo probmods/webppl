@@ -1,12 +1,13 @@
 Installation from GitHub
 ========================
 
-.. highlight:: none
+.. highlight:: bash
 
 ::
 
     git clone https://github.com/probmods/webppl.git
     cd webppl
+    npm --version # ensure >= 4.0.0 (required to run build scripts)
     npm install
     npm install -g nodeunit grunt-cli
 
