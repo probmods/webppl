@@ -30,4 +30,4 @@ Updating the npm package
     git push origin master
     git push origin v0.0.1  # use version printed by "npm version" command above
     npm --version # ensure >= 4.0.0 (required to run build scripts)
-    npm publish
+    npm publish --unsafe-perm # flag prevents scripts failing when npm is run as root
