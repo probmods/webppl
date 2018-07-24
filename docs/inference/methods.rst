@@ -125,6 +125,8 @@ Kernels
 
 The following kernels are available:
 
+.. _mh:
+
 .. describe:: MH
 
    Implements single site Metropolis-Hastings. [wingate11]_

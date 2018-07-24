@@ -473,6 +473,15 @@ var OptimizeThenSample = function(wpplFn, options) {
   return SampleGuide(wpplFn, opts);
 };
 
+// Make AIS available via Infer to allow AIS to be tested using
+// existing inference tests.
+var AISforInfer = function(wpplFn, options) {
+  var dummyMarginal = Infer(constF(true));
+  // This mutates dummyMarginal.
+  _.assign(dummyMarginal, {normalizationConstant: AIS(wpplFn, options)});
+  return dummyMarginal;
+};
+
 /*
  * DefaultInfer() called when no options are specified
  * var maxEnumTreeSize: upper bound for enumeration tree size, enumeration ends when above threshold.
@@ -538,6 +547,7 @@ var Infer = function(options, maybeFn) {
     incrementalMH: IncrementalMH,
     forward: ForwardSample,
     optimize: OptimizeThenSample,
+    AIS: AISforInfer,
     defaultInfer: DefaultInfer
   };
 

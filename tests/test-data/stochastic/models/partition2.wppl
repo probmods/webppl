@@ -1,0 +1,6 @@
+var model = function() {
+  var x = flip(0.2);
+  var y = flip(0.8);
+  observe(Bernoulli({p : x && y ? 0.1 : 0.6}), true);
+  return {x, y};
+};

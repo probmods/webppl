@@ -754,6 +754,21 @@ var tests = [
       dream2: true,
       dream3: true
     }
+  },
+  {
+    name: 'AIS',
+    settings: {
+      args: {
+        steps: 500,
+        samples: 100
+      },
+      logZ: {check: true, tol: 0.05}
+    },
+    models: {
+      partition1: {logZ: {check: true, tol: 1e-6}},
+      partition2: true,
+      partition3: true
+    }
   }
 ];
 
