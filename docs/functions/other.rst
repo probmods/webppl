@@ -137,9 +137,12 @@ Other
 
 .. js:function:: AIS(model[, options])
 
-   Estimates the log of the normalization constant of ``model`` using
-   annealed importance sampling. The MCMC transition operator used is
-   based on the :ref:`MH kernel <mh>`.
+   Returns an estimate of the log of the normalization constant of
+   ``model``. This is not an unbiased estimator, rather it is a
+   stochastic lower bound. [grosse16]_
+
+   The MCMC transition operator used is based on the :ref:`MH kernel
+   <mh>`.
 
    The following options are supported:
 
@@ -156,11 +159,18 @@ Other
    .. describe:: samples
 
       The number of times the AIS procedure is repeated. ``AIS``
-      returns the average of the estimates produced by the individual
-      runs.
+      returns the average of the log of the estimates produced by the
+      individual runs.
 
       Default: ``1``
 
    Example usage::
 
      AIS(model, {samples: 100, steps: 100})
+
+.. rubric:: Bibliography
+
+.. [grosse16] Grosse, Roger B., Siddharth Ancha, and Daniel M. Roy.
+              "Measuring the reliability of MCMC inference with
+              bidirectional Monte Carlo." Advances in Neural
+              Information Processing Systems. 2016.
