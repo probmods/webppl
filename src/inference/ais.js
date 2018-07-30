@@ -44,7 +44,10 @@ module.exports = function(env){
         var mhStepKernel = function(k, trace) {
           weight += increment * trace.scoreAllFactors();
           curStep += 1;
-          return MHKernel(k, trace, {factorCoeff: curStep * increment});
+          return MHKernel(k, trace, {
+            factorCoeff: curStep * increment,
+            allowHardFactors: false
+          });
         };
 
         var mhChainKernel = kernels.repeat(options.steps, mhStepKernel);

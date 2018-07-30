@@ -31,7 +31,8 @@ module.exports = function(env) {
     runOpts = util.mergeDefaults(runOpts, {
       proposalBoundary: 0,
       exitFactor: 0,
-      factorCoeff: 1
+      factorCoeff: 1,
+      allowHardFactors: true
     });
 
     this.proposalBoundary = runOpts.proposalBoundary;
@@ -39,6 +40,7 @@ module.exports = function(env) {
 
     this.factorCoeff = runOpts.factorCoeff;
     assert.ok(0 <= this.factorCoeff && this.factorCoeff <= 1);
+    this.allowHardFactors = runOpts.allowHardFactors;
 
     this.cont = cont;
     this.oldTrace = oldTrace;
@@ -65,6 +67,9 @@ module.exports = function(env) {
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
     if (ad.value(score) === -Infinity) {
+      if (!this.allowHardFactors) {
+        throw new Error('Hard factor statements are not allowed.');
+      }
       return this.finish(this.oldTrace, false);
     }
     this.trace.numFactors += 1;
