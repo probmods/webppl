@@ -30,11 +30,17 @@ module.exports = function(env) {
 
     runOpts = util.mergeDefaults(runOpts, {
       proposalBoundary: 0,
-      exitFactor: 0
+      exitFactor: 0,
+      factorCoeff: 1,
+      allowHardFactors: true
     });
 
     this.proposalBoundary = runOpts.proposalBoundary;
     this.exitFactor = runOpts.exitFactor;
+
+    this.factorCoeff = runOpts.factorCoeff;
+    assert.ok(0 <= this.factorCoeff && this.factorCoeff <= 1);
+    this.allowHardFactors = runOpts.allowHardFactors;
 
     this.cont = cont;
     this.oldTrace = oldTrace;
@@ -61,6 +67,9 @@ module.exports = function(env) {
   MHKernel.prototype.factor = function(s, k, a, score) {
     // Optimization: Bail early if we know acceptProb will be zero.
     if (ad.value(score) === -Infinity) {
+      if (!this.allowHardFactors) {
+        throw new Error('Hard factor statements are not allowed.');
+      }
       return this.finish(this.oldTrace, false);
     }
     this.trace.numFactors += 1;
@@ -203,10 +212,20 @@ module.exports = function(env) {
     // assert(_.isNumber(ad.value(oldTrace.score)));
     // assert(_.isNumber(this.regenFrom));
     // assert(_.isNumber(this.proposalBoundary));
-
     var fw = this.transitionProb(oldTrace, trace, this.fwdProposalDist);
     var bw = this.transitionProb(trace, oldTrace, this.revProposalDist);
-    var p = Math.exp(ad.value(trace.score) - ad.value(oldTrace.score) + bw - fw);
+
+    var newTraceScore, oldTraceScore;
+    if (this.factorCoeff == 1) {
+      // Optimise for the common case.
+      newTraceScore = ad.value(trace.score);
+      oldTraceScore = ad.value(oldTrace.score);
+    } else {
+      newTraceScore = ad.value(trace.scoreAllChoices()) + this.factorCoeff * ad.value(trace.scoreAllFactors());
+      oldTraceScore = ad.value(oldTrace.scoreAllChoices()) + this.factorCoeff * ad.value(oldTrace.scoreAllFactors());
+    }
+
+    var p = Math.exp(newTraceScore - oldTraceScore + bw - fw);
     assert(!isNaN(p));
     return Math.min(1, p);
   };

@@ -59,6 +59,8 @@ Trace.prototype.addChoice = function(dist, val, address, store, continuation, op
   // assert(_.isObject(store));
   // assert(_.isFunction(continuation));
 
+  var choiceScore = dist.score(val);
+
   var choice = {
     k: continuation,
     address: address,
@@ -67,6 +69,7 @@ Trace.prototype.addChoice = function(dist, val, address, store, continuation, op
     // Record the score without adding the choiceScore. This is the score we'll
     // need if we regen from this choice.
     score: this.score,
+    choiceScore: choiceScore,
     val: val,
     store: _.clone(store),
     numFactors: this.numFactors
@@ -75,8 +78,18 @@ Trace.prototype.addChoice = function(dist, val, address, store, continuation, op
   this.choices.push(choice);
   this.addressMap[address] = choice;
   this.length += 1;
-  this.score = ad.scalar.add(this.score, dist.score(val));
+  this.score = ad.scalar.add(this.score, choiceScore);
   // this.checkConsistency();
+};
+
+Trace.prototype.scoreAllChoices = function() {
+  return this.choices.reduce(function(acc, choice) {
+    return ad.scalar.add(acc, choice.choiceScore);
+  }, 0);
+};
+
+Trace.prototype.scoreAllFactors = function() {
+  return ad.scalar.sub(this.score, this.scoreAllChoices());
 };
 
 Trace.prototype.complete = function(value) {
