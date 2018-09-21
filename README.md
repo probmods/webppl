@@ -13,6 +13,12 @@ Run WebPPL programs:
 
     webppl myprogram.wppl
 
+Require a WebPPL package:
+
+    webppl myprogram.wppl --require packageName
+
+See the [packages](http://docs.webppl.org/en/master/packages.html#packages) section of our documentation for more information.
+
 Upgrade WebPPL:
 
     npm update -g webppl
