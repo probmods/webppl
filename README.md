@@ -22,6 +22,18 @@ See the [packages](http://docs.webppl.org/en/master/packages.html#packages) sect
 Upgrade WebPPL:
 
     npm update -g webppl
+## Using packages with WebPPL
+To use packages, first navigate to your home directory and create a folder named ```.webppl```. This is where WebPPL programs will find packages.
+
+To install a package, run ```npm install --prefix ~/.webppl myPackage```, where myPackage is the name of the package you would like to use. 
+
+To run a WebPPL program with a package, run the following command:
+
+```webppl --require *PackageName* *FileName*.wppl```
+
+For each additional package, a require statement is needed. For example, using the packages webppl-csv and webppl-viz requires the following command:
+
+```webppl --require webppl-csv --require webppl-viz *FileName*.wppl```
 
 ## Documentation
 
