@@ -24,6 +24,7 @@ var distributions = _.chain(
     ['Laplace', require('./laplace')],
     ['LogisticNormal', require('./logisticNormal')],
     ['LogitNormal', require('./logitNormal')],
+    ['LogNormal', require('./logNormal')],
     ['Marginal', require('./marginal')],
     ['Mixture', require('./mixture')],
     ['Multinomial', require('./multinomial')],
