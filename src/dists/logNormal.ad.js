@@ -33,7 +33,7 @@ var LogNormal = base.makeDistributionType({
   wikipedia: 'Log-normal_distribution',
   mixins: [base.continuousSupport],
   sample: function() {
-    return sample(this.params.mu, this.params.sigma);
+    return sample(ad.value(this.params.mu), ad.value(this.params.sigma));
   },
   score: function(x) {
     return score(this.params.mu, this.params.sigma, x);
