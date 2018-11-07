@@ -1,0 +1,8 @@
+// Expected values estimated using forward sampling.
+var model = function() {
+  var upper = uniform(0.9, 1.0);
+  var x = uniform(0, upper);
+  // Ensure sampled values are within support. (#912)
+  assert.ok(0 <= x && x <= upper);
+  return x;
+};

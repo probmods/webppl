@@ -27,6 +27,7 @@ var tests = [
       randomInteger: true,
       gaussian: { args: { samples: 10000 } },
       uniform: { args: { samples: 10000 } },
+      uniformSampledSupport: true,
       beta: true,
       exponential: true,
       laplace: { args: { samples: 10000 } },
@@ -326,7 +327,8 @@ var tests = [
       nestedEnumWithFactor: { mean: { tol: 0.075 }, std: { tol: 0.05 } },
       gaussianMean: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
       gaussianMeanVar: { args: { particles: 1000, rejuvSteps: 2, rejuvKernel: 'HMC' } },
-      guidedFlip: true
+      guidedFlip: true,
+      uniformSampledSupport: true
     }
   },
   {
@@ -553,7 +555,8 @@ var tests = [
           samples: 5000,
           burn: 100
         }
-      }
+      },
+      uniformSampledSupport: true
     }
   },
   {

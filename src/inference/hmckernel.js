@@ -74,8 +74,8 @@ module.exports = function(env) {
       // for readability.
       if (dist.support) {
         var support = dist.support();
-        var lower = support.lower;
-        var upper = support.upper;
+        var lower = ad.value(support.lower);
+        var upper = ad.value(support.upper);
 
         while (_val < lower || _val > upper) {
           if (_val < lower) {
