@@ -36,6 +36,7 @@ var tests = [
       multinomial: true,
       poisson: true,
       cauchy: true,
+      logNormal: { args: { samples: 10000 } },
       delta: { args: { samples: 10 }, hist: { exact: true } },
       discreteArr: true,
       discreteVec: true,
@@ -673,6 +674,12 @@ var tests = [
         }
       },
       cauchy: {
+        args: {
+          samples: 10000,
+          steps: 10000
+        }
+      },
+      logNormal: {
         args: {
           samples: 10000,
           steps: 10000
