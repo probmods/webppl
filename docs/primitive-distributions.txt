@@ -115,6 +115,15 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Laplace_distribution>`__
 
+.. js:function:: LogNormal({mu: ..., sigma: ...})
+
+  * mu: mean *(real)*
+  * sigma: standard deviation *(real (0, Infinity))*
+
+  Distribution over non-negative reals where the log of the random variable is normally distributed.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Log-normal_distribution>`__
+
 .. js:function:: LogisticNormal({mu: ..., sigma: ...})
 
   * mu: mean *(vector)*
