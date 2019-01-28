@@ -4,6 +4,7 @@ var _ = require('lodash');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
+var cb = require('./callbacks');
 
 module.exports = function(env) {
 
@@ -23,10 +24,10 @@ module.exports = function(env) {
 
     options.kernel = kernels.parseOptions(options.kernel);
 
-    var callbacks = options.verbose ?
-        [makeVMCallbackForPlatform()].concat(options.callbacks) :
-        options.callbacks;
-    _.invokeMap(callbacks, 'setup', numIters(options));
+    var callbacks = cb.prepare(options.verbose ?
+                               [makeVMCallbackForPlatform()].concat(options.callbacks) :
+                               options.callbacks);
+    callbacks.setup(numIters(options));
 
     var aggregator = new CountAggregator(options.onlyMAP);
 
@@ -37,13 +38,13 @@ module.exports = function(env) {
     var initialize, run, finish;
 
     initialize = function() {
-      _.invokeMap(callbacks, 'initialize');
+      callbacks.initialize();
       return Initialize(run, wpplFn, s, env.exit, a, { ad: options.kernel.adRequired });
     };
 
     run = function(initialTrace) {
       initialTrace.info = { accepted: 0, total: 0 };
-      var callback = kernels.tap(function(trace) { _.invokeMap(callbacks, 'iteration', trace); });
+      var callback = kernels.tap(function(trace) { callbacks.iteration(trace); });
       var collectSample = makeExtractValue(addToAggregator);
       var kernel = kernels.sequence(options.kernel, callback);
       var chain = kernels.sequence(
@@ -56,7 +57,7 @@ module.exports = function(env) {
     };
 
     finish = function(trace) {
-      _.invokeMap(callbacks, 'finish', trace);
+      callbacks.finish(trace);
       return k(s, aggregator.toDist());
     };
 
