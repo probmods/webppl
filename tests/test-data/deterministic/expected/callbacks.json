@@ -1,0 +1,22 @@
+{
+  "result": [
+    {
+      "setup": 3,
+      "initialize": true,
+      "numIters": 3,
+      "finish": true
+    },
+    {
+      "setup": 5,
+      "initialize": true,
+      "numIters": 5,
+      "finish": true
+    },
+    {
+      "setup": 8,
+      "initialize": true,
+      "numIters": 8,
+      "finish": true
+    }
+  ]
+}
