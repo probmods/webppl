@@ -1,5 +1,5 @@
 var make_callback = function() {
-  var output = { setup: [], initialize: [], iteration: [], finish: [] };
+  var output = { setup: [], initialize: [], iteration: [], sample: [], finish: [] };
   var cb = {
     // Inference should pass a single argument, the number of
     // iterations that will be performed. We push this onto the
@@ -12,6 +12,7 @@ var make_callback = function() {
     // arguments. Here we ignore any such arguments, and push true
     // onto the array each time we're called.
     iteration: _.ary(_.bindKey(output.iteration, 'push', true), 0),
+    sample: _.bindKey(output.sample, 'push'),
     // Finished is called with zero arguments once inference is
     // complete. We push true onto the array when called.
     finish: _.ary(_.bindKey(output.finish, 'push', true), 0),
@@ -31,6 +32,13 @@ var summarize_output = function(output) {
     // `numIters` is the number of times the iteration callback was
     // called.
     numIters: output.iteration.length,
+    // All inference algorithms are expected to provide an object with
+    // at least a value property, though they may return an object
+    // with additional properties. `numSamples` will be the number of
+    // times the sample callback was invoked, unless it was called one
+    // or more times with an object without `value` property, in which
+    // case it will be false.
+    numSamples: all(function(s) { return _.has(s, 'value'); }, output.sample) && output.sample.length,
     // `finish` will be true if the finish callback was called, false
     // otherwise.
     finish: output.finish.length === 1 && output.finish[0]

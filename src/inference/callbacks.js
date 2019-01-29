@@ -39,7 +39,7 @@ var prepareOne = function(name, callbacks) {
   }
 };
 
-var names = ['setup', 'initialize', 'iteration', 'finish'];
+var names = ['setup', 'initialize', 'iteration', 'sample', 'finish'];
 
 var prepare = function(callbacks) {
   return _.fromPairs(names.map(function(name) {

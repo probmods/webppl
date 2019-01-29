@@ -4,19 +4,24 @@
       "setup": 3,
       "initialize": true,
       "numIters": 3,
-      "finish": true
+      "finish": true,
+      "numSamples": 0
+
     },
     {
       "setup": 5,
       "initialize": true,
       "numIters": 5,
-      "finish": true
+      "finish": true,
+      "numSamples": 0
+
     },
     {
       "setup": 8,
       "initialize": true,
       "numIters": 8,
-      "finish": true
+      "finish": true,
+      "numSamples": 0
     }
   ]
 }
