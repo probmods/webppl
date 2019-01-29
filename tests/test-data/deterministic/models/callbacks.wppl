@@ -55,4 +55,5 @@ var runTest = function(inferOpts) {
   runTest({method: 'MCMC', samples: 3}),
   runTest({method: 'MCMC', samples: 3, burn: 2}),
   runTest({method: 'MCMC', samples: 3, burn: 2, lag: 1}),
+  runTest({method: 'rejection', samples: 3}),
 ];
