@@ -9,6 +9,7 @@ var numeric = require('../math/numeric');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 var guide = require('../guide');
+var cb = require('./callbacks');
 
 module.exports = function(env) {
 
@@ -85,11 +86,13 @@ module.exports = function(env) {
       samples: 100,
       guide: false, // true = sample guide, false = sample target
       onlyMAP: false,
-      verbose: false
+      verbose: false,
+      callbacks: []
     }, 'ForwardSample');
 
     var hist = new CountAggregator(opts.onlyMAP);
     var logWeights = [];   // Save total factor weights
+    var callbacks = cb.prepare(opts.callbacks);
 
     return util.cpsLoop(
         opts.samples,
@@ -98,11 +101,13 @@ module.exports = function(env) {
           return runForward(s, function(s, ret) {
             logWeights.push(ret.logWeight);
             hist.add(ret.val, ret.score);
+            callbacks.sample({value: ret.val, score: ret.score});
             return next();
           }, a, wpplFn, opts.guide);
         },
         // Continuation.
         function() {
+          callbacks.finish();
           var dist = hist.toDist();
           if (!opts.guide) {
             dist.normalizationConstant = numeric._logsumexp(logWeights) - Math.log(opts.samples);
