@@ -57,4 +57,6 @@ var runTest = function(inferOpts) {
   runTest({method: 'MCMC', samples: 3, burn: 2, lag: 1}),
   runTest({method: 'rejection', samples: 3}),
   runTest({method: 'incrementalMH', samples: 3}),
+  runTest({method: 'SMC', particles: 3}),
+  runTest({method: 'SMC', particles: 3, rejuvSteps: 2}),
 ];

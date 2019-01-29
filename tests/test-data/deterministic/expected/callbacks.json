@@ -36,6 +36,20 @@
       "numIters": 0,
       "finish": true,
       "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 6
     }
   ]
 }
