@@ -10,6 +10,7 @@ var assert = require('assert');
 var CountAggregator = require('../aggregation/CountAggregator');
 var ad = require('../ad');
 var guide = require('../guide');
+var cb = require('./callbacks');
 
 module.exports = function(env) {
 
@@ -26,7 +27,8 @@ module.exports = function(env) {
       saveTraces: false,
       importance: 'default',
       onlyMAP: false,
-      throwOnError: true
+      throwOnError: true,
+      callbacks: []
     }, 'SMC');
 
     if (!_.includes(validImportanceOptVals, options.importance)) {
@@ -49,6 +51,7 @@ module.exports = function(env) {
     this.guideRequired = options.importance !== 'ignoreGuide';
     this.isParamBase = true;
     this.onlyMAP = options.onlyMAP;
+    this.callbacks = cb.prepare(options.callbacks);
 
     this.particles = [];
     this.completeParticles = [];
@@ -311,6 +314,7 @@ module.exports = function(env) {
       var value = this.adRequired ? ad.valueRec(trace.value) : trace.value;
       var score = this.adRequired ? ad.valueRec(trace.score) : trace.score;
       hist.add(value, score);
+      this.callbacks.sample({value: value, score: score});
       if (this.saveTraces) {
         traces.push(trace);
       }
@@ -334,6 +338,7 @@ module.exports = function(env) {
           }
         }.bind(this),
         function() {
+          this.callbacks.finish();
           var dist = hist.toDist();
           dist.normalizationConstant = logAvgW;
           if (this.saveTraces) {

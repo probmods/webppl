@@ -11,6 +11,7 @@
 var _ = require('lodash');
 var util = require('../util');
 var CountAggregator = require('../aggregation/CountAggregator');
+var cb = require('./callbacks');
 
 module.exports = function(env) {
 
@@ -20,7 +21,8 @@ module.exports = function(env) {
       maxScore: 0,
       incremental: false,
       throwOnError: true,
-      minSampleRate: 0
+      minSampleRate: 0,
+      callbacks: []
     }, 'Rejection');
 
     this.throwOnError = options.throwOnError;
@@ -31,6 +33,7 @@ module.exports = function(env) {
     this.numSamples = options.samples;
     this.maxScore = options.maxScore;
     this.incremental = options.incremental;
+    this.callbacks = cb.prepare(options.callbacks);
     this.s = s;
     this.k = k;
     this.a = a;
@@ -106,11 +109,13 @@ module.exports = function(env) {
     if (this.scoreSoFar > this.threshold) {
       // Accept.
       this.hist.add(retval);
+      this.callbacks.sample({value: retval});
       this.numSamples -= 1;
     }
 
     if (this.numSamples === 0) {
       env.coroutine = this.oldCoroutine;
+      this.callbacks.finish();
       return this.k(this.s, this.hist.toDist());
     } else {
       return this.run();

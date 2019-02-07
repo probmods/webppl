@@ -9,6 +9,7 @@ var util = require('../util');
 var Hashtable = require('../hashtable').Hashtable
 var Query = require('../query').Query;
 var CountAggregator = require('../aggregation/CountAggregator');
+var cb = require('./callbacks');
 
 module.exports = function(env) {
 
@@ -787,7 +788,8 @@ module.exports = function(env) {
       lag: 0,
       cacheIterFuseLength: 10,
       burn: 0,
-      verboseLag: 1
+      verboseLag: 1,
+      callbacks: []
     }, 'IncrementalMH');
 
     // Doing a full re-run doesn't really jive with the heuristic we use for adaptive
@@ -812,6 +814,7 @@ module.exports = function(env) {
     this.lag = opts.lag;
     this.burn = opts.burn;
     this.verboseLag = opts.verboseLag;
+    this.callbacks = cb.prepare(opts.callbacks);
 
     this.doFullRerun = opts.doFullRerun;
 
@@ -936,6 +939,7 @@ module.exports = function(env) {
             val = this.query.getTable();
           // add val to hist:
           this.aggregator.add(val, this.score);
+          this.callbacks.sample({value: val, score: this.score});
         }
 
         if (DEBUG >= 6) {
@@ -975,6 +979,7 @@ module.exports = function(env) {
         this.cacheAdapter.report();
       }
 
+      this.callbacks.finish();
       // Return by calling original continuation:
       return k(this.oldStore, this.aggregator.toDist());
     }

@@ -468,8 +468,8 @@ var SampleGuide = function(wpplFn, options) {
 };
 
 var OptimizeThenSample = function(wpplFn, options) {
-  Optimize(wpplFn, _.omit(options, 'samples', 'onlyMAP'));
-  var opts = _.pick(options, 'samples', 'onlyMAP', 'verbose');
+  Optimize(wpplFn, _.omit(options, 'samples', 'onlyMAP', 'callbacks'));
+  var opts = _.pick(options, 'samples', 'onlyMAP', 'callbacks', 'verbose');
   return SampleGuide(wpplFn, opts);
 };
 

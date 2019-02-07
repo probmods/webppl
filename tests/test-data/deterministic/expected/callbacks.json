@@ -1,0 +1,69 @@
+{
+  "result": [
+    {
+      "setup": 3,
+      "initialize": true,
+      "numIters": 3,
+      "finish": true,
+      "numSamples": 3
+
+    },
+    {
+      "setup": 5,
+      "initialize": true,
+      "numIters": 5,
+      "finish": true,
+      "numSamples": 3
+
+    },
+    {
+      "setup": 8,
+      "initialize": true,
+      "numIters": 8,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 6
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    },
+    {
+      "setup": false,
+      "initialize": false,
+      "numIters": 0,
+      "finish": true,
+      "numSamples": 3
+    }
+  ]
+}
