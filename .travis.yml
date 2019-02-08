@@ -1,23 +1,21 @@
 language: node_js
 
 node_js:
-  - "4"
-  - "5"
   - "6"
-  - "7"
+  - "8"
+  - "10"
+  - "11"
 
 env:
   - TASK=default
 
 matrix:
   include:
-    - node_js: "7"
+    - node_js: "11"
       env: TASK=travis-phantomjs
 
 install:
   - npm install
-  - if [ $TRAVIS_NODE_VERSION = 4 ]; then npm run-script prepare; fi
-  - if [ $TRAVIS_NODE_VERSION = 5 ]; then npm run-script prepare; fi
   - if [ $TRAVIS_NODE_VERSION = 6 ]; then npm run-script prepare; fi
   - npm install -g nodeunit grunt-cli
   - if [ $TASK = travis-phantomjs ]; then npm install -g browserify uglify-js; fi
