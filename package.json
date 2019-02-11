@@ -33,19 +33,19 @@
     "stack-trace": "0.0.9"
   },
   "devDependencies": {
-    "aws-sdk": "^2.4.1",
-    "brfs": "^1.4.3",
-    "eslint": "^3.19.0",
-    "grunt": "^1.0.0",
+    "aws-sdk": "^2.400.0",
+    "brfs": "^2.0.1",
+    "eslint": "^5.13.0",
+    "grunt": "^1.0.3",
     "grunt-contrib-clean": "^1.0.0",
     "grunt-contrib-jshint": "^1.1.0",
-    "grunt-contrib-nodeunit": "^1.0.0",
-    "grunt-contrib-watch": "^1.0.0",
+    "grunt-contrib-nodeunit": "^2.0.0",
+    "grunt-contrib-watch": "^1.1.0",
     "grunt-eslint": "^19.0.0",
-    "nodeunit": "^0.11.0",
+    "nodeunit": "^0.11.3",
     "open": "0.0.5",
     "qunit-phantomjs-runner": "^2.1.0",
-    "qunitjs": "^2.3.1",
+    "qunit": "^2.4.1",
     "through2": "^2.0.0"
   },
   "scripts": {
