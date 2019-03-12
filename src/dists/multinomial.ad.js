@@ -75,7 +75,7 @@ function buildHistogramFromCombinations(samples, states) {
   // Build default histogram that has 0 for all state indices
   var zeroHist = (_.chain(stateIndices)
       .map(function(i) {return [i, 0];})
-      .object()
+      .fromPairs()
       .value());
   // Now build actual histogram, keeping 0s for unsampled states
   var hist = _.defaults(_.countBy(samples), zeroHist);

@@ -83,6 +83,7 @@ var tests = [
       discreteVec: true,
       categoricalArr: true,
       categoricalVec: true,
+      multinomial2: true,
       randomInteger2: true,
       cache: true,
       withCaching: true,
