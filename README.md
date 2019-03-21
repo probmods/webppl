@@ -23,7 +23,7 @@ Upgrade WebPPL:
 
     npm update -g webppl
 
-## Quick start from Source
+## Quick start from source
 
 Clone WebPPL using git:
 
