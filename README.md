@@ -27,24 +27,24 @@ Upgrade WebPPL:
 
 Clone WebPPL using git:
 
-   git clone https://github.com/kwanghoon/webppl
+    git clone https://github.com/kwanghoon/webppl
 
 Change into the cloned directory:
 
-   cd webppl
+    cd webppl
 
 Install the dependent packages listed in package.json:
 
-   npm install
+    npm install
 
 Run scripts:
 
-   ./scripts/adify
-   ./scripts/distHeader
+    ./scripts/adify
+    ./scripts/distHeader
 
 Run a WebPPL program:
 
-   ./webppl examples/binomial.wppl
+    ./webppl examples/binomial.wppl
 
 
 ## Documentation
