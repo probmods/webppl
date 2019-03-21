@@ -27,7 +27,7 @@ Upgrade WebPPL:
 
 Clone WebPPL using git:
 
-    git clone https://github.com/kwanghoon/webppl
+    git clone https://github.com/probmods/webppl
 
 Change into the cloned directory:
 
