@@ -35,3 +35,11 @@ Updating
 WebPPL is in active development. To update WebPPL, run::
 
     npm update -g webppl
+
+From GitHub
+-----------
+
+WebPPL can also be installed directly from GitHub. This is typically
+only necessary in order to work on the development of WebPPL itself.
+See the :ref:`development documentation <installation_from_source>`
+for details.
