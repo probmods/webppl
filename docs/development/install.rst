@@ -1,3 +1,5 @@
+.. _installation_from_source:
+
 Installation from GitHub
 ========================
 
