@@ -50,7 +50,7 @@ var StudentT = base.makeDistributionType({
     {name: 'mu', desc: 'location', type: types.unboundedReal},
     {name: 'sigma', desc: 'scale', type: types.positiveReal}
   ],
-  wikipedia: 'https://en.wikipedia.org/wiki/Student\'s_t-distribution',
+  wikipedia: "https://en.wikipedia.org/wiki/Student's_t-distribution",
   mixins: [base.continuousSupport],
   sample: function () {
     return sample(ad.value(this.params.nu), ad.value(this.params.mu), ad.value(this.params.sigma));
