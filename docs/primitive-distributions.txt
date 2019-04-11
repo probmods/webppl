@@ -191,6 +191,15 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
 
+.. js:function:: StudenT({shape: ..., scale: ...})
+
+  * shape:  *(real (0, Infinity))*
+  * scale:  *(real (0, Infinity))*
+
+  Distribution over positive reals.
+
+  `Wikipedia entry <https://en.wikipedia.org/wiki/StudenT_distribution>`__
+
 .. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
 
   * mu: mean *(real)*
