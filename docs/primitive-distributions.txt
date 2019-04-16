@@ -191,11 +191,11 @@
 
   `Wikipedia entry <https://en.wikipedia.org/wiki/Uniform_distribution_(discrete)>`__
 
-.. js:function:: StudentT({nu: ..., mu: ..., sigma: ...})
+.. js:function:: StudentT({df: ..., location: ..., scale: ...})
 
-  * nu: degrees of freedom *(real (0, Infinity))*
-  * mu: location *(real)*
-  * sigma: scale *(real (0, Infinity))*
+  * df: degrees of freedom *(real (0, Infinity))*
+  * location: location *(real)*
+  * scale: scale *(real (0, Infinity))*
 
   Distribution over reals.
 
