@@ -33,6 +33,7 @@ var distributions = _.chain(
     ['Poisson', require('./poisson')],
     ['RandomInteger', require('./randomInteger')],
     ['SampleBasedMarginal', require('./sampleBasedMarginal')],
+    ['StudentT', require('./studentT')],
     ['TensorGaussian', require('./tensorGaussian')],
     ['TensorLaplace', require('./tensorLaplace')],
     ['Uniform', require('./uniform')],
