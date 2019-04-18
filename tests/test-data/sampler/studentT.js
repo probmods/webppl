@@ -9,7 +9,7 @@ module.exports = {
     return typeof x === 'number' && x > -Infinity && x < Infinity;
   },
   settings: [
-    {params: [3, 0, 1], n: 1e05, abstol: {mode: 0.2, mean: 0.2, variance: 0.5}, skip: ['skew', 'kurtosis']},
+    {params: [3, 0, 1], n: 2e05, abstol: {mode: 0.2, mean: 0.2, variance: 0.5}, skip: ['skew', 'kurtosis']},
     {params: [10, 20, 2], n: 1e05, abstol: {mode: 1, mean: 0.5, variance: 0.5}, skip: ['skew', 'kurtosis']},
     {params: [100, -8, 3.1], n: 1e05, abstol: {mode: 2, mean: 1, variance: 1}, skip: ['skew', 'kurtosis']}
   ],
