@@ -6,6 +6,7 @@ var types = require('../types');
 var util = require('../util');
 var numeric = require('../math/numeric');
 var gaussian = require('./gaussian');
+var Gaussian = gaussian.Gaussian;
 
 var LOG_2PI = numeric.LOG_2PI;
 
@@ -40,12 +41,15 @@ var LogNormal = base.makeDistributionType({
   },
   support: function() {
     return { lower: 0, upper: Infinity };
+  },
+  // Reparameterization for variational inference
+  base: function() {
+    return new Gaussian({mu: 0, sigma: 1});
+  },
+  transform: function(x) {
+    'use ad';
+    return Math.exp(this.params.sigma * x + this.params.mu);
   }
-  // for reparameterization for variational inference
-  // base: function() {
-  // },
-  // transform: function(x) {
-  // }
 });
 
 module.exports = {
