@@ -6,7 +6,7 @@ var types = require('../types');
 var util = require('../util');
 var gaussian = require('./gaussian');
 var gamma = require('./gamma');
-var numeric = require('../math/numeric')
+var numeric = require('../math/numeric');
 
 var LOG_PI = numeric.LOG_PI;
 
@@ -57,13 +57,6 @@ var StudentT = base.makeDistributionType({
   },
   score: function (x) {
     return score(this.params.df, this.params.location, this.params.scale, x);
-  },
-  base: function () {
-    return new StudentT({df: this.params.df, location: 0, scale: 1});
-  },
-  transform: function (x) {
-    'use ad';
-    return x * this.params.scale + this.params.location;
   },
   support: function () {
     return { lower: -Infinity, upper: Infinity };
