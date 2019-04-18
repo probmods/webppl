@@ -37,6 +37,7 @@ var tests = [
       poisson: true,
       cauchy: true,
       logNormal: { args: { samples: 10000 } },
+      studentT: { args: { samples: 10000 } },
       delta: { args: { samples: 10 }, hist: { exact: true } },
       discreteArr: true,
       discreteVec: true,
@@ -684,6 +685,17 @@ var tests = [
         args: {
           samples: 10000,
           steps: 10000
+        }
+      },
+      studentT: {
+        mean: { tol: 0.25 },
+        // Large tolerance because this will be auto-guided with a
+        // Gaussian, which will have smaller variance than the true
+        // variance of the model distribution.
+        std: { tol: 1.0 },
+        args: {
+          samples: 10000,
+          steps: 30000
         }
       },
       randomInteger2: {
