@@ -173,6 +173,8 @@ function spec(targetDist) {
     return discreteSpec(targetDist.params.n);
   } else if (targetDist instanceof dists.Binomial) {
     return discreteSpec(targetDist.params.n + 1);
+  } else if (targetDist instanceof dists.StudentT) {
+    return studentTSpec(targetDist);
   } else if (targetDist instanceof dists.MultivariateGaussian ||
              targetDist instanceof dists.Mixture ||
              targetDist instanceof dists.Marginal ||
@@ -300,6 +302,16 @@ function discreteSpec(dim) {
     type: dists.Discrete,
     params: {
       ps: {param: {dims: [dim - 1, 1], squish: numeric.squishToProbSimplex}}
+    }
+  };
+}
+
+function studentTSpec(targetDist) {
+  return {
+    type: dists.Gaussian,
+    params: {
+      mu: {param: {dims: [1]}},
+      sigma: {param: {dims: [1], squish: squishTo(0, Infinity)}}
     }
   };
 }
