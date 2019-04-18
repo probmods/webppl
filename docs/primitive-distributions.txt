@@ -199,7 +199,7 @@
 
   Distribution over reals.
 
-  `Wikipedia entry <https://en.wikipedia.org/wiki/https://en.wikipedia.org/wiki/Student's_t-distribution>`__
+  `Wikipedia entry <https://en.wikipedia.org/wiki/Student's_t-distribution>`__
 
 .. js:function:: TensorGaussian({mu: ..., sigma: ..., dims: ...})
 

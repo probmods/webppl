@@ -50,7 +50,7 @@ var StudentT = base.makeDistributionType({
     {name: 'location', desc: 'location', type: types.unboundedReal},
     {name: 'scale', desc: 'scale', type: types.positiveReal}
   ],
-  wikipedia: "https://en.wikipedia.org/wiki/Student's_t-distribution",
+  wikipedia: "Student's_t-distribution",
   mixins: [base.continuousSupport],
   sample: function () {
     return sample(ad.value(this.params.df), ad.value(this.params.location), ad.value(this.params.scale));
