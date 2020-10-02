@@ -1,13 +1,13 @@
-WebPPL [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl) [![Dependency Status](https://david-dm.org/probmods/webppl.svg)](https://david-dm.org/probmods/webppl)
+An Amazing WebPPL [![Build Status](https://travis-ci.org/probmods/webppl.svg?branch=dev)](https://travis-ci.org/probmods/webppl) [![Dependency Status](https://david-dm.org/probmods/webppl.svg)](https://david-dm.org/probmods/webppl)
 ======
 
-Probabilistic programming for the web
+Probabilistic Programming for the Web
 
-## Quick start
+## Quick Start
 
 Install using [nodejs](http://nodejs.org):
 
-    npm install -g webppl
+    npm install -g Webppl
 
 Run WebPPL programs:
 
@@ -34,3 +34,5 @@ WebPPL is released under the [MIT License](LICENSE.md).
 ## Contributions
 
 We encourage you to contribute to WebPPL! Check out our [guidelines for contributors](CONTRIBUTING.md) and join the [webppl-dev](https://groups.google.com/forum/#!forum/webppl-dev) mailing list.
+
+-------------end--------------
